@@ -1,0 +1,440 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { 
+  Activity, 
+  Users, 
+  Ambulance, 
+  Hospital, 
+  MapPin,
+  FileCheck,
+  TrendingUp,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
+  Moon,
+  Sun
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { LineChart, Line, AreaChart, Area, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+
+export const BentoHome = () => {
+  const navigate = useNavigate();
+  const [darkMode, setDarkMode] = useState(true);
+  const [stats, setStats] = useState({
+    liveEmergencies: 12,
+    responseTime: 8.5,
+    activeProviders: 45,
+    todayRequests: 127
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    fetchStats();
+  }, [darkMode]);
+
+  const fetchStats = async () => {
+    try {
+      const [requests, providers] = await Promise.all([
+        supabase.from('emergency_requests').select('*', { count: 'exact' }),
+        supabase.from('profiles').select('*', { count: 'exact' }).eq('role', 'provider')
+      ]);
+      
+      setStats(prev => ({
+        ...prev,
+        liveEmergencies: requests.count || prev.liveEmergencies,
+        activeProviders: providers.count || prev.activeProviders
+      }));
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const chartData = [
+    { time: '00:00', value: 5 },
+    { time: '04:00', value: 8 },
+    { time: '08:00', value: 15 },
+    { time: '12:00', value: 22 },
+    { time: '16:00', value: 18 },
+    { time: '20:00', value: 12 },
+  ];
+
+  return (
+    <div className="min-h-screen bg-background p-6 md:p-8">
+      {/* Header Section */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bento bg-primary flex items-center justify-center shadow-glow">
+              <div className="w-4 h-4 rounded-full bg-white pulse-dot"></div>
+            </div>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold">iVisit Console</h1>
+              <p className="text-muted-foreground">Emergency Response Command Center</p>
+            </div>
+          </div>
+          
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="w-12 h-12 bento glass hover-lift flex items-center justify-center"
+          >
+            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Bento Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-4 md:gap-6 auto-rows-[140px]">
+        
+        {/* Live Emergency Counter - Large Feature */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          className="col-span-1 md:col-span-3 lg:col-span-4 row-span-3"
+        >
+          <Card className="h-full bento-lg glass shadow-bento p-8 flex flex-col justify-between hover-lift cursor-pointer relative overflow-hidden group"
+                onClick={() => navigate('/map')}>
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bento bg-primary/10 flex items-center justify-center">
+                  <Activity className="h-6 w-6 text-primary" />
+                </div>
+                <Badge className="bento bg-primary/20 text-primary border-0">LIVE</Badge>
+              </div>
+              
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground uppercase tracking-wider">Active Emergencies</p>
+                <h2 className="text-7xl font-bold text-gradient-primary">{stats.liveEmergencies}</h2>
+                <div className="flex items-center gap-2 text-success">
+                  <TrendingUp className="h-4 w-4" />
+                  <span className="text-sm font-medium">-15% vs yesterday</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative z-10 mt-4">
+              <ResponsiveContainer width="100%" height={60}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="liveGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <Area 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="hsl(var(--primary))" 
+                    fill="url(#liveGradient)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Response Time */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="col-span-1 md:col-span-3 lg:col-span-3 row-span-2"
+        >
+          <Card className="h-full bento-lg glass shadow-bento p-6 flex flex-col justify-between hover-lift">
+            <div>
+              <div className="w-10 h-10 bento bg-success/10 flex items-center justify-center mb-4">
+                <Clock className="h-5 w-5 text-success" />
+              </div>
+              <p className="text-sm text-muted-foreground mb-2">Avg Response Time</p>
+              <h3 className="text-5xl font-bold">{stats.responseTime}<span className="text-2xl text-muted-foreground">m</span></h3>
+            </div>
+            <div className="flex items-center gap-2 text-success text-sm">
+              <CheckCircle2 className="h-4 w-4" />
+              <span>23% faster today</span>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Today's Requests */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.25 }}
+          className="col-span-1 md:col-span-3 lg:col-span-3 row-span-2"
+        >
+          <Card className="h-full bento-lg glass shadow-bento p-6 flex flex-col justify-between hover-lift">
+            <div>
+              <div className="w-10 h-10 bento bg-info/10 flex items-center justify-center mb-4">
+                <Activity className="h-5 w-5 text-info" />
+              </div>
+              <p className="text-sm text-muted-foreground mb-2">Today's Requests</p>
+              <h3 className="text-5xl font-bold">{stats.todayRequests}</h3>
+            </div>
+            <div className="flex items-center gap-2 text-primary text-sm">
+              <TrendingUp className="h-4 w-4" />
+              <span>+8% vs yesterday</span>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Map View Navigation */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
+          className="col-span-1 md:col-span-3 lg:col-span-2 row-span-2"
+        >
+          <Card 
+            className="h-full bento-lg glass shadow-bento p-6 flex flex-col justify-between hover-lift cursor-pointer group relative overflow-hidden"
+            onClick={() => navigate('/map')}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-secondary/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            
+            <div className="relative z-10 flex flex-col h-full justify-between">
+              <div className="w-12 h-12 bento bg-secondary/10 flex items-center justify-center">
+                <MapPin className="h-6 w-6 text-secondary" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-lg mb-1">God Mode</h4>
+                <p className="text-sm text-muted-foreground">Live tracking</p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Verification Queue */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.35 }}
+          className="col-span-1 md:col-span-3 lg:col-span-2 row-span-2"
+        >
+          <Card 
+            className="h-full bento-lg glass shadow-bento p-6 flex flex-col justify-between hover-lift cursor-pointer group relative overflow-hidden"
+            onClick={() => navigate('/verification')}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-warning/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            
+            <div className="relative z-10 flex flex-col h-full justify-between">
+              <div>
+                <div className="w-12 h-12 bento bg-warning/10 flex items-center justify-center mb-3">
+                  <FileCheck className="h-6 w-6 text-warning" />
+                </div>
+                <Badge className="bento bg-warning/20 text-warning border-0 mb-2">8 Pending</Badge>
+              </div>
+              <div>
+                <h4 className="font-semibold text-lg mb-1">Verification</h4>
+                <p className="text-sm text-muted-foreground">Review queue</p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Analytics */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.4 }}
+          className="col-span-1 md:col-span-3 lg:col-span-2 row-span-2"
+        >
+          <Card 
+            className="h-full bento-lg glass shadow-bento p-6 flex flex-col justify-between hover-lift cursor-pointer group relative overflow-hidden"
+            onClick={() => navigate('/analytics')}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-success/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            
+            <div className="relative z-10 flex flex-col h-full justify-between">
+              <div className="w-12 h-12 bento bg-success/10 flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-success" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-lg mb-1">Analytics</h4>
+                <p className="text-sm text-muted-foreground">Impact metrics</p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Hospitals */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.45 }}
+          className="col-span-1 md:col-span-2 lg:col-span-2 row-span-1"
+        >
+          <Card 
+            className="h-full bento-lg glass shadow-bento p-5 flex items-center justify-between hover-lift cursor-pointer"
+            onClick={() => navigate('/hospitals')}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bento bg-primary/10 flex items-center justify-center">
+                <Hospital className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h4 className="font-semibold">Hospitals</h4>
+                <p className="text-xs text-muted-foreground">28 active</p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Ambulances */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5 }}
+          className="col-span-1 md:col-span-2 lg:col-span-2 row-span-1"
+        >
+          <Card 
+            className="h-full bento-lg glass shadow-bento p-5 flex items-center justify-between hover-lift cursor-pointer"
+            onClick={() => navigate('/ambulances')}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bento bg-success/10 flex items-center justify-center">
+                <Ambulance className="h-5 w-5 text-success" />
+              </div>
+              <div>
+                <h4 className="font-semibold">Fleet</h4>
+                <p className="text-xs text-muted-foreground">{stats.activeProviders} units</p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Users */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.55 }}
+          className="col-span-1 md:col-span-2 lg:col-span-2 row-span-1"
+        >
+          <Card 
+            className="h-full bento-lg glass shadow-bento p-5 flex items-center justify-between hover-lift cursor-pointer"
+            onClick={() => navigate('/users')}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bento bg-info/10 flex items-center justify-center">
+                <Users className="h-5 w-5 text-info" />
+              </div>
+              <div>
+                <h4 className="font-semibold">Users</h4>
+                <p className="text-xs text-muted-foreground">1,247 total</p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Quick Stats */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.6 }}
+          className="col-span-1 md:col-span-6 lg:col-span-6 row-span-2"
+        >
+          <Card className="h-full bento-lg glass shadow-bento p-6">
+            <h4 className="font-semibold mb-6">System Status</h4>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Success Rate</span>
+                  <span className="text-2xl font-bold text-success">94%</span>
+                </div>
+                <div className="h-2 bg-muted bento overflow-hidden">
+                  <motion.div 
+                    className="h-full bg-success bento"
+                    initial={{ width: 0 }}
+                    animate={{ width: '94%' }}
+                    transition={{ duration: 1, delay: 0.8 }}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Fleet Active</span>
+                  <span className="text-2xl font-bold text-primary">78%</span>
+                </div>
+                <div className="h-2 bg-muted bento overflow-hidden">
+                  <motion.div 
+                    className="h-full bg-primary bento"
+                    initial={{ width: 0 }}
+                    animate={{ width: '78%' }}
+                    transition={{ duration: 1, delay: 1 }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Beds Available</span>
+                  <span className="text-2xl font-bold text-info">156</span>
+                </div>
+                <div className="h-2 bg-muted bento overflow-hidden">
+                  <motion.div 
+                    className="h-full bg-info bento"
+                    initial={{ width: 0 }}
+                    animate={{ width: '65%' }}
+                    transition={{ duration: 1, delay: 1.2 }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">System Health</span>
+                  <span className="text-2xl font-bold text-success">99%</span>
+                </div>
+                <div className="h-2 bg-muted bento overflow-hidden">
+                  <motion.div 
+                    className="h-full bg-success bento"
+                    initial={{ width: 0 }}
+                    animate={{ width: '99%' }}
+                    transition={{ duration: 1, delay: 1.4 }}
+                  />
+                </div>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Recent Activity */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.65 }}
+          className="col-span-1 md:col-span-6 lg:col-span-6 row-span-2"
+        >
+          <Card className="h-full bento-lg glass shadow-bento p-6 flex flex-col">
+            <h4 className="font-semibold mb-4">Recent Activity</h4>
+            <div className="space-y-3 flex-1 overflow-y-auto">
+              {[
+                { type: 'emergency', msg: 'New emergency request from Victoria Island', time: '2m ago', icon: AlertCircle, color: 'text-primary' },
+                { type: 'complete', msg: 'Emergency response completed - Lekki', time: '15m ago', icon: CheckCircle2, color: 'text-success' },
+                { type: 'provider', msg: 'New provider verified - Dr. Adebayo', time: '1h ago', icon: FileCheck, color: 'text-info' },
+                { type: 'emergency', msg: 'Ambulance dispatched to Ikeja', time: '2h ago', icon: Ambulance, color: 'text-warning' },
+              ].map((activity, idx) => (
+                <div key={idx} className="flex items-start gap-3 p-3 bento bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <activity.icon className={`h-5 w-5 ${activity.color} mt-0.5`} />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{activity.msg}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
