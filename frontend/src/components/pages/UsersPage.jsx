@@ -90,7 +90,7 @@ export const UsersPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-8 md:pl-24">
+    <div className="min-h-screen bg-background p-6 md:p-8">
       <PageHeader
         title="User Management"
         subtitle="Manage users, providers, and access control"

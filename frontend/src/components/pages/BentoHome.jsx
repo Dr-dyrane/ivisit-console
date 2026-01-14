@@ -62,7 +62,7 @@ export const BentoHome = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-8 md:pl-24">
+    <div className="min-h-screen bg-background p-6 md:p-8">
       {/* Header */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
