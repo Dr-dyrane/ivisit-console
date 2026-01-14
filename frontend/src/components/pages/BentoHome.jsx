@@ -14,8 +14,6 @@ import {
   Clock,
   AlertCircle,
   CheckCircle2,
-  Moon,
-  Sun,
   ChevronRight,
   Stethoscope,
   Calendar,
