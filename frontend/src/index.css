@@ -9,6 +9,33 @@ body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Hide scrollbar but allow scrolling */
+body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+html {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+html::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
 }
 
 code {
