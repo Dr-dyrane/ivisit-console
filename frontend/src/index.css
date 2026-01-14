@@ -11,36 +11,22 @@ body {
     -moz-osx-font-smoothing: grayscale;
     overflow-y: scroll;
     overflow-x: hidden;
-}
-
-/* Thin custom scrollbar for desktop */
-body::-webkit-scrollbar {
-    width: 6px;
-}
-
-body::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-body::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 3px;
-}
-
-body::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
-}
-
-html {
-    overflow-y: scroll;
-    overflow-x: hidden;
     scroll-behavior: smooth;
 }
 
-/* Firefox thin scrollbar */
+/* Hide scrollbars completely */
+body::-webkit-scrollbar {
+    display: none;
+}
+
+body {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Firefox thin scrollbar - backup */
 html, body {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+    scrollbar-width: none;
 }
 
 code {
@@ -49,76 +35,87 @@ code {
 
 @layer base {
     :root {
-        --background: 0 0% 96%;
-        --foreground: 0 0% 10%;
-        --card: 0 0% 100%;
-        --card-foreground: 0 0% 10%;
+        /* iVisit Brand Colors - Enhanced for Premium Feel */
+        --background: 0 0% 100%; /* Pure white with slight warmth */
+        --foreground: 0 0% 8%; /* Soft black, less harsh */
+        --card: 0 0% 100%; /* Pure white cards */
+        --card-foreground: 0 0% 8%; /* Soft black text */
         --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 10%;
-        --primary: 357 87% 30%;
+        --popover-foreground: 0 0% 8%;
+        --primary: 357 74% 26%; /* brandPrimary #86100E */
         --primary-foreground: 0 0% 100%;
-        --secondary: 357 62% 41%;
+        --secondary: 357 74% 36%; /* brandSecondary #B71C1C */
         --secondary-foreground: 0 0% 100%;
-        --muted: 0 0% 96%;
-        --muted-foreground: 0 0% 50%;
-        --accent: 357 87% 30%;
+        --muted: 0 0% 98%; /* Very light gray, subtle */
+        --muted-foreground: 0 0% 35%; /* Softer muted text */
+        --accent: 357 74% 26%;
         --accent-foreground: 0 0% 100%;
         --destructive: 0 84% 60%;
         --destructive-foreground: 0 0% 100%;
-        --border: 0 0% 90%;
-        --input: 0 0% 90%;
-        --ring: 357 87% 30%;
-        --success: 357 62% 41%;
+        --border: 0 0% 92%; /* Lighter borders for elegance */
+        --input: 0 0% 92%;
+        --ring: 357 74% 26%;
+        --success: 357 74% 36%;
         --success-foreground: 0 0% 100%;
-        --warning: 357 62% 41%;
+        --warning: 357 74% 36%;
         --warning-foreground: 0 0% 100%;
-        --info: 357 87% 30%;
+        --info: 357 74% 26%;
         --info-foreground: 0 0% 100%;
-        --chart-1: 357 87% 30%;
-        --chart-2: 357 62% 41%;
+        --chart-1: 357 74% 26%;
+        --chart-2: 357 74% 36%;
         --chart-3: 0 70% 45%;
         --chart-4: 0 84% 60%;
         --chart-5: 15 80% 50%;
         --radius: 1.75rem;
         --squircle: 1.75rem;
-        --glass-bg: 0 0% 100% / 0.5;
-        --glass-border: 0 0% 90% / 0;
-        --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.02);
-        --shadow-md: 0 6px 16px -3px rgb(0 0 0 / 0.03);
-        --shadow-lg: 0 12px 32px -6px rgb(0 0 0 / 0.05);
-        --shadow-xl: 0 20px 48px -8px rgb(0 0 0 / 0.08);
-        --shadow-glow: 0 0 28px hsl(var(--primary) / 0.12);
-        --transition-smooth: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        /* Enhanced Premium Effects */
+        --glass-bg: 0 0% 100% / 0.8;
+        --glass-border: 0 0% 92% / 0.3;
+        --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.04);
+        --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.06);
+        --shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.08);
+        --shadow-xl: 0 20px 40px -8px rgb(0 0 0 / 0.12);
+        --shadow-glow: 0 0 32px hsl(var(--primary) / 0.15);
+        --shadow-premium: 0 25px 50px -12px rgb(134 16 14 / 0.15);
+        --transition-smooth: 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        
+        /* Apple-inspired depth */
+        --surface-1: 0 0% 100%;
+        --surface-2: 0 0% 99%;
+        --surface-3: 0 0% 97%;
+        --surface-raised: 0 0% 100%;
+        --surface-border: 0 0% 90%;
     }
     
     .dark {
-        --background: 217 38% 6%;
-        --foreground: 0 0% 98%;
-        --card: 217 30% 9%;
-        --card-foreground: 0 0% 98%;
-        --popover: 217 30% 9%;
-        --popover-foreground: 0 0% 98%;
-        --primary: 357 87% 30%;
-        --primary-foreground: 0 0% 100%;
-        --secondary: 357 62% 41%;
-        --secondary-foreground: 0 0% 100%;
-        --muted: 217 25% 12%;
-        --muted-foreground: 0 0% 69%;
-        --accent: 357 87% 30%;
-        --accent-foreground: 0 0% 100%;
-        --destructive: 0 84% 60%;
-        --destructive-foreground: 0 0% 100%;
-        --border: 0 0% 17%;
-        --input: 0 0% 17%;
-        --ring: 357 87% 30%;
-        --success: 357 62% 41%;
-        --success-foreground: 0 0% 100%;
-        --warning: 357 62% 41%;
-        --warning-foreground: 0 0% 100%;
-        --info: 357 87% 30%;
-        --info-foreground: 0 0% 100%;
-        --chart-1: 357 87% 40%;
-        --chart-2: 357 62% 50%;
+        --background: 217 38% 4%; /* bgDark #0B0F1A */
+        --foreground: 0 0% 100%; /* textLight */
+        --card: 217 38% 7%; /* bgDarkAlt #121826 */
+        --card-foreground: 0 0% 100%; /* textLight */
+        --popover: 217 38% 7%; /* bgDarkAlt */
+        --popover-foreground: 0 0% 100%; /* textLight */
+        --primary: 357 74% 26%; /* brandPrimary #86100E */
+        --primary-foreground: 0 0% 100%; /* textLight */
+        --secondary: 357 74% 36%; /* brandSecondary #B71C1C */
+        --secondary-foreground: 0 0% 100%; /* textLight */
+        --muted: 217 38% 4%; /* bgDark */
+        --muted-foreground: 0 0% 69%; /* textMutedDark */
+        --accent: 357 74% 26%; /* brandPrimary */
+        --accent-foreground: 0 0% 100%; /* textLight */
+        --destructive: 0 84% 60%; /* error #C62828 */
+        --destructive-foreground: 0 0% 100%; /* textLight */
+        --border: 0 0% 16%; /* border #2A2A2A */
+        --input: 0 0% 16%; /* border #2A2A2A */
+        --ring: 357 74% 26%; /* brandPrimary */
+        --success: 357 74% 36%; /* brandSecondary */
+        --success-foreground: 0 0% 100%; /* textLight */
+        --warning: 357 74% 36%; /* brandSecondary */
+        --warning-foreground: 0 0% 100%; /* textLight */
+        --info: 357 74% 26%; /* brandPrimary */
+        --info-foreground: 0 0% 100%; /* textLight */
+        --chart-1: 357 74% 40%;
+        --chart-2: 357 74% 50%;
         --chart-3: 0 70% 55%;
         --chart-4: 0 84% 65%;
         --chart-5: 15 80% 60%;
@@ -159,6 +156,10 @@ code {
     
     .squircle-lg {
         border-radius: 2rem;
+    }
+    
+    .squircle-xl {
+        border-radius: 2.5rem;
     }
     
     .editorial-title {

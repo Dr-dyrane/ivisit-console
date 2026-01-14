@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { AuthSkeleton } from '../components/ui/skeleton';
 
 const AuthContext = createContext({});
 
@@ -23,31 +24,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id, session.user.email);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id, session.user.email);
-      } else {
-        setProfile(null);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const [initializing, setInitializing] = useState(true);
 
   const fetchProfile = async (userId, email) => {
     try {
@@ -104,8 +81,41 @@ export const AuthProvider = ({ children }) => {
       });
     } finally {
       setLoading(false);
+      setInitializing(false);
     }
   };
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id, session.user.email);
+      } else {
+        setLoading(false);
+        setInitializing(false);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id, session.user.email);
+      } else {
+        setProfile(null);
+        setLoading(false);
+        setInitializing(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Show skeleton during initial load
+  if (initializing) {
+    return <AuthSkeleton />;
+  }
 
   const signIn = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({

@@ -18,6 +18,7 @@ import { EmergencyRequestsPage } from './components/pages/EmergencyRequestsPage'
 import { LoginPage } from './components/pages/LoginPage';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { Toaster } from './components/ui/sonner';
+import AuthWrapper from './components/common/AuthWrapper';
 import './App.css';
 
 // Wrapper to conditionally show navigation
@@ -26,10 +27,10 @@ const AppLayout = ({ children }) => {
   const hideNav = ['/login', '/unauthorized'].includes(location.pathname);
   
   return (
-    <>
+    <div className="flex-1 flex-col h-screen overflow-y-scroll">
       {!hideNav && <IslandNavigation />}
       {children}
-    </>
+    </div>
   );
 };
 
