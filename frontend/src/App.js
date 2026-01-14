@@ -1,54 +1,38 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { DashboardLayout } from './components/layout/DashboardLayout';
+import { Overview } from './components/pages/Overview';
+import { GodModeMap } from './components/pages/GodModeMap';
+import { VerificationQueue } from './components/pages/VerificationQueue';
+import { Analytics } from './components/pages/Analytics';
+import './App.css';
 
 function App() {
   return (
-    <div className="App">
-      <BrowserRouter>
+    <Router>
+      <DashboardLayout>
         <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
+          <Route path="/" element={<Overview />} />
+          <Route path="/map" element={<GodModeMap />} />
+          <Route path="/verification" element={<VerificationQueue />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/hospitals" element={<ComingSoon title="Hospitals Management" />} />
+          <Route path="/ambulances" element={<ComingSoon title="Fleet Management" />} />
+          <Route path="/users" element={<ComingSoon title="User Management" />} />
+          <Route path="/settings" element={<ComingSoon title="Settings" />} />
         </Routes>
-      </BrowserRouter>
-    </div>
+      </DashboardLayout>
+    </Router>
   );
 }
+
+const ComingSoon = ({ title }) => (
+  <div className="flex items-center justify-center h-[calc(100vh-12rem)]">
+    <div className="text-center">
+      <h2 className="text-2xl font-bold mb-2">{title}</h2>
+      <p className="text-muted-foreground">This feature is coming soon</p>
+    </div>
+  </div>
+);
 
 export default App;
