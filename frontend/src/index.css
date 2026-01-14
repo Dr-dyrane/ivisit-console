@@ -29,6 +29,26 @@ html, body {
     scrollbar-width: none;
 }
 
+/* Global scrollbar hide – applies to all scrollable elements */
+*::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+}
+* {
+    scrollbar-width: none !important;       /* Firefox */
+    -ms-overflow-style: none !important;    /* IE and Edge */
+}
+
+/* Utility: hide scrollbar but keep scrolling */
+.no-scrollbar {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none !important;
+}
+
 code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }

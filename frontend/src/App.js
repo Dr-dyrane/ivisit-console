@@ -26,7 +26,6 @@ import { EmergencyRequestsPage } from "./components/pages/EmergencyRequestsPage"
 import { LoginPage } from "./components/pages/LoginPage";
 import { SettingsPage } from "./components/pages/SettingsPage";
 import { Toaster } from "./components/ui/sonner";
-import ThemeToggle from "./components/ui/theme-toggle";
 import NoiseOverlay from "./components/ui/noise-overlay";
 import AuthWrapper from "./components/common/AuthWrapper";
 import "./App.css";
@@ -44,9 +43,6 @@ const AppLayout = ({ children }) => {
             <NoiseOverlay opacity={1} />
             <div className="absolute top-[-20%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/5 rounded-full blur-[120px]" />
-          </div>
-          <div className="fixed top-4 right-8 z-50">
-            <ThemeToggle />
           </div>
         </>
       )}

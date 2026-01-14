@@ -4,6 +4,7 @@ import { Home, MapPin, FileCheck, TrendingUp, Settings, Menu, X, Stethoscope, Ca
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import ThemeToggle from '../ui/theme-toggle';
 import { Badge } from '../ui/badge';
 
 export const IslandNavigation = () => {
@@ -93,135 +94,7 @@ export const IslandNavigation = () => {
 
   return (
     <>
-      {/* Desktop - Top Right Island (lg and above) */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="hidden lg:flex fixed top-6 right-32 z-50 glass shadow-premium px-3 py-2 squircle-lg gap-2 items-center"
-      >
-        {filteredNavItems.map((item) => (
-          <button
-            key={item.path}
-            onClick={() => navigate(item.path)}
-            className={`relative px-4 py-2.5 squircle transition-all duration-300 ${
-              isActive(item.path)
-                ? 'bg-primary text-primary-foreground shadow-glow'
-                : 'hover:bg-muted/50'
-            }`}
-            data-testid={`nav-${item.label.toLowerCase()}`}
-          >
-            <item.icon className="h-5 w-5" />
-            {isActive(item.path) && (
-              <motion.div
-                layoutId="activeTab"
-                className="absolute inset-0 bg-primary squircle -z-10"
-                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-              />
-            )}
-          </button>
-        ))}
-        
-        {/* Menu Button */}
-        <button
-          onClick={() => { setMenuOpen(!menuOpen); setUserMenuOpen(false); }}
-          className={`relative px-4 py-2.5 squircle transition-all duration-300 ${
-            menuOpen ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50'
-          }`}
-          data-testid="nav-menu-btn"
-        >
-          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-
-        {/* User Avatar */}
-        <button
-          onClick={() => { setUserMenuOpen(!userMenuOpen); setMenuOpen(false); }}
-          className="ml-1"
-        >
-          <Avatar className="h-10 w-10 squircle ring-2 ring-border hover:ring-primary transition-all">
-            <AvatarImage src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.id}`} />
-            <AvatarFallback className="squircle bg-primary/10 text-primary font-bold">
-              {profile?.username?.[0]?.toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
-        </button>
-      </motion.div>
-
-      {/* Desktop Dropdown Menu */}
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="hidden lg:block fixed top-24 right-12 z-50 glass shadow-premium p-3 squircle-lg min-w-[200px]"
-          >
-            <div className="space-y-1">
-              {filteredMenuItems.map((item) => (
-                <button
-                  key={item.path}
-                  onClick={() => handleNavigate(item.path)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 squircle transition-all duration-300 ${
-                    isActive(item.path)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted/50'
-                  }`}
-                  data-testid={`menu-${item.label.toLowerCase()}`}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span className="font-bold text-sm">{item.label}</span>
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* User Dropdown Menu */}
-      <AnimatePresence>
-        {userMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="hidden lg:block fixed top-24 right-12 z-50 glass shadow-premium p-4 squircle-lg min-w-[240px]"
-          >
-            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border/50">
-              <Avatar className="h-12 w-12 squircle">
-                <AvatarImage src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.id}`} />
-                <AvatarFallback className="squircle bg-primary/10 text-primary font-bold">
-                  {profile?.username?.[0]?.toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="font-black truncate">{profile?.username || 'User'}</p>
-                <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
-                <Badge className={`squircle-sm text-xs mt-1 ${getRoleBadgeColor(profile?.role)}`}>
-                  {profile?.role || 'viewer'}
-                </Badge>
-              </div>
-            </div>
-            
-            <div className="space-y-1">
-              <button
-                onClick={() => handleNavigate('/settings')}
-                className="w-full flex items-center gap-3 px-4 py-3 squircle hover:bg-muted/50 transition-all"
-              >
-                <User className="h-5 w-5" />
-                <span className="font-bold text-sm">My Profile</span>
-              </button>
-              <button
-                onClick={handleSignOut}
-                className="w-full flex items-center gap-3 px-4 py-3 squircle hover:bg-destructive/10 text-destructive transition-all"
-              >
-                <LogOut className="h-5 w-5" />
-                <span className="font-bold text-sm">Sign Out</span>
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Desktop Top-Right island removed; unify to left-side vertical across breakpoints */}
 
       {/* Mobile/Tablet - Left Vertical Sidebar */}
       <motion.div
@@ -232,7 +105,7 @@ export const IslandNavigation = () => {
           pointerEvents: isVisible ? 'auto' : 'none'
         }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="lg:hidden fixed left-3 top-1/2 -translate-y-1/2 z-50 glass shadow-premium px-2 py-3 squircle-lg flex flex-col gap-1"
+        className="fixed left-3 top-1/2 -translate-y-1/2 z-50 glass shadow-premium px-2 py-3 squircle-lg flex flex-col gap-1"
       >
         {filteredNavItems.map((item) => (
           <button
@@ -278,6 +151,9 @@ export const IslandNavigation = () => {
             </AvatarFallback>
           </Avatar>
         </button>
+
+        <div className="h-px bg-border/50 my-2" />
+        <ThemeToggle size="xs" />
       </motion.div>
 
       {/* Mobile Expanded Menu */}
@@ -288,7 +164,7 @@ export const IslandNavigation = () => {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden fixed left-16 top-1/2 -translate-y-1/2 z-50 glass shadow-premium p-3 squircle-lg"
+            className="fixed left-16 top-1/2 -translate-y-1/2 z-50 glass shadow-premium p-3 squircle-lg"
           >
             <div className="space-y-1">
               {filteredMenuItems.map((item) => (

@@ -71,7 +71,7 @@ export const BentoHome = () => {
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 squircle bg-primary flex items-center justify-center shadow-glow">
+            <div className="w-16 h-16 squircle bg-primary/10 flex items-center justify-center shadow-glow">
               <img src="/logo.png" alt="iVisit" className="w-8 h-8" />
             </div>
             <div>
