@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { IslandNavigation } from './components/common/IslandNavigation';
 import { BentoHome } from './components/pages/BentoHome';
 import { GodModeMap } from './components/pages/GodModeMap';
 import { VerificationQueue } from './components/pages/VerificationQueue';
@@ -15,6 +16,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <IslandNavigation />
         <Routes>
           <Route path="/" element={<BentoHome />} />
           <Route path="/map" element={<GodModeMap />} />

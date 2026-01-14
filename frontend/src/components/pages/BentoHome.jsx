@@ -92,14 +92,11 @@ export const BentoHome = () => {
       </motion.div>
 
       {/* Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-5 md:gap-6 auto-rows-[140px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 md:gap-5 auto-rows-[140px]">
         
         {/* Live Emergency Counter - Hero Card */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="col-span-1 md:col-span-3 lg:col-span-4 row-span-3"
+          className="col-span-1 sm:col-span-2 lg:col-span-5 row-span-3 stagger-item"
         >
           <Card className="h-full squircle-lg glass shadow-premium p-8 flex flex-col justify-between hover-lift cursor-pointer relative overflow-hidden group border-0"
                 onClick={() => navigate('/map')}>
@@ -155,10 +152,7 @@ export const BentoHome = () => {
 
         {/* Response Time */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.15 }}
-          className="col-span-1 md:col-span-3 lg:col-span-3 row-span-2"
+          className="col-span-1 sm:col-span-1 lg:col-span-3 row-span-2 stagger-item"
         >
           <Card className="h-full squircle-lg glass shadow-premium p-7 flex flex-col justify-between hover-lift border-0 relative overflow-hidden group">
             <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-success/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-1000" />
@@ -178,10 +172,7 @@ export const BentoHome = () => {
 
         {/* Today's Requests */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="col-span-1 md:col-span-3 lg:col-span-3 row-span-2"
+          className="col-span-1 sm:col-span-1 lg:col-span-4 row-span-2 stagger-item"
         >
           <Card className="h-full squircle-lg glass shadow-premium p-7 flex flex-col justify-between hover-lift border-0 relative overflow-hidden group">
             <div className="absolute -left-8 -top-8 w-32 h-32 bg-info/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-1000" />
@@ -201,10 +192,7 @@ export const BentoHome = () => {
 
         {/* Navigation Cards - God Mode */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.25 }}
-          className="col-span-1 md:col-span-2 lg:col-span-2 row-span-2"
+          className="col-span-1 sm:col-span-1 lg:col-span-2 row-span-2 stagger-item"
         >
           <Card 
             className="h-full squircle-lg glass shadow-premium p-6 hover-lift cursor-pointer group relative overflow-hidden border-0"
