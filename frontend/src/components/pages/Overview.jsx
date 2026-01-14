@@ -155,134 +155,161 @@ export const Overview = () => {
                   <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-              <YAxis stroke="hsl(var(--muted-foreground))" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '1rem'
-                }}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="requests" 
-                stroke="hsl(var(--primary))" 
-                fillOpacity={1} 
-                fill="url(#colorRequests)" 
-              />
-              <Area 
-                type="monotone" 
-                dataKey="completed" 
-                stroke="hsl(var(--success))" 
-                fillOpacity={1} 
-                fill="url(#colorCompleted)" 
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+              {filteredRequests.map((request) => (
+                <AdvancedMarker
+                  key={request.id}
+                  position={{ lat: request.lat, lng: request.lng }}
+                  onClick={() => setSelectedMarker({ type: 'request', data: request })}
+                >
+                  <div 
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: getStatusColor(request.status),
+                      border: '3px solid white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
+                    }}
+                  >
+                    <Activity style={{ width: '16px', height: '16px', color: 'white' }} />
+                  </div>
+                </AdvancedMarker>
+              ))}
+
+              {ambulances.map((ambulance) => (
+                <AdvancedMarker
+                  key={ambulance.id}
+                  position={{ lat: ambulance.lat, lng: ambulance.lng }}
+                  onClick={() => setSelectedMarker({ type: 'ambulance', data: ambulance })}
+                >
+                  <div 
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: '#10b981',
+                      border: '3px solid white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
+                    }}
+                  >
+                    <Ambulance style={{ width: '16px', height: '16px', color: 'white' }} />
+                  </div>
+                </AdvancedMarker>
+              ))}
+            </Map>
+          </APIProvider>
         </Card>
 
-        <Card className="squircle-lg p-6 glass">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold">Quick Stats</h3>
-            <Clock className="h-5 w-5 text-muted-foreground" />
-          </div>
-          
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Avg Response Time</span>
-                <span className="text-2xl font-bold text-success">{stats.avgResponseTime}m</span>
-              </div>
-              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                <motion.div 
-                  className="h-full bg-success rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: '75%' }}
-                  transition={{ duration: 1, delay: 0.2 }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Success Rate</span>
-                <span className="text-2xl font-bold text-primary">94%</span>
-              </div>
-              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                <motion.div 
-                  className="h-full bg-primary rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: '94%' }}
-                  transition={{ duration: 1, delay: 0.4 }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Fleet Utilization</span>
-                <span className="text-2xl font-bold text-info">68%</span>
-              </div>
-              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                <motion.div 
-                  className="h-full bg-info rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: '68%' }}
-                  transition={{ duration: 1, delay: 0.6 }}
-                />
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <Card className="squircle-lg p-6 glass">
-        <h3 className="text-lg font-semibold mb-4">Recent Emergency Requests</h3>
-        <div className="space-y-3">
-          {recentRequests.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No recent requests</p>
-          ) : (
-            recentRequests.map((request, index) => (
-              <motion.div
-                key={request.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex items-center justify-between p-4 rounded-2xl bg-muted/50 hover:bg-muted transition-smooth"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Activity className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{request.patient?.username || 'Unknown Patient'}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {request.hospital?.name || 'Hospital not assigned'}
-                    </p>
-                  </div>
-                </div>
-                <Badge className={`squircle ${getStatusColor(request.status)}`}>
-                  {request.status}
+        <div className="w-80 space-y-4">
+          <Card className="squircle-lg p-6 glass">
+            <h3 className="font-semibold mb-4">Live Statistics</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Active Emergencies</span>
+                <Badge className="squircle bg-primary/20 text-primary">
+                  {emergencyRequests.length}
                 </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Available Ambulances</span>
+                <Badge className="squircle bg-success/20 text-success">
+                  {ambulances.length}
+                </Badge>
+              </div>
+            </div>
+          </Card>
+
+          <AnimatePresence>
+            {selectedMarker && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+              >
+                <Card className="squircle-lg p-6 glass">
+                  <div className="flex items-start justify-between mb-4">
+                    <h3 className="font-semibold">
+                      {selectedMarker.type === 'request' ? 'Emergency Request' : 'Ambulance'}
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedMarker(null)}
+                      className="squircle"
+                    >
+                      ×
+                    </Button>
+                  </div>
+
+                  {selectedMarker.type === 'request' ? (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Patient</p>
+                        <p className="font-medium">{selectedMarker.data.patient?.username || 'Unknown'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Hospital</p>
+                        <p className="font-medium">{selectedMarker.data.hospital?.name || 'Not assigned'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Status</p>
+                        <Badge className={`squircle ${getStatusBadgeColor(selectedMarker.data.status)}`}>
+                          {selectedMarker.data.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Call Sign</p>
+                        <p className="font-medium">{selectedMarker.data.call_sign || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Type</p>
+                        <p className="font-medium">{selectedMarker.data.type || 'Standard'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Status</p>
+                        <Badge className="squircle bg-success/20 text-success">
+                          Available
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+                </Card>
               </motion.div>
-            ))
-          )}
+            )}
+          </AnimatePresence>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };
 
 function getStatusColor(status) {
   const colors = {
+    pending: '#f59e0b',
+    accepted: '#3b82f6',
+    in_progress: '#e63946',
+    completed: '#10b981',
+  };
+  return colors[status] || colors.pending;
+}
+
+function getStatusBadgeColor(status) {
+  const colors = {
     pending: 'bg-warning/20 text-warning border-warning/30',
     accepted: 'bg-info/20 text-info border-info/30',
-    arrived: 'bg-secondary/20 text-secondary border-secondary/30',
     in_progress: 'bg-primary/20 text-primary border-primary/30',
     completed: 'bg-success/20 text-success border-success/30',
-    cancelled: 'bg-muted text-muted-foreground',
   };
   return colors[status] || colors.pending;
 }
