@@ -1,7 +1,8 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { IslandNavigation } from './components/common/IslandNavigation';
+import { ProtectedRoute, UnauthorizedPage } from './components/common/ProtectedRoute';
 import { BentoHome } from './components/pages/BentoHome';
 import { GodModeMap } from './components/pages/GodModeMap';
 import { VerificationQueue } from './components/pages/VerificationQueue';
@@ -12,46 +13,106 @@ import { UsersPage } from './components/pages/UsersPage';
 import { DoctorsPage } from './components/pages/DoctorsPage';
 import { VisitsPage } from './components/pages/VisitsPage';
 import { EmergencyRequestsPage } from './components/pages/EmergencyRequestsPage';
+import { LoginPage } from './components/pages/LoginPage';
+import { SettingsPage } from './components/pages/SettingsPage';
 import { Toaster } from './components/ui/sonner';
 import './App.css';
+
+// Wrapper to conditionally show navigation
+const AppLayout = ({ children }) => {
+  const location = useLocation();
+  const hideNav = ['/login', '/unauthorized'].includes(location.pathname);
+  
+  return (
+    <>
+      {!hideNav && <IslandNavigation />}
+      {children}
+    </>
+  );
+};
+
+function AppRoutes() {
+  return (
+    <AppLayout>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        
+        {/* Protected routes - All authenticated users */}
+        <Route path="/" element={
+          <ProtectedRoute>
+            <BentoHome />
+          </ProtectedRoute>
+        } />
+        <Route path="/map" element={
+          <ProtectedRoute>
+            <GodModeMap />
+          </ProtectedRoute>
+        } />
+        <Route path="/analytics" element={
+          <ProtectedRoute>
+            <Analytics />
+          </ProtectedRoute>
+        } />
+        
+        {/* Provider+ routes */}
+        <Route path="/hospitals" element={
+          <ProtectedRoute minRole="provider">
+            <HospitalsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/ambulances" element={
+          <ProtectedRoute minRole="provider">
+            <AmbulancesPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/doctors" element={
+          <ProtectedRoute minRole="provider">
+            <DoctorsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/visits" element={
+          <ProtectedRoute minRole="provider">
+            <VisitsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/emergencies" element={
+          <ProtectedRoute minRole="provider">
+            <EmergencyRequestsPage />
+          </ProtectedRoute>
+        } />
+        
+        {/* Admin only routes */}
+        <Route path="/verification" element={
+          <ProtectedRoute minRole="admin">
+            <VerificationQueue />
+          </ProtectedRoute>
+        } />
+        <Route path="/users" element={
+          <ProtectedRoute minRole="admin">
+            <UsersPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        } />
+      </Routes>
+    </AppLayout>
+  );
+}
 
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <IslandNavigation />
-        <Routes>
-          <Route path="/" element={<BentoHome />} />
-          <Route path="/map" element={<GodModeMap />} />
-          <Route path="/verification" element={<VerificationQueue />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/hospitals" element={<HospitalsPage />} />
-          <Route path="/ambulances" element={<AmbulancesPage />} />
-          <Route path="/users" element={<UsersPage />} />
-          <Route path="/doctors" element={<DoctorsPage />} />
-          <Route path="/visits" element={<VisitsPage />} />
-          <Route path="/emergencies" element={<EmergencyRequestsPage />} />
-          <Route path="/settings" element={<ComingSoon title="Settings" />} />
-        </Routes>
+        <AppRoutes />
         <Toaster position="top-right" richColors />
       </Router>
     </AuthProvider>
   );
 }
-
-const ComingSoon = ({ title }) => (
-  <div className="min-h-screen bg-background flex items-center justify-center p-6">
-    <div className="text-center">
-      <h2 className="text-3xl font-bold mb-2">{title}</h2>
-      <p className="text-muted-foreground mb-6">This module is under construction</p>
-      <button 
-        onClick={() => window.history.back()} 
-        className="px-6 py-3 squircle bg-primary text-primary-foreground hover-lift font-bold"
-      >
-        Go Back
-      </button>
-    </div>
-  </div>
-);
 
 export default App;
