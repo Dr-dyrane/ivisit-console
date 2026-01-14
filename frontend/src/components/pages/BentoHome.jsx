@@ -19,7 +19,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { LineChart, Line, AreaChart, Area, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
 export const BentoHome = () => {
   const navigate = useNavigate();
