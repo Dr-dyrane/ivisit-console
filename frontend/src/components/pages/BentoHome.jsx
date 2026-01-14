@@ -67,7 +67,7 @@ export const BentoHome = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-8">
+    <div className="min-h-screen bg-background p-6 md:p-8 md:pl-24">
       {/* Header */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
@@ -84,13 +84,6 @@ export const BentoHome = () => {
               <p className="text-muted-foreground font-semibold">Emergency Response Command Center</p>
             </div>
           </div>
-          
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="w-14 h-14 squircle glass hover-lift flex items-center justify-center shadow-md"
-          >
-            {darkMode ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
-          </button>
         </div>
       </motion.div>
 
