@@ -11,6 +11,14 @@ export const useAuth = () => {
   return context;
 };
 
+// Role hierarchy: admin > sponsor > provider > viewer
+const ROLE_HIERARCHY = {
+  admin: 4,
+  sponsor: 3,
+  provider: 2,
+  viewer: 1,
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -21,7 +29,7 @@ export const AuthProvider = ({ children }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id, session.user.email);
       } else {
         setLoading(false);
       }
@@ -31,7 +39,7 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id, session.user.email);
       } else {
         setProfile(null);
         setLoading(false);
@@ -41,7 +49,7 @@ export const AuthProvider = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId) => {
+  const fetchProfile = async (userId, email) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -49,20 +57,81 @@ export const AuthProvider = ({ children }) => {
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
-      setProfile(data);
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      if (data) {
+        // Check if this is the admin email and update role if needed
+        if (email === 'halodyrane@gmail.com' && data.role !== 'admin') {
+          await supabase
+            .from('profiles')
+            .update({ role: 'admin' })
+            .eq('id', userId);
+          data.role = 'admin';
+        }
+        setProfile(data);
+      } else {
+        // Create new profile if doesn't exist
+        const role = email === 'halodyrane@gmail.com' ? 'admin' : 'viewer';
+        const newProfile = {
+          id: userId,
+          email: email,
+          role: role,
+          username: email?.split('@')[0] || 'User',
+          created_at: new Date().toISOString(),
+        };
+        
+        const { data: createdProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert([newProfile])
+          .select()
+          .single();
+        
+        if (createError) {
+          console.error('Error creating profile:', createError);
+          setProfile(newProfile); // Use local profile as fallback
+        } else {
+          setProfile(createdProfile);
+        }
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
-      // For demo purposes, set a default admin profile
+      // Fallback profile
       setProfile({
         id: userId,
-        role: 'admin',
-        username: 'Admin User',
-        email: 'admin@ivisit.com',
+        role: email === 'halodyrane@gmail.com' ? 'admin' : 'viewer',
+        username: email?.split('@')[0] || 'User',
+        email: email,
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const signIn = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+    return data;
+  };
+
+  const signUp = async (email, password, username) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username },
+      },
+    });
+    if (error) throw error;
+    return data;
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setProfile(null);
   };
 
   const hasRole = (roles) => {
@@ -73,25 +142,31 @@ export const AuthProvider = ({ children }) => {
     return profile.role === roles;
   };
 
-  const isAdmin = () => hasRole('admin');
-  const isProvider = () => hasRole(['admin', 'provider']);
-  const isPatient = () => hasRole('patient');
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
+  const hasMinRole = (minRole) => {
+    if (!profile) return false;
+    const userLevel = ROLE_HIERARCHY[profile.role] || 0;
+    const requiredLevel = ROLE_HIERARCHY[minRole] || 0;
+    return userLevel >= requiredLevel;
   };
+
+  const isAdmin = () => hasRole('admin');
+  const isSponsor = () => hasMinRole('sponsor');
+  const isProvider = () => hasMinRole('provider');
+  const isViewer = () => hasMinRole('viewer');
 
   const value = {
     user,
     profile,
     loading,
-    hasRole,
-    isAdmin,
-    isProvider,
-    isPatient,
+    signIn,
+    signUp,
     signOut,
+    hasRole,
+    hasMinRole,
+    isAdmin,
+    isSponsor,
+    isProvider,
+    isViewer,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
