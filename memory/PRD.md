@@ -133,19 +133,13 @@ Build a futuristic, Apple-like admin console for an application called "iVisit" 
 
 ## Pending/Future Tasks
 
-### P0 - High Priority
-- [ ] Real data integration for dashboard stats (currently mock data)
-- [ ] Build out God Mode Map with Google Maps integration
-- [ ] Build out Verification Queue functionality
-- [ ] Build out Analytics with charts
-
 ### P1 - Medium Priority
 - [ ] Full RBAC implementation
   - Fetch user roles from Supabase
-  - Restrict routes based on roles
+  - Restrict routes based on roles (Admin, Sponsor, Provider, Viewer)
   - Conditional UI rendering
 - [ ] Authentication flow (login/logout)
-- [ ] Real-time updates using Supabase subscriptions
+- [ ] Real-time updates using Supabase subscriptions (partially done)
 
 ### P2 - Lower Priority
 - [ ] "Single focus flow" - dimming effect for focused interactions
@@ -153,6 +147,7 @@ Build a futuristic, Apple-like admin console for an application called "iVisit" 
 - [ ] Mobile responsiveness review
 - [ ] ESLint warnings cleanup
 - [ ] Build optimization for Vercel deployment
+- [ ] Google Maps API domain authorization for production
 
 ## RBAC Roles (Planned)
 - **Admin** - Full access to all features
