@@ -1,19 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MapPin, FileCheck, TrendingUp, Settings, Menu, X, Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance, Users } from 'lucide-react';
+import { Home, MapPin, FileCheck, TrendingUp, Settings, Menu, X, Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance, Users, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const IslandNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
     { path: '/map', icon: MapPin, label: 'Map' },
     { path: '/verification', icon: FileCheck, label: 'Queue' },
     { path: '/analytics', icon: TrendingUp, label: 'Stats' },
-    { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
   const menuItems = [
@@ -23,6 +25,7 @@ export const IslandNavigation = () => {
     { path: '/users', icon: Users, label: 'Users' },
     { path: '/visits', icon: Calendar, label: 'Visits' },
     { path: '/emergencies', icon: AlertTriangle, label: 'Emergencies' },
+    { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -32,13 +35,36 @@ export const IslandNavigation = () => {
     setMenuOpen(false);
   };
 
+  // Handle dark mode toggle
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+  }, [darkMode]);
+
+  // Scroll to hide/show for mobile/tablet
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsVisible(false);
+      } else {
+        setIsVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
   return (
     <>
-      {/* Desktop - Top Right Island */}
+      {/* Desktop - Top Right Island (lg and above) */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="hidden md:flex fixed top-6 right-6 z-50 glass shadow-premium px-3 py-2 squircle-lg gap-2"
+        className="hidden lg:flex fixed top-6 right-6 z-50 glass shadow-premium px-3 py-2 squircle-lg gap-2"
       >
         {navItems.map((item) => (
           <button
@@ -62,6 +88,15 @@ export const IslandNavigation = () => {
           </button>
         ))}
         
+        {/* Theme Toggle */}
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className="px-4 py-2.5 squircle transition-all duration-300 hover:bg-muted/50"
+          data-testid="theme-toggle"
+        >
+          {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+        
         {/* Menu Button */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
@@ -82,7 +117,7 @@ export const IslandNavigation = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="hidden md:block fixed top-24 right-6 z-50 glass shadow-premium p-3 squircle-lg min-w-[200px]"
+            className="hidden lg:block fixed top-24 right-6 z-50 glass shadow-premium p-3 squircle-lg min-w-[200px]"
           >
             <div className="space-y-1">
               {menuItems.map((item) => (
@@ -105,28 +140,27 @@ export const IslandNavigation = () => {
         )}
       </AnimatePresence>
 
-      {/* Mobile - Bottom Pill */}
+      {/* Mobile/Tablet - Left Vertical Sidebar (below lg) */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 glass shadow-premium px-4 py-3 squircle-lg flex gap-1"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ 
+          opacity: isVisible ? 1 : 0, 
+          x: isVisible ? 0 : -100,
+        }}
+        transition={{ duration: 0.3 }}
+        className="lg:hidden fixed left-4 top-1/2 -translate-y-1/2 z-50 glass shadow-premium px-2 py-3 squircle-lg flex flex-col gap-1"
       >
-        {navItems.slice(0, 4).map((item) => (
+        {navItems.map((item) => (
           <button
             key={item.path}
             onClick={() => navigate(item.path)}
-            className={`relative px-4 py-2.5 squircle transition-all duration-300 flex flex-col items-center gap-1 ${
+            className={`relative p-3 squircle transition-all duration-300 ${
               isActive(item.path)
                 ? 'bg-primary text-primary-foreground shadow-glow'
                 : 'hover:bg-muted/50'
             }`}
           >
-            <item.icon className={`${isActive(item.path) ? 'h-5 w-5' : 'h-4 w-4'} transition-all`} />
-            <span className={`text-[10px] font-bold transition-all ${
-              isActive(item.path) ? 'opacity-100' : 'opacity-60'
-            }`}>
-              {item.label}
-            </span>
+            <item.icon className="h-5 w-5" />
             {isActive(item.path) && (
               <motion.div
                 layoutId="activeTabMobile"
@@ -137,41 +171,52 @@ export const IslandNavigation = () => {
           </button>
         ))}
         
-        {/* Mobile Menu Button */}
+        {/* Divider */}
+        <div className="h-px bg-border/50 my-1" />
+        
+        {/* Theme Toggle */}
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className="p-3 squircle transition-all duration-300 hover:bg-muted/50"
+          data-testid="theme-toggle-mobile"
+        >
+          {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+        
+        {/* Menu Button */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className={`relative px-4 py-2.5 squircle transition-all duration-300 flex flex-col items-center gap-1 ${
+          className={`p-3 squircle transition-all duration-300 ${
             menuOpen ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50'
           }`}
         >
-          <Menu className="h-4 w-4" />
-          <span className="text-[10px] font-bold opacity-60">More</span>
+          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </motion.div>
 
-      {/* Mobile Expanded Menu */}
+      {/* Mobile/Tablet Expanded Menu */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden fixed bottom-24 left-4 right-4 z-50 glass shadow-premium p-4 squircle-lg"
+            className="lg:hidden fixed left-20 top-1/2 -translate-y-1/2 z-50 glass shadow-premium p-3 squircle-lg"
           >
-            <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1">
               {menuItems.map((item) => (
                 <button
                   key={item.path}
                   onClick={() => handleNavigate(item.path)}
-                  className={`flex flex-col items-center gap-2 p-4 squircle transition-all duration-300 ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 squircle transition-all duration-300 ${
                     isActive(item.path)
                       ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted/50 bg-muted/20'
+                      : 'hover:bg-muted/50'
                   }`}
                 >
-                  <item.icon className="h-6 w-6" />
-                  <span className="font-bold text-xs">{item.label}</span>
+                  <item.icon className="h-5 w-5" />
+                  <span className="font-bold text-sm whitespace-nowrap">{item.label}</span>
                 </button>
               ))}
             </div>
