@@ -111,45 +111,45 @@ export const HospitalsPage = () => {
             >
               <Card className="squircle-lg glass shadow-premium p-6 border-0 hover-lift group">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-14 h-14 squircle bg-primary/10 flex items-center justify-center">
+                  <div className="w-14 h-14 squircle bg-primary/10 flex items-center justify-center shrink-0">
                     <Hospital className="h-7 w-7 text-primary" />
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <Badge className={`squircle-sm ${
                       hospital.status === 'available' 
                         ? 'bg-success/20 text-success' 
                         : 'bg-warning/20 text-warning'
-                    } border-0 font-black editorial-subtitle`}>
+                    } border-0 font-black editorial-subtitle px-2 py-1`}>
                       {hospital.status}
                     </Badge>
                     {hospital.verified && (
-                      <Badge className="squircle-sm bg-info/20 text-info border-0">
-                        Verified
+                      <Badge className="squircle-sm bg-info/20 text-info border-0 px-2 py-1">
+                        ✓
                       </Badge>
                     )}
                   </div>
                 </div>
 
-                <h3 className="font-black text-xl mb-2 tracking-tight group-hover:text-primary transition-colors">
+                <h3 className="font-black text-xl mb-2 tracking-tight group-hover:text-primary transition-colors line-clamp-1">
                   {hospital.name}
                 </h3>
                 
-                <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4">
-                  <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
-                  <p className="line-clamp-2">{hospital.address}</p>
+                <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4 min-h-[2.5rem]">
+                  <MapPin className="icon-secondary mt-0.5 text-primary" />
+                  <p className="truncate-2 leading-snug">{hospital.address}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="p-3 squircle bg-muted/30">
                     <div className="flex items-center gap-2 mb-1">
-                      <Bed className="h-4 w-4 text-info" />
+                      <Bed className="icon-secondary text-info" />
                       <p className="text-xs text-muted-foreground font-semibold">Beds</p>
                     </div>
                     <p className="font-black text-lg">{hospital.available_beds}</p>
                   </div>
                   <div className="p-3 squircle bg-muted/30">
                     <div className="flex items-center gap-2 mb-1">
-                      <Ambulance className="h-4 w-4 text-success" />
+                      <Ambulance className="icon-secondary text-success" />
                       <p className="text-xs text-muted-foreground font-semibold">Fleet</p>
                     </div>
                     <p className="font-black text-lg">{hospital.ambulances_count}</p>
@@ -157,11 +157,11 @@ export const HospitalsPage = () => {
                 </div>
 
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 text-warning fill-warning" />
+                  <div className="flex items-center gap-1.5">
+                    <Star className="icon-secondary text-warning fill-warning" />
                     <span className="font-bold text-sm">{hospital.rating}</span>
                   </div>
-                  <Badge className="squircle-sm bg-primary/10 text-primary border-0 font-bold">
+                  <Badge className="squircle-sm bg-primary/10 text-primary border-0 font-bold text-xs px-2 py-1">
                     {hospital.emergency_level}
                   </Badge>
                 </div>
@@ -171,26 +171,26 @@ export const HospitalsPage = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => handleView(hospital)}
-                    className="squircle flex-1"
+                    className="squircle flex-1 card-action"
                   >
-                    <Eye className="h-4 w-4 mr-2" />
-                    View
+                    <Eye className="icon-secondary mr-2" />
+                    <span className="font-bold">View</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEdit(hospital)}
-                    className="squircle"
+                    className="squircle card-action"
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="icon-secondary" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleDelete(hospital)}
-                    className="squircle text-destructive hover:bg-destructive/10"
+                    className="squircle text-destructive hover:bg-destructive/10 card-action"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="icon-secondary" />
                   </Button>
                 </div>
               </Card>
