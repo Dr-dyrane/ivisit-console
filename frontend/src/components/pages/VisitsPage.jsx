@@ -25,7 +25,7 @@ export const VisitsPage = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('visits')
-        .select('*, profiles(username, email), hospitals(name)')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

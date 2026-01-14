@@ -25,7 +25,7 @@ export const EmergencyRequestsPage = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('emergency_requests')
-        .select('*, profiles!emergency_requests_user_id_fkey(username, phone)')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
