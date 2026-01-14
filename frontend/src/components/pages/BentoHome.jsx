@@ -290,6 +290,7 @@ export const BentoHome = () => {
           <Card 
             className="h-full squircle-lg glass shadow-premium p-5 flex items-center justify-between hover-lift cursor-pointer border-0 group"
             onClick={() => navigate('/hospitals')}
+            data-testid="quick-hospitals"
           >
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 squircle bg-primary/10 flex items-center justify-center">
@@ -315,6 +316,7 @@ export const BentoHome = () => {
           <Card 
             className="h-full squircle-lg glass shadow-premium p-5 flex items-center justify-between hover-lift cursor-pointer border-0 group"
             onClick={() => navigate('/ambulances')}
+            data-testid="quick-ambulances"
           >
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 squircle bg-success/10 flex items-center justify-center">
@@ -339,15 +341,94 @@ export const BentoHome = () => {
         >
           <Card 
             className="h-full squircle-lg glass shadow-premium p-5 flex items-center justify-between hover-lift cursor-pointer border-0 group"
-            onClick={() => navigate('/users')}
+            onClick={() => navigate('/doctors')}
+            data-testid="quick-doctors"
           >
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 squircle bg-info/10 flex items-center justify-center">
-                <Users className="h-6 w-6 text-info" />
+                <Stethoscope className="h-6 w-6 text-info" />
+              </div>
+              <div>
+                <h4 className="font-black tracking-tight">Doctors</h4>
+                <p className="text-xs text-muted-foreground font-semibold">Medical staff</p>
+              </div>
+            </div>
+            <div className="hover-reveal">
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.52 }}
+          className="col-span-1 md:col-span-2 lg:col-span-2 row-span-1"
+        >
+          <Card 
+            className="h-full squircle-lg glass shadow-premium p-5 flex items-center justify-between hover-lift cursor-pointer border-0 group"
+            onClick={() => navigate('/users')}
+            data-testid="quick-users"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 squircle bg-secondary/10 flex items-center justify-center">
+                <Users className="h-6 w-6 text-secondary" />
               </div>
               <div>
                 <h4 className="font-black tracking-tight">Users</h4>
                 <p className="text-xs text-muted-foreground font-semibold">1,247 total</p>
+              </div>
+            </div>
+            <div className="hover-reveal">
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.54 }}
+          className="col-span-1 md:col-span-2 lg:col-span-2 row-span-1"
+        >
+          <Card 
+            className="h-full squircle-lg glass shadow-premium p-5 flex items-center justify-between hover-lift cursor-pointer border-0 group"
+            onClick={() => navigate('/visits')}
+            data-testid="quick-visits"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 squircle bg-warning/10 flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-warning" />
+              </div>
+              <div>
+                <h4 className="font-black tracking-tight">Visits</h4>
+                <p className="text-xs text-muted-foreground font-semibold">Appointments</p>
+              </div>
+            </div>
+            <div className="hover-reveal">
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.56 }}
+          className="col-span-1 md:col-span-2 lg:col-span-2 row-span-1"
+        >
+          <Card 
+            className="h-full squircle-lg glass shadow-premium p-5 flex items-center justify-between hover-lift cursor-pointer border-0 group"
+            onClick={() => navigate('/emergencies')}
+            data-testid="quick-emergencies"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 squircle bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+              </div>
+              <div>
+                <h4 className="font-black tracking-tight">Emergencies</h4>
+                <p className="text-xs text-muted-foreground font-semibold">Requests</p>
               </div>
             </div>
             <div className="hover-reveal">
