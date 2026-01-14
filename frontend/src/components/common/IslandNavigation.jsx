@@ -97,7 +97,7 @@ export const IslandNavigation = () => {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="hidden lg:flex fixed top-6 right-6 z-50 glass shadow-premium px-3 py-2 squircle-lg gap-2 items-center"
+        className="hidden lg:flex fixed top-6 right-32 z-50 glass shadow-premium px-3 py-2 squircle-lg gap-2 items-center"
       >
         {filteredNavItems.map((item) => (
           <button
@@ -120,15 +120,6 @@ export const IslandNavigation = () => {
             )}
           </button>
         ))}
-        
-        {/* Theme Toggle */}
-        <button
-          onClick={() => setDarkMode(!darkMode)}
-          className="px-4 py-2.5 squircle transition-all duration-300 hover:bg-muted/50"
-          data-testid="theme-toggle"
-        >
-          {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-        </button>
         
         {/* Menu Button */}
         <button
@@ -163,7 +154,7 @@ export const IslandNavigation = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="hidden lg:block fixed top-24 right-6 z-50 glass shadow-premium p-3 squircle-lg min-w-[200px]"
+            className="hidden lg:block fixed top-24 right-12 z-50 glass shadow-premium p-3 squircle-lg min-w-[200px]"
           >
             <div className="space-y-1">
               {filteredMenuItems.map((item) => (
@@ -194,7 +185,7 @@ export const IslandNavigation = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="hidden lg:block fixed top-24 right-6 z-50 glass shadow-premium p-4 squircle-lg min-w-[240px]"
+            className="hidden lg:block fixed top-24 right-12 z-50 glass shadow-premium p-4 squircle-lg min-w-[240px]"
           >
             <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border/50">
               <Avatar className="h-12 w-12 squircle">
@@ -265,13 +256,6 @@ export const IslandNavigation = () => {
         ))}
         
         <div className="h-px bg-border/50 my-1" />
-        
-        <button
-          onClick={() => setDarkMode(!darkMode)}
-          className="p-3 squircle transition-all duration-300 hover:bg-muted/50"
-        >
-          {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-        </button>
         
         <button
           onClick={() => setMenuOpen(!menuOpen)}

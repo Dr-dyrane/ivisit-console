@@ -26,20 +26,36 @@ import { EmergencyRequestsPage } from "./components/pages/EmergencyRequestsPage"
 import { LoginPage } from "./components/pages/LoginPage";
 import { SettingsPage } from "./components/pages/SettingsPage";
 import { Toaster } from "./components/ui/sonner";
+import ThemeToggle from "./components/ui/theme-toggle";
+import NoiseOverlay from "./components/ui/noise-overlay";
 import AuthWrapper from "./components/common/AuthWrapper";
 import "./App.css";
 
 // Wrapper to conditionally show navigation
 const AppLayout = ({ children }) => {
-	const location = useLocation();
-	const hideNav = ["/login", "/unauthorized"].includes(location.pathname);
+  const location = useLocation();
+  const hideNav = ["/login", "/unauthorized"].includes(location.pathname);
 
-	return (
-		<div className="flex-1 flex-col h-screen overflow-y-scroll">
-			{!hideNav && <IslandNavigation />}
-			{children}
-		</div>
-	);
+  return (
+    <div className="relative h-screen bg-background text-foreground overflow-y-scroll selection:bg-primary/20 pb-12">
+      {!hideNav && (
+        <>
+          <div className="fixed inset-0 z-0 pointer-events-none min-h-screen">
+            <NoiseOverlay opacity={1} />
+            <div className="absolute top-[-20%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/5 rounded-full blur-[120px]" />
+          </div>
+          <div className="fixed top-4 right-8 z-50">
+            <ThemeToggle />
+          </div>
+        </>
+      )}
+      <div className="relative z-10 flex-1 flex-col min-h-screen ">
+        {!hideNav && <IslandNavigation />}
+        {children}
+      </div>
+    </div>
+  );
 };
 
 function AppRoutes() {
