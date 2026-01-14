@@ -189,7 +189,7 @@ export const BentoHome = () => {
               <div className="w-12 h-12 squircle bg-info/10 flex items-center justify-center mb-5">
                 <Activity className="h-6 w-6 text-info" />
               </div>
-              <p className="editorial-subtitle text-info mb-3">TODAY'S REQUESTS</p>
+              <p className="editorial-subtitle text-info mb-3">TODAY&apos;S REQUESTS</p>
               <h3 className="text-6xl font-black tracking-tighter">{stats.todayRequests}</h3>
             </div>
             <div className="flex items-center gap-2 text-primary font-bold text-sm relative z-10">
