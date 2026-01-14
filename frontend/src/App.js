@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { FocusProvider } from './contexts/FocusContext';
 import { IslandNavigation } from './components/common/IslandNavigation';
 import { ProtectedRoute, UnauthorizedPage } from './components/common/ProtectedRoute';
@@ -107,12 +108,14 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <AppRoutes />
-        <Toaster position="top-right" richColors />
-      </Router>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <AppRoutes />
+          <Toaster position="top-right" richColors />
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

@@ -8,6 +8,7 @@ import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { LogIn, UserPlus, Mail, Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import ThemeToggle from '../ui/theme-toggle';
 import { toast } from 'sonner';
 
 export const LoginPage = () => {
@@ -68,6 +69,9 @@ export const LoginPage = () => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md relative z-10"
       >
+        <div className="absolute top-4 right-4 z-20">
+          <ThemeToggle />
+        </div>
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 squircle bg-primary mx-auto mb-4 flex items-center justify-center shadow-glow">
@@ -195,7 +199,7 @@ export const LoginPage = () => {
           </form>
 
           {/* Role Info */}
-          <div className="mt-6 pt-6 border-t border-border/50">
+          <div className="mt-6 pt-4">
             <p className="text-xs text-muted-foreground text-center mb-3">User roles after sign up:</p>
             <div className="flex flex-wrap justify-center gap-2">
               <Badge className="squircle-sm bg-primary/10 text-primary font-bold">Admin</Badge>

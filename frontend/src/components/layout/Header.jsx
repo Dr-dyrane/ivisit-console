@@ -1,20 +1,11 @@
 import React from 'react';
-import { Bell, Search, Sun, Moon } from 'lucide-react';
+import { Bell, Search } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
+import ThemeToggle from '../ui/theme-toggle';
 
 export const Header = () => {
-  const [darkMode, setDarkMode] = React.useState(true);
-
-  React.useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
-
   return (
     <header className="glass border-b border-border sticky top-0 z-40">
       <div className="flex items-center justify-between h-16 px-6">
@@ -29,14 +20,9 @@ export const Header = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setDarkMode(!darkMode)}
-            className="squircle"
-          >
-            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
+          <div className="mr-2">
+            <ThemeToggle className="squircle" />
+          </div>
 
           <Button variant="ghost" size="icon" className="squircle relative">
             <Bell className="h-5 w-5" />
