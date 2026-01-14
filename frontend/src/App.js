@@ -6,6 +6,8 @@ import { GodModeMap } from './components/pages/GodModeMap';
 import { VerificationQueue } from './components/pages/VerificationQueue';
 import { Analytics } from './components/pages/Analytics';
 import { HospitalsPage } from './components/pages/HospitalsPage';
+import { AmbulancesPage } from './components/pages/AmbulancesPage';
+import { UsersPage } from './components/pages/UsersPage';
 import { Toaster } from './components/ui/sonner';
 import './App.css';
 
@@ -19,8 +21,8 @@ function App() {
           <Route path="/verification" element={<VerificationQueue />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/hospitals" element={<HospitalsPage />} />
-          <Route path="/ambulances" element={<ComingSoon title="Fleet Management" />} />
-          <Route path="/users" element={<ComingSoon title="User Management" />} />
+          <Route path="/ambulances" element={<AmbulancesPage />} />
+          <Route path="/users" element={<UsersPage />} />
           <Route path="/settings" element={<ComingSoon title="Settings" />} />
         </Routes>
         <Toaster position="top-right" richColors />
