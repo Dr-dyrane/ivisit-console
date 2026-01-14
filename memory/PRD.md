@@ -44,13 +44,55 @@ Build a futuristic, Apple-like admin console for an application called "iVisit" 
 - Custom animations (shimmer, stagger, fade, slide, scale)
 - Hover effects (lift, reveal, scale)
 - Editorial typography styles
+- **Hidden scrollbar with scroll functionality**
+- **Custom favicon using iVisit logo**
 
 #### Core Layout & Navigation
 - **BentoHome.jsx** - Main dashboard with bento grid layout
-- **IslandNavigation.jsx** - Island/pill navigation with dropdown menu
-  - Desktop: Top right floating island
-  - Mobile: Bottom pill navigation
-  - Expandable menu for CRUD pages
+- **IslandNavigation.jsx** - Island/pill navigation with:
+  - Desktop (lg+): Top right floating island with theme toggle
+  - Mobile/Tablet: Vertical left sidebar with scroll-to-hide
+  - Expandable dropdown menu for CRUD pages
+  - **Theme toggle (dark/light mode)** integrated into navigation
+
+#### Dashboard Components
+- Live emergency counter with area chart
+- Response time card
+- Today's requests card
+- Quick access cards for all entities
+- System status section with progress bars
+- Recent activity feed
+
+#### God Mode Map (P0 Complete)
+- Real-time map view with simulated markers (Google Maps API blocked in preview)
+- Emergency request markers with priority colors
+- Ambulance unit markers with status colors
+- Hospital location markers
+- Layer toggle controls (Emergencies, Ambulances, Hospitals)
+- Status filter (All, Pending, Dispatched, En Route)
+- Live statistics sidebar
+- Click-to-select marker details
+- Recent emergencies list
+- Real-time Supabase subscriptions
+
+#### Verification Queue (P0 Complete)
+- Pending verification count with stats cards
+- Searchable user list
+- Filter by verification status (Pending, Approved, All)
+- User detail review modal
+- Approve/Reject workflow
+- Revoke verification option
+- Real-time updates via Supabase
+
+#### Analytics Dashboard (P0 Complete)
+- 6 key metric stat cards with trends
+- Response Time Trend area chart
+- Request Status pie chart with legend
+- Daily Request Volume bar chart (requests vs completed)
+- Emergency Types horizontal bar chart
+- Time range selector (7d, 30d, 90d)
+- Export button
+- Real data from Supabase
 
 #### Dashboard Components
 - Live emergency counter with area chart
@@ -91,19 +133,13 @@ Build a futuristic, Apple-like admin console for an application called "iVisit" 
 
 ## Pending/Future Tasks
 
-### P0 - High Priority
-- [ ] Real data integration for dashboard stats (currently mock data)
-- [ ] Build out God Mode Map with Google Maps integration
-- [ ] Build out Verification Queue functionality
-- [ ] Build out Analytics with charts
-
 ### P1 - Medium Priority
 - [ ] Full RBAC implementation
   - Fetch user roles from Supabase
-  - Restrict routes based on roles
+  - Restrict routes based on roles (Admin, Sponsor, Provider, Viewer)
   - Conditional UI rendering
 - [ ] Authentication flow (login/logout)
-- [ ] Real-time updates using Supabase subscriptions
+- [ ] Real-time updates using Supabase subscriptions (partially done)
 
 ### P2 - Lower Priority
 - [ ] "Single focus flow" - dimming effect for focused interactions
@@ -111,6 +147,7 @@ Build a futuristic, Apple-like admin console for an application called "iVisit" 
 - [ ] Mobile responsiveness review
 - [ ] ESLint warnings cleanup
 - [ ] Build optimization for Vercel deployment
+- [ ] Google Maps API domain authorization for production
 
 ## RBAC Roles (Planned)
 - **Admin** - Full access to all features

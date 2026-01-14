@@ -14,8 +14,6 @@ import {
   Clock,
   AlertCircle,
   CheckCircle2,
-  Moon,
-  Sun,
   ChevronRight,
   Stethoscope,
   Calendar,
@@ -26,7 +24,6 @@ import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
 export const BentoHome = () => {
   const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(true);
   const [stats, setStats] = useState({
     liveEmergencies: 12,
     responseTime: 8.5,
@@ -52,10 +49,8 @@ export const BentoHome = () => {
   };
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
     fetchStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [darkMode]);
+  }, []);
 
   const chartData = [
     { time: '00:00', value: 5 },
@@ -84,13 +79,6 @@ export const BentoHome = () => {
               <p className="text-muted-foreground font-semibold">Emergency Response Command Center</p>
             </div>
           </div>
-          
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="w-14 h-14 squircle glass hover-lift flex items-center justify-center shadow-md"
-          >
-            {darkMode ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
-          </button>
         </div>
       </motion.div>
 
