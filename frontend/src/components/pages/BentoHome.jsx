@@ -16,7 +16,10 @@ import {
   CheckCircle2,
   Moon,
   Sun,
-  ChevronRight
+  ChevronRight,
+  Stethoscope,
+  Calendar,
+  AlertTriangle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
