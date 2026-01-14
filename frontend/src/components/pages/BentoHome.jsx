@@ -51,7 +51,8 @@ export const BentoHome = () => {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
     fetchStats();
-  }, [darkMode]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [darkMode]);
 
   const chartData = [
     { time: '00:00', value: 5 },
