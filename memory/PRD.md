@@ -44,13 +44,16 @@ Build a futuristic, Apple-like admin console for an application called "iVisit" 
 - Custom animations (shimmer, stagger, fade, slide, scale)
 - Hover effects (lift, reveal, scale)
 - Editorial typography styles
+- **Hidden scrollbar with scroll functionality**
+- **Custom favicon using iVisit logo**
 
 #### Core Layout & Navigation
 - **BentoHome.jsx** - Main dashboard with bento grid layout
-- **IslandNavigation.jsx** - Island/pill navigation with dropdown menu
-  - Desktop: Top right floating island
-  - Mobile: Bottom pill navigation
-  - Expandable menu for CRUD pages
+- **IslandNavigation.jsx** - Island/pill navigation with:
+  - Desktop (lg+): Top right floating island with theme toggle
+  - Mobile/Tablet: Vertical left sidebar with scroll-to-hide
+  - Expandable dropdown menu for CRUD pages
+  - **Theme toggle (dark/light mode)** integrated into navigation
 
 #### Dashboard Components
 - Live emergency counter with area chart
