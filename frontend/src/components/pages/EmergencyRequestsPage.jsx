@@ -199,13 +199,6 @@ export const EmergencyRequestsPage = () => {
                     )}
                   </div>
 
-                  {request.profiles?.phone && (
-                    <div className="hidden md:flex items-center gap-2 p-3 squircle bg-success/10 shrink-0">
-                      <Phone className="icon-secondary text-success" />
-                      <span className="text-sm font-bold">{request.profiles.phone}</span>
-                    </div>
-                  )}
-
                   <div className="flex items-center gap-2 shrink-0">
                     <Button
                       variant="outline"
