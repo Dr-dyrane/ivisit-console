@@ -176,10 +176,10 @@ export const EmergencyRequestsPage = () => {
                     </div>
                     
                     <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                      {request.profiles?.username && (
+                      {request.user_id && (
                         <div className="flex items-center gap-1">
                           <User className="icon-secondary" />
-                          <span>{request.profiles.username}</span>
+                          <span>Requester</span>
                         </div>
                       )}
                       {request.location && (

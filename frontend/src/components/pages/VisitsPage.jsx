@@ -156,16 +156,16 @@ export const VisitsPage = () => {
                     </div>
                     
                     <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                      {visit.profiles?.username && (
+                      {visit.user_id && (
                         <div className="flex items-center gap-1">
                           <User className="icon-secondary" />
-                          <span>{visit.profiles.username}</span>
+                          <span>Patient</span>
                         </div>
                       )}
-                      {visit.hospitals?.name && (
+                      {visit.hospital_id && (
                         <div className="flex items-center gap-1">
                           <Hospital className="icon-secondary" />
-                          <span>{visit.hospitals.name}</span>
+                          <span>Hospital</span>
                         </div>
                       )}
                       <div className="flex items-center gap-1">
