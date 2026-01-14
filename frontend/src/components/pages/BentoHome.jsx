@@ -24,7 +24,6 @@ import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
 export const BentoHome = () => {
   const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(true);
   const [stats, setStats] = useState({
     liveEmergencies: 12,
     responseTime: 8.5,
@@ -50,10 +49,8 @@ export const BentoHome = () => {
   };
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
     fetchStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [darkMode]);
+  }, []);
 
   const chartData = [
     { time: '00:00', value: 5 },
