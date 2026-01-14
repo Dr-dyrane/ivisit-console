@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
@@ -11,11 +12,13 @@ import { toast } from 'sonner';
 export const SettingsPage = () => {
   const { user, profile, signOut, isAdmin, isSponsor, isProvider } = useAuth();
   const [darkMode, setDarkMode] = useState(document.documentElement.classList.contains('dark'));
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
       await signOut();
       toast.success('Signed out successfully');
+      navigate('/login');
     } catch (error) {
       toast.error('Failed to sign out');
     }
