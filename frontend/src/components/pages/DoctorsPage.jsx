@@ -90,7 +90,7 @@ export const DoctorsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-8">
+    <div className="min-h-screen bg-background p-6 md:p-8 md:pl-24">
       <PageHeader
         title="Doctors Management"
         subtitle="Manage medical professionals and specialists"

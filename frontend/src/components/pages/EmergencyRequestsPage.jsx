@@ -115,7 +115,7 @@ export const EmergencyRequestsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-8">
+    <div className="min-h-screen bg-background p-6 md:p-8 md:pl-24">
       <PageHeader
         title="Emergency Requests"
         subtitle="Monitor and manage emergency response requests"

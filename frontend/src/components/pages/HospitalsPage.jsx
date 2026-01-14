@@ -83,7 +83,7 @@ export const HospitalsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-8">
+    <div className="min-h-screen bg-background p-6 md:p-8 md:pl-24">
       <PageHeader
         title="Hospitals Management"
         subtitle="Manage hospital network and facilities"
