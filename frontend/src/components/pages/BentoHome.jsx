@@ -432,22 +432,6 @@ export const BentoHome = () => {
     </div>
   );
 };
-import { motion } from 'framer-motion';
-import { LineChart, Line, AreaChart, Area, ResponsiveContainer, XAxis, YAxis } from 'recharts';
-
-export const BentoHome = () => {
-  const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(true);
-  const [stats, setStats] = useState({
-    liveEmergencies: 12,
-    responseTime: 8.5,
-    activeProviders: 45,
-    todayRequests: 127
-  });
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
-    fetchStats();
   }, [darkMode]);
 
   const fetchStats = async () => {
