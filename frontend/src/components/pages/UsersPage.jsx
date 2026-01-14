@@ -128,7 +128,7 @@ export const UsersPage = () => {
             >
               <Card className="squircle-lg glass shadow-premium p-5 border-0 hover-lift group">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 squircle bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                  <div className="w-14 h-14 squircle bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center shrink-0">
                     {user.avatar_url ? (
                       <img src={user.avatar_url} alt={user.username} className="w-full h-full squircle object-cover" />
                     ) : (
@@ -137,59 +137,59 @@ export const UsersPage = () => {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="font-black text-lg tracking-tight truncate">
                         {user.username || 'Unknown User'}
                       </h3>
-                      <Badge className={`squircle-sm ${getRoleBadge(user.role)} border font-black editorial-subtitle`}>
+                      <Badge className={`squircle-sm ${getRoleBadge(user.role)} border font-black editorial-subtitle px-2 py-1 shrink-0`}>
                         {user.role || 'patient'}
                       </Badge>
                       {user.bvn_verified && (
-                        <div className="w-5 h-5 squircle-sm bg-success/20 flex items-center justify-center">
-                          <UserCheck className="h-3 w-3 text-success" />
+                        <div className="w-6 h-6 squircle-sm bg-success/20 flex items-center justify-center shrink-0">
+                          <UserCheck className="icon-secondary text-success" />
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground truncate">
+                    <p className="text-sm text-muted-foreground truncate font-medium">
                       {user.email || 'No email'}
                     </p>
                     {user.phone && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
                         {user.phone}
                       </p>
                     )}
                   </div>
 
                   {user.provider_type && (
-                    <Badge className="squircle-sm bg-warning/20 text-warning border-0">
+                    <Badge className="squircle-sm bg-warning/20 text-warning border-0 px-3 py-1 shrink-0">
                       {user.provider_type}
                     </Badge>
                   )}
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleView(user)}
-                      className="squircle"
+                      className="squircle card-action"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="icon-secondary" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(user)}
-                      className="squircle"
+                      className="squircle card-action"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="icon-secondary" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleDelete(user)}
-                      className="squircle text-destructive hover:bg-destructive/10"
+                      className="squircle text-destructive hover:bg-destructive/10 card-action"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="icon-secondary" />
                     </Button>
                   </div>
                 </div>
