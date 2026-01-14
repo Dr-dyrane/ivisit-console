@@ -9,6 +9,9 @@ import { Analytics } from './components/pages/Analytics';
 import { HospitalsPage } from './components/pages/HospitalsPage';
 import { AmbulancesPage } from './components/pages/AmbulancesPage';
 import { UsersPage } from './components/pages/UsersPage';
+import { DoctorsPage } from './components/pages/DoctorsPage';
+import { VisitsPage } from './components/pages/VisitsPage';
+import { EmergencyRequestsPage } from './components/pages/EmergencyRequestsPage';
 import { Toaster } from './components/ui/sonner';
 import './App.css';
 
@@ -25,6 +28,9 @@ function App() {
           <Route path="/hospitals" element={<HospitalsPage />} />
           <Route path="/ambulances" element={<AmbulancesPage />} />
           <Route path="/users" element={<UsersPage />} />
+          <Route path="/doctors" element={<DoctorsPage />} />
+          <Route path="/visits" element={<VisitsPage />} />
+          <Route path="/emergencies" element={<EmergencyRequestsPage />} />
           <Route path="/settings" element={<ComingSoon title="Settings" />} />
         </Routes>
         <Toaster position="top-right" richColors />
