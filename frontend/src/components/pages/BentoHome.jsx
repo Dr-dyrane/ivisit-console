@@ -31,11 +31,6 @@ export const BentoHome = () => {
     todayRequests: 127
   });
 
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
-    fetchStats();
-  }, [darkMode]);
-
   const fetchStats = async () => {
     try {
       const [requests, providers] = await Promise.all([
@@ -52,6 +47,11 @@ export const BentoHome = () => {
       console.error('Error fetching stats:', error);
     }
   };
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    fetchStats();
+  }, [darkMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const chartData = [
     { time: '00:00', value: 5 },
