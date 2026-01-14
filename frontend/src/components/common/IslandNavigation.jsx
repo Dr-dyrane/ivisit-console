@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, MapPin, FileCheck, TrendingUp, Settings, Menu, X, Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance, Users, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,7 +9,8 @@ export const IslandNavigation = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
 
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
@@ -40,23 +41,31 @@ export const IslandNavigation = () => {
     document.documentElement.classList.toggle('dark', darkMode);
   }, [darkMode]);
 
-  // Scroll to hide/show for mobile/tablet
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY > lastScrollY && currentScrollY > 100) {
-        setIsVisible(false);
-      } else {
-        setIsVisible(true);
-      }
-      
-      setLastScrollY(currentScrollY);
-    };
+  // More sensitive scroll detection for mobile/tablet
+  const handleScroll = useCallback(() => {
+    if (!ticking.current) {
+      window.requestAnimationFrame(() => {
+        const currentScrollY = window.scrollY;
+        const scrollDelta = currentScrollY - lastScrollY.current;
+        
+        // Hide when scrolling down more than 5px, show when scrolling up more than 5px
+        if (scrollDelta > 5 && currentScrollY > 50) {
+          setIsVisible(false);
+        } else if (scrollDelta < -5 || currentScrollY < 50) {
+          setIsVisible(true);
+        }
+        
+        lastScrollY.current = currentScrollY;
+        ticking.current = false;
+      });
+      ticking.current = true;
+    }
+  }, []);
 
+  useEffect(() => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+  }, [handleScroll]);
 
   return (
     <>
@@ -140,15 +149,16 @@ export const IslandNavigation = () => {
         )}
       </AnimatePresence>
 
-      {/* Mobile/Tablet - Left Vertical Sidebar (below lg) */}
+      {/* Mobile/Tablet - Left Vertical Sidebar (below lg) - Floats above content */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ 
           opacity: isVisible ? 1 : 0, 
-          x: isVisible ? 0 : -100,
+          x: isVisible ? 0 : -80,
+          pointerEvents: isVisible ? 'auto' : 'none'
         }}
-        transition={{ duration: 0.3 }}
-        className="lg:hidden fixed left-4 top-1/2 -translate-y-1/2 z-50 glass shadow-premium px-2 py-3 squircle-lg flex flex-col gap-1"
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        className="lg:hidden fixed left-3 top-1/2 -translate-y-1/2 z-50 glass shadow-premium px-2 py-3 squircle-lg flex flex-col gap-1"
       >
         {navItems.map((item) => (
           <button
@@ -194,15 +204,15 @@ export const IslandNavigation = () => {
         </button>
       </motion.div>
 
-      {/* Mobile/Tablet Expanded Menu */}
+      {/* Mobile/Tablet Expanded Menu - Also floats */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, x: -20, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden fixed left-20 top-1/2 -translate-y-1/2 z-50 glass shadow-premium p-3 squircle-lg"
+            className="lg:hidden fixed left-16 top-1/2 -translate-y-1/2 z-50 glass shadow-premium p-3 squircle-lg"
           >
             <div className="space-y-1">
               {menuItems.map((item) => (
@@ -232,7 +242,7 @@ export const IslandNavigation = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-40 bg-background/20 backdrop-blur-sm"
           />
         )}
       </AnimatePresence>
