@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { FocusProvider } from './contexts/FocusContext';
 import { IslandNavigation } from './components/common/IslandNavigation';
 import { ProtectedRoute, UnauthorizedPage } from './components/common/ProtectedRoute';
 import { BentoHome } from './components/pages/BentoHome';
