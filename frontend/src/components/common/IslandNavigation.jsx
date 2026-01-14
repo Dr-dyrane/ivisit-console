@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MapPin, FileCheck, TrendingUp, Settings } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Home, MapPin, FileCheck, TrendingUp, Settings, Menu, X, Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const IslandNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
@@ -13,6 +14,15 @@ export const IslandNavigation = () => {
     { path: '/verification', icon: FileCheck, label: 'Queue' },
     { path: '/analytics', icon: TrendingUp, label: 'Stats' },
     { path: '/settings', icon: Settings, label: 'Settings' },
+  ];
+
+  const menuItems = [
+    { path: '/hospitals', icon: Hospital, label: 'Hospitals' },
+    { path: '/ambulances', icon: Ambulance, label: 'Ambulances' },
+    { path: '/doctors', icon: Stethoscope, label: 'Doctors' },
+    { path: '/users', icon: Users, label: 'Users' },
+    { path: '/visits', icon: Calendar, label: 'Visits' },
+    { path: '/emergencies', icon: AlertTriangle, label: 'Emergencies' },
   ];
 
   const isActive = (path) => location.pathname === path;
