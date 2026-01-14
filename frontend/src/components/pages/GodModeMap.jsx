@@ -7,18 +7,12 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Ambulance, MapPin, Activity, ArrowLeft, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase, subscribeToTable } from '../../lib/supabase';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
-import { Ambulance, MapPin, Activity } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
-
 const LAGOS_CENTER = { lat: 6.5244, lng: 3.3792 };
 
 export const GodModeMap = () => {
+  const navigate = useNavigate();
   const [emergencyRequests, setEmergencyRequests] = useState([]);
   const [ambulances, setAmbulances] = useState([]);
   const [selectedMarker, setSelectedMarker] = useState(null);
