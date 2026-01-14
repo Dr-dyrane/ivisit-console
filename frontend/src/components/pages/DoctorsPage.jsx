@@ -138,7 +138,7 @@ export const DoctorsPage = () => {
                 </div>
 
                 <h3 className="font-black text-xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1">
-                  Dr. {doctor.name}
+                  {doctor.name}
                 </h3>
                 
                 <p className="text-sm text-primary font-semibold mb-3">{doctor.specialization}</p>
