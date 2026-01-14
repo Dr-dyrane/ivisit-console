@@ -141,13 +141,22 @@ export const GodModeMap = () => {
                   position={{ lat: request.lat, lng: request.lng }}
                   onClick={() => setSelectedMarker({ type: 'request', data: request })}
                 >
-                  <Pin
-                    background={getStatusColor(request.status)}
-                    borderColor="#fff"
-                    glyphColor="#fff"
+                  <div 
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: getStatusColor(request.status),
+                      border: '3px solid white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
+                    }}
                   >
-                    <Activity className="h-4 w-4" />
-                  </Pin>
+                    <Activity style={{ width: '16px', height: '16px', color: 'white' }} />
+                  </div>
                 </AdvancedMarker>
               ))}
 
@@ -157,13 +166,22 @@ export const GodModeMap = () => {
                   position={{ lat: ambulance.lat, lng: ambulance.lng }}
                   onClick={() => setSelectedMarker({ type: 'ambulance', data: ambulance })}
                 >
-                  <Pin
-                    background="hsl(var(--success))"
-                    borderColor="#fff"
-                    glyphColor="#fff"
+                  <div 
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: '#10b981',
+                      border: '3px solid white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
+                    }}
                   >
-                    <Ambulance className="h-4 w-4" />
-                  </Pin>
+                    <Ambulance style={{ width: '16px', height: '16px', color: 'white' }} />
+                  </div>
                 </AdvancedMarker>
               ))}
             </Map>
