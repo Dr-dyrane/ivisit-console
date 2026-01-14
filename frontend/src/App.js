@@ -1,27 +1,31 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
 import { BentoHome } from './components/pages/BentoHome';
 import { GodModeMap } from './components/pages/GodModeMap';
 import { VerificationQueue } from './components/pages/VerificationQueue';
 import { Analytics } from './components/pages/Analytics';
+import { HospitalsPage } from './components/pages/HospitalsPage';
 import { Toaster } from './components/ui/sonner';
 import './App.css';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<BentoHome />} />
-        <Route path="/map" element={<GodModeMap />} />
-        <Route path="/verification" element={<VerificationQueue />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/hospitals" element={<ComingSoon title="Hospitals Management" />} />
-        <Route path="/ambulances" element={<ComingSoon title="Fleet Management" />} />
-        <Route path="/users" element={<ComingSoon title="User Management" />} />
-        <Route path="/settings" element={<ComingSoon title="Settings" />} />
-      </Routes>
-      <Toaster position="top-right" richColors />
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<BentoHome />} />
+          <Route path="/map" element={<GodModeMap />} />
+          <Route path="/verification" element={<VerificationQueue />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/hospitals" element={<HospitalsPage />} />
+          <Route path="/ambulances" element={<ComingSoon title="Fleet Management" />} />
+          <Route path="/users" element={<ComingSoon title="User Management" />} />
+          <Route path="/settings" element={<ComingSoon title="Settings" />} />
+        </Routes>
+        <Toaster position="top-right" richColors />
+      </Router>
+    </AuthProvider>
   );
 }
 
@@ -32,7 +36,7 @@ const ComingSoon = ({ title }) => (
       <p className="text-muted-foreground mb-6">This module is under construction</p>
       <button 
         onClick={() => window.history.back()} 
-        className="px-6 py-3 bento bg-primary text-primary-foreground hover-lift"
+        className="px-6 py-3 squircle bg-primary text-primary-foreground hover-lift font-bold"
       >
         Go Back
       </button>
