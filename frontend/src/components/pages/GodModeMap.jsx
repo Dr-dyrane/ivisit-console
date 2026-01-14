@@ -214,104 +214,101 @@ export const GodModeMap = () => {
         {/* Map */}
         <Card className="flex-1 squircle-lg p-0 overflow-hidden glass border-0">
           {GOOGLE_MAPS_API_KEY ? (
-            <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
-              <Map
-                defaultCenter={LAGOS_CENTER}
-                defaultZoom={12}
-                mapId="ivisit-god-mode"
-                className="w-full h-full"
-                disableDefaultUI={false}
-                gestureHandling="greedy"
-              >
-                {/* Emergency Request Markers */}
-                {showLayers.emergencies && filteredRequests.map((request) => (
-                  <AdvancedMarker
-                    key={`emergency-${request.id}`}
-                    position={{ lat: request.lat, lng: request.lng }}
-                    onClick={() => setSelectedMarker({ type: 'emergency', data: request })}
-                  >
-                    <div 
-                      className="relative cursor-pointer transform hover:scale-110 transition-transform"
-                      style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '50%',
-                        backgroundColor: getPriorityColor(request.priority),
-                        border: '3px solid white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                      }}
+            <ErrorBoundary fallback={<MapFallback />}>
+              <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+                <Map
+                  defaultCenter={LAGOS_CENTER}
+                  defaultZoom={12}
+                  mapId="ivisit-god-mode"
+                  className="w-full h-full"
+                  disableDefaultUI={false}
+                  gestureHandling="greedy"
+                >
+                  {/* Emergency Request Markers */}
+                  {showLayers.emergencies && filteredRequests.map((request) => (
+                    <AdvancedMarker
+                      key={`emergency-${request.id}`}
+                      position={{ lat: request.lat, lng: request.lng }}
+                      onClick={() => setSelectedMarker({ type: 'emergency', data: request })}
                     >
-                      <AlertTriangle style={{ width: '18px', height: '18px', color: 'white' }} />
-                      {request.priority === 'critical' && (
-                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
-                      )}
-                    </div>
-                  </AdvancedMarker>
-                ))}
+                      <div 
+                        className="relative cursor-pointer transform hover:scale-110 transition-transform"
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          backgroundColor: getPriorityColor(request.priority),
+                          border: '3px solid white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                        }}
+                      >
+                        <AlertTriangle style={{ width: '18px', height: '18px', color: 'white' }} />
+                        {request.priority === 'critical' && (
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
+                        )}
+                      </div>
+                    </AdvancedMarker>
+                  ))}
 
-                {/* Ambulance Markers */}
-                {showLayers.ambulances && ambulances.map((ambulance) => (
-                  <AdvancedMarker
-                    key={`ambulance-${ambulance.id}`}
-                    position={{ lat: ambulance.lat, lng: ambulance.lng }}
-                    onClick={() => setSelectedMarker({ type: 'ambulance', data: ambulance })}
-                  >
-                    <div 
-                      className="cursor-pointer transform hover:scale-110 transition-transform"
-                      style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '50%',
-                        backgroundColor: getStatusColor(ambulance.status),
-                        border: '3px solid white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                      }}
+                  {/* Ambulance Markers */}
+                  {showLayers.ambulances && ambulances.map((ambulance) => (
+                    <AdvancedMarker
+                      key={`ambulance-${ambulance.id}`}
+                      position={{ lat: ambulance.lat, lng: ambulance.lng }}
+                      onClick={() => setSelectedMarker({ type: 'ambulance', data: ambulance })}
                     >
-                      <Ambulance style={{ width: '18px', height: '18px', color: 'white' }} />
-                    </div>
-                  </AdvancedMarker>
-                ))}
+                      <div 
+                        className="cursor-pointer transform hover:scale-110 transition-transform"
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          backgroundColor: getStatusColor(ambulance.status),
+                          border: '3px solid white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                        }}
+                      >
+                        <Ambulance style={{ width: '18px', height: '18px', color: 'white' }} />
+                      </div>
+                    </AdvancedMarker>
+                  ))}
 
-                {/* Hospital Markers */}
-                {showLayers.hospitals && hospitals.map((hospital) => (
-                  <AdvancedMarker
-                    key={`hospital-${hospital.id}`}
-                    position={{ lat: hospital.lat, lng: hospital.lng }}
-                    onClick={() => setSelectedMarker({ type: 'hospital', data: hospital })}
-                  >
-                    <div 
-                      className="cursor-pointer transform hover:scale-110 transition-transform"
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '12px',
-                        backgroundColor: '#3b82f6',
-                        border: '3px solid white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                      }}
+                  {/* Hospital Markers */}
+                  {showLayers.hospitals && hospitals.map((hospital) => (
+                    <AdvancedMarker
+                      key={`hospital-${hospital.id}`}
+                      position={{ lat: hospital.lat, lng: hospital.lng }}
+                      onClick={() => setSelectedMarker({ type: 'hospital', data: hospital })}
                     >
-                      <Hospital style={{ width: '20px', height: '20px', color: 'white' }} />
-                    </div>
-                  </AdvancedMarker>
-                ))}
-              </Map>
-            </APIProvider>
+                      <div 
+                        className="cursor-pointer transform hover:scale-110 transition-transform"
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '12px',
+                          backgroundColor: '#3b82f6',
+                          border: '3px solid white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                        }}
+                      >
+                        <Hospital style={{ width: '20px', height: '20px', color: 'white' }} />
+                      </div>
+                    </AdvancedMarker>
+                  ))}
+                </Map>
+              </APIProvider>
+            </ErrorBoundary>
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-muted/50">
-              <div className="text-center">
-                <MapPin className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground font-semibold">Google Maps API key not configured</p>
-              </div>
-            </div>
+            <MapFallback />
           )}
         </Card>
 
