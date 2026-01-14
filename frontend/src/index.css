@@ -9,33 +9,38 @@ body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow-y: auto;
+    overflow-y: scroll;
     overflow-x: hidden;
 }
 
-/* Hide scrollbar but allow scrolling */
+/* Thin custom scrollbar for desktop */
 body::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: none;
+    width: 6px;
 }
 
-body {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+body::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
 }
 
 html {
-    overflow-y: auto;
+    overflow-y: scroll;
     overflow-x: hidden;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    scroll-behavior: smooth;
 }
 
-html::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: none;
+/* Firefox thin scrollbar */
+html, body {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
 }
 
 code {
