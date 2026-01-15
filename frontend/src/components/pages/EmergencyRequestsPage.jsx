@@ -9,11 +9,14 @@ import { AlertTriangle, Eye, Trash2, MapPin, Clock, ChevronRight, Activity, Sire
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
+import { EmergencyDetailsModal } from '../modals/EmergencyDetailsModal';
 
 export const EmergencyRequestsPage = () => {
   const { isAdmin, isProvider } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchRequests();
@@ -61,6 +64,11 @@ export const EmergencyRequestsPage = () => {
       console.error('Error deleting request:', error);
       toast.error('Failed to delete request');
     }
+  };
+
+  const handleViewDetails = (request) => {
+    setSelectedRequest(request);
+    setIsDetailsModalOpen(true);
   };
 
   const getPriorityBadge = (priority) => {
@@ -150,11 +158,12 @@ export const EmergencyRequestsPage = () => {
                             <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => handleViewDetails(req)}
                                 className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
                             >
                                 <Eye className="h-4 w-4" />
                             </Button>
-                            {hasAccess && (
+                            {(isAdmin || isProvider) && (
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -172,6 +181,16 @@ export const EmergencyRequestsPage = () => {
             </motion.div>
         </LayoutGroup>
       )}
+
+      {/* Emergency Details Modal */}
+      <EmergencyDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false);
+          setSelectedRequest(null);
+        }}
+        request={selectedRequest}
+      />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MapPin, FileCheck, TrendingUp, Settings, Menu, X, Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance, Users, Moon, Sun, LogOut, User, Ellipsis } from 'lucide-react';
+import { Home, MapPin, FileCheck, TrendingUp, Settings, Menu, X, Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance, Users, Moon, Sun, LogOut, User, Ellipsis, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -16,11 +16,13 @@ export const IslandNavigation = () => {
   const [isVisible, setIsVisible] = useState(false); // Default to hidden
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false); // Mobile detection state
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragProgress, setDragProgress] = useState(0);
   const hideTimerRef = useRef(null);
   
   // Touch handling refs
   const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
+  const touchCurrentX = useRef(0);
 
   // Detect Mobile Device
   useEffect(() => {
@@ -84,24 +86,40 @@ export const IslandNavigation = () => {
     // Mobile: Swipe Right to Open
     const handleTouchStart = (e) => {
         touchStartX.current = e.changedTouches[0].screenX;
+        touchCurrentX.current = e.changedTouches[0].screenX;
+        setIsDragging(true);
+        setDragProgress(0);
+    };
+
+    const handleTouchMove = (e) => {
+        if (!isDragging) return;
+        
+        touchCurrentX.current = e.changedTouches[0].screenX;
+        const swipeDistance = touchCurrentX.current - touchStartX.current;
+        const startZone = touchStartX.current < 50; // Only allow swipe from left edge (first 50px)
+        
+        if (startZone && swipeDistance > 0) {
+            const progress = Math.min(swipeDistance / 150, 1); // 150px to fully open
+            setDragProgress(progress);
+        }
     };
 
     const handleTouchEnd = (e) => {
-        touchEndX.current = e.changedTouches[0].screenX;
-        handleSwipe();
-    };
+        if (!isDragging) return;
+        
+        const swipeDistance = touchCurrentX.current - touchStartX.current;
+        const startZone = touchStartX.current < 50;
 
-    const handleSwipe = () => {
-        const swipeDistance = touchEndX.current - touchStartX.current;
-        const startZone = touchStartX.current < 50; // Only allow swipe from left edge (first 50px)
+        setIsDragging(false);
+        setDragProgress(0);
 
-        // Swipe Right (Open)
-        if (startZone && swipeDistance > 50) {
+        // Swipe Right (Open) - threshold of 80px
+        if (startZone && swipeDistance > 80) {
             setIsVisible(true);
             startHideTimer();
         }
         
-        // Swipe Left (Close)
+        // Swipe Left (Close) - threshold of 50px
         if (swipeDistance < -50) {
             setIsVisible(false);
         }
@@ -111,12 +129,14 @@ export const IslandNavigation = () => {
         window.addEventListener('mousemove', handleMouseMove);
     } else {
         window.addEventListener('touchstart', handleTouchStart);
+        window.addEventListener('touchmove', handleTouchMove);
         window.addEventListener('touchend', handleTouchEnd);
     }
 
     return () => {
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('touchstart', handleTouchStart);
+        window.removeEventListener('touchmove', handleTouchMove);
         window.removeEventListener('touchend', handleTouchEnd);
     };
   }, [isMobile]);
@@ -179,6 +199,43 @@ export const IslandNavigation = () => {
             }}
             onMouseLeave={() => setIsHovered(false)}
           />
+      )}
+
+      {/* Mobile Drag Handle - Visible when sidebar is hidden */}
+      {isMobile && !isVisible && (
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          className="fixed left-2 top-1/2 -translate-y-1/2 z-[51]"
+        >
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              setIsVisible(true);
+              startHideTimer();
+            }}
+            className="w-12 h-12 squircle-lg glass shadow-premium bg-primary/10 hover:bg-primary/20 border border-primary/20 flex items-center justify-center group"
+          >
+            <ChevronRight className="h-6 w-6 text-primary group-hover:translate-x-0.5 transition-transform" />
+            <div className="absolute inset-0 rounded-xl bg-primary/5 animate-pulse" />
+          </motion.button>
+        </motion.div>
+      )}
+
+      {/* Drag Progress Indicator */}
+      {isMobile && isDragging && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed left-0 top-0 bottom-0 w-2 bg-primary/30 z-[50] rounded-r-full"
+          style={{
+            width: `${2 + dragProgress * 48}px`, // Expand from 2px to 50px
+            opacity: 0.3 + dragProgress * 0.4 // Fade from 0.3 to 0.7
+          }}
+        />
       )}
 
       {/* Mobile/Tablet/Desktop - Left Vertical Sidebar */}
