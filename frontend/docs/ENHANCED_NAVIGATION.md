@@ -43,22 +43,23 @@ boxShadow: `
 
 ## 🏗️ Component Architecture
 
-### ResponsiveSidebar
+### DynamicBottomBar (Mobile)
+**Purpose**: Unified mobile navigation pill that replaces separate FAB and Sheet triggers.
+**Design**: "Apple-style" floating glass capsule at the bottom center.
+**Features**:
+- **Unified Interface**: Holds both Menu trigger (left) and Context Action (right).
+- **Glassmorphism**: High transparency blur effect for premium feel.
+- **Micro-interactions**: Smooth expansion on tap.
+- **Smart Actions**: Right button changes icon/action based on current route.
+
+### ResponsiveSidebar (Desktop/Tablet)
 **Purpose**: Main contextual panel that adapts to screen size
 **Features**:
 - True floating island with water bubble effect
+- **Tablet Mode**: Defaults to slim "Icon Rail". Expands to full sidebar on interaction.
+- **Desktop Mode**: Persistent floating island.
 - Context-aware content based on current page
-- Smooth slide-in/out animations
-- Auto-behavior based on screen size
-
-### ContextPanel
-**Purpose**: Page-specific information and quick actions
-**Content Types**:
-- **Emergency Page**: Live stats, priority filters, critical alerts
-- **Users Page**: Role distribution, quick actions, user insights
-- **Hospitals Page**: Capacity status, availability, location filters
-- **Ambulances Page**: Fleet status, performance metrics
-- **Default**: Helpful message with smart context indicator
+- Smooth spring-based animations
 
 ### SidebarTrigger
 **Purpose**: Tablet mode toggle button
@@ -72,23 +73,27 @@ boxShadow: `
 ### Mobile (< 768px)
 ```
 ┌─────────────────────────────────┐
+│                            │
 │                            │  ← Clean content area
-│                            │  (No sidebar interference)
 │                            │
-│                            │
+│          [ MENU | ACTION ]      │  ← Dynamic Bottom Bar
 └─────────────────────────────────┘
 ```
 
 ### Tablet (768px-1024px)
 ```
 ┌─────────────────────────┐
-│                   [⊕]    │  ← Trigger button
-│                      │        │  ← Content area
-│                      │        │
-│                      │        │
+│                      │ [ ] ← Icon Rail
+│                      │ [ ] (Slim)
+│                      │ [ ]
+│                      │ [ ]
 └─────────────────────────┘
-│  ← Overlay (optional)    │
-│                      │
+   (Interactive)
+┌─────────────────────────┐
+│                      │ [     ] ← Expanded
+│                      │ [     ]   Overlay
+│                      │ [     ]
+│                      │ [     ]
 └─────────────────────────┘
 ```
 
@@ -141,11 +146,12 @@ As we add more dashboard components (FAB, top nav, footer), they will follow the
 ## 📊 Dashboard Development Strategy
 
 ### Phase-Based Approach
-1. **Foundation**: Floating sidebar system (✅ Complete)
-2. **Quick Actions**: Context-aware FAB system
-3. **Navigation**: Enhanced top navigation with breadcrumbs
-4. **Monitoring**: Smart footer with system status
-5. **Integration**: Seamless component communication
+1.  **Foundation**: Floating sidebar system (✅ Complete)
+2.  **Mobile Experience**: Dynamic Bottom Bar (✅ Complete)
+3.  **Tablet Experience**: Interactive Icon Rail (✅ Complete)
+4.  **Quick Actions**: Context-aware Hook System (✅ Complete)
+5.  **Navigation**: Enhanced top navigation with breadcrumbs
+6.  **Monitoring**: Smart footer with system status
 
 ### Component Communication
 - **NavigationContext**: Centralized state management
@@ -186,5 +192,5 @@ As we add more dashboard components (FAB, top nav, footer), they will follow the
 
 **Document Created**: January 15, 2026  
 **Author**: Development Team  
-**Version**: 2.0 - Enhanced Floating Island Design  
-**Status**: Foundation Complete, Ready for Dashboard Expansion
+**Version**: 2.1 - Dynamic Bottom Bar & Tablet Rail
+**Status**: Core Navigation & Context Actions Complete

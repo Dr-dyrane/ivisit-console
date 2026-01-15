@@ -96,7 +96,7 @@ export const DynamicBottomBar = () => {
                     }}
                 >
                     <div className="h-1.5 w-12 bg-white/20 rounded-full mx-auto mt-4 mb-2" />
-                    <div className="h-full overflow-y-auto p-6 pb-20">
+                    <div className="h-full overflow-y-auto p-6 pb-20 scrollbar-hide">
                         <div className="flex items-center justify-between mb-6">
                             <div>
                                 <h2 className="font-black text-2xl tracking-tight">Context</h2>

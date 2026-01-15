@@ -155,13 +155,20 @@ export const ResponsiveSidebar = () => {
             >
               <div className="h-full flex flex-col">
                 <div className="flex items-center justify-between p-6 pb-2">
-                  <h2 className="font-black text-lg tracking-tight ml-2">Context Panel</h2>
-                  <button
-                    onClick={() => setSidebarOpen(false)}
-                    className="w-8 h-8 rounded-full bg-muted/20 hover:bg-muted/30 flex items-center justify-center transition-colors"
-                  >
-                    {isDesktop ? <X className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center shadow-sm">
+                      <div className="w-4 h-0.5 bg-primary rounded-full" />
+                    </div>
+                    <h2 className="font-black text-lg tracking-tight">Context Panel</h2>
+                  </div>
+                  {!isDesktop && (
+                    <button
+                      onClick={() => setSidebarOpen(false)}
+                      className="w-10 h-10 geo-round bg-muted/20 hover:bg-muted/30 transition-all duration-300 flex items-center justify-center group shadow-sm"
+                    >
+                      <ChevronLeft className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
