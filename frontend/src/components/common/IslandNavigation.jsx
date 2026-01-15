@@ -13,7 +13,6 @@ export const IslandNavigation = () => {
   const { profile, signOut, isAdmin, isProvider, hasMinRole } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
   const [isVisible, setIsVisible] = useState(false); // Default to hidden
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false); // Mobile detection state
@@ -155,11 +154,6 @@ export const IslandNavigation = () => {
   // Filter items based on role
   const filteredNavItems = navItems.filter(item => hasMinRole(item.minRole));
   const filteredMenuItems = menuItems.filter(item => hasMinRole(item.minRole));
-
-  // Handle dark mode toggle
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
-  }, [darkMode]);
 
 
 
