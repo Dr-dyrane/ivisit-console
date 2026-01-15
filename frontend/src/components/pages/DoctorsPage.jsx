@@ -8,9 +8,11 @@ import { TableSkeleton } from '../ui/skeleton';
 import { Stethoscope, Plus, Edit, Trash2, Eye, Hospital, Star, Phone, ChevronRight } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
+import { useAuth } from '../../contexts/AuthContext';
 import { DoctorModal } from '../modals/DoctorModal';
 
 export const DoctorsPage = () => {
+  const { isAdmin, isProvider } = useAuth();
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
@@ -134,20 +136,20 @@ export const DoctorsPage = () => {
                 transition={{ delay: index * 0.05 }}
                 className="col-span-1"
                 >
-                <Card className="h-full squircle-lg glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col" data-testid={`doctor-card-${doctor.id}`}>
+                <Card className="h-full geo-chamfer glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col" data-testid={`doctor-card-${doctor.id}`}>
                     
                     {/* Top Right Icon */}
                     <div className="absolute top-0 right-0 p-5 z-20">
                         <div className="relative">
                             <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full scale-150" />
-                            <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                            <div className="w-10 h-10 geo-round bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
                                 <Stethoscope className="h-5 w-5 text-primary" />
                             </div>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2 mb-4 relative z-10">
-                        <Badge className={`squircle-sm ${getStatusBadge(doctor.status)} border-0 font-black editorial-subtitle px-2 py-1`}>
+                        <Badge className={`geo-badge ${getStatusBadge(doctor.status)} border-0 font-black editorial-subtitle px-3 py-1`}>
                             {doctor.status || 'available'}
                         </Badge>
                     </div>
@@ -160,13 +162,13 @@ export const DoctorsPage = () => {
 
                     <div className="space-y-3 mb-6 relative z-10">
                         {doctor.hospitals?.name && (
-                            <div className="flex items-center gap-3 text-sm p-2 squircle bg-muted/30">
+                            <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
                                 <Hospital className="h-4 w-4 text-info" />
                                 <span className="truncate font-medium">{doctor.hospitals.name}</span>
                             </div>
                         )}
                         {doctor.phone && (
-                            <div className="flex items-center gap-3 text-sm p-2 squircle bg-muted/30">
+                            <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
                                 <Phone className="h-4 w-4 text-success" />
                                 <span className="font-medium">{doctor.phone}</span>
                             </div>
@@ -174,30 +176,30 @@ export const DoctorsPage = () => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 mb-6 relative z-10">
-                    <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="p-3 geo-shard bg-muted/30 hover:bg-muted/50 transition-colors">
                         <div className="flex items-center gap-2 mb-1">
                         <Star className="h-4 w-4 text-warning fill-warning" />
                         <p className="text-xs text-muted-foreground font-semibold">Rating</p>
                         </div>
                         <p className="font-black text-xl">{doctor.rating || '4.5'}</p>
                     </div>
-                    <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="p-3 geo-shard bg-muted/30 hover:bg-muted/50 transition-colors">
                         <p className="text-xs text-muted-foreground font-semibold mb-1">Experience</p>
                         <p className="font-black text-xl">{doctor.experience || '5'}y</p>
                     </div>
                     </div>
 
-                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10">
+                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
                         <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                             ACTIONS
                         </div>
 
-                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mr-4">
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleView(doctor)}
-                                className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
                                 data-testid={`view-doctor-${doctor.id}`}
                             >
                                 <Eye className="h-4 w-4" />
@@ -206,7 +208,7 @@ export const DoctorsPage = () => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleEdit(doctor)}
-                                className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
                                 data-testid={`edit-doctor-${doctor.id}`}
                             >
                                 <Edit className="h-4 w-4" />
@@ -215,7 +217,7 @@ export const DoctorsPage = () => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleDelete(doctor)}
-                                className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                                 data-testid={`delete-doctor-${doctor.id}`}
                             >
                                 <Trash2 className="h-4 w-4" />

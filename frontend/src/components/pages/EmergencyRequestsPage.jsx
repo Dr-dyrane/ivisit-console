@@ -8,8 +8,10 @@ import { TableSkeleton } from '../ui/skeleton';
 import { AlertTriangle, Eye, Trash2, MapPin, Clock, ChevronRight, Activity, Siren } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const EmergencyRequestsPage = () => {
+  const { isAdmin, isProvider } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -101,23 +103,23 @@ export const EmergencyRequestsPage = () => {
                 transition={{ delay: index * 0.05 }}
                 className="col-span-1"
                 >
-                <Card className={`h-full squircle-lg glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col ${req.priority === 'critical' ? 'ring-1 ring-destructive/20' : ''}`}>
+                <Card className={`h-full geo-arrow glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col ${req.priority === 'critical' ? 'ring-1 ring-destructive/20' : ''}`}>
                     
                     {/* Top Right Icon */}
                     <div className="absolute top-0 right-0 p-5 z-20">
                         <div className="relative">
                             <div className={`absolute inset-0 ${req.priority === 'critical' ? 'bg-destructive/20' : 'bg-warning/10'} blur-xl rounded-full scale-150`} />
-                            <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                            <div className="w-10 h-10 geo-round bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
                                 <Siren className={`h-5 w-5 ${req.priority === 'critical' ? 'text-destructive' : 'text-warning'}`} />
                             </div>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2 mb-4 relative z-10">
-                        <Badge className={`squircle-sm ${getPriorityBadge(req.priority)} border-0 font-black editorial-subtitle px-2 py-1`}>
+                        <Badge className={`geo-sharp ${getPriorityBadge(req.priority)} border-0 font-black editorial-subtitle px-3 py-1`}>
                             {req.priority || 'medium'}
                         </Badge>
-                        <Badge className="squircle-sm bg-muted text-muted-foreground border-0 px-2 py-1 font-bold">
+                        <Badge className="geo-sharp bg-muted text-muted-foreground border-0 px-2 py-1 font-bold">
                              {req.status}
                         </Badge>
                     </div>
@@ -132,23 +134,23 @@ export const EmergencyRequestsPage = () => {
                     </div>
 
                     <div className="space-y-3 mb-6 relative z-10">
-                        <div className="flex items-start gap-3 text-sm p-3 squircle bg-muted/30">
+                        <div className="flex items-start gap-3 text-sm p-3 geo-sharp bg-muted/30">
                             <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                             <span className="font-medium leading-snug truncate-2">{req.location || 'Location shared'}</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10">
+                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
                         <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                             ACTIONS
                         </div>
 
-                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mr-12">
                              {/* Assuming view/edit modals might be added later, for now just delete or placeholder view */}
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
                             >
                                 <Eye className="h-4 w-4" />
                             </Button>
@@ -157,7 +159,7 @@ export const EmergencyRequestsPage = () => {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleDelete(req)}
-                                    className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                    className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </Button>

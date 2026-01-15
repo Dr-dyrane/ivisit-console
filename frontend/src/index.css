@@ -179,6 +179,13 @@ code {
         -webkit-backdrop-filter: blur(24px) saturate(180%);
         border: 1px solid hsl(var(--glass-border));
     }
+
+    .glass-strong {
+        background: hsl(var(--background) / 0.8);
+        backdrop-filter: blur(32px) saturate(180%);
+        -webkit-backdrop-filter: blur(32px) saturate(180%);
+        border: 1px solid hsl(var(--border) / 0.5);
+    }
     
     /* Arsenal of Geometric Luxury - Command Station Level */
     .geo-chamfer {

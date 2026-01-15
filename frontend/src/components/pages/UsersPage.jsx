@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 import { UserModal } from '../modals/UserModal';
 
 export const UsersPage = () => {
-  const navigate = useNavigate(); // Add this
   const { isAdmin } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -135,31 +134,31 @@ export const UsersPage = () => {
                 transition={{ delay: index * 0.03 }}
                 className="col-span-1"
                 >
-                <Card className="h-full squircle-lg glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
+                <Card className="h-full geo-ticket glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
                     
                     {/* Top Right Icon */}
                     <div className="absolute top-0 right-0 p-5 z-20">
                         <div className="relative">
                             <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full scale-150" />
-                            <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                            <div className="w-10 h-10 geo-round bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
                                 {user.role === 'admin' ? <Shield className="h-5 w-5 text-primary" /> : <Users className="h-5 w-5 text-primary" />}
                             </div>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2 mb-4 relative z-10">
-                        <Badge className={`squircle-sm ${getRoleBadge(user.role)} border-0 font-black editorial-subtitle px-2 py-1`}>
+                        <Badge className={`geo-badge ${getRoleBadge(user.role)} border-0 font-black editorial-subtitle px-3 py-1`}>
                             {user.role || 'patient'}
                         </Badge>
                         {user.bvn_verified && (
-                            <Badge className="squircle-sm bg-success/20 text-success border-0 px-2 py-1">
+                            <Badge className="geo-badge bg-success/20 text-success border-0 px-2 py-1">
                                 Verified
                             </Badge>
                         )}
                     </div>
 
                     <div className="flex items-center gap-4 mb-4 relative z-10">
-                        <div className="w-16 h-16 squircle-lg bg-muted/20 flex items-center justify-center overflow-hidden">
+                        <div className="w-16 h-16 geo-hexagon bg-muted/20 flex items-center justify-center overflow-hidden shadow-inner">
                             {user.avatar_url ? (
                                 <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
                             ) : (
@@ -177,29 +176,29 @@ export const UsersPage = () => {
                     </div>
 
                     <div className="space-y-3 mb-6 relative z-10">
-                        <div className="flex items-center gap-3 text-sm p-2 squircle bg-muted/30">
+                        <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
                             <Mail className="h-4 w-4 text-info" />
                             <span className="truncate font-medium">{user.email || 'No email'}</span>
                         </div>
                         {user.phone && (
-                            <div className="flex items-center gap-3 text-sm p-2 squircle bg-muted/30">
+                            <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
                                 <Phone className="h-4 w-4 text-success" />
                                 <span className="font-medium">{user.phone}</span>
                             </div>
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10">
+                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
                         <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                             ACTIONS
                         </div>
 
-                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mr-4">
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleView(user)}
-                                className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
                             >
                                 <Eye className="h-4 w-4" />
                             </Button>
@@ -209,7 +208,7 @@ export const UsersPage = () => {
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => handleEdit(user)}
-                                        className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                        className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
                                     >
                                         <Edit className="h-4 w-4" />
                                     </Button>
@@ -217,7 +216,7 @@ export const UsersPage = () => {
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => handleDelete(user)}
-                                        className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                        className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>

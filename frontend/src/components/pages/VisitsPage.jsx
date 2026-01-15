@@ -8,9 +8,11 @@ import { TableSkeleton } from '../ui/skeleton';
 import { Calendar, Plus, Edit, Trash2, Eye, User, Hospital, Clock, CheckCircle, ChevronRight, MapPin } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
+import { useAuth } from '../../contexts/AuthContext';
 import { VisitModal } from '../modals/VisitModal';
 
 export const VisitsPage = () => {
+  const { isAdmin, isProvider } = useAuth();
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedVisit, setSelectedVisit] = useState(null);
@@ -145,20 +147,20 @@ export const VisitsPage = () => {
                 transition={{ delay: index * 0.03 }}
                 className="col-span-1"
                 >
-                <Card className="h-full squircle-lg glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col" data-testid={`visit-card-${visit.id}`}>
+                <Card className="h-full squircle-xl glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col" data-testid={`visit-card-${visit.id}`}>
                     
                     {/* Top Right Icon */}
                     <div className="absolute top-0 right-0 p-5 z-20">
                         <div className="relative">
                             <div className="absolute inset-0 bg-info/10 blur-xl rounded-full scale-150" />
-                            <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                            <div className="w-10 h-10 squircle-sm bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
                                 <Calendar className="h-5 w-5 text-info" />
                             </div>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2 mb-4 relative z-10">
-                        <Badge className={`squircle-sm ${getStatusBadge(visit.status)} border-0 font-black editorial-subtitle px-2 py-1`}>
+                        <Badge className={`squircle-sm ${getStatusBadge(visit.status)} border-0 font-black editorial-subtitle px-3 py-1`}>
                             {visit.status || 'scheduled'}
                         </Badge>
                         {visit.visit_type && (
@@ -194,7 +196,7 @@ export const VisitsPage = () => {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10">
+                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
                         <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                             ACTIONS
                         </div>
