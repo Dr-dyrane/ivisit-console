@@ -7,7 +7,7 @@ import { Button } from '../ui/button';
 import { Ambulance, Hospital, Activity, AlertTriangle, MapPin, Phone, Clock, RefreshCw, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline as LeafletPolylineComponent } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -95,12 +95,46 @@ const MapFallback = () => (
   </div>
 );
 
+// Google Maps Polyline Component
+const GoogleMapsPolyline = ({ path, options }) => {
+  const map = useGoogleMap();
+  const [polyline, setPolyline] = useState(null);
+
+  useEffect(() => {
+    if (!map) return;
+
+    const line = new window.google.maps.Polyline({
+        path,
+        ...options,
+    });
+
+    line.setMap(map);
+    setPolyline(line);
+
+    return () => {
+        line.setMap(null);
+    };
+  }, [map]); // Re-create if map changes, update path via effect below
+
+  useEffect(() => {
+      if (polyline) {
+          polyline.setOptions({ path, ...options });
+      }
+  }, [polyline, path, options]);
+
+  return null;
+};
+
+// Hook to access Google Map instance
+import { useMap as useGoogleMap } from '@vis.gl/react-google-maps';
+
 const LeafletMap = ({ 
   center, 
   zoom, 
   emergencies, 
   ambulances, 
-  hospitals, 
+  hospitals,
+  routes, // Array of { positions: [[lat, lng], [lat, lng]], color: string }
   showLayers, 
   onMarkerClick,
   getStatusColor,
@@ -181,6 +215,20 @@ const LeafletMap = ({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
       />
       
+      {/* Routes/Polylines */}
+      {routes && routes.map((route, idx) => (
+        <LeafletPolylineComponent
+            key={`route-${idx}`}
+            positions={route.positions}
+            pathOptions={{ 
+                color: route.color || '#3b82f6', 
+                weight: 4,
+                opacity: 0.7,
+                dashArray: '10, 10' // Dashed line for effect
+            }}
+        />
+      ))}
+
       {showLayers.emergencies && emergencies.map(req => (
         <Marker 
             key={`emerg-${req.id}`} 
@@ -216,6 +264,7 @@ export const GodModeMap = () => {
   const [emergencyRequests, setEmergencyRequests] = useState([]);
   const [ambulances, setAmbulances] = useState([]);
   const [hospitals, setHospitals] = useState([]);
+  const [activeRoutes, setActiveRoutes] = useState([]); // { id, path: [{lat, lng}], color }
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [filter, setFilter] = useState('all');
   const [showLayers, setShowLayers] = useState({ emergencies: true, ambulances: true, hospitals: true });
@@ -265,6 +314,44 @@ export const GodModeMap = () => {
       supabase.removeChannel(ambulanceChannel);
     };
   }, [mapProvider, isSwitchingMap]);
+
+  useEffect(() => {
+    // Calculate routes whenever emergencies or ambulances update
+    const routes = [];
+    
+    // 1. Link dispatched/en_route emergencies to assigned ambulances
+    // Note: Since we don't have a real 'assigned_ambulance_id' in the mock data yet,
+    // we will simulate this by linking 'en_route' emergencies to the nearest 'busy' ambulance.
+    // In a real scenario, this would match IDs: req.ambulance_id === amb.id
+    
+    const activeEmergencies = emergencyRequests.filter(r => ['dispatched', 'en_route'].includes(r.status));
+    const busyAmbulances = ambulances.filter(a => a.status === 'busy');
+    
+    // Mock matching logic (replace with real ID matching later)
+    activeEmergencies.forEach((req, index) => {
+        // Find a "paired" ambulance (simplified for demo)
+        const assignedAmbulance = busyAmbulances[index % busyAmbulances.length];
+        
+        if (assignedAmbulance) {
+            routes.push({
+                id: `route-${req.id}-${assignedAmbulance.id}`,
+                path: [
+                    { lat: assignedAmbulance.lat, lng: assignedAmbulance.lng },
+                    { lat: req.lat, lng: req.lng }
+                ],
+                positions: [ // For Leaflet (requires [lat, lng] array)
+                    [assignedAmbulance.lat, assignedAmbulance.lng],
+                    [req.lat, req.lng]
+                ],
+                color: getStatusColor(req.status), // Match the status color
+                type: 'dispatch'
+            });
+        }
+    });
+
+    setActiveRoutes(routes);
+
+  }, [emergencyRequests, ambulances]);
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -472,6 +559,25 @@ export const GodModeMap = () => {
                   gestureHandling="greedy"
                   styles={MAP_STYLES[theme === 'dark' ? 'dark' : 'light']}
                 >
+                  {/* Routes/Polylines */}
+                  {activeRoutes.map((route) => (
+                    <GoogleMapsPolyline
+                        key={route.id}
+                        path={route.path}
+                        options={{
+                            strokeColor: route.color,
+                            strokeOpacity: 0.8,
+                            strokeWeight: 4,
+                            geodesic: true,
+                            icons: [{
+                                icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 2 },
+                                offset: '0',
+                                repeat: '10px'
+                            }]
+                        }}
+                    />
+                  ))}
+
                   {/* Emergency Request Markers */}
                   {showLayers.emergencies && filteredRequests.map((request) => (
                     <AdvancedMarker
@@ -565,6 +671,7 @@ export const GodModeMap = () => {
                 emergencies={filteredRequests}
                 ambulances={ambulances}
                 hospitals={hospitals}
+                routes={activeRoutes}
                 showLayers={showLayers}
                 onMarkerClick={(type, data) => setSelectedMarker({ type, data })}
                 getStatusColor={getStatusColor}
