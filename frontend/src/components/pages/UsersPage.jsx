@@ -7,10 +7,13 @@ import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { Users, Plus, Edit, Trash2, Eye, Shield, UserCheck, ChevronRight, Phone, Mail } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
+import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { UserModal } from '../modals/UserModal';
 
 export const UsersPage = () => {
+  const navigate = useNavigate(); // Add this
+  const { isAdmin } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -200,22 +203,26 @@ export const UsersPage = () => {
                             >
                                 <Eye className="h-4 w-4" />
                             </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(user)}
-                                className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                            >
-                                <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(user)}
-                                className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {isAdmin() && (
+                                <>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleEdit(user)}
+                                        className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                    >
+                                        <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleDelete(user)}
+                                        className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </Card>

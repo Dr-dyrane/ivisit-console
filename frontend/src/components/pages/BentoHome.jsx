@@ -342,13 +342,13 @@ export const BentoHome = () => {
 
         {/* Quick Access Cards (Small & Dense) */}
         {[
-            { id: 'hospitals', icon: Hospital, label: 'Hospitals', sub: '28 active', color: 'primary', path: '/hospitals' },
-            { id: 'ambulances', icon: Ambulance, label: 'Fleet', sub: `${stats.activeProviders} units`, color: 'success', path: '/ambulances' },
-            { id: 'doctors', icon: Stethoscope, label: 'Doctors', sub: 'Medical staff', color: 'info', path: '/doctors' },
-            { id: 'users', icon: Users, label: 'Users', sub: '1,247 total', color: 'secondary', path: '/users' },
-            { id: 'visits', icon: Calendar, label: 'Visits', sub: 'Appointments', color: 'warning', path: '/visits' },
-            { id: 'emergencies', icon: AlertTriangle, label: 'Emergencies', sub: 'Requests', color: 'destructive', path: '/emergencies' },
-        ].map((item, idx) => (
+            { id: 'hospitals', icon: Hospital, label: 'Hospitals', sub: '28 active', color: 'primary', path: '/hospitals', minRole: 'provider' },
+            { id: 'ambulances', icon: Ambulance, label: 'Fleet', sub: `${stats.activeProviders} units`, color: 'success', path: '/ambulances', minRole: 'provider' },
+            { id: 'doctors', icon: Stethoscope, label: 'Doctors', sub: 'Medical staff', color: 'info', path: '/doctors', minRole: 'provider' },
+            { id: 'users', icon: Users, label: 'Users', sub: '1,247 total', color: 'secondary', path: '/users', minRole: 'admin' },
+            { id: 'visits', icon: Calendar, label: 'Visits', sub: 'Appointments', color: 'warning', path: '/visits', minRole: 'provider' },
+            { id: 'emergencies', icon: AlertTriangle, label: 'Emergencies', sub: 'Requests', color: 'destructive', path: '/emergencies', minRole: 'provider' },
+        ].filter(item => !item.minRole || hasMinRole(item.minRole)).map((item, idx) => (
             <motion.div
               layout
               key={item.id}

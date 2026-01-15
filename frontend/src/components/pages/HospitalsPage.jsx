@@ -88,13 +88,15 @@ export const HospitalsPage = () => {
         title="Hospitals Management"
         subtitle="Manage hospital network and facilities"
         action={
-          <Button
-            onClick={handleCreate}
-            className="squircle-lg bg-primary hover:bg-primary/90 shadow-glow flex items-center gap-2"
-          >
-            <Plus className="h-5 w-5" />
-            <span className="font-bold">Add Hospital</span>
-          </Button>
+          (isAdmin() || isProvider()) && (
+            <Button
+              onClick={handleCreate}
+              className="squircle-lg bg-primary hover:bg-primary/90 shadow-glow flex items-center gap-2"
+            >
+              <Plus className="h-5 w-5" />
+              <span className="font-bold">Add Hospital</span>
+            </Button>
+          )
         }
       />
 
@@ -183,22 +185,27 @@ export const HospitalsPage = () => {
                             >
                                 <Eye className="h-4 w-4" />
                             </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(hospital)}
-                                className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                            >
-                                <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(hospital)}
-                                className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {/* RBAC: Only providers/admins can edit/delete */}
+                            {(isAdmin() || isProvider()) && (
+                                <>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleEdit(hospital)}
+                                        className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                    >
+                                        <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleDelete(hospital)}
+                                        className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </Card>
