@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MapPin, FileCheck, TrendingUp, Settings, Menu, X, Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance, Users, Moon, Sun, LogOut, User } from 'lucide-react';
+import { Home, MapPin, FileCheck, TrendingUp, Settings, Menu, X, Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance, Users, Moon, Sun, LogOut, User, Ellipsis } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -14,9 +14,113 @@ export const IslandNavigation = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
-  const [isVisible, setIsVisible] = useState(true);
-  const lastScrollY = useRef(0);
-  const ticking = useRef(false);
+  const [isVisible, setIsVisible] = useState(false); // Default to hidden
+  const [isHovered, setIsHovered] = useState(false);
+  const [isMobile, setIsMobile] = useState(false); // Mobile detection state
+  const hideTimerRef = useRef(null);
+  
+  // Touch handling refs
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+
+  // Detect Mobile Device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  // Auto-hide timer function
+  const startHideTimer = () => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    
+    // Only set timer if not hovered and menu is closed
+    if (!isHovered && !menuOpen && !userMenuOpen) {
+        hideTimerRef.current = setTimeout(() => {
+            setIsVisible(false);
+        }, 3000); // Hide after 3 seconds of inactivity
+    }
+  };
+
+  // Clear timer on interaction
+  const clearHideTimer = () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      setIsVisible(true);
+  };
+
+  useEffect(() => {
+      // Start timer on mount (if visible)
+      if (isVisible) startHideTimer();
+      return () => {
+          if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      };
+  }, [isVisible]);
+
+  // Watch hover state to manage timer
+  useEffect(() => {
+      if (isHovered) {
+          if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+          setIsVisible(true);
+      } else {
+          startHideTimer();
+      }
+  }, [isHovered, menuOpen, userMenuOpen]);
+
+  // Mouse Edge Detection (Desktop) & Swipe Detection (Mobile)
+  useEffect(() => {
+    // Desktop: Show when mouse hits left edge
+    const handleMouseMove = (e) => {
+        if (!isMobile) {
+            // If mouse is within 20px of left edge
+            if (e.clientX < 20) {
+                setIsVisible(true);
+                startHideTimer();
+            }
+        }
+    };
+    
+    // Mobile: Swipe Right to Open
+    const handleTouchStart = (e) => {
+        touchStartX.current = e.changedTouches[0].screenX;
+    };
+
+    const handleTouchEnd = (e) => {
+        touchEndX.current = e.changedTouches[0].screenX;
+        handleSwipe();
+    };
+
+    const handleSwipe = () => {
+        const swipeDistance = touchEndX.current - touchStartX.current;
+        const startZone = touchStartX.current < 50; // Only allow swipe from left edge (first 50px)
+
+        // Swipe Right (Open)
+        if (startZone && swipeDistance > 50) {
+            setIsVisible(true);
+            startHideTimer();
+        }
+        
+        // Swipe Left (Close)
+        if (swipeDistance < -50) {
+            setIsVisible(false);
+        }
+    };
+
+    if (!isMobile) {
+        window.addEventListener('mousemove', handleMouseMove);
+    } else {
+        window.addEventListener('touchstart', handleTouchStart);
+        window.addEventListener('touchend', handleTouchEnd);
+    }
+
+    return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('touchstart', handleTouchStart);
+        window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isMobile]);
 
   const navItems = [
     { path: '/', icon: Home, label: 'Home', minRole: 'viewer' },
@@ -57,30 +161,7 @@ export const IslandNavigation = () => {
     document.documentElement.classList.toggle('dark', darkMode);
   }, [darkMode]);
 
-  // Scroll detection
-  const handleScroll = useCallback(() => {
-    if (!ticking.current) {
-      window.requestAnimationFrame(() => {
-        const currentScrollY = window.scrollY;
-        const scrollDelta = currentScrollY - lastScrollY.current;
-        
-        if (scrollDelta > 5 && currentScrollY > 50) {
-          setIsVisible(false);
-        } else if (scrollDelta < -5 || currentScrollY < 50) {
-          setIsVisible(true);
-        }
-        
-        lastScrollY.current = currentScrollY;
-        ticking.current = false;
-      });
-      ticking.current = true;
-    }
-  }, []);
 
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
 
   const getRoleBadgeColor = (role) => {
     const colors = {
@@ -94,17 +175,42 @@ export const IslandNavigation = () => {
 
   return (
     <>
-      {/* Desktop Top-Right island removed; unify to left-side vertical across breakpoints */}
+      {/* Invisible Hover Zone (The Handler) - Desktop Only */}
+      {!isMobile && (
+          <div 
+            className="fixed left-0 top-0 bottom-0 w-4 z-[51]"
+            onMouseEnter={() => {
+                setIsVisible(true);
+                setIsHovered(true);
+            }}
+            onMouseLeave={() => setIsHovered(false)}
+          />
+      )}
 
-      {/* Mobile/Tablet - Left Vertical Sidebar */}
+      {/* Mobile/Tablet/Desktop - Left Vertical Sidebar */}
       <motion.div
-        initial={{ opacity: 0, x: -20 }}
+        initial={{ opacity: 0, x: -80 }}
         animate={{ 
-          opacity: isVisible ? 1 : 0, 
-          x: isVisible ? 0 : -80,
-          pointerEvents: isVisible ? 'auto' : 'none'
+          opacity: isVisible || isHovered || menuOpen ? 1 : 0.6,
+          x: isVisible || isHovered || menuOpen ? 0 : -90,
+          pointerEvents: isVisible || isHovered || menuOpen ? 'auto' : 'none'
         }}
-        transition={{ duration: 0.2, ease: 'easeOut' }}
+        // Desktop Hover Logic
+        onMouseEnter={() => {
+            if (!isMobile) {
+                setIsVisible(true);
+                setIsHovered(true);
+            }
+        }}
+        onMouseLeave={() => {
+            if (!isMobile) setIsHovered(false)
+        }}
+        // Mobile Swipe Logic (Simple Touch Handlers)
+        onTouchStart={() => {
+            setIsVisible(true);
+            startHideTimer();
+        }}
+        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
         className="fixed left-3 top-1/2 -translate-y-1/2 z-50 glass shadow-premium px-2 py-3 squircle-lg flex flex-col gap-1"
       >
         {filteredNavItems.map((item) => (
@@ -136,7 +242,7 @@ export const IslandNavigation = () => {
             menuOpen ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50'
           }`}
         >
-          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {menuOpen ? <X className="h-5 w-5" /> : <Ellipsis className="h-5 w-5" />}
         </button>
 
         {/* Mobile User Avatar */}
