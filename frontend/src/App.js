@@ -54,7 +54,7 @@ const AppLayout = ({ children }) => {
               </div>
             </>
           )}
-          <div className="relative z-10 flex-1 flex-col min-h-screen ">
+          <div className="relative z-10 flex-1 flex-col min-h-screen lg:pr-80">
             {!hideNav && <IslandNavigation />}
             {children}
           </div>

@@ -37,9 +37,44 @@ export const ContextAwareFAB = () => {
     visit: false
   });
   const currentPath = location.pathname;
-
-  // Don't show on mobile
-  if (isMobile) return null;
+  
+  // Don't render on desktop - we have dedicated sheet trigger
+  if (isDesktop) return null;
+  
+  // Mobile: Quick action FAB (different from context sheet)
+  if (isMobile) {
+    return (
+      <motion.button
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => {
+          // Smart action based on current page
+          if (currentPath.includes('/emergencies')) {
+            setModalStates(prev => ({ ...prev, emergency: true }));
+          } else if (currentPath.includes('/doctors')) {
+            setModalStates(prev => ({ ...prev, doctor: true }));
+          } else if (currentPath.includes('/hospitals')) {
+            setModalStates(prev => ({ ...prev, hospital: true }));
+          } else {
+            navigate('/emergencies');
+          }
+        }}
+        className="fixed bottom-24 right-6 w-12 h-12 geo-round bg-primary text-primary-foreground shadow-premium z-40 flex items-center justify-center"
+        style={{
+          boxShadow: `
+            0 10px 25px rgba(0, 0, 0, 0.2),
+            0 4px 10px rgba(0, 0, 0, 0.1),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.1)
+          `,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2)',
+        }}
+      >
+        <Zap className="h-5 w-5" />
+      </motion.button>
+    );
+  }
 
   // Open modal handlers
   const openModal = (type) => {

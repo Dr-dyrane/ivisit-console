@@ -44,3 +44,7 @@ export function withTimeout(promise, timeoutMs = 5000, errorMessage = 'Operation
   
   return Promise.race([promise, timeoutPromise]);
 }
+
+export function scrollbarHide() {
+  return 'scrollbar-hide';
+}

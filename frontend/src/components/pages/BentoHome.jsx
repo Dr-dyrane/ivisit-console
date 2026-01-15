@@ -45,7 +45,7 @@ export const BentoHome = () => {
   // Calculate app-wide stats from all data sources
   const appStats = {
     liveEmergencies: emergencyStats?.critical || 0,
-    responseTime: analyticsData?.avgResponseTime || 4.2,
+    responseTime: Math.round((analyticsData?.avgResponseTime || 4.2) * 10) / 10, // Round to 1 decimal place
     activeProviders: doctorsData?.totalDoctors || 48,
     todayRequests: emergencyStats?.total || 0,
     totalUsers: doctorsData?.totalDoctors + 25, // doctors + other staff

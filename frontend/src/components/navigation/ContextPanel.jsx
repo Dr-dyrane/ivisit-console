@@ -43,6 +43,57 @@ export const ContextPanel = () => {
 
   const emergencyStats = getEmergencyStats();
 
+  const getPageContextHeader = () => {
+    const headers = {
+      '/': { title: 'System Overview', subtitle: 'Live Dashboard' },
+      '/emergencies': { title: 'Emergency Context', subtitle: 'Response Operations' },
+      '/users': { title: 'User Management', subtitle: 'Access Control' },
+      '/verification': { title: 'Verification Queue', subtitle: 'Identity Verification' },
+      '/analytics': { title: 'Analytics', subtitle: 'Performance Metrics' },
+      '/doctors': { title: 'Doctor Operations', subtitle: 'Medical Staff' },
+      '/visits': { title: 'Visit Management', subtitle: 'Patient Appointments' },
+      '/hospitals': { title: 'Hospital Ops', subtitle: 'Facility Management' },
+      '/ambulances': { title: 'Fleet Control', subtitle: 'Ambulance Operations' },
+      '/map': { title: 'Map Intelligence', subtitle: 'Location Services' },
+      '/settings': { title: 'System Settings', subtitle: 'Configuration' }
+    };
+
+    const currentHeader = Object.keys(headers).find(key => 
+      currentPath === key || currentPath.startsWith(key + '/')
+    ) || { title: 'Context Panel', subtitle: 'Smart Context' };
+
+    return currentHeader;
+  };
+
+  const renderPanelHeader = () => {
+    const { title, subtitle } = getPageContextHeader();
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="px-4 pt-4 pb-2 border-b border-border/20"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-black text-lg tracking-tight">{title}</h2>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{subtitle}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Live indicator */}
+            {!useMockData && (
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-2 h-2 geo-round bg-success"
+              />
+            )}
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
   const renderEmergencyPanel = () => {
     const panel = (
       <div className="p-4 space-y-4">
@@ -471,7 +522,7 @@ export const ContextPanel = () => {
                 </div>
                 <span className="font-black tracking-tight">Avg Response</span>
               </div>
-              <Badge className="bg-info/20 text-info border-0">{analyticsData.avgResponseTime.toFixed(1)}m</Badge>
+              <Badge className="bg-info/20 text-info border-0">{Math.round((analyticsData.avgResponseTime || 0) * 10) / 10}m</Badge>
             </div>
           </Card>
         </motion.div>
@@ -740,7 +791,7 @@ export const ContextPanel = () => {
                   <p className="text-xs text-muted-foreground">Average</p>
                 </div>
               </div>
-              <Badge className="bg-success/20 text-success border-0">{analyticsData.avgResponseTime}m</Badge>
+              <Badge className="bg-success/20 text-success border-0">{Math.round((analyticsData.avgResponseTime || 0) * 10) / 10}m</Badge>
             </div>
           </Card>
         </motion.div>
@@ -831,29 +882,38 @@ export const ContextPanel = () => {
     return panel;
   };
 
+  const renderPanelWithHeader = (panelContent) => (
+    <div className="h-full flex flex-col bg-background/95 backdrop-blur-xl border-l border-border/20">
+      {renderPanelHeader()}
+      <div className="flex-1 overflow-y-auto">
+        {panelContent}
+      </div>
+    </div>
+  );
+
   // Render based on current path
   if (currentPath === '/' || currentPath === '') {
-    return renderDashboardPanel();
+    return renderPanelWithHeader(renderDashboardPanel());
   } else if (currentPath.includes('/emergencies')) {
-    return renderEmergencyPanel();
+    return renderPanelWithHeader(renderEmergencyPanel());
   } else if (currentPath.includes('/users')) {
-    return renderUsersPanel();
+    return renderPanelWithHeader(renderUsersPanel());
   } else if (currentPath.includes('/hospitals')) {
-    return renderHospitalsPanel();
+    return renderPanelWithHeader(renderHospitalsPanel());
   } else if (currentPath.includes('/ambulances')) {
-    return renderAmbulancesPanel();
+    return renderPanelWithHeader(renderAmbulancesPanel());
   } else if (currentPath.includes('/map')) {
-    return renderMapPanel();
+    return renderPanelWithHeader(renderMapPanel());
   } else if (currentPath.includes('/analytics')) {
-    return renderAnalyticsPanel();
+    return renderPanelWithHeader(renderAnalyticsPanel());
   } else if (currentPath.includes('/doctors')) {
-    return renderDoctorsPanel();
+    return renderPanelWithHeader(renderDoctorsPanel());
   } else if (currentPath.includes('/visits')) {
-    return renderVisitsPanel();
+    return renderPanelWithHeader(renderVisitsPanel());
   } else if (currentPath.includes('/verification')) {
-    return renderVerificationPanel();
+    return renderPanelWithHeader(renderVerificationPanel());
   } else if (currentPath.includes('/settings')) {
-    return renderSettingsPanel();
+    return renderPanelWithHeader(renderSettingsPanel());
   }
 
   // Default panel
@@ -864,16 +924,8 @@ export const ContextPanel = () => {
         animate={{ opacity: 1, y: 0 }}
         className="text-center py-12"
       >
-        <motion.div 
-          initial={{ scale: 0.8 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2, type: 'spring', damping: 20 }}
-          className="w-20 h-20 geo-round bg-muted/20 flex items-center justify-center mx-auto mb-6 shadow-lg"
-        >
-          <Heart className="h-8 w-8 text-muted-foreground" />
-        </motion.div>
-        
-        <h3 className="font-black text-xl mb-3 tracking-tight">Context Panel</h3>
+        <Sparkles className="h-8 w-8 text-primary mx-auto mb-4" />
+        <h3 className="font-black text-lg mb-2">Context Panel</h3>
         <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
           Navigate to a page to see relevant information and quick actions
         </p>
