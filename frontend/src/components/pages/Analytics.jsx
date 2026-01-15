@@ -407,11 +407,6 @@ export const Analytics = () => {
                         </div>
                         <h3 className="text-3xl font-black tracking-tighter">{stat.value}</h3>
                     </div>
-                     <div className="hover-reveal opacity-0 group-hover:opacity-100 transition-all duration-300 relative z-20">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform" style={{ backgroundColor: `${stat.color}20` }}>
-                            <ChevronRight className="h-5 w-5 ml-0.5" style={{ color: stat.color }} />
-                        </div>
-                    </div>
                 </Card>
             </motion.div>
         ))}

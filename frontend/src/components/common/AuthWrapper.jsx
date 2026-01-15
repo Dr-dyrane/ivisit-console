@@ -238,16 +238,19 @@ const signUp = async (email, password, username) => {
 // Enhanced sign out with cleanup
 const handleSignOut = async () => {
   try {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    toast.success('Signed out successfully');
+  } catch (error) {
+    console.error('Sign out error:', error);
+    // Even if server fails, we proceed to clear local state
+    toast.error('Session ended locally');
+  } finally {
     setUser(null);
     setProfile(null);
     setSessionTimeout(null);
     setLastActivity(Date.now());
-    toast.success('Signed out successfully');
     navigate('/login');
-  } catch (error) {
-    console.error('Sign out error:', error);
-    toast.error('Failed to sign out');
   }
 };
 

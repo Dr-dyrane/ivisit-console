@@ -222,11 +222,6 @@ export const DoctorsPage = () => {
                             </Button>
                         </div>
                     </div>
-                    
-                    {/* Hover Reveal Chevron */}
-                    <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 z-20 pointer-events-none">
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                    </div>
                 </Card>
                 </motion.div>
             ))}

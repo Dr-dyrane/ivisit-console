@@ -139,9 +139,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
+    try {
+      // Attempt to sign out from Supabase server
+      const { error } = await supabase.auth.signOut();
+      if (error) console.error('Error during Supabase sign out:', error);
+    } catch (error) {
+      console.error('Unexpected error during sign out:', error);
+    } finally {
+      // Always clear local state regardless of server response
+      setUser(null);
+      setProfile(null);
+      // Optional: Clear any other local storage items if you have custom ones
+      localStorage.removeItem('supabase.auth.token'); // Fallback cleanup
+    }
   };
 
   const hasRole = (roles) => {

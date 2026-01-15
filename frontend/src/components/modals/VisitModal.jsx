@@ -111,7 +111,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose(false)}>
-      <DialogContent className="squircle-2xl glass-strong border-0 max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0 shadow-2xl bg-background/80 backdrop-blur-xl">
+      <DialogContent className="squircle-2xl glass-strong border-0 max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0 shadow-2xl bg-background/80 backdrop-blur-xl [&>button]:hidden">
         
         {/* Timeline Header */}
         <div className="relative h-32 bg-gradient-to-r from-info/10 via-background to-background overflow-hidden flex items-center justify-between px-8">
