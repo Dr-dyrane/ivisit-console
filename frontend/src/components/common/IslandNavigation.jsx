@@ -228,7 +228,7 @@ export const IslandNavigation = () => {
           </button>
         ))}
         
-        <div className="h-px bg-border/50 my-1" />
+        <div className="h-px bg-muted/20 my-1" />
         
         <button
           onClick={() => setMenuOpen(!menuOpen)}
@@ -244,7 +244,7 @@ export const IslandNavigation = () => {
           onClick={() => handleNavigate('/settings')}
           className="mt-1"
         >
-          <Avatar className="h-10 w-10 squircle ring-2 ring-border">
+          <Avatar className="h-10 w-10 squircle shadow-sm">
             <AvatarImage src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.id}`} />
             <AvatarFallback className="squircle bg-primary/10 text-primary font-bold text-sm">
               {profile?.username?.[0]?.toUpperCase() || 'U'}
@@ -252,7 +252,7 @@ export const IslandNavigation = () => {
           </Avatar>
         </button>
 
-        <div className="h-px bg-border/50 my-2" />
+        <div className="h-px bg-muted/20 my-2" />
         <ThemeToggle size="xs" />
       </motion.div>
 
@@ -282,7 +282,7 @@ export const IslandNavigation = () => {
                 </button>
               ))}
               
-              <div className="h-px bg-border/50 my-2" />
+              <div className="h-px bg-muted/20 my-2" />
               
               <button
                 onClick={handleSignOut}

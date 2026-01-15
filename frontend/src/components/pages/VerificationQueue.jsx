@@ -6,8 +6,8 @@ import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Input } from '../ui/input';
-import { CheckCircle, XCircle, FileText, User, Phone, FileCheck, Search, Filter, Clock, Shield, AlertTriangle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { CheckCircle, XCircle, FileText, User, Phone, FileCheck, Search, Filter, Clock, Shield, AlertTriangle, ChevronRight, MoreHorizontal } from 'lucide-react';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 
 export const VerificationQueue = () => {
@@ -105,31 +105,46 @@ export const VerificationQueue = () => {
       >
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="editorial-title text-3xl mb-1">Verification Queue</h1>
+            <h1 className="editorial-title text-4xl mb-2">Verification Queue</h1>
             <p className="text-muted-foreground font-semibold">Review and approve provider applications</p>
+          </div>
+          
+          {/* Search Bar - Floating Style */}
+          <div className="relative group w-full md:w-auto">
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <Input
+                placeholder="Search applicants..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-6 w-full md:w-[320px] squircle-lg bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all text-base"
+            />
           </div>
         </div>
       </motion.div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      {/* Stats Cards - Bento Style */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
         >
           <Card 
-            className={`squircle-lg p-5 glass border-0 cursor-pointer transition-all ${filterType === 'pending' ? 'ring-2 ring-warning' : 'hover-lift'}`}
+            className={`h-full squircle-lg p-6 glass border-0 cursor-pointer transition-all duration-300 relative overflow-hidden group ${filterType === 'pending' ? 'ring-2 ring-warning shadow-lg' : 'hover-lift opacity-70 hover:opacity-100'}`}
             onClick={() => setFilterType('pending')}
           >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 squircle bg-warning/10 flex items-center justify-center">
-                <Clock className="h-7 w-7 text-warning" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground font-semibold">Pending Review</p>
-                <p className="text-3xl font-black">{stats.pending}</p>
-              </div>
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-warning/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
+            <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 squircle bg-warning/10 flex items-center justify-center">
+                        <Clock className="h-6 w-6 text-warning" />
+                    </div>
+                    {filterType === 'pending' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
+                </div>
+                <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider mb-1">Pending Review</p>
+                <p className="text-4xl font-black tracking-tighter">{stats.pending}</p>
             </div>
           </Card>
         </motion.div>
@@ -140,17 +155,19 @@ export const VerificationQueue = () => {
           transition={{ delay: 0.2 }}
         >
           <Card 
-            className={`squircle-lg p-5 glass border-0 cursor-pointer transition-all ${filterType === 'approved' ? 'ring-2 ring-success' : 'hover-lift'}`}
+            className={`h-full squircle-lg p-6 glass border-0 cursor-pointer transition-all duration-300 relative overflow-hidden group ${filterType === 'approved' ? 'ring-2 ring-success shadow-lg' : 'hover-lift opacity-70 hover:opacity-100'}`}
             onClick={() => setFilterType('approved')}
           >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 squircle bg-success/10 flex items-center justify-center">
-                <CheckCircle className="h-7 w-7 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground font-semibold">Verified Users</p>
-                <p className="text-3xl font-black">{stats.approved}</p>
-              </div>
+             <div className="absolute -right-4 -top-4 w-24 h-24 bg-success/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
+            <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 squircle bg-success/10 flex items-center justify-center">
+                        <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                     {filterType === 'approved' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
+                </div>
+                <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider mb-1">Verified Users</p>
+                <p className="text-4xl font-black tracking-tighter">{stats.approved}</p>
             </div>
           </Card>
         </motion.div>
@@ -161,250 +178,244 @@ export const VerificationQueue = () => {
           transition={{ delay: 0.3 }}
         >
           <Card 
-            className={`squircle-lg p-5 glass border-0 cursor-pointer transition-all ${filterType === 'all' ? 'ring-2 ring-primary' : 'hover-lift'}`}
+            className={`h-full squircle-lg p-6 glass border-0 cursor-pointer transition-all duration-300 relative overflow-hidden group ${filterType === 'all' ? 'ring-2 ring-primary shadow-lg' : 'hover-lift opacity-70 hover:opacity-100'}`}
             onClick={() => setFilterType('all')}
           >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 squircle bg-primary/10 flex items-center justify-center">
-                <Shield className="h-7 w-7 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground font-semibold">Total Users</p>
-                <p className="text-3xl font-black">{allUsers.length}</p>
-              </div>
+             <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
+            <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 squircle bg-primary/10 flex items-center justify-center">
+                        <Shield className="h-6 w-6 text-primary" />
+                    </div>
+                     {filterType === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+                </div>
+                <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider mb-1">Total Database</p>
+                <p className="text-4xl font-black tracking-tighter">{allUsers.length}</p>
             </div>
           </Card>
         </motion.div>
       </div>
 
-      {/* Search */}
-      <Card className="squircle-lg p-4 glass border-0 mb-6">
-        <div className="flex items-center gap-3">
-          <Search className="h-5 w-5 text-muted-foreground" />
-          <Input
-            placeholder="Search by name, email, or phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="border-0 bg-transparent focus-visible:ring-0 text-lg"
-          />
-        </div>
-      </Card>
-
-      {/* Queue List */}
-      <Card className="squircle-lg p-6 glass border-0">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="font-black text-xl">
-            {filterType === 'pending' && 'Pending Verifications'}
-            {filterType === 'approved' && 'Verified Users'}
-            {filterType === 'all' && 'All Users'}
-          </h3>
-          <Badge className="squircle bg-muted font-bold">{filteredProviders.length} results</Badge>
-        </div>
-
-        <div className="space-y-3">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="w-12 h-12 squircle bg-muted animate-pulse mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading...</p>
-            </div>
-          ) : filteredProviders.length === 0 ? (
-            <div className="text-center py-12">
-              <FileCheck className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-              <p className="text-xl font-black mb-2">Queue Empty</p>
-              <p className="text-muted-foreground">
-                {filterType === 'pending' ? 'No pending verifications' : 'No users match your search'}
-              </p>
-            </div>
-          ) : (
-            <AnimatePresence>
-              {filteredProviders.map((provider, index) => (
-                <motion.div
-                  key={provider.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="flex items-center justify-between p-4 squircle bg-muted/30 hover:bg-muted/50 transition-all group"
+      {/* Grid Content */}
+      <LayoutGroup>
+        <motion.div 
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr"
+        >
+          <AnimatePresence mode='popLayout'>
+            {loading ? (
+                 [...Array(8)].map((_, i) => (
+                    <motion.div 
+                        key={`skeleton-${i}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="h-[280px] squircle-lg bg-muted/10 animate-pulse"
+                    />
+                 ))
+            ) : filteredProviders.length === 0 ? (
+                <motion.div 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    className="col-span-full py-20 text-center"
                 >
-                  <div className="flex items-center gap-4 flex-1">
-                    <Avatar className="h-14 w-14 squircle">
-                      <AvatarImage src={provider.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${provider.id}`} />
-                      <AvatarFallback className="squircle bg-primary/10 text-primary font-black">
-                        {provider.username?.[0]?.toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-black text-lg">{provider.username || 'Unknown User'}</p>
-                        <Badge className={`squircle-sm font-bold ${
-                          provider.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'
-                        }`}>
-                          {provider.bvn_verified ? 'Verified' : 'Pending'}
-                        </Badge>
-                        {provider.role && (
-                          <Badge className="squircle-sm bg-primary/10 text-primary" variant="outline">
-                            {provider.role}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1 flex-wrap">
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {provider.email || 'No email'}
-                        </span>
-                        {provider.phone && (
-                          <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {provider.phone}
-                          </span>
-                        )}
-                      </div>
+                    <div className="w-20 h-20 squircle bg-muted/20 flex items-center justify-center mx-auto mb-6">
+                        <FileCheck className="h-10 w-10 text-muted-foreground" />
                     </div>
-                  </div>
-
-                  <Button
-                    onClick={() => setSelectedProvider(provider)}
-                    className="squircle bg-primary hover:bg-primary/90"
-                    data-testid={`review-btn-${provider.id}`}
-                  >
-                    Review
-                  </Button>
+                    <h3 className="text-2xl font-black mb-2">All Clear</h3>
+                    <p className="text-muted-foreground font-medium">No applications found matching your criteria.</p>
                 </motion.div>
-              ))}
-            </AnimatePresence>
-          )}
-        </div>
-      </Card>
+            ) : (
+                filteredProviders.map((provider) => (
+                    <motion.div
+                        layout
+                        key={provider.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <Card 
+                            className="h-full squircle-lg glass shadow-premium p-6 flex flex-col justify-between hover-lift group border-0 relative overflow-hidden cursor-pointer"
+                            onClick={() => setSelectedProvider(provider)}
+                        >
+                            {/* Card Hover Gradient */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            
+                            <div className="relative z-10 flex flex-col items-center text-center">
+                                <div className="relative mb-4">
+                                    <Avatar className="h-24 w-24 squircle-xl shadow-lg group-hover:scale-105 transition-transform duration-300">
+                                        <AvatarImage src={provider.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${provider.id}`} />
+                                        <AvatarFallback className="text-2xl font-black bg-primary/10 text-primary">
+                                            {provider.username?.[0]?.toUpperCase() || 'U'}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <Badge className={`absolute -bottom-2 -right-2 squircle-sm px-2 py-0.5 ${
+                                        provider.bvn_verified ? 'bg-success text-success-foreground' : 'bg-warning text-warning-foreground'
+                                    }`}>
+                                        {provider.bvn_verified ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                                    </Badge>
+                                </div>
 
-      {/* Review Modal */}
+                                <h3 className="text-xl font-black tracking-tight mb-1 truncate w-full">{provider.username || 'Unknown'}</h3>
+                                <p className="text-sm text-muted-foreground font-semibold mb-4 truncate w-full">{provider.email}</p>
+
+                                <div className="flex items-center gap-2 w-full justify-center">
+                                    {provider.role && (
+                                        <Badge variant="secondary" className="squircle-sm bg-muted/50 text-muted-foreground">
+                                            {provider.role}
+                                        </Badge>
+                                    )}
+                                     <Badge variant="secondary" className="squircle-sm bg-muted/50 text-muted-foreground">
+                                            {new Date(provider.created_at).toLocaleDateString()}
+                                    </Badge>
+                                </div>
+                            </div>
+
+                            <div className="relative z-10 mt-6 pt-4 flex items-center justify-between">
+                                <span className="text-xs font-bold text-muted-foreground">VIEW DETAILS</span>
+                                <div className="w-8 h-8 rounded-full bg-muted/20 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                                    <ChevronRight className="w-4 h-4" />
+                                </div>
+                            </div>
+                        </Card>
+                    </motion.div>
+                ))
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </LayoutGroup>
+
+      {/* Review Modal - Apple Style Sheet */}
       <Dialog open={!!selectedProvider} onOpenChange={() => setSelectedProvider(null)}>
-        <DialogContent className="squircle-lg glass border-0 max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-black text-2xl">User Verification Review</DialogTitle>
-          </DialogHeader>
-
+        <DialogContent className="squircle-2xl glass border-0 max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 shadow-2xl">
           {selectedProvider && (
-            <div className="space-y-6 mt-4">
-              {/* User Header */}
-              <div className="flex items-center gap-4 p-4 squircle bg-muted/30">
-                <Avatar className="h-20 w-20 squircle">
-                  <AvatarImage src={selectedProvider.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedProvider.id}`} />
-                  <AvatarFallback className="text-2xl font-black bg-primary/10 text-primary">
-                    {selectedProvider.username?.[0]?.toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1">
-                  <h3 className="text-xl font-black">{selectedProvider.username || 'Unknown User'}</h3>
-                  <p className="text-muted-foreground">{selectedProvider.email || 'No email'}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className={`squircle ${selectedProvider.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
-                      {selectedProvider.bvn_verified ? 'Verified' : 'Pending Verification'}
-                    </Badge>
-                    {selectedProvider.role && (
-                      <Badge className="squircle bg-primary/10 text-primary" variant="outline">
-                        {selectedProvider.role}
-                      </Badge>
-                    )}
-                  </div>
+            <div className="flex flex-col h-full">
+                {/* Hero Header */}
+                <div className="relative h-32 bg-gradient-to-r from-primary/20 to-secondary/20 overflow-hidden">
+                    <div className="absolute inset-0 bg-grid-white/10" />
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute top-4 right-4 rounded-full hover:bg-black/10 text-foreground"
+                        onClick={() => setSelectedProvider(null)}
+                    >
+                        <XCircle className="w-6 h-6" />
+                    </Button>
                 </div>
-              </div>
 
-              {/* User Details Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <Card className="squircle p-4 bg-muted/20 border-0">
-                  <p className="text-sm text-muted-foreground mb-1">Phone Number</p>
-                  <p className="font-bold">{selectedProvider.phone || 'Not provided'}</p>
-                </Card>
-                
-                <Card className="squircle p-4 bg-muted/20 border-0">
-                  <p className="text-sm text-muted-foreground mb-1">Gender</p>
-                  <p className="font-bold">{selectedProvider.gender || 'Not specified'}</p>
-                </Card>
-                
-                <Card className="squircle p-4 bg-muted/20 border-0">
-                  <p className="text-sm text-muted-foreground mb-1">Date of Birth</p>
-                  <p className="font-bold">{selectedProvider.date_of_birth || 'Not provided'}</p>
-                </Card>
-                
-                <Card className="squircle p-4 bg-muted/20 border-0">
-                  <p className="text-sm text-muted-foreground mb-1">Account Created</p>
-                  <p className="font-bold">
-                    {selectedProvider.created_at 
-                      ? new Date(selectedProvider.created_at).toLocaleDateString() 
-                      : 'Unknown'}
-                  </p>
-                </Card>
-              </div>
+                <div className="px-8 pb-8 -mt-12 relative z-10">
+                    <div className="flex items-end justify-between mb-6">
+                        <Avatar className="h-28 w-28 squircle-2xl shadow-xl">
+                            <AvatarImage src={selectedProvider.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedProvider.id}`} />
+                            <AvatarFallback className="text-4xl font-black bg-muted text-muted-foreground">
+                                {selectedProvider.username?.[0]?.toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
+                         <div className="flex gap-2 mb-2">
+                             {!selectedProvider.bvn_verified ? (
+                                <>
+                                    <Button 
+                                        variant="ghost" 
+                                        className="squircle-lg text-destructive hover:bg-destructive/10 font-bold"
+                                        onClick={() => handleVerify(selectedProvider.id, false)}
+                                        disabled={actionLoading}
+                                    >
+                                        Reject
+                                    </Button>
+                                    <Button 
+                                        className="squircle-lg bg-primary hover:bg-primary/90 font-bold px-6 shadow-glow border-0"
+                                        onClick={() => handleVerify(selectedProvider.id, true)}
+                                        disabled={actionLoading}
+                                    >
+                                        {actionLoading ? 'Verifying...' : 'Approve'}
+                                    </Button>
+                                </>
+                             ) : (
+                                  <Button 
+                                     variant="ghost"
+                                     className="squircle-lg text-warning hover:bg-warning/10 font-bold"
+                                     onClick={() => handleVerify(selectedProvider.id, false)}
+                                     disabled={actionLoading}
+                                 >
+                                     <AlertTriangle className="w-4 h-4 mr-2" />
+                                     Revoke
+                                 </Button>
+                             )}
+                         </div>
+                    </div>
 
-              {selectedProvider.address && (
-                <Card className="squircle p-4 bg-muted/20 border-0">
-                  <p className="text-sm text-muted-foreground mb-1">Address</p>
-                  <p className="font-bold">{selectedProvider.address}</p>
-                </Card>
-              )}
+                    <div className="space-y-1 mb-8">
+                        <h2 className="text-3xl font-black tracking-tight">{selectedProvider.username}</h2>
+                        <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                            <User className="w-4 h-4" />
+                            <span>{selectedProvider.email}</span>
+                            <span>•</span>
+                            <span className="capitalize">{selectedProvider.role}</span>
+                        </div>
+                    </div>
 
-              {/* Documents Section */}
-              <Card className="squircle p-4 bg-muted/20 border-0">
-                <div className="flex items-start gap-3">
-                  <FileText className="h-5 w-5 text-muted-foreground mt-1" />
-                  <div>
-                    <p className="font-bold mb-1">Verification Documents</p>
-                    <p className="text-sm text-muted-foreground">
-                      In a production environment, BVN verification, ID documents, 
-                      and professional licenses would be displayed here for review.
-                    </p>
-                  </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2 md:col-span-1 space-y-4">
+                            <div className="p-4 squircle-lg bg-muted/30">
+                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Personal Info</p>
+                                <div className="space-y-3">
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Phone</p>
+                                        <p className="font-semibold">{selectedProvider.phone || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Gender</p>
+                                        <p className="font-semibold capitalize">{selectedProvider.gender || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Date of Birth</p>
+                                        <p className="font-semibold">{selectedProvider.date_of_birth || 'N/A'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="col-span-2 md:col-span-1 space-y-4">
+                             <div className="p-4 squircle-lg bg-muted/30 h-full">
+                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Verification Status</p>
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between p-3 squircle bg-background/50">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedProvider.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
+                                                {selectedProvider.bvn_verified ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold">BVN Check</p>
+                                                <p className="text-xs text-muted-foreground">{selectedProvider.bvn_verified ? 'Passed' : 'Pending Action'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                     <div className="flex items-center justify-between p-3 squircle bg-background/50 opacity-60">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                                                <FileText className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold">Documents</p>
+                                                <p className="text-xs text-muted-foreground">Not Uploaded</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {selectedProvider.address && (
+                            <div className="col-span-2 p-4 squircle-lg bg-muted/30">
+                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Address</p>
+                                <p className="font-semibold">{selectedProvider.address}</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
-              </Card>
-
-              {/* Warning for already verified */}
-              {selectedProvider.bvn_verified && (
-                <Card className="squircle p-4 bg-success/10 border-0">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-success" />
-                    <p className="font-semibold text-success">This user is already verified</p>
-                  </div>
-                </Card>
-              )}
             </div>
           )}
-
-          <DialogFooter className="gap-2 mt-6">
-            {!selectedProvider?.bvn_verified && (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => handleVerify(selectedProvider?.id, false)}
-                  disabled={actionLoading}
-                  className="squircle border-destructive text-destructive hover:bg-destructive/10"
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Reject
-                </Button>
-                <Button
-                  onClick={() => handleVerify(selectedProvider?.id, true)}
-                  disabled={actionLoading}
-                  className="squircle bg-success hover:bg-success/90"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  {actionLoading ? 'Processing...' : 'Approve'}
-                </Button>
-              </>
-            )}
-            {selectedProvider?.bvn_verified && (
-              <Button
-                variant="outline"
-                onClick={() => handleVerify(selectedProvider?.id, false)}
-                disabled={actionLoading}
-                className="squircle border-warning text-warning hover:bg-warning/10"
-              >
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                Revoke Verification
-              </Button>
-            )}
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
