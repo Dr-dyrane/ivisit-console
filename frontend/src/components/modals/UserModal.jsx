@@ -7,7 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Switch } from '../ui/switch';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
-import { X } from 'lucide-react';
+import { X, User, Phone, Mail, MapPin, Calendar, Shield, CreditCard, BadgeCheck } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Badge } from '../ui/badge';
+import { motion } from 'framer-motion';
 
 export const UserModal = ({ isOpen, onClose, user, mode }) => {
   const isView = mode === 'view';
@@ -69,195 +72,254 @@ export const UserModal = ({ isOpen, onClose, user, mode }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose(false)}>
-      <DialogContent className="squircle-lg glass shadow-premium border-0 max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="font-black text-2xl tracking-tight">
-              {isView && 'User Details'}
-              {isEdit && 'Edit User'}
-              {isCreate && 'Add New User'}
-            </DialogTitle>
-            <button 
-              onClick={() => onClose(false)}
-              className="w-10 h-10 squircle hover:bg-muted flex items-center justify-center transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </DialogHeader>
+      <DialogContent className="squircle-2xl glass-strong border-0 max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0 shadow-2xl bg-background/80 backdrop-blur-xl">
+        
+        {/* Passport Header Design */}
+        <div className="relative h-40 bg-gradient-to-r from-primary/20 to-secondary/20 overflow-hidden">
+             {/* Decorative Patterns */}
+             <div className="absolute inset-0 opacity-10" 
+                  style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '24px 24px' }}>
+             </div>
+             
+             <div className="absolute top-4 left-6 z-10">
+                 <Badge className="squircle-sm bg-background/50 backdrop-blur-md text-foreground border-0 font-bold uppercase tracking-widest text-[10px] px-2 py-1">
+                     Identity Document
+                 </Badge>
+             </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <Label htmlFor="username" className="font-bold text-sm mb-2 block">Username</Label>
-              <Input
-                id="username"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                disabled={isView}
-                required
-                className="squircle"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="email" className="font-bold text-sm mb-2 block">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={isView}
-                required
-                className="squircle"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="phone" className="font-bold text-sm mb-2 block">Phone</Label>
-              <Input
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                disabled={isView}
-                className="squircle"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="role" className="font-bold text-sm mb-2 block">Role</Label>
-              <Select 
-                value={formData.role} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
-                disabled={isView}
-              >
-                <SelectTrigger className="squircle">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="squircle">
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="provider">Provider</SelectItem>
-                  <SelectItem value="patient">Patient</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {formData.role === 'provider' && (
-              <div>
-                <Label htmlFor="provider_type" className="font-bold text-sm mb-2 block">Provider Type</Label>
-                <Select 
-                  value={formData.provider_type} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, provider_type: value }))}
-                  disabled={isView}
-                >
-                  <SelectTrigger className="squircle">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent className="squircle">
-                    <SelectItem value="ambulance">Ambulance</SelectItem>
-                    <SelectItem value="doctor">Doctor</SelectItem>
-                    <SelectItem value="nurse">Nurse</SelectItem>
-                    <SelectItem value="paramedic">Paramedic</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div>
-              <Label htmlFor="gender" className="font-bold text-sm mb-2 block">Gender</Label>
-              <Select 
-                value={formData.gender} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
-                disabled={isView}
-              >
-                <SelectTrigger className="squircle">
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent className="squircle">
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="date_of_birth" className="font-bold text-sm mb-2 block">Date of Birth</Label>
-              <Input
-                id="date_of_birth"
-                name="date_of_birth"
-                type="date"
-                value={formData.date_of_birth}
-                onChange={handleChange}
-                disabled={isView}
-                className="squircle"
-              />
-            </div>
-
-            <div className="col-span-2">
-              <Label htmlFor="address" className="font-bold text-sm mb-2 block">Address</Label>
-              <Input
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                disabled={isView}
-                className="squircle"
-              />
-            </div>
-
-            <div className="col-span-2">
-              <div className="flex items-center justify-between p-4 squircle bg-muted/30">
-                <div>
-                  <Label className="font-bold text-sm">BVN Verified</Label>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Mark this user as verified
-                  </p>
-                </div>
-                <Switch
-                  checked={formData.bvn_verified}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, bvn_verified: checked }))}
-                  disabled={isView}
-                />
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            {!isView && (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onClose(false)}
-                  className="squircle"
-                  disabled={loading}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="squircle bg-primary hover:bg-primary/90"
-                  disabled={loading}
-                >
-                  {loading ? 'Saving...' : (isCreate ? 'Create User' : 'Update User')}
-                </Button>
-              </>
-            )}
-            {isView && (
-              <Button
-                type="button"
+             <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute top-4 right-4 rounded-full hover:bg-black/10 text-foreground z-20"
                 onClick={() => onClose(false)}
-                className="squircle bg-primary hover:bg-primary/90"
-              >
-                Close
-              </Button>
-            )}
-          </DialogFooter>
-        </form>
+            >
+                <X className="w-6 h-6" />
+            </Button>
+        </div>
+
+        <div className="px-8 pb-8 -mt-16 relative z-10 overflow-y-auto max-h-[calc(90vh-10rem)] custom-scrollbar">
+            <div className="flex flex-col md:flex-row items-start md:items-end gap-6 mb-8">
+                 <div className="relative group">
+                    <Avatar className="h-32 w-32 squircle-2xl border-4 border-background shadow-xl">
+                        <AvatarImage src={formData.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.username}`} className="object-cover" />
+                        <AvatarFallback className="text-4xl font-black bg-muted text-muted-foreground">
+                            {formData.username?.[0]?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                    </Avatar>
+                    {isEdit && (
+                         <div className="absolute inset-0 bg-black/40 squircle-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                             <span className="text-white text-xs font-bold">Change</span>
+                         </div>
+                    )}
+                 </div>
+
+                 <div className="flex-1 space-y-2">
+                     <h2 className="text-4xl font-black tracking-tighter leading-none">
+                         {formData.username || 'New User'}
+                     </h2>
+                     <div className="flex items-center gap-2 flex-wrap">
+                         <Badge className="squircle-sm bg-primary/10 text-primary border-0 font-bold px-3 py-1">
+                             {formData.role?.toUpperCase() || 'PATIENT'}
+                         </Badge>
+                         {formData.bvn_verified && (
+                             <Badge className="squircle-sm bg-success/10 text-success border-0 font-bold px-3 py-1 flex items-center gap-1">
+                                 <BadgeCheck className="w-3 h-3" /> VERIFIED
+                             </Badge>
+                         )}
+                         <span className="text-sm text-muted-foreground font-mono">
+                             ID: {user?.id?.slice(0, 8).toUpperCase() || 'UNKNOWN'}
+                         </span>
+                     </div>
+                 </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-8">
+                {/* Personal Information Section */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <User className="w-4 h-4 text-primary" />
+                        <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider">Personal Information</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="username" className="text-xs font-bold text-muted-foreground uppercase">Full Name</Label>
+                            <Input
+                                id="username"
+                                name="username"
+                                value={formData.username}
+                                onChange={handleChange}
+                                disabled={isView}
+                                className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-semibold"
+                                placeholder="John Doe"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="email" className="text-xs font-bold text-muted-foreground uppercase">Email Address</Label>
+                             <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    disabled={isView}
+                                    className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-medium"
+                                    placeholder="john@example.com"
+                                />
+                             </div>
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="phone" className="text-xs font-bold text-muted-foreground uppercase">Phone Number</Label>
+                             <div className="relative">
+                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Input
+                                    id="phone"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    disabled={isView}
+                                    className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-mono"
+                                    placeholder="+234..."
+                                />
+                             </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="date_of_birth" className="text-xs font-bold text-muted-foreground uppercase">Date of Birth</Label>
+                             <div className="relative">
+                                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Input
+                                    id="date_of_birth"
+                                    name="date_of_birth"
+                                    type="date"
+                                    value={formData.date_of_birth}
+                                    onChange={handleChange}
+                                    disabled={isView}
+                                    className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-medium"
+                                />
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Role & Access Section */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Shield className="w-4 h-4 text-primary" />
+                        <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider">Role & Access</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <Label htmlFor="role" className="text-xs font-bold text-muted-foreground uppercase">System Role</Label>
+                            <Select 
+                                value={formData.role} 
+                                onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
+                                disabled={isView}
+                            >
+                                <SelectTrigger className="squircle bg-muted/30 border-0 h-12 font-semibold">
+                                <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="squircle border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="provider">Provider</SelectItem>
+                                <SelectItem value="patient">Patient</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                         {formData.role === 'provider' && (
+                            <div className="space-y-2">
+                                <Label htmlFor="provider_type" className="text-xs font-bold text-muted-foreground uppercase">Provider Type</Label>
+                                <Select 
+                                value={formData.provider_type} 
+                                onValueChange={(value) => setFormData(prev => ({ ...prev, provider_type: value }))}
+                                disabled={isView}
+                                >
+                                <SelectTrigger className="squircle bg-muted/30 border-0 h-12 font-semibold">
+                                    <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                                <SelectContent className="squircle border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                                    <SelectItem value="ambulance">Ambulance</SelectItem>
+                                    <SelectItem value="doctor">Doctor</SelectItem>
+                                    <SelectItem value="nurse">Nurse</SelectItem>
+                                    <SelectItem value="paramedic">Paramedic</SelectItem>
+                                </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                        
+                        <div className="col-span-1 md:col-span-2 p-4 squircle-lg bg-primary/5 flex items-center justify-between border border-primary/10">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 squircle bg-primary/10 flex items-center justify-center text-primary">
+                                    <CreditCard className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-sm">Identity Verification</p>
+                                    <p className="text-xs text-muted-foreground">BVN and document status</p>
+                                </div>
+                            </div>
+                             <Switch
+                                checked={formData.bvn_verified}
+                                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, bvn_verified: checked }))}
+                                disabled={isView}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Address Section */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <MapPin className="w-4 h-4 text-primary" />
+                        <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider">Location</h3>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="address" className="text-xs font-bold text-muted-foreground uppercase">Full Address</Label>
+                        <Input
+                            id="address"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleChange}
+                            disabled={isView}
+                            className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
+                            placeholder="Street address, City, State"
+                        />
+                    </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="pt-4 flex gap-3 justify-end border-t border-border/50">
+                    {!isView ? (
+                        <>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={() => onClose(false)}
+                                className="squircle font-bold text-muted-foreground hover:bg-muted"
+                                disabled={loading}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="squircle-lg bg-primary hover:bg-primary/90 shadow-glow font-bold px-8"
+                                disabled={loading}
+                            >
+                                {loading ? 'Saving...' : (isCreate ? 'Create Profile' : 'Save Changes')}
+                            </Button>
+                        </>
+                    ) : (
+                        <Button
+                            type="button"
+                            onClick={() => onClose(false)}
+                            className="squircle-lg bg-muted text-foreground hover:bg-muted/80 font-bold px-8"
+                        >
+                            Close
+                        </Button>
+                    )}
+                </div>
+            </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

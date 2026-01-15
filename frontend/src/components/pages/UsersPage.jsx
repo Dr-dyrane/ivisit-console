@@ -5,8 +5,8 @@ import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
-import { Users, Plus, Edit, Trash2, Eye, Shield, UserCheck } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Users, Plus, Edit, Trash2, Eye, Shield, UserCheck, ChevronRight, Phone, Mail } from 'lucide-react';
+import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { UserModal } from '../modals/UserModal';
 
@@ -82,9 +82,9 @@ export const UsersPage = () => {
 
   const getRoleBadge = (role) => {
     const badges = {
-      admin: 'bg-primary/20 text-primary border-primary/30',
-      provider: 'bg-success/20 text-success border-success/30',
-      patient: 'bg-info/20 text-info border-info/30',
+      admin: 'bg-primary/20 text-primary',
+      provider: 'bg-success/20 text-success',
+      patient: 'bg-info/20 text-info',
     };
     return badges[role] || badges.patient;
   };
@@ -118,85 +118,116 @@ export const UsersPage = () => {
           </Button>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {users.map((user, index) => (
-            <motion.div
-              key={user.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.03 }}
+        <LayoutGroup>
+            <motion.div 
+                layout 
+                className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
             >
-              <Card className="squircle-lg glass shadow-premium p-5 border-0 hover-lift group">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 squircle bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center shrink-0">
-                    {user.avatar_url ? (
-                      <img src={user.avatar_url} alt={user.username} className="w-full h-full squircle object-cover" />
-                    ) : (
-                      <Users className="h-7 w-7 text-primary" />
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="font-black text-lg tracking-tight truncate">
-                        {user.username || 'Unknown User'}
-                      </h3>
-                      <Badge className={`squircle-sm ${getRoleBadge(user.role)} border font-black editorial-subtitle px-2 py-1 shrink-0`}>
-                        {user.role || 'patient'}
-                      </Badge>
-                      {user.bvn_verified && (
-                        <div className="w-6 h-6 squircle-sm bg-success/20 flex items-center justify-center shrink-0">
-                          <UserCheck className="icon-secondary text-success" />
+            {users.map((user, index) => (
+                <motion.div
+                layout
+                key={user.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.03 }}
+                className="col-span-1"
+                >
+                <Card className="h-full squircle-lg glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
+                    
+                    {/* Top Right Icon */}
+                    <div className="absolute top-0 right-0 p-5 z-20">
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full scale-150" />
+                            <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                                {user.role === 'admin' ? <Shield className="h-5 w-5 text-primary" /> : <Users className="h-5 w-5 text-primary" />}
+                            </div>
                         </div>
-                      )}
                     </div>
-                    <p className="text-sm text-muted-foreground truncate font-medium">
-                      {user.email || 'No email'}
-                    </p>
-                    {user.phone && (
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        {user.phone}
-                      </p>
-                    )}
-                  </div>
 
-                  {user.provider_type && (
-                    <Badge className="squircle-sm bg-warning/20 text-warning border-0 px-3 py-1 shrink-0">
-                      {user.provider_type}
-                    </Badge>
-                  )}
+                    <div className="flex items-center gap-2 mb-4 relative z-10">
+                        <Badge className={`squircle-sm ${getRoleBadge(user.role)} border-0 font-black editorial-subtitle px-2 py-1`}>
+                            {user.role || 'patient'}
+                        </Badge>
+                        {user.bvn_verified && (
+                            <Badge className="squircle-sm bg-success/20 text-success border-0 px-2 py-1">
+                                Verified
+                            </Badge>
+                        )}
+                    </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleView(user)}
-                      className="squircle card-action"
-                    >
-                      <Eye className="icon-secondary" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(user)}
-                      className="squircle card-action"
-                    >
-                      <Edit className="icon-secondary" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(user)}
-                      className="squircle text-destructive hover:bg-destructive/10 card-action"
-                    >
-                      <Trash2 className="icon-secondary" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
+                    <div className="flex items-center gap-4 mb-4 relative z-10">
+                        <div className="w-16 h-16 squircle-lg bg-muted/20 flex items-center justify-center overflow-hidden">
+                            {user.avatar_url ? (
+                                <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="text-2xl font-black text-muted-foreground">{user.username?.[0]?.toUpperCase() || 'U'}</span>
+                            )}
+                        </div>
+                        <div>
+                            <h3 className="font-black text-xl tracking-tight truncate w-40">
+                                {user.username || 'Unknown User'}
+                            </h3>
+                            {user.provider_type && (
+                                <p className="text-sm font-semibold text-primary">{user.provider_type}</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="space-y-3 mb-6 relative z-10">
+                        <div className="flex items-center gap-3 text-sm p-2 squircle bg-muted/30">
+                            <Mail className="h-4 w-4 text-info" />
+                            <span className="truncate font-medium">{user.email || 'No email'}</span>
+                        </div>
+                        {user.phone && (
+                            <div className="flex items-center gap-3 text-sm p-2 squircle bg-muted/30">
+                                <Phone className="h-4 w-4 text-success" />
+                                <span className="font-medium">{user.phone}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10">
+                        <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                            ACTIONS
+                        </div>
+
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleView(user)}
+                                className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                            >
+                                <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(user)}
+                                className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                            >
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(user)}
+                                className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                    
+                    {/* Hover Reveal Chevron */}
+                    <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 z-20 pointer-events-none">
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                </Card>
+                </motion.div>
+            ))}
             </motion.div>
-          ))}
-        </div>
+        </LayoutGroup>
       )}
 
       {modalMode && (
