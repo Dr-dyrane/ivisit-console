@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
+import NoiseOverlay from '../ui/noise-overlay'; // Add NoiseOverlay
 import { 
   Activity, 
   Users, 
@@ -17,7 +19,8 @@ import {
   ChevronRight,
   Stethoscope,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  Grid // Use Grid or LayoutGrid if available
 } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
@@ -98,7 +101,7 @@ export const BentoHome = () => {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6 auto-rows-min grid-flow-dense"
         >
           
-        {/* Live Emergency Counter - Hero Card (Big & Wide) */}
+        {/* Live Emergency Counter - Hero Card (Big & Wide) -> SHARP (Brutalist Anchor) */}
         <motion.div
           layout
           className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-4 row-span-2"
@@ -106,9 +109,14 @@ export const BentoHome = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
         >
-          <Card className="h-full min-h-[320px] squircle-lg glass shadow-premium p-8 flex flex-col justify-between hover-lift cursor-pointer relative overflow-hidden group border-0"
+          <Card className="h-full min-h-[320px] geo-sharp glass-strong shadow-2xl p-8 flex flex-col justify-between hover-lift cursor-pointer relative overflow-hidden group border-0"
                 onClick={() => navigate('/map')}>
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            {/* Grid Lines Overlay */}
+            <div className="absolute inset-0 opacity-10" 
+                 style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--primary))' }}>
+            </div>
+            
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             
              {/* Top Right Icon - New Style */}
              <div className="absolute top-0 right-0 p-6 z-20">
@@ -122,7 +130,7 @@ export const BentoHome = () => {
 
             <div className="relative z-10 flex flex-col flex-1">
               <div className="flex items-center justify-between mb-6">
-                 <Badge className="squircle-sm bg-primary text-primary-foreground border-0 px-4 py-2 font-black editorial-subtitle">LIVE</Badge>
+                 <Badge className="squircle-sm bg-primary text-primary-foreground border-0 px-4 py-2 font-black editorial-subtitle shadow-glow">LIVE</Badge>
               </div>
               
               <div className="space-y-3 flex-1">
@@ -167,7 +175,7 @@ export const BentoHome = () => {
           </Card>
         </motion.div>
 
-        {/* Response Time (Tall) */}
+        {/* Response Time (Tall) -> ROUND (Soft Counterbalance) */}
         <motion.div
           layout
           className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
@@ -175,7 +183,11 @@ export const BentoHome = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <Card className="h-full min-h-[320px] squircle-lg glass shadow-premium p-7 flex flex-col justify-between hover-lift border-0 relative overflow-hidden group">
+          <Card className="h-full min-h-[320px] geo-round glass-strong shadow-2xl p-7 flex flex-col justify-between hover-lift border-0 relative overflow-hidden group">
+            {/* Grid Lines Overlay */}
+            <div className="absolute inset-0 opacity-10" 
+                 style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--success))' }}>
+            </div>
             
              {/* Top Right Icon */}
              <div className="absolute top-0 right-0 p-6 z-20">
@@ -208,8 +220,12 @@ export const BentoHome = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.15 }}
         >
-          <Card className="h-full min-h-[320px] squircle-lg glass shadow-premium p-7 flex flex-col justify-between hover-lift border-0 relative overflow-hidden group">
-            
+          <Card className="h-full min-h-[320px] squircle-3xl glass-strong shadow-2xl p-7 flex flex-col justify-between hover-lift border-0 relative overflow-hidden group">
+            {/* Grid Lines Overlay */}
+            <div className="absolute inset-0 opacity-10" 
+                 style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--info))' }}>
+            </div>
+
              {/* Top Right Icon */}
              <div className="absolute top-0 right-0 p-6 z-20">
                 <div className="relative">
@@ -240,9 +256,14 @@ export const BentoHome = () => {
           transition={{ duration: 0.4, delay: 0.2 }}
         >
           <Card 
-            className="h-full min-h-[160px] squircle-lg glass shadow-premium p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
+            className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
             onClick={() => navigate('/map')}
           >
+             {/* Map Grid Pattern */}
+             <div className="absolute inset-0 opacity-5" 
+                  style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)', backgroundSize: '40px 40px', color: 'hsl(var(--secondary))' }}>
+             </div>
+
             <div className="absolute inset-0 bg-gradient-to-br from-secondary/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             
              {/* Top Right Icon */}
@@ -284,7 +305,7 @@ export const BentoHome = () => {
           transition={{ duration: 0.4, delay: 0.25 }}
         >
           <Card 
-            className="h-full min-h-[160px] squircle-lg glass shadow-premium p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
+            className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
             onClick={() => navigate('/verification')}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-warning/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -317,9 +338,14 @@ export const BentoHome = () => {
           transition={{ duration: 0.4, delay: 0.3 }}
         >
           <Card 
-            className="h-full min-h-[160px] squircle-lg glass shadow-premium p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
+            className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
             onClick={() => navigate('/analytics')}
           >
+            {/* Dot Pattern for Data */}
+            <div className="absolute inset-0 opacity-10" 
+                 style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 0)', backgroundSize: '16px 16px', color: 'hsl(var(--success))' }}>
+            </div>
+
             <div className="absolute inset-0 bg-gradient-to-br from-success/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="relative z-10 flex flex-col h-full justify-between gap-4">
               <div className="flex justify-between items-start">
@@ -389,7 +415,8 @@ export const BentoHome = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.6 }}
         >
-          <Card className="h-full min-h-[300px] squircle-lg glass shadow-premium p-7 border-0 flex flex-col w-full">
+          <Card className="h-full min-h-[300px] squircle-3xl glass-strong shadow-2xl p-7 border-0 flex flex-col w-full relative overflow-hidden">
+             {/* Tech Grid Background */}
             <h4 className="font-black text-lg mb-6 tracking-tight">System Status</h4>
             <div className="grid grid-cols-1 gap-6 flex-1">
               {[
@@ -425,9 +452,14 @@ export const BentoHome = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.65 }}
         >
-          <Card className="h-full min-h-[300px] squircle-lg glass shadow-premium p-7 flex flex-col border-0 w-full">
-            <h4 className="font-black text-lg mb-5 tracking-tight">Recent Activity</h4>
-            <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+          <Card className="h-full min-h-[300px] squircle-lg glass-strong shadow-2xl p-7 flex flex-col border-0 w-full relative overflow-hidden">
+            {/* Subtle Diagonal Lines */}
+            <div className="absolute inset-0 opacity-5" 
+                 style={{ backgroundImage: 'repeating-linear-gradient(45deg, currentColor 0, currentColor 1px, transparent 0, transparent 50%)', backgroundSize: '10px 10px' }}>
+            </div>
+
+            <h4 className="font-black text-lg mb-5 tracking-tight relative z-10">Recent Activity</h4>
+            <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar relative z-10">
               {[
                 { type: 'emergency', msg: 'New emergency request from Victoria Island', time: '2m ago', icon: AlertCircle, color: 'text-primary', bg: 'bg-primary/10' },
                 { type: 'complete', msg: 'Emergency response completed - Lekki', time: '15m ago', icon: CheckCircle2, color: 'text-success', bg: 'bg-success/10' },
@@ -435,8 +467,8 @@ export const BentoHome = () => {
                 { type: 'emergency', msg: 'Ambulance dispatched to Ikeja', time: '2h ago', icon: Ambulance, color: 'text-warning', bg: 'bg-warning/10' },
                 { type: 'system', msg: 'System backup completed successfully', time: '3h ago', icon: CheckCircle2, color: 'text-secondary', bg: 'bg-secondary/10' },
               ].map((activity, idx) => (
-                <div key={idx} className="flex items-start gap-4 p-4 squircle bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer group">
-                  <div className={`w-10 h-10 squircle flex items-center justify-center ${activity.bg} flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                <div key={idx} className="flex items-start gap-4 p-4 squircle bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group border-0">
+                  <div className={`w-10 h-10 squircle flex items-center justify-center ${activity.bg} flex-shrink-0 group-hover:scale-110 transition-transform shadow-inner`}>
                     <activity.icon className={`h-5 w-5 ${activity.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">

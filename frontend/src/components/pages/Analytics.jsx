@@ -217,9 +217,9 @@ export const Analytics = () => {
             
         {/* Stat Cards - Row 1 */}
         {[
-            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: "up", trendValue: "+12%", color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2" },
-            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: "down", trendValue: "15% faster", color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2" },
-            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Excellent", color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2" },
+            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: "up", trendValue: "+12%", color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "geo-sharp" },
+            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: "down", trendValue: "15% faster", color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2", shape: "geo-round" },
+            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Excellent", color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2", shape: "geo-chamfer" },
         ].map((stat, idx) => (
             <motion.div
                 layout
@@ -229,7 +229,7 @@ export const Analytics = () => {
                 transition={{ delay: idx * 0.1 }}
                 className={`${stat.colSpan}`}
             >
-                <Card className="h-full min-h-[160px] squircle-lg glass shadow-premium p-6 border-0 hover-lift relative overflow-hidden group">
+                <Card className={`h-full min-h-[160px] ${stat.shape} glass-strong shadow-2xl p-6 border-0 hover-lift relative overflow-hidden group`}>
                     <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
                     <div className="relative z-10 flex flex-col justify-between h-full">
                         <div className="flex items-center justify-between mb-4">
@@ -252,7 +252,7 @@ export const Analytics = () => {
             </motion.div>
         ))}
 
-        {/* Response Time Trend - Large Chart */}
+        {/* Response Time Trend - Large Chart -> GEO-SHARD (Dynamic Flow) */}
         <motion.div
           layout
           className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-4 row-span-2"
@@ -260,8 +260,13 @@ export const Analytics = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <Card className="h-full min-h-[400px] squircle-lg glass shadow-premium p-8 border-0 flex flex-col justify-between group">
-            <div className="flex items-center justify-between mb-6">
+          <Card className="h-full min-h-[400px] geo-shard glass-strong shadow-2xl p-8 border-0 flex flex-col justify-between group relative overflow-hidden">
+             {/* Subtle Grid for Context */}
+             <div className="absolute inset-0 opacity-5" 
+                 style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%', color: 'hsl(var(--primary))' }}>
+             </div>
+
+            <div className="flex items-center justify-between mb-6 relative z-10">
               <div>
                 <h3 className="font-black text-2xl tracking-tight">Response Time Trend</h3>
                 <p className="text-muted-foreground font-semibold">Average response time over {timeRange}</p>
@@ -315,7 +320,7 @@ export const Analytics = () => {
           </Card>
         </motion.div>
 
-        {/* Request Status Breakdown - Pie Chart */}
+        {/* Request Status Breakdown - Pie Chart -> GEO-TICKET (Rounded cutouts) */}
         <motion.div
           layout
           className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-2 row-span-2"
@@ -323,7 +328,7 @@ export const Analytics = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45 }}
         >
-          <Card className="h-full min-h-[400px] squircle-lg glass shadow-premium p-8 border-0 flex flex-col relative overflow-hidden group">
+          <Card className="h-full min-h-[400px] geo-ticket glass-strong shadow-2xl p-8 border-0 flex flex-col relative overflow-hidden group">
              {/* Top Right Icon */}
              <div className="absolute top-0 right-0 p-6 z-20">
                 <div className="relative">
@@ -469,7 +474,7 @@ export const Analytics = () => {
           </Card>
         </motion.div>
 
-        {/* Emergency Types Bar Chart - Storytelling Mode */}
+        {/* Emergency Types Bar Chart - Storytelling Mode -> GEO-ROUND (Organic) */}
         <motion.div
           layout
           className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
@@ -477,7 +482,7 @@ export const Analytics = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.65 }}
         >
-          <Card className="h-full min-h-[350px] squircle-lg glass shadow-premium p-8 border-0 flex flex-col relative overflow-hidden">
+          <Card className="h-full min-h-[350px] geo-round glass-strong shadow-2xl p-8 border-0 flex flex-col relative overflow-hidden">
              {/* Top Right Icon */}
              <div className="absolute top-0 right-0 p-6 z-20">
                 <div className="relative">
