@@ -77,7 +77,7 @@ function AppRoutes() {
 				<Route
 					path="/map"
 					element={
-						<ProtectedRoute>
+						<ProtectedRoute minRole="provider">
 							<GodModeMap />
 						</ProtectedRoute>
 					}
@@ -85,7 +85,7 @@ function AppRoutes() {
 				<Route
 					path="/analytics"
 					element={
-						<ProtectedRoute>
+						<ProtectedRoute minRole="provider">
 							<Analytics />
 						</ProtectedRoute>
 					}
