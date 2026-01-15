@@ -102,8 +102,10 @@ export const BentoHome = () => {
                   </div>
                   <Badge className="squircle-sm bg-primary text-primary-foreground border-0 px-4 py-2 font-black editorial-subtitle">LIVE</Badge>
                 </div>
-                <div className="hover-reveal">
-                  <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                <div className="hover-reveal opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                    <ChevronRight className="h-5 w-5 text-primary ml-0.5" />
+                  </div>
                 </div>
               </div>
               
@@ -200,8 +202,10 @@ export const BentoHome = () => {
               <div>
                 <h4 className="font-black text-xl mb-1 tracking-tight">God Mode</h4>
                 <p className="text-sm text-muted-foreground font-semibold">Live tracking</p>
-                <div className="mt-3 hover-reveal">
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                  <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                    <ChevronRight className="h-5 w-5 text-secondary ml-0.5" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -230,8 +234,10 @@ export const BentoHome = () => {
               <div>
                 <h4 className="font-black text-xl mb-1 tracking-tight">Verification</h4>
                 <p className="text-sm text-muted-foreground font-semibold">Review queue</p>
-                <div className="mt-3 hover-reveal">
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                  <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                    <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -260,8 +266,10 @@ export const BentoHome = () => {
               <div>
                 <h4 className="font-black text-xl mb-1 tracking-tight">Analytics</h4>
                 <p className="text-sm text-muted-foreground font-semibold">Impact metrics</p>
-                <div className="mt-3 hover-reveal">
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                  <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                    <ChevronRight className="h-5 w-5 text-success ml-0.5" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -289,8 +297,10 @@ export const BentoHome = () => {
                 <p className="text-xs text-muted-foreground font-semibold">28 active</p>
               </div>
             </div>
-            <div className="hover-reveal">
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <div className="hover-reveal opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                <ChevronRight className="h-4 w-4 text-primary ml-0.5" />
+              </div>
             </div>
           </Card>
         </motion.div>
@@ -315,8 +325,10 @@ export const BentoHome = () => {
                 <p className="text-xs text-muted-foreground font-semibold">{stats.activeProviders} units</p>
               </div>
             </div>
-            <div className="hover-reveal">
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <div className="hover-reveal opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                <ChevronRight className="h-4 w-4 text-success ml-0.5" />
+              </div>
             </div>
           </Card>
         </motion.div>
@@ -341,8 +353,10 @@ export const BentoHome = () => {
                 <p className="text-xs text-muted-foreground font-semibold">Medical staff</p>
               </div>
             </div>
-            <div className="hover-reveal">
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <div className="hover-reveal opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <div className="w-8 h-8 rounded-full bg-info/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                <ChevronRight className="h-4 w-4 text-info ml-0.5" />
+              </div>
             </div>
           </Card>
         </motion.div>
@@ -367,8 +381,10 @@ export const BentoHome = () => {
                 <p className="text-xs text-muted-foreground font-semibold">1,247 total</p>
               </div>
             </div>
-            <div className="hover-reveal">
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <div className="hover-reveal opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                <ChevronRight className="h-4 w-4 text-secondary ml-0.5" />
+              </div>
             </div>
           </Card>
         </motion.div>
@@ -393,8 +409,10 @@ export const BentoHome = () => {
                 <p className="text-xs text-muted-foreground font-semibold">Appointments</p>
               </div>
             </div>
-            <div className="hover-reveal">
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <div className="hover-reveal opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <div className="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                <ChevronRight className="h-4 w-4 text-warning ml-0.5" />
+              </div>
             </div>
           </Card>
         </motion.div>
@@ -419,8 +437,10 @@ export const BentoHome = () => {
                 <p className="text-xs text-muted-foreground font-semibold">Requests</p>
               </div>
             </div>
-            <div className="hover-reveal">
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <div className="hover-reveal opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                <ChevronRight className="h-4 w-4 text-destructive ml-0.5" />
+              </div>
             </div>
           </Card>
         </motion.div>
