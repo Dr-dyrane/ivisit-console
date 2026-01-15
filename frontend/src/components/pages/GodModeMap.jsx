@@ -7,6 +7,24 @@ import { Button } from '../ui/button';
 import { Ambulance, Hospital, Activity, AlertTriangle, MapPin, Phone, Clock, RefreshCw, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { useTheme } from '../../contexts/ThemeContext';
+import { MAP_STYLES } from '../../constants/mapStyles';
+
+// Fix for Leaflet default icon issues in React
+// Note: We'll use custom icons mostly, but this fixes the default fallback
+delete L.Icon.Default.prototype._getIconUrl;
+try {
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+    iconUrl: require('leaflet/dist/images/marker-icon.png'),
+    shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+  });
+} catch (e) {
+  console.warn("Leaflet icons couldn't be loaded via require", e);
+}
 
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 const LAGOS_CENTER = { lat: 6.5244, lng: 3.3792 };
@@ -20,6 +38,13 @@ class ErrorBoundary extends Component {
 
   static getDerivedStateFromError(error) {
     return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    if (this.props.onError) {
+      this.props.onError(error);
+    }
+    console.error("Map Error Boundary caught error:", error, errorInfo);
   }
 
   render() {
@@ -70,7 +95,124 @@ const MapFallback = () => (
   </div>
 );
 
+const LeafletMap = ({ 
+  center, 
+  zoom, 
+  emergencies, 
+  ambulances, 
+  hospitals, 
+  showLayers, 
+  onMarkerClick,
+  getStatusColor,
+  getPriorityColor,
+  theme
+}) => {
+  
+  const createIcon = (type, data) => {
+    let html = '';
+    
+    if (type === 'emergency') {
+        const color = getPriorityColor(data.priority);
+        // Using Lucide icons SVGs inline for the fallback map
+        html = `
+        <div style="
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: ${color};
+            border: 3px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            position: relative;
+        ">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+            ${data.priority === 'critical' ? '<span style="position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background-color: #ef4444; border-radius: 50%;"></span>' : ''}
+        </div>`;
+    } else if (type === 'ambulance') {
+        const color = getStatusColor(data.status);
+        html = `
+        <div style="
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: ${color};
+            border: 3px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        ">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"></path><circle cx="7" cy="17" r="2"></circle><path d="M9 17h6"></path><circle cx="17" cy="17" r="2"></circle></svg>
+        </div>`;
+    } else if (type === 'hospital') {
+        html = `
+        <div style="
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background-color: #3b82f6;
+            border: 3px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        ">
+             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v4"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M14 22v-4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4"></path><path d="M22 22h-6"></path><path d="M10 22H4"></path><path d="M14 2h4a2 2 0 0 1 2 2v2"></path><path d="M4 22V6a2 2 0 0 1 2-2h4"></path><path d="M8 2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </div>`;
+    }
+
+    return L.divIcon({
+        html: html,
+        className: 'bg-transparent', // Remove default styles
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+    });
+  };
+
+  return (
+    <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%', background: theme === 'dark' ? '#212121' : '#f5f5f5' }}>
+      <TileLayer
+        url={theme === 'dark' 
+            ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        }
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+      />
+      
+      {showLayers.emergencies && emergencies.map(req => (
+        <Marker 
+            key={`emerg-${req.id}`} 
+            position={[req.lat, req.lng]} 
+            icon={createIcon('emergency', req)}
+            eventHandlers={{ click: () => onMarkerClick('emergency', req) }}
+        />
+      ))}
+      
+      {showLayers.ambulances && ambulances.map(amb => (
+        <Marker 
+            key={`amb-${amb.id}`} 
+            position={[amb.lat, amb.lng]} 
+            icon={createIcon('ambulance', amb)}
+            eventHandlers={{ click: () => onMarkerClick('ambulance', amb) }}
+        />
+      ))}
+
+      {showLayers.hospitals && hospitals.map(hosp => (
+        <Marker 
+            key={`hosp-${hosp.id}`} 
+            position={[hosp.lat, hosp.lng]} 
+            icon={createIcon('hospital', hosp)}
+            eventHandlers={{ click: () => onMarkerClick('hospital', hosp) }}
+        />
+      ))}
+    </MapContainer>
+  );
+};
+
 export const GodModeMap = () => {
+  const { theme } = useTheme();
   const [emergencyRequests, setEmergencyRequests] = useState([]);
   const [ambulances, setAmbulances] = useState([]);
   const [hospitals, setHospitals] = useState([]);
@@ -78,8 +220,32 @@ export const GodModeMap = () => {
   const [filter, setFilter] = useState('all');
   const [showLayers, setShowLayers] = useState({ emergencies: true, ambulances: true, hospitals: true });
   const [loading, setLoading] = useState(true);
+  
+  // Map Provider State
+  const [mapProvider, setMapProvider] = useState('google'); // 'google' | 'leaflet'
+  const [isSwitchingMap, setIsSwitchingMap] = useState(false);
 
   useEffect(() => {
+    // Google Maps Auth Failure Listener
+    const handleAuthFailure = () => {
+        if (mapProvider === 'google' && !isSwitchingMap) {
+            console.error("Google Maps Auth Failure detected.");
+            setIsSwitchingMap(true);
+            toast.error("Google Maps API Error. Switching to backup map provider...", {
+                duration: 4000,
+            });
+            
+            // Wait 2 seconds then switch
+            setTimeout(() => {
+                setMapProvider('leaflet');
+                setIsSwitchingMap(false);
+                toast.success("Switched to OpenStreetMap");
+            }, 2000);
+        }
+    };
+
+    window.gm_authFailure = handleAuthFailure;
+
     fetchAllData();
     
     // Set up real-time subscriptions
@@ -94,10 +260,11 @@ export const GodModeMap = () => {
       .subscribe();
 
     return () => {
+      window.gm_authFailure = null;
       supabase.removeChannel(emergencyChannel);
       supabase.removeChannel(ambulanceChannel);
     };
-  }, []);
+  }, [mapProvider, isSwitchingMap]);
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -271,10 +438,31 @@ export const GodModeMap = () => {
       {/* Map Container */}
       <div className="flex gap-4 h-[calc(100vh-12rem)]">
         {/* Map */}
-        <Card className="flex-1 squircle-lg p-0 overflow-hidden glass border-0">
-          {GOOGLE_MAPS_API_KEY ? (
-            <ErrorBoundary fallback={<MapFallback />}>
-              <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+        <Card className="flex-1 squircle-lg p-0 overflow-hidden glass border-0 relative">
+          {isSwitchingMap && (
+            <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center">
+                <AlertTriangle className="h-12 w-12 text-destructive mb-4 animate-bounce" />
+                <h3 className="text-xl font-bold mb-2">Map Error Detected</h3>
+                <p className="text-muted-foreground">Switching to backup provider...</p>
+            </div>
+          )}
+
+          {mapProvider === 'google' ? (
+            GOOGLE_MAPS_API_KEY ? (
+              <ErrorBoundary 
+                fallback={<MapFallback />}
+                onError={() => {
+                   if (!isSwitchingMap) {
+                       setIsSwitchingMap(true);
+                       toast.error("Map Render Error. Switching to backup map...");
+                       setTimeout(() => {
+                           setMapProvider('leaflet');
+                           setIsSwitchingMap(false);
+                       }, 2000);
+                   }
+                }}
+              >
+                <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
                 <Map
                   defaultCenter={LAGOS_CENTER}
                   defaultZoom={12}
@@ -282,6 +470,7 @@ export const GodModeMap = () => {
                   className="w-full h-full"
                   disableDefaultUI={false}
                   gestureHandling="greedy"
+                  styles={MAP_STYLES[theme === 'dark' ? 'dark' : 'light']}
                 >
                   {/* Emergency Request Markers */}
                   {showLayers.emergencies && filteredRequests.map((request) => (
@@ -368,6 +557,20 @@ export const GodModeMap = () => {
             </ErrorBoundary>
           ) : (
             <MapFallback />
+          )
+          ) : (
+             <LeafletMap
+                center={LAGOS_CENTER}
+                zoom={12}
+                emergencies={filteredRequests}
+                ambulances={ambulances}
+                hospitals={hospitals}
+                showLayers={showLayers}
+                onMarkerClick={(type, data) => setSelectedMarker({ type, data })}
+                getStatusColor={getStatusColor}
+                getPriorityColor={getPriorityColor}
+                theme={theme}
+             />
           )}
         </Card>
 
