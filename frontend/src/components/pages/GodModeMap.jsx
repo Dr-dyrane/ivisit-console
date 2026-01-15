@@ -105,7 +105,7 @@ const MapFallback = () => (
 			</div>
 		</div>
 		<div className="absolute" style={{ top: "40%", left: "55%" }}>
-			<div className="w-9 h-9 rounded-xl bg-info/80 flex items-center justify-center">
+			<div className="w-9 h-9 squircle bg-info/80 flex items-center justify-center">
 				<Hospital className="h-5 w-5 text-white" />
 			</div>
 		</div>
@@ -213,16 +213,14 @@ const LeafletMap = ({
         </div>`;
 		} else if (type === "hospital") {
 			html = `
-        <div style="
+        <div class="squircle" style="
             width: 44px;
             height: 44px;
-            border-radius: 16px;
             background-color: #3b82f6;
-            border: 4px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3), 0 10px 25px -5px rgba(59, 130, 246, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5);
             backdrop-filter: blur(4px);
         ">
              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v4"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M14 22v-4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4"></path><path d="M22 22h-6"></path><path d="M10 22H4"></path><path d="M14 2h4a2 2 0 0 1 2 2v2"></path><path d="M4 22V6a2 2 0 0 1 2-2h4"></path><path d="M8 2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -678,11 +676,10 @@ export const GodModeMap = () => {
 															backgroundColor: getPriorityColor(
 																request.priority
 															),
-															border: "3px solid white",
+															boxShadow: "0 0 0 3px rgba(255,255,255,0.3), 0 4px 12px rgba(0,0,0,0.3)",
 															display: "flex",
 															alignItems: "center",
 															justifyContent: "center",
-															boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
 														}}
 													>
 														<AlertTriangle
@@ -719,11 +716,10 @@ export const GodModeMap = () => {
 															height: "36px",
 															borderRadius: "50%",
 															backgroundColor: getStatusColor(ambulance.status),
-															border: "3px solid white",
+															boxShadow: "0 0 0 3px rgba(255,255,255,0.3), 0 4px 12px rgba(0,0,0,0.3)",
 															display: "flex",
 															alignItems: "center",
 															justifyContent: "center",
-															boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
 														}}
 													>
 														<Ambulance
@@ -757,11 +753,10 @@ export const GodModeMap = () => {
 															height: "40px",
 															borderRadius: "12px",
 															backgroundColor: "#3b82f6",
-															border: "3px solid white",
+															boxShadow: "0 0 0 3px rgba(255,255,255,0.3), 0 4px 12px rgba(0,0,0,0.3)",
 															display: "flex",
 															alignItems: "center",
 															justifyContent: "center",
-															boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
 														}}
 													>
 														<Hospital

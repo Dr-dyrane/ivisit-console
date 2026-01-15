@@ -127,7 +127,7 @@ export const SettingsPage = () => {
                                             <span className="font-black text-lg">Free Tier</span>
                                         </div>
                                     </div>
-                                    <Button variant="outline" className="squircle border-primary/20 text-primary hover:bg-primary/10 font-bold">
+                                    <Button variant="ghost" className="squircle bg-primary/10 text-primary hover:bg-primary/20 font-bold">
                                         Upgrade
                                     </Button>
                                 </div>
@@ -149,7 +149,7 @@ export const SettingsPage = () => {
                          <div className="p-3 squircle bg-primary/10 text-primary">
                             <Lock className="h-6 w-6" />
                         </div>
-                        <Badge variant="outline" className="squircle border-primary/20 text-primary">Security</Badge>
+                        <Badge className="squircle bg-primary/10 text-primary border-0">Security</Badge>
                     </div>
                     <h3 className="font-black text-xl mb-4">Access Rights</h3>
                     
