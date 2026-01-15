@@ -25,6 +25,7 @@ import { VisitsPage } from "./components/pages/VisitsPage";
 import { EmergencyRequestsPage } from "./components/pages/EmergencyRequestsPage";
 import { LoginPage } from "./components/pages/LoginPage";
 import { SettingsPage } from "./components/pages/SettingsPage";
+import { NotFoundPage } from "./components/pages/NotFoundPage";
 import { Toaster } from "./components/ui/sonner";
 import NoiseOverlay from "./components/ui/noise-overlay";
 import AuthWrapper from "./components/common/AuthWrapper";
@@ -157,6 +158,8 @@ function AppRoutes() {
 						</ProtectedRoute>
 					}
 				/>
+				{/* 404 Route */}
+				<Route path="*" element={<NotFoundPage />} />
 			</Routes>
 		</AppLayout>
 	);
