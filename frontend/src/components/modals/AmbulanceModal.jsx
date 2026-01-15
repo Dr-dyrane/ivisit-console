@@ -21,7 +21,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
     status: 'available',
     vehicle_number: '',
     hospital: '',
-    eta: '',
+    eta: 'N/A', // Default to N/A instead of empty
     rating: 4.5,
     last_maintenance: '',
   });

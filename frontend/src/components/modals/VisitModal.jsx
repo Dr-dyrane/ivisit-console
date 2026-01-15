@@ -26,6 +26,8 @@ export const VisitModal = ({ isOpen, onClose, visit, mode }) => {
     scheduled_at: '',
     notes: '',
     reason: '',
+    hospitals: null, // Add to prevent null access
+    profiles: null // Add to prevent null access
   });
 
   const [loading, setLoading] = useState(false);
@@ -72,6 +74,8 @@ export const VisitModal = ({ isOpen, onClose, visit, mode }) => {
       const submitData = { ...formData };
       delete submitData.profiles;
       delete submitData.hospitals;
+      delete submitData.user_email; // Remove any injected extra fields
+      delete submitData.hospital_name; // Remove any injected extra fields
 
       if (isCreate) {
         const { error } = await supabase

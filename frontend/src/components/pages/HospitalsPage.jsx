@@ -147,12 +147,12 @@ export const HospitalsPage = () => {
                     </div>
 
                     <h3 className="font-black text-2xl mb-2 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
-                    {hospital.name}
+                    {hospital.name || 'Unnamed Hospital'}
                     </h3>
                     
                     <div className="flex items-start gap-2 text-sm text-muted-foreground mb-6 min-h-[2.5rem] relative z-10">
                     <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-                    <p className="truncate-2 leading-snug">{hospital.address}</p>
+                    <p className="truncate-2 leading-snug">{hospital.address || 'No address provided'}</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 mb-6 relative z-10">

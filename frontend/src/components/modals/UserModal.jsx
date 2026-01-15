@@ -101,7 +101,10 @@ export const UserModal = ({ isOpen, onClose, user, mode }) => {
             <div className="flex flex-col md:flex-row items-start md:items-end gap-6 mb-8">
                  <div className="relative group">
                     <Avatar className="h-32 w-32 squircle-2xl border-4 border-background shadow-xl">
-                        <AvatarImage src={formData.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.username}`} className="object-cover" />
+                        <AvatarImage 
+                            src={formData.imageuri || formData.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.username}`} 
+                            className="object-cover" 
+                        />
                         <AvatarFallback className="text-4xl font-black bg-muted text-muted-foreground">
                             {formData.username?.[0]?.toUpperCase() || 'U'}
                         </AvatarFallback>

@@ -144,10 +144,10 @@ export const AmbulancesPage = () => {
                     </div>
 
                     <h3 className="font-black text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
-                        {ambulance.call_sign}
+                        {ambulance.call_sign || 'Unknown Unit'}
                     </h3>
                     <p className="text-sm font-semibold text-muted-foreground mb-4 relative z-10">
-                        {ambulance.type} • {ambulance.vehicle_number}
+                        {ambulance.type || 'Standard'} • {ambulance.vehicle_number || 'No Plate'}
                     </p>
                     
                     <div className="grid grid-cols-2 gap-3 mb-6 relative z-10">

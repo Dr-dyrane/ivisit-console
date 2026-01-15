@@ -159,8 +159,16 @@ export const UsersPage = () => {
 
                     <div className="flex items-center gap-4 mb-4 relative z-10">
                         <div className="w-16 h-16 geo-hexagon bg-muted/20 flex items-center justify-center overflow-hidden shadow-inner">
-                            {user.avatar_url ? (
-                                <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
+                            {(user.imageuri || user.avatar_url) ? (
+                                <img 
+                                    src={user.imageuri || user.avatar_url} 
+                                    alt={user.username} 
+                                    className="w-full h-full object-cover" 
+                                    onError={(e) => {
+                                        e.target.onerror = null; 
+                                        e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`;
+                                    }}
+                                />
                             ) : (
                                 <span className="text-2xl font-black text-muted-foreground">{user.username?.[0]?.toUpperCase() || 'U'}</span>
                             )}

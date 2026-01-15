@@ -155,10 +155,10 @@ export const DoctorsPage = () => {
                     </div>
 
                     <h3 className="font-black text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
-                    {doctor.name}
+                    {doctor.name || 'Unknown Doctor'}
                     </h3>
                     
-                    <p className="text-sm text-primary font-semibold mb-6 relative z-10">{doctor.specialization}</p>
+                    <p className="text-sm text-primary font-semibold mb-6 relative z-10">{doctor.specialization || 'General Practitioner'}</p>
 
                     <div className="space-y-3 mb-6 relative z-10">
                         {doctor.hospitals?.name && (

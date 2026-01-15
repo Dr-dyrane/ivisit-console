@@ -130,7 +130,7 @@ export const EmergencyRequestsPage = () => {
                     
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 relative z-10">
                         <Clock className="h-4 w-4 text-info" />
-                        <span className="font-medium">{new Date(req.created_at).toLocaleTimeString()}</span>
+                        <span className="font-medium">{req.created_at ? new Date(req.created_at).toLocaleTimeString() : 'Just now'}</span>
                     </div>
 
                     <div className="space-y-3 mb-6 relative z-10">
