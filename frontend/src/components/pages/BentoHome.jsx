@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePageData } from '../../contexts/PageDataContext';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import NoiseOverlay from '../ui/noise-overlay'; // Add NoiseOverlay
@@ -32,12 +33,26 @@ import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 export const BentoHome = () => {
   const navigate = useNavigate();
   const { hasMinRole, isAdmin, isProvider } = useAuth();
-  const [stats, setStats] = useState({
-    liveEmergencies: 12,
-    responseTime: 8.5,
-    activeProviders: 45,
-    todayRequests: 127
-  });
+  const { 
+    emergencyStats, 
+    analyticsData, 
+    doctorsData, 
+    visitsData, 
+    verificationData,
+    useMockData 
+  } = usePageData();
+
+  // Calculate app-wide stats from all data sources
+  const appStats = {
+    liveEmergencies: emergencyStats?.critical || 0,
+    responseTime: analyticsData?.avgResponseTime || 4.2,
+    activeProviders: doctorsData?.totalDoctors || 48,
+    todayRequests: emergencyStats?.total || 0,
+    totalUsers: doctorsData?.totalDoctors + 25, // doctors + other staff
+    completionRate: analyticsData?.completionRate || 94,
+    availableAmbulances: analyticsData?.availableAmbulances || 12,
+    pendingVerifications: verificationData?.pending || 15
+  };
 
   const fetchStats = async () => {
     try {
@@ -136,7 +151,7 @@ export const BentoHome = () => {
               <div className="space-y-3 flex-1">
                 <p className="editorial-subtitle text-primary">ACTIVE EMERGENCIES</p>
                 {/* Use clamp or dynamic text sizing to prevent overflow */}
-                <h2 className="text-7xl lg:text-8xl font-black tracking-tighter text-gradient-primary leading-none break-words">{stats.liveEmergencies}</h2>
+                <h2 className="text-7xl lg:text-8xl font-black tracking-tighter text-gradient-primary leading-none break-words">{appStats.liveEmergencies}</h2>
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 squircle-sm bg-success/10 flex items-center justify-center">
                     <TrendingUp className="h-4 w-4 text-success" />
@@ -202,7 +217,7 @@ export const BentoHome = () => {
             <div className="relative z-10 flex flex-col flex-1 mt-12">
               <p className="editorial-subtitle text-success mb-3">AVG RESPONSE TIME</p>
               <h3 className="text-5xl lg:text-6xl font-black tracking-tighter break-words leading-tight">
-                {stats.responseTime}<span className="text-3xl text-muted-foreground font-bold ml-1">m</span>
+                {appStats.responseTime}<span className="text-3xl text-muted-foreground font-bold ml-1">m</span>
               </h3>
             </div>
             <div className="flex items-center gap-2 text-success font-bold text-sm relative z-10 mt-4">
@@ -238,7 +253,7 @@ export const BentoHome = () => {
 
             <div className="relative z-10 flex flex-col flex-1 mt-12">
               <p className="editorial-subtitle text-info mb-3">TODAY&apos;S REQUESTS</p>
-              <h3 className="text-5xl lg:text-6xl font-black tracking-tighter break-words leading-tight">{stats.todayRequests}</h3>
+              <h3 className="text-5xl lg:text-6xl font-black tracking-tighter break-words leading-tight">{appStats.todayRequests}</h3>
             </div>
             <div className="flex items-center gap-2 text-primary font-bold text-sm relative z-10 mt-4">
               <TrendingUp className="h-5 w-5 flex-shrink-0" />
@@ -370,7 +385,7 @@ export const BentoHome = () => {
         {/* Quick Access Cards (Small & Dense) */}
         {[
             { id: 'hospitals', icon: Hospital, label: 'Hospitals', sub: '28 active', color: 'primary', path: '/hospitals', minRole: 'provider' },
-            { id: 'ambulances', icon: Ambulance, label: 'Fleet', sub: `${stats.activeProviders} units`, color: 'success', path: '/ambulances', minRole: 'provider' },
+            { id: 'ambulances', icon: Ambulance, label: 'Fleet', sub: `${appStats.availableAmbulances} units`, color: 'success', path: '/ambulances', minRole: 'provider' },
             { id: 'doctors', icon: Stethoscope, label: 'Doctors', sub: 'Medical staff', color: 'info', path: '/doctors', minRole: 'provider' },
             { id: 'users', icon: Users, label: 'Users', sub: '1,247 total', color: 'secondary', path: '/users', minRole: 'admin' },
             { id: 'visits', icon: Calendar, label: 'Visits', sub: 'Appointments', color: 'warning', path: '/visits', minRole: 'provider' },

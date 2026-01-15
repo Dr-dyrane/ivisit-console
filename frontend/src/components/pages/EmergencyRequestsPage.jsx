@@ -25,7 +25,7 @@ import {
   Shield,
   Zap
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 
 export const EmergencyRequestsPage = () => {
   const { isAdmin, isProvider } = useAuth();

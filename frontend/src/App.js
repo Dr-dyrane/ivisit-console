@@ -9,9 +9,11 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { FocusProvider } from "./contexts/FocusContext";
 import { NavigationProvider } from "./contexts/NavigationContext";
+import { PageDataProvider } from "./contexts/PageDataContext";
 import { IslandNavigation } from "./components/common/IslandNavigation";
 import { ResponsiveSidebar } from "./components/navigation/ResponsiveSidebar";
 import { SidebarTrigger } from "./components/navigation/SidebarTrigger";
+import { ContextAwareFAB } from "./components/navigation/ContextAwareFAB";
 import {
 	ProtectedRoute,
 	UnauthorizedPage,
@@ -40,30 +42,33 @@ const AppLayout = ({ children }) => {
   const hideNav = ["/login", "/unauthorized"].includes(location.pathname);
 
   return (
-    <NavigationProvider>
-      <div className="relative h-screen bg-background text-foreground overflow-y-scroll selection:bg-primary/20 pb-12">
-        {!hideNav && (
-          <>
-            <div className="fixed inset-0 z-0 pointer-events-none min-h-screen">
-              <NoiseOverlay opacity={1} />
-              <div className="absolute top-[-20%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
-              <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/5 rounded-full blur-[120px]" />
-            </div>
-          </>
-        )}
-        <div className="relative z-10 flex-1 flex-col min-h-screen ">
-          {!hideNav && <IslandNavigation />}
-          {children}
+    <PageDataProvider>
+      <NavigationProvider>
+        <div className="relative h-screen bg-background text-foreground overflow-y-scroll selection:bg-primary/20 pb-12">
+          {!hideNav && (
+            <>
+              <div className="fixed inset-0 z-0 pointer-events-none min-h-screen">
+                <NoiseOverlay opacity={1} />
+                <div className="absolute top-[-20%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/5 rounded-full blur-[120px]" />
+              </div>
+            </>
+          )}
+          <div className="relative z-10 flex-1 flex-col min-h-screen ">
+            {!hideNav && <IslandNavigation />}
+            {children}
+          </div>
+          {/* Responsive Navigation Components */}
+          {!hideNav && (
+            <>
+              <ResponsiveSidebar />
+              <SidebarTrigger />
+              <ContextAwareFAB />
+            </>
+          )}
         </div>
-        {/* Responsive Navigation Components */}
-        {!hideNav && (
-          <>
-            <ResponsiveSidebar />
-            <SidebarTrigger />
-          </>
-        )}
-      </div>
-    </NavigationProvider>
+      </NavigationProvider>
+    </PageDataProvider>
   );
 };
 

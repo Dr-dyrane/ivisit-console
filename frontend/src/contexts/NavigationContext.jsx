@@ -14,7 +14,7 @@ export const NavigationProvider = ({ children }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // Default to open
   const [currentPage, setCurrentPage] = useState('');
 
   useEffect(() => {
@@ -24,8 +24,10 @@ export const NavigationProvider = ({ children }) => {
       setIsTablet(width >= 768 && width < 1024);
       setIsDesktop(width >= 1024);
       
-      // Auto-close sidebar on mobile
-      if (width < 768) {
+      // Auto-open sidebar on desktop, auto-close on mobile
+      if (width >= 1024) {
+        setSidebarOpen(true);
+      } else if (width < 768) {
         setSidebarOpen(false);
       }
     };
