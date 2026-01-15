@@ -154,7 +154,7 @@ export const EmergencyRequestsPage = () => {
                             >
                                 <Eye className="h-4 w-4" />
                             </Button>
-                            {(isAdmin() || isProvider()) && (
+                            {hasAccess && (
                                 <Button
                                     variant="ghost"
                                     size="sm"
