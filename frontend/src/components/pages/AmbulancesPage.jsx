@@ -10,6 +10,7 @@ import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { AmbulanceModal } from '../modals/AmbulanceModal';
+import { withTimeout } from '../../lib/utils';
 
 export const AmbulancesPage = () => {
   const { isAdmin, isProvider } = useAuth();
@@ -25,16 +26,20 @@ export const AmbulancesPage = () => {
   const fetchAmbulances = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('ambulances')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await withTimeout(
+        supabase
+          .from('ambulances')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        8000,
+        'Failed to load ambulances - timeout'
+      );
 
       if (error) throw error;
       setAmbulances(data || []);
     } catch (error) {
       console.error('Error fetching ambulances:', error);
-      toast.error('Failed to load ambulances');
+      toast.error(error.message || 'Failed to load ambulances');
     } finally {
       setLoading(false);
     }
