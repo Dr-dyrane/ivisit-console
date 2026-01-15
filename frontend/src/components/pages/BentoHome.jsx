@@ -28,6 +28,7 @@ import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
 export const BentoHome = () => {
   const navigate = useNavigate();
+  const { hasMinRole, isAdmin, isProvider } = useAuth();
   const [stats, setStats] = useState({
     liveEmergencies: 12,
     responseTime: 8.5,
