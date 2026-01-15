@@ -12,6 +12,7 @@ import { NavigationProvider } from "./contexts/NavigationContext";
 import { PageDataProvider } from "./contexts/PageDataContext";
 import { IslandNavigation } from "./components/common/IslandNavigation";
 import { ResponsiveSidebar } from "./components/navigation/ResponsiveSidebar";
+import { SmartTopNav } from "./components/navigation/SmartTopNav";
 import { ContextAwareFAB } from "./components/navigation/ContextAwareFAB";
 import {
 	ProtectedRoute,
@@ -54,7 +55,12 @@ const AppLayout = ({ children }) => {
 						</>
 					)}
 					<div className="relative z-10 flex-1 flex-col min-h-screen lg:pr-80">
-						{!hideNav && <IslandNavigation />}
+						{!hideNav && (
+							<>
+								<SmartTopNav />
+								<IslandNavigation />
+							</>
+						)}
 						{children}
 					</div>
 					{/* Responsive Navigation Components */}

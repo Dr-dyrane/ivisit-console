@@ -140,6 +140,7 @@ const GoogleMapsPolyline = ({ path, options }) => {
 		return () => {
 			line.setMap(null);
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [map]); // Re-create if map changes, update path via effect below
 
 	useEffect(() => {
@@ -188,11 +189,10 @@ const LeafletMap = ({
             backdrop-filter: blur(4px);
         ">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
-            ${
-							data.priority === "critical"
-								? '<span style="position: absolute; top: -2px; right: -2px; width: 12px; height: 12px; background-color: #ef4444; border-radius: 50%; border: 2px solid white;"></span>'
-								: ""
-						}
+            ${data.priority === "critical"
+					? '<span style="position: absolute; top: -2px; right: -2px; width: 12px; height: 12px; background-color: #ef4444; border-radius: 50%; border: 2px solid white;"></span>'
+					: ""
+				}
         </div>`;
 		} else if (type === "ambulance") {
 			const color = getStatusColor(data.status);
@@ -321,6 +321,77 @@ export const GodModeMap = () => {
 	const [mapProvider, setMapProvider] = useState("google"); // 'google' | 'leaflet'
 	const [isSwitchingMap, setIsSwitchingMap] = useState(false);
 
+	// Fetch Functions (Wrapped in useCallback)
+	const fetchEmergencyRequests = React.useCallback(async () => {
+		try {
+			const { data, error } = await supabase
+				.from("emergency_requests")
+				.select("*")
+				.in("status", ["pending", "dispatched", "en_route", "arrived"]);
+
+			if (error) throw error;
+
+			const requestsWithLocations = (data || []).map((request) => ({
+				...request,
+				lat: request.latitude || LAGOS_CENTER.lat + (Math.random() - 0.5) * 0.1,
+				lng:
+					request.longitude || LAGOS_CENTER.lng + (Math.random() - 0.5) * 0.1,
+			}));
+
+			setEmergencyRequests(requestsWithLocations);
+		} catch (error) {
+			console.error("Error fetching emergency requests:", error);
+		}
+	}, []);
+
+	const fetchAmbulances = React.useCallback(async () => {
+		try {
+			const { data, error } = await supabase.from("ambulances").select("*");
+
+			if (error) throw error;
+
+			const ambulancesWithLocations = (data || []).map((ambulance) => ({
+				...ambulance,
+				lat: LAGOS_CENTER.lat + (Math.random() - 0.5) * 0.15,
+				lng: LAGOS_CENTER.lng + (Math.random() - 0.5) * 0.15,
+			}));
+
+			setAmbulances(ambulancesWithLocations);
+		} catch (error) {
+			console.error("Error fetching ambulances:", error);
+		}
+	}, []);
+
+	const fetchHospitals = React.useCallback(async () => {
+		try {
+			const { data, error } = await supabase.from("hospitals").select("*");
+
+			if (error) throw error;
+
+			const hospitalsWithLocations = (data || []).map((hospital) => ({
+				...hospital,
+				lat:
+					hospital.latitude || LAGOS_CENTER.lat + (Math.random() - 0.5) * 0.12,
+				lng:
+					hospital.longitude || LAGOS_CENTER.lng + (Math.random() - 0.5) * 0.12,
+			}));
+
+			setHospitals(hospitalsWithLocations);
+		} catch (error) {
+			console.error("Error fetching hospitals:", error);
+		}
+	}, []);
+
+	const fetchAllData = React.useCallback(async () => {
+		setLoading(true);
+		await Promise.all([
+			fetchEmergencyRequests(),
+			fetchAmbulances(),
+			fetchHospitals(),
+		]);
+		setLoading(false);
+	}, [fetchEmergencyRequests, fetchAmbulances, fetchHospitals]);
+
 	useEffect(() => {
 		// Google Maps Auth Failure Listener
 		const handleAuthFailure = () => {
@@ -371,7 +442,7 @@ export const GodModeMap = () => {
 			supabase.removeChannel(emergencyChannel);
 			supabase.removeChannel(ambulanceChannel);
 		};
-	}, [mapProvider, isSwitchingMap]);
+	}, [mapProvider, isSwitchingMap, fetchAllData, fetchEmergencyRequests, fetchAmbulances]);
 
 	useEffect(() => {
 		// Calculate routes whenever emergencies or ambulances update
@@ -413,75 +484,7 @@ export const GodModeMap = () => {
 		setActiveRoutes(routes);
 	}, [emergencyRequests, ambulances]);
 
-	const fetchAllData = async () => {
-		setLoading(true);
-		await Promise.all([
-			fetchEmergencyRequests(),
-			fetchAmbulances(),
-			fetchHospitals(),
-		]);
-		setLoading(false);
-	};
 
-	const fetchEmergencyRequests = async () => {
-		try {
-			const { data, error } = await supabase
-				.from("emergency_requests")
-				.select("*")
-				.in("status", ["pending", "dispatched", "en_route", "arrived"]);
-
-			if (error) throw error;
-
-			const requestsWithLocations = (data || []).map((request) => ({
-				...request,
-				lat: request.latitude || LAGOS_CENTER.lat + (Math.random() - 0.5) * 0.1,
-				lng:
-					request.longitude || LAGOS_CENTER.lng + (Math.random() - 0.5) * 0.1,
-			}));
-
-			setEmergencyRequests(requestsWithLocations);
-		} catch (error) {
-			console.error("Error fetching emergency requests:", error);
-		}
-	};
-
-	const fetchAmbulances = async () => {
-		try {
-			const { data, error } = await supabase.from("ambulances").select("*");
-
-			if (error) throw error;
-
-			const ambulancesWithLocations = (data || []).map((ambulance) => ({
-				...ambulance,
-				lat: LAGOS_CENTER.lat + (Math.random() - 0.5) * 0.15,
-				lng: LAGOS_CENTER.lng + (Math.random() - 0.5) * 0.15,
-			}));
-
-			setAmbulances(ambulancesWithLocations);
-		} catch (error) {
-			console.error("Error fetching ambulances:", error);
-		}
-	};
-
-	const fetchHospitals = async () => {
-		try {
-			const { data, error } = await supabase.from("hospitals").select("*");
-
-			if (error) throw error;
-
-			const hospitalsWithLocations = (data || []).map((hospital) => ({
-				...hospital,
-				lat:
-					hospital.latitude || LAGOS_CENTER.lat + (Math.random() - 0.5) * 0.12,
-				lng:
-					hospital.longitude || LAGOS_CENTER.lng + (Math.random() - 0.5) * 0.12,
-			}));
-
-			setHospitals(hospitalsWithLocations);
-		} catch (error) {
-			console.error("Error fetching hospitals:", error);
-		}
-	};
 
 	const filteredRequests =
 		filter === "all"
@@ -658,131 +661,131 @@ export const GodModeMap = () => {
 											filteredRequests
 												.filter((request) => request.lat && request.lng) // Only render requests with valid coordinates
 												.map((request) => (
-												<AdvancedMarker
-													key={`emergency-${request.id}`}
-													position={{ 
-														lat: parseFloat(request.lat) || LAGOS_CENTER.lat, 
-														lng: parseFloat(request.lng) || LAGOS_CENTER.lng 
-													}}
-													onClick={() =>
-														setSelectedMarker({
-															type: "emergency",
-															data: request,
-														})
-													}
-												>
-													<div
-														className="relative cursor-pointer transform hover:scale-110 transition-transform"
-														style={{
-															width: "36px",
-															height: "36px",
-															borderRadius: "50%",
-															backgroundColor: getPriorityColor(
-																request.priority
-															),
-															boxShadow: "0 0 0 3px rgba(255,255,255,0.3), 0 4px 12px rgba(0,0,0,0.3)",
-															display: "flex",
-															alignItems: "center",
-															justifyContent: "center",
+													<AdvancedMarker
+														key={`emergency-${request.id}`}
+														position={{
+															lat: parseFloat(request.lat) || LAGOS_CENTER.lat,
+															lng: parseFloat(request.lng) || LAGOS_CENTER.lng
 														}}
+														onClick={() =>
+															setSelectedMarker({
+																type: "emergency",
+																data: request,
+															})
+														}
 													>
-														<AlertTriangle
+														<div
+															className="relative cursor-pointer transform hover:scale-110 transition-transform"
 															style={{
-																width: "18px",
-																height: "18px",
-																color: "white",
+																width: "36px",
+																height: "36px",
+																borderRadius: "50%",
+																backgroundColor: getPriorityColor(
+																	request.priority
+																),
+																boxShadow: "0 0 0 3px rgba(255,255,255,0.3), 0 4px 12px rgba(0,0,0,0.3)",
+																display: "flex",
+																alignItems: "center",
+																justifyContent: "center",
 															}}
-														/>
-														{request.priority === "critical" && (
-															<span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
-														)}
-													</div>
-												</AdvancedMarker>
-											))}
+														>
+															<AlertTriangle
+																style={{
+																	width: "18px",
+																	height: "18px",
+																	color: "white",
+																}}
+															/>
+															{request.priority === "critical" && (
+																<span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
+															)}
+														</div>
+													</AdvancedMarker>
+												))}
 
 										{/* Ambulance Markers */}
 										{showLayers.ambulances &&
 											ambulances
 												.filter((ambulance) => ambulance.lat && ambulance.lng) // Only render ambulances with valid coordinates
 												.map((ambulance) => (
-												<AdvancedMarker
-													key={`ambulance-${ambulance.id}`}
-													position={{ 
-														lat: parseFloat(ambulance.lat) || LAGOS_CENTER.lat, 
-														lng: parseFloat(ambulance.lng) || LAGOS_CENTER.lng 
-													}}
-													onClick={() =>
-														setSelectedMarker({
-															type: "ambulance",
-															data: ambulance,
-														})
-													}
-												>
-													<div
-														className="cursor-pointer transform hover:scale-110 transition-transform"
-														style={{
-															width: "36px",
-															height: "36px",
-															borderRadius: "50%",
-															backgroundColor: getStatusColor(ambulance.status),
-															boxShadow: "0 0 0 3px rgba(255,255,255,0.3), 0 4px 12px rgba(0,0,0,0.3)",
-															display: "flex",
-															alignItems: "center",
-															justifyContent: "center",
+													<AdvancedMarker
+														key={`ambulance-${ambulance.id}`}
+														position={{
+															lat: parseFloat(ambulance.lat) || LAGOS_CENTER.lat,
+															lng: parseFloat(ambulance.lng) || LAGOS_CENTER.lng
 														}}
+														onClick={() =>
+															setSelectedMarker({
+																type: "ambulance",
+																data: ambulance,
+															})
+														}
 													>
-														<Ambulance
+														<div
+															className="cursor-pointer transform hover:scale-110 transition-transform"
 															style={{
-																width: "18px",
-																height: "18px",
-																color: "white",
+																width: "36px",
+																height: "36px",
+																borderRadius: "50%",
+																backgroundColor: getStatusColor(ambulance.status),
+																boxShadow: "0 0 0 3px rgba(255,255,255,0.3), 0 4px 12px rgba(0,0,0,0.3)",
+																display: "flex",
+																alignItems: "center",
+																justifyContent: "center",
 															}}
-														/>
-													</div>
-												</AdvancedMarker>
-											))}
+														>
+															<Ambulance
+																style={{
+																	width: "18px",
+																	height: "18px",
+																	color: "white",
+																}}
+															/>
+														</div>
+													</AdvancedMarker>
+												))}
 
 										{/* Hospital Markers */}
 										{showLayers.hospitals &&
 											hospitals
 												.filter((hospital) => hospital.lat && hospital.lng) // Only render hospitals with valid coordinates
 												.map((hospital) => (
-												<AdvancedMarker
-													key={`hospital-${hospital.id}`}
-													position={{ 
-														lat: parseFloat(hospital.lat) || LAGOS_CENTER.lat, 
-														lng: parseFloat(hospital.lng) || LAGOS_CENTER.lng 
-													}}
-													onClick={() =>
-														setSelectedMarker({
-															type: "hospital",
-															data: hospital,
-														})
-													}
-												>
-													<div
-														className="cursor-pointer transform hover:scale-110 transition-transform"
-														style={{
-															width: "40px",
-															height: "40px",
-															borderRadius: "12px",
-															backgroundColor: "#3b82f6",
-															boxShadow: "0 0 0 3px rgba(255,255,255,0.3), 0 4px 12px rgba(0,0,0,0.3)",
-															display: "flex",
-															alignItems: "center",
-															justifyContent: "center",
+													<AdvancedMarker
+														key={`hospital-${hospital.id}`}
+														position={{
+															lat: parseFloat(hospital.lat) || LAGOS_CENTER.lat,
+															lng: parseFloat(hospital.lng) || LAGOS_CENTER.lng
 														}}
+														onClick={() =>
+															setSelectedMarker({
+																type: "hospital",
+																data: hospital,
+															})
+														}
 													>
-														<Hospital
+														<div
+															className="cursor-pointer transform hover:scale-110 transition-transform"
 															style={{
-																width: "20px",
-																height: "20px",
-																color: "white",
+																width: "40px",
+																height: "40px",
+																borderRadius: "12px",
+																backgroundColor: "#3b82f6",
+																boxShadow: "0 0 0 3px rgba(255,255,255,0.3), 0 4px 12px rgba(0,0,0,0.3)",
+																display: "flex",
+																alignItems: "center",
+																justifyContent: "center",
 															}}
-														/>
-													</div>
-												</AdvancedMarker>
-											))}
+														>
+															<Hospital
+																style={{
+																	width: "20px",
+																	height: "20px",
+																	color: "white",
+																}}
+															/>
+														</div>
+													</AdvancedMarker>
+												))}
 									</Map>
 								</APIProvider>
 							</ErrorBoundary>
@@ -864,13 +867,12 @@ export const GodModeMap = () => {
 											#{req.id?.slice(-6)}
 										</span>
 										<Badge
-											className={`squircle-sm text-[10px] px-1.5 py-0 ${
-												req.priority === "critical"
+											className={`squircle-sm text-[10px] px-1.5 py-0 ${req.priority === "critical"
 													? "bg-destructive/20 text-destructive"
 													: req.priority === "high"
-													? "bg-warning/20 text-warning"
-													: "bg-muted text-muted-foreground"
-											}`}
+														? "bg-warning/20 text-warning"
+														: "bg-muted text-muted-foreground"
+												}`}
 										>
 											{req.priority || "medium"}
 										</Badge>
@@ -904,13 +906,12 @@ export const GodModeMap = () => {
 							<Card className="squircle-xl p-0 overflow-hidden glass-strong border-0 shadow-premium backdrop-blur-xl bg-background/60">
 								{/* Header Image/Color */}
 								<div
-									className={`h-24 relative ${
-										selectedMarker.type === "emergency"
+									className={`h-24 relative ${selectedMarker.type === "emergency"
 											? "bg-destructive/20"
 											: selectedMarker.type === "ambulance"
-											? "bg-success/20"
-											: "bg-info/20"
-									}`}
+												? "bg-success/20"
+												: "bg-info/20"
+										}`}
 								>
 									<div className="absolute inset-0 flex items-center justify-center">
 										{selectedMarker.type === "emergency" && (
@@ -951,13 +952,12 @@ export const GodModeMap = () => {
 										<div className="space-y-4">
 											<div className="flex items-center gap-2">
 												<Badge
-													className={`squircle font-bold ${
-														selectedMarker.data.priority === "critical"
+													className={`squircle font-bold ${selectedMarker.data.priority === "critical"
 															? "bg-destructive text-destructive-foreground"
 															: selectedMarker.data.priority === "high"
-															? "bg-warning text-warning-foreground"
-															: "bg-info text-info-foreground"
-													}`}
+																? "bg-warning text-warning-foreground"
+																: "bg-info text-info-foreground"
+														}`}
 												>
 													{selectedMarker.data.priority || "medium"}
 												</Badge>
@@ -995,11 +995,10 @@ export const GodModeMap = () => {
 														STATUS
 													</p>
 													<p
-														className={`font-black ${
-															selectedMarker.data.status === "available"
+														className={`font-black ${selectedMarker.data.status === "available"
 																? "text-success"
 																: "text-warning"
-														}`}
+															}`}
 													>
 														{selectedMarker.data.status?.toUpperCase()}
 													</p>

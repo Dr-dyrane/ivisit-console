@@ -5,6 +5,7 @@ import { useContextAction } from '../../hooks/useContextAction';
 import { Menu, Zap } from 'lucide-react';
 import { Sheet, SheetContent, SheetOverlay } from '../ui/sheet';
 import { ContextPanel } from './ContextPanel';
+import { MobileNavMenu } from './MobileNavMenu';
 import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
 import { UserModal } from '../modals/UserModal';
 import { HospitalModal } from '../modals/HospitalModal';
@@ -97,10 +98,14 @@ export const DynamicBottomBar = () => {
                 >
                     <div className="h-1.5 w-12 bg-white/20 rounded-full mx-auto mt-4 mb-2" />
                     <div className="h-full overflow-y-auto p-6 pb-20 scrollbar-hide">
+                        <MobileNavMenu onClose={() => setSheetOpen(false)} />
+
+                        <div className="h-px bg-border/40 my-6" />
+
                         <div className="flex items-center justify-between mb-6">
                             <div>
                                 <h2 className="font-black text-2xl tracking-tight">Context</h2>
-                                <p className="text-sm text-muted-foreground font-medium">Quick Access & Navigation</p>
+                                <p className="text-sm text-muted-foreground font-medium">Quick Access & Insights</p>
                             </div>
                         </div>
                         <ContextPanel />

@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }) => {
       const { data, error } = await Promise.race([profilePromise, timeoutPromise]);
 
       if (error && error.code !== 'PGRST116') throw error;
-      
+
       if (data) {
         // Check if this is the admin email and update role if needed
         if (email === 'halodyrane@gmail.com' && data.role !== 'admin') {
@@ -63,13 +63,13 @@ export const AuthProvider = ({ children }) => {
           username: email?.split('@')[0] || 'User',
           created_at: new Date().toISOString(),
         };
-        
+
         const { data: createdProfile, error: createError } = await supabase
           .from('profiles')
           .insert([newProfile])
           .select()
           .single();
-        
+
         if (createError) {
           console.error('Error creating profile:', createError);
           setProfile(newProfile); // Use local profile as fallback
@@ -95,11 +95,14 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Add timeout to prevent hanging on mobile
     const timeoutId = setTimeout(() => {
-      if (initializing) {
-        console.warn('Auth initialization timeout - forcing load state');
-        setLoading(false);
-        setInitializing(false);
-      }
+      setInitializing(prev => {
+        if (prev) {
+          console.warn('Auth initialization timeout - forcing load state');
+          setLoading(false);
+          return false;
+        }
+        return prev;
+      });
     }, 5000); // 5 second timeout
 
     // Get initial session

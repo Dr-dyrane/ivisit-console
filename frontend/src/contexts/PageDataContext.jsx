@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 
@@ -14,7 +14,7 @@ const mockEmergencyData = [
     description: 'Chest pain and difficulty breathing'
   },
   {
-    id: 'mock-2', 
+    id: 'mock-2',
     patient_name: 'Jane Smith',
     priority: 'high',
     status: 'in_progress',
@@ -84,15 +84,18 @@ export const PageDataProvider = ({ children }) => {
     analytics: false,
     doctors: false,
     visits: false,
-    verification: false
+    verification: false,
+    hospitals: false,
+    ambulances: false,
+    users: false
   });
   const [useMockData, setUseMockData] = useState(false);
 
   // Fetch emergency data
-  const fetchEmergencyData = async () => {
+  const fetchEmergencyData = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, emergency: true }));
-      
+
       if (useMockData) {
         setEmergencyData(mockEmergencyData);
         return;
@@ -118,41 +121,12 @@ export const PageDataProvider = ({ children }) => {
     } finally {
       setLoading(prev => ({ ...prev, emergency: false }));
     }
-  };
-
-  // Initialize all data on mount
-  useEffect(() => {
-    fetchEmergencyData();
-    fetchVerificationData();
-    fetchAnalyticsData();
-    fetchDoctorsData();
-    fetchVisitsData();
-    fetchHospitalsData();
-    fetchAmbulancesData();
-    fetchUsersData();
-  }, []);
-
-  // Real-time subscription for emergency data
-  useEffect(() => {
-    fetchEmergencyData();
-    
-    if (!useMockData) {
-      const channel = supabase
-        .channel('emergency_changes')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'emergency_requests' }, 
-          fetchEmergencyData
-        )
-        .subscribe();
-
-      return () => supabase.removeChannel(channel);
-    }
   }, [useMockData]);
 
-  const fetchVerificationData = async () => {
+  const fetchVerificationData = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, verification: true }));
-      
+
       if (useMockData) {
         setVerificationData(mockVerificationData);
         return;
@@ -172,7 +146,7 @@ export const PageDataProvider = ({ children }) => {
         const pending = data?.filter(u => !u.bvn_verified && u.role === 'provider').length || 0;
         const verified = data?.filter(u => u.bvn_verified).length || 0;
         const rejected = 0; // Would need rejected field
-        
+
         setVerificationData({
           pending,
           verified,
@@ -187,12 +161,12 @@ export const PageDataProvider = ({ children }) => {
     } finally {
       setLoading(prev => ({ ...prev, verification: false }));
     }
-  };
+  }, [useMockData]);
 
-  const fetchDoctorsData = async () => {
+  const fetchDoctorsData = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, doctors: true }));
-      
+
       if (useMockData) {
         setDoctorsData(mockDoctorsData);
         return;
@@ -213,7 +187,7 @@ export const PageDataProvider = ({ children }) => {
         const onCall = data?.filter(d => d.on_call).length || 0;
         const available = data?.filter(d => d.available).length || 0;
         const busy = data?.filter(d => !d.available && !d.on_call).length || 0;
-        
+
         setDoctorsData({
           totalDoctors,
           onCall,
@@ -228,27 +202,12 @@ export const PageDataProvider = ({ children }) => {
     } finally {
       setLoading(prev => ({ ...prev, doctors: false }));
     }
-  };
-
-  // Real-time subscription for doctors data
-  useEffect(() => {
-    if (!useMockData) {
-      const channel = supabase
-        .channel('doctor_changes')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'doctors' }, 
-          fetchDoctorsData
-        )
-        .subscribe();
-
-      return () => supabase.removeChannel(channel);
-    }
   }, [useMockData]);
 
-  const fetchVisitsData = async () => {
+  const fetchVisitsData = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, visits: true }));
-      
+
       if (useMockData) {
         setVisitsData(mockVisitsData);
         return;
@@ -270,7 +229,7 @@ export const PageDataProvider = ({ children }) => {
         const pending = data?.filter(v => v.status === 'pending').length || 0;
         const completed = data?.filter(v => v.status === 'completed').length || 0;
         const upcoming = data?.filter(v => new Date(v.visit_date) > new Date()).length || 0;
-        
+
         setVisitsData({
           today: todayVisits,
           pending,
@@ -285,27 +244,12 @@ export const PageDataProvider = ({ children }) => {
     } finally {
       setLoading(prev => ({ ...prev, visits: false }));
     }
-  };
-
-  // Real-time subscription for visits data
-  useEffect(() => {
-    if (!useMockData) {
-      const channel = supabase
-        .channel('visit_changes')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'visits' }, 
-          fetchVisitsData
-        )
-        .subscribe();
-
-      return () => supabase.removeChannel(channel);
-    }
   }, [useMockData]);
 
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, analytics: true }));
-      
+
       if (useMockData) {
         setAnalyticsData(mockAnalyticsData);
         return;
@@ -341,12 +285,12 @@ export const PageDataProvider = ({ children }) => {
     } finally {
       setLoading(prev => ({ ...prev, analytics: false }));
     }
-  };
+  }, [useMockData]);
 
-  const fetchHospitalsData = async () => {
+  const fetchHospitalsData = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, hospitals: true }));
-      
+
       if (useMockData) {
         // Use analytics data for hospitals since it's already real
         return;
@@ -372,12 +316,12 @@ export const PageDataProvider = ({ children }) => {
     } finally {
       setLoading(prev => ({ ...prev, hospitals: false }));
     }
-  };
+  }, [useMockData]);
 
-  const fetchAmbulancesData = async () => {
+  const fetchAmbulancesData = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, ambulances: true }));
-      
+
       if (useMockData) {
         // Use analytics data for ambulances since it's already real
         return;
@@ -395,7 +339,7 @@ export const PageDataProvider = ({ children }) => {
         // Update analytics data with real ambulance counts
         const available = data?.filter(a => a.status === 'available').length || 0;
         const onRoute = data?.filter(a => a.status === 'on_route').length || 0;
-        
+
         setAnalyticsData(prev => ({
           ...prev,
           availableAmbulances: available,
@@ -407,12 +351,12 @@ export const PageDataProvider = ({ children }) => {
     } finally {
       setLoading(prev => ({ ...prev, ambulances: false }));
     }
-  };
+  }, [useMockData]);
 
-  const fetchUsersData = async () => {
+  const fetchUsersData = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, users: true }));
-      
+
       if (useMockData) {
         // Use verification data for users since it's already real
         return;
@@ -439,24 +383,92 @@ export const PageDataProvider = ({ children }) => {
     } finally {
       setLoading(prev => ({ ...prev, users: false }));
     }
-  };
+  }, [useMockData]);
+
+  // Initialize all data on mount
+  useEffect(() => {
+    fetchEmergencyData();
+    fetchVerificationData();
+    fetchAnalyticsData();
+    fetchDoctorsData();
+    fetchVisitsData();
+    fetchHospitalsData();
+    fetchAmbulancesData();
+    fetchUsersData();
+  }, [
+    fetchEmergencyData,
+    fetchVerificationData,
+    fetchAnalyticsData,
+    fetchDoctorsData,
+    fetchVisitsData,
+    fetchHospitalsData,
+    fetchAmbulancesData,
+    fetchUsersData
+  ]);
+
+  // Real-time subscription for emergency data
+  useEffect(() => {
+    fetchEmergencyData();
+
+    if (!useMockData) {
+      const channel = supabase
+        .channel('emergency_changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'emergency_requests' },
+          fetchEmergencyData
+        )
+        .subscribe();
+
+      return () => supabase.removeChannel(channel);
+    }
+  }, [useMockData, fetchEmergencyData]);
+
+  // Real-time subscription for doctors data
+  useEffect(() => {
+    if (!useMockData) {
+      const channel = supabase
+        .channel('doctor_changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'doctors' },
+          fetchDoctorsData
+        )
+        .subscribe();
+
+      return () => supabase.removeChannel(channel);
+    }
+  }, [useMockData, fetchDoctorsData]);
+
+  // Real-time subscription for visits data
+  useEffect(() => {
+    if (!useMockData) {
+      const channel = supabase
+        .channel('visit_changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'visits' },
+          fetchVisitsData
+        )
+        .subscribe();
+
+      return () => supabase.removeChannel(channel);
+    }
+  }, [useMockData, fetchVisitsData]);
 
   // Real-time subscription for verification data
   useEffect(() => {
     fetchVerificationData();
-    
+
     if (!useMockData) {
       const channel = supabase
         .channel('profile_changes')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'profiles' }, 
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'profiles' },
           fetchVerificationData
         )
         .subscribe();
 
       return () => supabase.removeChannel(channel);
     }
-  }, [useMockData]);
+  }, [useMockData, fetchVerificationData]);
 
   // Calculate emergency statistics
   const getEmergencyStats = () => {
@@ -464,7 +476,7 @@ export const PageDataProvider = ({ children }) => {
     const high = emergencyData.filter(req => req.priority === 'high').length;
     const pending = emergencyData.filter(req => req.status === 'pending').length;
     const inProgress = emergencyData.filter(req => req.status === 'in_progress').length;
-    
+
     return {
       total: emergencyData.length,
       critical,
@@ -482,11 +494,11 @@ export const PageDataProvider = ({ children }) => {
     doctorsData,
     visitsData,
     verificationData,
-    
+
     // Loading states
     loading,
     useMockData,
-    
+
     // Methods
     fetchEmergencyData,
     fetchVerificationData,
@@ -498,7 +510,7 @@ export const PageDataProvider = ({ children }) => {
     fetchUsersData,
     getEmergencyStats,
     setUseMockData,
-    
+
     // Mock data for reference
     mockData: {
       emergency: mockEmergencyData,
