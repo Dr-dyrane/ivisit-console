@@ -108,21 +108,20 @@ export const BentoHome = () => {
           <Card className="h-full min-h-[320px] squircle-lg glass shadow-premium p-8 flex flex-col justify-between hover-lift cursor-pointer relative overflow-hidden group border-0"
                 onClick={() => navigate('/map')}>
             <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-            <div className="absolute -right-12 -top-12 w-48 h-48 bg-primary/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
             
+             {/* Top Right Icon - New Style */}
+             <div className="absolute top-0 right-0 p-6 z-20">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
+                    <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                        <Activity className="h-6 w-6 text-primary" />
+                    </div>
+                </div>
+            </div>
+
             <div className="relative z-10 flex flex-col flex-1">
               <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 squircle bg-primary/10 flex items-center justify-center">
-                    <Activity className="h-7 w-7 text-primary" />
-                  </div>
-                  <Badge className="squircle-sm bg-primary text-primary-foreground border-0 px-4 py-2 font-black editorial-subtitle">LIVE</Badge>
-                </div>
-                <div className="hover-reveal opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                     <ChevronRight className="h-5 w-5 text-primary ml-0.5" />
-                   </div>
-                </div>
+                 <Badge className="squircle-sm bg-primary text-primary-foreground border-0 px-4 py-2 font-black editorial-subtitle">LIVE</Badge>
               </div>
               
               <div className="space-y-3 flex-1">
@@ -157,6 +156,13 @@ export const BentoHome = () => {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+            
+             {/* Chevron Bottom Right */}
+            <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-20">
+               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                 <ChevronRight className="h-5 w-5 text-primary ml-0.5" />
+               </div>
+            </div>
           </Card>
         </motion.div>
 
@@ -169,11 +175,18 @@ export const BentoHome = () => {
           transition={{ duration: 0.4, delay: 0.1 }}
         >
           <Card className="h-full min-h-[320px] squircle-lg glass shadow-premium p-7 flex flex-col justify-between hover-lift border-0 relative overflow-hidden group">
-            <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-success/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-1000" />
-            <div className="relative z-10 flex flex-col flex-1">
-              <div className="w-12 h-12 squircle bg-success/10 flex items-center justify-center mb-5">
-                <Clock className="h-6 w-6 text-success" />
-              </div>
+            
+             {/* Top Right Icon */}
+             <div className="absolute top-0 right-0 p-6 z-20">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
+                    <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                        <Clock className="h-6 w-6 text-success" />
+                    </div>
+                </div>
+            </div>
+
+            <div className="relative z-10 flex flex-col flex-1 mt-12">
               <p className="editorial-subtitle text-success mb-3">AVG RESPONSE TIME</p>
               <h3 className="text-5xl lg:text-6xl font-black tracking-tighter break-words leading-tight">
                 {stats.responseTime}<span className="text-3xl text-muted-foreground font-bold ml-1">m</span>
@@ -195,11 +208,18 @@ export const BentoHome = () => {
           transition={{ duration: 0.4, delay: 0.15 }}
         >
           <Card className="h-full min-h-[320px] squircle-lg glass shadow-premium p-7 flex flex-col justify-between hover-lift border-0 relative overflow-hidden group">
-            <div className="absolute -left-8 -top-8 w-32 h-32 bg-info/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-1000" />
-            <div className="relative z-10 flex flex-col flex-1">
-              <div className="w-12 h-12 squircle bg-info/10 flex items-center justify-center mb-5">
-                <Activity className="h-6 w-6 text-info" />
-              </div>
+            
+             {/* Top Right Icon */}
+             <div className="absolute top-0 right-0 p-6 z-20">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
+                    <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                        <Activity className="h-6 w-6 text-info" />
+                    </div>
+                </div>
+            </div>
+
+            <div className="relative z-10 flex flex-col flex-1 mt-12">
               <p className="editorial-subtitle text-info mb-3">TODAY&apos;S REQUESTS</p>
               <h3 className="text-5xl lg:text-6xl font-black tracking-tighter break-words leading-tight">{stats.todayRequests}</h3>
             </div>
@@ -223,12 +243,23 @@ export const BentoHome = () => {
             onClick={() => navigate('/map')}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-secondary/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            
+             {/* Top Right Icon */}
+             <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="relative">
+                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                        <MapPin className="h-5 w-5 text-secondary" />
+                    </div>
+                </div>
+            </div>
+
             <div className="relative z-10 flex flex-col h-full justify-between gap-4">
               <div className="flex justify-between items-start">
-                <div className="w-12 h-12 squircle bg-secondary/10 flex items-center justify-center">
-                  <MapPin className="h-6 w-6 text-secondary" />
-                </div>
-                 <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                 {/* Replaced old icon with simple spacing or alternative content if needed */}
+                 <div className="w-12 h-12 squircle bg-secondary/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
+                    <MapPin className="h-6 w-6 text-secondary" />
+                 </div>
+                 <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
                    <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
                      <ChevronRight className="h-5 w-5 text-secondary ml-0.5" />
                    </div>
