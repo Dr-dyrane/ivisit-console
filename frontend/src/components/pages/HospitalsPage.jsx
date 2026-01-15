@@ -11,6 +11,7 @@ import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { HospitalModal } from '../modals/HospitalModal';
+import { withTimeout } from '../../lib/utils';
 
 export const HospitalsPage = () => {
   const navigate = useNavigate();
@@ -27,16 +28,20 @@ export const HospitalsPage = () => {
   const fetchHospitals = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('hospitals')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await withTimeout(
+        supabase
+          .from('hospitals')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        8000,
+        'Failed to load hospitals - timeout'
+      );
 
       if (error) throw error;
       setHospitals(data || []);
     } catch (error) {
       console.error('Error fetching hospitals:', error);
-      toast.error('Failed to load hospitals');
+      toast.error(error.message || 'Failed to load hospitals');
     } finally {
       setLoading(false);
     }

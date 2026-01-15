@@ -27,12 +27,19 @@ export const AuthProvider = ({ children }) => {
   const [initializing, setInitializing] = useState(true);
 
   const fetchProfile = async (userId, email) => {
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Profile fetch timeout')), 3000);
+    });
+
     try {
-      const { data, error } = await supabase
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+
+      const { data, error } = await Promise.race([profilePromise, timeoutPromise]);
 
       if (error && error.code !== 'PGRST116') throw error;
       
@@ -86,8 +93,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    // Add timeout to prevent hanging on mobile
+    const timeoutId = setTimeout(() => {
+      if (initializing) {
+        console.warn('Auth initialization timeout - forcing load state');
+        setLoading(false);
+        setInitializing(false);
+      }
+    }, 5000); // 5 second timeout
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(timeoutId);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id, session.user.email);
@@ -95,6 +112,11 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
         setInitializing(false);
       }
+    }).catch((error) => {
+      clearTimeout(timeoutId);
+      console.error('Session fetch error:', error);
+      setLoading(false);
+      setInitializing(false);
     });
 
     // Listen for auth changes

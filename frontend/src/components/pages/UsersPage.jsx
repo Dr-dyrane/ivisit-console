@@ -10,6 +10,7 @@ import { motion, LayoutGroup } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { UserModal } from '../modals/UserModal';
+import { withTimeout } from '../../lib/utils';
 
 export const UsersPage = () => {
   const { isAdmin } = useAuth();
@@ -25,16 +26,20 @@ export const UsersPage = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        8000,
+        'Failed to load users - timeout'
+      );
 
       if (error) throw error;
       setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
-      toast.error('Failed to load users');
+      toast.error(error.message || 'Failed to load users');
     } finally {
       setLoading(false);
     }

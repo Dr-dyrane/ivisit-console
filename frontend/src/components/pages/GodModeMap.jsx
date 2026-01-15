@@ -627,7 +627,6 @@ export const GodModeMap = () => {
 										className="w-full h-full"
 										disableDefaultUI={false}
 										gestureHandling="greedy"
-										styles={MAP_STYLES[theme === "dark" ? "dark" : "light"]}
 									>
 										{/* Routes/Polylines */}
 										{activeRoutes.map((route) => (
@@ -656,10 +655,15 @@ export const GodModeMap = () => {
 
 										{/* Emergency Request Markers */}
 										{showLayers.emergencies &&
-											filteredRequests.map((request) => (
+											filteredRequests
+												.filter((request) => request.lat && request.lng) // Only render requests with valid coordinates
+												.map((request) => (
 												<AdvancedMarker
 													key={`emergency-${request.id}`}
-													position={{ lat: request.lat, lng: request.lng }}
+													position={{ 
+														lat: parseFloat(request.lat) || LAGOS_CENTER.lat, 
+														lng: parseFloat(request.lng) || LAGOS_CENTER.lng 
+													}}
 													onClick={() =>
 														setSelectedMarker({
 															type: "emergency",
@@ -698,10 +702,15 @@ export const GodModeMap = () => {
 
 										{/* Ambulance Markers */}
 										{showLayers.ambulances &&
-											ambulances.map((ambulance) => (
+											ambulances
+												.filter((ambulance) => ambulance.lat && ambulance.lng) // Only render ambulances with valid coordinates
+												.map((ambulance) => (
 												<AdvancedMarker
 													key={`ambulance-${ambulance.id}`}
-													position={{ lat: ambulance.lat, lng: ambulance.lng }}
+													position={{ 
+														lat: parseFloat(ambulance.lat) || LAGOS_CENTER.lat, 
+														lng: parseFloat(ambulance.lng) || LAGOS_CENTER.lng 
+													}}
 													onClick={() =>
 														setSelectedMarker({
 															type: "ambulance",
@@ -735,10 +744,15 @@ export const GodModeMap = () => {
 
 										{/* Hospital Markers */}
 										{showLayers.hospitals &&
-											hospitals.map((hospital) => (
+											hospitals
+												.filter((hospital) => hospital.lat && hospital.lng) // Only render hospitals with valid coordinates
+												.map((hospital) => (
 												<AdvancedMarker
 													key={`hospital-${hospital.id}`}
-													position={{ lat: hospital.lat, lng: hospital.lng }}
+													position={{ 
+														lat: parseFloat(hospital.lat) || LAGOS_CENTER.lat, 
+														lng: parseFloat(hospital.lng) || LAGOS_CENTER.lng 
+													}}
 													onClick={() =>
 														setSelectedMarker({
 															type: "hospital",

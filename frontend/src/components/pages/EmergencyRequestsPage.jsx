@@ -5,11 +5,27 @@ import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
-import { AlertTriangle, Eye, Trash2, MapPin, Clock, ChevronRight, Activity, Siren } from 'lucide-react';
-import { motion, LayoutGroup } from 'framer-motion';
-import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { EmergencyDetailsModal } from '../modals/EmergencyDetailsModal';
+import { withTimeout } from '../../lib/utils';
+import { toast } from 'sonner';
+import {
+  AlertTriangle,
+  MapPin,
+  Clock,
+  Phone,
+  User,
+  Navigation,
+  Activity,
+  Eye,
+  Trash2,
+  RefreshCw,
+  Filter,
+  Siren,
+  Shield,
+  Zap
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const EmergencyRequestsPage = () => {
   const { isAdmin, isProvider } = useAuth();
@@ -33,16 +49,20 @@ export const EmergencyRequestsPage = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('emergency_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await withTimeout(
+        supabase
+          .from('emergency_requests')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        8000,
+        'Failed to load emergency requests - timeout'
+      );
 
       if (error) throw error;
       setRequests(data || []);
     } catch (error) {
       console.error('Error fetching requests:', error);
-      toast.error('Failed to load emergency requests');
+      toast.error(error.message || 'Failed to load emergency requests');
     } finally {
       setLoading(false);
     }

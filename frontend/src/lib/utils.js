@@ -35,3 +35,12 @@ export function getStatusColor(status) {
   };
   return colors[status] || colors.pending;
 }
+
+// Timeout utility to prevent hanging operations
+export function withTimeout(promise, timeoutMs = 5000, errorMessage = 'Operation timed out') {
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+  });
+  
+  return Promise.race([promise, timeoutPromise]);
+}
