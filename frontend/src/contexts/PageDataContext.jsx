@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import { getSupportTickets } from '../services/supportTicketsService';
 
 // Mock data as fallback
 const mockEmergencyData = [
@@ -63,6 +64,15 @@ const mockVerificationData = {
   total: 165
 };
 
+const mockSupportTicketsData = {
+  total: 24,
+  open: 8,
+  inProgress: 6,
+  resolved: 10,
+  thisWeek: 12,
+  averageResolutionTime: 4.5
+};
+
 const PageDataContext = createContext();
 
 export const usePageData = () => {
@@ -79,6 +89,7 @@ export const PageDataProvider = ({ children }) => {
   const [doctorsData, setDoctorsData] = useState(mockDoctorsData);
   const [visitsData, setVisitsData] = useState(mockVisitsData);
   const [verificationData, setVerificationData] = useState(mockVerificationData);
+  const [supportTicketsData, setSupportTicketsData] = useState(mockSupportTicketsData);
   const [loading, setLoading] = useState({
     emergency: false,
     analytics: false,
@@ -87,7 +98,8 @@ export const PageDataProvider = ({ children }) => {
     verification: false,
     hospitals: false,
     ambulances: false,
-    users: false
+    users: false,
+    supportTickets: false
   });
   const [useMockData, setUseMockData] = useState(false);
 
@@ -385,6 +397,56 @@ export const PageDataProvider = ({ children }) => {
     }
   }, [useMockData]);
 
+  const fetchSupportTicketsData = useCallback(async () => {
+    try {
+      setLoading(prev => ({ ...prev, supportTickets: true }));
+
+      if (useMockData) {
+        setSupportTicketsData(mockSupportTicketsData);
+        return;
+      }
+
+      // Use the service function to avoid response body conflicts
+      const data = await getSupportTickets();
+      
+      // Calculate real support ticket stats
+      const total = data?.length || 0;
+      const open = data?.filter(t => t.status === 'open').length || 0;
+      const inProgress = data?.filter(t => t.status === 'in_progress').length || 0;
+      const resolved = data?.filter(t => t.status === 'resolved').length || 0;
+      
+      // Calculate this week's tickets
+      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const thisWeek = data?.filter(t => new Date(t.created_at) > oneWeekAgo).length || 0;
+      
+      // Calculate average resolution time (in hours)
+      const resolvedTickets = data?.filter(t => t.status === 'resolved' && t.resolved_at);
+      const averageResolutionTime = resolvedTickets?.length > 0 
+        ? resolvedTickets.reduce((acc, ticket) => {
+            const created = new Date(ticket.created_at);
+            const resolved = new Date(ticket.resolved_at);
+            const hours = (resolved - created) / (1000 * 60 * 60);
+            return acc + hours;
+          }, 0) / resolvedTickets.length
+        : 0;
+
+      setSupportTicketsData({
+        total,
+        open,
+        inProgress,
+        resolved,
+        thisWeek,
+        averageResolutionTime: Math.round(averageResolutionTime * 10) / 10
+      });
+    } catch (error) {
+      console.error('Error fetching support tickets data:', error);
+      setSupportTicketsData(mockSupportTicketsData);
+      setUseMockData(true);
+    } finally {
+      setLoading(prev => ({ ...prev, supportTickets: false }));
+    }
+  }, [useMockData]);
+
   // Initialize all data on mount
   useEffect(() => {
     fetchEmergencyData();
@@ -395,6 +457,7 @@ export const PageDataProvider = ({ children }) => {
     fetchHospitalsData();
     fetchAmbulancesData();
     fetchUsersData();
+    fetchSupportTicketsData();
   }, [
     fetchEmergencyData,
     fetchVerificationData,
@@ -403,7 +466,8 @@ export const PageDataProvider = ({ children }) => {
     fetchVisitsData,
     fetchHospitalsData,
     fetchAmbulancesData,
-    fetchUsersData
+    fetchUsersData,
+    fetchSupportTicketsData
   ]);
 
   // Real-time subscription for emergency data
@@ -470,6 +534,23 @@ export const PageDataProvider = ({ children }) => {
     }
   }, [useMockData, fetchVerificationData]);
 
+  // Real-time subscription for support tickets data
+  useEffect(() => {
+    fetchSupportTicketsData();
+
+    if (!useMockData) {
+      const channel = supabase
+        .channel('support_tickets_changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'support_tickets' },
+          fetchSupportTicketsData
+        )
+        .subscribe();
+
+      return () => supabase.removeChannel(channel);
+    }
+  }, [useMockData, fetchSupportTicketsData]);
+
   // Calculate emergency statistics
   const getEmergencyStats = () => {
     const critical = emergencyData.filter(req => req.priority === 'critical').length;
@@ -494,6 +575,7 @@ export const PageDataProvider = ({ children }) => {
     doctorsData,
     visitsData,
     verificationData,
+    supportTicketsData,
 
     // Loading states
     loading,
@@ -508,6 +590,7 @@ export const PageDataProvider = ({ children }) => {
     fetchHospitalsData,
     fetchAmbulancesData,
     fetchUsersData,
+    fetchSupportTicketsData,
     getEmergencyStats,
     setUseMockData,
 
@@ -517,7 +600,8 @@ export const PageDataProvider = ({ children }) => {
       analytics: mockAnalyticsData,
       doctors: mockDoctorsData,
       visits: mockVisitsData,
-      verification: mockVerificationData
+      verification: mockVerificationData,
+      supportTickets: mockSupportTicketsData
     }
   };
 

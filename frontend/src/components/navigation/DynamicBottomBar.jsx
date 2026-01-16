@@ -13,6 +13,8 @@ import { HospitalModal } from '../modals/HospitalModal';
 import { AmbulanceModal } from '../modals/AmbulanceModal';
 import { DoctorModal } from '../modals/DoctorModal';
 import { VisitModal } from '../modals/VisitModal';
+import { HealthNewsModal } from '../modals/HealthNewsModal';
+import { SupportTicketModal } from '../modals/SupportTicketModal';
 import { NotificationCenter } from '../common/NotificationCenter';
 import { QuickSearch } from './QuickSearch';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -30,7 +32,9 @@ export const DynamicBottomBar = () => {
         hospital: false,
         ambulance: false,
         doctor: false,
-        visit: false
+        visit: false,
+        healthNews: false,
+        supportTicket: false
     });
 
     const openModal = (type) => {
@@ -216,6 +220,8 @@ export const DynamicBottomBar = () => {
                         case 'ambulance': return <AmbulanceModal key={key} {...props} />;
                         case 'doctor': return <DoctorModal key={key} {...props} />;
                         case 'visit': return <VisitModal key={key} {...props} />;
+                        case 'healthNews': return <HealthNewsModal key={key} {...props} />;
+                        case 'supportTicket': return <SupportTicketModal key={key} {...props} />;
                         default: return null;
                     }
                 })}

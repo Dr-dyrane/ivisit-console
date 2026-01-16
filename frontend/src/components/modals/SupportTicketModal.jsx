@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card } from '../ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Textarea } from '../ui/textarea';
 import { Badge } from '../ui/badge';
-import { X, Save, User, MessageSquare, Tag, Flag, AlertCircle } from 'lucide-react';
+import { Card } from '../ui/card';
+import { X, Save, User, MessageSquare, Tag, Flag, AlertCircle, Headphones, Clock, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 
 export const SupportTicketModal = ({ 
   ticket, 
@@ -14,6 +20,10 @@ export const SupportTicketModal = ({
   priorities, 
   categories 
 }) => {
+  const isView = mode === 'view';
+  const isEdit = mode === 'edit';
+  const isCreate = mode === 'create';
+
   const [formData, setFormData] = useState({
     subject: '',
     message: '',
@@ -71,203 +81,226 @@ export const SupportTicketModal = ({
   };
 
   const getPriorityColor = (priority) => {
-    const priorityConfig = priorities.find(p => p.value === priority);
-    return priorityConfig?.color || 'gray';
+    const priorityConfig = (priorities || []).find(p => p.value === priority);
+    return priorityConfig?.color || 'bg-muted/20 text-muted-foreground';
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'open': return 'bg-warning/20 text-warning';
+      case 'in_progress': return 'bg-info/20 text-info';
+      case 'resolved': return 'bg-success/20 text-success';
+      case 'closed': return 'bg-muted/20 text-muted-foreground';
+      default: return 'bg-muted/20 text-muted-foreground';
+    }
   };
 
   return (
-    <AnimatePresence>
-      {mode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/50"
-            onClick={onClose}
-          />
+    <Dialog open={Boolean(mode)} onOpenChange={() => onClose(false)}>
+      <DialogContent className="squircle-2xl glass-strong border-0 max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0 shadow-2xl bg-background/80 backdrop-blur-xl [&>button]:hidden">
+        
+        {/* Premium Support Ticket Header */}
+        <div className="relative h-44 bg-gradient-to-r from-primary/20 via-background to-background overflow-hidden">
+          {/* Decorative Pattern */}
+          <div className="absolute inset-0 opacity-10" 
+               style={{ backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 10px, #3b82f6 10px, #3b82f6 11px)' }}>
+          </div>
           
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="relative z-10 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto"
+          <div className="absolute bottom-6 left-8 z-10 flex items-end gap-6">
+            <div className="w-24 h-24 squircle-2xl bg-background shadow-xl flex items-center justify-center border-4 border-background">
+              <Headphones className="w-12 h-12 text-primary" />
+            </div>
+            <div className="mb-2">
+              <div className="flex items-center gap-2 mb-1">
+                <Badge className="squircle-sm bg-primary/10 text-primary border-0 font-bold px-2 py-0.5 text-[10px] uppercase tracking-widest">
+                  SUPPORT TICKET
+                </Badge>
+              </div>
+              <h2 className="text-3xl font-black tracking-tighter leading-none mb-2">
+                {formData.subject || 'New Ticket'}
+              </h2>
+              <div className="flex items-center gap-2">
+                <Badge className={`squircle-sm ${getPriorityColor(formData.priority)} border-0 font-bold px-3 py-1`}>
+                  {formData.priority?.toUpperCase() || 'NORMAL'}
+                </Badge>
+                <Badge className={`squircle-sm ${getStatusColor(formData.status)} border-0 font-bold px-3 py-1`}>
+                  {formData.status?.replace('_', ' ').toUpperCase() || 'OPEN'}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="absolute top-4 right-4 rounded-full hover:bg-black/10 text-foreground z-20"
+            onClick={() => onClose(false)}
           >
-            <Card className="p-6">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <MessageSquare className="h-6 w-6 text-blue-500" />
-                  <h2 className="text-xl font-semibold">
-                    {mode === 'create' ? 'Create Support Ticket' : 'Edit Support Ticket'}
-                  </h2>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClose}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+            <X className="w-6 h-6" />
+          </Button>
+        </div>
+
+        <div className="px-8 pb-8 pt-6 relative z-10 overflow-y-auto max-h-[calc(90vh-12rem)] custom-scrollbar">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            
+            {/* Ticket Details */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <MessageSquare className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider">Ticket Details</h3>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="subject" className="text-xs font-bold text-muted-foreground uppercase">Subject</Label>
+                <Input
+                  id="subject"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  disabled={isView}
+                  className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-bold text-lg"
+                  placeholder="Brief description of the issue"
+                  required
+                />
               </div>
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Subject */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Subject *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.subject}
-                    onChange={(e) => handleChange('subject', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Brief description of your issue..."
-                    required
-                  />
+              <div className="space-y-2">
+                <Label htmlFor="message" className="text-xs font-bold text-muted-foreground uppercase">Message</Label>
+                <Textarea
+                  id="message"
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  disabled={isView}
+                  className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[120px] font-medium resize-none"
+                  placeholder="Detailed description of the issue or request"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Classification */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Tag className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider">Classification</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="category" className="text-xs font-bold text-muted-foreground uppercase">Category</Label>
+                  <Select 
+                    value={formData.category} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                    disabled={isView}
+                  >
+                    <SelectTrigger className="squircle bg-muted/30 border-0 h-12 font-medium">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="squircle border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                      {(categories || []).map(cat => 
+                        typeof cat === 'string' 
+                          ? <SelectItem key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ')}</SelectItem>
+                          : <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {/* Category and Priority */}
+                <div className="space-y-2">
+                  <Label htmlFor="priority" className="text-xs font-bold text-muted-foreground uppercase">Priority</Label>
+                  <Select 
+                    value={formData.priority} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
+                    disabled={isView}
+                  >
+                    <SelectTrigger className="squircle bg-muted/30 border-0 h-12 font-medium">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="squircle border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                      {(priorities || []).map(pri => (
+                        <SelectItem key={pri.value} value={pri.value}>{pri.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Status & Assignment */}
+            {!isCreate && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider">Management</h3>
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Tag className="inline h-4 w-4 mr-1" />
-                      Category
-                    </label>
-                    <select
-                      value={formData.category}
-                      onChange={(e) => handleChange('category', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  <div className="space-y-2">
+                    <Label htmlFor="status" className="text-xs font-bold text-muted-foreground uppercase">Status</Label>
+                    <Select 
+                      value={formData.status} 
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                      disabled={isView}
                     >
-                      {categories.map(category => (
-                        <option key={category} value={category}>
-                          {category.replace('_', ' ').charAt(0).toUpperCase() + category.replace('_', ' ').slice(1)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Flag className="inline h-4 w-4 mr-1" />
-                      Priority
-                    </label>
-                    <select
-                      value={formData.priority}
-                      onChange={(e) => handleChange('priority', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {priorities.map(priority => (
-                        <option key={priority.value} value={priority.value}>
-                          {priority.label}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="mt-2">
-                      <Badge variant={getPriorityColor(formData.priority)}>
-                        <Flag className="h-3 w-3 mr-1" />
-                        {formData.priority}
-                      </Badge>
-                    </div>
+                      <SelectTrigger className="squircle bg-muted/30 border-0 h-12 font-medium">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="squircle border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                        <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="resolved">Resolved</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-
-                {/* Message */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Message *
-                  </label>
-                  <textarea
-                    value={formData.message}
-                    onChange={(e) => handleChange('message', e.target.value)}
-                    rows={6}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Detailed description of your issue or question..."
-                    required
-                  />
-                  <div className="text-xs text-gray-500 mt-1">
-                    {formData.message.length} characters
-                  </div>
-                </div>
-
-                {/* Admin-only fields */}
-                {mode === 'edit' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        <User className="inline h-4 w-4 mr-1" />
-                        Assigned To
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.assigned_to || ''}
-                        onChange={(e) => handleChange('assigned_to', e.target.value || null)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Agent ID or leave empty"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        <AlertCircle className="inline h-4 w-4 mr-1" />
-                        Status
-                      </label>
-                      <select
-                        value={formData.status}
-                        onChange={(e) => handleChange('status', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="open">Open</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="resolved">Resolved</option>
-                        <option value="closed">Closed</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {/* Help Text */}
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-start">
-                    <AlertCircle className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
-                    <div className="text-sm text-blue-700">
-                      <p className="font-medium mb-2">Tips for better support:</p>
-                      <ul className="list-disc list-inside space-y-1">
-                        <li>Be specific about the issue you're experiencing</li>
-                        <li>Include steps to reproduce the problem</li>
-                        <li>Attach screenshots if applicable</li>
-                        <li>Provide your browser/device information</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={onClose}
-                    disabled={loading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={loading || !formData.subject || !formData.message}
-                    className="flex items-center gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    {loading ? 'Saving...' : (mode === 'create' ? 'Create Ticket' : 'Update Ticket')}
-                  </Button>
-                </div>
-              </form>
-            </Card>
-          </motion.div>
+              </div>
+            )}
+          </form>
         </div>
-      )}
-    </AnimatePresence>
+
+        {/* Footer Actions */}
+        <div className="px-8 pb-6 border-t border-border/10 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock className="w-3 h-3" />
+              <span>Response time: Typically within 24 hours</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onClose(false)}
+                disabled={loading}
+                className="squircle border-0 bg-muted/20 hover:bg-muted/30 font-bold"
+              >
+                Cancel
+              </Button>
+              {!isView && (
+                <Button
+                  type="submit"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="squircle bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6"
+                >
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                      Saving...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Save className="w-4 h-4" />
+                      {isCreate ? 'Create Ticket' : 'Update Ticket'}
+                    </div>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };

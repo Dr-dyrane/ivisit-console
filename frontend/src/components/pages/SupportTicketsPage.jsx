@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSupportTickets } from '../../hooks/useSupportTickets';
+import { withTimeout } from '../../lib/utils';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -31,8 +33,12 @@ import {
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { ViewToggle } from '../common/ViewToggle';
+import { FilterSheet } from '../common/FilterSheet';
 import { SupportTicketModal } from '../modals/SupportTicketModal';
 import { SupportAnalyticsModal } from '../modals/SupportAnalyticsModal';
+import { SupportTicketListView } from '../views/SupportTicketListView';
+import { SupportTicketTableView } from '../views/SupportTicketTableView';
+import { SupportTicketSimpleListView } from '../views/SupportTicketSimpleListView';
 
 const PRIORITIES = [
   { value: 'low', label: 'Low', color: 'blue' },
@@ -75,9 +81,15 @@ export const SupportTicketsPage = () => {
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [filters, setFilters] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
-  const { viewMode, setViewMode } = useViewMode('support-tickets-page', 'table');
+  const { viewMode, setViewMode } = useViewMode('support-tickets-page', 'grid');
   const pagination = usePagination(20);
+
+  // Fetch support tickets with filters
+  useEffect(() => {
+    fetchSupportTickets(filters);
+  }, [fetchSupportTickets, filters, pagination.currentPage]);
 
   // Fetch analytics on mount
   useEffect(() => {
@@ -86,44 +98,36 @@ export const SupportTicketsPage = () => {
     }
   }, [isAdmin, fetchAnalytics]);
 
-  // Filter and search tickets
-  const filteredTickets = React.useMemo(() => {
-    let filtered = supportTickets;
-
-    // Apply search
-    if (searchTerm) {
-      filtered = filtered.filter(ticket => 
-        ticket.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.message?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.category?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  // Filter schema for FilterSheet
+  const filterSchema = React.useMemo(() => [
+    {
+      key: 'status',
+      type: 'multiselect',
+      label: 'Status',
+      options: STATUSES.map(status => ({
+        value: status.value,
+        label: status.label
+      }))
+    },
+    {
+      key: 'priority',
+      type: 'multiselect',
+      label: 'Priority',
+      options: PRIORITIES.map(priority => ({
+        value: priority.value,
+        label: priority.label
+      }))
+    },
+    {
+      key: 'category',
+      type: 'multiselect',
+      label: 'Category',
+      options: CATEGORIES.map(category => ({
+        value: category,
+        label: category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')
+      }))
     }
-
-    // Apply filters
-    if (filters.status) {
-      filtered = filtered.filter(ticket => ticket.status === filters.status);
-    }
-    if (filters.priority) {
-      filtered = filtered.filter(ticket => ticket.priority === filters.priority);
-    }
-    if (filters.category) {
-      filtered = filtered.filter(ticket => ticket.category === filters.category);
-    }
-
-    return filtered;
-  }, [supportTickets, searchTerm, filters]);
-
-  // Paginated data
-  const paginatedData = React.useMemo(() => {
-    const start = pagination.paginationRange.start;
-    const end = pagination.paginationRange.end;
-    return filteredTickets.slice(start, end + 1);
-  }, [filteredTickets, pagination.paginationRange]);
-
-  // Update pagination when filtered data changes
-  useEffect(() => {
-    pagination.setTotalCount(filteredTickets.length);
-  }, [filteredTickets.length, pagination]);
+  ], []);
 
   const handleCreate = useCallback(() => {
     setSelectedTicket(null);
@@ -173,57 +177,48 @@ export const SupportTicketsPage = () => {
     return STATUSES.find(s => s.value === status) || STATUSES[0];
   };
 
-  // Header actions
+  // Memoized components for header
+  const viewToggleComponent = React.useMemo(() => (
+    <ViewToggle value={viewMode} onChange={setViewMode} />
+  ), [viewMode, setViewMode]);
+
+  const filterButtonComponent = React.useMemo(() => (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setFilterSheetOpen(true)}
+      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+    >
+      <Filter className="h-4 w-4" />
+    </Button>
+  ), []);
+
   const headerActions = React.useMemo(() => (
-    <div className="flex items-center gap-2">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search tickets..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
-        />
+    <Button
+      onClick={handleCreate}
+      className="glass squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+    >
+      <Plus className="h-4 w-4 mr-2" />
+      NEW TICKET
+    </Button>
+  ), [handleCreate]);
+
+  usePageHeader(
+    "Support Tickets",
+    headerActions,
+    !isMobile ? viewToggleComponent : null,
+    filterButtonComponent
+  );
+
+  const footerContent = React.useMemo(() => (
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+        <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Tickets</span>
       </div>
-
-      {/* Filters */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setFilters({})}
-        className="flex items-center gap-2"
-      >
-        <Filter className="h-4 w-4" />
-        Filters
-      </Button>
-
-      {/* Analytics */}
-      {isAdmin && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setAnalyticsModalOpen(true)}
-          className="flex items-center gap-2"
-        >
-          <BarChart3 className="h-4 w-4" />
-          Analytics
-        </Button>
-      )}
-
-      {/* Add New */}
-      <Button
-        onClick={handleCreate}
-        className="flex items-center gap-2"
-      >
-        <Plus className="h-4 w-4" />
-        New Ticket
-      </Button>
     </div>
-  ), [searchTerm, isAdmin, handleCreate]);
+  ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
 
-  usePageHeader('Support Tickets', headerActions);
+  usePageFooter(footerContent, 'pagination', !loading && supportTickets.length > 0);
 
   if (loading && supportTickets.length === 0) {
     return <TableSkeleton />;
@@ -241,238 +236,31 @@ export const SupportTicketsPage = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      {isAdmin && analytics && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Total Tickets</p>
-                <p className="text-2xl font-bold">{analytics.total}</p>
-              </div>
-              <Headphones className="h-8 w-8 text-blue-500" />
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Resolved</p>
-                <p className="text-2xl font-bold">{analytics.resolved}</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">This Week</p>
-                <p className="text-2xl font-bold">{analytics.recent}</p>
-              </div>
-              <Calendar className="h-8 w-8 text-purple-500" />
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Avg Resolution</p>
-                <p className="text-2xl font-bold">
-                  {Math.round(analytics.averageResolutionTime || 0)}h
-                </p>
-              </div>
-              <Clock className="h-8 w-8 text-orange-500" />
-            </div>
-          </Card>
-        </div>
+    <div className="min-h-screen bg-background px-0 md:px-12 py-6 md:py-8">
+      <div className="pt-2" />
+
+      {loading ? (
+        <TableSkeleton rows={8} />
+      ) : (
+        <>
+          {viewMode === 'grid' && <SupportTicketListView tickets={supportTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} />}
+          {viewMode === 'list' && <SupportTicketSimpleListView tickets={supportTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} />}
+          {viewMode === 'table' && <SupportTicketTableView tickets={supportTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} />}
+        </>
       )}
 
-      {/* View Toggle */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">
-            {filteredTickets.length} tickets found
-          </span>
-        </div>
-        <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
-      </div>
-
-      {/* Tickets List/Table */}
-      <LayoutGroup>
-        <AnimatePresence mode="wait">
-          {viewMode === 'table' ? (
-            <motion.div
-              key="table"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="bg-white rounded-lg shadow overflow-hidden"
-            >
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Subject
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Category
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Priority
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {paginatedData.map((ticket) => {
-                    const statusConfig = getStatusConfig(ticket.status);
-                    const StatusIcon = statusConfig.icon;
-                    
-                    return (
-                      <tr key={ticket.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {ticket.subject}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {ticket.message?.substring(0, 100)}...
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge variant="outline">
-                            {ticket.category}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge variant={getPriorityColor(ticket.priority)}>
-                            <Flag className="h-3 w-3 mr-1" />
-                            {ticket.priority}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge variant={statusConfig.color}>
-                            <StatusIcon className="h-3 w-3 mr-1" />
-                            {statusConfig.label}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(ticket.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-2">
-                            {isAdmin && (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleEdit(ticket)}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDelete(ticket)}
-                                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                            {ticket.status === 'open' && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleAssign(ticket)}
-                                className="h-8 w-8 p-0"
-                              >
-                                <UserCheck className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="grid"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-            >
-              {paginatedData.map((ticket) => {
-                const statusConfig = getStatusConfig(ticket.status);
-                const StatusIcon = statusConfig.icon;
-                
-                return (
-                  <Card key={ticket.id} className="p-4 hover:shadow-lg transition-shadow">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900 line-clamp-2 mb-1">
-                          {ticket.subject}
-                        </h3>
-                        <p className="text-sm text-gray-500 line-clamp-2">
-                          {ticket.message}
-                        </p>
-                      </div>
-                      <Badge variant={statusConfig.color}>
-                        <StatusIcon className="h-3 w-3 mr-1" />
-                        {statusConfig.label}
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant={getPriorityColor(ticket.priority)}>
-                          <Flag className="h-3 w-3 mr-1" />
-                          {ticket.priority}
-                        </Badge>
-                        <Badge variant="outline">
-                          {ticket.category}
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        {new Date(ticket.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                    
-                    {ticket.status === 'open' && (
-                      <div className="mt-3 pt-3 border-t">
-                        <Button
-                          size="sm"
-                          onClick={() => handleAssign(ticket)}
-                          className="w-full"
-                        >
-                          <UserCheck className="h-4 w-4 mr-2" />
-                          Assign to Me
-                        </Button>
-                      </div>
-                    )}
-                  </Card>
-                );
-              })}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </LayoutGroup>
-
-      {/* Pagination */}
-      <PaginationControls pagination={pagination} />
+      {/* Pagination Controls */}
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalCount={pagination.totalCount}
+        itemsPerPage={pagination.itemsPerPage}
+        onPrevPage={pagination.prevPage}
+        onNextPage={pagination.nextPage}
+        hasPrevPage={pagination.hasPrevPage}
+        hasNextPage={pagination.hasNextPage}
+        loading={loading}
+      />
 
       {/* Modals */}
       <AnimatePresence>
@@ -495,6 +283,16 @@ export const SupportTicketsPage = () => {
           />
         )}
       </AnimatePresence>
+
+      <FilterSheet
+        isOpen={filterSheetOpen}
+        onOpenChange={setFilterSheetOpen}
+        filterSchema={filterSchema}
+        onApply={setFilters}
+        initialValues={filters}
+        viewToggle={isMobile ? viewToggleComponent : null}
+        isMobile={isMobile}
+      />
     </div>
   );
 };
