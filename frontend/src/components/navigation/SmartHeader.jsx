@@ -78,8 +78,25 @@ export const SmartHeader = () => {
                 </div>
 
                 <div className="flex items-center gap-2 md:gap-3">
-                    {/* Page Actions */}
-                    {headerConfig.actions && (
+                    {/* View Toggle & Filters - Before primary actions */}
+                    {headerConfig.viewToggle && !isMobile && (
+                        <div className="flex items-center gap-2">
+                            {headerConfig.viewToggle}
+                        </div>
+                    )}
+                    
+                    {headerConfig.filterSheet && (
+                        <div className="flex items-center gap-2">
+                            {headerConfig.filterSheet}
+                        </div>
+                    )}
+
+                    {(headerConfig.viewToggle || headerConfig.filterSheet) && !isMobile && (
+                        <div className="w-px h-6 bg-white/10 mx-1" />
+                    )}
+
+                    {/* Page Actions - Hidden on mobile only if page uses view/filter system */}
+                    {headerConfig.actions && !(isMobile && (headerConfig.viewToggle || headerConfig.filterSheet)) && (
                         <div className="flex items-center gap-2">
                             {headerConfig.actions}
                         </div>

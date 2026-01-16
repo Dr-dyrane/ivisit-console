@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 
 const LayoutContext = createContext({
     isScrolledDown: false,
-    headerConfig: { title: '', actions: null },
+    headerConfig: { title: '', actions: null, viewToggle: null, filterSheet: null },
     footerConfig: { visible: false, content: null, type: 'status' },
     setHeaderConfig: () => { },
     setFooterConfig: () => { },
@@ -13,7 +13,7 @@ export const useLayout = () => useContext(LayoutContext);
 
 export const LayoutProvider = ({ children }) => {
     const [isScrolledDown, setIsScrolledDown] = useState(false);
-    const [headerConfig, setHeaderConfig] = useState({ title: '', actions: null });
+    const [headerConfig, setHeaderConfig] = useState({ title: '', actions: null, viewToggle: null, filterSheet: null });
     const [footerConfig, setFooterConfig] = useState({ visible: false, content: null, type: 'status' });
     const [layoutMode, setLayoutMode] = useState('standard');
 
@@ -49,7 +49,12 @@ export const LayoutProvider = ({ children }) => {
         setHeaderConfig(prev => {
             // Functional update to avoid dependencies
             const newConfig = typeof config === 'function' ? config(prev) : config;
-            if (prev.title === newConfig.title && prev.actions === newConfig.actions) return prev;
+            if (
+                prev.title === newConfig.title && 
+                prev.actions === newConfig.actions &&
+                prev.viewToggle === newConfig.viewToggle &&
+                prev.filterSheet === newConfig.filterSheet
+            ) return prev;
             return newConfig;
         });
     }, []);
@@ -86,18 +91,18 @@ export const LayoutProvider = ({ children }) => {
 };
 
 // Hook for pages to register their header content
-export const usePageHeader = (title, actions) => {
+export const usePageHeader = (title, actions, viewToggle = null, filterSheet = null) => {
     const { setHeaderConfig } = useLayout();
 
     useEffect(() => {
-        setHeaderConfig({ title, actions });
+        setHeaderConfig({ title, actions, viewToggle, filterSheet });
         return () => {
             setHeaderConfig(prev => {
-                if (prev.title === title) return { title: '', actions: null };
+                if (prev.title === title) return { title: '', actions: null, viewToggle: null, filterSheet: null };
                 return prev;
             });
         };
-    }, [title, actions, setHeaderConfig]);
+    }, [title, actions, viewToggle, filterSheet, setHeaderConfig]);
 };
 
 // Hook for pages to register their footer content
