@@ -22,7 +22,7 @@ export const DoctorsPage = () => {
 
   const pagination = usePagination(20);
 
-  const fetchDoctors = async () => {
+  const fetchDoctors = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -51,11 +51,11 @@ export const DoctorsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.setTotalCount, pagination.paginationRange.start, pagination.paginationRange.end]);
 
   useEffect(() => {
     fetchDoctors();
-  }, [pagination.currentPage]);
+  }, [fetchDoctors, pagination.currentPage]);
 
   const handleCreate = useCallback(() => {
     setSelectedDoctor(null);

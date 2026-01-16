@@ -187,7 +187,7 @@ const MapRefiner = ({ userLocation, markers, styles }) => {
 			})
 			.sort((a, b) => a.dist - b.dist)
 			.slice(0, 5);
-	}, [userLocation?.lat, userLocation?.lng, markers]);
+	}, [userLocation, markers]);
 
 	useEffect(() => {
 		if (!map || !userLocation) return;
@@ -212,7 +212,7 @@ const MapRefiner = ({ userLocation, markers, styles }) => {
 			});
 			zoomedStatus.current = 'full';
 		}
-	}, [map, userLocation?.lat, userLocation?.lng, top5]);
+	}, [map, userLocation, top5]);
 
 	// Listen for re-center events
 	useEffect(() => {

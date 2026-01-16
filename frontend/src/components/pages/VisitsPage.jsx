@@ -22,7 +22,7 @@ export const VisitsPage = () => {
 
   const pagination = usePagination(20);
 
-  const fetchVisits = async () => {
+  const fetchVisits = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -48,11 +48,11 @@ export const VisitsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.setTotalCount, pagination.paginationRange.start, pagination.paginationRange.end]);
 
   useEffect(() => {
     fetchVisits();
-  }, [pagination.currentPage]);
+  }, [fetchVisits, pagination.currentPage]);
 
   const handleCreate = useCallback(() => {
     setSelectedVisit(null);

@@ -66,7 +66,7 @@ export const EmergencyRequestsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination.currentPage, pagination.setTotalCount, pagination.paginationRange.start, pagination.paginationRange.end]);
+  }, [pagination]);
 
   useEffect(() => {
     fetchRequests();

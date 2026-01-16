@@ -23,7 +23,7 @@ export const AmbulancesPage = () => {
 
   const pagination = usePagination(20);
 
-  const fetchAmbulances = async () => {
+  const fetchAmbulances = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -51,11 +51,11 @@ export const AmbulancesPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.setTotalCount, pagination.paginationRange.start, pagination.paginationRange.end]);
 
   useEffect(() => {
     fetchAmbulances();
-  }, [pagination.currentPage]);
+  }, [fetchAmbulances, pagination.currentPage]);
 
   const handleCreate = useCallback(() => {
     setSelectedAmbulance(null);

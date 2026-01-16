@@ -23,7 +23,7 @@ export const UsersPage = () => {
 
   const pagination = usePagination(20);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -53,11 +53,11 @@ export const UsersPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.setTotalCount, pagination.paginationRange.start, pagination.paginationRange.end]);
 
   useEffect(() => {
     fetchUsers();
-  }, [pagination.currentPage]);
+  }, [fetchUsers, pagination.currentPage]);
 
   const handleCreate = useCallback(() => {
     setSelectedUser(null);

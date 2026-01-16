@@ -25,11 +25,7 @@ export const HospitalsPage = () => {
 
   const pagination = usePagination(20);
 
-  useEffect(() => {
-    fetchHospitals();
-  }, [pagination.currentPage]);
-
-  const fetchHospitals = async () => {
+  const fetchHospitals = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -59,7 +55,11 @@ export const HospitalsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.setTotalCount, pagination.paginationRange.start, pagination.paginationRange.end]);
+
+  useEffect(() => {
+    fetchHospitals();
+  }, [fetchHospitals, pagination.currentPage]);
 
   const handleCreate = useCallback(() => {
     setSelectedHospital(null);
