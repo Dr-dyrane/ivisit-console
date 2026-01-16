@@ -352,12 +352,22 @@ Pages without view/filter system keep their action buttons on mobile.
 
 ## Pages to Integrate
 
-- [ ] Doctors (Medical Staff)
-- [ ] Hospitals
-- [ ] Users (Identity Management)
-- [ ] Visits
-- [ ] Emergency Requests
-- [ ] Verification Queue
+### Status Legend
+- ✅ **DONE** — Full Grid/List/Table + Filters + Smart Footer
+- ⚠️ **READY FOR DATA VIEW** — Pagination + Smart Footer (awaiting view toggles)
+- [ ] **TODO** — Needs implementation
+
+### Integration Roadmap
+
+| Page | Status | Notes |
+|------|--------|-------|
+| **Ambulances** | ✅ DONE | Full implementation with Grid/List/Table, status filter, persistent view mode |
+| **Doctors** | [ ] TODO | Ready to copy Ambulances pattern. Filter by specialization/status |
+| **Hospitals** | [ ] TODO | Ready to copy Ambulances pattern. Filter by location/status |
+| **Users** | [ ] TODO | Ready to copy Ambulances pattern. Filter by role/verification status |
+| **Visits** | [ ] TODO | Ready to copy Ambulances pattern. Filter by status/date |
+| **Emergency Requests** | [ ] TODO | Ready to copy Ambulances pattern. Filter by priority/status |
+| **Verification Queue** | ⚠️ READY FOR DATA VIEW | Pagination + smart footer added. Needs ViewToggle & List/Table renderers |
 
 ---
 
@@ -569,13 +579,25 @@ If you see **"ReferenceError: X is not defined"**:
 
 ## Summary
 
-This system provides:
-- ✅ Multiple view modes per page
-- ✅ Persistent user preferences
-- ✅ Flexible filtering (multiselect, range, single-select)
-- ✅ Mobile-optimized UX
-- ✅ Borderless, spacing-based design
-- ✅ Reusable components & hooks
-- ✅ Zero performance overhead
+### Current Implementation Status
+- ✅ **Core system complete** — All components, hooks, and contexts finalized
+- ✅ **Ambulances page** — Full production reference (Grid/List/Table + Status filter)
+- ⚠️ **Verification Queue** — Ready for data view integration (pagination set up)
+- [ ] **5 remaining ops pages** — Ready to onboard (copy Ambulances pattern)
 
-Copy-paste friendly for rapid rollout to other ops pages.
+### What This System Provides
+- ✅ Multiple view modes per page (Grid/List/Table)
+- ✅ Persistent user preferences (localStorage per page)
+- ✅ Flexible filtering (multiselect, range, single-select)
+- ✅ Smart pagination with footer integration
+- ✅ Mobile-optimized UX (ViewToggle in FilterSheet)
+- ✅ Borderless, spacing-based design (Apple aesthetic)
+- ✅ Reusable components & hooks (zero duplication)
+- ✅ Zero performance overhead (memoization at every level)
+
+### Next Steps
+1. **Verification Queue** — Add ViewToggle + List/Table renderers (2-3 hours)
+2. **Doctors** → Copy Ambulances, adapt filter schema (1-2 hours each)
+3. **Hospitals, Users, Visits, Emergency Requests** — Follow Doctors pattern
+
+Copy-paste friendly for rapid rollout. See "Integration Roadmap" above.
