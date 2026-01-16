@@ -5,28 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { SearchHistory } from '../types/index';
 
 const TABLE_NAME = 'search_history';
-
-export interface SearchHistoryFilter {
-  user_id: string;
-  query_type?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface CreateSearchHistoryInput {
-  user_id: string;
-  query: string;
-  query_type?: string;
-  results_count?: number;
-}
 
 /**
  * Get search history for user
  */
-export async function getSearchHistory(filter: SearchHistoryFilter): Promise<SearchHistory[]> {
+export async function getSearchHistory(filter) {
   try {
     let query = supabase.from(TABLE_NAME).select('*').eq('user_id', filter.user_id);
 
@@ -56,7 +41,7 @@ export async function getSearchHistory(filter: SearchHistoryFilter): Promise<Sea
 /**
  * Get single search history entry by ID
  */
-export async function getSearchHistoryEntry(entryId: string): Promise<SearchHistory | null> {
+export async function getSearchHistoryEntry(entryId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -76,9 +61,7 @@ export async function getSearchHistoryEntry(entryId: string): Promise<SearchHist
 /**
  * Create search history entry
  */
-export async function createSearchHistory(
-  input: CreateSearchHistoryInput
-): Promise<SearchHistory> {
+export async function createSearchHistory(input) {
   try {
     const payload = {
       user_id: input.user_id,
@@ -106,7 +89,7 @@ export async function createSearchHistory(
 /**
  * Delete search history entry
  */
-export async function deleteSearchHistory(entryId: string): Promise<void> {
+export async function deleteSearchHistory(entryId) {
   try {
     const { error } = await supabase
       .from(TABLE_NAME)
@@ -123,7 +106,7 @@ export async function deleteSearchHistory(entryId: string): Promise<void> {
 /**
  * Clear all search history for user
  */
-export async function clearUserSearchHistory(userId: string): Promise<void> {
+export async function clearUserSearchHistory(userId) {
   try {
     const { error } = await supabase
       .from(TABLE_NAME)
@@ -140,7 +123,7 @@ export async function clearUserSearchHistory(userId: string): Promise<void> {
 /**
  * Get popular searches
  */
-export async function getPopularSearches(limit: number = 10): Promise<SearchHistory[]> {
+export async function getPopularSearches(limit = 10) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -160,10 +143,7 @@ export async function getPopularSearches(limit: number = 10): Promise<SearchHist
 /**
  * Subscribe to user search history
  */
-export function subscribeToSearchHistory(
-  userId: string,
-  callback: (entry: SearchHistory, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
-) {
+export function subscribeToSearchHistory(userId, callback) {
   const channel = supabase
     .channel(`search_history_${userId}`)
     .on(
@@ -176,7 +156,7 @@ export function subscribeToSearchHistory(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as SearchHistory, payload.eventType as any);
+          callback(payload.new, payload.eventType);
         }
       }
     )

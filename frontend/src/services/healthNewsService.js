@@ -5,45 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { HealthNews } from '../types/index';
 
 const TABLE_NAME = 'health_news';
-
-export interface HealthNewsFilter {
-  category?: string;
-  source?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface CreateHealthNewsInput {
-  title: string;
-  description?: string;
-  content?: string;
-  image_url?: string;
-  source: string;
-  time: string;
-  icon: string;
-  category?: string;
-  url?: string;
-}
-
-export interface UpdateHealthNewsInput {
-  title?: string;
-  description?: string;
-  content?: string;
-  image_url?: string;
-  source?: string;
-  time?: string;
-  icon?: string;
-  category?: string;
-  url?: string;
-}
 
 /**
  * Get all health news with optional filters
  */
-export async function getHealthNews(filter?: HealthNewsFilter): Promise<HealthNews[]> {
+export async function getHealthNews(filter) {
   try {
     let query = supabase.from(TABLE_NAME).select('*');
 
@@ -76,7 +44,7 @@ export async function getHealthNews(filter?: HealthNewsFilter): Promise<HealthNe
 /**
  * Get single health news by ID
  */
-export async function getHealthNewsItem(newsId: string): Promise<HealthNews | null> {
+export async function getHealthNewsItem(newsId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -96,7 +64,7 @@ export async function getHealthNewsItem(newsId: string): Promise<HealthNews | nu
 /**
  * Create new health news
  */
-export async function createHealthNews(input: CreateHealthNewsInput): Promise<HealthNews> {
+export async function createHealthNews(input) {
   try {
     const payload = {
       title: input.title,
@@ -130,10 +98,7 @@ export async function createHealthNews(input: CreateHealthNewsInput): Promise<He
 /**
  * Update health news
  */
-export async function updateHealthNews(
-  newsId: string,
-  input: UpdateHealthNewsInput
-): Promise<HealthNews> {
+export async function updateHealthNews(newsId, input) {
   try {
     const payload = {
       ...input,
@@ -159,7 +124,7 @@ export async function updateHealthNews(
 /**
  * Delete health news
  */
-export async function deleteHealthNews(newsId: string): Promise<void> {
+export async function deleteHealthNews(newsId) {
   try {
     const { error } = await supabase
       .from(TABLE_NAME)
@@ -176,7 +141,7 @@ export async function deleteHealthNews(newsId: string): Promise<void> {
 /**
  * Get latest health news
  */
-export async function getLatestHealthNews(limit: number = 10): Promise<HealthNews[]> {
+export async function getLatestHealthNews(limit = 10) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -196,7 +161,7 @@ export async function getLatestHealthNews(limit: number = 10): Promise<HealthNew
 /**
  * Get news by category
  */
-export async function getNewsByCategory(category: string): Promise<HealthNews[]> {
+export async function getNewsByCategory(category) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -216,9 +181,7 @@ export async function getNewsByCategory(category: string): Promise<HealthNews[]>
 /**
  * Subscribe to health news updates
  */
-export function subscribeToHealthNews(
-  callback: (news: HealthNews, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
-) {
+export function subscribeToHealthNews(callback) {
   const channel = supabase
     .channel('health_news_all')
     .on(
@@ -230,7 +193,7 @@ export function subscribeToHealthNews(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as HealthNews, payload.eventType as any);
+          callback(payload.new, payload.eventType);
         }
       }
     )

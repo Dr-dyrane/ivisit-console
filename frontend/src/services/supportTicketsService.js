@@ -5,34 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { SupportTicket } from '../types/index';
 
 const TABLE_NAME = 'support_tickets';
-
-export interface SupportTicketFilter {
-  user_id?: string;
-  status?: 'open' | 'in_progress' | 'resolved' | 'closed';
-  limit?: number;
-  offset?: number;
-}
-
-export interface CreateSupportTicketInput {
-  user_id?: string;
-  subject: string;
-  message: string;
-  status?: 'open' | 'in_progress' | 'resolved' | 'closed';
-}
-
-export interface UpdateSupportTicketInput {
-  subject?: string;
-  message?: string;
-  status?: 'open' | 'in_progress' | 'resolved' | 'closed';
-}
 
 /**
  * Get support tickets with optional filters
  */
-export async function getSupportTickets(filter?: SupportTicketFilter): Promise<SupportTicket[]> {
+export async function getSupportTickets(filter) {
   try {
     let query = supabase.from(TABLE_NAME).select('*');
 
@@ -65,7 +44,7 @@ export async function getSupportTickets(filter?: SupportTicketFilter): Promise<S
 /**
  * Get single support ticket by ID
  */
-export async function getSupportTicket(ticketId: string): Promise<SupportTicket | null> {
+export async function getSupportTicket(ticketId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -85,9 +64,7 @@ export async function getSupportTicket(ticketId: string): Promise<SupportTicket 
 /**
  * Create new support ticket
  */
-export async function createSupportTicket(
-  input: CreateSupportTicketInput
-): Promise<SupportTicket> {
+export async function createSupportTicket(input) {
   try {
     const payload = {
       user_id: input.user_id,
@@ -116,10 +93,7 @@ export async function createSupportTicket(
 /**
  * Update support ticket
  */
-export async function updateSupportTicket(
-  ticketId: string,
-  input: UpdateSupportTicketInput
-): Promise<SupportTicket> {
+export async function updateSupportTicket(ticketId, input) {
   try {
     const payload = {
       ...input,
@@ -145,7 +119,7 @@ export async function updateSupportTicket(
 /**
  * Delete support ticket
  */
-export async function deleteSupportTicket(ticketId: string): Promise<void> {
+export async function deleteSupportTicket(ticketId) {
   try {
     const { error } = await supabase
       .from(TABLE_NAME)
@@ -162,7 +136,7 @@ export async function deleteSupportTicket(ticketId: string): Promise<void> {
 /**
  * Get user support tickets
  */
-export async function getUserSupportTickets(userId: string): Promise<SupportTicket[]> {
+export async function getUserSupportTickets(userId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -182,10 +156,7 @@ export async function getUserSupportTickets(userId: string): Promise<SupportTick
 /**
  * Update ticket status
  */
-export async function updateTicketStatus(
-  ticketId: string,
-  status: 'open' | 'in_progress' | 'resolved' | 'closed'
-): Promise<SupportTicket> {
+export async function updateTicketStatus(ticketId, status) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -209,7 +180,7 @@ export async function updateTicketStatus(
 /**
  * Get open tickets count
  */
-export async function getOpenTicketsCount(): Promise<number> {
+export async function getOpenTicketsCount() {
   try {
     const { count, error } = await supabase
       .from(TABLE_NAME)
@@ -228,9 +199,7 @@ export async function getOpenTicketsCount(): Promise<number> {
 /**
  * Subscribe to support tickets
  */
-export function subscribeToSupportTickets(
-  callback: (ticket: SupportTicket, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
-) {
+export function subscribeToSupportTickets(callback) {
   const channel = supabase
     .channel('support_tickets_all')
     .on(
@@ -242,7 +211,7 @@ export function subscribeToSupportTickets(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as SupportTicket, payload.eventType as any);
+          callback(payload.new, payload.eventType);
         }
       }
     )

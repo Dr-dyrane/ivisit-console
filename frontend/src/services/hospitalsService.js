@@ -5,67 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { Hospital } from '../types/index';
 
 const TABLE_NAME = 'hospitals';
-
-export interface HospitalFilter {
-  status?: 'available' | 'busy' | 'full';
-  verified?: boolean;
-  specialty?: string;
-  latitude?: number;
-  longitude?: number;
-  radius?: number;
-  limit?: number;
-  offset?: number;
-}
-
-export interface CreateHospitalInput {
-  name: string;
-  address: string;
-  phone?: string;
-  rating?: number;
-  type?: 'premium' | 'standard';
-  image?: string;
-  specialties?: string[];
-  service_types?: string[];
-  features?: string[];
-  emergency_level?: string;
-  available_beds?: number;
-  ambulances_count?: number;
-  wait_time?: string;
-  price_range?: string;
-  latitude: number;
-  longitude: number;
-  verified?: boolean;
-  status?: 'available' | 'busy' | 'full';
-}
-
-export interface UpdateHospitalInput {
-  name?: string;
-  address?: string;
-  phone?: string;
-  rating?: number;
-  type?: 'premium' | 'standard';
-  image?: string;
-  specialties?: string[];
-  service_types?: string[];
-  features?: string[];
-  emergency_level?: string;
-  available_beds?: number;
-  ambulances_count?: number;
-  wait_time?: string;
-  price_range?: string;
-  latitude?: number;
-  longitude?: number;
-  verified?: boolean;
-  status?: 'available' | 'busy' | 'full';
-}
 
 /**
  * Get all hospitals with optional filters
  */
-export async function getHospitals(filter?: HospitalFilter): Promise<Hospital[]> {
+export async function getHospitals(filter) {
   try {
     let query = supabase.from(TABLE_NAME).select('*');
 
@@ -101,7 +47,7 @@ export async function getHospitals(filter?: HospitalFilter): Promise<Hospital[]>
 /**
  * Get single hospital by ID
  */
-export async function getHospital(hospitalId: string): Promise<Hospital | null> {
+export async function getHospital(hospitalId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -121,7 +67,7 @@ export async function getHospital(hospitalId: string): Promise<Hospital | null> 
 /**
  * Create new hospital
  */
-export async function createHospital(input: CreateHospitalInput): Promise<Hospital> {
+export async function createHospital(input) {
   try {
     const payload = {
       name: input.name,
@@ -164,10 +110,7 @@ export async function createHospital(input: CreateHospitalInput): Promise<Hospit
 /**
  * Update hospital
  */
-export async function updateHospital(
-  hospitalId: string,
-  input: UpdateHospitalInput
-): Promise<Hospital> {
+export async function updateHospital(hospitalId, input) {
   try {
     const payload = {
       ...input,
@@ -193,7 +136,7 @@ export async function updateHospital(
 /**
  * Delete hospital
  */
-export async function deleteHospital(hospitalId: string): Promise<void> {
+export async function deleteHospital(hospitalId) {
   try {
     const { error } = await supabase
       .from(TABLE_NAME)
@@ -210,7 +153,7 @@ export async function deleteHospital(hospitalId: string): Promise<void> {
 /**
  * Get verified hospitals
  */
-export async function getVerifiedHospitals(): Promise<Hospital[]> {
+export async function getVerifiedHospitals() {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -230,7 +173,7 @@ export async function getVerifiedHospitals(): Promise<Hospital[]> {
 /**
  * Get hospitals by specialty
  */
-export async function getHospitalsBySpecialty(specialty: string): Promise<Hospital[]> {
+export async function getHospitalsBySpecialty(specialty) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -250,10 +193,7 @@ export async function getHospitalsBySpecialty(specialty: string): Promise<Hospit
 /**
  * Update hospital bed availability
  */
-export async function updateHospitalBedCount(
-  hospitalId: string,
-  availableBeds: number
-): Promise<Hospital> {
+export async function updateHospitalBedCount(hospitalId, availableBeds) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -277,10 +217,7 @@ export async function updateHospitalBedCount(
 /**
  * Update hospital status
  */
-export async function updateHospitalStatus(
-  hospitalId: string,
-  status: 'available' | 'busy' | 'full'
-): Promise<Hospital> {
+export async function updateHospitalStatus(hospitalId, status) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -304,10 +241,7 @@ export async function updateHospitalStatus(
 /**
  * Subscribe to hospital updates
  */
-export function subscribeToHospital(
-  hospitalId: string,
-  callback: (hospital: Hospital) => void
-) {
+export function subscribeToHospital(hospitalId, callback) {
   const channel = supabase
     .channel(`hospital_${hospitalId}`)
     .on(
@@ -320,7 +254,7 @@ export function subscribeToHospital(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as Hospital);
+          callback(payload.new);
         }
       }
     )

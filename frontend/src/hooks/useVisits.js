@@ -3,7 +3,7 @@
  * Manages visits data and operations using visitsService
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   getVisits,
   getVisit,
@@ -19,57 +19,29 @@ import {
   getVisitStats,
   subscribeToVisit,
   subscribeToUserVisits,
-  VisitFilter,
-  CreateVisitInput,
-  UpdateVisitInput,
-  VisitStats,
 } from '../services/visitsService';
-import { Visit } from '../types/index';
 
-interface UseVisitsState {
-  visits: Visit[];
-  loading: boolean;
-  error: string | null;
-}
-
-interface UseVisitsReturn extends UseVisitsState {
-  fetchVisits: (filter?: VisitFilter) => Promise<void>;
-  fetchVisit: (visitId: string) => Promise<Visit | null>;
-  fetchUserVisits: (userId: string) => Promise<void>;
-  fetchUpcomingVisits: (userId: string) => Promise<void>;
-  fetchCompletedVisits: (userId: string) => Promise<void>;
-  fetchStats: () => Promise<VisitStats | null>;
-  addVisit: (input: CreateVisitInput) => Promise<Visit | null>;
-  editVisit: (visitId: string, input: UpdateVisitInput) => Promise<Visit | null>;
-  removeVisit: (visitId: string) => Promise<boolean>;
-  finishVisit: (visitId: string, summary?: string, prescriptions?: string[]) => Promise<Visit | null>;
-  abortVisit: (visitId: string, reason?: string) => Promise<Visit | null>;
-  noShowVisit: (visitId: string) => Promise<Visit | null>;
-  subscribe: (visitId: string, callback: (visit: Visit) => void) => (() => void) | null;
-  subscribeToUser: (userId: string, callback: (visit: Visit, eventType: string) => void) => (() => void) | null;
-}
-
-export function useVisits(): UseVisitsReturn {
-  const [state, setState] = useState<UseVisitsState>({
+export function useVisits() {
+  const [state, setState] = useState({
     visits: [],
     loading: false,
     error: null,
   });
 
-  const setLoading = useCallback((loading: boolean) => {
+  const setLoading = useCallback((loading) => {
     setState((prev) => ({ ...prev, loading }));
   }, []);
 
-  const setError = useCallback((error: string | null) => {
+  const setError = useCallback((error) => {
     setState((prev) => ({ ...prev, error }));
   }, []);
 
-  const setVisits = useCallback((visits: Visit[]) => {
+  const setVisits = useCallback((visits) => {
     setState((prev) => ({ ...prev, visits }));
   }, []);
 
   const fetchVisits = useCallback(
-    async (filter?: VisitFilter) => {
+    async (filter) => {
       try {
         setLoading(true);
         setError(null);
@@ -84,7 +56,7 @@ export function useVisits(): UseVisitsReturn {
     [setLoading, setError, setVisits]
   );
 
-  const fetchVisit = useCallback(async (visitId: string): Promise<Visit | null> => {
+  const fetchVisit = useCallback(async (visitId) => {
     try {
       setError(null);
       return await getVisit(visitId);
@@ -95,7 +67,7 @@ export function useVisits(): UseVisitsReturn {
   }, [setError]);
 
   const fetchUserVisits = useCallback(
-    async (userId: string) => {
+    async (userId) => {
       try {
         setLoading(true);
         setError(null);
@@ -111,7 +83,7 @@ export function useVisits(): UseVisitsReturn {
   );
 
   const fetchUpcomingVisits = useCallback(
-    async (userId: string) => {
+    async (userId) => {
       try {
         setLoading(true);
         setError(null);
@@ -127,7 +99,7 @@ export function useVisits(): UseVisitsReturn {
   );
 
   const fetchCompletedVisits = useCallback(
-    async (userId: string) => {
+    async (userId) => {
       try {
         setLoading(true);
         setError(null);
@@ -142,7 +114,7 @@ export function useVisits(): UseVisitsReturn {
     [setLoading, setError, setVisits]
   );
 
-  const fetchStats = useCallback(async (): Promise<VisitStats | null> => {
+  const fetchStats = useCallback(async () => {
     try {
       setError(null);
       return await getVisitStats();
@@ -153,7 +125,7 @@ export function useVisits(): UseVisitsReturn {
   }, [setError]);
 
   const addVisit = useCallback(
-    async (input: CreateVisitInput): Promise<Visit | null> => {
+    async (input) => {
       try {
         setError(null);
         const visit = await createVisit(input);
@@ -168,7 +140,7 @@ export function useVisits(): UseVisitsReturn {
   );
 
   const editVisit = useCallback(
-    async (visitId: string, input: UpdateVisitInput): Promise<Visit | null> => {
+    async (visitId, input) => {
       try {
         setError(null);
         const visit = await updateVisit(visitId, input);
@@ -183,7 +155,7 @@ export function useVisits(): UseVisitsReturn {
   );
 
   const removeVisit = useCallback(
-    async (visitId: string): Promise<boolean> => {
+    async (visitId) => {
       try {
         setError(null);
         await deleteVisit(visitId);
@@ -198,7 +170,7 @@ export function useVisits(): UseVisitsReturn {
   );
 
   const finishVisit = useCallback(
-    async (visitId: string, summary?: string, prescriptions?: string[]): Promise<Visit | null> => {
+    async (visitId, summary, prescriptions) => {
       try {
         setError(null);
         const visit = await completeVisit(visitId, summary, prescriptions);
@@ -213,7 +185,7 @@ export function useVisits(): UseVisitsReturn {
   );
 
   const abortVisit = useCallback(
-    async (visitId: string, reason?: string): Promise<Visit | null> => {
+    async (visitId, reason) => {
       try {
         setError(null);
         const visit = await cancelVisit(visitId, reason);
@@ -228,7 +200,7 @@ export function useVisits(): UseVisitsReturn {
   );
 
   const noShowVisit = useCallback(
-    async (visitId: string): Promise<Visit | null> => {
+    async (visitId) => {
       try {
         setError(null);
         const visit = await markVisitAsNoShow(visitId);
@@ -243,7 +215,7 @@ export function useVisits(): UseVisitsReturn {
   );
 
   const subscribe = useCallback(
-    (visitId: string, callback: (visit: Visit) => void): (() => void) | null => {
+    (visitId, callback) => {
       try {
         return subscribeToVisit(visitId, callback);
       } catch (err) {
@@ -255,7 +227,7 @@ export function useVisits(): UseVisitsReturn {
   );
 
   const subscribeToUser = useCallback(
-    (userId: string, callback: (visit: Visit, eventType: string) => void): (() => void) | null => {
+    (userId, callback) => {
       try {
         return subscribeToUserVisits(userId, (visit, eventType) => callback(visit, eventType));
       } catch (err) {

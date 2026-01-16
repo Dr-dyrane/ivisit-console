@@ -5,51 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { Ambulance } from '../types/index';
-import { Point } from 'geojson';
 
 const TABLE_NAME = 'ambulances';
-
-export interface AmbulanceFilter {
-  hospital_id?: string;
-  status?: 'available' | 'en_route' | 'on_scene' | 'returning';
-  type?: 'basic' | 'advanced' | 'critical' | 'neonatal';
-  limit?: number;
-  offset?: number;
-}
-
-export interface CreateAmbulanceInput {
-  type: 'basic' | 'advanced' | 'critical' | 'neonatal';
-  call_sign: string;
-  status?: 'available' | 'en_route' | 'on_scene' | 'returning';
-  location?: Point;
-  eta?: string;
-  crew?: string[];
-  hospital?: string;
-  vehicle_number?: string;
-  last_maintenance?: string;
-  rating?: number;
-  current_call?: Record<string, any>;
-}
-
-export interface UpdateAmbulanceInput {
-  type?: 'basic' | 'advanced' | 'critical' | 'neonatal';
-  call_sign?: string;
-  status?: 'available' | 'en_route' | 'on_scene' | 'returning';
-  location?: Point;
-  eta?: string;
-  crew?: string[];
-  hospital?: string;
-  vehicle_number?: string;
-  last_maintenance?: string;
-  rating?: number;
-  current_call?: Record<string, any>;
-}
 
 /**
  * Get all ambulances with optional filters
  */
-export async function getAmbulances(filter?: AmbulanceFilter): Promise<Ambulance[]> {
+export async function getAmbulances(filter) {
   try {
     let query = supabase.from(TABLE_NAME).select('*');
 
@@ -85,7 +47,7 @@ export async function getAmbulances(filter?: AmbulanceFilter): Promise<Ambulance
 /**
  * Get single ambulance by ID
  */
-export async function getAmbulance(ambulanceId: string): Promise<Ambulance | null> {
+export async function getAmbulance(ambulanceId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -105,7 +67,7 @@ export async function getAmbulance(ambulanceId: string): Promise<Ambulance | nul
 /**
  * Create new ambulance
  */
-export async function createAmbulance(input: CreateAmbulanceInput): Promise<Ambulance> {
+export async function createAmbulance(input) {
   try {
     const payload = {
       type: input.type,
@@ -141,10 +103,7 @@ export async function createAmbulance(input: CreateAmbulanceInput): Promise<Ambu
 /**
  * Update ambulance
  */
-export async function updateAmbulance(
-  ambulanceId: string,
-  input: UpdateAmbulanceInput
-): Promise<Ambulance> {
+export async function updateAmbulance(ambulanceId, input) {
   try {
     const payload = {
       ...input,
@@ -170,7 +129,7 @@ export async function updateAmbulance(
 /**
  * Delete ambulance
  */
-export async function deleteAmbulance(ambulanceId: string): Promise<void> {
+export async function deleteAmbulance(ambulanceId) {
   try {
     const { error } = await supabase
       .from(TABLE_NAME)
@@ -187,7 +146,7 @@ export async function deleteAmbulance(ambulanceId: string): Promise<void> {
 /**
  * Get available ambulances
  */
-export async function getAvailableAmbulances(): Promise<Ambulance[]> {
+export async function getAvailableAmbulances() {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -207,7 +166,7 @@ export async function getAvailableAmbulances(): Promise<Ambulance[]> {
 /**
  * Get ambulances by hospital
  */
-export async function getHospitalAmbulances(hospitalId: string): Promise<Ambulance[]> {
+export async function getHospitalAmbulances(hospitalId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -227,10 +186,7 @@ export async function getHospitalAmbulances(hospitalId: string): Promise<Ambulan
 /**
  * Update ambulance location
  */
-export async function updateAmbulanceLocation(
-  ambulanceId: string,
-  location: Point
-): Promise<Ambulance> {
+export async function updateAmbulanceLocation(ambulanceId, location) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -254,10 +210,7 @@ export async function updateAmbulanceLocation(
 /**
  * Update ambulance status
  */
-export async function updateAmbulanceStatus(
-  ambulanceId: string,
-  status: 'available' | 'en_route' | 'on_scene' | 'returning'
-): Promise<Ambulance> {
+export async function updateAmbulanceStatus(ambulanceId, status) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -281,10 +234,7 @@ export async function updateAmbulanceStatus(
 /**
  * Subscribe to ambulance updates
  */
-export function subscribeToAmbulance(
-  ambulanceId: string,
-  callback: (ambulance: Ambulance) => void
-) {
+export function subscribeToAmbulance(ambulanceId, callback) {
   const channel = supabase
     .channel(`ambulance_${ambulanceId}`)
     .on(
@@ -297,7 +247,7 @@ export function subscribeToAmbulance(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as Ambulance);
+          callback(payload.new);
         }
       }
     )
@@ -309,9 +259,7 @@ export function subscribeToAmbulance(
 /**
  * Subscribe to all ambulance changes
  */
-export function subscribeToAllAmbulances(
-  callback: (ambulance: Ambulance, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
-) {
+export function subscribeToAllAmbulances(callback) {
   const channel = supabase
     .channel('ambulances_all')
     .on(
@@ -323,7 +271,7 @@ export function subscribeToAllAmbulances(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as Ambulance, payload.eventType as any);
+          callback(payload.new, payload.eventType);
         }
       }
     )

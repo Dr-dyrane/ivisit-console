@@ -5,49 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { InsurancePolicy } from '../types/index';
 
 const TABLE_NAME = 'insurance_policies';
-
-export interface InsurancePolicyFilter {
-  user_id?: string;
-  provider_name?: string;
-  coverage_type?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface CreateInsurancePolicyInput {
-  user_id: string;
-  provider_name: string;
-  policy_number?: string;
-  group_number?: string;
-  policy_holder_name?: string;
-  coverage_type?: string;
-  start_date?: string;
-  end_date?: string;
-  front_image_url?: string;
-  back_image_url?: string;
-}
-
-export interface UpdateInsurancePolicyInput {
-  provider_name?: string;
-  policy_number?: string;
-  group_number?: string;
-  policy_holder_name?: string;
-  coverage_type?: string;
-  start_date?: string;
-  end_date?: string;
-  front_image_url?: string;
-  back_image_url?: string;
-}
 
 /**
  * Get all insurance policies with optional filters
  */
-export async function getInsurancePolicies(
-  filter?: InsurancePolicyFilter
-): Promise<InsurancePolicy[]> {
+export async function getInsurancePolicies(filter) {
   try {
     let query = supabase.from(TABLE_NAME).select('*');
 
@@ -83,7 +47,7 @@ export async function getInsurancePolicies(
 /**
  * Get single insurance policy by ID
  */
-export async function getInsurancePolicy(policyId: string): Promise<InsurancePolicy | null> {
+export async function getInsurancePolicy(policyId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -103,9 +67,7 @@ export async function getInsurancePolicy(policyId: string): Promise<InsurancePol
 /**
  * Create new insurance policy
  */
-export async function createInsurancePolicy(
-  input: CreateInsurancePolicyInput
-): Promise<InsurancePolicy> {
+export async function createInsurancePolicy(input) {
   try {
     const payload = {
       user_id: input.user_id,
@@ -140,10 +102,7 @@ export async function createInsurancePolicy(
 /**
  * Update insurance policy
  */
-export async function updateInsurancePolicy(
-  policyId: string,
-  input: UpdateInsurancePolicyInput
-): Promise<InsurancePolicy> {
+export async function updateInsurancePolicy(policyId, input) {
   try {
     const payload = {
       ...input,
@@ -169,7 +128,7 @@ export async function updateInsurancePolicy(
 /**
  * Delete insurance policy
  */
-export async function deleteInsurancePolicy(policyId: string): Promise<void> {
+export async function deleteInsurancePolicy(policyId) {
   try {
     const { error } = await supabase
       .from(TABLE_NAME)
@@ -186,7 +145,7 @@ export async function deleteInsurancePolicy(policyId: string): Promise<void> {
 /**
  * Get insurance policies for user
  */
-export async function getUserInsurancePolicies(userId: string): Promise<InsurancePolicy[]> {
+export async function getUserInsurancePolicies(userId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -206,7 +165,7 @@ export async function getUserInsurancePolicies(userId: string): Promise<Insuranc
 /**
  * Get active insurance policies for user
  */
-export async function getUserActiveInsurancePolicies(userId: string): Promise<InsurancePolicy[]> {
+export async function getUserActiveInsurancePolicies(userId) {
   try {
     const today = new Date().toISOString().split('T')[0];
     const { data, error } = await supabase
@@ -229,7 +188,7 @@ export async function getUserActiveInsurancePolicies(userId: string): Promise<In
 /**
  * Check if policy is active
  */
-export async function isPolicyActive(policyId: string): Promise<boolean> {
+export async function isPolicyActive(policyId) {
   try {
     const policy = await getInsurancePolicy(policyId);
     if (!policy) return false;
@@ -248,7 +207,7 @@ export async function isPolicyActive(policyId: string): Promise<boolean> {
 /**
  * Verify coverage for user
  */
-export async function verifyCoverage(userId: string): Promise<boolean> {
+export async function verifyCoverage(userId) {
   try {
     const activePolicies = await getUserActiveInsurancePolicies(userId);
     return activePolicies.length > 0;
@@ -261,11 +220,7 @@ export async function verifyCoverage(userId: string): Promise<boolean> {
 /**
  * Update policy document images
  */
-export async function updatePolicyDocuments(
-  policyId: string,
-  frontImageUrl?: string,
-  backImageUrl?: string
-): Promise<InsurancePolicy> {
+export async function updatePolicyDocuments(policyId, frontImageUrl, backImageUrl) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -290,10 +245,7 @@ export async function updatePolicyDocuments(
 /**
  * Subscribe to insurance policy updates
  */
-export function subscribeToInsurancePolicy(
-  policyId: string,
-  callback: (policy: InsurancePolicy) => void
-) {
+export function subscribeToInsurancePolicy(policyId, callback) {
   const channel = supabase
     .channel(`insurance_policy_${policyId}`)
     .on(
@@ -306,7 +258,7 @@ export function subscribeToInsurancePolicy(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as InsurancePolicy);
+          callback(payload.new);
         }
       }
     )
@@ -318,10 +270,7 @@ export function subscribeToInsurancePolicy(
 /**
  * Subscribe to user insurance policy changes
  */
-export function subscribeToUserInsurancePolicies(
-  userId: string,
-  callback: (policy: InsurancePolicy, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
-) {
+export function subscribeToUserInsurancePolicies(userId, callback) {
   const channel = supabase
     .channel(`user_insurance_policies_${userId}`)
     .on(
@@ -334,7 +283,7 @@ export function subscribeToUserInsurancePolicies(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as InsurancePolicy, payload.eventType as any);
+          callback(payload.new, payload.eventType);
         }
       }
     )

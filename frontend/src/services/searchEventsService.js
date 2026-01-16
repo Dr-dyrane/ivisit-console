@@ -5,21 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { SearchEvent } from '../types/index';
 
 const TABLE_NAME = 'search_events';
-
-export interface CreateSearchEventInput {
-  query?: string;
-  source?: string;
-  selected_key?: string;
-  extra?: Record<string, any>;
-}
 
 /**
  * Create search event
  */
-export async function createSearchEvent(input: CreateSearchEventInput): Promise<SearchEvent> {
+export async function createSearchEvent(input) {
   try {
     const payload = {
       query: input.query,
@@ -47,7 +39,7 @@ export async function createSearchEvent(input: CreateSearchEventInput): Promise<
 /**
  * Get search event by ID
  */
-export async function getSearchEvent(eventId: string): Promise<SearchEvent | null> {
+export async function getSearchEvent(eventId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -67,7 +59,7 @@ export async function getSearchEvent(eventId: string): Promise<SearchEvent | nul
 /**
  * Get all search events
  */
-export async function getSearchEvents(limit?: number, offset?: number): Promise<SearchEvent[]> {
+export async function getSearchEvents(limit, offset) {
   try {
     let query = supabase.from(TABLE_NAME).select('*').order('created_at', { ascending: false });
 
@@ -91,7 +83,7 @@ export async function getSearchEvents(limit?: number, offset?: number): Promise<
 /**
  * Get search events by source
  */
-export async function getSearchEventsBySource(source: string): Promise<SearchEvent[]> {
+export async function getSearchEventsBySource(source) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -111,7 +103,7 @@ export async function getSearchEventsBySource(source: string): Promise<SearchEve
 /**
  * Delete search event
  */
-export async function deleteSearchEvent(eventId: string): Promise<void> {
+export async function deleteSearchEvent(eventId) {
   try {
     const { error } = await supabase
       .from(TABLE_NAME)
@@ -128,9 +120,7 @@ export async function deleteSearchEvent(eventId: string): Promise<void> {
 /**
  * Subscribe to search events
  */
-export function subscribeToSearchEvents(
-  callback: (event: SearchEvent, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
-) {
+export function subscribeToSearchEvents(callback) {
   const channel = supabase
     .channel('search_events_all')
     .on(
@@ -142,7 +132,7 @@ export function subscribeToSearchEvents(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as SearchEvent, payload.eventType as any);
+          callback(payload.new, payload.eventType);
         }
       }
     )

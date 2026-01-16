@@ -5,48 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { Doctor } from '../types/index';
 
 const TABLE_NAME = 'doctors';
-
-export interface DoctorFilter {
-  hospital_id?: string;
-  specialty?: string;
-  is_available?: boolean;
-  limit?: number;
-  offset?: number;
-}
-
-export interface CreateDoctorInput {
-  name: string;
-  specialty: string;
-  hospital_id?: string;
-  image?: string;
-  rating?: number;
-  reviews_count?: number;
-  years_experience?: number;
-  about?: string;
-  consultation_fee?: string;
-  is_available?: boolean;
-}
-
-export interface UpdateDoctorInput {
-  name?: string;
-  specialty?: string;
-  hospital_id?: string;
-  image?: string;
-  rating?: number;
-  reviews_count?: number;
-  years_experience?: number;
-  about?: string;
-  consultation_fee?: string;
-  is_available?: boolean;
-}
 
 /**
  * Get all doctors with optional filters
  */
-export async function getDoctors(filter?: DoctorFilter): Promise<Doctor[]> {
+export async function getDoctors(filter) {
   try {
     let query = supabase.from(TABLE_NAME).select('*');
 
@@ -82,7 +47,7 @@ export async function getDoctors(filter?: DoctorFilter): Promise<Doctor[]> {
 /**
  * Get single doctor by ID
  */
-export async function getDoctor(doctorId: string): Promise<Doctor | null> {
+export async function getDoctor(doctorId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -102,7 +67,7 @@ export async function getDoctor(doctorId: string): Promise<Doctor | null> {
 /**
  * Create new doctor
  */
-export async function createDoctor(input: CreateDoctorInput): Promise<Doctor> {
+export async function createDoctor(input) {
   try {
     const payload = {
       name: input.name,
@@ -137,10 +102,7 @@ export async function createDoctor(input: CreateDoctorInput): Promise<Doctor> {
 /**
  * Update doctor
  */
-export async function updateDoctor(
-  doctorId: string,
-  input: UpdateDoctorInput
-): Promise<Doctor> {
+export async function updateDoctor(doctorId, input) {
   try {
     const payload = {
       ...input,
@@ -166,7 +128,7 @@ export async function updateDoctor(
 /**
  * Delete doctor
  */
-export async function deleteDoctor(doctorId: string): Promise<void> {
+export async function deleteDoctor(doctorId) {
   try {
     const { error } = await supabase
       .from(TABLE_NAME)
@@ -183,7 +145,7 @@ export async function deleteDoctor(doctorId: string): Promise<void> {
 /**
  * Get available doctors
  */
-export async function getAvailableDoctors(): Promise<Doctor[]> {
+export async function getAvailableDoctors() {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -203,7 +165,7 @@ export async function getAvailableDoctors(): Promise<Doctor[]> {
 /**
  * Get doctors by specialty
  */
-export async function getDoctorsBySpecialty(specialty: string): Promise<Doctor[]> {
+export async function getDoctorsBySpecialty(specialty) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -223,7 +185,7 @@ export async function getDoctorsBySpecialty(specialty: string): Promise<Doctor[]
 /**
  * Get doctors by hospital
  */
-export async function getHospitalDoctors(hospitalId: string): Promise<Doctor[]> {
+export async function getHospitalDoctors(hospitalId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -243,10 +205,7 @@ export async function getHospitalDoctors(hospitalId: string): Promise<Doctor[]> 
 /**
  * Update doctor availability
  */
-export async function updateDoctorAvailability(
-  doctorId: string,
-  isAvailable: boolean
-): Promise<Doctor> {
+export async function updateDoctorAvailability(doctorId, isAvailable) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -270,11 +229,7 @@ export async function updateDoctorAvailability(
 /**
  * Update doctor rating
  */
-export async function updateDoctorRating(
-  doctorId: string,
-  newRating: number,
-  reviewCount?: number
-): Promise<Doctor> {
+export async function updateDoctorRating(doctorId, newRating, reviewCount) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -299,10 +254,7 @@ export async function updateDoctorRating(
 /**
  * Subscribe to doctor updates
  */
-export function subscribeToDoctor(
-  doctorId: string,
-  callback: (doctor: Doctor) => void
-) {
+export function subscribeToDoctor(doctorId, callback) {
   const channel = supabase
     .channel(`doctor_${doctorId}`)
     .on(
@@ -315,7 +267,7 @@ export function subscribeToDoctor(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as Doctor);
+          callback(payload.new);
         }
       }
     )

@@ -16,61 +16,34 @@ import {
   updateAmbulanceStatus,
   subscribeToAmbulance,
   subscribeToAllAmbulances,
-  AmbulanceFilter,
-  CreateAmbulanceInput,
-  UpdateAmbulanceInput,
 } from '../services/ambulancesService';
-import { Ambulance } from '../types/index';
-import { Point } from 'geojson';
 
-interface UseAmbulancesState {
-  ambulances: Ambulance[];
-  currentAmbulance: Ambulance | null;
-  loading: boolean;
-  error: string | null;
-}
-
-interface UseAmbulancesReturn extends UseAmbulancesState {
-  fetchAmbulances: (filter?: AmbulanceFilter) => Promise<void>;
-  fetchAmbulance: (ambulanceId: string) => Promise<Ambulance | null>;
-  fetchAvailable: () => Promise<void>;
-  fetchByHospital: (hospitalId: string) => Promise<void>;
-  addAmbulance: (input: CreateAmbulanceInput) => Promise<Ambulance | null>;
-  editAmbulance: (ambulanceId: string, input: UpdateAmbulanceInput) => Promise<Ambulance | null>;
-  removeAmbulance: (ambulanceId: string) => Promise<boolean>;
-  setCurrentAmbulance: (ambulance: Ambulance | null) => void;
-  updateLocation: (ambulanceId: string, location: Point) => Promise<Ambulance | null>;
-  updateStatus: (ambulanceId: string, status: 'available' | 'en_route' | 'on_scene' | 'returning') => Promise<Ambulance | null>;
-  subscribe: (ambulanceId: string, callback: (ambulance: Ambulance) => void) => (() => void) | null;
-  subscribeAll: (callback: (ambulance: Ambulance, eventType: string) => void) => (() => void) | null;
-}
-
-export function useAmbulances(): UseAmbulancesReturn {
-  const [state, setState] = useState<UseAmbulancesState>({
+export function useAmbulances() {
+  const [state, setState] = useState({
     ambulances: [],
     currentAmbulance: null,
     loading: false,
     error: null,
   });
 
-  const setLoading = useCallback((loading: boolean) => {
+  const setLoading = useCallback((loading) => {
     setState((prev) => ({ ...prev, loading }));
   }, []);
 
-  const setError = useCallback((error: string | null) => {
+  const setError = useCallback((error) => {
     setState((prev) => ({ ...prev, error }));
   }, []);
 
-  const setAmbulances = useCallback((ambulances: Ambulance[]) => {
+  const setAmbulances = useCallback((ambulances) => {
     setState((prev) => ({ ...prev, ambulances }));
   }, []);
 
-  const setCurrentAmbulance = useCallback((ambulance: Ambulance | null) => {
+  const setCurrentAmbulance = useCallback((ambulance) => {
     setState((prev) => ({ ...prev, currentAmbulance: ambulance }));
   }, []);
 
   const fetchAmbulances = useCallback(
-    async (filter?: AmbulanceFilter) => {
+    async (filter) => {
       try {
         setLoading(true);
         setError(null);
@@ -86,7 +59,7 @@ export function useAmbulances(): UseAmbulancesReturn {
   );
 
   const fetchAmbulance = useCallback(
-    async (ambulanceId: string): Promise<Ambulance | null> => {
+    async (ambulanceId) => {
       try {
         setError(null);
         const ambulance = await getAmbulance(ambulanceId);
@@ -116,7 +89,7 @@ export function useAmbulances(): UseAmbulancesReturn {
   }, [setLoading, setError, setAmbulances]);
 
   const fetchByHospital = useCallback(
-    async (hospitalId: string) => {
+    async (hospitalId) => {
       try {
         setLoading(true);
         setError(null);
@@ -132,7 +105,7 @@ export function useAmbulances(): UseAmbulancesReturn {
   );
 
   const addAmbulance = useCallback(
-    async (input: CreateAmbulanceInput): Promise<Ambulance | null> => {
+    async (input) => {
       try {
         setError(null);
         const ambulance = await createAmbulance(input);
@@ -147,7 +120,7 @@ export function useAmbulances(): UseAmbulancesReturn {
   );
 
   const editAmbulance = useCallback(
-    async (ambulanceId: string, input: UpdateAmbulanceInput): Promise<Ambulance | null> => {
+    async (ambulanceId, input) => {
       try {
         setError(null);
         const ambulance = await updateAmbulance(ambulanceId, input);
@@ -165,7 +138,7 @@ export function useAmbulances(): UseAmbulancesReturn {
   );
 
   const removeAmbulance = useCallback(
-    async (ambulanceId: string): Promise<boolean> => {
+    async (ambulanceId) => {
       try {
         setError(null);
         await deleteAmbulance(ambulanceId);
@@ -183,7 +156,7 @@ export function useAmbulances(): UseAmbulancesReturn {
   );
 
   const updateLocation = useCallback(
-    async (ambulanceId: string, location: Point): Promise<Ambulance | null> => {
+    async (ambulanceId, location) => {
       try {
         setError(null);
         const ambulance = await updateAmbulanceLocation(ambulanceId, location);
@@ -201,7 +174,7 @@ export function useAmbulances(): UseAmbulancesReturn {
   );
 
   const updateStatus = useCallback(
-    async (ambulanceId: string, status: 'available' | 'en_route' | 'on_scene' | 'returning'): Promise<Ambulance | null> => {
+    async (ambulanceId, status) => {
       try {
         setError(null);
         const ambulance = await updateAmbulanceStatus(ambulanceId, status);
@@ -219,7 +192,7 @@ export function useAmbulances(): UseAmbulancesReturn {
   );
 
   const subscribe = useCallback(
-    (ambulanceId: string, callback: (ambulance: Ambulance) => void): (() => void) | null => {
+    (ambulanceId, callback) => {
       try {
         return subscribeToAmbulance(ambulanceId, callback);
       } catch (err) {
@@ -231,7 +204,7 @@ export function useAmbulances(): UseAmbulancesReturn {
   );
 
   const subscribeAll = useCallback(
-    (callback: (ambulance: Ambulance, eventType: string) => void): (() => void) | null => {
+    (callback) => {
       try {
         return subscribeToAllAmbulances((ambulance, eventType) => callback(ambulance, eventType));
       } catch (err) {

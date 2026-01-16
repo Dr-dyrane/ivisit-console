@@ -5,34 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { SupportFAQ } from '../types/index';
 
 const TABLE_NAME = 'support_faqs';
-
-export interface SupportFAQFilter {
-  category?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface CreateSupportFAQInput {
-  question: string;
-  answer: string;
-  category?: string;
-  rank?: number;
-}
-
-export interface UpdateSupportFAQInput {
-  question?: string;
-  answer?: string;
-  category?: string;
-  rank?: number;
-}
 
 /**
  * Get all FAQs with optional filters
  */
-export async function getSupportFAQs(filter?: SupportFAQFilter): Promise<SupportFAQ[]> {
+export async function getSupportFAQs(filter) {
   try {
     let query = supabase.from(TABLE_NAME).select('*');
 
@@ -62,7 +41,7 @@ export async function getSupportFAQs(filter?: SupportFAQFilter): Promise<Support
 /**
  * Get single FAQ by ID
  */
-export async function getSupportFAQ(faqId: number): Promise<SupportFAQ | null> {
+export async function getSupportFAQ(faqId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -82,7 +61,7 @@ export async function getSupportFAQ(faqId: number): Promise<SupportFAQ | null> {
 /**
  * Create new FAQ
  */
-export async function createSupportFAQ(input: CreateSupportFAQInput): Promise<SupportFAQ> {
+export async function createSupportFAQ(input) {
   try {
     const payload = {
       question: input.question,
@@ -110,10 +89,7 @@ export async function createSupportFAQ(input: CreateSupportFAQInput): Promise<Su
 /**
  * Update FAQ
  */
-export async function updateSupportFAQ(
-  faqId: number,
-  input: UpdateSupportFAQInput
-): Promise<SupportFAQ> {
+export async function updateSupportFAQ(faqId, input) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -134,7 +110,7 @@ export async function updateSupportFAQ(
 /**
  * Delete FAQ
  */
-export async function deleteSupportFAQ(faqId: number): Promise<void> {
+export async function deleteSupportFAQ(faqId) {
   try {
     const { error } = await supabase
       .from(TABLE_NAME)
@@ -151,7 +127,7 @@ export async function deleteSupportFAQ(faqId: number): Promise<void> {
 /**
  * Get FAQs by category
  */
-export async function getFAQsByCategory(category: string): Promise<SupportFAQ[]> {
+export async function getFAQsByCategory(category) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -171,7 +147,7 @@ export async function getFAQsByCategory(category: string): Promise<SupportFAQ[]>
 /**
  * Search FAQs by keyword
  */
-export async function searchFAQs(keyword: string): Promise<SupportFAQ[]> {
+export async function searchFAQs(keyword) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -191,9 +167,7 @@ export async function searchFAQs(keyword: string): Promise<SupportFAQ[]> {
 /**
  * Subscribe to FAQ updates
  */
-export function subscribeToSupportFAQs(
-  callback: (faq: SupportFAQ, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
-) {
+export function subscribeToSupportFAQs(callback) {
   const channel = supabase
     .channel('support_faqs_all')
     .on(
@@ -205,7 +179,7 @@ export function subscribeToSupportFAQs(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as SupportFAQ, payload.eventType as any);
+          callback(payload.new, payload.eventType);
         }
       }
     )

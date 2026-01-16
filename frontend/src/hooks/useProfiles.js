@@ -15,59 +15,34 @@ import {
   verifyProfileBVN,
   updateProfileAvatar,
   subscribeToProfile,
-  ProfileFilter,
-  CreateProfileInput,
-  UpdateProfileInput,
 } from '../services/profilesService';
-import { Profile } from '../types/index';
 
-interface UseProfilesState {
-  profiles: Profile[];
-  currentProfile: Profile | null;
-  loading: boolean;
-  error: string | null;
-}
-
-interface UseProfilesReturn extends UseProfilesState {
-  fetchProfiles: (filter?: ProfileFilter) => Promise<void>;
-  fetchProfile: (profileId: string) => Promise<Profile | null>;
-  fetchProfileByEmail: (email: string) => Promise<Profile | null>;
-  fetchProfilesByRole: (role: string) => Promise<void>;
-  fetchProvidersByType: (type: string) => Promise<void>;
-  addProfile: (input: CreateProfileInput) => Promise<Profile | null>;
-  editProfile: (profileId: string, input: UpdateProfileInput) => Promise<Profile | null>;
-  setCurrentProfile: (profile: Profile | null) => void;
-  verifyBVN: (profileId: string) => Promise<Profile | null>;
-  updateAvatar: (profileId: string, url: string) => Promise<Profile | null>;
-  subscribe: (profileId: string, callback: (profile: Profile) => void) => (() => void) | null;
-}
-
-export function useProfiles(): UseProfilesReturn {
-  const [state, setState] = useState<UseProfilesState>({
+export function useProfiles() {
+  const [state, setState] = useState({
     profiles: [],
     currentProfile: null,
     loading: false,
     error: null,
   });
 
-  const setLoading = useCallback((loading: boolean) => {
+  const setLoading = useCallback((loading) => {
     setState((prev) => ({ ...prev, loading }));
   }, []);
 
-  const setError = useCallback((error: string | null) => {
+  const setError = useCallback((error) => {
     setState((prev) => ({ ...prev, error }));
   }, []);
 
-  const setProfiles = useCallback((profiles: Profile[]) => {
+  const setProfiles = useCallback((profiles) => {
     setState((prev) => ({ ...prev, profiles }));
   }, []);
 
-  const setCurrentProfile = useCallback((profile: Profile | null) => {
+  const setCurrentProfile = useCallback((profile) => {
     setState((prev) => ({ ...prev, currentProfile: profile }));
   }, []);
 
   const fetchProfiles = useCallback(
-    async (filter?: ProfileFilter) => {
+    async (filter) => {
       try {
         setLoading(true);
         setError(null);
@@ -83,7 +58,7 @@ export function useProfiles(): UseProfilesReturn {
   );
 
   const fetchProfile = useCallback(
-    async (profileId: string): Promise<Profile | null> => {
+    async (profileId) => {
       try {
         setError(null);
         const profile = await getProfile(profileId);
@@ -100,7 +75,7 @@ export function useProfiles(): UseProfilesReturn {
   );
 
   const fetchProfileByEmail = useCallback(
-    async (email: string): Promise<Profile | null> => {
+    async (email) => {
       try {
         setError(null);
         const profile = await getProfileByEmail(email);
@@ -117,7 +92,7 @@ export function useProfiles(): UseProfilesReturn {
   );
 
   const fetchProfilesByRole = useCallback(
-    async (role: string) => {
+    async (role) => {
       try {
         setLoading(true);
         setError(null);
@@ -133,7 +108,7 @@ export function useProfiles(): UseProfilesReturn {
   );
 
   const fetchProvidersByType = useCallback(
-    async (type: string) => {
+    async (type) => {
       try {
         setLoading(true);
         setError(null);
@@ -149,7 +124,7 @@ export function useProfiles(): UseProfilesReturn {
   );
 
   const addProfile = useCallback(
-    async (input: CreateProfileInput): Promise<Profile | null> => {
+    async (input) => {
       try {
         setError(null);
         const profile = await createProfile(input);
@@ -164,7 +139,7 @@ export function useProfiles(): UseProfilesReturn {
   );
 
   const editProfile = useCallback(
-    async (profileId: string, input: UpdateProfileInput): Promise<Profile | null> => {
+    async (profileId, input) => {
       try {
         setError(null);
         const profile = await updateProfile(profileId, input);
@@ -182,7 +157,7 @@ export function useProfiles(): UseProfilesReturn {
   );
 
   const verifyBVN = useCallback(
-    async (profileId: string): Promise<Profile | null> => {
+    async (profileId) => {
       try {
         setError(null);
         const profile = await verifyProfileBVN(profileId);
@@ -200,7 +175,7 @@ export function useProfiles(): UseProfilesReturn {
   );
 
   const updateAvatar = useCallback(
-    async (profileId: string, url: string): Promise<Profile | null> => {
+    async (profileId, url) => {
       try {
         setError(null);
         const profile = await updateProfileAvatar(profileId, url);
@@ -218,7 +193,7 @@ export function useProfiles(): UseProfilesReturn {
   );
 
   const subscribe = useCallback(
-    (profileId: string, callback: (profile: Profile) => void): (() => void) | null => {
+    (profileId, callback) => {
       try {
         return subscribeToProfile(profileId, callback);
       } catch (err) {

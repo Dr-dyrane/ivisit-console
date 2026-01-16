@@ -5,41 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { MedicalProfile } from '../types/index';
 
 const TABLE_NAME = 'medical_profiles';
-
-export interface CreateMedicalProfileInput {
-  user_id: string;
-  blood_type?: string;
-  allergies?: string[];
-  conditions?: string[];
-  medications?: string[];
-  organ_donor?: boolean;
-  insurance_provider?: string;
-  insurance_policy_number?: string;
-  emergency_contact_name?: string;
-  emergency_contact_phone?: string;
-  emergency_contact_relationship?: string;
-}
-
-export interface UpdateMedicalProfileInput {
-  blood_type?: string;
-  allergies?: string[];
-  conditions?: string[];
-  medications?: string[];
-  organ_donor?: boolean;
-  insurance_provider?: string;
-  insurance_policy_number?: string;
-  emergency_contact_name?: string;
-  emergency_contact_phone?: string;
-  emergency_contact_relationship?: string;
-}
 
 /**
  * Get medical profile for user
  */
-export async function getUserMedicalProfile(userId: string): Promise<MedicalProfile | null> {
+export async function getUserMedicalProfile(userId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -59,9 +31,7 @@ export async function getUserMedicalProfile(userId: string): Promise<MedicalProf
 /**
  * Create medical profile for user
  */
-export async function createMedicalProfile(
-  input: CreateMedicalProfileInput
-): Promise<MedicalProfile> {
+export async function createMedicalProfile(input) {
   try {
     const payload = {
       user_id: input.user_id,
@@ -97,10 +67,7 @@ export async function createMedicalProfile(
 /**
  * Update medical profile
  */
-export async function updateMedicalProfile(
-  userId: string,
-  input: UpdateMedicalProfileInput
-): Promise<MedicalProfile> {
+export async function updateMedicalProfile(userId, input) {
   try {
     const payload = {
       ...input,
@@ -126,7 +93,7 @@ export async function updateMedicalProfile(
 /**
  * Add allergy to medical profile
  */
-export async function addAllergy(userId: string, allergy: string): Promise<MedicalProfile> {
+export async function addAllergy(userId, allergy) {
   try {
     const profile = await getUserMedicalProfile(userId);
     const allergies = profile?.allergies || [];
@@ -156,7 +123,7 @@ export async function addAllergy(userId: string, allergy: string): Promise<Medic
 /**
  * Remove allergy from medical profile
  */
-export async function removeAllergy(userId: string, allergy: string): Promise<MedicalProfile> {
+export async function removeAllergy(userId, allergy) {
   try {
     const profile = await getUserMedicalProfile(userId);
     const allergies = (profile?.allergies || []).filter((a) => a !== allergy);
@@ -183,7 +150,7 @@ export async function removeAllergy(userId: string, allergy: string): Promise<Me
 /**
  * Add medical condition
  */
-export async function addCondition(userId: string, condition: string): Promise<MedicalProfile> {
+export async function addCondition(userId, condition) {
   try {
     const profile = await getUserMedicalProfile(userId);
     const conditions = profile?.conditions || [];
@@ -213,10 +180,7 @@ export async function addCondition(userId: string, condition: string): Promise<M
 /**
  * Remove medical condition
  */
-export async function removeCondition(
-  userId: string,
-  condition: string
-): Promise<MedicalProfile> {
+export async function removeCondition(userId, condition) {
   try {
     const profile = await getUserMedicalProfile(userId);
     const conditions = (profile?.conditions || []).filter((c) => c !== condition);
@@ -243,7 +207,7 @@ export async function removeCondition(
 /**
  * Add medication
  */
-export async function addMedication(userId: string, medication: string): Promise<MedicalProfile> {
+export async function addMedication(userId, medication) {
   try {
     const profile = await getUserMedicalProfile(userId);
     const medications = profile?.medications || [];
@@ -273,10 +237,7 @@ export async function addMedication(userId: string, medication: string): Promise
 /**
  * Remove medication
  */
-export async function removeMedication(
-  userId: string,
-  medication: string
-): Promise<MedicalProfile> {
+export async function removeMedication(userId, medication) {
   try {
     const profile = await getUserMedicalProfile(userId);
     const medications = (profile?.medications || []).filter((m) => m !== medication);
@@ -303,10 +264,7 @@ export async function removeMedication(
 /**
  * Subscribe to medical profile updates
  */
-export function subscribeToMedicalProfile(
-  userId: string,
-  callback: (profile: MedicalProfile) => void
-) {
+export function subscribeToMedicalProfile(userId, callback) {
   const channel = supabase
     .channel(`medical_profile_${userId}`)
     .on(
@@ -319,7 +277,7 @@ export function subscribeToMedicalProfile(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as MedicalProfile);
+          callback(payload.new);
         }
       }
     )

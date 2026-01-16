@@ -5,49 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { Profile } from '../types/index';
 
 const TABLE_NAME = 'profiles';
-
-export interface ProfileFilter {
-  role?: string;
-  provider_type?: string;
-  verified?: boolean;
-  limit?: number;
-  offset?: number;
-}
-
-export interface CreateProfileInput {
-  id: string;
-  email: string;
-  phone?: string;
-  username?: string;
-  first_name?: string;
-  last_name?: string;
-  full_name?: string;
-  image_uri?: string;
-  role: string;
-  provider_type?: string;
-  bvn_verified?: boolean;
-}
-
-export interface UpdateProfileInput {
-  email?: string;
-  phone?: string;
-  username?: string;
-  first_name?: string;
-  last_name?: string;
-  full_name?: string;
-  image_uri?: string;
-  role?: string;
-  provider_type?: string;
-  bvn_verified?: boolean;
-}
 
 /**
  * Get all profiles with optional filters
  */
-export async function getProfiles(filter?: ProfileFilter): Promise<Profile[]> {
+export async function getProfiles(filter) {
   try {
     let query = supabase.from(TABLE_NAME).select('*');
 
@@ -83,7 +47,7 @@ export async function getProfiles(filter?: ProfileFilter): Promise<Profile[]> {
 /**
  * Get single profile by ID
  */
-export async function getProfile(profileId: string): Promise<Profile | null> {
+export async function getProfile(profileId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -103,7 +67,7 @@ export async function getProfile(profileId: string): Promise<Profile | null> {
 /**
  * Create new profile
  */
-export async function createProfile(input: CreateProfileInput): Promise<Profile> {
+export async function createProfile(input) {
   try {
     const payload = {
       id: input.id,
@@ -139,10 +103,7 @@ export async function createProfile(input: CreateProfileInput): Promise<Profile>
 /**
  * Update profile
  */
-export async function updateProfile(
-  profileId: string,
-  input: UpdateProfileInput
-): Promise<Profile> {
+export async function updateProfile(profileId, input) {
   try {
     const payload = {
       ...input,
@@ -168,7 +129,7 @@ export async function updateProfile(
 /**
  * Get profile by email
  */
-export async function getProfileByEmail(email: string): Promise<Profile | null> {
+export async function getProfileByEmail(email) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -188,7 +149,7 @@ export async function getProfileByEmail(email: string): Promise<Profile | null> 
 /**
  * Get all profiles by role
  */
-export async function getProfilesByRole(role: string): Promise<Profile[]> {
+export async function getProfilesByRole(role) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -208,7 +169,7 @@ export async function getProfilesByRole(role: string): Promise<Profile[]> {
 /**
  * Get all providers by type
  */
-export async function getProvidersByType(providerType: string): Promise<Profile[]> {
+export async function getProvidersByType(providerType) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -229,7 +190,7 @@ export async function getProvidersByType(providerType: string): Promise<Profile[
 /**
  * Verify profile BVN
  */
-export async function verifyProfileBVN(profileId: string): Promise<Profile> {
+export async function verifyProfileBVN(profileId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -253,7 +214,7 @@ export async function verifyProfileBVN(profileId: string): Promise<Profile> {
 /**
  * Update profile avatar
  */
-export async function updateProfileAvatar(profileId: string, avatarUrl: string): Promise<Profile> {
+export async function updateProfileAvatar(profileId, avatarUrl) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -277,10 +238,7 @@ export async function updateProfileAvatar(profileId: string, avatarUrl: string):
 /**
  * Subscribe to profile updates
  */
-export function subscribeToProfile(
-  profileId: string,
-  callback: (profile: Profile) => void
-) {
+export function subscribeToProfile(profileId, callback) {
   const channel = supabase
     .channel(`profile_${profileId}`)
     .on(
@@ -293,7 +251,7 @@ export function subscribeToProfile(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as Profile);
+          callback(payload.new);
         }
       }
     )

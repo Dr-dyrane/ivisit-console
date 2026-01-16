@@ -5,31 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { SearchSelection } from '../types/index';
 
 const TABLE_NAME = 'search_selections';
-
-export interface CreateSearchSelectionInput {
-  user_id?: string;
-  query: string;
-  result_type: string;
-  result_id: string;
-  source?: string;
-}
-
-export interface UpdateSearchSelectionInput {
-  query?: string;
-  result_type?: string;
-  result_id?: string;
-  source?: string;
-}
 
 /**
  * Create search selection
  */
-export async function createSearchSelection(
-  input: CreateSearchSelectionInput
-): Promise<SearchSelection> {
+export async function createSearchSelection(input) {
   try {
     const payload = {
       user_id: input.user_id,
@@ -58,7 +40,7 @@ export async function createSearchSelection(
 /**
  * Get search selection by ID
  */
-export async function getSearchSelection(selectionId: string): Promise<SearchSelection | null> {
+export async function getSearchSelection(selectionId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -78,7 +60,7 @@ export async function getSearchSelection(selectionId: string): Promise<SearchSel
 /**
  * Get user search selections
  */
-export async function getUserSearchSelections(userId: string): Promise<SearchSelection[]> {
+export async function getUserSearchSelections(userId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -98,7 +80,7 @@ export async function getUserSearchSelections(userId: string): Promise<SearchSel
 /**
  * Get all search selections
  */
-export async function getSearchSelections(limit?: number, offset?: number): Promise<SearchSelection[]> {
+export async function getSearchSelections(limit, offset) {
   try {
     let query = supabase.from(TABLE_NAME).select('*').order('created_at', { ascending: false });
 
@@ -122,10 +104,7 @@ export async function getSearchSelections(limit?: number, offset?: number): Prom
 /**
  * Update search selection
  */
-export async function updateSearchSelection(
-  selectionId: string,
-  input: UpdateSearchSelectionInput
-): Promise<SearchSelection> {
+export async function updateSearchSelection(selectionId, input) {
   try {
     const payload = {
       ...input,
@@ -150,7 +129,7 @@ export async function updateSearchSelection(
 /**
  * Delete search selection
  */
-export async function deleteSearchSelection(selectionId: string): Promise<void> {
+export async function deleteSearchSelection(selectionId) {
   try {
     const { error } = await supabase
       .from(TABLE_NAME)
@@ -167,7 +146,7 @@ export async function deleteSearchSelection(selectionId: string): Promise<void> 
 /**
  * Get selections by result type
  */
-export async function getSelectionsByResultType(resultType: string): Promise<SearchSelection[]> {
+export async function getSelectionsByResultType(resultType) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -187,9 +166,7 @@ export async function getSelectionsByResultType(resultType: string): Promise<Sea
 /**
  * Subscribe to search selections
  */
-export function subscribeToSearchSelections(
-  callback: (selection: SearchSelection, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
-) {
+export function subscribeToSearchSelections(callback) {
   const channel = supabase
     .channel('search_selections_all')
     .on(
@@ -201,7 +178,7 @@ export function subscribeToSearchSelections(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as SearchSelection, payload.eventType as any);
+          callback(payload.new, payload.eventType);
         }
       }
     )

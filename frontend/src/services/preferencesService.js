@@ -5,23 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { Preferences } from '../types/index';
 
 const TABLE_NAME = 'preferences';
-
-export interface UpdatePreferencesInput {
-  demo_mode_enabled?: boolean;
-  notifications_enabled?: boolean;
-  appointment_reminders?: boolean;
-  emergency_updates?: boolean;
-  privacy_share_medical_profile?: boolean;
-  privacy_share_emergency_contacts?: boolean;
-}
 
 /**
  * Get preferences for user
  */
-export async function getUserPreferences(userId: string): Promise<Preferences | null> {
+export async function getUserPreferences(userId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -41,7 +31,7 @@ export async function getUserPreferences(userId: string): Promise<Preferences | 
 /**
  * Create default preferences for user
  */
-export async function createUserPreferences(userId: string): Promise<Preferences> {
+export async function createUserPreferences(userId) {
   try {
     const payload = {
       user_id: userId,
@@ -73,10 +63,7 @@ export async function createUserPreferences(userId: string): Promise<Preferences
 /**
  * Update user preferences
  */
-export async function updateUserPreferences(
-  userId: string,
-  input: UpdatePreferencesInput
-): Promise<Preferences> {
+export async function updateUserPreferences(userId, input) {
   try {
     const payload = {
       ...input,
@@ -102,7 +89,7 @@ export async function updateUserPreferences(
 /**
  * Toggle demo mode
  */
-export async function toggleDemoMode(userId: string, enabled: boolean): Promise<Preferences> {
+export async function toggleDemoMode(userId, enabled) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -126,7 +113,7 @@ export async function toggleDemoMode(userId: string, enabled: boolean): Promise<
 /**
  * Toggle notifications
  */
-export async function toggleNotifications(userId: string, enabled: boolean): Promise<Preferences> {
+export async function toggleNotifications(userId, enabled) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -150,10 +137,7 @@ export async function toggleNotifications(userId: string, enabled: boolean): Pro
 /**
  * Toggle appointment reminders
  */
-export async function toggleAppointmentReminders(
-  userId: string,
-  enabled: boolean
-): Promise<Preferences> {
+export async function toggleAppointmentReminders(userId, enabled) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -177,10 +161,7 @@ export async function toggleAppointmentReminders(
 /**
  * Toggle emergency updates
  */
-export async function toggleEmergencyUpdates(
-  userId: string,
-  enabled: boolean
-): Promise<Preferences> {
+export async function toggleEmergencyUpdates(userId, enabled) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -204,10 +185,7 @@ export async function toggleEmergencyUpdates(
 /**
  * Toggle medical profile sharing
  */
-export async function toggleMedicalProfileSharing(
-  userId: string,
-  enabled: boolean
-): Promise<Preferences> {
+export async function toggleMedicalProfileSharing(userId, enabled) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -231,10 +209,7 @@ export async function toggleMedicalProfileSharing(
 /**
  * Toggle emergency contact sharing
  */
-export async function toggleEmergencyContactSharing(
-  userId: string,
-  enabled: boolean
-): Promise<Preferences> {
+export async function toggleEmergencyContactSharing(userId, enabled) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -258,10 +233,7 @@ export async function toggleEmergencyContactSharing(
 /**
  * Subscribe to preferences updates
  */
-export function subscribeToPreferences(
-  userId: string,
-  callback: (preferences: Preferences) => void
-) {
+export function subscribeToPreferences(userId, callback) {
   const channel = supabase
     .channel(`preferences_${userId}`)
     .on(
@@ -274,7 +246,7 @@ export function subscribeToPreferences(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as Preferences);
+          callback(payload.new);
         }
       }
     )

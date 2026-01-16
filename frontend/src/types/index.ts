@@ -27,6 +27,7 @@ export interface Preferences {
   emergency_updates: boolean;
   privacy_share_medical_profile: boolean;
   privacy_share_emergency_contacts: boolean;
+  view_preferences?: Record<string, string>;
   created_at: string;
   updated_at: string;
 }

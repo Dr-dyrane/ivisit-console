@@ -5,18 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { Subscriber } from '../types/index';
 
 const TABLE_NAME = 'subscribers';
-
-export interface CreateSubscriberInput {
-  email: string;
-}
 
 /**
  * Get all subscribers
  */
-export async function getSubscribers(): Promise<Subscriber[]> {
+export async function getSubscribers() {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -35,7 +30,7 @@ export async function getSubscribers(): Promise<Subscriber[]> {
 /**
  * Get subscriber by ID
  */
-export async function getSubscriber(subscriberId: string): Promise<Subscriber | null> {
+export async function getSubscriber(subscriberId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -55,7 +50,7 @@ export async function getSubscriber(subscriberId: string): Promise<Subscriber | 
 /**
  * Get subscriber by email
  */
-export async function getSubscriberByEmail(email: string): Promise<Subscriber | null> {
+export async function getSubscriberByEmail(email) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -75,7 +70,7 @@ export async function getSubscriberByEmail(email: string): Promise<Subscriber | 
 /**
  * Create new subscriber
  */
-export async function createSubscriber(input: CreateSubscriberInput): Promise<Subscriber> {
+export async function createSubscriber(input) {
   try {
     const existing = await getSubscriberByEmail(input.email);
     if (existing) {
@@ -105,7 +100,7 @@ export async function createSubscriber(input: CreateSubscriberInput): Promise<Su
 /**
  * Delete subscriber
  */
-export async function deleteSubscriber(subscriberId: string): Promise<void> {
+export async function deleteSubscriber(subscriberId) {
   try {
     const { error } = await supabase
       .from(TABLE_NAME)
@@ -122,7 +117,7 @@ export async function deleteSubscriber(subscriberId: string): Promise<void> {
 /**
  * Delete subscriber by email
  */
-export async function deleteSubscriberByEmail(email: string): Promise<void> {
+export async function deleteSubscriberByEmail(email) {
   try {
     const { error } = await supabase
       .from(TABLE_NAME)
@@ -139,7 +134,7 @@ export async function deleteSubscriberByEmail(email: string): Promise<void> {
 /**
  * Get subscriber count
  */
-export async function getSubscriberCount(): Promise<number> {
+export async function getSubscriberCount() {
   try {
     const { count, error } = await supabase
       .from(TABLE_NAME)
@@ -157,7 +152,7 @@ export async function getSubscriberCount(): Promise<number> {
 /**
  * Check if email is subscribed
  */
-export async function isSubscribed(email: string): Promise<boolean> {
+export async function isSubscribed(email) {
   try {
     const subscriber = await getSubscriberByEmail(email);
     return !!subscriber;
@@ -170,9 +165,7 @@ export async function isSubscribed(email: string): Promise<boolean> {
 /**
  * Subscribe to subscribers changes
  */
-export function subscribeToSubscribers(
-  callback: (subscriber: Subscriber, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
-) {
+export function subscribeToSubscribers(callback) {
   const channel = supabase
     .channel('subscribers_all')
     .on(
@@ -184,7 +177,7 @@ export function subscribeToSubscribers(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as Subscriber, payload.eventType as any);
+          callback(payload.new, payload.eventType);
         }
       }
     )

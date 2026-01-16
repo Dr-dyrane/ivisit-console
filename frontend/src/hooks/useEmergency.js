@@ -19,42 +19,10 @@ import {
   updatePatientLocation,
   getEmergencyStats,
   subscribeToEmergencyRequest,
-  EmergencyRequestFilter,
-  CreateEmergencyRequestInput,
-  UpdateEmergencyRequestInput,
-  EmergencyStats,
 } from '../services/emergencyService';
-import { EmergencyRequest } from '../types/emergency';
 
-interface UseEmergencyState {
-  requests: EmergencyRequest[];
-  currentRequest: EmergencyRequest | null;
-  activeRequests: EmergencyRequest[];
-  stats: EmergencyStats | null;
-  loading: boolean;
-  error: string | null;
-}
-
-interface UseEmergencyReturn extends UseEmergencyState {
-  fetchRequests: (filter?: EmergencyRequestFilter) => Promise<void>;
-  fetchRequest: (requestId: string) => Promise<EmergencyRequest | null>;
-  fetchActiveRequests: () => Promise<void>;
-  fetchUserRequests: (userId: string) => Promise<void>;
-  fetchHospitalRequests: (hospitalId: string) => Promise<void>;
-  fetchStats: () => Promise<EmergencyStats | null>;
-  createRequest: (input: CreateEmergencyRequestInput) => Promise<EmergencyRequest | null>;
-  updateRequest: (requestId: string, input: UpdateEmergencyRequestInput) => Promise<EmergencyRequest | null>;
-  acceptRequest: (requestId: string, ambulanceId: string, responderId: string, responderName: string, responderPhone: string) => Promise<EmergencyRequest | null>;
-  completeRequest: (requestId: string) => Promise<EmergencyRequest | null>;
-  cancelRequest: (requestId: string, reason?: string) => Promise<EmergencyRequest | null>;
-  updateResponderLocationData: (requestId: string, location: { type: 'Point'; coordinates: [number, number] }, heading: number) => Promise<EmergencyRequest | null>;
-  updatePatientLocationData: (requestId: string, location: { type: 'Point'; coordinates: [number, number] }, heading: number) => Promise<EmergencyRequest | null>;
-  setCurrentRequest: (request: EmergencyRequest | null) => void;
-  subscribe: (requestId: string, callback: (request: EmergencyRequest) => void) => (() => void) | null;
-}
-
-export function useEmergency(): UseEmergencyReturn {
-  const [state, setState] = useState<UseEmergencyState>({
+export function useEmergency() {
+  const [state, setState] = useState({
     requests: [],
     currentRequest: null,
     activeRequests: [],
@@ -63,31 +31,31 @@ export function useEmergency(): UseEmergencyReturn {
     error: null,
   });
 
-  const setLoading = useCallback((loading: boolean) => {
+  const setLoading = useCallback((loading) => {
     setState((prev) => ({ ...prev, loading }));
   }, []);
 
-  const setError = useCallback((error: string | null) => {
+  const setError = useCallback((error) => {
     setState((prev) => ({ ...prev, error }));
   }, []);
 
-  const setRequests = useCallback((requests: EmergencyRequest[]) => {
+  const setRequests = useCallback((requests) => {
     setState((prev) => ({ ...prev, requests }));
   }, []);
 
-  const setCurrentRequest = useCallback((currentRequest: EmergencyRequest | null) => {
+  const setCurrentRequest = useCallback((currentRequest) => {
     setState((prev) => ({ ...prev, currentRequest }));
   }, []);
 
-  const setActiveRequests = useCallback((activeRequests: EmergencyRequest[]) => {
+  const setActiveRequests = useCallback((activeRequests) => {
     setState((prev) => ({ ...prev, activeRequests }));
   }, []);
 
-  const setStats = useCallback((stats: EmergencyStats | null) => {
+  const setStats = useCallback((stats) => {
     setState((prev) => ({ ...prev, stats }));
   }, []);
 
-  const fetchRequests = useCallback(async (filter?: EmergencyRequestFilter) => {
+  const fetchRequests = useCallback(async (filter) => {
     setLoading(true);
     setError(null);
     try {
@@ -101,7 +69,7 @@ export function useEmergency(): UseEmergencyReturn {
     }
   }, [setLoading, setError, setRequests]);
 
-  const fetchRequest = useCallback(async (requestId: string): Promise<EmergencyRequest | null> => {
+  const fetchRequest = useCallback(async (requestId) => {
     setLoading(true);
     setError(null);
     try {
@@ -133,7 +101,7 @@ export function useEmergency(): UseEmergencyReturn {
     }
   }, [setLoading, setError, setActiveRequests]);
 
-  const fetchUserRequests = useCallback(async (userId: string) => {
+  const fetchUserRequests = useCallback(async (userId) => {
     setLoading(true);
     setError(null);
     try {
@@ -147,7 +115,7 @@ export function useEmergency(): UseEmergencyReturn {
     }
   }, [setLoading, setError, setRequests]);
 
-  const fetchHospitalRequests = useCallback(async (hospitalId: string) => {
+  const fetchHospitalRequests = useCallback(async (hospitalId) => {
     setLoading(true);
     setError(null);
     try {
@@ -161,7 +129,7 @@ export function useEmergency(): UseEmergencyReturn {
     }
   }, [setLoading, setError, setRequests]);
 
-  const fetchStats = useCallback(async (): Promise<EmergencyStats | null> => {
+  const fetchStats = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -177,7 +145,7 @@ export function useEmergency(): UseEmergencyReturn {
     }
   }, [setLoading, setError, setStats]);
 
-  const createRequest = useCallback(async (input: CreateEmergencyRequestInput): Promise<EmergencyRequest | null> => {
+  const createRequest = useCallback(async (input) => {
     setLoading(true);
     setError(null);
     try {
@@ -194,7 +162,7 @@ export function useEmergency(): UseEmergencyReturn {
     }
   }, [setLoading, setError, setCurrentRequest, setRequests]);
 
-  const updateRequest = useCallback(async (requestId: string, input: UpdateEmergencyRequestInput): Promise<EmergencyRequest | null> => {
+  const updateRequest = useCallback(async (requestId, input) => {
     setLoading(true);
     setError(null);
     try {
@@ -212,12 +180,12 @@ export function useEmergency(): UseEmergencyReturn {
   }, [setLoading, setError, setCurrentRequest, setRequests]);
 
   const acceptRequest = useCallback(async (
-    requestId: string,
-    ambulanceId: string,
-    responderId: string,
-    responderName: string,
-    responderPhone: string
-  ): Promise<EmergencyRequest | null> => {
+    requestId,
+    ambulanceId,
+    responderId,
+    responderName,
+    responderPhone
+  ) => {
     setLoading(true);
     setError(null);
     try {
@@ -234,7 +202,7 @@ export function useEmergency(): UseEmergencyReturn {
     }
   }, [setLoading, setError, setCurrentRequest, setRequests]);
 
-  const completeRequest = useCallback(async (requestId: string): Promise<EmergencyRequest | null> => {
+  const completeRequest = useCallback(async (requestId) => {
     setLoading(true);
     setError(null);
     try {
@@ -251,7 +219,7 @@ export function useEmergency(): UseEmergencyReturn {
     }
   }, [setLoading, setError, setCurrentRequest, setRequests]);
 
-  const cancelRequest = useCallback(async (requestId: string, reason?: string): Promise<EmergencyRequest | null> => {
+  const cancelRequest = useCallback(async (requestId, reason) => {
     setLoading(true);
     setError(null);
     try {
@@ -269,10 +237,10 @@ export function useEmergency(): UseEmergencyReturn {
   }, [setLoading, setError, setCurrentRequest, setRequests]);
 
   const updateResponderLocationData = useCallback(async (
-    requestId: string,
-    location: { type: 'Point'; coordinates: [number, number] },
-    heading: number
-  ): Promise<EmergencyRequest | null> => {
+    requestId,
+    location,
+    heading
+  ) => {
     try {
       const data = await updateResponderLocation(requestId, location, heading);
       setCurrentRequest(data);
@@ -286,10 +254,10 @@ export function useEmergency(): UseEmergencyReturn {
   }, [setError, setCurrentRequest, setRequests]);
 
   const updatePatientLocationData = useCallback(async (
-    requestId: string,
-    location: { type: 'Point'; coordinates: [number, number] },
-    heading: number
-  ): Promise<EmergencyRequest | null> => {
+    requestId,
+    location,
+    heading
+  ) => {
     try {
       const data = await updatePatientLocation(requestId, location, heading);
       setCurrentRequest(data);
@@ -302,7 +270,7 @@ export function useEmergency(): UseEmergencyReturn {
     }
   }, [setError, setCurrentRequest, setRequests]);
 
-  const subscribe = useCallback((requestId: string, callback: (request: EmergencyRequest) => void): (() => void) | null => {
+  const subscribe = useCallback((requestId, callback) => {
     try {
       return subscribeToEmergencyRequest(requestId, callback);
     } catch (err) {

@@ -15,59 +15,34 @@ import {
   updateHospitalBedCount,
   updateHospitalStatus,
   subscribeToHospital,
-  HospitalFilter,
-  CreateHospitalInput,
-  UpdateHospitalInput,
 } from '../services/hospitalsService';
-import { Hospital } from '../types/index';
 
-interface UseHospitalsState {
-  hospitals: Hospital[];
-  currentHospital: Hospital | null;
-  loading: boolean;
-  error: string | null;
-}
-
-interface UseHospitalsReturn extends UseHospitalsState {
-  fetchHospitals: (filter?: HospitalFilter) => Promise<void>;
-  fetchHospital: (hospitalId: string) => Promise<Hospital | null>;
-  fetchVerified: () => Promise<void>;
-  fetchBySpecialty: (specialty: string) => Promise<void>;
-  addHospital: (input: CreateHospitalInput) => Promise<Hospital | null>;
-  editHospital: (hospitalId: string, input: UpdateHospitalInput) => Promise<Hospital | null>;
-  removeHospital: (hospitalId: string) => Promise<boolean>;
-  setCurrentHospital: (hospital: Hospital | null) => void;
-  updateBeds: (hospitalId: string, count: number) => Promise<Hospital | null>;
-  updateStatus: (hospitalId: string, status: 'available' | 'busy' | 'full') => Promise<Hospital | null>;
-  subscribe: (hospitalId: string, callback: (hospital: Hospital) => void) => (() => void) | null;
-}
-
-export function useHospitals(): UseHospitalsReturn {
-  const [state, setState] = useState<UseHospitalsState>({
+export function useHospitals() {
+  const [state, setState] = useState({
     hospitals: [],
     currentHospital: null,
     loading: false,
     error: null,
   });
 
-  const setLoading = useCallback((loading: boolean) => {
+  const setLoading = useCallback((loading) => {
     setState((prev) => ({ ...prev, loading }));
   }, []);
 
-  const setError = useCallback((error: string | null) => {
+  const setError = useCallback((error) => {
     setState((prev) => ({ ...prev, error }));
   }, []);
 
-  const setHospitals = useCallback((hospitals: Hospital[]) => {
+  const setHospitals = useCallback((hospitals) => {
     setState((prev) => ({ ...prev, hospitals }));
   }, []);
 
-  const setCurrentHospital = useCallback((hospital: Hospital | null) => {
+  const setCurrentHospital = useCallback((hospital) => {
     setState((prev) => ({ ...prev, currentHospital: hospital }));
   }, []);
 
   const fetchHospitals = useCallback(
-    async (filter?: HospitalFilter) => {
+    async (filter) => {
       try {
         setLoading(true);
         setError(null);
@@ -83,7 +58,7 @@ export function useHospitals(): UseHospitalsReturn {
   );
 
   const fetchHospital = useCallback(
-    async (hospitalId: string): Promise<Hospital | null> => {
+    async (hospitalId) => {
       try {
         setError(null);
         const hospital = await getHospital(hospitalId);
@@ -113,7 +88,7 @@ export function useHospitals(): UseHospitalsReturn {
   }, [setLoading, setError, setHospitals]);
 
   const fetchBySpecialty = useCallback(
-    async (specialty: string) => {
+    async (specialty) => {
       try {
         setLoading(true);
         setError(null);
@@ -129,7 +104,7 @@ export function useHospitals(): UseHospitalsReturn {
   );
 
   const addHospital = useCallback(
-    async (input: CreateHospitalInput): Promise<Hospital | null> => {
+    async (input) => {
       try {
         setError(null);
         const hospital = await createHospital(input);
@@ -144,7 +119,7 @@ export function useHospitals(): UseHospitalsReturn {
   );
 
   const editHospital = useCallback(
-    async (hospitalId: string, input: UpdateHospitalInput): Promise<Hospital | null> => {
+    async (hospitalId, input) => {
       try {
         setError(null);
         const hospital = await updateHospital(hospitalId, input);
@@ -162,7 +137,7 @@ export function useHospitals(): UseHospitalsReturn {
   );
 
   const removeHospital = useCallback(
-    async (hospitalId: string): Promise<boolean> => {
+    async (hospitalId) => {
       try {
         setError(null);
         await deleteHospital(hospitalId);
@@ -180,7 +155,7 @@ export function useHospitals(): UseHospitalsReturn {
   );
 
   const updateBeds = useCallback(
-    async (hospitalId: string, count: number): Promise<Hospital | null> => {
+    async (hospitalId, count) => {
       try {
         setError(null);
         const hospital = await updateHospitalBedCount(hospitalId, count);
@@ -198,7 +173,7 @@ export function useHospitals(): UseHospitalsReturn {
   );
 
   const updateStatus = useCallback(
-    async (hospitalId: string, status: 'available' | 'busy' | 'full'): Promise<Hospital | null> => {
+    async (hospitalId, status) => {
       try {
         setError(null);
         const hospital = await updateHospitalStatus(hospitalId, status);
@@ -216,7 +191,7 @@ export function useHospitals(): UseHospitalsReturn {
   );
 
   const subscribe = useCallback(
-    (hospitalId: string, callback: (hospital: Hospital) => void): (() => void) | null => {
+    (hospitalId, callback) => {
       try {
         return subscribeToHospital(hospitalId, callback);
       } catch (err) {

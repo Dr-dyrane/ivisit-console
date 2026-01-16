@@ -5,32 +5,13 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { TrendingTopic } from '../types/index';
 
 const TABLE_NAME = 'trending_topics';
-
-export interface TrendingTopicFilter {
-  category?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface CreateTrendingTopicInput {
-  query: string;
-  category: string;
-  rank?: number;
-}
-
-export interface UpdateTrendingTopicInput {
-  query?: string;
-  category?: string;
-  rank?: number;
-}
 
 /**
  * Get all trending topics with optional filters
  */
-export async function getTrendingTopics(filter?: TrendingTopicFilter): Promise<TrendingTopic[]> {
+export async function getTrendingTopics(filter) {
   try {
     let query = supabase.from(TABLE_NAME).select('*');
 
@@ -60,7 +41,7 @@ export async function getTrendingTopics(filter?: TrendingTopicFilter): Promise<T
 /**
  * Get single trending topic by ID
  */
-export async function getTrendingTopic(topicId: string): Promise<TrendingTopic | null> {
+export async function getTrendingTopic(topicId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -80,7 +61,7 @@ export async function getTrendingTopic(topicId: string): Promise<TrendingTopic |
 /**
  * Create new trending topic
  */
-export async function createTrendingTopic(input: CreateTrendingTopicInput): Promise<TrendingTopic> {
+export async function createTrendingTopic(input) {
   try {
     const payload = {
       query: input.query,
@@ -108,10 +89,7 @@ export async function createTrendingTopic(input: CreateTrendingTopicInput): Prom
 /**
  * Update trending topic
  */
-export async function updateTrendingTopic(
-  topicId: string,
-  input: UpdateTrendingTopicInput
-): Promise<TrendingTopic> {
+export async function updateTrendingTopic(topicId, input) {
   try {
     const payload = {
       ...input,
@@ -137,7 +115,7 @@ export async function updateTrendingTopic(
 /**
  * Delete trending topic
  */
-export async function deleteTrendingTopic(topicId: string): Promise<void> {
+export async function deleteTrendingTopic(topicId) {
   try {
     const { error } = await supabase
       .from(TABLE_NAME)
@@ -154,7 +132,7 @@ export async function deleteTrendingTopic(topicId: string): Promise<void> {
 /**
  * Get top trending topics
  */
-export async function getTopTrendingTopics(limit: number = 10): Promise<TrendingTopic[]> {
+export async function getTopTrendingTopics(limit = 10) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -174,7 +152,7 @@ export async function getTopTrendingTopics(limit: number = 10): Promise<Trending
 /**
  * Get trending topics by category
  */
-export async function getTrendingTopicsByCategory(category: string): Promise<TrendingTopic[]> {
+export async function getTrendingTopicsByCategory(category) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -194,9 +172,7 @@ export async function getTrendingTopicsByCategory(category: string): Promise<Tre
 /**
  * Subscribe to trending topics updates
  */
-export function subscribeToTrendingTopics(
-  callback: (topic: TrendingTopic, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
-) {
+export function subscribeToTrendingTopics(callback) {
   const channel = supabase
     .channel('trending_topics_all')
     .on(
@@ -208,7 +184,7 @@ export function subscribeToTrendingTopics(
       },
       (payload) => {
         if (payload.new) {
-          callback(payload.new as TrendingTopic, payload.eventType as any);
+          callback(payload.new, payload.eventType);
         }
       }
     )
