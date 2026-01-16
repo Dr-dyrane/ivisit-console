@@ -90,7 +90,7 @@ export const DynamicBottomBar = () => {
                 <SheetOverlay className="bg-black/60 backdrop-blur-sm" />
                 <SheetContent
                     side="bottom"
-                    className="h-[85vh] max-h-[600px] rounded-t-[32px] border-0 p-0 overflow-hidden"
+                    className="h-[90vh] rounded-t-[32px] border-0 p-0 overflow-hidden"
                     style={{
                         background: 'hsl(var(--background) / 0.95)',
                         backdropFilter: 'blur(34px) saturate(180%)',

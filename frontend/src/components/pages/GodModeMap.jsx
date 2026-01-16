@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Component } from "react";
+import { usePageHeader } from "../../contexts/LayoutContext";
 import { APIProvider, Map, AdvancedMarker } from "@vis.gl/react-google-maps";
 import { supabase } from "../../lib/supabase";
 import { Card } from "../ui/card";
@@ -126,11 +127,12 @@ const GoogleMapsPolyline = ({ path, options }) => {
 	const map = useGoogleMap();
 	const [polyline, setPolyline] = useState(null);
 
+	// Create Polyline on mount
 	useEffect(() => {
 		if (!map) return;
 
 		const line = new window.google.maps.Polyline({
-			path,
+			path: [], // Initialize empty
 			...options,
 		});
 
@@ -141,8 +143,9 @@ const GoogleMapsPolyline = ({ path, options }) => {
 			line.setMap(null);
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [map]); // Re-create if map changes, update path via effect below
+	}, [map]);
 
+	// Update path and options
 	useEffect(() => {
 		if (polyline) {
 			polyline.setOptions({ path, ...options });
@@ -321,6 +324,8 @@ export const GodModeMap = () => {
 	const [mapProvider, setMapProvider] = useState("google"); // 'google' | 'leaflet'
 	const [isSwitchingMap, setIsSwitchingMap] = useState(false);
 
+
+
 	// Fetch Functions (Wrapped in useCallback)
 	const fetchEmergencyRequests = React.useCallback(async () => {
 		try {
@@ -388,9 +393,103 @@ export const GodModeMap = () => {
 			fetchEmergencyRequests(),
 			fetchAmbulances(),
 			fetchHospitals(),
+			// eslint-disable-next-line react-hooks/exhaustive-deps
 		]);
 		setLoading(false);
 	}, [fetchEmergencyRequests, fetchAmbulances, fetchHospitals]);
+
+	const toggleLayer = React.useCallback((layer) => {
+		setShowLayers((prev) => ({ ...prev, [layer]: !prev[layer] }));
+	}, []);
+
+	const getStatusColor = React.useCallback((status) => {
+		const colors = {
+			pending: "#f59e0b",
+			dispatched: "#3b82f6",
+			en_route: "#8b5cf6",
+			arrived: "#10b981",
+			available: "#10b981",
+			busy: "#ef4444",
+			off_duty: "#6b7280",
+		};
+		return colors[status] || "#f59e0b";
+	}, []);
+
+	const getPriorityColor = React.useCallback((priority) => {
+		const colors = {
+			critical: "#ef4444",
+			high: "#f59e0b",
+			medium: "#3b82f6",
+			low: "#10b981",
+		};
+		return colors[priority] || "#3b82f6";
+	}, []);
+
+	// Define Header Actions - MOVED AFTER toggleLayer DEFINITION
+	const headerActions = React.useMemo(() => (
+		<div className="flex items-center gap-2">
+			{/* Layer Toggles */}
+			<div className="flex items-center gap-1 glass squircle px-2 py-1">
+				<Button
+					variant={showLayers.emergencies ? "default" : "ghost"}
+					size="sm"
+					onClick={() => toggleLayer("emergencies")}
+					className="squircle h-8 px-3"
+					title="Toggle Emergencies"
+				>
+					<AlertTriangle className="h-4 w-4" />
+				</Button>
+				<Button
+					variant={showLayers.ambulances ? "default" : "ghost"}
+					size="sm"
+					onClick={() => toggleLayer("ambulances")}
+					className="squircle h-8 px-3"
+					title="Toggle Ambulances"
+				>
+					<Ambulance className="h-4 w-4" />
+				</Button>
+				<Button
+					variant={showLayers.hospitals ? "default" : "ghost"}
+					size="sm"
+					onClick={() => toggleLayer("hospitals")}
+					className="squircle h-8 px-3"
+					title="Toggle Hospitals"
+				>
+					<Hospital className="h-4 w-4" />
+				</Button>
+			</div>
+
+			{/* Filter */}
+			<div className="flex items-center gap-1 glass squircle px-2 py-1 hidden lg:flex">
+				{["all", "pending", "dispatched", "en_route"].map((f) => (
+					<Button
+						key={f}
+						variant={filter === f ? "default" : "ghost"}
+						size="sm"
+						onClick={() => setFilter(f)}
+						className="squircle h-8 px-3 capitalize text-xs"
+					>
+						{f.replace("_", " ")}
+					</Button>
+				))}
+			</div>
+
+			<Button
+				variant="outline"
+				size="sm"
+				onClick={fetchAllData}
+				className="squircle h-8 w-8 p-0"
+				disabled={loading}
+				title="Refresh Data"
+			>
+				<RefreshCw
+					className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+				/>
+			</Button>
+		</div>
+	), [showLayers, filter, loading, fetchAllData, toggleLayer]);
+
+	usePageHeader("God Mode Map", headerActions);
 
 	useEffect(() => {
 		// Google Maps Auth Failure Listener
@@ -482,116 +581,15 @@ export const GodModeMap = () => {
 		});
 
 		setActiveRoutes(routes);
-	}, [emergencyRequests, ambulances]);
-
-
+	}, [emergencyRequests, ambulances, getStatusColor]);
 
 	const filteredRequests =
 		filter === "all"
 			? emergencyRequests
 			: emergencyRequests.filter((r) => r.status === filter);
 
-	const getStatusColor = (status) => {
-		const colors = {
-			pending: "#f59e0b",
-			dispatched: "#3b82f6",
-			en_route: "#8b5cf6",
-			arrived: "#10b981",
-			available: "#10b981",
-			busy: "#ef4444",
-			off_duty: "#6b7280",
-		};
-		return colors[status] || "#f59e0b";
-	};
-
-	const getPriorityColor = (priority) => {
-		const colors = {
-			critical: "#ef4444",
-			high: "#f59e0b",
-			medium: "#3b82f6",
-			low: "#10b981",
-		};
-		return colors[priority] || "#3b82f6";
-	};
-
-	const toggleLayer = (layer) => {
-		setShowLayers((prev) => ({ ...prev, [layer]: !prev[layer] }));
-	};
-
 	return (
-		<div className="min-h-screen bg-background p-6 md:p-8">
-			{/* Header */}
-			<motion.div
-				initial={{ opacity: 0, y: -20 }}
-				animate={{ opacity: 1, y: 0 }}
-				className="mb-6"
-			>
-				<div className="flex items-center justify-between flex-wrap gap-4">
-					<div>
-						<h1 className="editorial-title text-3xl mb-1">God Mode Map</h1>
-						<p className="text-muted-foreground font-semibold">
-							Real-time emergency response tracking
-						</p>
-					</div>
-
-					<div className="flex items-center gap-2 flex-wrap">
-						{/* Layer Toggles */}
-						<div className="flex items-center gap-1 glass squircle px-2 py-1">
-							<Button
-								variant={showLayers.emergencies ? "default" : "ghost"}
-								size="sm"
-								onClick={() => toggleLayer("emergencies")}
-								className="squircle h-8 px-3"
-							>
-								<AlertTriangle className="h-4 w-4" />
-							</Button>
-							<Button
-								variant={showLayers.ambulances ? "default" : "ghost"}
-								size="sm"
-								onClick={() => toggleLayer("ambulances")}
-								className="squircle h-8 px-3"
-							>
-								<Ambulance className="h-4 w-4" />
-							</Button>
-							<Button
-								variant={showLayers.hospitals ? "default" : "ghost"}
-								size="sm"
-								onClick={() => toggleLayer("hospitals")}
-								className="squircle h-8 px-3"
-							>
-								<Hospital className="h-4 w-4" />
-							</Button>
-						</div>
-
-						{/* Filter */}
-						<div className="flex items-center gap-1 glass squircle px-2 py-1">
-							{["all", "pending", "dispatched", "en_route"].map((f) => (
-								<Button
-									key={f}
-									variant={filter === f ? "default" : "ghost"}
-									size="sm"
-									onClick={() => setFilter(f)}
-									className="squircle h-8 px-3 capitalize"
-								>
-									{f.replace("_", " ")}
-								</Button>
-							))}
-						</div>
-
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={fetchAllData}
-							className="squircle"
-							disabled={loading}
-						>
-							<RefreshCw
-								className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
-							/>
-						</Button>
-					</div>
-				</div>
-			</motion.div>
+		<div className="min-h-screen bg-background p-6 md:p-8 pt-4">
 
 			{/* Map Container */}
 			<div className="flex gap-4 h-[calc(100vh-12rem)] relative">
@@ -868,10 +866,10 @@ export const GodModeMap = () => {
 										</span>
 										<Badge
 											className={`squircle-sm text-[10px] px-1.5 py-0 ${req.priority === "critical"
-													? "bg-destructive/20 text-destructive"
-													: req.priority === "high"
-														? "bg-warning/20 text-warning"
-														: "bg-muted text-muted-foreground"
+												? "bg-destructive/20 text-destructive"
+												: req.priority === "high"
+													? "bg-warning/20 text-warning"
+													: "bg-muted text-muted-foreground"
 												}`}
 										>
 											{req.priority || "medium"}
@@ -907,10 +905,10 @@ export const GodModeMap = () => {
 								{/* Header Image/Color */}
 								<div
 									className={`h-24 relative ${selectedMarker.type === "emergency"
-											? "bg-destructive/20"
-											: selectedMarker.type === "ambulance"
-												? "bg-success/20"
-												: "bg-info/20"
+										? "bg-destructive/20"
+										: selectedMarker.type === "ambulance"
+											? "bg-success/20"
+											: "bg-info/20"
 										}`}
 								>
 									<div className="absolute inset-0 flex items-center justify-center">
@@ -953,10 +951,10 @@ export const GodModeMap = () => {
 											<div className="flex items-center gap-2">
 												<Badge
 													className={`squircle font-bold ${selectedMarker.data.priority === "critical"
-															? "bg-destructive text-destructive-foreground"
-															: selectedMarker.data.priority === "high"
-																? "bg-warning text-warning-foreground"
-																: "bg-info text-info-foreground"
+														? "bg-destructive text-destructive-foreground"
+														: selectedMarker.data.priority === "high"
+															? "bg-warning text-warning-foreground"
+															: "bg-info text-info-foreground"
 														}`}
 												>
 													{selectedMarker.data.priority || "medium"}
@@ -996,8 +994,8 @@ export const GodModeMap = () => {
 													</p>
 													<p
 														className={`font-black ${selectedMarker.data.status === "available"
-																? "text-success"
-																: "text-warning"
+															? "text-success"
+															: "text-warning"
 															}`}
 													>
 														{selectedMarker.data.status?.toUpperCase()}

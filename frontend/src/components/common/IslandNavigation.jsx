@@ -7,10 +7,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import ThemeToggle from '../ui/theme-toggle';
 import { Badge } from '../ui/badge';
 
+import { useLayout } from '../../contexts/LayoutContext';
+
 export const IslandNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, signOut, isAdmin, isProvider, hasMinRole } = useAuth();
+  const { isScrolledDown } = useLayout();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false); // Default to hidden
@@ -35,7 +38,7 @@ export const IslandNavigation = () => {
   }, []);
 
   // Auto-hide timer function
-  const startHideTimer = () => {
+  const startHideTimer = useCallback(() => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
 
     // Only set timer if not hovered and menu is closed
@@ -44,7 +47,7 @@ export const IslandNavigation = () => {
         setIsVisible(false);
       }, 3000); // Hide after 3 seconds of inactivity
     }
-  };
+  }, [isHovered, menuOpen, userMenuOpen]);
 
   // Clear timer on interaction
   const clearHideTimer = () => {
@@ -58,7 +61,7 @@ export const IslandNavigation = () => {
     return () => {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     };
-  }, [isVisible]);
+  }, [isVisible, startHideTimer]);
 
   // Watch hover state to manage timer
   useEffect(() => {
@@ -68,7 +71,7 @@ export const IslandNavigation = () => {
     } else {
       startHideTimer();
     }
-  }, [isHovered, menuOpen, userMenuOpen]);
+  }, [isHovered, menuOpen, userMenuOpen, startHideTimer]);
 
   // Mouse Edge Detection (Desktop) & Swipe Detection (Mobile)
   useEffect(() => {
@@ -139,7 +142,7 @@ export const IslandNavigation = () => {
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isMobile]);
+  }, [isMobile, isDragging, startHideTimer]);
 
   const navItems = [
     { path: '/', icon: Home, label: 'Home', minRole: 'viewer' },
@@ -192,6 +195,11 @@ export const IslandNavigation = () => {
   return (
     <>
       <motion.div
+        animate={{
+          x: isScrolledDown ? -100 : 0,
+          opacity: isScrolledDown ? 0 : 1
+        }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
         className="fixed left-0 top-0 bottom-0 z-40 flex flex-col pointer-events-none"
       >
         {/* Glass Rail Container */}

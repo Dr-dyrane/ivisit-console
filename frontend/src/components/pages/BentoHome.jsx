@@ -6,11 +6,11 @@ import { usePageData } from '../../contexts/PageDataContext';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import NoiseOverlay from '../ui/noise-overlay'; // Add NoiseOverlay
-import { 
-  Activity, 
-  Users, 
-  Ambulance, 
-  Hospital, 
+import {
+  Activity,
+  Users,
+  Ambulance,
+  Hospital,
   MapPin,
   FileCheck,
   TrendingUp,
@@ -33,14 +33,19 @@ import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 export const BentoHome = () => {
   const navigate = useNavigate();
   const { hasMinRole, isAdmin, isProvider } = useAuth();
-  const { 
-    emergencyStats, 
-    analyticsData, 
-    doctorsData, 
-    visitsData, 
+  const {
+    emergencyStats,
+    analyticsData,
+    doctorsData,
+    visitsData,
     verificationData,
-    useMockData 
+    useMockData
   } = usePageData();
+
+  const [stats, setStats] = useState({
+    liveEmergencies: 0,
+    activeProviders: 0
+  });
 
   // Calculate app-wide stats from all data sources
   const appStats = {
@@ -60,7 +65,7 @@ export const BentoHome = () => {
         supabase.from('emergency_requests').select('*', { count: 'exact' }),
         supabase.from('profiles').select('*', { count: 'exact' }).eq('role', 'provider')
       ]);
-      
+
       setStats(prev => ({
         ...prev,
         liveEmergencies: requests.count || prev.liveEmergencies,
@@ -87,7 +92,7 @@ export const BentoHome = () => {
   return (
     <div className="min-h-screen bg-background p-6 md:p-8">
       {/* Header */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
@@ -111,286 +116,286 @@ export const BentoHome = () => {
          - 'grid-flow-dense': The magic sauce. It fills gaps automatically.
       */}
       <LayoutGroup>
-        <motion.div 
-            layout 
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6 auto-rows-min grid-flow-dense"
-        >
-          
-        {/* Live Emergency Counter - Hero Card (Big & Wide) -> SHARP (Brutalist Anchor) */}
         <motion.div
           layout
-          className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-4 row-span-2"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6 auto-rows-min grid-flow-dense"
         >
-          <Card className="h-full min-h-[320px] geo-sharp glass-strong shadow-2xl p-8 flex flex-col justify-between hover-lift cursor-pointer relative overflow-hidden group border-0"
-                onClick={() => navigate('/map')}>
-            {/* Grid Lines Overlay */}
-            <div className="absolute inset-0 opacity-10" 
-                 style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--primary))' }}>
-            </div>
-            
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-            
-             {/* Top Right Icon - New Style */}
-             <div className="absolute top-0 right-0 p-6 z-20">
-                <div className="relative">
-                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
-                    <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
-                        <Activity className="h-6 w-6 text-primary" />
-                    </div>
-                </div>
-            </div>
 
-            <div className="relative z-10 flex flex-col flex-1">
-              <div className="flex items-center justify-between mb-6">
-                 <Badge className="squircle-sm bg-primary text-primary-foreground border-0 px-4 py-2 font-black editorial-subtitle shadow-glow">LIVE</Badge>
+          {/* Live Emergency Counter - Hero Card (Big & Wide) -> SHARP (Brutalist Anchor) */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-4 row-span-2"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Card className="h-full min-h-[320px] geo-sharp glass-strong shadow-2xl p-8 flex flex-col justify-between hover-lift cursor-pointer relative overflow-hidden group border-0"
+              onClick={() => navigate('/map')}>
+              {/* Grid Lines Overlay */}
+              <div className="absolute inset-0 opacity-10"
+                style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--primary))' }}>
               </div>
-              
-              <div className="space-y-3 flex-1">
-                <p className="editorial-subtitle text-primary">ACTIVE EMERGENCIES</p>
-                {/* Use clamp or dynamic text sizing to prevent overflow */}
-                <h2 className="text-7xl lg:text-8xl font-black tracking-tighter text-gradient-primary leading-none break-words">{appStats.liveEmergencies}</h2>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 squircle-sm bg-success/10 flex items-center justify-center">
-                    <TrendingUp className="h-4 w-4 text-success" />
+
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+
+              {/* Top Right Icon - New Style */}
+              <div className="absolute top-0 right-0 p-6 z-20">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
+                  <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <Activity className="h-6 w-6 text-primary" />
                   </div>
-                  <span className="text-sm font-bold text-success whitespace-nowrap">-15% vs yesterday</span>
                 </div>
               </div>
-            </div>
 
-            <div className="relative z-10 mt-6 h-[80px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="liveGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/>
-                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <Area 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="hsl(var(--primary))" 
-                    fill="url(#liveGradient)"
-                    strokeWidth={3}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-            
-             {/* Chevron Bottom Right */}
-            <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-20">
-               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                 <ChevronRight className="h-5 w-5 text-primary ml-0.5" />
-               </div>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Response Time (Tall) -> ROUND (Soft Counterbalance) */}
-        <motion.div
-          layout
-          className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-        >
-          <Card className="h-full min-h-[320px] geo-round glass-strong shadow-2xl p-7 flex flex-col justify-between hover-lift border-0 relative overflow-hidden group">
-            {/* Grid Lines Overlay */}
-            <div className="absolute inset-0 opacity-10" 
-                 style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--success))' }}>
-            </div>
-            
-             {/* Top Right Icon */}
-             <div className="absolute top-0 right-0 p-6 z-20">
-                <div className="relative">
-                    <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
-                    <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
-                        <Clock className="h-6 w-6 text-success" />
-                    </div>
+              <div className="relative z-10 flex flex-col flex-1">
+                <div className="flex items-center justify-between mb-6">
+                  <Badge className="squircle-sm bg-primary text-primary-foreground border-0 px-4 py-2 font-black editorial-subtitle shadow-glow">LIVE</Badge>
                 </div>
-            </div>
 
-            <div className="relative z-10 flex flex-col flex-1 mt-12">
-              <p className="editorial-subtitle text-success mb-3">AVG RESPONSE TIME</p>
-              <h3 className="text-5xl lg:text-6xl font-black tracking-tighter break-words leading-tight">
-                {appStats.responseTime}<span className="text-3xl text-muted-foreground font-bold ml-1">m</span>
-              </h3>
-            </div>
-            <div className="flex items-center gap-2 text-success font-bold text-sm relative z-10 mt-4">
-              <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
-              <span>23% faster today</span>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Today's Requests (Tall) */}
-        <motion.div
-          layout
-          className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.15 }}
-        >
-          <Card className="h-full min-h-[320px] squircle-3xl glass-strong shadow-2xl p-7 flex flex-col justify-between hover-lift border-0 relative overflow-hidden group">
-            {/* Grid Lines Overlay */}
-            <div className="absolute inset-0 opacity-10" 
-                 style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--info))' }}>
-            </div>
-
-             {/* Top Right Icon */}
-             <div className="absolute top-0 right-0 p-6 z-20">
-                <div className="relative">
-                    <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
-                    <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
-                        <Activity className="h-6 w-6 text-info" />
+                <div className="space-y-3 flex-1">
+                  <p className="editorial-subtitle text-primary">ACTIVE EMERGENCIES</p>
+                  {/* Use clamp or dynamic text sizing to prevent overflow */}
+                  <h2 className="text-7xl lg:text-8xl font-black tracking-tighter text-gradient-primary leading-none break-words">{appStats.liveEmergencies}</h2>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 squircle-sm bg-success/10 flex items-center justify-center">
+                      <TrendingUp className="h-4 w-4 text-success" />
                     </div>
+                    <span className="text-sm font-bold text-success whitespace-nowrap">-15% vs yesterday</span>
+                  </div>
                 </div>
-            </div>
+              </div>
 
-            <div className="relative z-10 flex flex-col flex-1 mt-12">
-              <p className="editorial-subtitle text-info mb-3">TODAY&apos;S REQUESTS</p>
-              <h3 className="text-5xl lg:text-6xl font-black tracking-tighter break-words leading-tight">{appStats.todayRequests}</h3>
-            </div>
-            <div className="flex items-center gap-2 text-primary font-bold text-sm relative z-10 mt-4">
-              <TrendingUp className="h-5 w-5 flex-shrink-0" />
-              <span>+8% vs yesterday</span>
-            </div>
-          </Card>
-        </motion.div>
+              <div className="relative z-10 mt-6 h-[80px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="liveGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="hsl(var(--primary))"
+                      fill="url(#liveGradient)"
+                      strokeWidth={3}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
 
-        {/* Navigation Cards - God Mode (Medium) */}
-        <motion.div
-          layout
-          className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-        >
-          <Card 
-            className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
-            onClick={() => navigate('/map')}
+              {/* Chevron Bottom Right */}
+              <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-20">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                  <ChevronRight className="h-5 w-5 text-primary ml-0.5" />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Response Time (Tall) -> ROUND (Soft Counterbalance) */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
           >
-             {/* Map Grid Pattern */}
-             <div className="absolute inset-0 opacity-5" 
-                  style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)', backgroundSize: '40px 40px', color: 'hsl(var(--secondary))' }}>
-             </div>
+            <Card className="h-full min-h-[320px] geo-round glass-strong shadow-2xl p-7 flex flex-col justify-between hover-lift border-0 relative overflow-hidden group">
+              {/* Grid Lines Overlay */}
+              <div className="absolute inset-0 opacity-10"
+                style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--success))' }}>
+              </div>
 
-            <div className="absolute inset-0 bg-gradient-to-br from-secondary/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            
-             {/* Top Right Icon */}
-             <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              {/* Top Right Icon */}
+              <div className="absolute top-0 right-0 p-6 z-20">
                 <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
-                        <MapPin className="h-5 w-5 text-secondary" />
-                    </div>
+                  <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
+                  <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <Clock className="h-6 w-6 text-success" />
+                  </div>
                 </div>
-            </div>
+              </div>
 
-            <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-              <div className="flex justify-between items-start">
-                 {/* Replaced old icon with simple spacing or alternative content if needed */}
-                 <div className="w-12 h-12 squircle bg-secondary/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
+              <div className="relative z-10 flex flex-col flex-1 mt-12">
+                <p className="editorial-subtitle text-success mb-3">AVG RESPONSE TIME</p>
+                <h3 className="text-5xl lg:text-6xl font-black tracking-tighter break-words leading-tight">
+                  {appStats.responseTime}<span className="text-3xl text-muted-foreground font-bold ml-1">m</span>
+                </h3>
+              </div>
+              <div className="flex items-center gap-2 text-success font-bold text-sm relative z-10 mt-4">
+                <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+                <span>23% faster today</span>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Today's Requests (Tall) */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
+          >
+            <Card className="h-full min-h-[320px] squircle-3xl glass-strong shadow-2xl p-7 flex flex-col justify-between hover-lift border-0 relative overflow-hidden group">
+              {/* Grid Lines Overlay */}
+              <div className="absolute inset-0 opacity-10"
+                style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--info))' }}>
+              </div>
+
+              {/* Top Right Icon */}
+              <div className="absolute top-0 right-0 p-6 z-20">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
+                  <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <Activity className="h-6 w-6 text-info" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative z-10 flex flex-col flex-1 mt-12">
+                <p className="editorial-subtitle text-info mb-3">TODAY&apos;S REQUESTS</p>
+                <h3 className="text-5xl lg:text-6xl font-black tracking-tighter break-words leading-tight">{appStats.todayRequests}</h3>
+              </div>
+              <div className="flex items-center gap-2 text-primary font-bold text-sm relative z-10 mt-4">
+                <TrendingUp className="h-5 w-5 flex-shrink-0" />
+                <span>+8% vs yesterday</span>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Navigation Cards - God Mode (Medium) */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <Card
+              className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
+              onClick={() => navigate('/map')}
+            >
+              {/* Map Grid Pattern */}
+              <div className="absolute inset-0 opacity-5"
+                style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)', backgroundSize: '40px 40px', color: 'hsl(var(--secondary))' }}>
+              </div>
+
+              <div className="absolute inset-0 bg-gradient-to-br from-secondary/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+              {/* Top Right Icon */}
+              <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <MapPin className="h-5 w-5 text-secondary" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+                <div className="flex justify-between items-start">
+                  {/* Replaced old icon with simple spacing or alternative content if needed */}
+                  <div className="w-12 h-12 squircle bg-secondary/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
                     <MapPin className="h-6 w-6 text-secondary" />
-                 </div>
-                 <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
-                   <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                     <ChevronRight className="h-5 w-5 text-secondary ml-0.5" />
-                   </div>
-                 </div>
+                  </div>
+                  <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
+                    <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                      <ChevronRight className="h-5 w-5 text-secondary ml-0.5" />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <p className="editorial-subtitle text-secondary mb-1">MAP VIEW</p>
+                  <h4 className="font-black text-xl tracking-tight">God Mode</h4>
+                  <p className="text-sm text-muted-foreground font-semibold">Live tracking</p>
+                </div>
               </div>
-              <div>
-                <p className="editorial-subtitle text-secondary mb-1">MAP VIEW</p>
-                <h4 className="font-black text-xl tracking-tight">God Mode</h4>
-                <p className="text-sm text-muted-foreground font-semibold">Live tracking</p>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
+            </Card>
+          </motion.div>
 
-        {/* Verification Queue (Medium) */}
-        <motion.div
-          layout
-          className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.25 }}
-        >
-          <Card 
-            className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
-            onClick={() => navigate('/verification')}
+          {/* Verification Queue (Medium) */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.25 }}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-warning/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-              <div className="flex justify-between items-start">
-                <div className="w-12 h-12 squircle bg-warning/10 flex items-center justify-center">
-                  <FileCheck className="h-6 w-6 text-warning" />
+            <Card
+              className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
+              onClick={() => navigate('/verification')}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-warning/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+                <div className="flex justify-between items-start">
+                  <div className="w-12 h-12 squircle bg-warning/10 flex items-center justify-center">
+                    <FileCheck className="h-6 w-6 text-warning" />
+                  </div>
+                  <Badge className="squircle-sm bg-warning/20 text-warning border-0 font-black editorial-subtitle px-2 py-0.5">8 PENDING</Badge>
                 </div>
-                <Badge className="squircle-sm bg-warning/20 text-warning border-0 font-black editorial-subtitle px-2 py-0.5">8 PENDING</Badge>
-              </div>
-              <div>
-                <h4 className="font-black text-xl tracking-tight">Verification</h4>
-                <p className="text-sm text-muted-foreground font-semibold">Review queue</p>
-                <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                   <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                     <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
-                   </div>
+                <div>
+                  <h4 className="font-black text-xl tracking-tight">Verification</h4>
+                  <p className="text-sm text-muted-foreground font-semibold">Review queue</p>
+                  <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                    <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                      <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Card>
-        </motion.div>
+            </Card>
+          </motion.div>
 
-        {/* Analytics (Medium) */}
-        <motion.div
-          layout
-          className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-        >
-          <Card 
-            className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
-            onClick={() => navigate('/analytics')}
+          {/* Analytics (Medium) */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
           >
-            {/* Dot Pattern for Data */}
-            <div className="absolute inset-0 opacity-10" 
-                 style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 0)', backgroundSize: '16px 16px', color: 'hsl(var(--success))' }}>
-            </div>
+            <Card
+              className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
+              onClick={() => navigate('/analytics')}
+            >
+              {/* Dot Pattern for Data */}
+              <div className="absolute inset-0 opacity-10"
+                style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 0)', backgroundSize: '16px 16px', color: 'hsl(var(--success))' }}>
+              </div>
 
-            <div className="absolute inset-0 bg-gradient-to-br from-success/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-              <div className="flex justify-between items-start">
-                <div className="w-12 h-12 squircle bg-success/10 flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-success" />
+              <div className="absolute inset-0 bg-gradient-to-br from-success/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+                <div className="flex justify-between items-start">
+                  <div className="w-12 h-12 squircle bg-success/10 flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-success" />
+                  </div>
+                </div>
+                <div>
+                  <p className="editorial-subtitle text-success mb-1">INSIGHTS</p>
+                  <h4 className="font-black text-xl tracking-tight">Analytics</h4>
+                  <p className="text-sm text-muted-foreground font-semibold">Impact metrics</p>
+                  <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                    <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                      <ChevronRight className="h-5 w-5 text-success ml-0.5" />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div>
-                <p className="editorial-subtitle text-success mb-1">INSIGHTS</p>
-                <h4 className="font-black text-xl tracking-tight">Analytics</h4>
-                <p className="text-sm text-muted-foreground font-semibold">Impact metrics</p>
-                <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                   <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                     <ChevronRight className="h-5 w-5 text-success ml-0.5" />
-                   </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
+            </Card>
+          </motion.div>
 
-        {/* Quick Access Cards (Small & Dense) */}
-        {[
+          {/* Quick Access Cards (Small & Dense) */}
+          {[
             { id: 'hospitals', icon: Hospital, label: 'Hospitals', sub: '28 active', color: 'primary', path: '/hospitals', minRole: 'provider' },
             { id: 'ambulances', icon: Ambulance, label: 'Fleet', sub: `${appStats.availableAmbulances} units`, color: 'success', path: '/ambulances', minRole: 'provider' },
             { id: 'doctors', icon: Stethoscope, label: 'Doctors', sub: 'Medical staff', color: 'info', path: '/doctors', minRole: 'provider' },
             { id: 'users', icon: Users, label: 'Users', sub: '1,247 total', color: 'secondary', path: '/users', minRole: 'admin' },
             { id: 'visits', icon: Calendar, label: 'Visits', sub: 'Appointments', color: 'warning', path: '/visits', minRole: 'provider' },
             { id: 'emergencies', icon: AlertTriangle, label: 'Emergencies', sub: 'Requests', color: 'destructive', path: '/emergencies', minRole: 'provider' },
-        ].filter(item => !item.minRole || hasMinRole(item.minRole)).map((item, idx) => (
+          ].filter(item => !item.minRole || hasMinRole(item.minRole)).map((item, idx) => (
             <motion.div
               layout
               key={item.id}
@@ -399,20 +404,20 @@ export const BentoHome = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4, delay: 0.35 + (idx * 0.05) }}
             >
-              <Card 
+              <Card
                 className="h-full min-h-[140px] squircle-lg glass shadow-premium p-5 flex flex-col justify-between hover-lift cursor-pointer border-0 group"
                 onClick={() => navigate(item.path)}
                 data-testid={`quick-${item.id}`}
               >
                 <div className="flex justify-between items-start">
-                    <div className={`w-10 h-10 squircle bg-${item.color}/10 flex items-center justify-center`}>
-                        <item.icon className={`h-5 w-5 text-${item.color}`} />
+                  <div className={`w-10 h-10 squircle bg-${item.color}/10 flex items-center justify-center`}>
+                    <item.icon className={`h-5 w-5 text-${item.color}`} />
+                  </div>
+                  <div className="hover-reveal opacity-0 group-hover:opacity-100 transition-all duration-300">
+                    <div className={`w-8 h-8 rounded-full bg-${item.color}/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform`}>
+                      <ChevronRight className={`h-4 w-4 text-${item.color} ml-0.5`} />
                     </div>
-                    <div className="hover-reveal opacity-0 group-hover:opacity-100 transition-all duration-300">
-                       <div className={`w-8 h-8 rounded-full bg-${item.color}/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform`}>
-                         <ChevronRight className={`h-4 w-4 text-${item.color} ml-0.5`} />
-                       </div>
-                    </div>
+                  </div>
                 </div>
                 <div>
                   <h4 className="font-black tracking-tight">{item.label}</h4>
@@ -420,82 +425,82 @@ export const BentoHome = () => {
                 </div>
               </Card>
             </motion.div>
-        ))}
+          ))}
 
-        {/* System Status (Wide) */}
-        <motion.div
-          layout
-          className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.6 }}
-        >
-          <Card className="h-full min-h-[300px] squircle-3xl glass-strong shadow-2xl p-7 border-0 flex flex-col w-full relative overflow-hidden">
-             {/* Tech Grid Background */}
-            <h4 className="font-black text-lg mb-6 tracking-tight">System Status</h4>
-            <div className="grid grid-cols-1 gap-6 flex-1">
-              {[
-                { label: 'Success Rate', value: '94%', progress: 94, color: 'success' },
-                { label: 'Fleet Active', value: '78%', progress: 78, color: 'primary' },
-                { label: 'Beds Available', value: '156', progress: 65, color: 'info' },
-                { label: 'System Health', value: '99%', progress: 99, color: 'success' },
-              ].map((stat, idx) => (
-                <div key={idx} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground font-semibold">{stat.label}</span>
-                    <span className={`text-xl font-black tracking-tighter text-${stat.color}`}>{stat.value}</span>
+          {/* System Status (Wide) */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.6 }}
+          >
+            <Card className="h-full min-h-[300px] squircle-3xl glass-strong shadow-2xl p-7 border-0 flex flex-col w-full relative overflow-hidden">
+              {/* Tech Grid Background */}
+              <h4 className="font-black text-lg mb-6 tracking-tight">System Status</h4>
+              <div className="grid grid-cols-1 gap-6 flex-1">
+                {[
+                  { label: 'Success Rate', value: '94%', progress: 94, color: 'success' },
+                  { label: 'Fleet Active', value: '78%', progress: 78, color: 'primary' },
+                  { label: 'Beds Available', value: '156', progress: 65, color: 'info' },
+                  { label: 'System Health', value: '99%', progress: 99, color: 'success' },
+                ].map((stat, idx) => (
+                  <div key={idx} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground font-semibold">{stat.label}</span>
+                      <span className={`text-xl font-black tracking-tighter text-${stat.color}`}>{stat.value}</span>
+                    </div>
+                    <div className="h-2 bg-muted/30 squircle-sm overflow-hidden">
+                      <motion.div
+                        className={`h-full bg-${stat.color} squircle-sm`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${stat.progress}%` }}
+                        transition={{ duration: 1, delay: 0.7 + (idx * 0.1) }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 bg-muted/30 squircle-sm overflow-hidden">
-                    <motion.div 
-                      className={`h-full bg-${stat.color} squircle-sm`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${stat.progress}%` }}
-                      transition={{ duration: 1, delay: 0.7 + (idx * 0.1) }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </motion.div>
+                ))}
+              </div>
+            </Card>
+          </motion.div>
 
-        {/* Recent Activity (Wide) */}
-        <motion.div
-          layout
-          className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.65 }}
-        >
-          <Card className="h-full min-h-[300px] squircle-lg glass-strong shadow-2xl p-7 flex flex-col border-0 w-full relative overflow-hidden">
-            {/* Subtle Diagonal Lines */}
-            <div className="absolute inset-0 opacity-5" 
-                 style={{ backgroundImage: 'repeating-linear-gradient(45deg, currentColor 0, currentColor 1px, transparent 0, transparent 50%)', backgroundSize: '10px 10px' }}>
-            </div>
+          {/* Recent Activity (Wide) */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.65 }}
+          >
+            <Card className="h-full min-h-[300px] squircle-lg glass-strong shadow-2xl p-7 flex flex-col border-0 w-full relative overflow-hidden">
+              {/* Subtle Diagonal Lines */}
+              <div className="absolute inset-0 opacity-5"
+                style={{ backgroundImage: 'repeating-linear-gradient(45deg, currentColor 0, currentColor 1px, transparent 0, transparent 50%)', backgroundSize: '10px 10px' }}>
+              </div>
 
-            <h4 className="font-black text-lg mb-5 tracking-tight relative z-10">Recent Activity</h4>
-            <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar relative z-10">
-              {[
-                { type: 'emergency', msg: 'New emergency request from Victoria Island', time: '2m ago', icon: AlertCircle, color: 'text-primary', bg: 'bg-primary/10' },
-                { type: 'complete', msg: 'Emergency response completed - Lekki', time: '15m ago', icon: CheckCircle2, color: 'text-success', bg: 'bg-success/10' },
-                { type: 'provider', msg: 'New provider verified - Dr. Adebayo', time: '1h ago', icon: FileCheck, color: 'text-info', bg: 'bg-info/10' },
-                { type: 'emergency', msg: 'Ambulance dispatched to Ikeja', time: '2h ago', icon: Ambulance, color: 'text-warning', bg: 'bg-warning/10' },
-                { type: 'system', msg: 'System backup completed successfully', time: '3h ago', icon: CheckCircle2, color: 'text-secondary', bg: 'bg-secondary/10' },
-              ].map((activity, idx) => (
-                <div key={idx} className="flex items-start gap-4 p-4 squircle bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group border-0">
-                  <div className={`w-10 h-10 squircle flex items-center justify-center ${activity.bg} flex-shrink-0 group-hover:scale-110 transition-transform shadow-inner`}>
-                    <activity.icon className={`h-5 w-5 ${activity.color}`} />
+              <h4 className="font-black text-lg mb-5 tracking-tight relative z-10">Recent Activity</h4>
+              <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar relative z-10">
+                {[
+                  { type: 'emergency', msg: 'New emergency request from Victoria Island', time: '2m ago', icon: AlertCircle, color: 'text-primary', bg: 'bg-primary/10' },
+                  { type: 'complete', msg: 'Emergency response completed - Lekki', time: '15m ago', icon: CheckCircle2, color: 'text-success', bg: 'bg-success/10' },
+                  { type: 'provider', msg: 'New provider verified - Dr. Adebayo', time: '1h ago', icon: FileCheck, color: 'text-info', bg: 'bg-info/10' },
+                  { type: 'emergency', msg: 'Ambulance dispatched to Ikeja', time: '2h ago', icon: Ambulance, color: 'text-warning', bg: 'bg-warning/10' },
+                  { type: 'system', msg: 'System backup completed successfully', time: '3h ago', icon: CheckCircle2, color: 'text-secondary', bg: 'bg-secondary/10' },
+                ].map((activity, idx) => (
+                  <div key={idx} className="flex items-start gap-4 p-4 squircle bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group border-0">
+                    <div className={`w-10 h-10 squircle flex items-center justify-center ${activity.bg} flex-shrink-0 group-hover:scale-110 transition-transform shadow-inner`}>
+                      <activity.icon className={`h-5 w-5 ${activity.color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold leading-snug truncate-2">{activity.msg}</p>
+                      <p className="text-xs text-muted-foreground mt-1 font-semibold">{activity.time}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold leading-snug truncate-2">{activity.msg}</p>
-                    <p className="text-xs text-muted-foreground mt-1 font-semibold">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </motion.div>
-        
+                ))}
+              </div>
+            </Card>
+          </motion.div>
+
         </motion.div>
       </LayoutGroup>
     </div>

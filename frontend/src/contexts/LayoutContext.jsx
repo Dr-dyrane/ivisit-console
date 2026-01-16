@@ -16,13 +16,35 @@ export const LayoutProvider = ({ children }) => {
 
     useEffect(() => {
         const handleScroll = () => {
-            // Threshold can be adjusted. 50px is enough to clear the initial header area.
-            const scrolled = window.scrollY > 50;
-            setIsScrolledDown(scrolled);
+            // Target the specific scrollable element
+            const mainContent = document.getElementById('main-content');
+            if (mainContent) {
+                const scrolled = mainContent.scrollTop > 50;
+                setIsScrolledDown(scrolled);
+            } else {
+                // Fallback to window if main-content not found (legacy layout)
+                const scrolled = window.scrollY > 50;
+                setIsScrolledDown(scrolled);
+            }
         };
 
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
+        // Attach to main-content if it exists, otherwise window (fallback)
+        // We use a small timeout to ensure DOM is ready if needed, or retry
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+            mainContent.addEventListener('scroll', handleScroll, { passive: true });
+        } else {
+            window.addEventListener('scroll', handleScroll, { passive: true });
+        }
+
+        return () => {
+            const mainContent = document.getElementById('main-content');
+            if (mainContent) {
+                mainContent.removeEventListener('scroll', handleScroll);
+            } else {
+                window.removeEventListener('scroll', handleScroll);
+            }
+        };
     }, []);
 
     const value = {

@@ -1,13 +1,15 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MapPin, FileCheck, TrendingUp, Settings, Hospital, Ambulance, Stethoscope, Users, Calendar, AlertTriangle, LogOut } from 'lucide-react';
+import { Home, MapPin, FileCheck, TrendingUp, Settings, Hospital, Ambulance, Stethoscope, Users, Calendar, AlertTriangle, LogOut, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { motion } from 'framer-motion';
 
 export const MobileNavMenu = ({ onClose }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const { signOut, hasMinRole } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const isActive = (path) => location.pathname === path;
 
     const handleNavigate = (path) => {
@@ -40,8 +42,8 @@ export const MobileNavMenu = ({ onClose }) => {
             whileTap={{ scale: 0.96 }}
             onClick={() => handleNavigate(item.path)}
             className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${isActive(item.path)
-                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                    : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
+                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
                 }`}
         >
             <div className={`p-2 rounded-xl ${isActive(item.path) ? 'bg-primary-foreground/10' : 'bg-transparent'}`}>
@@ -83,8 +85,20 @@ export const MobileNavMenu = ({ onClose }) => {
 
             <div className="h-px bg-border/40 mx-4 my-4" />
 
-            {/* Settings & Logout */}
+            {/* Theme Toggle & Settings */}
             <div className="space-y-2">
+                <button
+                    onClick={toggleTheme}
+                    className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors group"
+                >
+                    <div className="p-2 rounded-xl group-hover:bg-muted/10">
+                        {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    </div>
+                    <span className="font-bold text-base tracking-tight">
+                        {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                    </span>
+                </button>
+
                 {renderLink({ path: '/settings', icon: Settings, label: 'Settings', minRole: 'viewer' })}
                 <button
                     onClick={() => { signOut(); navigate('/login'); }}

@@ -6,9 +6,12 @@ import { ContextPanel } from './ContextPanel';
 import { DynamicBottomBar } from './DynamicBottomBar';
 import { X, ChevronLeft, AlertTriangle, Users, BarChart3, Stethoscope, Calendar, Shield, Hospital, Ambulance } from 'lucide-react';
 
+import { useLayout } from '../../contexts/LayoutContext';
+
 export const ResponsiveSidebar = () => {
   const { isMobile, isTablet, isDesktop, sidebarOpen, setSidebarOpen } = useNavigation();
   const { emergencyData, verificationData, analyticsData, doctorsData, visitsData, getEmergencyStats } = usePageData();
+  const { isScrolledDown } = useLayout();
   const [showExpandedPanel, setShowExpandedPanel] = useState(false);
 
   // Mobile: Handled by DynamicBottomBar
@@ -89,7 +92,11 @@ export const ResponsiveSidebar = () => {
           <motion.div
             key="icon-rail"
             initial={{ x: '100%', opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
+            animate={{
+              x: isScrolledDown ? '120%' : 0,
+              opacity: isScrolledDown ? 0 : 1
+            }}
+            whileHover={{ x: 0, opacity: 1 }} // Peek on hover
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed top-24 bottom-24 right-4 w-16 z-30 flex flex-col items-center gap-3 py-4 rounded-full border border-white/10"
@@ -98,6 +105,7 @@ export const ResponsiveSidebar = () => {
               backdropFilter: 'blur(16px) saturate(180%)',
               boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
             }}
+            onClick={() => setSidebarOpen(true)} // Open full sidebar on click
           >
             {iconRailItems.map((item, index) => {
               const Icon = item.icon;

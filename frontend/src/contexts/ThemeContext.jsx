@@ -14,13 +14,13 @@ export const ThemeProvider = ({ children }) => {
   useEffect(() => {
     if (theme === 'dark') document.documentElement.classList.add('dark')
     else document.documentElement.classList.remove('dark')
-    try { localStorage.setItem('theme', theme) } catch {}
+    try { localStorage.setItem('theme', theme) } catch { }
   }, [theme])
 
   const toggle = () => setTheme(prev => (prev === 'dark' ? 'light' : 'dark'))
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggle }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggle, toggleTheme: toggle }}>
       {children}
     </ThemeContext.Provider>
   )

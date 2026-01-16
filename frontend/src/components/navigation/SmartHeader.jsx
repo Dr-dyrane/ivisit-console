@@ -27,6 +27,17 @@ export const SmartHeader = () => {
                 style={{ paddingLeft: '80px', paddingRight: '24px' }} // Account for Left Rail
             >
                 <div className="flex items-center gap-4">
+                    {/* Logo - Added based on user request */}
+                    <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="flex-shrink-0"
+                    >
+                        <div className="w-10 h-10 squircle bg-primary/10 flex items-center justify-center shadow-inner">
+                            <img src="/logo.png" alt="iVisit" className="w-5 h-5 object-contain" />
+                        </div>
+                    </motion.div>
+
                     <BentoBreadcrumbs />
 
                     {/* Divider */}

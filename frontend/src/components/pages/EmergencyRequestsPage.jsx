@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { PageHeader } from '../common/Navigation';
+import { usePageHeader } from '../../contexts/LayoutContext';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -34,9 +34,11 @@ export const EmergencyRequestsPage = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
+  usePageHeader('Emergency Requests', null);
+
   useEffect(() => {
     fetchRequests();
-    
+
     // Real-time updates
     const channel = supabase
       .channel('emergency_changes')
@@ -102,11 +104,7 @@ export const EmergencyRequestsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-8">
-      <PageHeader
-        title="Emergency Requests"
-        subtitle="Live feed of incoming emergency calls"
-      />
+    <div className="min-h-screen bg-background p-6 md:p-8 pt-6">
 
       {loading ? (
         <TableSkeleton rows={8} />
@@ -118,87 +116,87 @@ export const EmergencyRequestsPage = () => {
         </Card>
       ) : (
         <LayoutGroup>
-            <motion.div 
-                layout 
-                className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
-            >
+          <motion.div
+            layout
+            className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
+          >
             {requests.map((req, index) => (
-                <motion.div
+              <motion.div
                 layout
                 key={req.id}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.05 }}
                 className="col-span-1"
-                >
+              >
                 <Card className={`h-full geo-arrow glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col ${req.priority === 'critical' ? 'ring-1 ring-destructive/20' : ''}`}>
-                    
-                    {/* Top Right Icon */}
-                    <div className="absolute top-0 right-0 p-5 z-20">
-                        <div className="relative">
-                            <div className={`absolute inset-0 ${req.priority === 'critical' ? 'bg-destructive/20' : 'bg-warning/10'} blur-xl rounded-full scale-150`} />
-                            <div className="w-10 h-10 geo-round bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
-                                <Siren className={`h-5 w-5 ${req.priority === 'critical' ? 'text-destructive' : 'text-warning'}`} />
-                            </div>
-                        </div>
+
+                  {/* Top Right Icon */}
+                  <div className="absolute top-0 right-0 p-5 z-20">
+                    <div className="relative">
+                      <div className={`absolute inset-0 ${req.priority === 'critical' ? 'bg-destructive/20' : 'bg-warning/10'} blur-xl rounded-full scale-150`} />
+                      <div className="w-10 h-10 geo-round bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                        <Siren className={`h-5 w-5 ${req.priority === 'critical' ? 'text-destructive' : 'text-warning'}`} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-4 relative z-10">
+                    <Badge className={`geo-sharp ${getPriorityBadge(req.priority)} border-0 font-black editorial-subtitle px-3 py-1`}>
+                      {req.priority || 'medium'}
+                    </Badge>
+                    <Badge className="geo-sharp bg-muted text-muted-foreground border-0 px-2 py-1 font-bold">
+                      {req.status}
+                    </Badge>
+                  </div>
+
+                  <h3 className="font-black text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
+                    {req.emergency_type || 'Unknown Emergency'}
+                  </h3>
+
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 relative z-10">
+                    <Clock className="h-4 w-4 text-info" />
+                    <span className="font-medium">{req.created_at ? new Date(req.created_at).toLocaleTimeString() : 'Just now'}</span>
+                  </div>
+
+                  <div className="space-y-3 mb-6 relative z-10">
+                    <div className="flex items-start gap-3 text-sm p-3 geo-sharp bg-muted/30">
+                      <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                      <span className="font-medium leading-snug truncate-2">{req.location || 'Location shared'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
+                    <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      ACTIONS
                     </div>
 
-                    <div className="flex items-center gap-2 mb-4 relative z-10">
-                        <Badge className={`geo-sharp ${getPriorityBadge(req.priority)} border-0 font-black editorial-subtitle px-3 py-1`}>
-                            {req.priority || 'medium'}
-                        </Badge>
-                        <Badge className="geo-sharp bg-muted text-muted-foreground border-0 px-2 py-1 font-bold">
-                             {req.status}
-                        </Badge>
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mr-12">
+                      {/* Assuming view/edit modals might be added later, for now just delete or placeholder view */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewDetails(req)}
+                        className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {(isAdmin || isProvider) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(req)}
+                          className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
-
-                    <h3 className="font-black text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
-                         {req.emergency_type || 'Unknown Emergency'}
-                    </h3>
-                    
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 relative z-10">
-                        <Clock className="h-4 w-4 text-info" />
-                        <span className="font-medium">{req.created_at ? new Date(req.created_at).toLocaleTimeString() : 'Just now'}</span>
-                    </div>
-
-                    <div className="space-y-3 mb-6 relative z-10">
-                        <div className="flex items-start gap-3 text-sm p-3 geo-sharp bg-muted/30">
-                            <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                            <span className="font-medium leading-snug truncate-2">{req.location || 'Location shared'}</span>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
-                        <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                            ACTIONS
-                        </div>
-
-                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mr-12">
-                             {/* Assuming view/edit modals might be added later, for now just delete or placeholder view */}
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleViewDetails(req)}
-                                className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                            >
-                                <Eye className="h-4 w-4" />
-                            </Button>
-                            {(isAdmin || isProvider) && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDelete(req)}
-                                    className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            )}
-                        </div>
-                    </div>
+                  </div>
                 </Card>
-                </motion.div>
+              </motion.div>
             ))}
-            </motion.div>
+          </motion.div>
         </LayoutGroup>
       )}
 

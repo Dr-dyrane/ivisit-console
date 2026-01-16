@@ -28,6 +28,26 @@ export const AuthWrapper = ({ children }) => {
   const [lastActivity, setLastActivity] = useState(Date.now());
 
   // Auto-logout after inactivity (30 minutes)
+  // Enhanced sign out with cleanup
+  const handleSignOut = useCallback(async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      toast.success('Signed out successfully');
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // Even if server fails, we proceed to clear local state
+      toast.error('Session ended locally');
+    } finally {
+      setUser(null);
+      setProfile(null);
+      setSessionTimeout(null);
+      setLastActivity(Date.now());
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  // Auto-logout after inactivity (30 minutes)
   useEffect(() => {
     const activityCheck = () => {
       const now = Date.now();
@@ -58,7 +78,7 @@ export const AuthWrapper = ({ children }) => {
         document.removeEventListener(event, activityCheck);
       });
     };
-  }, [user, lastActivity]);
+  }, [user, lastActivity, handleSignOut]);
 
   // Enhanced session persistence
   const [sessionRestored, setSessionRestored] = useState(false);
@@ -146,168 +166,151 @@ export const AuthWrapper = ({ children }) => {
     }
   };
 
-// Enhanced auth state change listener
-useEffect(() => {
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(
-    async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
+  // Enhanced auth state change listener
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
 
-      setUser(session?.user ?? null);
+        setUser(session?.user ?? null);
 
-      if (session?.user) {
-        await fetchProfile(session.user.id, session.user.email);
-      } else {
-        setProfile(null);
+        if (session?.user) {
+          await fetchProfile(session.user.id, session.user.email);
+        } else {
+          setProfile(null);
+        }
+
+        setLoading(false);
+        setInitializing(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Enhanced sign in with better error handling
+  const signIn = async (email, password) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Sign in error:', error);
+        toast.error(error.message || 'Authentication failed');
+        throw error;
       }
 
-      setLoading(false);
-      setInitializing(false);
-    }
-  );
-
-  return () => subscription.unsubscribe();
-}, []);
-
-// Enhanced sign in with better error handling
-const signIn = async (email, password) => {
-  setLoading(true);
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
+      setUser(data.user);
+      await fetchProfile(data.user.id, data.user.email);
+      toast.success('Access granted');
+      navigate('/', { replace: true });
+    } catch (error) {
       console.error('Sign in error:', error);
       toast.error(error.message || 'Authentication failed');
       throw error;
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setUser(data.user);
-    await fetchProfile(data.user.id, data.user.email);
-    toast.success('Access granted');
-    navigate('/', { replace: true });
-  } catch (error) {
-    console.error('Sign in error:', error);
-    toast.error(error.message || 'Authentication failed');
-    throw error;
-  } finally {
-    setLoading(false);
-  }
-};
-
-// Enhanced sign up with validation
-const signUp = async (email, password, username) => {
-  setLoading(true);
-  try {
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username: username.trim(),
-        }
+  // Enhanced sign up with validation
+  const signUp = async (email, password, username) => {
+    setLoading(true);
+    try {
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        toast.error('Please enter a valid email address');
+        return;
       }
-    });
 
-    if (error) {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username: username.trim(),
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Sign up error:', error);
+        toast.error(error.message || 'Registration failed');
+        throw error;
+      }
+
+      setUser(data.user);
+      toast.success('Registration successful');
+      navigate('/login', { replace: true });
+    } catch (error) {
       console.error('Sign up error:', error);
       toast.error(error.message || 'Registration failed');
       throw error;
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setUser(data.user);
-    toast.success('Registration successful');
-    navigate('/login', { replace: true });
-  } catch (error) {
-    console.error('Sign up error:', error);
-    toast.error(error.message || 'Registration failed');
-    throw error;
-  } finally {
-    setLoading(false);
+
+
+  // Role-based access control
+  const ROLE_HIERARCHY = {
+    admin: 4,
+    sponsor: 3,
+    provider: 2,
+    viewer: 1,
+  };
+
+  const hasRole = (roles) => {
+    if (!profile) return false;
+    if (Array.isArray(roles)) {
+      return roles.includes(profile.role);
+    }
+    return profile.role === roles;
+  };
+
+  const hasMinRole = (minRole) => {
+    if (!profile) return false;
+    const userLevel = ROLE_HIERARCHY[profile.role] || 0;
+    const requiredLevel = ROLE_HIERARCHY[minRole] || 0;
+    return userLevel >= requiredLevel;
+  };
+
+  const isAdmin = () => hasRole('admin');
+  const isSponsor = () => hasMinRole('sponsor');
+  const isProvider = () => hasMinRole('provider');
+  const isViewer = () => hasMinRole('viewer');
+
+  // Show skeleton during initialization
+  if (initializing) {
+    return <AuthSkeleton />;
   }
-};
 
-// Enhanced sign out with cleanup
-const handleSignOut = async () => {
-  try {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    toast.success('Signed out successfully');
-  } catch (error) {
-    console.error('Sign out error:', error);
-    // Even if server fails, we proceed to clear local state
-    toast.error('Session ended locally');
-  } finally {
-    setUser(null);
-    setProfile(null);
-    setSessionTimeout(null);
-    setLastActivity(Date.now());
-    navigate('/login');
-  }
-};
+  const value = {
+    user,
+    profile,
+    loading,
+    sessionRestored,
+    signIn,
+    signUp,
+    signOut: handleSignOut,
+    hasRole,
+    hasMinRole,
+    isAdmin,
+    isSponsor,
+    isProvider,
+    isViewer,
+  };
 
-// Role-based access control
-const ROLE_HIERARCHY = {
-  admin: 4,
-  sponsor: 3,
-  provider: 2,
-  viewer: 1,
-};
-
-const hasRole = (roles) => {
-  if (!profile) return false;
-  if (Array.isArray(roles)) {
-    return roles.includes(profile.role);
-  }
-  return profile.role === roles;
-};
-
-const hasMinRole = (minRole) => {
-  if (!profile) return false;
-  const userLevel = ROLE_HIERARCHY[profile.role] || 0;
-  const requiredLevel = ROLE_HIERARCHY[minRole] || 0;
-  return userLevel >= requiredLevel;
-};
-
-const isAdmin = () => hasRole('admin');
-const isSponsor = () => hasMinRole('sponsor');
-const isProvider = () => hasMinRole('provider');
-const isViewer = () => hasMinRole('viewer');
-
-// Show skeleton during initialization
-if (initializing) {
-  return <AuthSkeleton />;
-}
-
-const value = {
-  user,
-  profile,
-  loading,
-  sessionRestored,
-  signIn,
-  signUp,
-  signOut: handleSignOut,
-  hasRole,
-  hasMinRole,
-  isAdmin,
-  isSponsor,
-  isProvider,
-  isViewer,
-};
-
-return (
-  <AuthContext.Provider value={value}>
-    {children}
-  </AuthContext.Provider>
-);
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 
 };
 

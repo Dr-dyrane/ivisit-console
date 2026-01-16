@@ -12,7 +12,8 @@ import { NavigationProvider } from "./contexts/NavigationContext";
 import { PageDataProvider } from "./contexts/PageDataContext";
 import { IslandNavigation } from "./components/common/IslandNavigation";
 import { ResponsiveSidebar } from "./components/navigation/ResponsiveSidebar";
-import { SmartTopNav } from "./components/navigation/SmartTopNav";
+import { LayoutProvider, useLayout } from "./contexts/LayoutContext";
+import { SmartHeader } from "./components/navigation/SmartHeader";
 import { ContextAwareFAB } from "./components/navigation/ContextAwareFAB";
 import {
 	ProtectedRoute,
@@ -36,42 +37,75 @@ import NoiseOverlay from "./components/ui/noise-overlay";
 import AuthWrapper from "./components/common/AuthWrapper";
 import "./App.css";
 
-// Wrapper to conditionally show navigation
-const AppLayout = ({ children }) => {
+// Inner Layout Content consuming hooks
+const AppShell = ({ children }) => {
 	const location = useLocation();
+	const { isScrolledDown } = useLayout();
 	const hideNav = ["/login", "/unauthorized"].includes(location.pathname);
 
 	return (
-		<PageDataProvider>
-			<NavigationProvider>
-				<div className="relative h-screen bg-background text-foreground overflow-y-scroll selection:bg-primary/20 pb-12">
+		<div className="relative h-screen w-full bg-background text-foreground overflow-hidden flex flex-col">
+			{/* 1. HEADER (Top Border) */}
+			{!hideNav && <SmartHeader />}
+
+			{/* 2. MAIN BODY (Screen Area) */}
+			<div className="flex-1 flex relative overflow-hidden">
+				{/* 3. LEFT DOCK (Left Border) */}
+				{!hideNav && (
+					<div className="flex-none z-20 hidden md:block">
+						<IslandNavigation />
+					</div>
+				)}
+
+				{/* 4. SCROLLABLE CONTENT (The Display) */}
+				<main
+					id="main-content"
+					className={`flex-1 relative overflow-y-auto overflow-x-hidden scroll-smooth custom-scrollbar transition-all duration-500 ease-in-out ${!hideNav && !isScrolledDown ? "md:pl-[72px] pt-16 md:pr-24" : ""
+						}`}
+				>
 					{!hideNav && (
 						<>
-							<div className="fixed inset-0 z-0 pointer-events-none min-h-screen">
+							{/* Background Effects inside the screen */}
+							<div className="fixed inset-0 z-0 pointer-events-none">
 								<NoiseOverlay opacity={1} />
 								<div className="absolute top-[-20%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
 								<div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/5 rounded-full blur-[120px]" />
 							</div>
 						</>
 					)}
-					<div className="relative z-10 flex-1 flex-col min-h-screen lg:pr-80">
-						{!hideNav && (
-							<>
-								<SmartTopNav />
-								<IslandNavigation />
-							</>
-						)}
+
+					{/* Padding for content */}
+					<div className="relative z-10 p-6 md:p-8 pb-32 max-w-[1920px] mx-auto">
 						{children}
 					</div>
-					{/* Responsive Navigation Components */}
-					{!hideNav && (
-						<>
-							<ResponsiveSidebar />
-							{/* SidebarTrigger handled by ResponsiveSidebar rail */}
-							<ContextAwareFAB />
-						</>
-					)}
-				</div>
+				</main>
+
+				{/* 5. RIGHT DOCK (Right Border) */}
+				{!hideNav && (
+					<div className="flex-none z-20">
+						<ResponsiveSidebar />
+					</div>
+				)}
+			</div>
+
+			{/* Responsive Components (Overlays) */}
+			{!hideNav && (
+				<>
+					<ContextAwareFAB />
+				</>
+			)}
+		</div>
+	);
+};
+
+// Wrapper to conditionally show navigation and provide contexts
+const AppLayout = ({ children }) => {
+	return (
+		<PageDataProvider>
+			<NavigationProvider>
+				<LayoutProvider>
+					<AppShell>{children}</AppShell>
+				</LayoutProvider>
 			</NavigationProvider>
 		</PageDataProvider>
 	);
