@@ -8,6 +8,7 @@ export const NotificationTypes = {
   VISIT: 'visit',
   EMERGENCY: 'emergency_request',
   VERIFICATION: 'verification',
+  NEWS: 'news',
 };
 
 export const NotificationActions = {
@@ -19,6 +20,8 @@ export const NotificationActions = {
   ASSIGNED: 'assigned',
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',
+  PUBLISHED: 'published',
+  UNPUBLISHED: 'unpublished',
 };
 
 export const ActionConfig = {
@@ -58,6 +61,13 @@ export const ActionConfig = {
     [NotificationActions.CREATED]: { label: 'Verification Pending', icon: 'Clock', color: 'warning' },
     [NotificationActions.VERIFIED]: { label: 'Verification Approved', icon: 'CheckCircle', color: 'success' },
     [NotificationActions.REJECTED]: { label: 'Verification Rejected', icon: 'XCircle', color: 'destructive' },
+  },
+  [NotificationTypes.NEWS]: {
+    [NotificationActions.CREATED]: { label: 'News Article Created', icon: 'Newspaper', color: 'success' },
+    [NotificationActions.UPDATED]: { label: 'News Article Updated', icon: 'Newspaper', color: 'info' },
+    [NotificationActions.DELETED]: { label: 'News Article Deleted', icon: 'Trash2', color: 'destructive' },
+    [NotificationActions.PUBLISHED]: { label: 'News Article Published', icon: 'Eye', color: 'success' },
+    [NotificationActions.UNPUBLISHED]: { label: 'News Article Unpublished', icon: 'EyeOff', color: 'warning' },
   },
 };
 

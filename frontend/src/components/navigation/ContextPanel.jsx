@@ -24,7 +24,12 @@ import {
   Settings,
   Map,
   UserCheck,
-  CheckCircle
+  CheckCircle,
+  Newspaper,
+  Eye,
+  EyeOff,
+  Plus,
+  TrendingUp as TrendingUpIcon
 } from 'lucide-react';
 
 export const ContextPanel = () => {
@@ -54,6 +59,9 @@ export const ContextPanel = () => {
       '/visits': { title: 'Visit Management', subtitle: 'Patient Appointments' },
       '/hospitals': { title: 'Hospital Ops', subtitle: 'Facility Management' },
       '/ambulances': { title: 'Fleet Control', subtitle: 'Ambulance Operations' },
+      '/health-news': { title: 'Health News', subtitle: 'Content Management' },
+      '/support-tickets': { title: 'Support', subtitle: 'Ticket Management' },
+      '/insurance': { title: 'Insurance', subtitle: 'Policy Management' },
       '/map': { title: 'Map Intelligence', subtitle: 'Location Services' },
       '/settings': { title: 'System Settings', subtitle: 'Configuration' }
     };
@@ -717,6 +725,180 @@ export const ContextPanel = () => {
     return panel;
   };
 
+  const renderHealthNewsPanel = () => {
+    // Mock data for health news analytics - in real implementation, this would come from useHealthNews hook
+    const newsStats = {
+      total: 45,
+      published: 32,
+      draft: 13,
+      thisWeek: 8,
+      categories: 6
+    };
+
+    const handleCreateNews = () => {
+      // Navigate to health news page with create modal open
+      window.location.href = '/health-news?create=true';
+    };
+
+    const handleViewFilters = () => {
+      // Trigger filter sheet open on health news page
+      const event = new CustomEvent('openFilters');
+      window.dispatchEvent(event);
+    };
+
+    const panel = (
+      <div className="p-4 space-y-4">
+        {/* News Statistics */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Card className="p-3 bg-background/50 border-border/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Total News</span>
+              <Newspaper className="h-4 w-4 text-primary" />
+            </div>
+            <div className="text-2xl font-black text-foreground">{newsStats.total}</div>
+            <div className="text-xs text-muted-foreground">All time articles</div>
+          </Card>
+        </motion.div>
+
+        {/* Published vs Draft */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="grid grid-cols-2 gap-2"
+        >
+          <Card className="p-3 bg-background/50 border-border/30">
+            <div className="flex items-center justify-between mb-1">
+              <Eye className="h-3 w-3 text-success" />
+              <span className="text-xs text-success font-medium">Published</span>
+            </div>
+            <div className="text-lg font-bold">{newsStats.published}</div>
+          </Card>
+          <Card className="p-3 bg-background/50 border-border/30">
+            <div className="flex items-center justify-between mb-1">
+              <EyeOff className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium">Draft</span>
+            </div>
+            <div className="text-lg font-bold">{newsStats.draft}</div>
+          </Card>
+        </motion.div>
+
+        {/* Recent Activity */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="p-3 bg-background/50 border-border/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">This Week</span>
+              <TrendingUpIcon className="h-4 w-4 text-info" />
+            </div>
+            <div className="text-xl font-bold text-foreground">{newsStats.thisWeek}</div>
+            <div className="text-xs text-muted-foreground">New articles</div>
+          </Card>
+        </motion.div>
+
+        {/* Categories */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Card className="p-3 bg-background/50 border-border/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Categories</span>
+              <Filter className="h-4 w-4 text-warning" />
+            </div>
+            <div className="text-xl font-bold text-foreground">{newsStats.categories}</div>
+            <div className="text-xs text-muted-foreground">Active categories</div>
+          </Card>
+        </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <div className="space-y-2">
+            <div className="text-xs font-black uppercase tracking-wider text-muted-foreground px-1">Quick Actions</div>
+            <div className="space-y-1">
+              <div 
+                onClick={handleCreateNews}
+                className="p-2 rounded-lg bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Plus className="h-3 w-3 text-primary" />
+                  <span className="text-xs font-medium">Create News</span>
+                </div>
+              </div>
+              <div 
+                onClick={handleViewFilters}
+                className="p-2 rounded-lg bg-background/30 border border-border/20 hover:bg-background/50 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Filter className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs font-medium">View All Filters</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+
+    return panel;
+  };
+
+  const renderSupportTicketsPanel = () => {
+    const panel = (
+      <div className="p-4 space-y-4">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="p-3 bg-background/50 border-border/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Support Queue</span>
+              <Headphones className="h-4 w-4 text-primary" />
+            </div>
+            <div className="text-2xl font-black text-foreground">12</div>
+            <div className="text-xs text-muted-foreground">Active tickets</div>
+          </Card>
+        </motion.div>
+      </div>
+    );
+
+    return panel;
+  };
+
+  const renderInsurancePanel = () => {
+    const panel = (
+      <div className="p-4 space-y-4">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="p-3 bg-background/50 border-border/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Insurance</span>
+              <Shield className="h-4 w-4 text-primary" />
+            </div>
+            <div className="text-2xl font-black text-foreground">28</div>
+            <div className="text-xs text-muted-foreground">Active policies</div>
+          </Card>
+        </motion.div>
+      </div>
+    );
+
+    return panel;
+  };
+
   const renderSettingsPanel = () => {
     const panel = (
       <div className="p-4 space-y-4">
@@ -942,6 +1124,12 @@ export const ContextPanel = () => {
     return renderPanelWithHeader(renderVisitsPanel());
   } else if (currentPath.includes('/verification')) {
     return renderPanelWithHeader(renderVerificationPanel());
+  } else if (currentPath.includes('/health-news')) {
+    return renderPanelWithHeader(renderHealthNewsPanel());
+  } else if (currentPath.includes('/support-tickets')) {
+    return renderPanelWithHeader(renderSupportTicketsPanel());
+  } else if (currentPath.includes('/insurance')) {
+    return renderPanelWithHeader(renderInsurancePanel());
   } else if (currentPath.includes('/settings')) {
     return renderPanelWithHeader(renderSettingsPanel());
   }

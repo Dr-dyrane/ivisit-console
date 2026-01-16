@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Card } from '../ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
-import { X, Save, ExternalLink, Calendar, Globe, Tag, Newspaper } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { X, Save, ExternalLink, Calendar, Globe, Tag, Newspaper, Eye, EyeOff } from 'lucide-react';
+import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
+import { supabase } from '../../lib/supabase';
 
-export const HealthNewsModal = ({ 
-  news, 
-  mode, 
-  onClose, 
-  onSave, 
-  icons, 
-  categories, 
-  sources 
-}) => {
+export const HealthNewsModal = ({ isOpen, onClose, news, mode }) => {
+  const isView = mode === 'view';
+  const isEdit = mode === 'edit';
+  const isCreate = mode === 'create';
+
   const [formData, setFormData] = useState({
     title: '',
     source: '',
@@ -28,7 +30,7 @@ export const HealthNewsModal = ({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (news && mode === 'edit') {
+    if (news && (isEdit || isView)) {
       setFormData({
         title: news.title || '',
         source: news.source || '',
@@ -51,242 +53,247 @@ export const HealthNewsModal = ({
         content: ''
       });
     }
-  }, [news, mode]);
+  }, [news, isEdit, isView]);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (mode === 'create') {
-        await onSave(formData);
+      if (isCreate) {
+        const { data, error } = await supabase
+          .from('health_news')
+          .insert([{
+            ...formData,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }])
+          .select();
+
+        if (error) throw error;
+
+        await createNotification(
+          NotificationTypes.NEWS,
+          NotificationActions.CREATED,
+          data[0].id,
+          { message: `"${formData.title}" has been created` }
+        );
         toast.success('Health news created successfully');
-      } else {
-        await onSave(news.id, formData);
+      } else if (isEdit) {
+        const { data, error } = await supabase
+          .from('health_news')
+          .update({
+            ...formData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', news.id)
+          .select();
+
+        if (error) throw error;
+
+        await createNotification(
+          NotificationTypes.NEWS,
+          NotificationActions.UPDATED,
+          data[0].id,
+          { message: `"${formData.title}" has been updated` }
+        );
         toast.success('Health news updated successfully');
       }
-      onClose();
+      
+      onClose(true);
     } catch (error) {
-      toast.error(`Failed to ${mode} health news`);
+      console.error('Error saving health news:', error);
+      toast.error('Failed to save health news');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const categories = [
+    'general', 'medical', 'research', 'wellness', 'emergency', 'policy'
+  ];
 
-  const getIconEmoji = (iconValue) => {
-    const icon = icons.find(i => i.value === iconValue);
-    return icon ? icon.icon : '📰';
-  };
+  const sources = [
+    'Hospital Update', 'Medical Journal', 'Health Authority', 'Research Institute',
+    'Government Health', 'WHO Update', 'CDC Alert', 'Medical News'
+  ];
+
+  if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      {mode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/50"
-            onClick={onClose}
-          />
-          
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="relative z-10 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto"
-          >
-            <Card className="p-6">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <Newspaper className="h-6 w-6 text-blue-500" />
-                  <h2 className="text-xl font-semibold">
-                    {mode === 'create' ? 'Create Health News' : 'Edit Health News'}
-                  </h2>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClose}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Newspaper className="h-5 w-5" />
+            {isCreate && 'Create Health News'}
+            {isEdit && 'Edit Health News'}
+            {isView && 'Health News Details'}
+          </DialogTitle>
+        </DialogHeader>
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Title and Icon */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Title *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.title}
-                      onChange={(e) => handleChange('title', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter news title..."
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Icon
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={formData.icon}
-                        onChange={(e) => handleChange('icon', e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        {icons.map(icon => (
-                          <option key={icon.value} value={icon.value}>
-                            {icon.icon} {icon.label}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="text-2xl p-2 border rounded-lg">
-                        {getIconEmoji(formData.icon)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                disabled={isView}
+                placeholder="Enter news title"
+                required
+              />
+            </div>
 
-                {/* Source and Category */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Globe className="inline h-4 w-4 mr-1" />
-                      Source *
-                    </label>
-                    <select
-                      value={formData.source}
-                      onChange={(e) => handleChange('source', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Select source...</option>
-                      {sources.map(source => (
-                        <option key={source} value={source}>
-                          {source}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Tag className="inline h-4 w-4 mr-1" />
-                      Category
-                    </label>
-                    <select
-                      value={formData.category}
-                      onChange={(e) => handleChange('category', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {categories.map(category => (
-                        <option key={category} value={category}>
-                          {category.charAt(0).toUpperCase() + category.slice(1)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="source">Source *</Label>
+              <Select
+                value={formData.source}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, source: value }))}
+                disabled={isView}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select source" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sources.map(source => (
+                    <SelectItem key={source} value={source}>
+                      {source}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-                {/* URL */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <ExternalLink className="inline h-4 w-4 mr-1" />
-                    URL
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.url}
-                    onChange={(e) => handleChange('url', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://example.com/news-article"
-                  />
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                disabled={isView}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => handleChange('description', e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Brief description of the news..."
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="url">URL</Label>
+              <Input
+                id="url"
+                name="url"
+                value={formData.url}
+                onChange={handleChange}
+                disabled={isView}
+                placeholder="https://example.com"
+                type="url"
+              />
+            </div>
+          </div>
 
-                {/* Content */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Content
-                  </label>
-                  <textarea
-                    value={formData.content}
-                    onChange={(e) => handleChange('content', e.target.value)}
-                    rows={6}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Full news content..."
-                  />
-                </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              disabled={isView}
+              placeholder="Brief description of the news"
+              rows={3}
+            />
+          </div>
 
-                {/* Published Status */}
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.published}
-                      onChange={(e) => handleChange('published', e.target.checked)}
-                      className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">
-                      Publish immediately
-                    </span>
-                  </label>
-                  
-                  <Badge variant={formData.published ? 'success' : 'secondary'}>
-                    {formData.published ? 'Will be published' : 'Will be draft'}
-                  </Badge>
-                </div>
+          <div className="space-y-2">
+            <Label htmlFor="content">Content</Label>
+            <Textarea
+              id="content"
+              name="content"
+              value={formData.content}
+              onChange={handleChange}
+              disabled={isView}
+              placeholder="Full news content"
+              rows={6}
+            />
+          </div>
 
-                {/* Actions */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={onClose}
-                    disabled={loading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={loading || !formData.title || !formData.source}
-                    className="flex items-center gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    {loading ? 'Saving...' : (mode === 'create' ? 'Create News' : 'Update News')}
-                  </Button>
-                </div>
-              </form>
-            </Card>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+          {!isView && (
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="published"
+                name="published"
+                checked={formData.published}
+                onChange={handleChange}
+                className="rounded"
+              />
+              <Label htmlFor="published" className="flex items-center gap-2">
+                {formData.published ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                Published
+              </Label>
+            </div>
+          )}
+
+          {isView && (
+            <div className="flex items-center space-x-2">
+              <Badge className={formData.published ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}>
+                {formData.published ? 'Published' : 'Draft'}
+              </Badge>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onClose()}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            
+            {!isView && (
+              <Button
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? 'Saving...' : (isCreate ? 'Create' : 'Save')}
+              </Button>
+            )}
+            
+            {isView && formData.url && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => window.open(formData.url, '_blank')}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open Link
+              </Button>
+            )}
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };

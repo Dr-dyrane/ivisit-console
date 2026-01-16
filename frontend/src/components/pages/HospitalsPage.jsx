@@ -201,7 +201,7 @@ export const HospitalsPage = () => {
             <LayoutGroup>
               <motion.div
                 layout
-                className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
+                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
               >
                 {hospitals.map((hospital, index) => (
               <motion.div

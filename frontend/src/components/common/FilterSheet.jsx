@@ -34,6 +34,20 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
     const currentValue = filters[key];
 
     switch (type) {
+      case 'text':
+        return (
+          <div key={key} className="space-y-3 px-3 py-3 rounded-lg hover:bg-white/3 transition-colors">
+            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{label}</p>
+            <input
+              type="text"
+              value={currentValue || ''}
+              onChange={(e) => handleFilterChange(key, e.target.value)}
+              placeholder={filter.placeholder || `Search ${label.toLowerCase()}...`}
+              className="w-full px-3 py-2 border border-white/10 rounded-lg bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-sm"
+            />
+          </div>
+        );
+
       case 'multiselect':
         return (
           <div key={key} className="space-y-3">
