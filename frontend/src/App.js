@@ -37,6 +37,7 @@ import { Toaster } from "./components/ui/sonner";
 import NoiseOverlay from "./components/ui/noise-overlay";
 import AuthWrapper from "./components/common/AuthWrapper";
 import { motion } from "framer-motion";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 import "./App.css";
 
 // Inner Layout Content consuming hooks
@@ -245,12 +246,14 @@ function AppRoutes() {
 
 function App() {
 	return (
-		<ThemeProvider>
-			<Router>
-				<AppRoutes />
-				<Toaster position="top-right" richColors />
-			</Router>
-		</ThemeProvider>
+		<ErrorBoundary>
+			<ThemeProvider>
+				<Router>
+					<AppRoutes />
+					<Toaster position="top-right" richColors />
+				</Router>
+			</ThemeProvider>
+		</ErrorBoundary>
 	);
 }
 
