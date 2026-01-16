@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
@@ -9,7 +9,22 @@ import { Input } from '../ui/input';
 import { CheckCircle, XCircle, FileText, User, Phone, FileCheck, Search, Filter, Clock, Shield, AlertTriangle, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
-import { usePageHeader } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { usePagination } from '../../hooks/usePagination';
+import { PaginationControls } from '../ui/PaginationControls';
+
+/**
+ * Verification Queue Page
+ * 
+ * Status: ✅ READY FOR DATA VIEW SYSTEM
+ * - Paginated data fetching (12 per page)
+ * - Supabase integration with filter-aware queries
+ * - Smart footer with pagination info
+ * - Ready for future Grid/List/Table view toggle
+ * - Filter logic via stat cards (Pending/Approved/All)
+ * 
+ * Next: Add ViewToggle, FilterSheet, and view renderer components
+ */
 
 export const VerificationQueue = () => {
   const [providers, setProviders] = useState([]);
@@ -20,6 +35,7 @@ export const VerificationQueue = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('pending');
   const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
+  const pagination = usePagination(12);
 
   const headerActions = React.useMemo(() => (
     <div className="relative group w-full md:w-auto">
@@ -37,6 +53,66 @@ export const VerificationQueue = () => {
 
   usePageHeader("Identity Vault", headerActions);
 
+  const fetchAllData = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Count total matching current filter
+      let countQuery = supabase.from('profiles').select('*', { count: 'exact', head: true });
+
+      // Filter counts
+      const { count: totalCount } = await countQuery;
+
+      if (filterType === 'pending') {
+        countQuery = supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'provider')
+          .eq('bvn_verified', false);
+      } else if (filterType === 'approved') {
+        countQuery = supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('bvn_verified', true);
+      }
+
+      const { count } = await countQuery;
+      pagination.setTotalCount(count || 0);
+
+      // Fetch paginated data with filter
+      let query = supabase
+        .from('profiles')
+        .select('*')
+        .range(pagination.paginationRange.start, pagination.paginationRange.end)
+        .order('created_at', { ascending: false });
+
+      if (filterType === 'pending') {
+        query = query.eq('role', 'provider').eq('bvn_verified', false);
+      } else if (filterType === 'approved') {
+        query = query.eq('bvn_verified', true);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      setProviders(data || []);
+
+      // Calculate global stats (all users)
+      const allUsersQuery = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      const allData = allUsersQuery.data || [];
+      
+      const pending = allData.filter(u => !u.bvn_verified && u.role === 'provider').length;
+      const approved = allData.filter(u => u.bvn_verified).length;
+
+      setStats({ pending, approved, rejected: 0 });
+      setAllUsers(allData);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to fetch verification queue');
+    } finally {
+      setLoading(false);
+    }
+  }, [pagination, filterType]);
+
   useEffect(() => {
     fetchAllData();
 
@@ -47,49 +123,21 @@ export const VerificationQueue = () => {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, []);
+  }, [fetchAllData]);
 
-  const fetchAllData = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+  useEffect(() => {
+    fetchAllData();
+  }, [pagination.currentPage, filterType, fetchAllData]);
 
-      if (error) throw error;
+  const footerContent = React.useMemo(() => (
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+        <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} {filterType === 'pending' ? 'Pending' : filterType === 'approved' ? 'Verified' : 'Total'}</span>
+      </div>
+    </div>
+  ), [pagination.currentPage, pagination.totalPages, pagination.totalCount, filterType]);
 
-      setAllUsers(data || []);
-
-      // Calculate stats
-      const pending = data?.filter(u => !u.bvn_verified && u.role === 'provider').length || 0;
-      const approved = data?.filter(u => u.bvn_verified).length || 0;
-      const rejected = 0; // Would need a rejected field to track this
-
-      setStats({ pending, approved, rejected });
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('Failed to fetch verification queue');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredProviders = allUsers.filter(user => {
-    const matchesSearch = searchTerm === '' ||
-      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone?.includes(searchTerm);
-
-    if (filterType === 'pending') {
-      return matchesSearch && !user.bvn_verified && user.role === 'provider';
-    } else if (filterType === 'approved') {
-      return matchesSearch && user.bvn_verified;
-    } else if (filterType === 'all') {
-      return matchesSearch;
-    }
-    return matchesSearch;
-  });
+  usePageFooter(footerContent, 'pagination', !loading && providers.length > 0);
 
   const handleVerify = async (providerId, approved) => {
     setActionLoading(true);
@@ -197,7 +245,7 @@ export const VerificationQueue = () => {
         >
           <AnimatePresence mode='popLayout'>
             {loading ? (
-              [...Array(8)].map((_, i) => (
+              [...Array(12)].map((_, i) => (
                 <motion.div
                   key={`skeleton-${i}`}
                   initial={{ opacity: 0 }}
@@ -206,7 +254,7 @@ export const VerificationQueue = () => {
                   className="h-[280px] squircle-lg bg-muted/10 animate-pulse"
                 />
               ))
-            ) : filteredProviders.length === 0 ? (
+            ) : providers.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -219,7 +267,7 @@ export const VerificationQueue = () => {
                 <p className="text-muted-foreground font-medium">No applications found matching your criteria.</p>
               </motion.div>
             ) : (
-              filteredProviders.map((provider) => (
+              providers.map((provider) => (
                 <motion.div
                   layout
                   key={provider.id}
@@ -277,6 +325,17 @@ export const VerificationQueue = () => {
           </AnimatePresence>
         </motion.div>
       </LayoutGroup>
+
+      {/* Pagination Controls */}
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        onPrevPage={pagination.prevPage}
+        onNextPage={pagination.nextPage}
+        hasPrevPage={pagination.hasPrevPage}
+        hasNextPage={pagination.hasNextPage}
+        loading={loading}
+      />
 
       {/* Review Modal - Apple Style Sheet */}
       <Dialog open={!!selectedProvider} onOpenChange={() => setSelectedProvider(null)}>

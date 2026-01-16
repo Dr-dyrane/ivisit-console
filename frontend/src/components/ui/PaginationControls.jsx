@@ -39,7 +39,7 @@ export const PaginationControls = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [hasPrevPage, hasNextPage, onPrevPage, onNextPage, loading]);
 
-    if (totalPages <= 1) return null;
+    if (totalPages <= 1 && totalCount < itemsPerPage) return null;
 
     return (
         <motion.div
