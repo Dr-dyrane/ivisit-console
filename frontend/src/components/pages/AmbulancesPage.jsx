@@ -51,7 +51,7 @@ export const AmbulancesPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination.setTotalCount, pagination.paginationRange.start, pagination.paginationRange.end]);
+  }, [pagination]);
 
   useEffect(() => {
     fetchAmbulances();

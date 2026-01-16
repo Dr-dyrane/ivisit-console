@@ -55,7 +55,7 @@ export const HospitalsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination.setTotalCount, pagination.paginationRange.start, pagination.paginationRange.end]);
+  }, [pagination]);
 
   useEffect(() => {
     fetchHospitals();

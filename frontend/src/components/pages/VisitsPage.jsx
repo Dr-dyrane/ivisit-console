@@ -48,7 +48,7 @@ export const VisitsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination.setTotalCount, pagination.paginationRange.start, pagination.paginationRange.end]);
+  }, [pagination]);
 
   useEffect(() => {
     fetchVisits();
