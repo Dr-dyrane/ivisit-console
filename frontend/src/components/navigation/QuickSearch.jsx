@@ -26,7 +26,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
     if (isOpen) {
       loadRecentsAndTrending();
     }
-  }, [isOpen]);
+  }, [isOpen, loadRecentsAndTrending]);
 
   const loadRecentsAndTrending = useCallback(async () => {
     const [recents, trending] = await Promise.all([
