@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
+import { useViewMode } from '../../hooks/useViewMode';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -22,38 +24,61 @@ import {
   Eye,
   Trash2,
   RefreshCw,
-  Filter,
+  Filter as FilterIcon,
   Siren,
   Shield,
   Zap
 } from 'lucide-react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
+import { ViewToggle } from '../common/ViewToggle';
+import { FilterSheet } from '../common/FilterSheet';
+import { EmergencyRequestListView } from '../views/EmergencyRequestListView';
+import { EmergencyRequestTableView } from '../views/EmergencyRequestTableView';
 
 export const EmergencyRequestsPage = () => {
   const { isAdmin, isProvider } = useAuth();
+  const { isMobile } = useNavigation();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [filters, setFilters] = useState({});
 
+  const { viewMode, setViewMode } = useViewMode('emergency-requests-page', 'grid');
   const pagination = usePagination(20);
 
   const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
 
-      const { count } = await supabase
-        .from('emergency_requests')
-        .select('*', { count: 'exact', head: true });
+      let query = supabase.from('emergency_requests').select('*', { count: 'exact', head: true });
 
+      if (filters.priority && filters.priority.length > 0) {
+        query = query.in('priority', filters.priority);
+      }
+      if (filters.status && filters.status.length > 0) {
+        query = query.in('status', filters.status);
+      }
+
+      const { count } = await query;
       pagination.setTotalCount(count || 0);
 
+      let dataQuery = supabase
+        .from('emergency_requests')
+        .select('*')
+        .range(pagination.paginationRange.start, pagination.paginationRange.end)
+        .order('created_at', { ascending: false });
+
+      if (filters.priority && filters.priority.length > 0) {
+        dataQuery = dataQuery.in('priority', filters.priority);
+      }
+      if (filters.status && filters.status.length > 0) {
+        dataQuery = dataQuery.in('status', filters.status);
+      }
+
       const { data, error } = await withTimeout(
-        supabase
-          .from('emergency_requests')
-          .select('*')
-          .range(pagination.paginationRange.start, pagination.paginationRange.end)
-          .order('created_at', { ascending: false }),
+        dataQuery,
         8000,
         'Failed to load emergency requests - timeout'
       );
@@ -66,7 +91,7 @@ export const EmergencyRequestsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination]);
+  }, [pagination, filters]);
 
   useEffect(() => {
     fetchRequests();
@@ -80,28 +105,63 @@ export const EmergencyRequestsPage = () => {
     return () => supabase.removeChannel(channel);
   }, [fetchRequests]);
 
+  const filterSchema = React.useMemo(() => [
+    {
+      key: 'priority',
+      type: 'multiselect',
+      label: 'Priority',
+      options: [
+        { value: 'critical', label: 'Critical' },
+        { value: 'high', label: 'High' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'low', label: 'Low' },
+      ]
+    },
+    {
+      key: 'status',
+      type: 'multiselect',
+      label: 'Status',
+      options: [
+        { value: 'pending', label: 'Pending' },
+        { value: 'assigned', label: 'Assigned' },
+        { value: 'completed', label: 'Completed' },
+      ]
+    }
+  ], []);
+
+  const viewToggleComponent = React.useMemo(() => (
+    <ViewToggle value={viewMode} onChange={setViewMode} />
+  ), [viewMode, setViewMode]);
+
+  const filterButtonComponent = React.useMemo(() => (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setFilterSheetOpen(true)}
+      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+    >
+      <FilterIcon className="h-4 w-4" />
+    </Button>
+  ), []);
+
   const headerActions = React.useMemo(() => (
-    <div className="flex items-center gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={fetchRequests}
-        className="glass squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
-      >
-        <RefreshCw className="h-4 w-4 mr-2" />
-        RELOAD
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="glass squircle-full h-9 w-9 p-0"
-      >
-        <Filter className="h-4 w-4" />
-      </Button>
-    </div>
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={fetchRequests}
+      className="glass squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+    >
+      <RefreshCw className="h-4 w-4 mr-2" />
+      RELOAD
+    </Button>
   ), [fetchRequests]);
 
-  usePageHeader('Emergency Logs', headerActions);
+  usePageHeader(
+    'Emergency Logs',
+    headerActions,
+    !isMobile ? viewToggleComponent : null,
+    filterButtonComponent
+  );
 
   const pendingCount = React.useMemo(() => requests.filter(r => r.status === 'pending').length, [requests]);
 
@@ -157,19 +217,22 @@ export const EmergencyRequestsPage = () => {
 
       {loading ? (
         <TableSkeleton rows={8} />
-      ) : requests.length === 0 ? (
-        <Card className="squircle-lg glass shadow-premium p-12 border-0 text-center">
-          <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="font-black text-xl mb-2">No Active Emergencies</h3>
-          <p className="text-muted-foreground">All clear for now</p>
-        </Card>
       ) : (
-        <LayoutGroup>
-          <motion.div
-            layout
-            className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
-          >
-            {requests.map((req, index) => (
+        <>
+          {viewMode === 'grid' && (
+            requests.length === 0 ? (
+              <Card className="squircle-lg glass shadow-premium p-12 border-0 text-center">
+                <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="font-black text-xl mb-2">No Active Emergencies</h3>
+                <p className="text-muted-foreground">All clear for now</p>
+              </Card>
+            ) : (
+              <LayoutGroup>
+                <motion.div
+                  layout
+                  className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
+                >
+                  {requests.map((req, index) => (
               <motion.div
                 layout
                 key={req.id}
@@ -244,9 +307,30 @@ export const EmergencyRequestsPage = () => {
                   </div>
                 </Card>
               </motion.div>
-            ))}
-          </motion.div>
-        </LayoutGroup>
+                  ))}
+                </motion.div>
+              </LayoutGroup>
+            )
+          )}
+          {viewMode === 'list' && (
+            <EmergencyRequestListView
+              requests={requests}
+              onView={handleViewDetails}
+              onDelete={handleDelete}
+              getPriorityBadge={getPriorityBadge}
+              isMobile={isMobile}
+            />
+          )}
+          {viewMode === 'table' && (
+            <EmergencyRequestTableView
+              requests={requests}
+              onView={handleViewDetails}
+              onDelete={handleDelete}
+              getPriorityBadge={getPriorityBadge}
+              isMobile={isMobile}
+            />
+          )}
+        </>
       )}
 
       {/* Pagination Controls */}
@@ -268,6 +352,16 @@ export const EmergencyRequestsPage = () => {
           setSelectedRequest(null);
         }}
         request={selectedRequest}
+      />
+
+      <FilterSheet
+        isOpen={filterSheetOpen}
+        onOpenChange={setFilterSheetOpen}
+        filterSchema={filterSchema}
+        onApply={setFilters}
+        initialValues={filters}
+        viewToggle={isMobile ? viewToggleComponent : null}
+        isMobile={isMobile}
       />
     </div>
   );

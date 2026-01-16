@@ -10,8 +10,13 @@ import { CheckCircle, XCircle, FileText, User, Phone, FileCheck, Search, Filter,
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { usePagination } from '../../hooks/usePagination';
+import { useViewMode } from '../../hooks/useViewMode';
 import { PaginationControls } from '../ui/PaginationControls';
+import { ViewToggle } from '../common/ViewToggle';
+import { VerificationQueueListView } from '../views/VerificationQueueListView';
+import { VerificationQueueTableView } from '../views/VerificationQueueTableView';
 
 /**
  * Verification Queue Page
@@ -27,6 +32,7 @@ import { PaginationControls } from '../ui/PaginationControls';
  */
 
 export const VerificationQueue = () => {
+  const { isMobile } = useNavigation();
   const [providers, setProviders] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [selectedProvider, setSelectedProvider] = useState(null);
@@ -36,6 +42,7 @@ export const VerificationQueue = () => {
   const [filterType, setFilterType] = useState('pending');
   const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
   const pagination = usePagination(12);
+  const { viewMode, setViewMode } = useViewMode('verification-queue-page', 'grid');
 
   const headerActions = React.useMemo(() => (
     <div className="relative group w-full md:w-auto">
@@ -51,7 +58,11 @@ export const VerificationQueue = () => {
     </div>
   ), [searchTerm]);
 
-  usePageHeader("Identity Vault", headerActions);
+  const viewToggleComponent = React.useMemo(() => (
+    <ViewToggle value={viewMode} onChange={setViewMode} />
+  ), [viewMode, setViewMode]);
+
+  usePageHeader("Identity Vault", headerActions, !isMobile ? viewToggleComponent : null);
 
   const fetchAllData = useCallback(async () => {
     setLoading(true);
@@ -237,37 +248,43 @@ export const VerificationQueue = () => {
         </motion.div>
       </div>
 
-      {/* Grid Content */}
-      <LayoutGroup>
-        <motion.div
-          layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr"
-        >
-          <AnimatePresence mode='popLayout'>
-            {loading ? (
-              [...Array(12)].map((_, i) => (
-                <motion.div
-                  key={`skeleton-${i}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="h-[280px] squircle-lg bg-muted/10 animate-pulse"
-                />
-              ))
-            ) : providers.length === 0 ? (
+      {loading ? (
+        <LayoutGroup>
+          <motion.div
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr"
+          >
+            {[...Array(12)].map((_, i) => (
               <motion.div
+                key={`skeleton-${i}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="col-span-full py-20 text-center"
-              >
-                <div className="w-20 h-20 squircle bg-muted/20 flex items-center justify-center mx-auto mb-6">
-                  <FileCheck className="h-10 w-10 text-muted-foreground" />
-                </div>
-                <h3 className="text-2xl font-black mb-2">All Clear</h3>
-                <p className="text-muted-foreground font-medium">No applications found matching your criteria.</p>
-              </motion.div>
-            ) : (
-              providers.map((provider) => (
+                exit={{ opacity: 0 }}
+                className="h-[280px] squircle-lg bg-muted/10 animate-pulse"
+              />
+            ))}
+          </motion.div>
+        </LayoutGroup>
+      ) : providers.length === 0 ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="py-20 text-center"
+        >
+          <div className="w-20 h-20 squircle bg-muted/20 flex items-center justify-center mx-auto mb-6">
+            <FileCheck className="h-10 w-10 text-muted-foreground" />
+          </div>
+          <h3 className="text-2xl font-black mb-2">All Clear</h3>
+          <p className="text-muted-foreground font-medium">No applications found matching your criteria.</p>
+        </motion.div>
+      ) : viewMode === 'grid' ? (
+        <LayoutGroup>
+          <motion.div
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr"
+          >
+            <AnimatePresence mode='popLayout'>
+              {providers.map((provider) => (
                 <motion.div
                   layout
                   key={provider.id}
@@ -320,11 +337,25 @@ export const VerificationQueue = () => {
                     </div>
                   </Card>
                 </motion.div>
-              ))
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </LayoutGroup>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        </LayoutGroup>
+      ) : viewMode === 'list' ? (
+        <VerificationQueueListView
+          providers={providers}
+          onView={setSelectedProvider}
+          onDelete={() => {}}
+          isMobile={isMobile}
+        />
+      ) : (
+        <VerificationQueueTableView
+          providers={providers}
+          onView={setSelectedProvider}
+          onDelete={() => {}}
+          isMobile={isMobile}
+        />
+      )}
 
       {/* Pagination Controls */}
       <PaginationControls

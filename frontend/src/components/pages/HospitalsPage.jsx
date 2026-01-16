@@ -3,46 +3,63 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
+import { useViewMode } from '../../hooks/useViewMode';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
-import { Hospital, MapPin, Star, Bed, Ambulance, Plus, Edit, Trash2, Eye, ChevronRight } from 'lucide-react';
+import { Hospital, MapPin, Star, Bed, Ambulance, Plus, Edit, Trash2, Eye, ChevronRight, Filter } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { HospitalModal } from '../modals/HospitalModal';
 import { withTimeout } from '../../lib/utils';
+import { ViewToggle } from '../common/ViewToggle';
+import { FilterSheet } from '../common/FilterSheet';
+import { HospitalListView } from '../views/HospitalListView';
+import { HospitalTableView } from '../views/HospitalTableView';
 
 export const HospitalsPage = () => {
   const navigate = useNavigate();
   const { isAdmin, isProvider } = useAuth();
+  const { isMobile } = useNavigation();
   const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedHospital, setSelectedHospital] = useState(null);
-  const [modalMode, setModalMode] = useState(null); // 'view', 'edit', 'create'
+  const [modalMode, setModalMode] = useState(null);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [filters, setFilters] = useState({});
 
+  const { viewMode, setViewMode } = useViewMode('hospitals-page', 'grid');
   const pagination = usePagination(20);
 
   const fetchHospitals = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Get total count
-      const { count } = await supabase
-        .from('hospitals')
-        .select('*', { count: 'exact', head: true });
+      let query = supabase.from('hospitals').select('*', { count: 'exact', head: true });
 
+      if (filters.status && filters.status.length > 0) {
+        query = query.in('status', filters.status);
+      }
+
+      const { count } = await query;
       pagination.setTotalCount(count || 0);
 
-      // Get paginated data
+      let dataQuery = supabase
+        .from('hospitals')
+        .select('*')
+        .range(pagination.paginationRange.start, pagination.paginationRange.end)
+        .order('created_at', { ascending: false });
+
+      if (filters.status && filters.status.length > 0) {
+        dataQuery = dataQuery.in('status', filters.status);
+      }
+
       const { data, error } = await withTimeout(
-        supabase
-          .from('hospitals')
-          .select('*')
-          .range(pagination.paginationRange.start, pagination.paginationRange.end)
-          .order('created_at', { ascending: false }),
+        dataQuery,
         8000,
         'Failed to load hospitals - timeout'
       );
@@ -55,7 +72,7 @@ export const HospitalsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination]);
+  }, [pagination, filters]);
 
   useEffect(() => {
     fetchHospitals();
@@ -103,6 +120,41 @@ export const HospitalsPage = () => {
     }
   }, [fetchHospitals]);
 
+  const getStatusBadge = (status) => {
+    const badges = {
+      available: 'bg-success/20 text-success',
+      full: 'bg-warning/20 text-warning',
+    };
+    return badges[status] || badges.available;
+  };
+
+  const filterSchema = React.useMemo(() => [
+    {
+      key: 'status',
+      type: 'multiselect',
+      label: 'Status',
+      options: [
+        { value: 'available', label: 'Available' },
+        { value: 'full', label: 'Full' },
+      ]
+    }
+  ], []);
+
+  const viewToggleComponent = React.useMemo(() => (
+    <ViewToggle value={viewMode} onChange={setViewMode} />
+  ), [viewMode, setViewMode]);
+
+  const filterButtonComponent = React.useMemo(() => (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setFilterSheetOpen(true)}
+      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+    >
+      <Filter className="h-4 w-4" />
+    </Button>
+  ), []);
+
   const headerActions = React.useMemo(() => (isAdmin() || isProvider()) && (
     <Button
       onClick={handleCreate}
@@ -113,7 +165,12 @@ export const HospitalsPage = () => {
     </Button>
   ), [isAdmin, isProvider, handleCreate]);
 
-  usePageHeader("Medical Staff", headerActions);
+  usePageHeader(
+    "Medical Facilities",
+    headerActions,
+    !isMobile ? viewToggleComponent : null,
+    filterButtonComponent
+  );
 
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
@@ -132,12 +189,14 @@ export const HospitalsPage = () => {
       {loading ? (
         <TableSkeleton rows={8} />
       ) : (
-        <LayoutGroup>
-          <motion.div
-            layout
-            className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
-          >
-            {hospitals.map((hospital, index) => (
+        <>
+          {viewMode === 'grid' && (
+            <LayoutGroup>
+              <motion.div
+                layout
+                className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
+              >
+                {hospitals.map((hospital, index) => (
               <motion.div
                 layout
                 key={hospital.id}
@@ -238,9 +297,31 @@ export const HospitalsPage = () => {
                   </div>
                 </Card>
               </motion.div>
-            ))}
-          </motion.div>
-        </LayoutGroup>
+                ))}
+              </motion.div>
+            </LayoutGroup>
+          )}
+          {viewMode === 'list' && (
+            <HospitalListView
+              hospitals={hospitals}
+              onView={handleView}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              getStatusBadge={getStatusBadge}
+              isMobile={isMobile}
+            />
+          )}
+          {viewMode === 'table' && (
+            <HospitalTableView
+              hospitals={hospitals}
+              onView={handleView}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              getStatusBadge={getStatusBadge}
+              isMobile={isMobile}
+            />
+          )}
+        </>
       )}
 
       {/* Pagination Controls */}
@@ -262,6 +343,16 @@ export const HospitalsPage = () => {
           mode={modalMode}
         />
       )}
+
+      <FilterSheet
+        isOpen={filterSheetOpen}
+        onOpenChange={setFilterSheetOpen}
+        filterSchema={filterSchema}
+        onApply={setFilters}
+        initialValues={filters}
+        viewToggle={isMobile ? viewToggleComponent : null}
+        isMobile={isMobile}
+      />
     </div>
   );
 };

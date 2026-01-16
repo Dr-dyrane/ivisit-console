@@ -2,53 +2,71 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
+import { useViewMode } from '../../hooks/useViewMode';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
-import { Calendar, Plus, Edit, Trash2, Eye, User, Hospital, Clock, CheckCircle, ChevronRight, MapPin } from 'lucide-react';
+import { Calendar, Plus, Edit, Trash2, Eye, User, Hospital, Clock, CheckCircle, ChevronRight, MapPin, Filter } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { VisitModal } from '../modals/VisitModal';
+import { withTimeout, formatDate } from '../../lib/utils';
+import { ViewToggle } from '../common/ViewToggle';
+import { FilterSheet } from '../common/FilterSheet';
+import { VisitListView } from '../views/VisitListView';
+import { VisitTableView } from '../views/VisitTableView';
 
 export const VisitsPage = () => {
   const { isAdmin, isProvider } = useAuth();
+  const { isMobile } = useNavigation();
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [modalMode, setModalMode] = useState(null);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [filters, setFilters] = useState({});
 
+  const { viewMode, setViewMode } = useViewMode('visits-page', 'grid');
   const pagination = usePagination(20);
 
   const fetchVisits = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Get total count
-      const { count } = await supabase
-        .from('visits')
-        .select('*', { count: 'exact', head: true });
+      let query = supabase.from('visits').select('*', { count: 'exact', head: true });
 
+      if (filters.status && filters.status.length > 0) {
+        query = query.in('status', filters.status);
+      }
+
+      const { count } = await query;
       pagination.setTotalCount(count || 0);
 
-      // Get paginated data
-      const { data, error } = await supabase
+      let dataQuery = supabase
         .from('visits')
         .select('*')
         .range(pagination.paginationRange.start, pagination.paginationRange.end)
         .order('created_at', { ascending: false });
 
+      if (filters.status && filters.status.length > 0) {
+        dataQuery = dataQuery.in('status', filters.status);
+      }
+
+      const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load visits - timeout');
+
       if (error) throw error;
       setVisits(data || []);
     } catch (error) {
       console.error('Error fetching visits:', error);
-      toast.error('Failed to load visits');
+      toast.error(error.message || 'Failed to load visits');
     } finally {
       setLoading(false);
     }
-  }, [pagination]);
+  }, [pagination, filters]);
 
   useEffect(() => {
     fetchVisits();
@@ -106,15 +124,34 @@ export const VisitsPage = () => {
     return badges[status] || badges.scheduled;
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const filterSchema = React.useMemo(() => [
+    {
+      key: 'status',
+      type: 'multiselect',
+      label: 'Status',
+      options: [
+        { value: 'scheduled', label: 'Scheduled' },
+        { value: 'in_progress', label: 'In Progress' },
+        { value: 'completed', label: 'Completed' },
+        { value: 'cancelled', label: 'Cancelled' },
+      ]
+    }
+  ], []);
+
+  const viewToggleComponent = React.useMemo(() => (
+    <ViewToggle value={viewMode} onChange={setViewMode} />
+  ), [viewMode, setViewMode]);
+
+  const filterButtonComponent = React.useMemo(() => (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setFilterSheetOpen(true)}
+      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+    >
+      <Filter className="h-4 w-4" />
+    </Button>
+  ), []);
 
   const headerActions = React.useMemo(() => (
     <Button
@@ -126,7 +163,12 @@ export const VisitsPage = () => {
     </Button>
   ), [handleCreate]);
 
-  usePageHeader("Patient Visits", headerActions);
+  usePageHeader(
+    "Patient Visits",
+    headerActions,
+    !isMobile ? viewToggleComponent : null,
+    filterButtonComponent
+  );
 
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
@@ -143,25 +185,28 @@ export const VisitsPage = () => {
       <div className="pt-2" />
 
       {loading ? (
-        <TableSkeleton rows={6} />
-      ) : visits.length === 0 ? (
-        <Card className="squircle-lg glass shadow-premium p-12 border-0 text-center">
-          <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="font-black text-xl mb-2">No Visits Yet</h3>
-          <p className="text-muted-foreground mb-6">Get started by scheduling the first visit</p>
-          <Button onClick={handleCreate} className="squircle bg-primary" data-testid="add-first-visit-btn">
-            <Plus className="h-4 w-4 mr-2" />
-            Schedule First Visit
-          </Button>
-        </Card>
+        <TableSkeleton rows={8} />
       ) : (
-        <LayoutGroup>
-          <motion.div
-            layout
-            className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
-            data-testid="visits-list"
-          >
-            {visits.map((visit, index) => (
+        <>
+          {viewMode === 'grid' && (
+            visits.length === 0 ? (
+              <Card className="squircle-lg glass shadow-premium p-12 border-0 text-center">
+                <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="font-black text-xl mb-2">No Visits Yet</h3>
+                <p className="text-muted-foreground mb-6">Get started by scheduling the first visit</p>
+                <Button onClick={handleCreate} className="squircle bg-primary" data-testid="add-first-visit-btn">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Schedule First Visit
+                </Button>
+              </Card>
+            ) : (
+              <LayoutGroup>
+                <motion.div
+                  layout
+                  className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
+                  data-testid="visits-list"
+                >
+                  {visits.map((visit, index) => (
               <motion.div
                 layout
                 key={visit.id}
@@ -256,9 +301,32 @@ export const VisitsPage = () => {
                   </div>
                 </Card>
               </motion.div>
-            ))}
-          </motion.div>
-        </LayoutGroup>
+                  ))}
+                </motion.div>
+              </LayoutGroup>
+            )
+          )}
+          {viewMode === 'list' && (
+            <VisitListView
+              visits={visits}
+              onView={handleView}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              getStatusBadge={getStatusBadge}
+              isMobile={isMobile}
+            />
+          )}
+          {viewMode === 'table' && (
+            <VisitTableView
+              visits={visits}
+              onView={handleView}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              getStatusBadge={getStatusBadge}
+              isMobile={isMobile}
+            />
+          )}
+        </>
       )}
 
       {/* Pagination Controls */}
@@ -280,6 +348,16 @@ export const VisitsPage = () => {
           mode={modalMode}
         />
       )}
+
+      <FilterSheet
+        isOpen={filterSheetOpen}
+        onOpenChange={setFilterSheetOpen}
+        filterSchema={filterSchema}
+        onApply={setFilters}
+        initialValues={filters}
+        viewToggle={isMobile ? viewToggleComponent : null}
+        isMobile={isMobile}
+      />
     </div>
   );
 };

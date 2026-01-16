@@ -2,39 +2,54 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
+import { useViewMode } from '../../hooks/useViewMode';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
-import { Stethoscope, Plus, Edit, Trash2, Eye, Hospital, Star, Phone, ChevronRight } from 'lucide-react';
+import { Stethoscope, Plus, Edit, Trash2, Eye, Hospital, Star, Phone, ChevronRight, Filter } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { DoctorModal } from '../modals/DoctorModal';
+import { ViewToggle } from '../common/ViewToggle';
+import { FilterSheet } from '../common/FilterSheet';
+import { DoctorListView } from '../views/DoctorListView';
+import { DoctorTableView } from '../views/DoctorTableView';
+import { withTimeout } from '../../lib/utils';
 
 export const DoctorsPage = () => {
   const { isAdmin, isProvider } = useAuth();
+  const { isMobile } = useNavigation();
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [modalMode, setModalMode] = useState(null);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [filters, setFilters] = useState({});
 
+  const { viewMode, setViewMode } = useViewMode('doctors-page', 'grid');
   const pagination = usePagination(20);
 
   const fetchDoctors = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Get total count
-      const { count } = await supabase
-        .from('doctors')
-        .select('*', { count: 'exact', head: true });
+      let query = supabase.from('doctors').select('*', { count: 'exact', head: true });
 
+      if (filters.status && filters.status.length > 0) {
+        query = query.in('status', filters.status);
+      }
+      if (filters.specialization && filters.specialization.length > 0) {
+        query = query.in('specialization', filters.specialization);
+      }
+
+      const { count } = await query;
       pagination.setTotalCount(count || 0);
 
-      // Get paginated data
-      const { data, error } = await supabase
+      let dataQuery = supabase
         .from('doctors')
         .select(`
           *,
@@ -43,15 +58,24 @@ export const DoctorsPage = () => {
         .range(pagination.paginationRange.start, pagination.paginationRange.end)
         .order('created_at', { ascending: false });
 
+      if (filters.status && filters.status.length > 0) {
+        dataQuery = dataQuery.in('status', filters.status);
+      }
+      if (filters.specialization && filters.specialization.length > 0) {
+        dataQuery = dataQuery.in('specialization', filters.specialization);
+      }
+
+      const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load doctors - timeout');
+
       if (error) throw error;
       setDoctors(data || []);
     } catch (error) {
       console.error('Error fetching doctors:', error);
-      toast.error('Failed to load doctors');
+      toast.error(error.message || 'Failed to load doctors');
     } finally {
       setLoading(false);
     }
-  }, [pagination]);
+  }, [pagination, filters]);
 
   useEffect(() => {
     fetchDoctors();
@@ -108,6 +132,45 @@ export const DoctorsPage = () => {
     return badges[status] || badges.available;
   };
 
+  const filterSchema = React.useMemo(() => [
+    {
+      key: 'status',
+      type: 'multiselect',
+      label: 'Status',
+      options: [
+        { value: 'available', label: 'Available' },
+        { value: 'busy', label: 'Busy' },
+        { value: 'off_duty', label: 'Off Duty' },
+      ]
+    },
+    {
+      key: 'specialization',
+      type: 'multiselect',
+      label: 'Specialization',
+      options: [
+        { value: 'cardiology', label: 'Cardiology' },
+        { value: 'neurology', label: 'Neurology' },
+        { value: 'pediatrics', label: 'Pediatrics' },
+        { value: 'general', label: 'General Practitioner' },
+      ]
+    }
+  ], []);
+
+  const viewToggleComponent = React.useMemo(() => (
+    <ViewToggle value={viewMode} onChange={setViewMode} />
+  ), [viewMode, setViewMode]);
+
+  const filterButtonComponent = React.useMemo(() => (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setFilterSheetOpen(true)}
+      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+    >
+      <Filter className="h-4 w-4" />
+    </Button>
+  ), []);
+
   const headerActions = React.useMemo(() => (
     <Button
       onClick={handleCreate}
@@ -118,7 +181,12 @@ export const DoctorsPage = () => {
     </Button>
   ), [handleCreate]);
 
-  usePageHeader("Medical Staff", headerActions);
+  usePageHeader(
+    "Medical Staff",
+    headerActions,
+    !isMobile ? viewToggleComponent : null,
+    filterButtonComponent
+  );
 
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
@@ -128,32 +196,35 @@ export const DoctorsPage = () => {
     </div>
   ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
 
-  usePageFooter(footerContent, 'status', !loading && doctors.length > 0);
+  usePageFooter(footerContent, 'pagination', !loading && doctors.length > 0);
 
   return (
     <div className="min-h-screen bg-background px-0 md:px-12 py-6 md:py-8">
       <div className="pt-2" />
 
       {loading ? (
-        <TableSkeleton rows={6} />
-      ) : doctors.length === 0 ? (
-        <Card className="squircle-lg glass shadow-premium p-12 border-0 text-center">
-          <Stethoscope className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="font-black text-xl mb-2">No Doctors Yet</h3>
-          <p className="text-muted-foreground mb-6">Get started by adding your first doctor</p>
-          <Button onClick={handleCreate} className="squircle bg-primary" data-testid="add-first-doctor-btn">
-            <Plus className="h-4 w-4 mr-2" />
-            Add First Doctor
-          </Button>
-        </Card>
+        <TableSkeleton rows={8} />
       ) : (
-        <LayoutGroup>
-          <motion.div
-            layout
-            className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
-            data-testid="doctors-grid"
-          >
-            {doctors.map((doctor, index) => (
+        <>
+          {viewMode === 'grid' && (
+            doctors.length === 0 ? (
+              <Card className="squircle-lg glass shadow-premium p-12 border-0 text-center">
+                <Stethoscope className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="font-black text-xl mb-2">No Doctors Yet</h3>
+                <p className="text-muted-foreground mb-6">Get started by adding your first doctor</p>
+                <Button onClick={handleCreate} className="squircle bg-primary" data-testid="add-first-doctor-btn">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First Doctor
+                </Button>
+              </Card>
+            ) : (
+              <LayoutGroup>
+                <motion.div
+                  layout
+                  className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
+                  data-testid="doctors-grid"
+                >
+                  {doctors.map((doctor, index) => (
               <motion.div
                 layout
                 key={doctor.id}
@@ -252,9 +323,32 @@ export const DoctorsPage = () => {
                   </div>
                 </Card>
               </motion.div>
-            ))}
-          </motion.div>
-        </LayoutGroup>
+                  ))}
+                </motion.div>
+              </LayoutGroup>
+            )
+          )}
+          {viewMode === 'list' && (
+            <DoctorListView
+              doctors={doctors}
+              onView={handleView}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              getStatusBadge={getStatusBadge}
+              isMobile={isMobile}
+            />
+          )}
+          {viewMode === 'table' && (
+            <DoctorTableView
+              doctors={doctors}
+              onView={handleView}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              getStatusBadge={getStatusBadge}
+              isMobile={isMobile}
+            />
+          )}
+        </>
       )}
 
       {/* Pagination Controls */}
@@ -276,6 +370,16 @@ export const DoctorsPage = () => {
           mode={modalMode}
         />
       )}
+
+      <FilterSheet
+        isOpen={filterSheetOpen}
+        onOpenChange={setFilterSheetOpen}
+        filterSchema={filterSchema}
+        onApply={setFilters}
+        initialValues={filters}
+        viewToggle={isMobile ? viewToggleComponent : null}
+        isMobile={isMobile}
+      />
     </div>
   );
 };
