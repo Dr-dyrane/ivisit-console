@@ -5,21 +5,33 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { getCurrentUser } from './authService';
 
 const TABLE_NAME = 'health_news';
 
 /**
  * Get all health news with optional filters
+ * Admin users can see all news, others see only published news
  */
 export async function getHealthNews(filter) {
   try {
+    const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
+
+    // Apply authorization - admins get full access, others get filtered
+    if (user?.role !== 'admin') {
+      // Non-admin users can only see published news
+      query = query.eq('published', true);
+    }
 
     if (filter?.category) {
       query = query.eq('category', filter.category);
     }
     if (filter?.source) {
       query = query.eq('source', filter.source);
+    }
+    if (filter?.published !== undefined) {
+      query = query.eq('published', filter.published);
     }
 
     query = query.order('created_at', { ascending: false });
@@ -32,12 +44,16 @@ export async function getHealthNews(filter) {
     }
 
     const { data, error } = await query;
-    if (error) throw error;
+
+    if (error) {
+      console.error('Health news query error:', error);
+      return []; // Return empty array on error instead of throwing
+    }
 
     return data || [];
   } catch (error) {
     console.error('Error fetching health news:', error);
-    throw error;
+    return []; // Return empty array on error
   }
 }
 
@@ -191,13 +207,139 @@ export function subscribeToHealthNews(callback) {
         schema: 'public',
         table: TABLE_NAME,
       },
-      (payload) => {
-        if (payload.new) {
-          callback(payload.new, payload.eventType);
-        }
-      }
+      callback
     )
     .subscribe();
 
   return () => supabase.removeChannel(channel);
+}
+
+/**
+ * Toggle publish status
+ */
+export async function toggleHealthNewsPublish(newsId, published) {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .update({ 
+        published,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', newsId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return data;
+  } catch (error) {
+    console.error(`Error toggling publish status for ${newsId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Bulk import health news from array
+ */
+export async function bulkImportHealthNews(newsItems) {
+  try {
+    const itemsWithTimestamps = newsItems.map(item => ({
+      title: item.title,
+      source: item.source,
+      time: item.time || 'Just now',
+      icon: item.icon || 'medical-outline',
+      url: item.url,
+      category: item.category || 'general',
+      published: item.published !== undefined ? item.published : true,
+      priority: item.priority || 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }));
+
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .insert(itemsWithTimestamps)
+      .select();
+
+    if (error) throw error;
+
+    return data || [];
+  } catch (error) {
+    console.error('Error bulk importing health news:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get health news analytics
+ */
+export async function getHealthNewsAnalytics() {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('source, category, published, created_at');
+
+    if (error) {
+      console.error('Analytics query error:', error);
+      // Return default analytics if query fails
+      return {
+        total: 0,
+        published: 0,
+        bySource: {},
+        byCategory: {},
+        recent: 0,
+      };
+    }
+
+    // Handle empty data gracefully
+    if (!data || data.length === 0) {
+      return {
+        total: 0,
+        published: 0,
+        bySource: {},
+        byCategory: {},
+        recent: 0,
+      };
+    }
+
+    // Calculate analytics
+    const analytics = {
+      total: data?.length || 0,
+      published: data?.filter(item => item.published).length || 0,
+      bySource: {},
+      byCategory: {},
+      recent: data?.filter(item => {
+        const createdAt = new Date(item.created_at);
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return createdAt > weekAgo;
+      }).length || 0,
+    };
+
+    // Group by source
+    data?.forEach(item => {
+      if (item.source) {
+        analytics.bySource[item.source] = (analytics.bySource[item.source] || 0) + 1;
+      }
+    });
+
+    // Group by category
+    data?.forEach(item => {
+      if (item.category) {
+        analytics.byCategory[item.category] = (analytics.byCategory[item.category] || 0) + 1;
+      }
+    });
+
+    return analytics;
+  } catch (error) {
+    console.error('Error fetching health news analytics:', error);
+    // Return default analytics on error
+    return {
+      total: 0,
+      published: 0,
+      bySource: {},
+      byCategory: {},
+      recent: 0,
+    };
+  }
 }

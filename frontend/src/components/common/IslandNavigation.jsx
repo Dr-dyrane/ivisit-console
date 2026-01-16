@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MapPin, FileCheck, TrendingUp, Settings, Menu, X, Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance, Users, Moon, Sun, LogOut, User, Ellipsis, ChevronRight } from 'lucide-react';
+import { Home, MapPin, FileCheck, TrendingUp, Settings, Menu, X, Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance, Users, Moon, Sun, LogOut, User, Ellipsis, ChevronRight, Newspaper, Headphones, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -158,6 +158,9 @@ export const IslandNavigation = () => {
     { path: '/users', icon: Users, label: 'Users', minRole: 'admin' },
     { path: '/visits', icon: Calendar, label: 'Visits', minRole: 'provider' },
     { path: '/emergencies', icon: AlertTriangle, label: 'Emergencies', minRole: 'provider' },
+    { path: '/health-news', icon: Newspaper, label: 'Health News', minRole: 'admin' },
+    { path: '/support-tickets', icon: Headphones, label: 'Support', minRole: 'viewer' },
+    { path: '/insurance', icon: Shield, label: 'Insurance', minRole: 'admin' },
     { path: '/settings', icon: Settings, label: 'Settings', minRole: 'viewer' },
   ];
 

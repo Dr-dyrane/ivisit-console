@@ -33,6 +33,9 @@ import { EmergencyRequestsPage } from "./components/pages/EmergencyRequestsPage"
 import { LoginPage } from "./components/pages/LoginPage";
 import { SettingsPage } from "./components/pages/SettingsPage";
 import { NotFoundPage } from "./components/pages/NotFoundPage";
+import { HealthNewsManagementPage } from "./components/pages/HealthNewsManagementPage";
+import { SupportTicketsPage } from "./components/pages/SupportTicketsPage";
+import { InsuranceManagementPage } from "./components/pages/InsuranceManagementPage";
 import { Toaster } from "./components/ui/sonner";
 import NoiseOverlay from "./components/ui/noise-overlay";
 import AuthWrapper from "./components/common/AuthWrapper";
@@ -233,6 +236,31 @@ function AppRoutes() {
 						element={
 							<ProtectedRoute>
 								<SettingsPage />
+							</ProtectedRoute>
+						}
+					/>
+					{/* Management routes */}
+					<Route
+						path="/health-news"
+						element={
+							<ProtectedRoute minRole="admin">
+								<HealthNewsManagementPage />
+							</ProtectedRoute>
+						}
+					/>
+					<Route
+						path="/support-tickets"
+						element={
+							<ProtectedRoute minRole="viewer">
+								<SupportTicketsPage />
+							</ProtectedRoute>
+						}
+					/>
+					<Route
+						path="/insurance"
+						element={
+							<ProtectedRoute minRole="admin">
+								<InsuranceManagementPage />
 							</ProtectedRoute>
 						}
 					/>

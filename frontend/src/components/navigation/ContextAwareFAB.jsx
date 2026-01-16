@@ -8,6 +8,9 @@ import { HospitalModal } from '../modals/HospitalModal';
 import { AmbulanceModal } from '../modals/AmbulanceModal';
 import { DoctorModal } from '../modals/DoctorModal';
 import { VisitModal } from '../modals/VisitModal';
+import { HealthNewsModal } from '../modals/HealthNewsModal';
+import { SupportTicketModal } from '../modals/SupportTicketModal';
+import { InsuranceModal } from '../modals/InsuranceModal';
 
 export const ContextAwareFAB = () => {
   const { isDesktop } = useNavigation();
@@ -17,7 +20,10 @@ export const ContextAwareFAB = () => {
     hospital: false,
     ambulance: false,
     doctor: false,
-    visit: false
+    visit: false,
+    healthNews: false,
+    supportTicket: false,
+    insurance: false
   });
 
   const openModal = (type) => {
@@ -92,6 +98,9 @@ export const ContextAwareFAB = () => {
             case 'ambulance': return <AmbulanceModal key={key} {...props} />;
             case 'doctor': return <DoctorModal key={key} {...props} />;
             case 'visit': return <VisitModal key={key} {...props} />;
+            case 'healthNews': return <HealthNewsModal key={key} {...props} />;
+            case 'supportTicket': return <SupportTicketModal key={key} {...props} />;
+            case 'insurance': return <InsuranceModal key={key} {...props} />;
             default: return null;
           }
         })}

@@ -4,7 +4,7 @@ import { useNavigation } from '../../contexts/NavigationContext';
 import { usePageData } from '../../contexts/PageDataContext';
 import { ContextPanel } from './ContextPanel';
 import { DynamicBottomBar } from './DynamicBottomBar';
-import { X, ChevronLeft, AlertTriangle, Users, BarChart3, Stethoscope, Calendar, Shield, Hospital, Ambulance } from 'lucide-react';
+import { X, ChevronLeft, AlertTriangle, Users, BarChart3, Stethoscope, Calendar, Shield, Hospital, Ambulance, Newspaper, Headphones } from 'lucide-react';
 
 import { useLayout } from '../../contexts/LayoutContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -70,6 +70,18 @@ export const ResponsiveSidebar = () => {
       path: '/ambulances',
       badge: analyticsData.availableAmbulances,
       color: 'warning'
+    },
+    {
+      icon: Newspaper,
+      path: '/health-news',
+      badge: null,
+      color: 'muted'
+    },
+    {
+      icon: Headphones,
+      path: '/support-tickets',
+      badge: null,
+      color: 'muted'
     },
     {
       icon: Users,

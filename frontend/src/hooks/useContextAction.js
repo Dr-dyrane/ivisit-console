@@ -9,7 +9,9 @@ import {
     Calendar,
     Shield,
     Settings,
-    BarChart3
+    BarChart3,
+    Newspaper,
+    Headphones
 } from 'lucide-react';
 
 export const useContextAction = (openModal) => {
@@ -96,6 +98,20 @@ export const useContextAction = (openModal) => {
             action: () => {
                 navigate('/settings?quick=true');
             }
+        };
+    } else if (currentPath.includes('/health-news')) {
+        return {
+            icon: Newspaper,
+            label: 'Add News',
+            color: 'primary',
+            action: () => openModal('healthNews')
+        };
+    } else if (currentPath.includes('/support-tickets')) {
+        return {
+            icon: Headphones,
+            label: 'Create Ticket',
+            color: 'primary',
+            action: () => openModal('supportTicket')
         };
     } else {
         return {

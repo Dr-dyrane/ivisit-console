@@ -5,21 +5,39 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { getCurrentUser } from './authService';
 
 const TABLE_NAME = 'support_tickets';
 
 /**
  * Get support tickets with optional filters
+ * Admin users can see all tickets, others see only their own
  */
 export async function getSupportTickets(filter) {
   try {
+    const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
 
-    if (filter?.user_id) {
+    // Apply authorization - admins get full access, others get filtered
+    if (user?.role !== 'admin') {
+      // Non-admin users can only see their own tickets
+      query = query.eq('user_id', user?.id);
+    } else if (filter?.user_id) {
+      // Admin can filter by specific user if needed
       query = query.eq('user_id', filter.user_id);
     }
+
     if (filter?.status) {
       query = query.eq('status', filter.status);
+    }
+    if (filter?.priority) {
+      query = query.eq('priority', filter.priority);
+    }
+    if (filter?.category) {
+      query = query.eq('category', filter.category);
+    }
+    if (filter?.assigned_to) {
+      query = query.eq('assigned_to', filter.assigned_to);
     }
 
     query = query.order('created_at', { ascending: false });
@@ -32,12 +50,16 @@ export async function getSupportTickets(filter) {
     }
 
     const { data, error } = await query;
-    if (error) throw error;
+
+    if (error) {
+      console.error('Support tickets query error:', error);
+      return []; // Return empty array on error instead of throwing
+    }
 
     return data || [];
   } catch (error) {
     console.error('Error fetching support tickets:', error);
-    throw error;
+    return []; // Return empty array on error
   }
 }
 
@@ -197,23 +219,102 @@ export async function getOpenTicketsCount() {
 }
 
 /**
- * Subscribe to support tickets
+ * Assign ticket to agent
+ */
+export async function assignTicket(ticketId, assignedTo) {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .update({ 
+        assigned_to: assignedTo,
+        status: 'in_progress',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', ticketId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return data;
+  } catch (error) {
+    console.error(`Error assigning ticket ${ticketId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get support ticket analytics
+ */
+export async function getSupportTicketsAnalytics() {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('status, priority, category, created_at, updated_at');
+
+    if (error) throw error;
+
+    // Calculate analytics
+    const analytics = {
+      total: data?.length || 0,
+      byStatus: {},
+      byPriority: {},
+      byCategory: {},
+      recent: data?.filter(item => {
+        const createdAt = new Date(item.created_at);
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return createdAt > weekAgo;
+      }).length || 0,
+      resolved: data?.filter(item => item.status === 'resolved').length || 0,
+      averageResolutionTime: 0,
+    };
+
+    // Group by status
+    data?.forEach(item => {
+      analytics.byStatus[item.status] = (analytics.byStatus[item.status] || 0) + 1;
+    });
+
+    // Group by priority
+    data?.forEach(item => {
+      analytics.byPriority[item.priority] = (analytics.byPriority[item.priority] || 0) + 1;
+    });
+
+    // Group by category
+    data?.forEach(item => {
+      analytics.byCategory[item.category] = (analytics.byCategory[item.category] || 0) + 1;
+    });
+
+    // Calculate average resolution time
+    const resolvedTickets = data?.filter(item => 
+      item.status === 'resolved' && item.updated_at && item.created_at
+    );
+    if (resolvedTickets?.length > 0) {
+      const totalTime = resolvedTickets.reduce((sum, ticket) => {
+        const created = new Date(ticket.created_at);
+        const updated = new Date(ticket.updated_at);
+        return sum + (updated - created);
+      }, 0);
+      analytics.averageResolutionTime = totalTime / resolvedTickets.length / (1000 * 60 * 60); // in hours
+    }
+
+    return analytics;
+  } catch (error) {
+    console.error('Error fetching support tickets analytics:', error);
+    throw error;
+  }
+}
+
+/**
+ * Subscribe to support tickets changes
  */
 export function subscribeToSupportTickets(callback) {
   const channel = supabase
-    .channel('support_tickets_all')
+    .channel('support_tickets_changes')
     .on(
       'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: TABLE_NAME,
-      },
-      (payload) => {
-        if (payload.new) {
-          callback(payload.new, payload.eventType);
-        }
-      }
+      { event: '*', schema: 'public', table: TABLE_NAME },
+      callback
     )
     .subscribe();
 
