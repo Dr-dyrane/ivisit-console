@@ -73,6 +73,19 @@ export const VisitsPage = () => {
     fetchVisits();
   }, [fetchVisits, pagination.currentPage]);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('visits')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'visits' },
+        () => fetchVisits()
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [fetchVisits]);
+
   const handleCreate = useCallback(() => {
     setSelectedVisit(null);
     setModalMode('create');
