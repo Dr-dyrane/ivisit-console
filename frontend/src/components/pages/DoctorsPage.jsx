@@ -4,6 +4,7 @@ import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -107,6 +108,12 @@ export const DoctorsPage = () => {
 
       if (error) throw error;
 
+      await createNotification(
+        NotificationTypes.DOCTOR,
+        NotificationActions.DELETED,
+        doctor.id,
+        { message: `Dr. ${doctor.name} has been removed from the system` }
+      );
       toast.success('Doctor deleted successfully');
       fetchDoctors();
     } catch (error) {

@@ -11,6 +11,7 @@ import { X, Siren, MapPin, Clock, Activity, Phone, User, AlertTriangle, Navigati
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
+import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 
 export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
   const isView = mode === 'view';
@@ -67,11 +68,23 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
       delete submitData.profiles;
 
       if (isCreate) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('emergency_requests')
-          .insert([submitData]);
+          .insert([submitData])
+          .select();
         
         if (error) throw error;
+        
+        const createdId = data?.[0]?.id;
+        if (createdId) {
+          await createNotification(
+            NotificationTypes.EMERGENCY,
+            NotificationActions.CREATED,
+            createdId,
+            { message: `Emergency request created - Priority: ${submitData.priority}` }
+          );
+        }
+        
         toast.success('Emergency request dispatched');
       } else if (isEdit) {
         const { error } = await supabase
@@ -80,6 +93,14 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
           .eq('id', request.id);
         
         if (error) throw error;
+        
+        await createNotification(
+          NotificationTypes.EMERGENCY,
+          NotificationActions.UPDATED,
+          request.id,
+          { message: `Emergency request updated - Status: ${submitData.status}` }
+        );
+        
         toast.success('Incident report updated');
       }
       

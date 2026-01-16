@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useContextAction } from '../../hooks/useContextAction';
-import { Menu, Zap } from 'lucide-react';
+import { Menu, Zap, Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetOverlay } from '../ui/sheet';
 import { ContextPanel } from './ContextPanel';
 import { MobileNavMenu } from './MobileNavMenu';
@@ -13,7 +13,8 @@ import { HospitalModal } from '../modals/HospitalModal';
 import { AmbulanceModal } from '../modals/AmbulanceModal';
 import { DoctorModal } from '../modals/DoctorModal';
 import { VisitModal } from '../modals/VisitModal';
-
+import { NotificationCenter } from '../common/NotificationCenter';
+import { QuickSearch } from './QuickSearch';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export const DynamicBottomBar = () => {
@@ -21,6 +22,7 @@ export const DynamicBottomBar = () => {
     const { isScrolledDown } = useLayout();
     const { theme } = useTheme();
     const [sheetOpen, setSheetOpen] = useState(false);
+    const [searchOpen, setSearchOpen] = useState(false);
     const [activeView, setActiveView] = useState('menu');
     const [modalStates, setModalStates] = useState({
         emergency: false,
@@ -86,18 +88,37 @@ export const DynamicBottomBar = () => {
                         {/* Divider */}
                         <div className="w-px h-6 bg-white/10 mx-1" />
 
+                        {/* Search */}
+                        <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setSearchOpen(true)}
+                            className="w-12 h-12 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors"
+                        >
+                            <Search className="w-6 h-6 text-white" />
+                        </motion.button>
+
+                        {/* Divider */}
+                        <div className="w-px h-6 bg-white/10 mx-1" />
+
+                        {/* Notifications */}
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center">
+                            <NotificationCenter />
+                        </div>
+
+                        {/* Divider */}
+                        <div className="w-px h-6 bg-white/10 mx-1" />
+
                         {/* Context Action */}
                         <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={actionConfig.action}
-                            className="h-12 px-6 rounded-full flex items-center gap-2 font-medium text-white transition-all"
+                            className="w-12 h-12 rounded-full flex items-center justify-center transition-all"
                             style={{
                                 background: `linear-gradient(135deg, hsl(var(--${actionConfig.color})) 0%, hsl(var(--${actionConfig.color}) / 0.8) 100%)`,
                                 boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                             }}
                         >
-                            <actionConfig.icon className="w-5 h-5" />
-                            <span>{actionConfig.label}</span>
+                            <actionConfig.icon className="w-6 h-6 text-white" />
                         </motion.button>
                     </div>
                 </motion.div>
@@ -199,6 +220,9 @@ export const DynamicBottomBar = () => {
                     }
                 })}
             </AnimatePresence>
+
+            {/* Search Dialog */}
+            <QuickSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
         </>
     );
 };

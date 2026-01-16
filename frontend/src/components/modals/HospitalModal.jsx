@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { X, Hospital, MapPin, Phone, Bed, Ambulance, Star, Clock, Activity } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { motion } from 'framer-motion';
+import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 
 export const HospitalModal = ({ isOpen, onClose, hospital, mode }) => {
   const isView = mode === 'view';
@@ -49,11 +50,18 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode }) => {
 
     try {
       if (isCreate) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('hospitals')
-          .insert([formData]);
+          .insert([formData])
+          .select();
         
         if (error) throw error;
+        await createNotification(
+          NotificationTypes.HOSPITAL,
+          NotificationActions.CREATED,
+          data?.[0]?.id || 'unknown',
+          { message: `${formData.name} has been added to the network` }
+        );
         toast.success('Hospital created successfully');
       } else if (isEdit) {
         const { error } = await supabase
@@ -62,6 +70,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode }) => {
           .eq('id', hospital.id);
         
         if (error) throw error;
+        await createNotification(
+          NotificationTypes.HOSPITAL,
+          NotificationActions.UPDATED,
+          hospital.id,
+          { message: `${formData.name} information has been updated` }
+        );
         toast.success('Hospital updated successfully');
       }
       

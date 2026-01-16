@@ -4,6 +4,7 @@ import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -98,6 +99,12 @@ export const VisitsPage = () => {
 
       if (error) throw error;
 
+      await createNotification(
+        NotificationTypes.VISIT,
+        NotificationActions.CANCELLED,
+        visit.id,
+        { message: `Visit has been cancelled` }
+      );
       toast.success('Visit deleted successfully');
       fetchVisits();
     } catch (error) {

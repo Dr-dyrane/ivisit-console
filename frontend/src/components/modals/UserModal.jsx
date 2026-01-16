@@ -11,6 +11,7 @@ import { X, User, Phone, Mail, MapPin, Calendar, Shield, CreditCard, BadgeCheck 
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { motion } from 'framer-motion';
+import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 
 export const UserModal = ({ isOpen, onClose, user, mode }) => {
   const isView = mode === 'view';
@@ -45,11 +46,18 @@ export const UserModal = ({ isOpen, onClose, user, mode }) => {
 
     try {
       if (isCreate) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
-          .insert([formData]);
+          .insert([formData])
+          .select();
         
         if (error) throw error;
+        await createNotification(
+          NotificationTypes.USER,
+          NotificationActions.CREATED,
+          data?.[0]?.id || 'unknown',
+          { message: `User ${formData.username} has been added to the system` }
+        );
         toast.success('User created successfully');
       } else if (isEdit) {
         const { error } = await supabase
@@ -58,6 +66,12 @@ export const UserModal = ({ isOpen, onClose, user, mode }) => {
           .eq('id', user.id);
         
         if (error) throw error;
+        await createNotification(
+          NotificationTypes.USER,
+          NotificationActions.UPDATED,
+          user.id,
+          { message: `User ${formData.username} information has been updated` }
+        );
         toast.success('User updated successfully');
       }
       

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { BentoBreadcrumbs } from './BentoBreadcrumbs';
 import { QuickSearch } from './QuickSearch';
-import { NotificationCenter } from './NotificationCenter';
+import { NotificationCenter } from '../common/NotificationCenter';
 import { Search } from 'lucide-react';
 import { Button } from '../ui/button';
 

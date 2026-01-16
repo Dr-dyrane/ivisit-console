@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { X, Ambulance, MapPin, Activity, Star, Calendar, Hospital } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { motion } from 'framer-motion';
+import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 
 export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
   const isView = mode === 'view';
@@ -42,11 +43,18 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
 
     try {
       if (isCreate) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('ambulances')
-          .insert([formData]);
+          .insert([formData])
+          .select();
         
         if (error) throw error;
+        await createNotification(
+          NotificationTypes.AMBULANCE,
+          NotificationActions.CREATED,
+          data?.[0]?.id || 'unknown',
+          { message: `${formData.call_sign} has been added to the fleet` }
+        );
         toast.success('Ambulance created successfully');
       } else if (isEdit) {
         const { error } = await supabase
@@ -55,6 +63,12 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
           .eq('id', ambulance.id);
         
         if (error) throw error;
+        await createNotification(
+          NotificationTypes.AMBULANCE,
+          NotificationActions.UPDATED,
+          ambulance.id,
+          { message: `${formData.call_sign} information has been updated` }
+        );
         toast.success('Ambulance updated successfully');
       }
       

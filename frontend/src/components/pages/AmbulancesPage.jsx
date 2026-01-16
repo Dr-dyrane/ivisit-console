@@ -4,6 +4,7 @@ import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
+import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -98,6 +99,12 @@ export const AmbulancesPage = () => {
 
       if (error) throw error;
 
+      await createNotification(
+        NotificationTypes.AMBULANCE,
+        NotificationActions.DELETED,
+        ambulance.id,
+        { message: `${ambulance.call_sign} has been removed from the fleet` }
+      );
       toast.success('Ambulance deleted successfully');
       fetchAmbulances();
     } catch (error) {

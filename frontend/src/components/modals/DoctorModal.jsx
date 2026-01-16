@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { X, Stethoscope, Mail, Phone, Building, Award, Star, Activity, User } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 
 export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
   const isView = mode === 'view';
@@ -66,11 +67,18 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
       delete submitData.hospitals; // Remove joined data
 
       if (isCreate) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('doctors')
-          .insert([submitData]);
+          .insert([submitData])
+          .select();
         
         if (error) throw error;
+        await createNotification(
+          NotificationTypes.DOCTOR,
+          NotificationActions.CREATED,
+          data?.[0]?.id || 'unknown',
+          { message: `Dr. ${submitData.name} has been added to the system` }
+        );
         toast.success('Doctor added successfully');
       } else if (isEdit) {
         const { error } = await supabase
@@ -79,6 +87,12 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
           .eq('id', doctor.id);
         
         if (error) throw error;
+        await createNotification(
+          NotificationTypes.DOCTOR,
+          NotificationActions.UPDATED,
+          doctor.id,
+          { message: `Dr. ${submitData.name} information has been updated` }
+        );
         toast.success('Doctor updated successfully');
       }
       

@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { X, Calendar, User, Hospital, Clock, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 
 export const VisitModal = ({ isOpen, onClose, visit, mode }) => {
   const isView = mode === 'view';
@@ -78,11 +79,18 @@ export const VisitModal = ({ isOpen, onClose, visit, mode }) => {
       delete submitData.hospital_name; // Remove any injected extra fields
 
       if (isCreate) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('visits')
-          .insert([submitData]);
+          .insert([submitData])
+          .select();
         
         if (error) throw error;
+        await createNotification(
+          NotificationTypes.VISIT,
+          NotificationActions.CREATED,
+          data?.[0]?.id || 'unknown',
+          { message: `New visit has been scheduled` }
+        );
         toast.success('Visit scheduled successfully');
       } else if (isEdit) {
         const { error } = await supabase
@@ -91,6 +99,12 @@ export const VisitModal = ({ isOpen, onClose, visit, mode }) => {
           .eq('id', visit.id);
         
         if (error) throw error;
+        await createNotification(
+          NotificationTypes.VISIT,
+          NotificationActions.UPDATED,
+          visit.id,
+          { message: `Visit has been updated` }
+        );
         toast.success('Visit updated successfully');
       }
       
