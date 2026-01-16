@@ -22,12 +22,6 @@ export const QuickSearch = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (isOpen) {
-      loadRecentsAndTrending();
-    }
-  }, [isOpen, loadRecentsAndTrending]);
-
   const loadRecentsAndTrending = useCallback(async () => {
     const [recents, trending] = await Promise.all([
       searchService.getRecentSearches(8),
@@ -36,6 +30,12 @@ export const QuickSearch = ({ isOpen, onClose }) => {
     setRecentSearches(recents);
     setTrendingSearches(trending);
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadRecentsAndTrending();
+    }
+  }, [isOpen, loadRecentsAndTrending]);
 
   const handleSearch = useCallback(async (q) => {
     setQuery(q);
