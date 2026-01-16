@@ -310,6 +310,8 @@ export const AmbulancesPage = () => {
       <PaginationControls
         currentPage={pagination.currentPage}
         totalPages={pagination.totalPages}
+        totalCount={pagination.totalCount}
+        itemsPerPage={pagination.itemsPerPage}
         onPrevPage={pagination.prevPage}
         onNextPage={pagination.nextPage}
         hasPrevPage={pagination.hasPrevPage}

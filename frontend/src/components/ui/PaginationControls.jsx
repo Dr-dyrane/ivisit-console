@@ -8,6 +8,8 @@ import { Button } from './button';
  * @param {Object} props
  * @param {number} props.currentPage - Current page number (1-indexed)
  * @param {number} props.totalPages - Total number of pages
+ * @param {number} props.totalCount - Total item count
+ * @param {number} props.itemsPerPage - Items per page
  * @param {Function} props.onPrevPage - Previous page handler
  * @param {Function} props.onNextPage - Next page handler
  * @param {boolean} props.hasPrevPage - Whether previous page exists
@@ -17,6 +19,8 @@ import { Button } from './button';
 export const PaginationControls = ({
     currentPage,
     totalPages,
+    totalCount = 0,
+    itemsPerPage = 20,
     onPrevPage,
     onNextPage,
     hasPrevPage,
