@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader } from '../../contexts/LayoutContext';
 import { Card } from '../ui/card';
@@ -21,11 +21,7 @@ export const UsersPage = () => {
 
 
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await withTimeout(
@@ -45,24 +41,28 @@ export const UsersPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleCreate = () => {
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const handleCreate = useCallback(() => {
     setSelectedUser(null);
     setModalMode('create');
-  };
+  }, []);
 
-  const handleView = (user) => {
+  const handleView = useCallback((user) => {
     setSelectedUser(user);
     setModalMode('view');
-  };
+  }, []);
 
-  const handleEdit = (user) => {
+  const handleEdit = useCallback((user) => {
     setSelectedUser(user);
     setModalMode('edit');
-  };
+  }, []);
 
-  const handleDelete = async (user) => {
+  const handleDelete = useCallback(async (user) => {
     if (!confirm(`Are you sure you want to delete ${user.username}?`)) return;
 
     try {
@@ -79,15 +79,15 @@ export const UsersPage = () => {
       console.error('Error deleting user:', error);
       toast.error('Failed to delete user');
     }
-  };
+  }, [fetchUsers]);
 
-  const handleModalClose = (shouldRefresh) => {
+  const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
     setSelectedUser(null);
     if (shouldRefresh) {
       fetchUsers();
     }
-  };
+  }, [fetchUsers]);
 
   const getRoleBadge = (role) => {
     const badges = {
@@ -106,7 +106,7 @@ export const UsersPage = () => {
       <Plus className="h-4 w-4 mr-2" />
       ADD USER
     </Button>
-  ), []);
+  ), [handleCreate]);
 
   usePageHeader("Identity Management", headerActions);
 

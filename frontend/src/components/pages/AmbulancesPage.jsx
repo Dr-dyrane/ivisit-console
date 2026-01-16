@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader } from '../../contexts/LayoutContext';
 import { Card } from '../ui/card';
@@ -21,11 +21,7 @@ export const AmbulancesPage = () => {
 
 
 
-  useEffect(() => {
-    fetchAmbulances();
-  }, []);
-
-  const fetchAmbulances = async () => {
+  const fetchAmbulances = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await withTimeout(
@@ -45,24 +41,28 @@ export const AmbulancesPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleCreate = () => {
+  useEffect(() => {
+    fetchAmbulances();
+  }, [fetchAmbulances]);
+
+  const handleCreate = useCallback(() => {
     setSelectedAmbulance(null);
     setModalMode('create');
-  };
+  }, []);
 
-  const handleView = (ambulance) => {
+  const handleView = useCallback((ambulance) => {
     setSelectedAmbulance(ambulance);
     setModalMode('view');
-  };
+  }, []);
 
-  const handleEdit = (ambulance) => {
+  const handleEdit = useCallback((ambulance) => {
     setSelectedAmbulance(ambulance);
     setModalMode('edit');
-  };
+  }, []);
 
-  const handleDelete = async (ambulance) => {
+  const handleDelete = useCallback(async (ambulance) => {
     if (!confirm(`Are you sure you want to delete ${ambulance.call_sign}?`)) return;
 
     try {
@@ -79,15 +79,15 @@ export const AmbulancesPage = () => {
       console.error('Error deleting ambulance:', error);
       toast.error('Failed to delete ambulance');
     }
-  };
+  }, [fetchAmbulances]);
 
-  const handleModalClose = (shouldRefresh) => {
+  const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
     setSelectedAmbulance(null);
     if (shouldRefresh) {
       fetchAmbulances();
     }
-  };
+  }, [fetchAmbulances]);
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -107,7 +107,7 @@ export const AmbulancesPage = () => {
       <Plus className="h-4 w-4 mr-2" />
       ADD AMBULANCE
     </Button>
-  ), []);
+  ), [handleCreate]);
 
   usePageHeader("Fleet Management", headerActions);
 

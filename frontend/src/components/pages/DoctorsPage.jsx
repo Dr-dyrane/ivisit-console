@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader } from '../../contexts/LayoutContext';
 import { Card } from '../ui/card';
@@ -20,11 +20,7 @@ export const DoctorsPage = () => {
 
 
 
-  useEffect(() => {
-    fetchDoctors();
-  }, []);
-
-  const fetchDoctors = async () => {
+  const fetchDoctors = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -40,24 +36,28 @@ export const DoctorsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleCreate = () => {
+  useEffect(() => {
+    fetchDoctors();
+  }, [fetchDoctors]);
+
+  const handleCreate = useCallback(() => {
     setSelectedDoctor(null);
     setModalMode('create');
-  };
+  }, []);
 
-  const handleView = (doctor) => {
+  const handleView = useCallback((doctor) => {
     setSelectedDoctor(doctor);
     setModalMode('view');
-  };
+  }, []);
 
-  const handleEdit = (doctor) => {
+  const handleEdit = useCallback((doctor) => {
     setSelectedDoctor(doctor);
     setModalMode('edit');
-  };
+  }, []);
 
-  const handleDelete = async (doctor) => {
+  const handleDelete = useCallback(async (doctor) => {
     if (!window.confirm(`Are you sure you want to delete Dr. ${doctor.name}?`)) return;
 
     try {
@@ -74,15 +74,15 @@ export const DoctorsPage = () => {
       console.error('Error deleting doctor:', error);
       toast.error('Failed to delete doctor');
     }
-  };
+  }, [fetchDoctors]);
 
-  const handleModalClose = (shouldRefresh) => {
+  const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
     setSelectedDoctor(null);
     if (shouldRefresh) {
       fetchDoctors();
     }
-  };
+  }, [fetchDoctors]);
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -101,7 +101,7 @@ export const DoctorsPage = () => {
       <Plus className="h-4 w-4 mr-2" />
       ADD DOCTOR
     </Button>
-  ), []);
+  ), [handleCreate]);
 
   usePageHeader("Medical Staff", headerActions);
 

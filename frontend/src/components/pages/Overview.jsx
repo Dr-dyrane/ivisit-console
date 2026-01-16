@@ -25,20 +25,7 @@ export const Overview = () => {
 
 
 
-  useEffect(() => {
-    fetchStats();
-    fetchRecentRequests();
-    generateChartData();
-
-    const unsubscribe = subscribeToTable('emergency_requests', () => {
-      fetchStats();
-      fetchRecentRequests();
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const [requestsRes, usersRes, hospitalsRes, ambulancesRes] = await Promise.all([
         supabase.from('emergency_requests').select('*', { count: 'exact' }),
@@ -63,9 +50,9 @@ export const Overview = () => {
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
-  };
+  }, []);
 
-  const fetchRecentRequests = async () => {
+  const fetchRecentRequests = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('emergency_requests')
@@ -82,7 +69,32 @@ export const Overview = () => {
     } catch (error) {
       console.error('Error fetching recent requests:', error);
     }
-  };
+  }, []);
+
+  const generateChartData = useCallback(() => {
+    const data = [
+      { name: 'Jan', requests: 400 },
+      { name: 'Feb', requests: 300 },
+      { name: 'Mar', requests: 600 },
+      { name: 'Apr', requests: 800 },
+      { name: 'May', requests: 500 },
+      { name: 'Jun', requests: 900 },
+    ];
+    setChartData(data);
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+    fetchRecentRequests();
+    generateChartData();
+
+    const unsubscribe = subscribeToTable('emergency_requests', () => {
+      fetchStats();
+      fetchRecentRequests();
+    });
+
+    return () => unsubscribe();
+  }, [fetchStats, fetchRecentRequests, generateChartData]);
 
   const headerActions = React.useMemo(() => (
     <Button
@@ -97,22 +109,10 @@ export const Overview = () => {
       <RefreshCw className="h-4 w-4 mr-2" />
       RELOAD
     </Button>
-  ), []);
+  ), [fetchStats, fetchRecentRequests]);
 
   usePageHeader("Dashboard Overview", headerActions);
 
-  const generateChartData = () => {
-    const data = [
-      { name: 'Mon', requests: 12, completed: 10 },
-      { name: 'Tue', requests: 19, completed: 17 },
-      { name: 'Wed', requests: 15, completed: 14 },
-      { name: 'Thu', requests: 22, completed: 20 },
-      { name: 'Fri', requests: 18, completed: 16 },
-      { name: 'Sat', requests: 25, completed: 23 },
-      { name: 'Sun', requests: 20, completed: 18 },
-    ];
-    setChartData(data);
-  };
 
   return (
     <div className="space-y-6 animate-fadeIn">

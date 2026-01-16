@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader } from '../../contexts/LayoutContext';
 import { Card } from '../ui/card';
@@ -20,11 +20,7 @@ export const VisitsPage = () => {
 
 
 
-  useEffect(() => {
-    fetchVisits();
-  }, []);
-
-  const fetchVisits = async () => {
+  const fetchVisits = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -40,24 +36,28 @@ export const VisitsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleCreate = () => {
+  useEffect(() => {
+    fetchVisits();
+  }, [fetchVisits]);
+
+  const handleCreate = useCallback(() => {
     setSelectedVisit(null);
     setModalMode('create');
-  };
+  }, []);
 
-  const handleView = (visit) => {
+  const handleView = useCallback((visit) => {
     setSelectedVisit(visit);
     setModalMode('view');
-  };
+  }, []);
 
-  const handleEdit = (visit) => {
+  const handleEdit = useCallback((visit) => {
     setSelectedVisit(visit);
     setModalMode('edit');
-  };
+  }, []);
 
-  const handleDelete = async (visit) => {
+  const handleDelete = useCallback(async (visit) => {
     if (!window.confirm('Are you sure you want to delete this visit?')) return;
 
     try {
@@ -74,15 +74,15 @@ export const VisitsPage = () => {
       console.error('Error deleting visit:', error);
       toast.error('Failed to delete visit');
     }
-  };
+  }, [fetchVisits]);
 
-  const handleModalClose = (shouldRefresh) => {
+  const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
     setSelectedVisit(null);
     if (shouldRefresh) {
       fetchVisits();
     }
-  };
+  }, [fetchVisits]);
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -112,7 +112,7 @@ export const VisitsPage = () => {
       <Plus className="h-4 w-4 mr-2" />
       SCHEDULE VISIT
     </Button>
-  ), []);
+  ), [handleCreate]);
 
   usePageHeader("Patient Visits", headerActions);
 

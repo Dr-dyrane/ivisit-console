@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card } from '../ui/card';
@@ -17,7 +17,7 @@ export const SettingsPage = () => {
 
 
 
-    const handleSignOut = async () => {
+    const handleSignOut = useCallback(async () => {
         try {
             await signOut();
             toast.success('Signed out successfully');
@@ -25,7 +25,7 @@ export const SettingsPage = () => {
         } catch (error) {
             toast.error('Failed to sign out');
         }
-    };
+    }, [signOut, navigate]);
 
     const headerActions = React.useMemo(() => (
         <Button

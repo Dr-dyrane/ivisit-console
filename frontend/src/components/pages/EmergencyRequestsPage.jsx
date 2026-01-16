@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader } from '../../contexts/LayoutContext';
 import { Card } from '../ui/card';
@@ -36,19 +36,7 @@ export const EmergencyRequestsPage = () => {
 
 
 
-  useEffect(() => {
-    fetchRequests();
-
-    // Real-time updates
-    const channel = supabase
-      .channel('emergency_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_requests' }, fetchRequests)
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, []);
-
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await withTimeout(
@@ -68,7 +56,19 @@ export const EmergencyRequestsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchRequests();
+
+    // Real-time updates
+    const channel = supabase
+      .channel('emergency_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_requests' }, fetchRequests)
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [fetchRequests]);
 
   const headerActions = React.useMemo(() => (
     <div className="flex items-center gap-2">
@@ -89,7 +89,7 @@ export const EmergencyRequestsPage = () => {
         <Filter className="h-4 w-4" />
       </Button>
     </div>
-  ), []);
+  ), [fetchRequests]);
 
   usePageHeader('Emergency Logs', headerActions);
 

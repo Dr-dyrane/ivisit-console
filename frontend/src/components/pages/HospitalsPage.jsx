@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader } from '../../contexts/LayoutContext';
@@ -49,22 +49,22 @@ export const HospitalsPage = () => {
     }
   };
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     setSelectedHospital(null);
     setModalMode('create');
-  };
+  }, []);
 
-  const handleView = (hospital) => {
+  const handleView = useCallback((hospital) => {
     setSelectedHospital(hospital);
     setModalMode('view');
-  };
+  }, []);
 
-  const handleEdit = (hospital) => {
+  const handleEdit = useCallback((hospital) => {
     setSelectedHospital(hospital);
     setModalMode('edit');
-  };
+  }, []);
 
-  const handleDelete = async (hospital) => {
+  const handleDelete = useCallback(async (hospital) => {
     if (!confirm(`Are you sure you want to delete ${hospital.name}?`)) return;
 
     try {
@@ -81,15 +81,15 @@ export const HospitalsPage = () => {
       console.error('Error deleting hospital:', error);
       toast.error('Failed to delete hospital');
     }
-  };
+  }, [fetchHospitals]);
 
-  const handleModalClose = (shouldRefresh) => {
+  const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
     setSelectedHospital(null);
     if (shouldRefresh) {
       fetchHospitals();
     }
-  };
+  }, [fetchHospitals]);
 
   const headerActions = React.useMemo(() => (isAdmin() || isProvider()) && (
     <Button
@@ -99,7 +99,7 @@ export const HospitalsPage = () => {
       <Plus className="h-4 w-4 mr-2" />
       ADD HOSPITAL
     </Button>
-  ), [isAdmin, isProvider]);
+  ), [isAdmin, isProvider, handleCreate]);
 
   usePageHeader("Provider Network", headerActions);
 

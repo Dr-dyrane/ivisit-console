@@ -47,13 +47,13 @@ export const LayoutProvider = ({ children }) => {
         };
     }, []);
 
-    const value = {
+    const value = React.useMemo(() => ({
         isScrolledDown,
         headerConfig,
         setHeaderConfig,
         layoutMode,
         setLayoutMode
-    };
+    }), [isScrolledDown, headerConfig, layoutMode]);
 
     return (
         <LayoutContext.Provider value={value}>
@@ -64,12 +64,25 @@ export const LayoutProvider = ({ children }) => {
 
 // Hook for pages to register their header content
 export const usePageHeader = (title, actions) => {
-    const { setHeaderConfig } = useLayout();
+    const { setHeaderConfig, headerConfig } = useLayout();
 
     useEffect(() => {
-        setHeaderConfig({ title, actions });
+        // Only update if something actually changed to avoid infinite loops
+        if (headerConfig.title !== title || headerConfig.actions !== actions) {
+            setHeaderConfig({ title, actions });
+        }
+    }, [title, actions, setHeaderConfig, headerConfig.title, headerConfig.actions]);
 
-        // Cleanup on unmount - optional, might want to keep last title or clear it
-        return () => setHeaderConfig(prev => ({ ...prev, actions: null }));
-    }, [title, actions, setHeaderConfig]);
+    // Optional: Clear on unmount if we want to ensure stale headers don't persist
+    useEffect(() => {
+        return () => {
+            setHeaderConfig(prev => {
+                // Only clear if we are still the one who set it
+                if (prev.title === title) {
+                    return { title: '', actions: null };
+                }
+                return prev;
+            });
+        };
+    }, [title, setHeaderConfig]);
 };

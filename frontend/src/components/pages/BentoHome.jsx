@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -63,7 +63,7 @@ export const BentoHome = () => {
     pendingVerifications: verificationData?.pending || 15
   };
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const [requests, providers] = await Promise.all([
         supabase.from('emergency_requests').select('*', { count: 'exact' }),
@@ -78,11 +78,11 @@ export const BentoHome = () => {
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [fetchStats]);
 
   const chartData = [
     { time: '00:00', value: 5 },
@@ -97,13 +97,13 @@ export const BentoHome = () => {
     <Button
       variant="outline"
       size="sm"
-      onClick={() => fetchStats()}
+      onClick={fetchStats}
       className="glass squircle-full h-8 px-3 text-[10px] font-bold"
     >
       <RefreshCw className="h-3 w-3 mr-1" />
       REFRESH STATS
     </Button>
-  ), []);
+  ), [fetchStats]);
 
   usePageHeader("Command Center", headerActions);
 
