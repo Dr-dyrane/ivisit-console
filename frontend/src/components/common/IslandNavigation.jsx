@@ -151,16 +151,22 @@ export const IslandNavigation = () => {
     { path: '/analytics', icon: TrendingUp, label: 'Stats', minRole: 'viewer' },
   ];
 
-  const menuItems = [
+  const operationItems = [
     { path: '/hospitals', icon: Hospital, label: 'Hospitals', minRole: 'provider' },
     { path: '/ambulances', icon: Ambulance, label: 'Ambulances', minRole: 'provider' },
     { path: '/doctors', icon: Stethoscope, label: 'Doctors', minRole: 'provider' },
     { path: '/users', icon: Users, label: 'Users', minRole: 'admin' },
     { path: '/visits', icon: Calendar, label: 'Visits', minRole: 'provider' },
     { path: '/emergencies', icon: AlertTriangle, label: 'Emergencies', minRole: 'provider' },
+  ];
+
+  const managementItems = [
     { path: '/health-news', icon: Newspaper, label: 'Health News', minRole: 'admin' },
     { path: '/support-tickets', icon: Headphones, label: 'Support', minRole: 'viewer' },
     { path: '/insurance', icon: Shield, label: 'Insurance', minRole: 'admin' },
+  ];
+
+  const systemItems = [
     { path: '/settings', icon: Settings, label: 'Settings', minRole: 'viewer' },
   ];
 
@@ -179,7 +185,9 @@ export const IslandNavigation = () => {
 
   // Filter items based on role
   const filteredNavItems = navItems.filter(item => hasMinRole(item.minRole));
-  const filteredMenuItems = menuItems.filter(item => hasMinRole(item.minRole));
+  const filteredOperationItems = operationItems.filter(item => hasMinRole(item.minRole));
+  const filteredManagementItems = managementItems.filter(item => hasMinRole(item.minRole));
+  const filteredSystemItems = systemItems.filter(item => hasMinRole(item.minRole));
 
 
 
@@ -245,7 +253,59 @@ export const IslandNavigation = () => {
 
             <div className="w-8 h-px bg-white/10 my-2" />
 
-            {filteredMenuItems.map((item) => (
+            {filteredOperationItems.map((item) => (
+              <div key={item.path} className="relative group">
+                <button
+                  onClick={() => handleNavigate(item.path)}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${isActive(item.path)
+                    ? 'bg-background text-primary shadow-lg ring-1 ring-black/5'
+                    : 'text-muted-foreground hover:bg-white/10 hover:text-foreground'
+                    }`}
+                >
+                  <item.icon className="w-5 h-5" />
+                </button>
+                {/* Tooltip */}
+                <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs font-bold rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-sm z-50">
+                  {item.label}
+                </div>
+                {/* Active Indicator */}
+                {isActive(item.path) && (
+                  <motion.div
+                    layoutId="activeRail"
+                    className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"
+                  />
+                )}
+              </div>
+            ))}
+
+            <div className="w-8 h-px bg-white/10 my-2" />
+
+            {filteredManagementItems.map((item) => (
+              <div key={item.path} className="relative group">
+                <button
+                  onClick={() => handleNavigate(item.path)}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${isActive(item.path)
+                    ? 'bg-background text-primary shadow-lg ring-1 ring-black/5'
+                    : 'text-muted-foreground hover:bg-white/10 hover:text-foreground'
+                    }`}
+                >
+                  <item.icon className="w-5 h-5" />
+                </button>
+                <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs font-bold rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-sm z-50">
+                  {item.label}
+                </div>
+                {isActive(item.path) && (
+                  <motion.div
+                    layoutId="activeRail"
+                    className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"
+                  />
+                )}
+              </div>
+            ))}
+
+            <div className="w-8 h-px bg-white/10 my-2" />
+
+            {filteredSystemItems.map((item) => (
               <div key={item.path} className="relative group">
                 <button
                   onClick={() => handleNavigate(item.path)}
@@ -273,7 +333,7 @@ export const IslandNavigation = () => {
           <div className="flex flex-col items-center gap-3 mb-2">
             <ThemeToggle />
             <button
-              onClick={() => handleNavigate('/settings')}
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
               className="relative"
             >
               <Avatar className="h-9 w-9 rounded-xl ring-2 ring-white/10 transition-transform hover:scale-105">

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MapPin, FileCheck, TrendingUp, Settings, Hospital, Ambulance, Stethoscope, Users, Calendar, AlertTriangle, LogOut, Sun, Moon } from 'lucide-react';
+import { Home, MapPin, FileCheck, TrendingUp, Settings, Hospital, Ambulance, Stethoscope, Users, Calendar, AlertTriangle, LogOut, Sun, Moon, Newspaper, Headphones, Shield } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { motion } from 'framer-motion';
@@ -20,20 +20,23 @@ export const MobileNavMenu = ({ onClose }) => {
     const mainLinks = [
         { path: '/', icon: Home, label: 'Home', minRole: 'viewer' },
         { path: '/map', icon: MapPin, label: 'Map', minRole: 'viewer' },
-        { path: '/analytics', icon: TrendingUp, label: 'Analytics', minRole: 'viewer' },
+        { path: '/verification', icon: FileCheck, label: 'Queue', minRole: 'admin' },
+        { path: '/analytics', icon: TrendingUp, label: 'Stats', minRole: 'viewer' },
     ];
 
-    const adminLinks = [
-        { path: '/users', icon: Users, label: 'Users', minRole: 'admin' },
-        { path: '/verification', icon: FileCheck, label: 'Verification', minRole: 'admin' },
-    ];
-
-    const providerLinks = [
-        { path: '/emergencies', icon: AlertTriangle, label: 'Emergencies', minRole: 'provider' },
+    const operationLinks = [
         { path: '/hospitals', icon: Hospital, label: 'Hospitals', minRole: 'provider' },
         { path: '/ambulances', icon: Ambulance, label: 'Ambulances', minRole: 'provider' },
         { path: '/doctors', icon: Stethoscope, label: 'Doctors', minRole: 'provider' },
+        { path: '/users', icon: Users, label: 'Users', minRole: 'admin' },
         { path: '/visits', icon: Calendar, label: 'Visits', minRole: 'provider' },
+        { path: '/emergencies', icon: AlertTriangle, label: 'Emergencies', minRole: 'provider' },
+    ];
+
+    const managementLinks = [
+        { path: '/health-news', icon: Newspaper, label: 'Health News', minRole: 'admin' },
+        { path: '/support-tickets', icon: Headphones, label: 'Support', minRole: 'viewer' },
+        { path: '/insurance', icon: Shield, label: 'Insurance', minRole: 'admin' },
     ];
 
     const renderLink = (item) => (
@@ -67,19 +70,19 @@ export const MobileNavMenu = ({ onClose }) => {
                 {mainLinks.filter(l => hasMinRole(l.minRole)).map(renderLink)}
             </div>
 
-            {/* Operations / Provider */}
+            {/* Operations */}
             {(hasMinRole('provider') || hasMinRole('admin')) && (
                 <div className="space-y-2">
                     <h3 className="px-4 text-xs font-black text-muted-foreground uppercase tracking-widest mt-6">Operations</h3>
-                    {providerLinks.filter(l => hasMinRole(l.minRole)).map(renderLink)}
+                    {operationLinks.filter(l => hasMinRole(l.minRole)).map(renderLink)}
                 </div>
             )}
 
-            {/* Admin */}
-            {hasMinRole('admin') && (
+            {/* Management */}
+            {(hasMinRole('admin') || hasMinRole('viewer')) && (
                 <div className="space-y-2">
-                    <h3 className="px-4 text-xs font-black text-muted-foreground uppercase tracking-widest mt-6">Admin</h3>
-                    {adminLinks.filter(l => hasMinRole(l.minRole)).map(renderLink)}
+                    <h3 className="px-4 text-xs font-black text-muted-foreground uppercase tracking-widest mt-6">Management</h3>
+                    {managementLinks.filter(l => hasMinRole(l.minRole)).map(renderLink)}
                 </div>
             )}
 
