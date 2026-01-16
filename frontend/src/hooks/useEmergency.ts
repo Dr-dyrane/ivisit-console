@@ -1,0 +1,338 @@
+/**
+ * useEmergency Hook
+ * Manages emergency requests data and operations using emergencyService
+ */
+
+import { useState, useCallback } from 'react';
+import {
+  getEmergencyRequests,
+  getEmergencyRequest,
+  createEmergencyRequest,
+  updateEmergencyRequest,
+  acceptEmergencyRequest,
+  completeEmergencyRequest,
+  cancelEmergencyRequest,
+  getActiveEmergencyRequests,
+  getUserEmergencyRequests,
+  getHospitalEmergencyRequests,
+  updateResponderLocation,
+  updatePatientLocation,
+  getEmergencyStats,
+  subscribeToEmergencyRequest,
+  EmergencyRequestFilter,
+  CreateEmergencyRequestInput,
+  UpdateEmergencyRequestInput,
+  EmergencyStats,
+} from '../services/emergencyService';
+import { EmergencyRequest } from '../types/emergency';
+
+interface UseEmergencyState {
+  requests: EmergencyRequest[];
+  currentRequest: EmergencyRequest | null;
+  activeRequests: EmergencyRequest[];
+  stats: EmergencyStats | null;
+  loading: boolean;
+  error: string | null;
+}
+
+interface UseEmergencyReturn extends UseEmergencyState {
+  fetchRequests: (filter?: EmergencyRequestFilter) => Promise<void>;
+  fetchRequest: (requestId: string) => Promise<EmergencyRequest | null>;
+  fetchActiveRequests: () => Promise<void>;
+  fetchUserRequests: (userId: string) => Promise<void>;
+  fetchHospitalRequests: (hospitalId: string) => Promise<void>;
+  fetchStats: () => Promise<EmergencyStats | null>;
+  createRequest: (input: CreateEmergencyRequestInput) => Promise<EmergencyRequest | null>;
+  updateRequest: (requestId: string, input: UpdateEmergencyRequestInput) => Promise<EmergencyRequest | null>;
+  acceptRequest: (requestId: string, ambulanceId: string, responderId: string, responderName: string, responderPhone: string) => Promise<EmergencyRequest | null>;
+  completeRequest: (requestId: string) => Promise<EmergencyRequest | null>;
+  cancelRequest: (requestId: string, reason?: string) => Promise<EmergencyRequest | null>;
+  updateResponderLocationData: (requestId: string, location: { type: 'Point'; coordinates: [number, number] }, heading: number) => Promise<EmergencyRequest | null>;
+  updatePatientLocationData: (requestId: string, location: { type: 'Point'; coordinates: [number, number] }, heading: number) => Promise<EmergencyRequest | null>;
+  setCurrentRequest: (request: EmergencyRequest | null) => void;
+  subscribe: (requestId: string, callback: (request: EmergencyRequest) => void) => (() => void) | null;
+}
+
+export function useEmergency(): UseEmergencyReturn {
+  const [state, setState] = useState<UseEmergencyState>({
+    requests: [],
+    currentRequest: null,
+    activeRequests: [],
+    stats: null,
+    loading: false,
+    error: null,
+  });
+
+  const setLoading = useCallback((loading: boolean) => {
+    setState((prev) => ({ ...prev, loading }));
+  }, []);
+
+  const setError = useCallback((error: string | null) => {
+    setState((prev) => ({ ...prev, error }));
+  }, []);
+
+  const setRequests = useCallback((requests: EmergencyRequest[]) => {
+    setState((prev) => ({ ...prev, requests }));
+  }, []);
+
+  const setCurrentRequest = useCallback((currentRequest: EmergencyRequest | null) => {
+    setState((prev) => ({ ...prev, currentRequest }));
+  }, []);
+
+  const setActiveRequests = useCallback((activeRequests: EmergencyRequest[]) => {
+    setState((prev) => ({ ...prev, activeRequests }));
+  }, []);
+
+  const setStats = useCallback((stats: EmergencyStats | null) => {
+    setState((prev) => ({ ...prev, stats }));
+  }, []);
+
+  const fetchRequests = useCallback(async (filter?: EmergencyRequestFilter) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getEmergencyRequests(filter);
+      setRequests(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch emergency requests';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setError, setRequests]);
+
+  const fetchRequest = useCallback(async (requestId: string): Promise<EmergencyRequest | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getEmergencyRequest(requestId);
+      if (data) {
+        setCurrentRequest(data);
+      }
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch emergency request';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setError, setCurrentRequest]);
+
+  const fetchActiveRequests = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getActiveEmergencyRequests();
+      setActiveRequests(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch active emergency requests';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setError, setActiveRequests]);
+
+  const fetchUserRequests = useCallback(async (userId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getUserEmergencyRequests(userId);
+      setRequests(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch user emergency requests';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setError, setRequests]);
+
+  const fetchHospitalRequests = useCallback(async (hospitalId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getHospitalEmergencyRequests(hospitalId);
+      setRequests(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch hospital emergency requests';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setError, setRequests]);
+
+  const fetchStats = useCallback(async (): Promise<EmergencyStats | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getEmergencyStats();
+      setStats(data);
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch emergency statistics';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setError, setStats]);
+
+  const createRequest = useCallback(async (input: CreateEmergencyRequestInput): Promise<EmergencyRequest | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await createEmergencyRequest(input);
+      setCurrentRequest(data);
+      setRequests((prev) => [data, ...prev]);
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create emergency request';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setError, setCurrentRequest, setRequests]);
+
+  const updateRequest = useCallback(async (requestId: string, input: UpdateEmergencyRequestInput): Promise<EmergencyRequest | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await updateEmergencyRequest(requestId, input);
+      setCurrentRequest(data);
+      setRequests((prev) => prev.map((r) => (r.id === requestId ? data : r)));
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update emergency request';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setError, setCurrentRequest, setRequests]);
+
+  const acceptRequest = useCallback(async (
+    requestId: string,
+    ambulanceId: string,
+    responderId: string,
+    responderName: string,
+    responderPhone: string
+  ): Promise<EmergencyRequest | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await acceptEmergencyRequest(requestId, ambulanceId, responderId, responderName, responderPhone);
+      setCurrentRequest(data);
+      setRequests((prev) => prev.map((r) => (r.id === requestId ? data : r)));
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to accept emergency request';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setError, setCurrentRequest, setRequests]);
+
+  const completeRequest = useCallback(async (requestId: string): Promise<EmergencyRequest | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await completeEmergencyRequest(requestId);
+      setCurrentRequest(data);
+      setRequests((prev) => prev.map((r) => (r.id === requestId ? data : r)));
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to complete emergency request';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setError, setCurrentRequest, setRequests]);
+
+  const cancelRequest = useCallback(async (requestId: string, reason?: string): Promise<EmergencyRequest | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await cancelEmergencyRequest(requestId, reason);
+      setCurrentRequest(data);
+      setRequests((prev) => prev.map((r) => (r.id === requestId ? data : r)));
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to cancel emergency request';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setError, setCurrentRequest, setRequests]);
+
+  const updateResponderLocationData = useCallback(async (
+    requestId: string,
+    location: { type: 'Point'; coordinates: [number, number] },
+    heading: number
+  ): Promise<EmergencyRequest | null> => {
+    try {
+      const data = await updateResponderLocation(requestId, location, heading);
+      setCurrentRequest(data);
+      setRequests((prev) => prev.map((r) => (r.id === requestId ? data : r)));
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update responder location';
+      setError(message);
+      return null;
+    }
+  }, [setError, setCurrentRequest, setRequests]);
+
+  const updatePatientLocationData = useCallback(async (
+    requestId: string,
+    location: { type: 'Point'; coordinates: [number, number] },
+    heading: number
+  ): Promise<EmergencyRequest | null> => {
+    try {
+      const data = await updatePatientLocation(requestId, location, heading);
+      setCurrentRequest(data);
+      setRequests((prev) => prev.map((r) => (r.id === requestId ? data : r)));
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update patient location';
+      setError(message);
+      return null;
+    }
+  }, [setError, setCurrentRequest, setRequests]);
+
+  const subscribe = useCallback((requestId: string, callback: (request: EmergencyRequest) => void): (() => void) | null => {
+    try {
+      return subscribeToEmergencyRequest(requestId, callback);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to subscribe to emergency request';
+      setError(message);
+      return null;
+    }
+  }, [setError]);
+
+  return {
+    requests: state.requests,
+    currentRequest: state.currentRequest,
+    activeRequests: state.activeRequests,
+    stats: state.stats,
+    loading: state.loading,
+    error: state.error,
+    fetchRequests,
+    fetchRequest,
+    fetchActiveRequests,
+    fetchUserRequests,
+    fetchHospitalRequests,
+    fetchStats,
+    createRequest,
+    updateRequest,
+    acceptRequest,
+    completeRequest,
+    cancelRequest,
+    updateResponderLocationData,
+    updatePatientLocationData,
+    setCurrentRequest,
+    subscribe,
+  };
+}
