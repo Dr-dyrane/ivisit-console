@@ -205,16 +205,8 @@ export const IslandNavigation = () => {
         {/* Glass Rail Container */}
         <div className="flex-1 flex flex-col items-center py-6 gap-4 w-[72px] pointer-events-auto">
 
-          {/* Logo / Home */}
-          <button
-            onClick={() => handleNavigate('/')}
-            className="w-12 h-12 rounded-2xl flex items-center justify-center bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-300 group"
-          >
-            <div className="w-6 h-6 rounded-lg bg-primary relative flex items-center justify-center">
-              <div className="absolute inset-0 bg-white/20 rounded-lg" />
-              <span className="font-black text-white text-xs">IV</span>
-            </div>
-          </button>
+          {/* Vertical Spacer to accommodate merged header logo */}
+          <div className="h-16 flex-shrink-0" />
 
           {/* Navigation Items */}
           <div className="flex-1 flex flex-col items-center gap-2 mt-8">
@@ -288,12 +280,7 @@ export const IslandNavigation = () => {
 
         {/* Global Glass Background for Rail */}
         <div
-          className="absolute left-0 top-0 bottom-0 w-[72px] -z-10"
-          style={{
-            background: 'rgba(20, 20, 20, 0.4)', // Very transparent
-            backdropFilter: 'blur(20px) saturate(180%)',
-            // No border-right, just shadow/depth if needed, effectively "borderless"
-          }}
+          className="absolute left-0 top-0 bottom-0 w-[72px] -z-10 bg-background/40 backdrop-blur-md"
         />
       </motion.div>
     </>

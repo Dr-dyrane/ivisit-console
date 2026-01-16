@@ -28,28 +28,32 @@ export const SmartHeader = () => {
                         : 'top-0 left-0 right-0 bg-background/40 backdrop-blur-md'
                     }`}
                 style={{
-                    paddingLeft: isMobile ? '12px' : '80px',
+                    paddingLeft: '0px',
                     paddingRight: '12px'
                 }}
             >
-                <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
-                    {!isMobile && (
+                <div className="flex items-center gap-2 md:gap-0 overflow-hidden h-full">
+                    {/* Integrated Logo Zone - Exactly matches dock width (72px) */}
+                    <div className="w-[72px] h-full flex items-center justify-center flex-shrink-0">
                         <motion.div
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="flex-shrink-0"
+                            className="flex-shrink-0 cursor-pointer"
+                            onClick={() => window.location.href = '/'}
                         >
-                            <div className="w-10 h-10 squircle bg-primary/10 flex items-center justify-center shadow-inner">
-                                <img src="/logo.png" alt="iVisit" className="w-5 h-5 object-contain" />
+                            <div className="w-10 h-10 squircle bg-primary/10 flex items-center justify-center shadow-inner group hover:bg-primary/20 transition-all">
+                                <img src="/logo.png" alt="iVisit" className="w-5 h-5 object-contain group-hover:scale-110 transition-transform" />
                             </div>
                         </motion.div>
-                    )}
+                    </div>
 
-                    {!isMobile && <BentoBreadcrumbs />}
-
-                    {/* Divider */}
-                    {headerConfig.title && !isMobile && (
-                        <div className="h-4 w-px bg-white/10 mx-2" />
+                    {!isMobile && (
+                        <div className="flex items-center gap-4 ml-2">
+                            <BentoBreadcrumbs />
+                            {headerConfig.title && (
+                                <div className="h-4 w-px bg-white/10 mx-2" />
+                            )}
+                        </div>
                     )}
 
                     {/* Page Title */}
