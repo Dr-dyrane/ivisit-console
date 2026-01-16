@@ -55,28 +55,6 @@ export const HealthNewsManagementPage = () => {
   const { viewMode, setViewMode } = useViewMode('health-news-page', 'table');
   const pagination = usePagination(20);
 
-  // Handle URL parameters and custom events
-  useEffect(() => {
-    // Check for create=true in URL params
-    const params = new URLSearchParams(location.search);
-    if (params.get('create') === 'true') {
-      handleCreate();
-      // Clean up URL
-      navigate('/health-news', { replace: true });
-    }
-
-    // Listen for custom events from context panel
-    const handleOpenFilters = () => {
-      setFilterSheetOpen(true);
-    };
-
-    window.addEventListener('openFilters', handleOpenFilters);
-
-    return () => {
-      window.removeEventListener('openFilters', handleOpenFilters);
-    };
-  }, [location.search, navigate]);
-
   const fetchHealthNews = useCallback(async () => {
     try {
       setLoading(true);
@@ -208,6 +186,28 @@ export const HealthNewsManagementPage = () => {
       fetchHealthNews();
     }
   }, [fetchHealthNews]);
+
+  // Handle URL parameters and custom events
+  useEffect(() => {
+    // Check for create=true in URL params
+    const params = new URLSearchParams(location.search);
+    if (params.get('create') === 'true') {
+      handleCreate();
+      // Clean up URL
+      navigate('/health-news', { replace: true });
+    }
+
+    // Listen for custom events from context panel
+    const handleOpenFilters = () => {
+      setFilterSheetOpen(true);
+    };
+
+    window.addEventListener('openFilters', handleOpenFilters);
+
+    return () => {
+      window.removeEventListener('openFilters', handleOpenFilters);
+    };
+  }, [location.search, navigate, handleCreate]);
 
   const getStatusBadge = (published) => {
     return published ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning';
