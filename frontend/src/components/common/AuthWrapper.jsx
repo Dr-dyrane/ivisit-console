@@ -1,6 +1,6 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AuthSkeleton } from '../ui/skeleton';
+import { DynamicAuthSkeleton } from '../ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
@@ -287,7 +287,7 @@ export const AuthWrapper = ({ children }) => {
 
   // Show skeleton during initialization
   if (initializing) {
-    return <AuthSkeleton />;
+    return <DynamicAuthSkeleton pathname={location.pathname} />;
   }
 
   const value = {

@@ -143,3 +143,113 @@ export const BentoSkeleton = () => {
     </div>
   );
 };
+
+export const DashboardLayoutSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-background overflow-y-auto overflow-x-hidden">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute -top-60 -right-60 w-96 h-96 bg-primary/8 rounded-full blur-3xl" />
+        <div className="absolute -bottom-60 -left-60 w-96 h-96 bg-secondary/6 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative z-10 pt-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div>
+            <Skeleton className="h-10 w-48 mb-3" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+
+          <BentoSkeleton />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const TableLayoutSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-background overflow-y-auto overflow-x-hidden">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute -top-60 -right-60 w-96 h-96 bg-primary/8 rounded-full blur-3xl" />
+        <div className="absolute -bottom-60 -left-60 w-96 h-96 bg-secondary/6 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative z-10 pt-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <Skeleton className="h-10 w-40 mb-3" />
+              <Skeleton className="h-5 w-64" />
+            </div>
+            <Skeleton className="h-10 w-24 squircle-lg" />
+          </div>
+
+          <div className="flex gap-4 mb-6">
+            <Skeleton className="h-10 w-40 squircle-lg" />
+            <Skeleton className="h-10 w-32 squircle-lg" />
+          </div>
+
+          <TableSkeleton rows={8} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const MapLayoutSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-background overflow-hidden">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute -top-60 -right-60 w-96 h-96 bg-primary/8 rounded-full blur-3xl" />
+        <div className="absolute -bottom-60 -left-60 w-96 h-96 bg-secondary/6 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative z-10 w-full h-full flex flex-col">
+        <div className="pt-20 px-4 sm:px-6 lg:px-8 pb-4">
+          <div className="max-w-7xl mx-auto">
+            <Skeleton className="h-10 w-40 mb-3" />
+            <Skeleton className="h-5 w-60" />
+          </div>
+        </div>
+        <div className="flex-1">
+          <Skeleton className="w-full h-full" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const DynamicAuthSkeleton = ({ pathname = "/" }) => {
+  const getSkeletonForPath = () => {
+    if (pathname === "/login" || pathname === "/unauthorized") {
+      return <AuthSkeleton />;
+    }
+
+    if (pathname === "/" || pathname === "/analytics") {
+      return <DashboardLayoutSkeleton />;
+    }
+
+    if (pathname === "/map") {
+      return <MapLayoutSkeleton />;
+    }
+
+    if (
+      [
+        "/hospitals",
+        "/ambulances",
+        "/doctors",
+        "/visits",
+        "/users",
+        "/emergencies",
+        "/verification",
+        "/settings",
+      ].includes(pathname)
+    ) {
+      return <TableLayoutSkeleton />;
+    }
+
+    return <DashboardLayoutSkeleton />;
+  };
+
+  return getSkeletonForPath();
+};

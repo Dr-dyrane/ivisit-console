@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { AuthSkeleton } from '../components/ui/skeleton';
+import { DynamicAuthSkeleton } from '../components/ui/skeleton';
 
 const AuthContext = createContext({});
 
@@ -20,7 +20,7 @@ const ROLE_HIERARCHY = {
   viewer: 1,
 };
 
-export const AuthProvider = ({ children }) => {
+export const AuthProvider = ({ children, pathname = "/" }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -139,7 +139,7 @@ export const AuthProvider = ({ children }) => {
 
   // Show skeleton during initial load
   if (initializing) {
-    return <AuthSkeleton />;
+    return <DynamicAuthSkeleton pathname={pathname} />;
   }
 
   const signIn = async (email, password) => {

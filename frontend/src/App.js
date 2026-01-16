@@ -130,124 +130,126 @@ const AppLayout = ({ children }) => {
 };
 
 function AppRoutes() {
+	const location = useLocation();
+	
 	return (
-		<AppLayout>
-			<Routes>
-				{/* Public routes */}
-				<Route path="/login" element={<LoginPage />} />
-				<Route path="/unauthorized" element={<UnauthorizedPage />} />
+		<AuthProvider pathname={location.pathname}>
+			<AppLayout>
+				<Routes>
+					{/* Public routes */}
+					<Route path="/login" element={<LoginPage />} />
+					<Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-				{/* Protected routes - All authenticated users */}
-				<Route
-					path="/"
-					element={
-						<ProtectedRoute>
-							<BentoHome
-								allowedRoles={["sponsor", "viewer", "provider", "admin"]}
-							/>
-						</ProtectedRoute>
-					}
-				/>
-				<Route
-					path="/map"
-					element={
-						<ProtectedRoute minRole="provider">
-							<GodModeMap />
-						</ProtectedRoute>
-					}
-				/>
-				<Route
-					path="/analytics"
-					element={
-						<ProtectedRoute minRole="provider">
-							<Analytics />
-						</ProtectedRoute>
-					}
-				/>
+					{/* Protected routes - All authenticated users */}
+					<Route
+						path="/"
+						element={
+							<ProtectedRoute>
+								<BentoHome
+									allowedRoles={["sponsor", "viewer", "provider", "admin"]}
+								/>
+							</ProtectedRoute>
+						}
+					/>
+					<Route
+						path="/map"
+						element={
+							<ProtectedRoute minRole="provider">
+								<GodModeMap />
+							</ProtectedRoute>
+						}
+					/>
+					<Route
+						path="/analytics"
+						element={
+							<ProtectedRoute minRole="provider">
+								<Analytics />
+							</ProtectedRoute>
+						}
+					/>
 
-				{/* Provider+ routes */}
-				<Route
-					path="/hospitals"
-					element={
-						<ProtectedRoute minRole="provider">
-							<HospitalsPage />
-						</ProtectedRoute>
-					}
-				/>
-				<Route
-					path="/ambulances"
-					element={
-						<ProtectedRoute minRole="provider">
-							<AmbulancesPage />
-						</ProtectedRoute>
-					}
-				/>
-				<Route
-					path="/doctors"
-					element={
-						<ProtectedRoute minRole="provider">
-							<DoctorsPage />
-						</ProtectedRoute>
-					}
-				/>
-				<Route
-					path="/visits"
-					element={
-						<ProtectedRoute minRole="provider">
-							<VisitsPage />
-						</ProtectedRoute>
-					}
-				/>
-				<Route
-					path="/emergencies"
-					element={
-						<ProtectedRoute minRole="provider">
-							<EmergencyRequestsPage />
-						</ProtectedRoute>
-					}
-				/>
+					{/* Provider+ routes */}
+					<Route
+						path="/hospitals"
+						element={
+							<ProtectedRoute minRole="provider">
+								<HospitalsPage />
+							</ProtectedRoute>
+						}
+					/>
+					<Route
+						path="/ambulances"
+						element={
+							<ProtectedRoute minRole="provider">
+								<AmbulancesPage />
+							</ProtectedRoute>
+						}
+					/>
+					<Route
+						path="/doctors"
+						element={
+							<ProtectedRoute minRole="provider">
+								<DoctorsPage />
+							</ProtectedRoute>
+						}
+					/>
+					<Route
+						path="/visits"
+						element={
+							<ProtectedRoute minRole="provider">
+								<VisitsPage />
+							</ProtectedRoute>
+						}
+					/>
+					<Route
+						path="/emergencies"
+						element={
+							<ProtectedRoute minRole="provider">
+								<EmergencyRequestsPage />
+							</ProtectedRoute>
+						}
+					/>
 
-				{/* Admin only routes */}
-				<Route
-					path="/verification"
-					element={
-						<ProtectedRoute minRole="admin">
-							<VerificationQueue />
-						</ProtectedRoute>
-					}
-				/>
-				<Route
-					path="/users"
-					element={
-						<ProtectedRoute minRole="admin">
-							<UsersPage />
-						</ProtectedRoute>
-					}
-				/>
-				<Route
-					path="/settings"
-					element={
-						<ProtectedRoute>
-							<SettingsPage />
-						</ProtectedRoute>
-					}
-				/>
-				{/* 404 Route */}
-				<Route path="*" element={<NotFoundPage />} />
-			</Routes>
-		</AppLayout>
+					{/* Admin only routes */}
+					<Route
+						path="/verification"
+						element={
+							<ProtectedRoute minRole="admin">
+								<VerificationQueue />
+							</ProtectedRoute>
+						}
+					/>
+					<Route
+						path="/users"
+						element={
+							<ProtectedRoute minRole="admin">
+								<UsersPage />
+							</ProtectedRoute>
+						}
+					/>
+					<Route
+						path="/settings"
+						element={
+							<ProtectedRoute>
+								<SettingsPage />
+							</ProtectedRoute>
+						}
+					/>
+					{/* 404 Route */}
+					<Route path="*" element={<NotFoundPage />} />
+				</Routes>
+			</AppLayout>
+		</AuthProvider>
 	);
 }
 
 function App() {
 	return (
 		<ThemeProvider>
-			<AuthProvider>
-				<Router>
-					<AppRoutes />
-					<Toaster position="top-right" richColors />
-				</Router>
-			</AuthProvider>
+			<Router>
+				<AppRoutes />
+				<Toaster position="top-right" richColors />
+			</Router>
 		</ThemeProvider>
 	);
 }

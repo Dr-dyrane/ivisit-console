@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { AuthSkeleton } from '../ui/skeleton';
+import { DynamicAuthSkeleton } from '../ui/skeleton';
 import { motion } from 'framer-motion';
 
 export const ProtectedRoute = ({ children, minRole = 'viewer', allowedRoles = null }) => {
@@ -9,7 +9,7 @@ export const ProtectedRoute = ({ children, minRole = 'viewer', allowedRoles = nu
   const location = useLocation();
 
   if (loading) {
-    return <AuthSkeleton />;
+    return <DynamicAuthSkeleton pathname={location.pathname} />;
   }
 
   if (!user) {
