@@ -5,6 +5,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
+import { getProfiles } from '../../services/profilesService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -38,32 +39,23 @@ export const UsersPage = () => {
     try {
       setLoading(true);
 
-      let query = supabase.from('profiles').select('*', { count: 'exact', head: true });
+      // Use the service with built-in admin bypass
+      const { count } = await getProfiles({ 
+        ...filters,
+        limit: 1 // Just get count
+      });
+      
+      // Get total count for pagination
+      const totalCount = count || 0;
+      pagination.setTotalCount(totalCount);
 
-      if (filters.role && filters.role.length > 0) {
-        query = query.in('role', filters.role);
-      }
+      // Fetch actual data with pagination
+      const data = await getProfiles({
+        ...filters,
+        limit: pagination.itemsPerPage,
+        offset: pagination.paginationRange.start
+      });
 
-      const { count } = await query;
-      pagination.setTotalCount(count || 0);
-
-      let dataQuery = supabase
-        .from('profiles')
-        .select('*')
-        .range(pagination.paginationRange.start, pagination.paginationRange.end)
-        .order('created_at', { ascending: false });
-
-      if (filters.role && filters.role.length > 0) {
-        dataQuery = dataQuery.in('role', filters.role);
-      }
-
-      const { data, error } = await withTimeout(
-        dataQuery,
-        8000,
-        'Failed to load users - timeout'
-      );
-
-      if (error) throw error;
       setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);

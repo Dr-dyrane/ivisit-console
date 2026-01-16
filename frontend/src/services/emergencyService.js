@@ -4,15 +4,24 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { getCurrentUser } from './authService';
 
 const TABLE_NAME = 'emergency_requests';
 
 /**
  * Get all emergency requests with optional filters
+ * Admin users can see all requests, others see only their own
  */
 export async function getEmergencyRequests(filter) {
   try {
+    const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
+
+    // Apply authorization - admins get full access, others get filtered
+    if (user?.role !== 'admin') {
+      // Non-admin users can only see their own requests
+      query = query.eq('user_id', user?.id);
+    }
 
     if (filter?.status) {
       query = query.eq('status', filter.status);

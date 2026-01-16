@@ -5,6 +5,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
+import { getEmergencyRequests } from '../../services/emergencyService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -53,38 +54,20 @@ export const EmergencyRequestsPage = () => {
     try {
       setLoading(true);
 
-      let query = supabase.from('emergency_requests').select('*', { count: 'exact', head: true });
+      // Use the service with built-in admin bypass
+      const data = await getEmergencyRequests({
+        ...filters,
+        limit: pagination.itemsPerPage,
+        offset: pagination.paginationRange.start
+      });
 
-      if (filters.priority && filters.priority.length > 0) {
-        query = query.in('priority', filters.priority);
-      }
-      if (filters.status && filters.status.length > 0) {
-        query = query.in('status', filters.status);
-      }
-
-      const { count } = await query;
-      pagination.setTotalCount(count || 0);
-
-      let dataQuery = supabase
-        .from('emergency_requests')
-        .select('*')
-        .range(pagination.paginationRange.start, pagination.paginationRange.end)
-        .order('created_at', { ascending: false });
-
-      if (filters.priority && filters.priority.length > 0) {
-        dataQuery = dataQuery.in('priority', filters.priority);
-      }
-      if (filters.status && filters.status.length > 0) {
-        dataQuery = dataQuery.in('status', filters.status);
-      }
-
-      const { data, error } = await withTimeout(
-        dataQuery,
-        8000,
-        'Failed to load emergency requests - timeout'
-      );
-
-      if (error) throw error;
+      // Get total count for pagination
+      const totalCount = await getEmergencyRequests({
+        ...filters,
+        limit: 1
+      });
+      
+      pagination.setTotalCount(totalCount.length || 0);
       setRequests(data || []);
     } catch (error) {
       console.error('Error fetching emergency requests:', error);

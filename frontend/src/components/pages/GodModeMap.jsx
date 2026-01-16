@@ -2,6 +2,9 @@ import React, { useState, useEffect, Component } from "react";
 import { usePageHeader } from "../../contexts/LayoutContext";
 import { APIProvider, Map, Marker as GoogleMarker } from "@vis.gl/react-google-maps";
 import { supabase } from "../../lib/supabase";
+import { getAmbulances } from "../../services/ambulancesService";
+import { getHospitals } from "../../services/hospitalsService";
+import { getEmergencyRequests } from "../../services/emergencyService";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -496,39 +499,25 @@ export const GodModeMap = () => {
 
 	const fetchAmbulances = React.useCallback(async () => {
 		try {
-			const { data, error } = await supabase.from("ambulances").select("*");
-
-			if (error) throw error;
-
-			const ambulancesWithLocations = (data || []).map((ambulance) => ({
-				...ambulance,
-				lat: (userLocation?.lat || LAGOS_CENTER.lat) + (Math.random() - 0.5) * 0.12,
-				lng: (userLocation?.lng || LAGOS_CENTER.lng) + (Math.random() - 0.5) * 0.12,
-			}));
-
-			setAmbulances(ambulancesWithLocations);
+			// Use service with admin bypass
+			const data = await getAmbulances();
+			setAmbulances(data || []);
 		} catch (error) {
 			console.error("Error fetching ambulances:", error);
+			toast.error("Failed to load ambulances");
 		}
-	}, [userLocation]);
+	}, []); // Remove userLocation dependency
 
 	const fetchHospitals = React.useCallback(async () => {
 		try {
-			const { data, error } = await supabase.from("hospitals").select("*");
-
-			if (error) throw error;
-
-			const hospitalsWithLocations = (data || []).map((hospital) => ({
-				...hospital,
-				lat: (userLocation?.lat || LAGOS_CENTER.lat) + (Math.random() - 0.5) * 0.1,
-				lng: (userLocation?.lng || LAGOS_CENTER.lng) + (Math.random() - 0.5) * 0.1,
-			}));
-
-			setHospitals(hospitalsWithLocations);
+			// Use service with admin bypass
+			const data = await getHospitals();
+			setHospitals(data || []);
 		} catch (error) {
 			console.error("Error fetching hospitals:", error);
+			toast.error("Failed to load hospitals");
 		}
-	}, [userLocation]);
+	}, []); // Remove userLocation dependency
 
 	const fetchAllData = React.useCallback(async () => {
 		setLoading(true);
