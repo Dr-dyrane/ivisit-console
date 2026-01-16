@@ -74,7 +74,10 @@ const AppShell = ({ children }) => {
 					)}
 
 					{/* Padding for content */}
-					<div className="relative z-10 p-2 md:p-8 pb-32">
+					<div className={`relative z-10 p-2 pb-32 transition-all duration-500 ease-in-out ${isScrolledDown
+							? "md:p-0"
+							: "md:p-8 md:pt-0 md:pl-10"
+						}`}>
 						{children}
 					</div>
 				</main>

@@ -209,7 +209,7 @@ export const IslandNavigation = () => {
           <div className="h-16 flex-shrink-0" />
 
           {/* Navigation Items */}
-          <div className="flex-1 flex flex-col items-center gap-2 mt-8">
+          <div className="flex-1 flex flex-col items-center gap-2 mt-6">
             {filteredNavItems.map((item) => (
               <div key={item.path} className="relative group">
                 <button
