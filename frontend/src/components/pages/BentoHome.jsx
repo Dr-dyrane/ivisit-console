@@ -122,7 +122,7 @@ export const BentoHome = () => {
   usePageFooter(footerContent, 'status');
 
   return (
-    <div className="min-h-screen bg-background px-6 py-6 md:px-12 md:py-8">
+    <div className="min-h-screen bg-background px-0 md:px-12 py-6 md:py-8">
       {/* Header */}
       {/* Layout padding adjustment */}
       <div className="pt-2" />

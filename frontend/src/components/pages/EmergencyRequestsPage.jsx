@@ -153,7 +153,7 @@ export const EmergencyRequestsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background px-6 py-6 md:px-12 md:py-8 pt-6">
+    <div className="min-h-screen bg-background px-0 md:px-12 py-6 md:py-8 pt-6">
 
       {loading ? (
         <TableSkeleton rows={8} />

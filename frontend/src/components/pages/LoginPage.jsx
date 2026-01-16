@@ -71,7 +71,7 @@ export const LoginPage = () => {
 				<div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary/10 rounded-full blur-[120px]" />
 			</div>
 
-			<div className="relative z-10 max-w-[1200px] mx-auto min-h-screen grid grid-cols-12 gap-6 p-6 md:p-12 items-center">
+			<div className="relative z-10 max-w-[1200px] mx-auto min-h-screen grid grid-cols-12 gap-6 px-0 md:px-12 py-6 md:py-12 items-center">
 				{/* LEFT COLUMN: BRANDING & META (Bento Stack) */}
 				<div className="col-span-12 lg:col-span-5 space-y-6">
 					{/* LOGO BENTO */}

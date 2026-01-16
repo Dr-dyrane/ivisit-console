@@ -131,7 +131,7 @@ export const DoctorsPage = () => {
   usePageFooter(footerContent, 'status', !loading && doctors.length > 0);
 
   return (
-    <div className="min-h-screen bg-background px-6 py-6 md:px-12 md:py-8">
+    <div className="min-h-screen bg-background px-0 md:px-12 py-6 md:py-8">
       <div className="pt-2" />
 
       {loading ? (
