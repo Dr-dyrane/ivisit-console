@@ -80,8 +80,8 @@ const AppShell = ({ children }) => {
 						initial={false}
 						animate={{
 							paddingTop: isScrolledDown ? 8 : (window.innerWidth >= 768 ? 0 : 8),
-							paddingLeft: isScrolledDown ? 8 : (window.innerWidth >= 768 ? 40 : 8),
-							paddingRight: isScrolledDown ? 8 : (window.innerWidth >= 768 ? 32 : 8),
+							paddingLeft: isScrolledDown ? 12 : (window.innerWidth >= 1024 ? 40 : 12),
+							paddingRight: isScrolledDown ? 12 : (window.innerWidth >= 1024 ? 332 : 12), // 320px (Sidebar) + 12px (Inner Padding)
 							paddingBottom: 128
 						}}
 						transition={{

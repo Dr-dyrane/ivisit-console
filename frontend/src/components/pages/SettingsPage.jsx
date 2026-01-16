@@ -57,7 +57,7 @@ export const SettingsPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background p-6 md:p-8">
+        <div className="min-h-screen bg-background px-6 py-6 md:px-12 md:py-8">
             <div className="pt-2" />
 
             <LayoutGroup>

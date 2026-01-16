@@ -26,7 +26,7 @@ export const SmartHeader = () => {
                     damping: 30,
                     mass: 0.8
                 }}
-                className={`fixed z-40 h-16 flex items-center justify-between transition-all duration-300 ${isMobile
+                className={`fixed z-50 h-16 flex items-center justify-between transition-all duration-300 ${isMobile
                     ? 'top-2 left-2 right-2 squircle-2xl bg-background/90 backdrop-blur-2xl border border-white/10 shadow-premium'
                     : isScrolledDown
                         ? 'top-0 left-0 right-0 bg-background/80 backdrop-blur-2xl shadow-lg'
@@ -34,7 +34,7 @@ export const SmartHeader = () => {
                     }`}
                 style={{
                     paddingLeft: '0px',
-                    paddingRight: '12px'
+                    paddingRight: '32px'
                 }}
             >
                 <div className="flex items-center gap-2 md:gap-0 overflow-hidden h-full">

@@ -7,11 +7,14 @@ import { DynamicBottomBar } from './DynamicBottomBar';
 import { X, ChevronLeft, AlertTriangle, Users, BarChart3, Stethoscope, Calendar, Shield, Hospital, Ambulance } from 'lucide-react';
 
 import { useLayout } from '../../contexts/LayoutContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export const ResponsiveSidebar = () => {
   const { isMobile, isTablet, isDesktop, sidebarOpen, setSidebarOpen } = useNavigation();
   const { emergencyData, verificationData, analyticsData, doctorsData, visitsData, getEmergencyStats } = usePageData();
   const { isScrolledDown } = useLayout();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [showExpandedPanel, setShowExpandedPanel] = useState(false);
 
   // Mobile: Handled by DynamicBottomBar
@@ -146,28 +149,30 @@ export const ResponsiveSidebar = () => {
 
             <motion.div
               key="sidebar-panel"
-              initial={{ x: '100%', opacity: 0, scale: 0.95 }}
-              animate={{ x: 0, opacity: 1, scale: 1 }}
-              exit={{ x: '110%', opacity: 0, scale: 0.95 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300, mass: 0.8 }}
-              className={`fixed top-6 bottom-6 right-6 z-50 ${isDesktop ? 'w-80' : 'w-72'}`}
+              initial={{ x: '100%', opacity: 0 }}
+              animate={{
+                x: isScrolledDown && isDesktop ? '100%' : 0,
+                opacity: isScrolledDown && isDesktop ? 0 : 1
+              }}
+              exit={{ x: '100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
+              className={`fixed top-0 bottom-0 right-0 z-40 ${isDesktop ? 'w-[320px]' : 'w-72 shadow-2xl'}`}
               style={{
-                background: 'hsl(var(--background) / 0.75)',
+                background: isDark ? 'hsl(var(--background) / 0.4)' : 'hsl(var(--background) / 0.6)',
                 backdropFilter: 'blur(32px) saturate(200%)',
-                borderRadius: '32px',
-                boxShadow: `
-                  0 30px 60px rgba(0, 0, 0, 0.25),
-                  inset 0 0 0 1px rgba(255, 255, 255, 0.1)
-                `,
+                boxShadow: 'none',
               }}
             >
               <div className="h-full flex flex-col">
+                {/* Unified Space at the top to clear header */}
+                <div className="h-16 flex-shrink-0" />
+
                 <div className="flex items-center justify-between p-6 pb-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center shadow-sm">
+                    <div className="w-10 h-10 squircle-lg bg-primary/10 flex items-center justify-center shadow-inner">
                       <div className="w-4 h-0.5 bg-primary rounded-full" />
                     </div>
-                    <h2 className="font-black text-lg tracking-tight">Context Panel</h2>
+                    <h2 className="font-black text-lg tracking-tight uppercase">Context Panel</h2>
                   </div>
                   {!isDesktop && (
                     <button
