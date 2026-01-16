@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase, subscribeToTable } from '../../lib/supabase';
 import { StatsCard } from '../dashboard/StatsCard';
 import { Card } from '../ui/card';
@@ -6,6 +6,9 @@ import { Badge } from '../ui/badge';
 import { Activity, Users, Ambulance, Hospital, Clock, TrendingUp } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
+import { usePageHeader } from '../../contexts/LayoutContext';
+import { Button } from '../ui/button';
+import { RefreshCw } from 'lucide-react';
 
 export const Overview = () => {
   const [stats, setStats] = useState({
@@ -16,9 +19,11 @@ export const Overview = () => {
     totalAmbulances: 0,
     avgResponseTime: 0,
   });
-  
+
   const [recentRequests, setRecentRequests] = useState([]);
   const [chartData, setChartData] = useState([]);
+
+
 
   useEffect(() => {
     fetchStats();
@@ -79,6 +84,23 @@ export const Overview = () => {
     }
   };
 
+  const headerActions = React.useMemo(() => (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => {
+        fetchStats();
+        fetchRecentRequests();
+      }}
+      className="glass squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+    >
+      <RefreshCw className="h-4 w-4 mr-2" />
+      RELOAD
+    </Button>
+  ), []);
+
+  usePageHeader("Dashboard Overview", headerActions);
+
   const generateChartData = () => {
     const data = [
       { name: 'Mon', requests: 12, completed: 10 },
@@ -94,10 +116,7 @@ export const Overview = () => {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Dashboard Overview</h1>
-        <p className="text-muted-foreground">Monitor emergency response operations in real-time</p>
-      </div>
+      <div className="pt-2" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
@@ -142,42 +161,42 @@ export const Overview = () => {
               +15%
             </Badge>
           </div>
-          
+
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
               <YAxis stroke="hsl(var(--muted-foreground))" />
-              <Tooltip 
-                contentStyle={{ 
+              <Tooltip
+                contentStyle={{
                   backgroundColor: 'hsl(var(--card))',
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '1rem'
                 }}
               />
-              <Area 
-                type="monotone" 
-                dataKey="requests" 
-                stroke="hsl(var(--primary))" 
-                fillOpacity={1} 
-                fill="url(#colorRequests)" 
+              <Area
+                type="monotone"
+                dataKey="requests"
+                stroke="hsl(var(--primary))"
+                fillOpacity={1}
+                fill="url(#colorRequests)"
               />
-              <Area 
-                type="monotone" 
-                dataKey="completed" 
-                stroke="hsl(var(--success))" 
-                fillOpacity={1} 
-                fill="url(#colorCompleted)" 
+              <Area
+                type="monotone"
+                dataKey="completed"
+                stroke="hsl(var(--success))"
+                fillOpacity={1}
+                fill="url(#colorCompleted)"
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -188,7 +207,7 @@ export const Overview = () => {
             <h3 className="text-lg font-semibold">Quick Stats</h3>
             <Clock className="h-5 w-5 text-muted-foreground" />
           </div>
-          
+
           <div className="space-y-6">
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -196,7 +215,7 @@ export const Overview = () => {
                 <span className="text-2xl font-bold text-success">{stats.avgResponseTime}m</span>
               </div>
               <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                <motion.div 
+                <motion.div
                   className="h-full bg-success rounded-full"
                   initial={{ width: 0 }}
                   animate={{ width: '75%' }}
@@ -211,7 +230,7 @@ export const Overview = () => {
                 <span className="text-2xl font-bold text-primary">94%</span>
               </div>
               <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                <motion.div 
+                <motion.div
                   className="h-full bg-primary rounded-full"
                   initial={{ width: 0 }}
                   animate={{ width: '94%' }}
@@ -226,7 +245,7 @@ export const Overview = () => {
                 <span className="text-2xl font-bold text-info">68%</span>
               </div>
               <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                <motion.div 
+                <motion.div
                   className="h-full bg-info rounded-full"
                   initial={{ width: 0 }}
                   animate={{ width: '68%' }}

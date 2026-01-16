@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { usePageHeader } from '../../contexts/LayoutContext';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AlertTriangle, ArrowLeft, Clock } from 'lucide-react';
@@ -7,6 +8,7 @@ import { Card } from '../ui/card';
 
 export const NotFoundPage = () => {
   const navigate = useNavigate();
+  usePageHeader("Lost Signal", null);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
@@ -20,7 +22,7 @@ export const NotFoundPage = () => {
           {/* Decorative Background */}
           <div className="absolute inset-0 bg-gradient-to-br from-destructive/5 via-transparent to-background opacity-50" />
           <div className="absolute -top-20 -right-20 w-60 h-60 bg-destructive/10 rounded-full blur-[80px]" />
-          
+
           <div className="relative z-10 flex flex-col items-center text-center">
             <div className="w-24 h-24 squircle-2xl bg-destructive/10 flex items-center justify-center mb-8 shadow-glow animate-pulse-slow">
               <AlertTriangle className="w-12 h-12 text-destructive" />
@@ -37,7 +39,7 @@ export const NotFoundPage = () => {
             </div>
 
             <div className="flex flex-col gap-3 w-full">
-              <Button 
+              <Button
                 onClick={() => navigate(-1)}
                 variant="outline"
                 className="w-full squircle-xl h-12 font-bold border-0 bg-muted/30 hover:bg-muted/50"
@@ -45,8 +47,8 @@ export const NotFoundPage = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Go Back
               </Button>
-              
-              <Button 
+
+              <Button
                 onClick={() => navigate('/')}
                 className="w-full squircle-xl h-12 font-bold shadow-glow bg-primary hover:bg-primary/90 text-primary-foreground"
               >

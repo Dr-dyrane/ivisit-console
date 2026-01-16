@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePageData } from '../../contexts/PageDataContext';
+import { usePageHeader } from '../../contexts/LayoutContext';
+import { Button } from '../ui/button';
+import { RefreshCw } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import NoiseOverlay from '../ui/noise-overlay'; // Add NoiseOverlay
@@ -39,8 +42,9 @@ export const BentoHome = () => {
     doctorsData,
     visitsData,
     verificationData,
-    useMockData
   } = usePageData();
+
+
 
   const [stats, setStats] = useState({
     liveEmergencies: 0,
@@ -89,26 +93,25 @@ export const BentoHome = () => {
     { time: '20:00', value: 12 },
   ];
 
+  const headerActions = React.useMemo(() => (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => fetchStats()}
+      className="glass squircle-full h-8 px-3 text-[10px] font-bold"
+    >
+      <RefreshCw className="h-3 w-3 mr-1" />
+      REFRESH STATS
+    </Button>
+  ), []);
+
+  usePageHeader("Command Center", headerActions);
+
   return (
     <div className="min-h-screen bg-background p-6 md:p-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 squircle bg-primary/10 flex items-center justify-center shadow-glow">
-              <img src="/logo.png" alt="iVisit" className="w-8 h-8" />
-            </div>
-            <div>
-              <h1 className="editorial-title text-4xl">iVisit Console</h1>
-              <p className="text-muted-foreground font-semibold">Emergency Response Command Center</p>
-            </div>
-          </div>
-        </div>
-      </motion.div>
+      {/* Layout padding adjustment */}
+      <div className="pt-2" />
 
       {/* Fluid Bento Grid */}
       {/* 

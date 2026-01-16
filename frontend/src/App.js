@@ -60,8 +60,7 @@ const AppShell = ({ children }) => {
 				{/* 4. SCROLLABLE CONTENT (The Display) */}
 				<main
 					id="main-content"
-					className={`flex-1 relative overflow-y-auto overflow-x-hidden scroll-smooth custom-scrollbar transition-all duration-500 ease-in-out ${!hideNav && !isScrolledDown ? "md:pl-[72px] pt-16 md:pr-24" : ""
-						}`}
+					className={`flex-1 relative overflow-y-auto overflow-x-hidden scroll-smooth custom-scrollbar transition-all duration-500 ease-in-out ${!hideNav ? "pt-16" : ""}`}
 				>
 					{!hideNav && (
 						<>
@@ -75,7 +74,7 @@ const AppShell = ({ children }) => {
 					)}
 
 					{/* Padding for content */}
-					<div className="relative z-10 p-2 md:p-8 pb-32 max-w-[1920px] mx-auto">
+					<div className="relative z-10 p-2 md:p-8 pb-32">
 						{children}
 					</div>
 				</main>

@@ -34,7 +34,7 @@ export const EmergencyRequestsPage = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-  usePageHeader('Emergency Requests', null);
+
 
   useEffect(() => {
     fetchRequests();
@@ -69,6 +69,29 @@ export const EmergencyRequestsPage = () => {
       setLoading(false);
     }
   };
+
+  const headerActions = React.useMemo(() => (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={fetchRequests}
+        className="glass squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+      >
+        <RefreshCw className="h-4 w-4 mr-2" />
+        RELOAD
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="glass squircle-full h-9 w-9 p-0"
+      >
+        <Filter className="h-4 w-4" />
+      </Button>
+    </div>
+  ), []);
+
+  usePageHeader('Emergency Logs', headerActions);
 
   const handleDelete = async (request) => {
     if (!confirm('Are you sure you want to delete this request?')) return;

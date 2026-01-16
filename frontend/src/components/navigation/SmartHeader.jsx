@@ -12,36 +12,43 @@ export const SmartHeader = () => {
     const { isScrolledDown, headerConfig } = useLayout();
     const [searchOpen, setSearchOpen] = useState(false);
 
-    if (isMobile) return null;
-
     return (
         <>
             <motion.header
-                initial={{ y: 0 }}
+                initial={{ y: -100 }}
                 animate={{
                     y: isScrolledDown ? -100 : 0,
                     opacity: isScrolledDown ? 0 : 1
                 }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                className="fixed top-0 left-0 right-0 z-30 h-16 flex items-center justify-between px-8 bg-background/80 backdrop-blur-xl border-b border-white/5"
-                style={{ paddingLeft: '80px', paddingRight: '24px' }} // Account for Left Rail
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                className={`fixed z-40 h-16 flex items-center justify-between transition-all duration-300 ${isMobile
+                    ? 'top-2 left-2 right-2 squircle-2xl bg-background/90 backdrop-blur-2xl border border-white/10 shadow-premium'
+                    : isScrolledDown
+                        ? 'top-0 left-0 right-0 bg-background/80 backdrop-blur-2xl shadow-lg'
+                        : 'top-0 left-0 right-0 bg-background/40 backdrop-blur-md'
+                    }`}
+                style={{
+                    paddingLeft: isMobile ? '12px' : '80px',
+                    paddingRight: '12px'
+                }}
             >
-                <div className="flex items-center gap-4">
-                    {/* Logo - Added based on user request */}
-                    <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="flex-shrink-0"
-                    >
-                        <div className="w-10 h-10 squircle bg-primary/10 flex items-center justify-center shadow-inner">
-                            <img src="/logo.png" alt="iVisit" className="w-5 h-5 object-contain" />
-                        </div>
-                    </motion.div>
+                <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
+                    {!isMobile && (
+                        <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="flex-shrink-0"
+                        >
+                            <div className="w-10 h-10 squircle bg-primary/10 flex items-center justify-center shadow-inner">
+                                <img src="/logo.png" alt="iVisit" className="w-5 h-5 object-contain" />
+                            </div>
+                        </motion.div>
+                    )}
 
-                    <BentoBreadcrumbs />
+                    {!isMobile && <BentoBreadcrumbs />}
 
                     {/* Divider */}
-                    {headerConfig.title && (
+                    {headerConfig.title && !isMobile && (
                         <div className="h-4 w-px bg-white/10 mx-2" />
                     )}
 
@@ -53,7 +60,7 @@ export const SmartHeader = () => {
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: 10 }}
-                                className="text-lg font-bold tracking-tight text-foreground/90 truncate max-w-[300px]"
+                                className="text-sm md:text-lg font-black tracking-tight text-foreground/90 truncate max-w-[150px] md:max-w-[300px] uppercase"
                             >
                                 {headerConfig.title}
                             </motion.h1>
@@ -61,30 +68,28 @@ export const SmartHeader = () => {
                     </AnimatePresence>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    {/* Page Actions (Injected via Portal/Context) */}
+                <div className="flex items-center gap-2 md:gap-3">
+                    {/* Page Actions */}
                     {headerConfig.actions && (
-                        <div className="flex items-center gap-2 mr-4">
+                        <div className="flex items-center gap-2">
                             {headerConfig.actions}
                         </div>
                     )}
 
-                    {/* Quick Search Trigger */}
-                    <button
-                        onClick={() => setSearchOpen(true)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all group lg:min-w-[200px]"
-                    >
-                        <Search className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-                        <span className="text-sm text-muted-foreground group-hover:text-foreground hidden lg:inline-block">Search...</span>
-                        <kbd className="hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted/20 px-1.5 font-mono text-[10px] font-medium text-muted-foreground ml-auto opacity-50">
-                            ⌘K
-                        </kbd>
-                    </button>
-
-                    <div className="w-px h-6 bg-white/10" />
-
-                    {/* Notifications */}
-                    <NotificationCenter />
+                    {/* Quick Search - Hidden on tiny mobile if actions take too much space */}
+                    {!isMobile && (
+                        <>
+                            <button
+                                onClick={() => setSearchOpen(true)}
+                                className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all group lg:min-w-[180px]"
+                            >
+                                <Search className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
+                                <span className="text-xs text-muted-foreground group-hover:text-foreground hidden lg:inline-block">Search...</span>
+                            </button>
+                            <div className="w-px h-6 bg-white/10 mx-1" />
+                            <NotificationCenter />
+                        </>
+                    )}
                 </div>
             </motion.header>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Component } from "react";
 import { usePageHeader } from "../../contexts/LayoutContext";
-import { APIProvider, Map, AdvancedMarker } from "@vis.gl/react-google-maps";
+import { APIProvider, Map, Marker as GoogleMarker } from "@vis.gl/react-google-maps";
 import { supabase } from "../../lib/supabase";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
@@ -158,6 +158,113 @@ const GoogleMapsPolyline = ({ path, options }) => {
 // Hook to access Google Map instance
 import { useMap as useGoogleMap } from "@vis.gl/react-google-maps";
 
+
+const MapRefiner = ({ userLocation, markers, styles }) => {
+	const map = useGoogleMap();
+	const zoomedStatus = React.useRef('none'); // 'none' | 'user' | 'full'
+
+	// Sync map styles
+	useEffect(() => {
+		if (map && styles) map.setOptions({ styles });
+	}, [map, styles]);
+
+	// Memoize top 5 closest markers for stability and performance
+	const top5 = React.useMemo(() => {
+		if (!userLocation || !markers || markers.length === 0) return [];
+		const uLat = userLocation.lat;
+		const uLng = userLocation.lng;
+
+		return [...markers]
+			.filter(m => m.lat && m.lng)
+			.map(m => {
+				const mLat = parseFloat(m.lat);
+				const mLng = parseFloat(m.lng);
+				return {
+					lat: mLat,
+					lng: mLng,
+					dist: Math.pow(mLat - uLat, 2) + Math.pow(mLng - uLng, 2)
+				};
+			})
+			.sort((a, b) => a.dist - b.dist)
+			.slice(0, 5);
+	}, [userLocation?.lat, userLocation?.lng, markers]);
+
+	useEffect(() => {
+		if (!map || !userLocation) return;
+
+		// Stage 1: Absolute immediate snap to user coordinate (Fast Focus)
+		if (zoomedStatus.current === 'none') {
+			console.log("MapRefiner: Stage 1 - Immediate snap to user location");
+			map.setCenter(userLocation);
+			map.setZoom(15);
+			zoomedStatus.current = 'user';
+		}
+
+		// Stage 2: Upgrade to smart zoom once markers catch up
+		if (zoomedStatus.current === 'user' && top5.length > 0) {
+			console.log("MapRefiner: Stage 2 - Expanding to include closest markers");
+			const bounds = new window.google.maps.LatLngBounds();
+			bounds.extend(userLocation);
+			top5.forEach(m => bounds.extend(m));
+
+			map.fitBounds(bounds, {
+				padding: { top: 150, bottom: 150, left: 100, right: 100 }
+			});
+			zoomedStatus.current = 'full';
+		}
+	}, [map, userLocation?.lat, userLocation?.lng, top5]);
+
+	// Listen for re-center events
+	useEffect(() => {
+		const handleRecenter = () => {
+			console.log("MapRefiner: Resetting focus status for re-center request");
+			zoomedStatus.current = 'none';
+		};
+		window.addEventListener('recenter-map', handleRecenter);
+		return () => window.removeEventListener('recenter-map', handleRecenter);
+	}, []);
+
+	return null;
+};
+
+const LeafletMapRefiner = ({ userLocation, markers, onZoomComplete }) => {
+	const map = useMap();
+	const zoomedStatus = React.useRef('none');
+
+	useEffect(() => {
+		if (!map || !userLocation) return;
+
+		const top5 = markers && markers.length > 0 ? [...markers]
+			.filter(m => m.lat && m.lng)
+			.map(m => {
+				const mLat = parseFloat(m.lat);
+				const mLng = parseFloat(m.lng);
+				return {
+					pos: [mLat, mLng],
+					dist: Math.pow(mLat - userLocation.lat, 2) + Math.pow(mLng - userLocation.lng, 2)
+				};
+			})
+			.sort((a, b) => a.dist - b.dist)
+			.slice(0, 5)
+			.map(x => x.pos) : [];
+
+		if (zoomedStatus.current === 'none') {
+			map.setView([userLocation.lat, userLocation.lng], 15);
+			zoomedStatus.current = 'user';
+		}
+
+		if (zoomedStatus.current === 'user' && top5.length > 0) {
+			map.fitBounds([[userLocation.lat, userLocation.lng], ...top5], { padding: [100, 100], maxZoom: 15 });
+			zoomedStatus.current = 'full';
+		}
+
+		if (onZoomComplete) onZoomComplete();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [map, userLocation?.lat, userLocation?.lng, markers]);
+
+	return null;
+};
+
 const LeafletMap = ({
 	center,
 	zoom,
@@ -165,16 +272,27 @@ const LeafletMap = ({
 	ambulances,
 	hospitals,
 	routes, // Array of { positions: [[lat, lng], [lat, lng]], color: string }
+	userLocation,
+	markers, // For auto-zoom
 	showLayers,
 	onMarkerClick,
 	getStatusColor,
 	getPriorityColor,
 	theme,
 }) => {
+	const [hasInitiallyZoomed, setHasInitiallyZoomed] = useState(false);
 	const createIcon = (type, data) => {
 		let html = "";
 
-		if (type === "emergency") {
+		if (type === "user") {
+			html = `
+        <div style="position: relative; width: 24px; height: 24px;">
+            <div style="position: absolute; inset: -12px; background-color: #3b82f64d; border-radius: 50%; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+            <div style="width: 24px; height: 24px; border-radius: 50%; background-color: #3b82f6; border: 2.5px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+                <div style="width: 8px; height: 8px; background-color: white; border-radius: 50%;"></div>
+            </div>
+        </div>`;
+		} else if (type === "emergency") {
 			const color = getPriorityColor(data.priority);
 			// Using Lucide icons SVGs inline for the fallback map
 			html = `
@@ -233,19 +351,20 @@ const LeafletMap = ({
 		return L.divIcon({
 			html: html,
 			className: "bg-transparent", // Remove default styles
-			iconSize: [44, 44],
-			iconAnchor: [22, 22],
+			iconSize: type === "user" ? [24, 24] : [44, 44],
+			iconAnchor: type === "user" ? [12, 12] : [22, 22],
 		});
 	};
 
 	return (
 		<MapContainer
+			key={theme} // Force remount for reliability
 			center={center}
 			zoom={zoom}
 			style={{
 				height: "100%",
 				width: "100%",
-				background: theme === "dark" ? "#212121" : "#f5f5f5",
+				background: theme === "dark" ? "#121212" : "#f0f0f0",
 			}}
 		>
 			<TileLayer
@@ -257,6 +376,12 @@ const LeafletMap = ({
 				attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
 			/>
 
+			<LeafletMapRefiner
+				userLocation={userLocation}
+				markers={!hasInitiallyZoomed ? markers : []}
+				onZoomComplete={() => setHasInitiallyZoomed(true)}
+			/>
+
 			{/* Routes/Polylines */}
 			{routes &&
 				routes.map((route, idx) => (
@@ -265,12 +390,19 @@ const LeafletMap = ({
 						positions={route.positions}
 						pathOptions={{
 							color: route.color || "#3b82f6",
-							weight: 4,
-							opacity: 0.7,
-							dashArray: "10, 10", // Dashed line for effect
+							weight: 10,
+							opacity: 0.8,
+							dashArray: "12, 12", // Dashed line for effect
 						}}
 					/>
 				))}
+
+			{userLocation && (
+				<Marker
+					position={[userLocation.lat, userLocation.lng]}
+					icon={createIcon("user")}
+				/>
+			)}
 
 			{showLayers.emergencies &&
 				emergencies.map((req) => (
@@ -307,18 +439,32 @@ const LeafletMap = ({
 
 export const GodModeMap = () => {
 	const { theme } = useTheme();
+	const isDark = theme === 'dark';
 	const [emergencyRequests, setEmergencyRequests] = useState([]);
 	const [ambulances, setAmbulances] = useState([]);
 	const [hospitals, setHospitals] = useState([]);
 	const [activeRoutes, setActiveRoutes] = useState([]); // { id, path: [{lat, lng}], color }
 	const [selectedMarker, setSelectedMarker] = useState(null);
+	const [userLocation, setUserLocation] = useState(null);
 	const [filter, setFilter] = useState("all");
+
+	// Simulate ID based on location
+	const simulatedSessionId = React.useMemo(() => {
+		if (!userLocation) return "PENDING...";
+		const latPart = Math.abs(Math.floor(userLocation.lat * 1000)).toString(16).toUpperCase();
+		const lngPart = Math.abs(Math.floor(userLocation.lng * 1000)).toString(16).toUpperCase();
+		return `NODE-${latPart}-${lngPart}`;
+	}, [userLocation]);
 	const [showLayers, setShowLayers] = useState({
 		emergencies: true,
 		ambulances: true,
 		hospitals: true,
 	});
 	const [loading, setLoading] = useState(true);
+
+	const mapStyles = React.useMemo(() =>
+		isDark ? MAP_STYLES.dark : MAP_STYLES.light
+		, [isDark]);
 
 	// Map Provider State
 	const [mapProvider, setMapProvider] = useState("google"); // 'google' | 'leaflet'
@@ -338,16 +484,15 @@ export const GodModeMap = () => {
 
 			const requestsWithLocations = (data || []).map((request) => ({
 				...request,
-				lat: request.latitude || LAGOS_CENTER.lat + (Math.random() - 0.5) * 0.1,
-				lng:
-					request.longitude || LAGOS_CENTER.lng + (Math.random() - 0.5) * 0.1,
+				lat: (userLocation?.lat || LAGOS_CENTER.lat) + (Math.random() - 0.5) * 0.08,
+				lng: (userLocation?.lng || LAGOS_CENTER.lng) + (Math.random() - 0.5) * 0.08,
 			}));
 
 			setEmergencyRequests(requestsWithLocations);
 		} catch (error) {
 			console.error("Error fetching emergency requests:", error);
 		}
-	}, []);
+	}, [userLocation]);
 
 	const fetchAmbulances = React.useCallback(async () => {
 		try {
@@ -357,15 +502,15 @@ export const GodModeMap = () => {
 
 			const ambulancesWithLocations = (data || []).map((ambulance) => ({
 				...ambulance,
-				lat: LAGOS_CENTER.lat + (Math.random() - 0.5) * 0.15,
-				lng: LAGOS_CENTER.lng + (Math.random() - 0.5) * 0.15,
+				lat: (userLocation?.lat || LAGOS_CENTER.lat) + (Math.random() - 0.5) * 0.12,
+				lng: (userLocation?.lng || LAGOS_CENTER.lng) + (Math.random() - 0.5) * 0.12,
 			}));
 
 			setAmbulances(ambulancesWithLocations);
 		} catch (error) {
 			console.error("Error fetching ambulances:", error);
 		}
-	}, []);
+	}, [userLocation]);
 
 	const fetchHospitals = React.useCallback(async () => {
 		try {
@@ -375,17 +520,15 @@ export const GodModeMap = () => {
 
 			const hospitalsWithLocations = (data || []).map((hospital) => ({
 				...hospital,
-				lat:
-					hospital.latitude || LAGOS_CENTER.lat + (Math.random() - 0.5) * 0.12,
-				lng:
-					hospital.longitude || LAGOS_CENTER.lng + (Math.random() - 0.5) * 0.12,
+				lat: (userLocation?.lat || LAGOS_CENTER.lat) + (Math.random() - 0.5) * 0.1,
+				lng: (userLocation?.lng || LAGOS_CENTER.lng) + (Math.random() - 0.5) * 0.1,
 			}));
 
 			setHospitals(hospitalsWithLocations);
 		} catch (error) {
 			console.error("Error fetching hospitals:", error);
 		}
-	}, []);
+	}, [userLocation]);
 
 	const fetchAllData = React.useCallback(async () => {
 		setLoading(true);
@@ -397,6 +540,16 @@ export const GodModeMap = () => {
 		]);
 		setLoading(false);
 	}, [fetchEmergencyRequests, fetchAmbulances, fetchHospitals]);
+
+	// Re-fetch once user location is acquired to center simulation
+	const hasHijackedRef = React.useRef(false);
+	useEffect(() => {
+		if (userLocation && !hasHijackedRef.current) {
+			console.log("GodModeMap: Hijacking locations around user coordinates...");
+			fetchAllData();
+			hasHijackedRef.current = true;
+		}
+	}, [userLocation, fetchAllData]);
 
 	const toggleLayer = React.useCallback((layer) => {
 		setShowLayers((prev) => ({ ...prev, [layer]: !prev[layer] }));
@@ -490,6 +643,23 @@ export const GodModeMap = () => {
 	), [showLayers, filter, loading, fetchAllData, toggleLayer]);
 
 	usePageHeader("God Mode Map", headerActions);
+
+	useEffect(() => {
+		// Track user location
+		if ("geolocation" in navigator) {
+			const watchId = navigator.geolocation.watchPosition(
+				(position) => {
+					setUserLocation({
+						lat: position.coords.latitude,
+						lng: position.coords.longitude,
+					});
+				},
+				(error) => console.error("Geolocation error:", error),
+				{ enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+			);
+			return () => navigator.geolocation.clearWatch(watchId);
+		}
+	}, []);
 
 	useEffect(() => {
 		// Google Maps Auth Failure Listener
@@ -588,6 +758,12 @@ export const GodModeMap = () => {
 			? emergencyRequests
 			: emergencyRequests.filter((r) => r.status === filter);
 
+	const allMarkers = React.useMemo(() => [
+		...emergencyRequests.map(r => ({ ...r, lat: parseFloat(r.lat), lng: parseFloat(r.lng) })),
+		...ambulances.map(a => ({ ...a, lat: parseFloat(a.lat), lng: parseFloat(a.lng) })),
+		...hospitals.map(h => ({ ...h, lat: parseFloat(h.lat), lng: parseFloat(h.lng) }))
+	], [emergencyRequests, ambulances, hospitals]);
+
 	return (
 		<div className="min-h-screen bg-background p-6 md:p-8 pt-4">
 
@@ -622,13 +798,47 @@ export const GodModeMap = () => {
 							>
 								<APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
 									<Map
+										key={theme} // Force remount on theme change for style reliability
 										defaultCenter={LAGOS_CENTER}
 										defaultZoom={12}
-										mapId="ivisit-god-mode"
 										className="w-full h-full"
-										disableDefaultUI={false}
 										gestureHandling="greedy"
+										styles={mapStyles}
+										options={{
+											disableDefaultUI: true,
+											backgroundColor: isDark ? "#121212" : "#f0f0f0",
+											tilt: 45,
+										}}
 									>
+										{/* Map Badge Overlay */}
+										<div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+											<div className="bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border shadow-sm flex items-center gap-2">
+												<div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+												<span className="text-[10px] font-mono font-bold tracking-wider uppercase opacity-70">
+													Session ID: {simulatedSessionId}
+												</span>
+											</div>
+											<Button
+												variant="secondary"
+												size="sm"
+												onClick={() => {
+													if (userLocation) {
+														toast.info("Re-centering and re-calculating smart zoom...");
+														window.dispatchEvent(new CustomEvent('recenter-map'));
+													}
+												}}
+												className="glass squircle-full h-8 px-3 text-[10px] font-bold"
+											>
+												<MapPin className="h-3 w-3 mr-1" />
+												RE-CENTER
+											</Button>
+										</div>
+
+										<MapRefiner
+											userLocation={userLocation}
+											markers={allMarkers}
+											styles={mapStyles}
+										/>
 										{/* Routes/Polylines */}
 										{activeRoutes.map((route) => (
 											<GoogleMapsPolyline
@@ -636,18 +846,18 @@ export const GodModeMap = () => {
 												path={route.path}
 												options={{
 													strokeColor: route.color,
-													strokeOpacity: 0.8,
-													strokeWeight: 4,
+													strokeOpacity: 0.9,
+													strokeWeight: 6,
 													geodesic: true,
 													icons: [
 														{
 															icon: {
 																path: "M 0,-1 0,1",
 																strokeOpacity: 1,
-																scale: 2,
+																scale: 3,
 															},
 															offset: "0",
-															repeat: "10px",
+															repeat: "12px",
 														},
 													],
 												}}
@@ -659,7 +869,7 @@ export const GodModeMap = () => {
 											filteredRequests
 												.filter((request) => request.lat && request.lng) // Only render requests with valid coordinates
 												.map((request) => (
-													<AdvancedMarker
+													<GoogleMarker
 														key={`emergency-${request.id}`}
 														position={{
 															lat: parseFloat(request.lat) || LAGOS_CENTER.lat,
@@ -698,7 +908,7 @@ export const GodModeMap = () => {
 																<span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
 															)}
 														</div>
-													</AdvancedMarker>
+													</GoogleMarker>
 												))}
 
 										{/* Ambulance Markers */}
@@ -706,7 +916,7 @@ export const GodModeMap = () => {
 											ambulances
 												.filter((ambulance) => ambulance.lat && ambulance.lng) // Only render ambulances with valid coordinates
 												.map((ambulance) => (
-													<AdvancedMarker
+													<GoogleMarker
 														key={`ambulance-${ambulance.id}`}
 														position={{
 															lat: parseFloat(ambulance.lat) || LAGOS_CENTER.lat,
@@ -740,7 +950,7 @@ export const GodModeMap = () => {
 																}}
 															/>
 														</div>
-													</AdvancedMarker>
+													</GoogleMarker>
 												))}
 
 										{/* Hospital Markers */}
@@ -748,7 +958,7 @@ export const GodModeMap = () => {
 											hospitals
 												.filter((hospital) => hospital.lat && hospital.lng) // Only render hospitals with valid coordinates
 												.map((hospital) => (
-													<AdvancedMarker
+													<GoogleMarker
 														key={`hospital-${hospital.id}`}
 														position={{
 															lat: parseFloat(hospital.lat) || LAGOS_CENTER.lat,
@@ -782,8 +992,23 @@ export const GodModeMap = () => {
 																}}
 															/>
 														</div>
-													</AdvancedMarker>
+													</GoogleMarker>
 												))}
+
+										{/* User Location Marker */}
+										{userLocation && (
+											<GoogleMarker
+												position={userLocation}
+												zIndex={100}
+											>
+												<div className="relative">
+													<div className="absolute inset-0 bg-primary/30 rounded-full animate-ping scale-150" />
+													<div className="relative w-6 h-6 bg-primary rounded-full border-2 border-white shadow-lg flex items-center justify-center">
+														<div className="w-2 h-2 bg-white rounded-full" />
+													</div>
+												</div>
+											</GoogleMarker>
+										)}
 									</Map>
 								</APIProvider>
 							</ErrorBoundary>
@@ -798,6 +1023,8 @@ export const GodModeMap = () => {
 							ambulances={ambulances}
 							hospitals={hospitals}
 							routes={activeRoutes}
+							userLocation={userLocation}
+							markers={allMarkers}
 							showLayers={showLayers}
 							onMarkerClick={(type, data) => setSelectedMarker({ type, data })}
 							getStatusColor={getStatusColor}

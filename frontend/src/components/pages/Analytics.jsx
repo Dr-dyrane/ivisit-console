@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -37,6 +37,7 @@ import {
 } from 'recharts';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
+import { usePageHeader } from '../../contexts/LayoutContext';
 
 const CHART_COLORS = {
   primary: '#7a1a1a',
@@ -66,6 +67,32 @@ export const Analytics = () => {
   const [requestsByDay, setRequestsByDay] = useState([]);
   const [emergencyTypes, setEmergencyTypes] = useState([]);
   const [dominantType, setDominantType] = useState(null); // Storytelling state
+
+  const headerActions = useMemo(() => (
+    <div className="flex items-center gap-3">
+      <Select value={timeRange} onValueChange={setTimeRange}>
+        <SelectTrigger className="w-[140px] h-9 squircle-lg glass border-0 shadow-sm text-xs font-bold uppercase tracking-wider">
+          <SelectValue placeholder="Range" />
+        </SelectTrigger>
+        <SelectContent className="squircle border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+          <SelectItem value="7d">Last 7 days</SelectItem>
+          <SelectItem value="30d">Last 30 days</SelectItem>
+          <SelectItem value="90d">Last 90 days</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Button
+        variant="outline"
+        size="sm"
+        className="glass squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+      >
+        <Download className="h-3 w-3 mr-2" />
+        EXPORT
+      </Button>
+    </div>
+  ), [timeRange]);
+
+  usePageHeader("Impact Analytics", headerActions);
 
 
 
@@ -179,37 +206,8 @@ export const Analytics = () => {
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="editorial-title text-4xl mb-2">Impact Analytics</h1>
-            <p className="text-muted-foreground font-semibold">Monitor system performance and impact metrics</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-[160px] squircle glass border-0 shadow-sm hover:bg-muted/50 transition-colors">
-                <SelectValue placeholder="Select range" />
-              </SelectTrigger>
-              <SelectContent className="squircle border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                <SelectItem value="7d">Last 7 days</SelectItem>
-                <SelectItem value="30d">Last 30 days</SelectItem>
-                <SelectItem value="90d">Last 90 days</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button className="squircle bg-primary hover:bg-primary/90 shadow-glow border-0">
-              <Download className="h-4 w-4 mr-2" />
-              Export Report
-            </Button>
-          </div>
-        </div>
-      </motion.div>
+      {/* Layout padding adjustment */}
+      <div className="pt-2" />
 
       {/* Fluid Bento Grid */}
       <LayoutGroup>
