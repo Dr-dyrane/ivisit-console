@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePageData } from '../../contexts/PageDataContext';
-import { usePageHeader } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { Button } from '../ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Card } from '../ui/card';
@@ -106,6 +106,20 @@ export const BentoHome = () => {
   ), [fetchStats]);
 
   usePageHeader("Command Center", headerActions);
+
+  const footerContent = React.useMemo(() => (
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/10 border border-success/20 uppercase tracking-widest text-[10px] font-black text-success">
+        <Activity className="w-3 h-3" />
+        <span>Vitals: Nominal</span>
+      </div>
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+        <span>Nodes: 3 Active</span>
+      </div>
+    </div>
+  ), []);
+
+  usePageFooter(footerContent, 'status');
 
   return (
     <div className="min-h-screen bg-background px-6 py-6 md:px-12 md:py-8">

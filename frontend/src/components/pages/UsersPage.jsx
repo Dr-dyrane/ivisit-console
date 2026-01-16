@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { usePageHeader } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { usePagination } from '../../hooks/usePagination';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
+import { PaginationControls } from '../ui/PaginationControls';
 import { Users, Plus, Edit, Trash2, Eye, Shield, UserCheck, ChevronRight, Phone, Mail } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
@@ -19,15 +21,25 @@ export const UsersPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalMode, setModalMode] = useState(null);
 
+  const pagination = usePagination(20);
 
-
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = async () => {
     try {
       setLoading(true);
+
+      // Get total count
+      const { count } = await supabase
+        .from('profiles') // Changed from 'users' to 'profiles' to match original table name
+        .select('*', { count: 'exact', head: true });
+
+      pagination.setTotalCount(count || 0);
+
+      // Get paginated data
       const { data, error } = await withTimeout(
         supabase
-          .from('profiles')
+          .from('profiles') // Changed from 'users' to 'profiles' to match original table name
           .select('*')
+          .range(pagination.paginationRange.start, pagination.paginationRange.end)
           .order('created_at', { ascending: false }),
         8000,
         'Failed to load users - timeout'
@@ -41,11 +53,11 @@ export const UsersPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers]);
+  }, [pagination.currentPage]);
 
   const handleCreate = useCallback(() => {
     setSelectedUser(null);
@@ -110,6 +122,16 @@ export const UsersPage = () => {
 
   usePageHeader("Identity Management", headerActions);
 
+  const footerContent = React.useMemo(() => (
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+        <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Users</span>
+      </div>
+    </div>
+  ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
+
+  usePageFooter(footerContent, 'status', !loading && users.length > 0);
+
   return (
     <div className="min-h-screen bg-background px-6 py-6 md:px-12 md:py-8">
       <div className="pt-2" />
@@ -155,7 +177,7 @@ export const UsersPage = () => {
                     </div>
 
                     <div className="flex items-center gap-2 mb-4 relative z-10">
-                      <Badge className={`geo-badge ${getRoleBadge(user.role)} border-0 font-black editorial-subtitle px-3 py-1`}>
+                      <Badge className={`geo - badge ${getRoleBadge(user.role)} border - 0 font - black editorial - subtitle px - 3 py - 1`}>
                         {user.role || 'patient'}
                       </Badge>
                       {user.bvn_verified && (
@@ -180,7 +202,7 @@ export const UsersPage = () => {
                         ) : (
                           <span className="text-2xl font-black text-muted-foreground">{user.username?.[0]?.toUpperCase() || 'U'}</span>
                         )}
-                      </div>
+                      </div >
                       <div>
                         <h3 className="font-black text-xl tracking-tight truncate w-40">
                           {user.username || 'Unknown User'}
@@ -189,7 +211,7 @@ export const UsersPage = () => {
                           <p className="text-sm font-semibold text-primary">{user.provider_type}</p>
                         )}
                       </div>
-                    </div>
+                    </div >
 
                     <div className="space-y-3 mb-6 relative z-10">
                       <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
@@ -240,13 +262,24 @@ export const UsersPage = () => {
                         )}
                       </div>
                     </div>
-                  </Card>
-                </motion.div>
+                  </Card >
+                </motion.div >
               ))}
-            </motion.div>
-          </LayoutGroup>
+            </motion.div >
+          </LayoutGroup >
         )
       }
+
+      {/* Pagination Controls */}
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        onPrevPage={pagination.prevPage}
+        onNextPage={pagination.nextPage}
+        hasPrevPage={pagination.hasPrevPage}
+        hasNextPage={pagination.hasNextPage}
+        loading={loading}
+      />
 
       {
         modalMode && (

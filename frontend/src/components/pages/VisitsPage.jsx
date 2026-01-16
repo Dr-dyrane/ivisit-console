@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { usePageHeader } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { usePagination } from '../../hooks/usePagination';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
+import { PaginationControls } from '../ui/PaginationControls';
 import { Calendar, Plus, Edit, Trash2, Eye, User, Hospital, Clock, CheckCircle, ChevronRight, MapPin } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
@@ -18,14 +20,24 @@ export const VisitsPage = () => {
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [modalMode, setModalMode] = useState(null);
 
+  const pagination = usePagination(20);
 
-
-  const fetchVisits = useCallback(async () => {
+  const fetchVisits = async () => {
     try {
       setLoading(true);
+
+      // Get total count
+      const { count } = await supabase
+        .from('visits')
+        .select('*', { count: 'exact', head: true });
+
+      pagination.setTotalCount(count || 0);
+
+      // Get paginated data
       const { data, error } = await supabase
         .from('visits')
         .select('*')
+        .range(pagination.paginationRange.start, pagination.paginationRange.end)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -36,11 +48,11 @@ export const VisitsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchVisits();
-  }, [fetchVisits]);
+  }, [pagination.currentPage]);
 
   const handleCreate = useCallback(() => {
     setSelectedVisit(null);
@@ -115,6 +127,16 @@ export const VisitsPage = () => {
   ), [handleCreate]);
 
   usePageHeader("Patient Visits", headerActions);
+
+  const footerContent = React.useMemo(() => (
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+        <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Visits</span>
+      </div>
+    </div>
+  ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
+
+  usePageFooter(footerContent, 'pagination', !loading && visits.length > 0);
 
   return (
     <div className="min-h-screen bg-background px-6 py-6 md:px-12 md:py-8">
@@ -238,6 +260,17 @@ export const VisitsPage = () => {
           </motion.div>
         </LayoutGroup>
       )}
+
+      {/* Pagination Controls */}
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        onPrevPage={pagination.prevPage}
+        onNextPage={pagination.nextPage}
+        hasPrevPage={pagination.hasPrevPage}
+        hasNextPage={pagination.hasNextPage}
+        loading={loading}
+      />
 
       {modalMode && (
         <VisitModal

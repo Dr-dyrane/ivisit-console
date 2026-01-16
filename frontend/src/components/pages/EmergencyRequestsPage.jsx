@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { usePageHeader } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { usePagination } from '../../hooks/usePagination';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
+import { PaginationControls } from '../ui/PaginationControls';
 import { useAuth } from '../../contexts/AuthContext';
 import { EmergencyDetailsModal } from '../modals/EmergencyDetailsModal';
 import { withTimeout } from '../../lib/utils';
@@ -34,15 +36,23 @@ export const EmergencyRequestsPage = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-
+  const pagination = usePagination(20);
 
   const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
+
+      const { count } = await supabase
+        .from('emergency_requests')
+        .select('*', { count: 'exact', head: true });
+
+      pagination.setTotalCount(count || 0);
+
       const { data, error } = await withTimeout(
         supabase
           .from('emergency_requests')
           .select('*')
+          .range(pagination.paginationRange.start, pagination.paginationRange.end)
           .order('created_at', { ascending: false }),
         8000,
         'Failed to load emergency requests - timeout'
@@ -51,12 +61,12 @@ export const EmergencyRequestsPage = () => {
       if (error) throw error;
       setRequests(data || []);
     } catch (error) {
-      console.error('Error fetching requests:', error);
+      console.error('Error fetching emergency requests:', error);
       toast.error(error.message || 'Failed to load emergency requests');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pagination.currentPage, pagination.setTotalCount, pagination.paginationRange.start, pagination.paginationRange.end]);
 
   useEffect(() => {
     fetchRequests();
@@ -92,6 +102,22 @@ export const EmergencyRequestsPage = () => {
   ), [fetchRequests]);
 
   usePageHeader('Emergency Logs', headerActions);
+
+  const pendingCount = React.useMemo(() => requests.filter(r => r.status === 'pending').length, [requests]);
+
+  const footerContent = React.useMemo(() => (
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-destructive/10 border border-destructive/20 uppercase tracking-widest text-[10px] font-black text-destructive">
+        <Activity className="w-3 h-3 animate-pulse" />
+        <span>Live Buffer: {pendingCount} Active</span>
+      </div>
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+        <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Requests</span>
+      </div>
+    </div>
+  ), [pendingCount, pagination.currentPage, pagination.totalPages, pagination.totalCount]);
+
+  usePageFooter(footerContent, 'status', !loading && requests.length > 0);
 
   const handleDelete = async (request) => {
     if (!confirm('Are you sure you want to delete this request?')) return;
@@ -222,6 +248,17 @@ export const EmergencyRequestsPage = () => {
           </motion.div>
         </LayoutGroup>
       )}
+
+      {/* Pagination Controls */}
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        onPrevPage={pagination.prevPage}
+        onNextPage={pagination.nextPage}
+        hasPrevPage={pagination.hasPrevPage}
+        hasNextPage={pagination.hasNextPage}
+        loading={loading}
+      />
 
       {/* Emergency Details Modal */}
       <EmergencyDetailsModal

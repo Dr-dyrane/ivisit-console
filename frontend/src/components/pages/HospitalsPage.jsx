@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { usePageHeader } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { usePagination } from '../../hooks/usePagination';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
+import { PaginationControls } from '../ui/PaginationControls';
 import { Hospital, MapPin, Star, Bed, Ambulance, Plus, Edit, Trash2, Eye, ChevronRight } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
@@ -21,19 +23,29 @@ export const HospitalsPage = () => {
   const [selectedHospital, setSelectedHospital] = useState(null);
   const [modalMode, setModalMode] = useState(null); // 'view', 'edit', 'create'
 
-
+  const pagination = usePagination(20);
 
   useEffect(() => {
     fetchHospitals();
-  }, []);
+  }, [pagination.currentPage]);
 
   const fetchHospitals = async () => {
     try {
       setLoading(true);
+
+      // Get total count
+      const { count } = await supabase
+        .from('hospitals')
+        .select('*', { count: 'exact', head: true });
+
+      pagination.setTotalCount(count || 0);
+
+      // Get paginated data
       const { data, error } = await withTimeout(
         supabase
           .from('hospitals')
           .select('*')
+          .range(pagination.paginationRange.start, pagination.paginationRange.end)
           .order('created_at', { ascending: false }),
         8000,
         'Failed to load hospitals - timeout'
@@ -101,7 +113,17 @@ export const HospitalsPage = () => {
     </Button>
   ), [isAdmin, isProvider, handleCreate]);
 
-  usePageHeader("Provider Network", headerActions);
+  usePageHeader("Medical Staff", headerActions);
+
+  const footerContent = React.useMemo(() => (
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+        <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Hospitals</span>
+      </div>
+    </div>
+  ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
+
+  usePageFooter(footerContent, 'pagination', !loading && hospitals.length > 0);
 
   return (
     <div className="min-h-screen bg-background px-6 py-6 md:px-12 md:py-8">
@@ -220,6 +242,17 @@ export const HospitalsPage = () => {
           </motion.div>
         </LayoutGroup>
       )}
+
+      {/* Pagination Controls */}
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        onPrevPage={pagination.prevPage}
+        onNextPage={pagination.nextPage}
+        hasPrevPage={pagination.hasPrevPage}
+        hasNextPage={pagination.hasNextPage}
+        loading={loading}
+      />
 
       {modalMode && (
         <HospitalModal

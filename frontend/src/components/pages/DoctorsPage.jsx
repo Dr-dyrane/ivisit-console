@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { usePageHeader } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { usePagination } from '../../hooks/usePagination';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
+import { PaginationControls } from '../ui/PaginationControls';
 import { Stethoscope, Plus, Edit, Trash2, Eye, Hospital, Star, Phone, ChevronRight } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
@@ -18,14 +20,27 @@ export const DoctorsPage = () => {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [modalMode, setModalMode] = useState(null);
 
+  const pagination = usePagination(20);
 
-
-  const fetchDoctors = useCallback(async () => {
+  const fetchDoctors = async () => {
     try {
       setLoading(true);
+
+      // Get total count
+      const { count } = await supabase
+        .from('doctors')
+        .select('*', { count: 'exact', head: true });
+
+      pagination.setTotalCount(count || 0);
+
+      // Get paginated data
       const { data, error } = await supabase
         .from('doctors')
-        .select('*, hospitals(name)')
+        .select(`
+          *,
+          hospital:hospitals(name)
+        `)
+        .range(pagination.paginationRange.start, pagination.paginationRange.end)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -36,11 +51,11 @@ export const DoctorsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchDoctors();
-  }, [fetchDoctors]);
+  }, [pagination.currentPage]);
 
   const handleCreate = useCallback(() => {
     setSelectedDoctor(null);
@@ -58,7 +73,7 @@ export const DoctorsPage = () => {
   }, []);
 
   const handleDelete = useCallback(async (doctor) => {
-    if (!window.confirm(`Are you sure you want to delete Dr. ${doctor.name}?`)) return;
+    if (!window.confirm(`Are you sure you want to delete Dr.${doctor.name}?`)) return;
 
     try {
       const { error } = await supabase
@@ -105,6 +120,16 @@ export const DoctorsPage = () => {
 
   usePageHeader("Medical Staff", headerActions);
 
+  const footerContent = React.useMemo(() => (
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+        <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Doctors</span>
+      </div>
+    </div>
+  ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
+
+  usePageFooter(footerContent, 'status', !loading && doctors.length > 0);
+
   return (
     <div className="min-h-screen bg-background px-6 py-6 md:px-12 md:py-8">
       <div className="pt-2" />
@@ -137,7 +162,7 @@ export const DoctorsPage = () => {
                 transition={{ delay: index * 0.05 }}
                 className="col-span-1"
               >
-                <Card className="h-full geo-chamfer glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col" data-testid={`doctor-card-${doctor.id}`}>
+                <Card className="h-full geo-chamfer glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col" data-testid={`doctor - card - ${doctor.id} `}>
 
                   {/* Top Right Icon */}
                   <div className="absolute top-0 right-0 p-5 z-20">
@@ -150,7 +175,7 @@ export const DoctorsPage = () => {
                   </div>
 
                   <div className="flex items-center gap-2 mb-4 relative z-10">
-                    <Badge className={`geo-badge ${getStatusBadge(doctor.status)} border-0 font-black editorial-subtitle px-3 py-1`}>
+                    <Badge className={`geo - badge ${getStatusBadge(doctor.status)} border - 0 font - black editorial - subtitle px - 3 py - 1`}>
                       {doctor.status || 'available'}
                     </Badge>
                   </div>
@@ -201,7 +226,7 @@ export const DoctorsPage = () => {
                         size="sm"
                         onClick={() => handleView(doctor)}
                         className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                        data-testid={`view-doctor-${doctor.id}`}
+                        data-testid={`view - doctor - ${doctor.id} `}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -210,7 +235,7 @@ export const DoctorsPage = () => {
                         size="sm"
                         onClick={() => handleEdit(doctor)}
                         className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                        data-testid={`edit-doctor-${doctor.id}`}
+                        data-testid={`edit - doctor - ${doctor.id} `}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -219,7 +244,7 @@ export const DoctorsPage = () => {
                         size="sm"
                         onClick={() => handleDelete(doctor)}
                         className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                        data-testid={`delete-doctor-${doctor.id}`}
+                        data-testid={`delete -doctor - ${doctor.id} `}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -231,6 +256,17 @@ export const DoctorsPage = () => {
           </motion.div>
         </LayoutGroup>
       )}
+
+      {/* Pagination Controls */}
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        onPrevPage={pagination.prevPage}
+        onNextPage={pagination.nextPage}
+        hasPrevPage={pagination.hasPrevPage}
+        hasNextPage={pagination.hasNextPage}
+        loading={loading}
+      />
 
       {modalMode && (
         <DoctorModal

@@ -14,6 +14,7 @@ import { IslandNavigation } from "./components/common/IslandNavigation";
 import { ResponsiveSidebar } from "./components/navigation/ResponsiveSidebar";
 import { LayoutProvider, useLayout } from "./contexts/LayoutContext";
 import { SmartHeader } from "./components/navigation/SmartHeader";
+import { SmartFooter } from "./components/navigation/SmartFooter";
 import { ContextAwareFAB } from "./components/navigation/ContextAwareFAB";
 import {
 	ProtectedRoute,
@@ -107,6 +108,7 @@ const AppShell = ({ children }) => {
 			{/* Responsive Components (Overlays) */}
 			{!hideNav && (
 				<>
+					<SmartFooter />
 					<ContextAwareFAB />
 				</>
 			)}
