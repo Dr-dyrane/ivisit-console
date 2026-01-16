@@ -75,7 +75,7 @@ const AppShell = ({ children }) => {
 					)}
 
 					{/* Padding for content */}
-					<div className="relative z-10 p-6 md:p-8 pb-32 max-w-[1920px] mx-auto">
+					<div className="relative z-10 p-2 md:p-8 pb-32 max-w-[1920px] mx-auto">
 						{children}
 					</div>
 				</main>

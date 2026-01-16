@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { usePageData } from '../../contexts/PageDataContext';
-import { 
-  AlertTriangle, 
-  Activity, 
-  Users, 
-  Hospital, 
+import {
+  AlertTriangle,
+  Activity,
+  Users,
+  Hospital,
   Ambulance,
   MapPin,
   Clock,
@@ -30,15 +30,15 @@ import {
 export const ContextPanel = () => {
   const location = useLocation();
   const currentPath = location.pathname;
-  const { 
-    emergencyData, 
-    analyticsData, 
-    doctorsData, 
-    visitsData, 
-    verificationData, 
+  const {
+    emergencyData,
+    analyticsData,
+    doctorsData,
+    visitsData,
+    verificationData,
     loading,
     getEmergencyStats,
-    useMockData 
+    useMockData
   } = usePageData();
 
   const emergencyStats = getEmergencyStats();
@@ -58,7 +58,7 @@ export const ContextPanel = () => {
       '/settings': { title: 'System Settings', subtitle: 'Configuration' }
     };
 
-    const currentHeader = Object.keys(headers).find(key => 
+    const currentHeader = Object.keys(headers).find(key =>
       currentPath === key || currentPath.startsWith(key + '/')
     ) || { title: 'Context Panel', subtitle: 'Smart Context' };
 
@@ -67,7 +67,7 @@ export const ContextPanel = () => {
 
   const renderPanelHeader = () => {
     const { title, subtitle } = getPageContextHeader();
-    
+
     return (
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -118,7 +118,7 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Emergency Overview</h3>
-          
+
           <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -188,17 +188,16 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Recent Activity</h3>
-          
+
           <div className="space-y-2">
             {emergencyData.slice(0, 3).map((request) => (
               <Card key={request.id} className="glass-strong squircle-lg p-3 border-0 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 geo-round ${
-                      request.priority === 'critical' ? 'bg-destructive' :
-                      request.priority === 'high' ? 'bg-warning' :
-                      request.priority === 'medium' ? 'bg-info' : 'bg-success'
-                    }`} />
+                    <div className={`w-2 h-2 geo-round ${request.priority === 'critical' ? 'bg-destructive' :
+                        request.priority === 'high' ? 'bg-warning' :
+                          request.priority === 'medium' ? 'bg-info' : 'bg-success'
+                      }`} />
                     <div>
                       <p className="font-medium text-sm">{request.patient_name}</p>
                       <p className="text-xs text-muted-foreground truncate max-w-[120px]">
@@ -223,7 +222,7 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
-          
+
           <button className="w-full p-4 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm">
             <Zap className="h-4 w-4 text-primary" />
             <span className="font-black tracking-tight text-primary">New Emergency Request</span>
@@ -244,7 +243,7 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Role Distribution</h3>
-          
+
           <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -296,7 +295,7 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Capacity Status</h3>
-          
+
           <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -342,7 +341,7 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Location Filter</h3>
-          
+
           <button className="w-full p-3 geo-sharp glass-strong hover:bg-muted/50 transition-colors flex items-center gap-3">
             <MapPin className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">Near Me</span>
@@ -362,7 +361,7 @@ export const ContextPanel = () => {
         className="space-y-3"
       >
         <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Fleet Status</h3>
-        
+
         <Card className="glass squircle-lg p-4 border-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -408,7 +407,7 @@ export const ContextPanel = () => {
         className="space-y-3"
       >
         <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Performance</h3>
-        
+
         <Card className="glass squircle-lg p-4 border-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -427,14 +426,57 @@ export const ContextPanel = () => {
   const renderMapPanel = () => {
     const panel = (
       <div className="p-4 space-y-4">
-        {/* Map Controls */}
+        {/* Live Statistics (Mobile Parity) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-3"
         >
+          <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Live Statistics</h3>
+
+          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 geo-round bg-destructive/20 flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                </div>
+                <div>
+                  <span className="font-black tracking-tight">Active Emergencies</span>
+                  <p className="text-xs text-muted-foreground">Critical & High</p>
+                </div>
+              </div>
+              <Badge className="bg-destructive/20 text-destructive border-0">{emergencyStats.critical + emergencyStats.pending}</Badge>
+            </div>
+          </Card>
+
+          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
+                  <Ambulance className="h-5 w-5 text-success" />
+                </div>
+                <div>
+                  <span className="font-black tracking-tight">Available Units</span>
+                  <p className="text-xs text-muted-foreground">Ready for dispatch</p>
+                </div>
+              </div>
+              <Badge className="bg-success/20 text-success border-0">
+                {/* Fallback estimation since we don't have direct ambulance status in emergencyStats */}
+                {Math.max(0, 12 - emergencyStats.inProgress)}
+              </Badge>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Map Controls */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="space-y-3"
+        >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Map Controls</h3>
-          
+
           <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -444,18 +486,6 @@ export const ContextPanel = () => {
                 <span className="font-black tracking-tight">Live View</span>
               </div>
               <Badge className="bg-primary/20 text-primary border-0">Active</Badge>
-            </div>
-          </Card>
-
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 geo-round bg-info/20 flex items-center justify-center">
-                  <MapPin className="h-5 w-5 text-info" />
-                </div>
-                <span className="font-black tracking-tight">Locations</span>
-              </div>
-              <Badge className="bg-info/20 text-info border-0">24</Badge>
             </div>
           </Card>
         </motion.div>
@@ -468,7 +498,7 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
-          
+
           <button className="w-full p-4 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm">
             <Zap className="h-4 w-4 text-primary" />
             <span className="font-black tracking-tight text-primary">Center Map</span>
@@ -489,7 +519,7 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Analytics Overview</h3>
-          
+
           <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -541,7 +571,7 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Doctor Statistics</h3>
-          
+
           <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -593,7 +623,7 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Visit Statistics</h3>
-          
+
           <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -645,7 +675,7 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Verification Queue</h3>
-          
+
           <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -697,7 +727,7 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Settings</h3>
-          
+
           <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -749,7 +779,7 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">App Overview</h3>
-          
+
           <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -804,7 +834,7 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">System Health</h3>
-          
+
           <div className="grid grid-cols-2 gap-2">
             <Card className="glass-strong squircle-lg p-3 border-0 shadow-sm">
               <div className="flex items-center gap-2">
@@ -864,13 +894,13 @@ export const ContextPanel = () => {
           className="space-y-3"
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
-          
+
           <div className="space-y-2">
             <button className="w-full p-3 geo-sharp glass-strong hover:bg-destructive/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm">
               <AlertTriangle className="h-4 w-4 text-destructive" />
               <span className="font-black tracking-tight text-destructive">Emergency Response</span>
             </button>
-            
+
             <button className="w-full p-3 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm">
               <BarChart3 className="h-4 w-4 text-primary" />
               <span className="font-black tracking-tight text-primary">View Analytics</span>
@@ -929,7 +959,7 @@ export const ContextPanel = () => {
         <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
           Navigate to a page to see relevant information and quick actions
         </p>
-        
+
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
