@@ -124,27 +124,66 @@ Ambulance fleet management.
 ---
 
 ### 5. **emergency_requests** (191 rows) ⚡ **HIGH PRIORITY**
-Emergency call/request log.
+Emergency call/request log. **31 columns total**.
 
-**Likely Columns:**
-- `id` (uuid, PRIMARY KEY)
-- `user_id` (uuid, FK → profiles)
-- `ambulance_id` (uuid, FK → ambulances)
-- `hospital_id` (uuid, FK → hospitals)
-- `status` (text) - pending, accepted, in_progress, completed, cancelled
-- `latitude` (float)
-- `longitude` (float)
-- `description` (text)
-- `priority_level` (text) - critical, high, medium, low
-- `response_time` (integer) - seconds
-- `created_at` (timestamp)
-- `completed_at` (timestamp)
+**Core Columns:**
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | NO | Primary key (request ID) |
+| `request_id` | text | YES | Alternative request identifier |
+| `user_id` | uuid | YES | FK → profiles (requester) |
+| `service_type` | text | NO | ambulance, consultation, emergency_room, critical_care |
+| `status` | text | NO | Default: 'in_progress' → pending, accepted, completed, cancelled |
+| `created_at` | timestamp tz | NO | Default: now() - when created |
+| `updated_at` | timestamp tz | NO | Default: now() - last update |
+| `completed_at` | timestamp tz | YES | When completed |
+| `cancelled_at` | timestamp tz | YES | When cancelled |
+
+**Hospital/Facility Columns:**
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `hospital_id` | text | YES | FK → hospitals |
+| `hospital_name` | text | YES | Denormalized hospital name |
+| `specialty` | text | YES | Medical specialty requested |
+| `bed_number` | text | YES | Specific bed assigned |
+| `bed_type` | text | YES | icu, standard, isolation, pediatric |
+| `bed_count` | text | YES | Available beds at hospital |
+
+**Ambulance/Responder Columns:**
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `ambulance_type` | text | YES | basic, advanced, critical_care |
+| `ambulance_id` | text | YES | FK → ambulances |
+| `responder_id` | uuid | YES | FK → profiles (driver/medic) |
+| `responder_name` | text | YES | Name of responder |
+| `responder_phone` | text | YES | Contact phone |
+| `responder_vehicle_type` | text | YES | Vehicle type (ambulance, bike, etc) |
+| `responder_vehicle_plate` | text | YES | License plate number |
+
+**Location Columns (PostGIS geometry - USER-DEFINED type):**
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `pickup_location` | geometry | YES | GeoJSON Point - where to pick up patient |
+| `destination_location` | geometry | YES | GeoJSON Point - hospital/destination |
+| `patient_location` | geometry | YES | Current patient location |
+| `patient_heading` | double | YES | Compass bearing 0-360° |
+| `responder_location` | geometry | YES | Ambulance current location |
+| `responder_heading` | double | YES | Ambulance heading 0-360° |
+
+**Medical Data Columns (JSON):**
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `patient_snapshot` | jsonb | YES | Medical snapshot: blood_type, allergies, conditions, medications |
+| `shared_data_snapshot` | jsonb | YES | Data shared with responders/hospitals |
+| `estimated_arrival` | text | YES | ETA or duration estimate |
 
 **Uses:**
-- Emergency dispatch dashboard
-- Real-time tracking
-- Analytics & reporting
-- Emergency queue
+- Emergency dispatch dashboard (real-time updates)
+- Live ambulance tracking (map integration)
+- Emergency queue management
+- Response time analytics
+- Success rate reporting
+- Historical emergency logs
 
 ---
 
