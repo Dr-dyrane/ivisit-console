@@ -20,7 +20,12 @@ export const SmartHeader = () => {
                     y: isScrolledDown ? -100 : 0,
                     opacity: isScrolledDown ? 0 : 1
                 }}
-                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                transition={{
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 30,
+                    mass: 0.8
+                }}
                 className={`fixed z-40 h-16 flex items-center justify-between transition-all duration-300 ${isMobile
                     ? 'top-2 left-2 right-2 squircle-2xl bg-background/90 backdrop-blur-2xl border border-white/10 shadow-premium'
                     : isScrolledDown

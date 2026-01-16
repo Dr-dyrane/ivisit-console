@@ -199,7 +199,12 @@ export const IslandNavigation = () => {
           x: isScrolledDown ? -100 : 0,
           opacity: isScrolledDown ? 0 : 1
         }}
-        transition={{ duration: 0.3, ease: 'easeInOut' }}
+        transition={{
+          type: "spring",
+          stiffness: 300,
+          damping: 30,
+          mass: 0.8
+        }}
         className="fixed left-0 top-0 bottom-0 z-40 flex flex-col pointer-events-none"
       >
         {/* Glass Rail Container */}

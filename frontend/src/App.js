@@ -35,6 +35,7 @@ import { NotFoundPage } from "./components/pages/NotFoundPage";
 import { Toaster } from "./components/ui/sonner";
 import NoiseOverlay from "./components/ui/noise-overlay";
 import AuthWrapper from "./components/common/AuthWrapper";
+import { motion } from "framer-motion";
 import "./App.css";
 
 // Inner Layout Content consuming hooks
@@ -74,12 +75,25 @@ const AppShell = ({ children }) => {
 					)}
 
 					{/* Padding for content */}
-					<div className={`relative z-10 p-2 pb-32 transition-all duration-500 ease-in-out ${isScrolledDown
-							? "md:p-0"
-							: "md:p-8 md:pt-0 md:pl-10"
-						}`}>
+					<motion.div
+						layout
+						initial={false}
+						animate={{
+							paddingTop: isScrolledDown ? 8 : (window.innerWidth >= 768 ? 0 : 8),
+							paddingLeft: isScrolledDown ? 8 : (window.innerWidth >= 768 ? 40 : 8),
+							paddingRight: isScrolledDown ? 8 : (window.innerWidth >= 768 ? 32 : 8),
+							paddingBottom: 128
+						}}
+						transition={{
+							type: "spring",
+							stiffness: 300,
+							damping: 30,
+							mass: 0.8
+						}}
+						className="relative z-10"
+					>
 						{children}
-					</div>
+					</motion.div>
 				</main>
 
 				{/* 5. RIGHT DOCK (Right Border) */}
