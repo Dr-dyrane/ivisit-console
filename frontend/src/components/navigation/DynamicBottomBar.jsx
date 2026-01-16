@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { useLayout } from '../../contexts/LayoutContext';
 import { useContextAction } from '../../hooks/useContextAction';
 import { Menu, Zap } from 'lucide-react';
 import { Sheet, SheetContent, SheetOverlay } from '../ui/sheet';
@@ -17,6 +18,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 
 export const DynamicBottomBar = () => {
     const { isMobile } = useNavigation();
+    const { isScrolledDown } = useLayout();
     const { theme } = useTheme();
     const [sheetOpen, setSheetOpen] = useState(false);
     const [activeView, setActiveView] = useState('menu');
@@ -48,7 +50,17 @@ export const DynamicBottomBar = () => {
             <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50 pointer-events-none">
                 <motion.div
                     initial={{ y: 100, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
+                    animate={{
+                        y: isScrolledDown ? 120 : 0,
+                        opacity: isScrolledDown ? 0 : 1,
+                        scale: isScrolledDown ? 0.95 : 1
+                    }}
+                    transition={{
+                        type: 'spring',
+                        stiffness: 300,
+                        damping: 30,
+                        mass: 0.8
+                    }}
                     className="pointer-events-auto"
                 >
                     <div
