@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useLayout } from '../../contexts/LayoutContext';
-import { BentoBreadcrumbs } from './BentoBreadcrumbs';
+// import { BentoBreadcrumbs } from './BentoBreadcrumbs';
 import { QuickSearch } from './QuickSearch';
 import { NotificationCenter } from '../common/NotificationCenter';
 import { Search } from 'lucide-react';
@@ -54,10 +54,10 @@ export const SmartHeader = () => {
 
                     {!isMobile && (
                         <div className="flex items-center gap-4 ml-2">
-                            <BentoBreadcrumbs />
+                            {/* <BentoBreadcrumbs />
                             {headerConfig.title && (
                                 <div className="h-4 w-px bg-white/10 mx-2" />
-                            )}
+                            )} */}
                         </div>
                     )}
 

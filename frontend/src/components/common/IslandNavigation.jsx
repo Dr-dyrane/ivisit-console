@@ -219,13 +219,13 @@ export const IslandNavigation = () => {
         className="fixed left-0 top-0 bottom-0 z-40 flex flex-col pointer-events-none"
       >
         {/* Glass Rail Container */}
-        <div className="flex-1 flex flex-col items-center py-6 gap-4 w-[72px] pointer-events-auto">
+        <div className="flex-1 flex flex-col items-center pb-6 pt-0 gap-4 w-[72px] pointer-events-auto">
 
           {/* Vertical Spacer to accommodate merged header logo */}
           <div className="h-16 flex-shrink-0" />
 
           {/* Navigation Items */}
-          <div className="flex-1 flex flex-col items-center gap-2 mt-6">
+          <div className="flex-1 flex flex-col items-center gap-2 mt-0">
             {filteredNavItems.map((item) => (
               <div key={item.path} className="relative group">
                 <button
