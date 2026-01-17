@@ -16,7 +16,6 @@ import {
   Hospital,
   MapPin,
   FileCheck,
-  TrendingUp,
   Clock,
   AlertCircle,
   CheckCircle2,
@@ -24,7 +23,8 @@ import {
   Stethoscope,
   Calendar,
   AlertTriangle,
-  Grid // Use Grid or LayoutGrid if available
+  Grid, // Use Grid or LayoutGrid if available
+  TrendingUp
 } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
@@ -443,6 +443,106 @@ export const BentoHome = () => {
               </Card>
             </motion.div>
           ))}
+
+          {/* New Bento Cards - Subscribers and Trending Topics */}
+          
+          {/* Subscribers Card */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-1"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.7 }}
+          >
+            <Card
+              className="h-full min-h-[160px] geo-sharp glass-strong shadow-2xl p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
+              onClick={() => navigate('/subscribers')}
+            >
+              {/* Subscribers Pattern */}
+              <div className="absolute inset-0 opacity-5"
+                style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '20px 20px', color: 'hsl(var(--secondary))' }}>
+              </div>
+
+              <div className="absolute inset-0 bg-gradient-to-br from-secondary/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              
+              {/* Top Right Icon */}
+              <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <Users className="h-5 w-5 text-secondary" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+                <div className="flex justify-between items-start">
+                  <div className="w-12 h-12 squircle bg-secondary/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
+                    <Users className="h-6 w-6 text-secondary" />
+                  </div>
+                  <Badge className="squircle-sm bg-secondary/20 text-secondary border-0 font-black editorial-subtitle px-2 py-0.5">+127 NEW</Badge>
+                </div>
+                <div>
+                  <p className="editorial-subtitle text-secondary mb-1">COMMUNITY</p>
+                  <h4 className="font-black text-xl tracking-tight">Subscribers</h4>
+                  <p className="text-sm text-muted-foreground font-semibold">3,847 total members</p>
+                  <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
+                    <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                      <ChevronRight className="h-5 w-5 text-secondary ml-0.5" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Trending Topics Card */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-1"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.75 }}
+          >
+            <Card
+              className="h-full min-h-[160px] geo-round glass-strong shadow-2xl p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
+              onClick={() => navigate('/trending')}
+            >
+              {/* Trending Pattern */}
+              <div className="absolute inset-0 opacity-5"
+                style={{ backgroundImage: 'linear-gradient(45deg, currentColor 25%, transparent 25%), linear-gradient(-45deg, currentColor 25%, transparent 25%), linear-gradient(45deg, transparent 75%, currentColor 75%), linear-gradient(-45deg, transparent 75%, currentColor 75%)', backgroundSize: '20px 20px', backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px', color: 'hsl(var(--warning))' }}>
+              </div>
+
+              <div className="absolute inset-0 bg-gradient-to-br from-warning/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              
+              {/* Top Right Icon */}
+              <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <TrendingUp className="h-5 w-5 text-warning" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+                <div className="flex justify-between items-start">
+                  <div className="w-12 h-12 squircle bg-warning/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
+                    <TrendingUp className="h-6 w-6 text-warning" />
+                  </div>
+                  <Badge className="squircle-sm bg-warning/20 text-warning border-0 font-black editorial-subtitle px-2 py-0.5">TRENDING</Badge>
+                </div>
+                <div>
+                  <p className="editorial-subtitle text-warning mb-1">INSIGHTS</p>
+                  <h4 className="font-black text-xl tracking-tight">Trending Topics</h4>
+                  <p className="text-sm text-muted-foreground font-semibold">24 hot topics today</p>
+                  <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
+                    <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                      <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
 
           {/* System Status (Wide) */}
           <motion.div

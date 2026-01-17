@@ -131,6 +131,10 @@ export const InsuranceManagementPage = () => {
     }
   }, [verifyPolicy]);
 
+  const handleViewAnalytics = useCallback(() => {
+    setAnalyticsModalOpen(true);
+  }, []);
+
   const handleSave = useCallback(async (data) => {
     try {
       if (modalMode === 'edit' && selectedPolicy) {
@@ -251,6 +255,133 @@ export const InsuranceManagementPage = () => {
 
   return (
     <div className="min-h-screen bg-background px-0 md:px-12 py-6 md:py-8 pt-6">
+
+      {/* Bento Overview Cards */}
+      <LayoutGroup>
+        <motion.div
+          layout
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8"
+        >
+          {/* Total Policies Card */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-1"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+          >
+            <Card className="h-full min-h-[140px] geo-sharp glass-strong shadow-2xl p-6 border-0 hover-lift relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <Shield className="h-5 w-5 text-primary" />
+                  </div>
+                </div>
+              </div>
+              <div className="relative z-10">
+                <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Total Policies</p>
+                <h3 className="text-3xl font-black tracking-tighter">{filteredPolicies.length}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="squircle-sm bg-primary/20 text-primary border-0 font-black text-xs">
+                    {insurancePolicies.length} Total
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Active Policies Card */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
+          >
+            <Card className="h-full min-h-[140px] geo-round glass-strong shadow-2xl p-6 border-0 hover-lift relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <CheckCircle className="h-5 w-5 text-success" />
+                  </div>
+                </div>
+              </div>
+              <div className="relative z-10">
+                <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Active</p>
+                <h3 className="text-3xl font-black tracking-tighter">{filteredPolicies.filter(p => p.status === 'active').length}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="squircle-sm bg-success/20 text-success border-0 font-black text-xs">
+                    {Math.round((filteredPolicies.filter(p => p.status === 'active').length / filteredPolicies.length) * 100) || 0}% Active
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Pending Verification Card */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <Card className="h-full min-h-[140px] squircle-3xl glass-strong shadow-2xl p-6 border-0 hover-lift relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-warning/20 blur-xl rounded-full scale-150" />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <Clock className="h-5 w-5 text-warning" />
+                  </div>
+                </div>
+              </div>
+              <div className="relative z-10">
+                <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Pending</p>
+                <h3 className="text-3xl font-black tracking-tighter">{filteredPolicies.filter(p => p.status === 'pending').length}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="squircle-sm bg-warning/20 text-warning border-0 font-black text-xs">
+                    Verification
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Analytics Button Card */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-1"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.25 }}
+          >
+            <Card 
+              className="h-full min-h-[140px] geo-ticket glass-strong shadow-2xl p-6 border-0 hover-lift cursor-pointer group relative overflow-hidden"
+              onClick={handleViewAnalytics}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <BarChart3 className="h-5 w-5 text-info" />
+                  </div>
+                </div>
+              </div>
+              <div className="relative z-10 flex items-center justify-between h-full">
+                <div>
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Analytics</p>
+                  <h3 className="text-xl font-black tracking-tighter">View Insights</h3>
+                </div>
+                <div className="w-12 h-12 squircle bg-info/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <BarChart3 className="h-6 w-6 text-info" />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        </motion.div>
+      </LayoutGroup>
 
       {loading ? (
         <TableSkeleton rows={8} />

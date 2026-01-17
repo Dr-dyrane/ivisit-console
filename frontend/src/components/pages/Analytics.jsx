@@ -16,7 +16,9 @@ import {
   Ambulance,
   Hospital,
   AlertTriangle,
-  ChevronRight
+  ChevronRight,
+  FileText,
+  Plus
 } from 'lucide-react';
 import {
   LineChart,
@@ -38,6 +40,7 @@ import {
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { usePageHeader } from '../../contexts/LayoutContext';
+import { ReportsModal } from '../modals/ReportsModal';
 
 const CHART_COLORS = {
   primary: '#7a1a1a',
@@ -67,6 +70,7 @@ export const Analytics = () => {
   const [requestsByDay, setRequestsByDay] = useState([]);
   const [emergencyTypes, setEmergencyTypes] = useState([]);
   const [dominantType, setDominantType] = useState(null); // Storytelling state
+  const [reportsModalOpen, setReportsModalOpen] = useState(false);
 
   const handleExport = useCallback(() => {
     // Create CSV data from analytics
@@ -115,6 +119,21 @@ export const Analytics = () => {
     
     toast.success('Analytics data exported successfully');
   }, [stats, emergencyTypes, requestsByStatus, responseTimeData]);
+
+  // Prepare analytics data for reports
+  const analyticsDataForReports = useMemo(() => ({
+    totalEmergencies: stats.totalEmergencies,
+    avgResponseTime: stats.avgResponseTime,
+    successRate: stats.successRate,
+    totalUsers: stats.totalUsers,
+    totalHospitals: stats.totalHospitals,
+    totalAmbulances: stats.totalAmbulances,
+    responseTimeData,
+    requestsByStatus,
+    requestsByDay,
+    emergencyTypes,
+    dominantType
+  }), [stats, responseTimeData, requestsByStatus, requestsByDay, emergencyTypes, dominantType]);
 
   const headerActions = useMemo(() => (
     <div className="flex items-center gap-3">
@@ -233,6 +252,25 @@ export const Analytics = () => {
     fetchAnalytics();
   }, [fetchAnalytics]);
 
+  // Listen for context panel events
+  useEffect(() => {
+    const handleOpenReports = () => {
+      setReportsModalOpen(true);
+    };
+
+    const handleExportAnalytics = () => {
+      handleExport();
+    };
+
+    window.addEventListener('openReportsModal', handleOpenReports);
+    window.addEventListener('exportAnalytics', handleExportAnalytics);
+
+    return () => {
+      window.removeEventListener('openReportsModal', handleOpenReports);
+      window.removeEventListener('exportAnalytics', handleExportAnalytics);
+    };
+  }, [handleExport]);
+
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -254,16 +292,17 @@ export const Analytics = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background px-0 md:px-12 py-6 md:py-8">
-      {/* Layout padding adjustment */}
-      <div className="pt-2" />
+    <>
+      <div className="min-h-screen bg-background px-0 md:px-12 py-6 md:py-8">
+        {/* Layout padding adjustment */}
+        <div className="pt-2" />
 
-      {/* Fluid Bento Grid */}
-      <LayoutGroup>
-        <motion.div
-          layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense"
-        >
+        {/* Fluid Bento Grid */}
+        <LayoutGroup>
+          <motion.div
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense"
+          >
 
           {/* Stat Cards - Row 1 */}
           {[
@@ -588,8 +627,192 @@ export const Analytics = () => {
             </Card>
           </motion.div>
 
+          {/* Additional Analytics Cards - Search Analytics and Performance Metrics */}
+          
+          {/* Search Analytics Card */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+          >
+            <Card className="h-full min-h-[350px] geo-shard glass-strong shadow-2xl p-8 border-0 flex flex-col relative overflow-hidden">
+              {/* Search Pattern */}
+              <div className="absolute inset-0 opacity-5"
+                style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--info))' }}>
+              </div>
+
+              {/* Top Right Icon */}
+              <div className="absolute top-0 right-0 p-6 z-20">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
+                  <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <TrendingUp className="h-6 w-6 text-info" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6 relative z-10">
+                <h3 className="font-black text-xl tracking-tight">Search Analytics</h3>
+                <p className="text-sm text-muted-foreground font-semibold">User search patterns and trends</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 flex-1 relative z-10">
+                {[
+                  { label: 'Total Searches', value: '1,284', change: '+12%', positive: true },
+                  { label: 'Success Rate', value: '87%', change: '+3%', positive: true },
+                  { label: 'Avg Time', value: '2.3s', change: '-0.5s', positive: true },
+                  { label: 'No Results', value: '8%', change: '-2%', positive: true }
+                ].map((metric, idx) => (
+                  <div key={idx} className="p-4 geo-round bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-muted-foreground font-semibold">{metric.label}</span>
+                      <Badge className={`squircle-sm ${metric.positive ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'} border-0 font-black text-xs`}>
+                        {metric.change}
+                      </Badge>
+                    </div>
+                    <p className="text-2xl font-black tracking-tighter">{metric.value}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Performance Metrics Card */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.75 }}
+          >
+            <Card className="h-full min-h-[350px] geo-ticket glass-strong shadow-2xl p-8 border-0 flex flex-col relative overflow-hidden">
+              {/* Performance Pattern */}
+              <div className="absolute inset-0 opacity-5"
+                style={{ backgroundImage: 'repeating-linear-gradient(45deg, currentColor 0, currentColor 1px, transparent 0, transparent 50%)', backgroundSize: '10px 10px', color: 'hsl(var(--success))' }}>
+              </div>
+
+              {/* Top Right Icon */}
+              <div className="absolute top-0 right-0 p-6 z-20">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
+                  <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <Activity className="h-6 w-6 text-success" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6 relative z-10">
+                <h3 className="font-black text-xl tracking-tight">Performance Metrics</h3>
+                <p className="text-sm text-muted-foreground font-semibold">System health and efficiency</p>
+              </div>
+
+              <div className="space-y-4 flex-1 relative z-10">
+                {[
+                  { label: 'API Response Time', value: '142ms', target: '200ms', status: 'excellent' },
+                  { label: 'Database Query Time', value: '28ms', target: '50ms', status: 'excellent' },
+                  { label: 'Page Load Time', value: '1.2s', target: '2s', status: 'good' },
+                  { label: 'Error Rate', value: '0.12%', target: '1%', status: 'excellent' },
+                  { label: 'Uptime', value: '99.97%', target: '99.9%', status: 'excellent' }
+                ].map((metric, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 geo-sharp bg-muted/20 hover:bg-muted/30 transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold">{metric.label}</span>
+                        <Badge className={`squircle-sm ${
+                          metric.status === 'excellent' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
+                        } border-0 font-black text-xs`}>
+                          {metric.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 mt-1">
+                        <span className="text-lg font-black">{metric.value}</span>
+                        <span className="text-xs text-muted-foreground">Target: {metric.target}</span>
+                      </div>
+                    </div>
+                    <div className="w-16 h-2 bg-muted/30 squircle-sm overflow-hidden">
+                      <motion.div
+                        className={`h-full ${
+                          metric.status === 'excellent' ? 'bg-success' : 'bg-warning'
+                        } squircle-sm`}
+                        initial={{ width: 0 }}
+                        animate={{ 
+                          width: metric.status === 'excellent' 
+                            ? '90%' 
+                            : metric.status === 'good' 
+                            ? '75%' 
+                            : '60%' 
+                        }}
+                        transition={{ duration: 1, delay: 0.8 + (idx * 0.1) }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </motion.div>
+
         </motion.div>
       </LayoutGroup>
-    </div>
+      </div>
+
+      {/* Reports Modal */}
+      <ReportsModal
+        open={reportsModalOpen}
+        onClose={() => setReportsModalOpen(false)}
+        analyticsData={analyticsDataForReports}
+        timeRange={timeRange}
+      />
+      
+      {/* Floating Action Button for Reports */}
+      <motion.div
+        className="fixed bottom-6 right-6 z-[9999]"
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ opacity: 1, scale: 1 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        transition={{ delay: 1, duration: 0.3 }}
+        style={{ pointerEvents: 'auto' }}
+      >
+        <Button
+          onClick={() => {
+            console.log('FAB clicked!');
+            setReportsModalOpen(true);
+          }}
+          className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 bg-primary hover:bg-primary/90 text-primary-foreground group relative overflow-hidden"
+          size="lg"
+          style={{ pointerEvents: 'auto' }}
+        >
+          {/* Animated background effect */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/40"
+            initial={{ x: "-100%" }}
+            whileHover={{ x: "100%" }}
+            transition={{ duration: 0.5 }}
+          />
+          
+          {/* Icon with enhanced hover effect */}
+          <FileText className="h-6 w-6 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
+          
+          {/* Pulse animation for attention */}
+          <motion.div
+            className="absolute inset-0 rounded-full border-2 border-primary/30"
+            animate={{ scale: [1, 1.2, 1], opacity: [1, 0, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+        </Button>
+        
+        {/* Enhanced tooltip */}
+        <motion.div
+          className="absolute -top-10 right-0 bg-background border border-border rounded-md px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
+          initial={{ y: 5 }}
+          whileHover={{ y: 0 }}
+        >
+          <span className="text-xs font-medium">Generate Reports</span>
+          <div className="absolute -bottom-1 right-4 w-2 h-2 bg-background border-l border-b border-border transform rotate-45" />
+        </motion.div>
+      </motion.div>
+    </>
   );
 };
