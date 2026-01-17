@@ -45,6 +45,7 @@ export const ContextPanel = () => {
     supportTicketsData,
     loading,
     getEmergencyStats,
+    getInsuranceStats,
     useMockData
   } = usePageData();
 
@@ -205,8 +206,8 @@ export const ContextPanel = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 geo-round ${request.priority === 'critical' ? 'bg-destructive' :
-                        request.priority === 'high' ? 'bg-warning' :
-                          request.priority === 'medium' ? 'bg-info' : 'bg-success'
+                      request.priority === 'high' ? 'bg-warning' :
+                        request.priority === 'medium' ? 'bg-info' : 'bg-success'
                       }`} />
                     <div>
                       <p className="font-medium text-sm">{request.patient_name}</p>
@@ -830,7 +831,7 @@ export const ContextPanel = () => {
           <div className="space-y-2">
             <div className="text-xs font-black uppercase tracking-wider text-muted-foreground px-1">Quick Actions</div>
             <div className="space-y-1">
-              <div 
+              <div
                 onClick={handleCreateNews}
                 className="p-2 rounded-lg bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors cursor-pointer"
               >
@@ -839,7 +840,7 @@ export const ContextPanel = () => {
                   <span className="text-xs font-medium">Create News</span>
                 </div>
               </div>
-              <div 
+              <div
                 onClick={handleViewFilters}
                 className="p-2 rounded-lg bg-background/30 border border-border/20 hover:bg-background/50 transition-colors cursor-pointer"
               >
@@ -1008,21 +1009,108 @@ export const ContextPanel = () => {
   };
 
   const renderInsurancePanel = () => {
+    const stats = getInsuranceStats ? getInsuranceStats() : { total: 0, active: 0, expired: 0, pending: 0, verified: 0, verificationRate: 0 };
+
     const panel = (
       <div className="p-4 space-y-4">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Card className="p-3 bg-background/50 border-border/30">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Insurance</span>
-              <Shield className="h-4 w-4 text-primary" />
-            </div>
-            <div className="text-2xl font-black text-foreground">28</div>
-            <div className="text-xs text-muted-foreground">Active policies</div>
-          </Card>
-        </motion.div>
+        {/* Loading State */}
+        {loading.insurance && (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        )}
+
+        {!loading.insurance && (
+          <>
+            {/* Policy Overview */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-3"
+            >
+              <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Policy Overview</h3>
+
+              <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
+                      <Shield className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <span className="font-black tracking-tight">Total Policies</span>
+                      <p className="text-xs text-muted-foreground">All insurance records</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-primary/20 text-primary border-0">{stats.total}</Badge>
+                </div>
+              </Card>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Card className="glass-strong squircle-lg p-3 border-0 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 geo-round bg-success/20 flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-success" />
+                    </div>
+                    <div>
+                      <p className="font-black text-sm">{stats.active}</p>
+                      <p className="text-xs text-muted-foreground">Active</p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="glass-strong squircle-lg p-3 border-0 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
+                      <Clock className="h-4 w-4 text-warning" />
+                    </div>
+                    <div>
+                      <p className="font-black text-sm">{stats.pending}</p>
+                      <p className="text-xs text-muted-foreground">Pending</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 geo-round bg-info/20 flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-info" />
+                    </div>
+                    <div>
+                      <span className="font-black tracking-tight">Verification Rate</span>
+                      <p className="text-xs text-muted-foreground">Verified policies</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-info/20 text-info border-0">{stats.verificationRate}%</Badge>
+                </div>
+              </Card>
+            </motion.div>
+
+            {/* Quick Actions */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="space-y-3"
+            >
+              <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    const event = new CustomEvent('openInsuranceModal');
+                    window.dispatchEvent(event);
+                  }}
+                  className="w-full p-3 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm text-left"
+                >
+                  <Plus className="h-4 w-4 text-primary" />
+                  <span className="font-black tracking-tight text-primary">Add New Policy</span>
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
       </div>
     );
 

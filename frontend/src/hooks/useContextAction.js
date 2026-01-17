@@ -113,6 +113,13 @@ export const useContextAction = (openModal) => {
             color: 'primary',
             action: () => openModal('supportTicket')
         };
+    } else if (currentPath.includes('/insurance')) {
+        return {
+            icon: Shield,
+            label: 'Add Policy',
+            color: 'primary', // or 'success' depending on theme preference
+            action: () => openModal('insurance')
+        };
     } else {
         return {
             icon: Plus,

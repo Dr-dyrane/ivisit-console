@@ -90,6 +90,7 @@ export const PageDataProvider = ({ children }) => {
   const [visitsData, setVisitsData] = useState(mockVisitsData);
   const [verificationData, setVerificationData] = useState(mockVerificationData);
   const [supportTicketsData, setSupportTicketsData] = useState(mockSupportTicketsData);
+  const [insurancePolicies, setInsurancePolicies] = useState([]);
   const [loading, setLoading] = useState({
     emergency: false,
     analytics: false,
@@ -99,7 +100,8 @@ export const PageDataProvider = ({ children }) => {
     hospitals: false,
     ambulances: false,
     users: false,
-    supportTickets: false
+    supportTickets: false,
+    insurance: false
   });
   const [useMockData, setUseMockData] = useState(false);
 
@@ -408,26 +410,26 @@ export const PageDataProvider = ({ children }) => {
 
       // Use the service function to avoid response body conflicts
       const data = await getSupportTickets();
-      
+
       // Calculate real support ticket stats
       const total = data?.length || 0;
       const open = data?.filter(t => t.status === 'open').length || 0;
       const inProgress = data?.filter(t => t.status === 'in_progress').length || 0;
       const resolved = data?.filter(t => t.status === 'resolved').length || 0;
-      
+
       // Calculate this week's tickets
       const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const thisWeek = data?.filter(t => new Date(t.created_at) > oneWeekAgo).length || 0;
-      
+
       // Calculate average resolution time (in hours)
       const resolvedTickets = data?.filter(t => t.status === 'resolved' && t.resolved_at);
-      const averageResolutionTime = resolvedTickets?.length > 0 
+      const averageResolutionTime = resolvedTickets?.length > 0
         ? resolvedTickets.reduce((acc, ticket) => {
-            const created = new Date(ticket.created_at);
-            const resolved = new Date(ticket.resolved_at);
-            const hours = (resolved - created) / (1000 * 60 * 60);
-            return acc + hours;
-          }, 0) / resolvedTickets.length
+          const created = new Date(ticket.created_at);
+          const resolved = new Date(ticket.resolved_at);
+          const hours = (resolved - created) / (1000 * 60 * 60);
+          return acc + hours;
+        }, 0) / resolvedTickets.length
         : 0;
 
       setSupportTicketsData({
@@ -447,6 +449,34 @@ export const PageDataProvider = ({ children }) => {
     }
   }, [useMockData]);
 
+  const fetchInsurancePolicies = useCallback(async () => {
+    try {
+      setLoading(prev => ({ ...prev, insurance: true }));
+
+      if (useMockData) {
+        setInsurancePolicies([]); // Mock empty for now or add mock data
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('insurance_policies')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('Supabase error for insurance:', error);
+        setInsurancePolicies([]);
+      } else {
+        setInsurancePolicies(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching insurance policies:', error);
+      setInsurancePolicies([]);
+    } finally {
+      setLoading(prev => ({ ...prev, insurance: false }));
+    }
+  }, [useMockData]);
+
   // Initialize all data on mount
   useEffect(() => {
     fetchEmergencyData();
@@ -458,6 +488,7 @@ export const PageDataProvider = ({ children }) => {
     fetchAmbulancesData();
     fetchUsersData();
     fetchSupportTicketsData();
+    fetchInsurancePolicies();
   }, [
     fetchEmergencyData,
     fetchVerificationData,
@@ -467,7 +498,8 @@ export const PageDataProvider = ({ children }) => {
     fetchHospitalsData,
     fetchAmbulancesData,
     fetchUsersData,
-    fetchSupportTicketsData
+    fetchSupportTicketsData,
+    fetchInsurancePolicies
   ]);
 
   // Real-time subscription for emergency data
@@ -516,6 +548,21 @@ export const PageDataProvider = ({ children }) => {
       return () => supabase.removeChannel(channel);
     }
   }, [useMockData, fetchVisitsData]);
+
+  // Real-time subscription for insurance policies
+  useEffect(() => {
+    if (!useMockData) {
+      const channel = supabase
+        .channel('insurance_changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'insurance_policies' },
+          fetchInsurancePolicies
+        )
+        .subscribe();
+
+      return () => supabase.removeChannel(channel);
+    }
+  }, [useMockData, fetchInsurancePolicies]);
 
   // Real-time subscription for verification data
   useEffect(() => {
@@ -568,6 +615,26 @@ export const PageDataProvider = ({ children }) => {
     };
   };
 
+  const getInsuranceStats = () => {
+    const policies = insurancePolicies || [];
+    const active = policies.filter(p => p.status === 'active').length;
+    const expired = policies.filter(p => p.status === 'expired').length;
+    const pending = policies.filter(p => p.status === 'pending').length;
+
+    // Calculate verified ratio
+    const verified = policies.filter(p => p.verified).length;
+    const verificationRate = policies.length > 0 ? Math.round((verified / policies.length) * 100) : 0;
+
+    return {
+      total: policies.length,
+      active,
+      expired,
+      pending,
+      verified,
+      verificationRate
+    };
+  };
+
   const value = {
     // Data
     emergencyData,
@@ -576,6 +643,8 @@ export const PageDataProvider = ({ children }) => {
     visitsData,
     verificationData,
     supportTicketsData,
+    // Add insurance data directly to value so it's accessible
+    insurance: insurancePolicies,
 
     // Loading states
     loading,
@@ -591,7 +660,9 @@ export const PageDataProvider = ({ children }) => {
     fetchAmbulancesData,
     fetchUsersData,
     fetchSupportTicketsData,
+    fetchInsurancePolicies,
     getEmergencyStats,
+    getInsuranceStats,
     setUseMockData,
 
     // Mock data for reference
@@ -601,7 +672,8 @@ export const PageDataProvider = ({ children }) => {
       doctors: mockDoctorsData,
       visits: mockVisitsData,
       verification: mockVerificationData,
-      supportTickets: mockSupportTicketsData
+      supportTickets: mockSupportTicketsData,
+      insurance: [] // Mock insurance data
     }
   };
 

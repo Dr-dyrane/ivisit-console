@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useContextAction } from '../../hooks/useContextAction';
+import { useInsurance } from '../../hooks/useInsurance';
 import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
 import { UserModal } from '../modals/UserModal';
 import { HospitalModal } from '../modals/HospitalModal';
@@ -36,6 +37,7 @@ export const ContextAwareFAB = () => {
 
   // Use the shared hook
   const actionConfig = useContextAction(openModal);
+  const { createPolicy } = useInsurance();
 
   // Desktop only - Mobile uses DynamicBottomBar
   if (!isDesktop) return null;
@@ -100,7 +102,7 @@ export const ContextAwareFAB = () => {
             case 'visit': return <VisitModal key={key} {...props} />;
             case 'healthNews': return <HealthNewsModal key={key} {...props} />;
             case 'supportTicket': return <SupportTicketModal key={key} {...props} />;
-            case 'insurance': return <InsuranceModal key={key} {...props} />;
+            case 'insurance': return <InsuranceModal key={key} {...props} onSave={createPolicy} mode="create" />;
             default: return null;
           }
         })}

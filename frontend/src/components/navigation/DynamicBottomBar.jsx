@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useContextAction } from '../../hooks/useContextAction';
+import { useInsurance } from '../../hooks/useInsurance';
 import { Menu, Zap, Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetOverlay } from '../ui/sheet';
 import { ContextPanel } from './ContextPanel';
@@ -15,6 +16,7 @@ import { DoctorModal } from '../modals/DoctorModal';
 import { VisitModal } from '../modals/VisitModal';
 import { HealthNewsModal } from '../modals/HealthNewsModal';
 import { SupportTicketModal } from '../modals/SupportTicketModal';
+import { InsuranceModal } from '../modals/InsuranceModal';
 import { NotificationCenter } from '../common/NotificationCenter';
 import { QuickSearch } from './QuickSearch';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -34,7 +36,8 @@ export const DynamicBottomBar = () => {
         doctor: false,
         visit: false,
         healthNews: false,
-        supportTicket: false
+        supportTicket: false,
+        insurance: false
     });
 
     const openModal = (type) => {
@@ -45,6 +48,7 @@ export const DynamicBottomBar = () => {
         setModalStates(prev => ({ ...prev, [type]: false }));
     };
 
+    const { createPolicy } = useInsurance();
     const actionConfig = useContextAction(openModal);
 
     if (!isMobile) return null;
@@ -222,6 +226,7 @@ export const DynamicBottomBar = () => {
                         case 'visit': return <VisitModal key={key} {...props} />;
                         case 'healthNews': return <HealthNewsModal key={key} {...props} />;
                         case 'supportTicket': return <SupportTicketModal key={key} {...props} />;
+                        case 'insurance': return <InsuranceModal key={key} {...props} onSave={createPolicy} mode="create" />;
                         default: return null;
                     }
                 })}

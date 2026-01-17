@@ -12,12 +12,12 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
-import { 
-  Headphones, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  User, 
+import {
+  Headphones,
+  Plus,
+  Edit,
+  Trash2,
+  User,
   Clock,
   AlertCircle,
   CheckCircle,
@@ -61,19 +61,19 @@ const CATEGORIES = [
 export const SupportTicketsPage = () => {
   const { isAdmin, profile } = useAuth();
   const { isMobile } = useNavigation();
-  const { 
-    supportTickets, 
-    loading, 
-    error, 
+  const {
+    supportTickets,
+    loading,
+    error,
     analytics,
-    fetchSupportTickets, 
-    createTicket, 
-    updateTicket, 
-    deleteTicket, 
+    fetchSupportTickets,
+    createTicket,
+    updateTicket,
+    deleteTicket,
     updateStatus,
     assignTicketToAgent,
     fetchAnalytics,
-    clearError 
+    clearError
   } = useSupportTickets();
 
   const [selectedTicket, setSelectedTicket] = useState(null);
@@ -241,6 +241,16 @@ export const SupportTicketsPage = () => {
 
       {loading ? (
         <TableSkeleton rows={8} />
+      ) : supportTickets.length === 0 ? (
+        <Card className="squircle-lg glass shadow-premium p-12 border-0 text-center col-span-full">
+          <Headphones className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="font-black text-xl mb-2">No Support Tickets</h3>
+          <p className="text-muted-foreground mb-6">There are currently no active support tickets.</p>
+          <Button onClick={handleCreate} className="squircle bg-primary">
+            <Plus className="h-4 w-4 mr-2" />
+            Create New Ticket
+          </Button>
+        </Card>
       ) : (
         <>
           {viewMode === 'grid' && <SupportTicketListView tickets={supportTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} />}
@@ -274,7 +284,7 @@ export const SupportTicketsPage = () => {
             categories={CATEGORIES}
           />
         )}
-        
+
         {analyticsModalOpen && (
           <SupportAnalyticsModal
             open={analyticsModalOpen}
