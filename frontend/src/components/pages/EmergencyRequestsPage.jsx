@@ -194,10 +194,10 @@ export const EmergencyRequestsPage = () => {
     setIsDetailsModalOpen(true);
   };
 
-  const handleCreateEmergency = () => {
+  const handleCreateEmergency = useCallback(() => {
     setSelectedRequest(null);
     setIsEmergencyModalOpen(true);
-  };
+  }, []);
 
   const handleCloseEmergencyModal = () => {
     setIsEmergencyModalOpen(false);
