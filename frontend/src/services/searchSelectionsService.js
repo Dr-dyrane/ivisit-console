@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { getCurrentUser } from './authService';
 
 const TABLE_NAME = 'search_selections';
 
@@ -13,6 +14,13 @@ const TABLE_NAME = 'search_selections';
  */
 export async function createSearchSelection(input) {
   try {
+    const user = await getCurrentUser();
+    
+    // Apply authorization - users can only create for themselves
+    if (user?.id !== input.user_id) {
+      throw new Error('Unauthorized: Cannot create search selections for other users');
+    }
+    
     const payload = {
       user_id: input.user_id,
       query: input.query,
@@ -59,9 +67,17 @@ export async function getSearchSelection(selectionId) {
 
 /**
  * Get user search selections
+ * Users can only see their own search selections (Apple privacy standard)
  */
 export async function getUserSearchSelections(userId) {
   try {
+    const user = await getCurrentUser();
+    
+    // Apply authorization - users can only see their own search selections
+    if (user?.id !== userId) {
+      throw new Error('Unauthorized: Cannot access other users search selections');
+    }
+    
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
@@ -78,28 +94,12 @@ export async function getUserSearchSelections(userId) {
 }
 
 /**
- * Get all search selections
+ * Get all search selections - REMOVED for privacy
+ * This function violates Apple privacy standards
  */
-export async function getSearchSelections(limit, offset) {
-  try {
-    let query = supabase.from(TABLE_NAME).select('*').order('created_at', { ascending: false });
-
-    if (limit) {
-      query = query.limit(limit);
-    }
-    if (offset && limit) {
-      query = query.range(offset, offset + limit - 1);
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-
-    return data || [];
-  } catch (error) {
-    console.error('Error fetching search selections:', error);
-    throw error;
-  }
-}
+// export async function getSearchSelections(limit, offset) {
+//   REMOVED - Users should not access other users' search data
+// }
 
 /**
  * Update search selection

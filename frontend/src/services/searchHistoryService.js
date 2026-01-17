@@ -5,14 +5,23 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { getCurrentUser } from './authService';
 
 const TABLE_NAME = 'search_history';
 
 /**
  * Get search history for user
+ * Users can only see their own search history (Apple privacy standard)
  */
 export async function getSearchHistory(filter) {
   try {
+    const user = await getCurrentUser();
+    
+    // Apply authorization - users can only see their own search history
+    if (user?.id !== filter.user_id) {
+      throw new Error('Unauthorized: Cannot access other users search history');
+    }
+    
     let query = supabase.from(TABLE_NAME).select('*').eq('user_id', filter.user_id);
 
     if (filter.query_type) {
