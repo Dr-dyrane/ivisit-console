@@ -5,14 +5,23 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { getCurrentUser } from './authService';
 
 const TABLE_NAME = 'medical_profiles';
 
 /**
  * Get medical profile for user
+ * Admin users can see any medical profile, others see only their own
  */
 export async function getUserMedicalProfile(userId) {
   try {
+    const user = await getCurrentUser();
+    
+    // Apply authorization - admins can see any profile, others only own
+    if (user?.role !== 'admin' && userId !== user?.id) {
+      throw new Error('Unauthorized: Cannot access other users medical profiles');
+    }
+    
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
@@ -66,9 +75,17 @@ export async function createMedicalProfile(input) {
 
 /**
  * Update medical profile
+ * Admin users can update any profile, others only their own
  */
 export async function updateMedicalProfile(userId, input) {
   try {
+    const user = await getCurrentUser();
+    
+    // Apply authorization - admins can update any profile, others only own
+    if (user?.role !== 'admin' && userId !== user?.id) {
+      throw new Error('Unauthorized: Cannot update other users medical profiles');
+    }
+    
     const payload = {
       ...input,
       updated_at: new Date().toISOString(),
