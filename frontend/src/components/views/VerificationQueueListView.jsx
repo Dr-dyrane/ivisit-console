@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card } from '../ui/card';
+import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -24,9 +25,9 @@ export const VerificationQueueListView = ({ providers, onView, onDelete, isMobil
             <div className="flex items-center gap-4 justify-between">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <Avatar className="h-12 w-12 squircle-md flex-shrink-0">
-                  <AvatarImage src={provider.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${provider.id}`} />
+                  <AvatarImage src={getAvatarUrl(provider)} />
                   <AvatarFallback className="font-black bg-primary/10 text-primary text-sm">
-                    {provider.username?.[0]?.toUpperCase() || 'U'}
+                    {getAvatarFallback(provider)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">

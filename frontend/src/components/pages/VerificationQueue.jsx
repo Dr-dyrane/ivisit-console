@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
+import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
@@ -303,9 +304,9 @@ export const VerificationQueue = () => {
                     <div className="relative z-10 flex flex-col items-center text-center">
                       <div className="relative mb-4">
                         <Avatar className="h-24 w-24 squircle-xl shadow-lg group-hover:scale-105 transition-transform duration-300">
-                          <AvatarImage src={provider.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${provider.id}`} />
+                          <AvatarImage src={getAvatarUrl(provider)} />
                           <AvatarFallback className="text-2xl font-black bg-primary/10 text-primary">
-                            {provider.username?.[0]?.toUpperCase() || 'U'}
+                            {getAvatarFallback(provider)}
                           </AvatarFallback>
                         </Avatar>
                         <Badge className={`absolute -bottom-2 -right-2 squircle-sm px-2 py-0.5 ${provider.bvn_verified ? 'bg-success text-success-foreground' : 'bg-warning text-warning-foreground'
@@ -391,7 +392,7 @@ export const VerificationQueue = () => {
               <div className="px-8 pb-8 -mt-12 relative z-10">
                 <div className="flex items-end justify-between mb-6">
                   <Avatar className="h-28 w-28 squircle-2xl shadow-xl">
-                    <AvatarImage src={selectedProvider.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedProvider.id}`} />
+                    <AvatarImage src={getAvatarUrl(selectedProvider)} />
                     <AvatarFallback className="text-4xl font-black bg-muted text-muted-foreground">
                       {selectedProvider.username?.[0]?.toUpperCase()}
                     </AvatarFallback>

@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { User, Mail, Shield, LogOut, Moon, Sun, Bell, Lock, Smartphone, Globe, CreditCard, ChevronRight } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
+import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { usePageHeader } from '../../contexts/LayoutContext';
 
 export const SettingsPage = () => {
@@ -82,9 +83,12 @@ export const SettingsPage = () => {
                             <div className="px-8 pb-8 -mt-16 relative z-10">
                                 <div className="flex items-end gap-6 mb-6">
                                     <Avatar className="h-32 w-32 squircle-2xl border-4 border-background shadow-2xl">
-                                        <AvatarImage src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.id}`} className="object-cover" />
+                                        <AvatarImage 
+                                          src={getAvatarUrl(profile, user)} 
+                                          className="object-cover" 
+                                        />
                                         <AvatarFallback className="squircle bg-muted text-muted-foreground font-black text-4xl">
-                                            {profile?.username?.[0]?.toUpperCase() || 'U'}
+                                            {getAvatarFallback(profile, user)}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="mb-2">

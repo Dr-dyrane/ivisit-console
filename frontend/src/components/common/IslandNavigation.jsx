@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import ThemeToggle from '../ui/theme-toggle';
+import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { Badge } from '../ui/badge';
 
 import { useLayout } from '../../contexts/LayoutContext';
@@ -12,7 +13,7 @@ import { useLayout } from '../../contexts/LayoutContext';
 export const IslandNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile, signOut, isAdmin, isProvider, hasMinRole } = useAuth();
+  const { profile, user, signOut, isAdmin, isProvider, hasMinRole } = useAuth();
   const { isScrolledDown } = useLayout();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -337,9 +338,11 @@ export const IslandNavigation = () => {
               className="relative"
             >
               <Avatar className="h-9 w-9 rounded-xl ring-2 ring-white/10 transition-transform hover:scale-105">
-                <AvatarImage src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.id}`} />
+                <AvatarImage 
+                  src={getAvatarUrl(profile, user)} 
+                />
                 <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-bold text-xs">
-                  {profile?.username?.[0]?.toUpperCase() || 'U'}
+                  {getAvatarFallback(profile, user)}
                 </AvatarFallback>
               </Avatar>
             </button>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home, Copy, Check } from 'lucide-react';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -10,6 +10,7 @@ class ErrorBoundary extends React.Component {
       error: null,
       errorInfo: null,
       errorCount: 0,
+      copied: false,
     };
   }
 
@@ -60,6 +61,52 @@ class ErrorBoundary extends React.Component {
     window.location.href = '/';
   };
 
+  handleCopyError = async () => {
+    const errorData = {
+      message: this.state.error?.toString(),
+      stack: this.state.error?.stack,
+      componentStack: this.state.errorInfo?.componentStack,
+      timestamp: new Date().toISOString(),
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      errorCount: this.state.errorCount,
+    };
+
+    const errorText = `
+Error Details:
+==============
+Message: ${errorData.message}
+
+Component Stack:
+${errorData.componentStack || 'N/A'}
+
+Stack Trace:
+${errorData.stack || 'N/A'}
+
+Metadata:
+- Timestamp: ${errorData.timestamp}
+- URL: ${errorData.url}
+- Error Count: ${errorData.errorCount}
+- User Agent: ${errorData.userAgent}
+    `.trim();
+
+    try {
+      await navigator.clipboard.writeText(errorText);
+      this.setState({ copied: true });
+      setTimeout(() => this.setState({ copied: false }), 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = errorText;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      this.setState({ copied: true });
+      setTimeout(() => this.setState({ copied: false }), 2000);
+    }
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -77,6 +124,32 @@ class ErrorBoundary extends React.Component {
           >
             <div className="squircle-2xl glass-strong shadow-2xl p-8 border-0 overflow-hidden relative">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-destructive/50 via-warning/50 to-destructive/50" />
+              
+              {/* Copy Button - Top Right */}
+              {process.env.NODE_ENV !== 'production' && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 }}
+                  onClick={this.handleCopyError}
+                  className="absolute top-4 right-4 w-8 h-8 squircle-md bg-muted/50 hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-all duration-200 flex items-center justify-center group"
+                  title="Copy error details"
+                >
+                  <motion.div
+                    animate={{ 
+                      rotate: this.state.copied ? 360 : 0,
+                      scale: this.state.copied ? [1, 0.8, 1] : 1
+                    }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {this.state.copied ? (
+                      <Check className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Copy className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    )}
+                  </motion.div>
+                </motion.button>
+              )}
 
               <div className="flex flex-col items-center text-center space-y-6">
                 <motion.div

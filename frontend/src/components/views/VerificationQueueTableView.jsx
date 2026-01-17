@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -37,9 +37,9 @@ export const VerificationQueueTableView = ({ providers, onView, onDelete, isMobi
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8 squircle-sm">
-                      <AvatarImage src={provider.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${provider.id}`} />
+                      <AvatarImage src={getAvatarUrl(provider)} />
                       <AvatarFallback className="font-black bg-primary/10 text-primary text-xs">
-                        {provider.username?.[0]?.toUpperCase() || 'U'}
+                        {getAvatarFallback(provider)}
                       </AvatarFallback>
                     </Avatar>
                     <span className="font-black">{provider.username || 'Unknown'}</span>

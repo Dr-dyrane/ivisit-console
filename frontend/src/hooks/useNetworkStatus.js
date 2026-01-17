@@ -51,7 +51,7 @@ export const useNetworkStatus = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [hasCorsIssue]);
 
   const retry = () => {
     retryCountRef.current += 1;
