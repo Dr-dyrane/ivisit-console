@@ -68,54 +68,6 @@ export const Analytics = () => {
   const [emergencyTypes, setEmergencyTypes] = useState([]);
   const [dominantType, setDominantType] = useState(null); // Storytelling state
 
-  const handleExport = useCallback(() => {
-    // Create CSV data from analytics
-    const csvData = [
-      ['Metric', 'Value', 'Trend'],
-      ['Total Emergencies', stats.totalEmergencies, ''],
-      ['Avg Response Time (min)', stats.avgResponseTime.toFixed(1), ''],
-      ['Success Rate (%)', stats.successRate, ''],
-      ['Total Users', stats.totalUsers, ''],
-      ['Total Hospitals', stats.totalHospitals, ''],
-      ['Total Ambulances', stats.totalAmbulances, ''],
-      [],
-      ['Emergency Types', 'Count', 'Percentage'],
-      ...emergencyTypes.map(type => [
-        type.name,
-        type.value,
-        `${Math.round((type.value / stats.totalEmergencies) * 100)}%`
-      ]),
-      [],
-      ['Request Status', 'Count', 'Percentage'],
-      ...requestsByStatus.map(status => [
-        status.name,
-        status.value,
-        `${Math.round((status.value / requestsByStatus.reduce((sum, s) => sum + s.value, 0)) * 100)}%`
-      ]),
-      [],
-      ['Daily Response Times', 'Day', 'Avg Time (min)', 'Requests'],
-      ...responseTimeData.map(day => [
-        day.day,
-        day.avgTime,
-        day.requests
-      ])
-    ];
-
-    // Convert to CSV string
-    const csvString = csvData.map(row => row.join(',')).join('\n');
-    
-    // Create and download CSV file
-    const blob = new Blob([csvString], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `analytics-export-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    
-    toast.success('Analytics data exported successfully');
-  }, [stats, emergencyTypes, requestsByStatus, responseTimeData]);
-
   const headerActions = useMemo(() => (
     <div className="flex items-center gap-3">
       <Select value={timeRange} onValueChange={setTimeRange}>
@@ -133,13 +85,13 @@ export const Analytics = () => {
         variant="outline"
         size="sm"
         className="glass squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
-        onClick={handleExport}
+        onClick={() => handleExport?.()}
       >
         <Download className="h-3 w-3 mr-2" />
         EXPORT
       </Button>
     </div>
-  ), [timeRange, handleExport]);
+  ), [timeRange]);
 
   usePageHeader("Impact Analytics", headerActions);
 
@@ -232,6 +184,54 @@ export const Analytics = () => {
   useEffect(() => {
     fetchAnalytics();
   }, [fetchAnalytics]);
+
+  const handleExport = useCallback(() => {
+    // Create CSV data from analytics
+    const csvData = [
+      ['Metric', 'Value', 'Trend'],
+      ['Total Emergencies', stats.totalEmergencies, ''],
+      ['Avg Response Time (min)', stats.avgResponseTime.toFixed(1), ''],
+      ['Success Rate (%)', stats.successRate, ''],
+      ['Total Users', stats.totalUsers, ''],
+      ['Total Hospitals', stats.totalHospitals, ''],
+      ['Total Ambulances', stats.totalAmbulances, ''],
+      [],
+      ['Emergency Types', 'Count', 'Percentage'],
+      ...emergencyTypes.map(type => [
+        type.name,
+        type.value,
+        `${Math.round((type.value / stats.totalEmergencies) * 100)}%`
+      ]),
+      [],
+      ['Request Status', 'Count', 'Percentage'],
+      ...requestsByStatus.map(status => [
+        status.name,
+        status.value,
+        `${Math.round((status.value / requestsByStatus.reduce((sum, s) => sum + s.value, 0)) * 100)}%`
+      ]),
+      [],
+      ['Daily Response Times', 'Day', 'Avg Time (min)', 'Requests'],
+      ...responseTimeData.map(day => [
+        day.day,
+        day.avgTime,
+        day.requests
+      ])
+    ];
+
+    // Convert to CSV string
+    const csvString = csvData.map(row => row.join(',')).join('\n');
+    
+    // Create and download CSV file
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analytics-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    toast.success('Analytics data exported successfully');
+  }, [stats, emergencyTypes, requestsByStatus, responseTimeData]);
 
 
   const CustomTooltip = ({ active, payload, label }) => {
