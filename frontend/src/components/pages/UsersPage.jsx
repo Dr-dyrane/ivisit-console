@@ -5,13 +5,13 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
-import { getProfiles } from '../../services/profilesService';
+import { getProfiles, getUserStatistics, searchUsers } from '../../services/profilesService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
-import { Users, Plus, Edit, Trash2, Eye, Shield, UserCheck, ChevronRight, Phone, Mail, Filter } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Eye, Shield, UserCheck, ChevronRight, Phone, Mail, Filter, BarChart3 } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
@@ -26,11 +26,13 @@ export const UsersPage = () => {
   const { isAdmin } = useAuth();
   const { isMobile } = useNavigation();
   const [users, setUsers] = useState([]);
+  const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({});
+  const [showStatistics, setShowStatistics] = useState(false);
 
   const { viewMode, setViewMode } = useViewMode('users-page', 'grid');
   const pagination = usePagination(20);
@@ -39,31 +41,44 @@ export const UsersPage = () => {
     try {
       setLoading(true);
 
-      // Use the service with built-in admin bypass
-      const { count } = await getProfiles({ 
+      // For admins, include auth data
+      const filterOptions = {
         ...filters,
-        limit: 1 // Just get count
-      });
+        includeAuthData: isAdmin(),
+        limit: isAdmin() ? 1000 : pagination.itemsPerPage, // Get all for admins to calculate count
+        offset: isAdmin() ? 0 : pagination.paginationRange.start
+      };
       
-      // Get total count for pagination
-      const totalCount = count || 0;
-      pagination.setTotalCount(totalCount);
+      // Use the enhanced service
+      const data = await getProfiles(filterOptions);
 
-      // Fetch actual data with pagination
-      const data = await getProfiles({
-        ...filters,
-        limit: pagination.itemsPerPage,
-        offset: pagination.paginationRange.start
-      });
-
-      setUsers(data || []);
+      if (isAdmin()) {
+        // Calculate total count and apply pagination for admins
+        const totalCount = data.length;
+        pagination.setTotalCount(totalCount);
+        
+        // Apply pagination manually
+        const paginatedData = data.slice(
+          pagination.paginationRange.start,
+          pagination.paginationRange.start + pagination.itemsPerPage
+        );
+        setUsers(paginatedData);
+        
+        // Fetch statistics for admins
+        const stats = await getUserStatistics();
+        setStatistics(stats);
+      } else {
+        // Non-admin users get their own profile
+        pagination.setTotalCount(data.length);
+        setUsers(data);
+      }
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error(error.message || 'Failed to load users');
     } finally {
       setLoading(false);
     }
-  }, [pagination, filters]);
+  }, [pagination, filters, isAdmin]);
 
   useEffect(() => {
     fetchUsers();
@@ -168,14 +183,27 @@ export const UsersPage = () => {
   ), []);
 
   const headerActions = React.useMemo(() => (
-    <Button
-      onClick={handleCreate}
-      className="glass squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
-    >
-      <Plus className="h-4 w-4 mr-2" />
-      ADD USER
-    </Button>
-  ), [handleCreate]);
+    <div className="flex items-center gap-2">
+      {isAdmin() && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowStatistics(!showStatistics)}
+          className="glass squircle h-9 px-3 text-[10px] font-black tracking-widest uppercase"
+        >
+          <BarChart3 className="h-4 w-4 mr-2" />
+          {showStatistics ? 'HIDE' : 'SHOW'} STATS
+        </Button>
+      )}
+      <Button
+        onClick={handleCreate}
+        className="glass squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        ADD USER
+      </Button>
+    </div>
+  ), [handleCreate, isAdmin, showStatistics]);
 
   usePageHeader(
     "Identity Management",
@@ -197,6 +225,44 @@ export const UsersPage = () => {
   return (
     <div className="min-h-screen bg-background px-0 md:px-12 py-6 md:py-8">
       <div className="pt-2" />
+
+      {/* Admin Statistics Section */}
+      {isAdmin() && showStatistics && statistics && (
+        <Card className="squircle-lg glass shadow-premium p-6 border-0 mb-6">
+          <h3 className="font-black text-xl mb-4 flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 text-primary" />
+            User Statistics
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-muted/20 rounded-lg">
+              <div className="text-2xl font-bold text-primary">{statistics.totalUsers}</div>
+              <div className="text-sm text-muted-foreground">Total Users</div>
+            </div>
+            <div className="text-center p-4 bg-muted/20 rounded-lg">
+              <div className="text-2xl font-bold text-success">{statistics.emailVerifiedUsers}</div>
+              <div className="text-sm text-muted-foreground">Email Verified</div>
+            </div>
+            <div className="text-center p-4 bg-muted/20 rounded-lg">
+              <div className="text-2xl font-bold text-info">{statistics.recentSignups}</div>
+              <div className="text-sm text-muted-foreground">Recent (30d)</div>
+            </div>
+            <div className="text-center p-4 bg-muted/20 rounded-lg">
+              <div className="text-2xl font-bold text-warning">{statistics.totalProfiles}</div>
+              <div className="text-sm text-muted-foreground">Profiles</div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <h4 className="font-semibold mb-2">Role Distribution</h4>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(statistics.roleDistribution).map(([role, count]) => (
+                <Badge key={role} className={`${getRoleBadge(role)} border-0 font-black editorial-subtitle px-3 py-1`}>
+                  {role}: {count}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {
         loading ? (
@@ -254,29 +320,34 @@ export const UsersPage = () => {
 
                     <div className="flex items-center gap-4 mb-4 relative z-10">
                       <div className="w-16 h-16 geo-hexagon bg-muted/20 flex items-center justify-center overflow-hidden shadow-inner">
-                        {(user.imageuri || user.avatar_url) ? (
+                        {(user.image_uri || user.avatar_url) ? (
                           <img
-                            src={user.imageuri || user.avatar_url}
-                            alt={user.username}
+                            src={user.image_uri || user.avatar_url}
+                            alt={user.username || user.profile_username}
                             className="w-full h-full object-cover"
                             onError={(e) => {
                               e.target.onerror = null;
-                              e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`;
+                              e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username || user.profile_username}`;
                             }}
                           />
                         ) : (
-                          <span className="text-2xl font-black text-muted-foreground">{user.username?.[0]?.toUpperCase() || 'U'}</span>
+                          <span className="text-2xl font-black text-muted-foreground">
+                            {(user.username || user.profile_username || 'Unknown User')?.[0]?.toUpperCase() || 'U'}
+                          </span>
                         )}
-                      </div >
+                      </div>
                       <div>
                         <h3 className="font-black text-xl tracking-tight truncate w-40">
-                          {user.username || 'Unknown User'}
+                          {user.username || user.profile_username || 'Unknown User'}
                         </h3>
                         {user.provider_type && (
                           <p className="text-sm font-semibold text-primary">{user.provider_type}</p>
                         )}
+                        {user.email_confirmed_at && (
+                          <p className="text-xs text-success">✓ Email Verified</p>
+                        )}
                       </div>
-                    </div >
+                    </div>
 
                     <div className="space-y-3 mb-6 relative z-10">
                       <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
@@ -287,6 +358,14 @@ export const UsersPage = () => {
                         <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
                           <Phone className="h-4 w-4 text-success" />
                           <span className="font-medium">{user.phone}</span>
+                        </div>
+                      )}
+                      {user.last_sign_in_at && (
+                        <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
+                          <UserCheck className="h-4 w-4 text-primary" />
+                          <span className="font-medium">
+                            Last login: {new Date(user.last_sign_in_at).toLocaleDateString()}
+                          </span>
                         </div>
                       )}
                     </div>

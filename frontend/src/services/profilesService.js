@@ -10,12 +10,111 @@ import { getCurrentUser, applyAuthFilter } from './authService';
 const TABLE_NAME = 'profiles';
 
 /**
+ * Check if current user is admin
+ */
+async function isAdmin() {
+  try {
+    const { data, error } = await supabase.rpc('current_user_is_admin');
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+}
+
+/**
+ * Get profiles with auth data (admin only)
+ */
+async function getProfilesWithAuthData(filter) {
+  try {
+    // Get all auth users with profile data
+    const { data, error } = await supabase.rpc('get_all_auth_users');
+    if (error) throw error;
+
+    let profiles = data || [];
+
+    // Apply filters
+    if (filter?.role) {
+      profiles = profiles.filter(p => p.profile_role === filter.role);
+    }
+    if (filter?.provider_type) {
+      profiles = profiles.filter(p => p.profile_provider_type === filter.provider_type);
+    }
+    if (filter?.verified !== undefined) {
+      profiles = profiles.filter(p => p.profile_bvn_verified === filter.verified);
+    }
+
+    // Apply pagination
+    if (filter?.offset || filter?.limit) {
+      const start = filter?.offset || 0;
+      const end = start + (filter?.limit || 10) - 1;
+      profiles = profiles.slice(start, end + 1);
+    }
+
+    return profiles;
+  } catch (error) {
+    console.error('Error fetching profiles with auth data:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get user statistics (admin only)
+ */
+export async function getUserStatistics() {
+  try {
+    const { data, error } = await supabase.rpc('get_user_statistics');
+    if (error) throw error;
+    
+    // Transform the row data into a more usable format
+    return data && data.length > 0 ? {
+      totalUsers: data[0].total_users,
+      totalProfiles: data[0].total_profiles,
+      recentSignups: data[0].recent_signups,
+      emailVerifiedUsers: data[0].email_verified_users,
+      phoneVerifiedUsers: data[0].phone_verified_users,
+      roleDistribution: {
+        admin: data[0].admin_count,
+        provider: data[0].provider_count,
+        sponsor: data[0].sponsor_count,
+        viewer: data[0].viewer_count,
+        patient: data[0].patient_count,
+      }
+    } : {};
+  } catch (error) {
+    console.error('Error fetching user statistics:', error);
+    throw error;
+  }
+}
+
+/**
+ * Search users (admin only)
+ */
+export async function searchUsers(searchTerm) {
+  try {
+    const { data, error } = await supabase.rpc('search_auth_users', { search_term: searchTerm });
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error searching users:', error);
+    throw error;
+  }
+}
+
+/**
  * Get all profiles with optional filters
- * Admin users can see all profiles, others see only their own
+ * Admin users can see all profiles + auth data, others see only their own
  */
 export async function getProfiles(filter) {
   try {
     const user = await getCurrentUser();
+    
+    // If admin and wants full user data, use admin service
+    if (user?.role === 'admin' && filter?.includeAuthData) {
+      return await getProfilesWithAuthData(filter);
+    }
+    
     let query = supabase.from(TABLE_NAME).select('*');
 
     // Apply authorization - admins get full access, others get filtered
