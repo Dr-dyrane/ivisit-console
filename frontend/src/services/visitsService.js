@@ -5,15 +5,24 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { getCurrentUser } from './authService';
 
 const TABLE_NAME = 'visits';
 
 /**
  * Get all visits with optional filters
+ * Admin users can see all visits, others see only their own
  */
 export async function getVisits(filter) {
   try {
+    const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
+
+    // Apply authorization - admins get full access, others get filtered
+    if (user?.role !== 'admin') {
+      // Non-admin users can only see their own visits
+      query = query.eq('user_id', user?.id);
+    }
 
     if (filter?.user_id) {
       query = query.eq('user_id', filter.user_id);
