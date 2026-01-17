@@ -19,8 +19,9 @@ export const HealthNewsListView = ({ healthNews, onView, onEdit, onDelete, onTog
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <Card className="squircle-lg glass shadow-sm p-3 md:p-4 border-0 hover:shadow-md transition-shadow group">
-            <div className="flex items-center gap-3 md:gap-4 justify-between">
+          <Card className="squircle-lg glass shadow-premium p-3 md:p-4 border-0 hover-lift group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative z-10 flex items-center gap-3 md:gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 md:gap-3 mb-2">
                   <h3 className="font-black text-sm md:text-lg truncate group-hover:text-primary transition-colors">
@@ -35,18 +36,26 @@ export const HealthNewsListView = ({ healthNews, onView, onEdit, onDelete, onTog
                     </Badge>
                   </div>
                 </div>
-                <p className="text-xs md:text-sm text-muted-foreground truncate">
-                  <Globe className="h-3 w-3 inline mr-1" />
-                  {news.source || 'No source'} • 
-                  <Clock className="h-3 w-3 inline mx-1" />
-                  {news.time || 'No time'} • 
-                  <Calendar className="h-3 w-3 inline mx-1" />
-                  {new Date(news.created_at).toLocaleDateString()}
+                <p className="text-xs md:text-sm text-muted-foreground truncate flex items-center gap-2">
+                  <span className="flex items-center gap-1">
+                    <Globe className="h-3 w-3 text-primary" />
+                    {news.source || 'No source'}
+                  </span>
+                  <span className="text-border">•</span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3 text-muted-foreground" />
+                    {news.time || 'No time'}
+                  </span>
+                  <span className="text-border">•</span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                    {new Date(news.created_at).toLocaleDateString()}
+                  </span>
                 </p>
               </div>
 
               <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-                <div className={`flex gap-1 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                <div className={`flex gap-1 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity duration-200`}>
                   <Button
                     variant="ghost"
                     size="sm"

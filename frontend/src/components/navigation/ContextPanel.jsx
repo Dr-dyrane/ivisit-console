@@ -739,8 +739,9 @@ export const ContextPanel = () => {
     };
 
     const handleCreateNews = () => {
-      // Navigate to health news page with create modal open
-      window.location.href = '/health-news?create=true';
+      // Trigger create modal on health news page
+      const event = new CustomEvent('openHealthNewsModal');
+      window.dispatchEvent(event);
     };
 
     const handleViewFilters = () => {
@@ -991,12 +992,16 @@ export const ContextPanel = () => {
               <div className="space-y-2">
                 <div className="text-xs font-black uppercase tracking-wider text-muted-foreground px-1">Quick Actions</div>
                 <div className="space-y-1">
-                  <div className="p-2 rounded-lg bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      <Plus className="h-3 w-3 text-primary" />
-                      <span className="text-xs font-medium">New Ticket</span>
-                    </div>
-                  </div>
+                  <button
+                    onClick={() => {
+                      const event = new CustomEvent('openSupportTicketModal');
+                      window.dispatchEvent(event);
+                    }}
+                    className="w-full p-2 rounded-lg bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-all duration-300 flex items-center gap-2 cursor-pointer text-left"
+                  >
+                    <Plus className="h-3 w-3 text-primary" />
+                    <span className="text-xs font-medium text-primary">New Ticket</span>
+                  </button>
                 </div>
               </div>
             </motion.div>

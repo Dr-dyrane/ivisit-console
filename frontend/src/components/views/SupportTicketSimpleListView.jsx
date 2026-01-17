@@ -3,25 +3,25 @@ import { motion } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { 
-  Edit, 
-  Trash2, 
-  UserCheck, 
-  Calendar, 
+import {
+  Edit,
+  Trash2,
+  UserCheck,
+  Calendar,
   MessageSquare,
   Clock
 } from 'lucide-react';
 
-export const SupportTicketSimpleListView = ({ 
-  tickets, 
-  onView, 
-  onEdit, 
-  onDelete, 
-  onAssign, 
-  getStatusConfig, 
-  getPriorityColor, 
-  isAdmin, 
-  isMobile 
+export const SupportTicketSimpleListView = ({
+  tickets,
+  onView,
+  onEdit,
+  onDelete,
+  onAssign,
+  getStatusConfig,
+  getPriorityColor,
+  isAdmin,
+  isMobile
 }) => {
   return (
     <motion.div
@@ -36,7 +36,7 @@ export const SupportTicketSimpleListView = ({
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <Card className="squircle-lg glass shadow-sm p-3 md:p-4 border-0 hover:shadow-md transition-shadow group">
+          <Card className="squircle-lg glass shadow-premium p-3 md:p-4 border-0 hover-lift transition-all group">
             <div className="flex items-center gap-3 md:gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 md:gap-3 mb-2">
@@ -54,9 +54,9 @@ export const SupportTicketSimpleListView = ({
                 </div>
                 <p className="text-xs md:text-sm text-muted-foreground truncate">
                   <MessageSquare className="h-3 w-3 inline mr-1" />
-                  {ticket.category || 'general'} • 
+                  {ticket.category || 'general'} •
                   <Clock className="h-3 w-3 inline mx-1" />
-                  {new Date(ticket.created_at).toLocaleDateString()} • 
+                  {new Date(ticket.created_at).toLocaleDateString()} •
                   <UserCheck className="h-3 w-3 inline mx-1" />
                   {ticket.assigned_to || 'Unassigned'}
                 </p>

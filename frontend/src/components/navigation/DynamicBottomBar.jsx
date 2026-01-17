@@ -4,6 +4,7 @@ import { useNavigation } from '../../contexts/NavigationContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useContextAction } from '../../hooks/useContextAction';
 import { useInsurance } from '../../hooks/useInsurance';
+import { useSupportTickets } from '../../hooks/useSupportTickets';
 import { Menu, Zap, Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetOverlay } from '../ui/sheet';
 import { ContextPanel } from './ContextPanel';
@@ -49,6 +50,19 @@ export const DynamicBottomBar = () => {
     };
 
     const { createPolicy } = useInsurance();
+    const { createTicket } = useSupportTickets();
+
+    // Constants for SupportTicketModal
+    const TICKET_PRIORITIES = [
+        { value: 'low', label: 'Low', color: 'blue' },
+        { value: 'normal', label: 'Normal', color: 'green' },
+        { value: 'high', label: 'High', color: 'orange' },
+        { value: 'urgent', label: 'Urgent', color: 'red' }
+    ];
+
+    const TICKET_CATEGORIES = [
+        'general', 'technical', 'billing', 'account', 'feature_request', 'bug_report', 'medical'
+    ];
     const actionConfig = useContextAction(openModal);
 
     if (!isMobile) return null;
@@ -224,8 +238,18 @@ export const DynamicBottomBar = () => {
                         case 'ambulance': return <AmbulanceModal key={key} {...props} />;
                         case 'doctor': return <DoctorModal key={key} {...props} />;
                         case 'visit': return <VisitModal key={key} {...props} />;
-                        case 'healthNews': return <HealthNewsModal key={key} {...props} />;
-                        case 'supportTicket': return <SupportTicketModal key={key} {...props} />;
+                        case 'healthNews': return <HealthNewsModal key={key} {...props} mode="create" />;
+                        case 'supportTicket':
+                            return (
+                                <SupportTicketModal
+                                    key={key}
+                                    {...props}
+                                    onSave={createTicket}
+                                    mode="create"
+                                    priorities={TICKET_PRIORITIES}
+                                    categories={TICKET_CATEGORIES}
+                                />
+                            );
                         case 'insurance': return <InsuranceModal key={key} {...props} onSave={createPolicy} mode="create" />;
                         default: return null;
                     }

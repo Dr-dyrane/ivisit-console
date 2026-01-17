@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useContextAction } from '../../hooks/useContextAction';
 import { useInsurance } from '../../hooks/useInsurance';
+import { useSupportTickets } from '../../hooks/useSupportTickets';
 import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
 import { UserModal } from '../modals/UserModal';
 import { HospitalModal } from '../modals/HospitalModal';
@@ -38,6 +39,19 @@ export const ContextAwareFAB = () => {
   // Use the shared hook
   const actionConfig = useContextAction(openModal);
   const { createPolicy } = useInsurance();
+  const { createTicket } = useSupportTickets();
+
+  // Constants for SupportTicketModal
+  const TICKET_PRIORITIES = [
+    { value: 'low', label: 'Low', color: 'blue' },
+    { value: 'normal', label: 'Normal', color: 'green' },
+    { value: 'high', label: 'High', color: 'orange' },
+    { value: 'urgent', label: 'Urgent', color: 'red' }
+  ];
+
+  const TICKET_CATEGORIES = [
+    'general', 'technical', 'billing', 'account', 'feature_request', 'bug_report', 'medical'
+  ];
 
   // Desktop only - Mobile uses DynamicBottomBar
   if (!isDesktop) return null;
@@ -100,8 +114,18 @@ export const ContextAwareFAB = () => {
             case 'ambulance': return <AmbulanceModal key={key} {...props} />;
             case 'doctor': return <DoctorModal key={key} {...props} />;
             case 'visit': return <VisitModal key={key} {...props} />;
-            case 'healthNews': return <HealthNewsModal key={key} {...props} />;
-            case 'supportTicket': return <SupportTicketModal key={key} {...props} />;
+            case 'healthNews': return <HealthNewsModal key={key} {...props} mode="create" />;
+            case 'supportTicket':
+              return (
+                <SupportTicketModal
+                  key={key}
+                  {...props}
+                  onSave={createTicket}
+                  mode="create"
+                  priorities={TICKET_PRIORITIES}
+                  categories={TICKET_CATEGORIES}
+                />
+              );
             case 'insurance': return <InsuranceModal key={key} {...props} onSave={createPolicy} mode="create" />;
             default: return null;
           }

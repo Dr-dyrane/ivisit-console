@@ -33,7 +33,7 @@ export const HealthNewsTableView = ({ healthNews, onView, onEdit, onDelete, onTo
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: index * 0.02 }}
-                  className="border-b border-white/10 hover:bg-white/5 transition-colors group"
+                  className="border-b border-white/10 hover:bg-primary/5 transition-colors group cursor-default"
                 >
                   <TableCell className="font-black truncate max-w-[150px] md:max-w-[200px] text-xs md:text-sm">
                     <div className="truncate" title={news.title}>

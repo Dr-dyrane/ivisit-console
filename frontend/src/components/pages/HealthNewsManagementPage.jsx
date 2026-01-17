@@ -202,10 +202,16 @@ export const HealthNewsManagementPage = () => {
       setFilterSheetOpen(true);
     };
 
+    const handleOpenModal = () => {
+      handleCreate();
+    };
+
     window.addEventListener('openFilters', handleOpenFilters);
+    window.addEventListener('openHealthNewsModal', handleOpenModal);
 
     return () => {
       window.removeEventListener('openFilters', handleOpenFilters);
+      window.removeEventListener('openHealthNewsModal', handleOpenModal);
     };
   }, [location.search, navigate, handleCreate]);
 

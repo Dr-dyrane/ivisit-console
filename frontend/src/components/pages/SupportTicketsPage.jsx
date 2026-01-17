@@ -91,6 +91,16 @@ export const SupportTicketsPage = () => {
     fetchSupportTickets(filters);
   }, [fetchSupportTickets, filters, pagination.currentPage]);
 
+  // Listen for 'openSupportTicketModal' event from ContextPanel
+  useEffect(() => {
+    const handleOpenModal = () => {
+      setSelectedTicket(null);
+      setModalMode('create');
+    };
+    window.addEventListener('openSupportTicketModal', handleOpenModal);
+    return () => window.removeEventListener('openSupportTicketModal', handleOpenModal);
+  }, []);
+
   // Fetch analytics on mount
   useEffect(() => {
     if (isAdmin) {
