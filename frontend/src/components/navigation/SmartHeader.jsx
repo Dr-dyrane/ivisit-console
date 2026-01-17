@@ -4,6 +4,7 @@ import { useLayout } from '../../contexts/LayoutContext';
 // import { BentoBreadcrumbs } from './BentoBreadcrumbs';
 import { QuickSearch } from './QuickSearch';
 import { NotificationCenter } from '../common/NotificationCenter';
+import { NetworkStatus } from '../common/NetworkStatus';
 import { Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -46,8 +47,11 @@ export const SmartHeader = () => {
                             className="flex-shrink-0 cursor-pointer"
                             onClick={() => window.location.href = '/'}
                         >
-                            <div className="w-10 h-10 squircle bg-primary/10 flex items-center justify-center shadow-inner group hover:bg-primary/20 transition-all">
+                            <div className="w-10 h-10 squircle bg-primary/10 flex items-center justify-center shadow-inner group hover:bg-primary/20 transition-all relative">
                                 <img src="/logo.png" alt="iVisit" className="w-5 h-5 object-contain group-hover:scale-110 transition-transform" />
+                                <div className="absolute -top-1 -right-3">
+                                    <NetworkStatus />
+                                </div>
                             </div>
                         </motion.div>
                     </div>
