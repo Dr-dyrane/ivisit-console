@@ -74,6 +74,19 @@ export const UsersPage = () => {
     setModalMode('create');
   }, []);
 
+  // Handle custom events from context panel
+  useEffect(() => {
+    const handleOpenModal = () => {
+      handleCreate();
+    };
+
+    window.addEventListener('openUserModal', handleOpenModal);
+
+    return () => {
+      window.removeEventListener('openUserModal', handleOpenModal);
+    };
+  }, [handleCreate]);
+
   const handleView = useCallback((user) => {
     setSelectedUser(user);
     setModalMode('view');

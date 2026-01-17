@@ -78,6 +78,19 @@ export const AmbulancesPage = () => {
     setModalMode('create');
   }, []);
 
+  // Handle custom events from context panel
+  useEffect(() => {
+    const handleOpenModal = () => {
+      handleCreate();
+    };
+
+    window.addEventListener('openAmbulanceModal', handleOpenModal);
+
+    return () => {
+      window.removeEventListener('openAmbulanceModal', handleOpenModal);
+    };
+  }, [handleCreate]);
+
   const handleView = useCallback((ambulance) => {
     setSelectedAmbulance(ambulance);
     setModalMode('view');

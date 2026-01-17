@@ -91,6 +91,19 @@ export const VisitsPage = () => {
     setModalMode('create');
   }, []);
 
+  // Handle custom events from context panel
+  useEffect(() => {
+    const handleOpenModal = () => {
+      handleCreate();
+    };
+
+    window.addEventListener('openVisitModal', handleOpenModal);
+
+    return () => {
+      window.removeEventListener('openVisitModal', handleOpenModal);
+    };
+  }, [handleCreate]);
+
   const handleView = useCallback((visit) => {
     setSelectedVisit(visit);
     setModalMode('view');

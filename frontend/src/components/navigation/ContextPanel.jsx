@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -35,6 +35,7 @@ import {
 
 export const ContextPanel = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
   const {
     emergencyData,
@@ -106,6 +107,12 @@ export const ContextPanel = () => {
   };
 
   const renderEmergencyPanel = () => {
+    const handleCreateEmergency = () => {
+      // Trigger emergency modal
+      const event = new CustomEvent('openEmergencyModal');
+      window.dispatchEvent(event);
+    };
+
     const panel = (
       <div className="p-4 space-y-4">
         {/* Data Source Indicator */}
@@ -234,9 +241,12 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
-          <button className="w-full p-4 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm">
-            <Zap className="h-4 w-4 text-primary" />
-            <span className="font-black tracking-tight text-primary">New Emergency Request</span>
+          <button 
+            onClick={handleCreateEmergency}
+            className="w-full p-4 geo-sharp glass-strong hover:bg-destructive/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+          >
+            <Zap className="h-4 w-4 text-destructive" />
+            <span className="font-black tracking-tight text-destructive">New Emergency Request</span>
           </button>
         </motion.div>
       </div>
@@ -245,6 +255,12 @@ export const ContextPanel = () => {
   };
 
   const renderUsersPanel = () => {
+    const handleCreateUser = () => {
+      // Trigger user modal
+      const event = new CustomEvent('openUserModal');
+      window.dispatchEvent(event);
+    };
+
     const panel = (
       <div className="p-4 space-y-4">
         {/* Role Statistics */}
@@ -291,12 +307,36 @@ export const ContextPanel = () => {
             </div>
           </Card>
         </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-3"
+        >
+          <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+
+          <button 
+            onClick={handleCreateUser}
+            className="w-full p-4 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+          >
+            <Users className="h-4 w-4 text-primary" />
+            <span className="font-black tracking-tight text-primary">Add New User</span>
+          </button>
+        </motion.div>
       </div>
     );
     return panel;
   };
 
   const renderHospitalsPanel = () => {
+    const handleCreateHospital = () => {
+      // Trigger hospital modal
+      const event = new CustomEvent('openHospitalModal');
+      window.dispatchEvent(event);
+    };
+
     const panel = (
       <div className="p-4 space-y-4">
         {/* Capacity Overview */}
@@ -358,12 +398,37 @@ export const ContextPanel = () => {
             <span className="font-medium">Near Me</span>
           </button>
         </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-3"
+        >
+          <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+
+          <button 
+            onClick={handleCreateHospital}
+            className="w-full p-4 geo-sharp glass-strong hover:bg-info/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+          >
+            <Hospital className="h-4 w-4 text-info" />
+            <span className="font-black tracking-tight text-info">Add New Hospital</span>
+          </button>
+        </motion.div>
       </div>
     );
     return panel;
   };
 
-  const renderAmbulancesPanel = () => (
+  const renderAmbulancesPanel = () => {
+    const handleCreateAmbulance = () => {
+      // Trigger ambulance modal
+      const event = new CustomEvent('openAmbulanceModal');
+      window.dispatchEvent(event);
+    };
+
+    return (
     <div className="p-4 space-y-4">
       {/* Fleet Status */}
       <motion.div
@@ -431,8 +496,27 @@ export const ContextPanel = () => {
           </div>
         </Card>
       </motion.div>
+
+      {/* Quick Actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="space-y-3"
+      >
+        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+
+        <button 
+          onClick={handleCreateAmbulance}
+          className="w-full p-4 geo-sharp glass-strong hover:bg-warning/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+        >
+          <Ambulance className="h-4 w-4 text-warning" />
+          <span className="font-black tracking-tight text-warning">Add New Ambulance</span>
+        </button>
+      </motion.div>
     </div>
   );
+};
 
   const renderMapPanel = () => {
     const panel = (
@@ -573,6 +657,12 @@ export const ContextPanel = () => {
   };
 
   const renderDoctorsPanel = () => {
+    const handleCreateDoctor = () => {
+      // Trigger doctor modal
+      const event = new CustomEvent('openDoctorModal');
+      window.dispatchEvent(event);
+    };
+
     const panel = (
       <div className="p-4 space-y-4">
         {/* Doctor Statistics */}
@@ -619,12 +709,36 @@ export const ContextPanel = () => {
             </div>
           </Card>
         </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-3"
+        >
+          <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+
+          <button 
+            onClick={handleCreateDoctor}
+            className="w-full p-4 geo-sharp glass-strong hover:bg-info/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+          >
+            <Stethoscope className="h-4 w-4 text-info" />
+            <span className="font-black tracking-tight text-info">Add New Doctor</span>
+          </button>
+        </motion.div>
       </div>
     );
     return panel;
   };
 
   const renderVisitsPanel = () => {
+    const handleCreateVisit = () => {
+      // Trigger visit modal
+      const event = new CustomEvent('openVisitModal');
+      window.dispatchEvent(event);
+    };
+
     const panel = (
       <div className="p-4 space-y-4">
         {/* Visit Statistics */}
@@ -670,6 +784,24 @@ export const ContextPanel = () => {
               <Badge className="bg-success/20 text-success border-0">{visitsData.completed}</Badge>
             </div>
           </Card>
+        </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-3"
+        >
+          <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+
+          <button 
+            onClick={handleCreateVisit}
+            className="w-full p-4 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+          >
+            <Calendar className="h-4 w-4 text-primary" />
+            <span className="font-black tracking-tight text-primary">Schedule New Visit</span>
+          </button>
         </motion.div>
       </div>
     );
@@ -1161,6 +1293,21 @@ export const ContextPanel = () => {
   };
 
   const renderDashboardPanel = () => {
+    const handleEmergencyResponse = () => {
+      // BentoHome special case: navigate to emergencies page then open modal
+      navigate('/emergencies');
+      // Small delay to ensure navigation completes before opening modal
+      setTimeout(() => {
+        const event = new CustomEvent('openEmergencyModal');
+        window.dispatchEvent(event);
+      }, 100);
+    };
+
+    const handleViewAnalytics = () => {
+      // Navigate to analytics page
+      navigate('/analytics');
+    };
+
     const panel = (
       <div className="p-4 space-y-4">
         {/* Data Source Indicator */}
@@ -1301,12 +1448,18 @@ export const ContextPanel = () => {
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
           <div className="space-y-2">
-            <button className="w-full p-3 geo-sharp glass-strong hover:bg-destructive/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm">
+            <button 
+              onClick={handleEmergencyResponse}
+              className="w-full p-3 geo-sharp glass-strong hover:bg-destructive/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+            >
               <AlertTriangle className="h-4 w-4 text-destructive" />
               <span className="font-black tracking-tight text-destructive">Emergency Response</span>
             </button>
 
-            <button className="w-full p-3 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm">
+            <button 
+              onClick={handleViewAnalytics}
+              className="w-full p-3 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+            >
               <BarChart3 className="h-4 w-4 text-primary" />
               <span className="font-black tracking-tight text-primary">View Analytics</span>
             </button>

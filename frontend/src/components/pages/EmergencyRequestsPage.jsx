@@ -13,6 +13,7 @@ import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
 import { useAuth } from '../../contexts/AuthContext';
 import { EmergencyDetailsModal } from '../modals/EmergencyDetailsModal';
+import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
 import { withTimeout } from '../../lib/utils';
 import { toast } from 'sonner';
 import {
@@ -44,6 +45,7 @@ export const EmergencyRequestsPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({});
 
@@ -191,6 +193,29 @@ export const EmergencyRequestsPage = () => {
     setSelectedRequest(request);
     setIsDetailsModalOpen(true);
   };
+
+  const handleCreateEmergency = () => {
+    setSelectedRequest(null);
+    setIsEmergencyModalOpen(true);
+  };
+
+  const handleCloseEmergencyModal = () => {
+    setIsEmergencyModalOpen(false);
+    fetchRequests(); // Refresh the list
+  };
+
+  // Handle custom events from context panel
+  useEffect(() => {
+    const handleOpenModal = () => {
+      handleCreateEmergency();
+    };
+
+    window.addEventListener('openEmergencyModal', handleOpenModal);
+
+    return () => {
+      window.removeEventListener('openEmergencyModal', handleOpenModal);
+    };
+  }, [handleCreateEmergency]);
 
   const getPriorityBadge = (priority) => {
     const badges = {
@@ -342,6 +367,14 @@ export const EmergencyRequestsPage = () => {
           setSelectedRequest(null);
         }}
         request={selectedRequest}
+      />
+
+      {/* Emergency Request Modal */}
+      <EmergencyRequestModal
+        isOpen={isEmergencyModalOpen}
+        onClose={handleCloseEmergencyModal}
+        request={selectedRequest}
+        mode="create"
       />
 
       <FilterSheet

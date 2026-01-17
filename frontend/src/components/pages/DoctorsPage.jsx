@@ -87,6 +87,19 @@ export const DoctorsPage = () => {
     setModalMode('create');
   }, []);
 
+  // Handle custom events from context panel
+  useEffect(() => {
+    const handleOpenModal = () => {
+      handleCreate();
+    };
+
+    window.addEventListener('openDoctorModal', handleOpenModal);
+
+    return () => {
+      window.removeEventListener('openDoctorModal', handleOpenModal);
+    };
+  }, [handleCreate]);
+
   const handleView = useCallback((doctor) => {
     setSelectedDoctor(doctor);
     setModalMode('view');

@@ -84,6 +84,19 @@ export const HospitalsPage = () => {
     setModalMode('create');
   }, []);
 
+  // Handle custom events from context panel
+  useEffect(() => {
+    const handleOpenModal = () => {
+      handleCreate();
+    };
+
+    window.addEventListener('openHospitalModal', handleOpenModal);
+
+    return () => {
+      window.removeEventListener('openHospitalModal', handleOpenModal);
+    };
+  }, [handleCreate]);
+
   const handleView = useCallback((hospital) => {
     setSelectedHospital(hospital);
     setModalMode('view');
