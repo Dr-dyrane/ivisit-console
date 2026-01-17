@@ -42,8 +42,8 @@ export const searchService = {
 
     return (data || []).map(d => ({
       id: d.id,
-      title: d.name,
-      subtitle: `${d.specialty} • ${d.hospital || 'Independent'}`,
+      title: d.name || 'Unknown Doctor',
+      subtitle: `${d.specialty || 'Unknown Specialty'} • ${d.hospital || 'Independent'}`,
       avatar: d.avatar_url,
       rating: d.rating,
       type: 'doctor',
@@ -60,8 +60,8 @@ export const searchService = {
 
     return (data || []).map(h => ({
       id: h.id,
-      title: h.name,
-      subtitle: `${h.type} • ${h.address}`,
+      title: h.name || 'Unknown Hospital',
+      subtitle: `${h.type || 'Unknown Type'} • ${h.address || 'Unknown Address'}`,
       rating: h.rating,
       type: 'hospital',
       path: `/hospitals?id=${h.id}`
@@ -77,8 +77,8 @@ export const searchService = {
 
     return (data || []).map(a => ({
       id: a.id,
-      title: a.call_sign,
-      subtitle: `${a.type} • Status: ${a.status}`,
+      title: a.call_sign || 'Unknown Ambulance',
+      subtitle: `${a.type || 'Unknown Type'} • Status: ${a.status || 'Unknown'}`,
       type: 'ambulance',
       path: `/ambulances?id=${a.id}`
     }));
@@ -93,8 +93,8 @@ export const searchService = {
 
     return (data || []).map(v => ({
       id: v.id,
-      title: `${v.hospital}`,
-      subtitle: `${v.doctor} • ${new Date(v.date).toLocaleDateString()}`,
+      title: v.hospital || 'Unknown Hospital',
+      subtitle: `${v.doctor || 'Unknown Doctor'} • ${v.date ? new Date(v.date).toLocaleDateString() : 'Unknown Date'}`,
       type: 'visit',
       path: `/visits?id=${v.id}`
     }));
@@ -109,8 +109,8 @@ export const searchService = {
 
     return (data || []).map(e => ({
       id: e.id,
-      title: e.service_type,
-      subtitle: `${e.hospital_name} • ${e.status}`,
+      title: e.service_type || 'Unknown Emergency',
+      subtitle: `${e.hospital_name || 'Unknown Hospital'} • ${e.status || 'Unknown Status'}`,
       type: 'emergency',
       path: `/emergencies?id=${e.id}`
     }));
@@ -125,8 +125,8 @@ export const searchService = {
 
     return (data || []).map(u => ({
       id: u.id,
-      title: u.username,
-      subtitle: `${u.email} • ${u.role}`,
+      title: u.username || 'Unknown User',
+      subtitle: `${u.email || 'No email'} • ${u.role || 'Unknown Role'}`,
       avatar: u.avatar_url,
       type: 'user',
       path: `/users?id=${u.id}`

@@ -177,23 +177,23 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                               style={{ backgroundColor: categoryColors[category.category] + '15' }}
                             >
                               {item.avatar ? (
-                                <img src={item.avatar} alt={item.title} className="w-full h-full rounded-lg object-cover" />
+                                <img src={item.avatar} alt={item.title || 'Item avatar'} className="w-full h-full rounded-lg object-cover" />
                               ) : (
                                 <div
                                   className="w-full h-full rounded-lg flex items-center justify-center text-white font-bold text-xs"
                                   style={{ backgroundColor: categoryColors[category.category] }}
                                 >
-                                  {item.title.charAt(0).toUpperCase()}
+                                  {item.title?.charAt(0)?.toUpperCase() || '?'}
                                 </div>
                               )}
                             </div>
 
                             <div className="flex-1 min-w-0">
                               <p className="font-semibold text-sm text-foreground truncate">
-                                {item.title}
+                                {item.title || 'Untitled'}
                               </p>
                               <p className="text-xs text-muted-foreground truncate">
-                                {item.subtitle}
+                                {item.subtitle || 'No description available'}
                               </p>
                             </div>
 
