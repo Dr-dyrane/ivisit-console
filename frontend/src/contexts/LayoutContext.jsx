@@ -1,60 +1,55 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 const LayoutContext = createContext({
     isScrolledDown: false,
+    sidebarExpanded: false,
+    sidebarWidth: 72,
+    toggleSidebar: () => {},
     headerConfig: { title: '', actions: null, viewToggle: null, filterSheet: null },
     footerConfig: { visible: false, content: null, type: 'status' },
     setHeaderConfig: () => { },
     setFooterConfig: () => { },
-    layoutMode: 'standard' // 'standard' | 'immersive'
 });
 
 export const useLayout = () => useContext(LayoutContext);
 
 export const LayoutProvider = ({ children }) => {
     const [isScrolledDown, setIsScrolledDown] = useState(false);
+    const [sidebarExpanded, setSidebarExpanded] = useState(false);
     const [headerConfig, setHeaderConfig] = useState({ title: '', actions: null, viewToggle: null, filterSheet: null });
-    const [footerConfig, setFooterConfig] = useState({ visible: false, content: null, type: 'status' });
-    const [layoutMode, setLayoutMode] = useState('standard');
+    const [footerConfig, setFooterConfig] = useState({ visible: false, content: null, type: 'status', instanceId: null });
 
-    useEffect(() => {
-        const handleScroll = () => {
-            const mainContent = document.getElementById('main-content');
-            if (mainContent) {
-                const scrolled = mainContent.scrollTop > 80; // Stable threshold
-                setIsScrolledDown(scrolled);
-            } else {
-                const scrolled = window.scrollY > 80;
-                setIsScrolledDown(scrolled);
-            }
-        };
+    const COLLAPSED_WIDTH = 72;
+    const EXPANDED_WIDTH = 260;
 
-        const mainContent = document.getElementById('main-content');
-        if (mainContent) {
-            mainContent.addEventListener('scroll', handleScroll, { passive: true });
-        } else {
-            window.addEventListener('scroll', handleScroll, { passive: true });
-        }
+    const sidebarWidth = useMemo(() => 
+        sidebarExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH
+    , [sidebarExpanded]);
 
-        return () => {
-            if (mainContent) {
-                mainContent.removeEventListener('scroll', handleScroll);
-            } else {
-                window.removeEventListener('scroll', handleScroll);
-            }
-        };
+    const toggleSidebar = useCallback(() => {
+        setSidebarExpanded(prev => !prev);
     }, []);
 
+    // Scroll Observer
+    useEffect(() => {
+        const mainContent = document.getElementById('main-content');
+        const handleScroll = () => {
+            const scrolled = mainContent ? mainContent.scrollTop > 40 : window.scrollY > 40;
+            setIsScrolledDown(scrolled);
+        };
+
+        const target = mainContent || window;
+        target.addEventListener('scroll', handleScroll, { passive: true });
+        return () => target.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Safe setters that don't use JSON.stringify on React Elements
     const setHeaderConfigStable = useCallback((config) => {
         setHeaderConfig(prev => {
-            // Functional update to avoid dependencies
             const newConfig = typeof config === 'function' ? config(prev) : config;
-            if (
-                prev.title === newConfig.title && 
-                prev.actions === newConfig.actions &&
-                prev.viewToggle === newConfig.viewToggle &&
-                prev.filterSheet === newConfig.filterSheet
-            ) return prev;
+            if (prev.title === newConfig.title) return prev; 
             return newConfig;
         });
     }, []);
@@ -62,26 +57,21 @@ export const LayoutProvider = ({ children }) => {
     const setFooterConfigStable = useCallback((config) => {
         setFooterConfig(prev => {
             const newConfig = typeof config === 'function' ? config(prev) : config;
-            // Prevent identical updates
-            if (
-                prev.visible === newConfig.visible &&
-                prev.type === newConfig.type &&
-                prev.content === newConfig.content &&
-                prev.instanceId === newConfig.instanceId
-            ) return prev;
+            if (prev.instanceId === newConfig.instanceId && prev.visible === newConfig.visible) return prev;
             return newConfig;
         });
     }, []);
 
-    const value = React.useMemo(() => ({
+    const value = useMemo(() => ({
         isScrolledDown,
+        sidebarExpanded,
+        sidebarWidth,
+        toggleSidebar,
         headerConfig,
         setHeaderConfig: setHeaderConfigStable,
         footerConfig,
-        setFooterConfig: setFooterConfigStable,
-        layoutMode,
-        setLayoutMode
-    }), [isScrolledDown, headerConfig, setHeaderConfigStable, footerConfig, setFooterConfigStable, layoutMode]);
+        setFooterConfig: setFooterConfigStable
+    }), [isScrolledDown, sidebarExpanded, sidebarWidth, toggleSidebar, headerConfig, setHeaderConfigStable, footerConfig, setFooterConfigStable]);
 
     return (
         <LayoutContext.Provider value={value}>

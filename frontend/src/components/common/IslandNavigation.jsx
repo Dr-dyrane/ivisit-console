@@ -1,359 +1,232 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+'use client';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MapPin, FileCheck, TrendingUp, Settings, Menu, X, Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance, Users, Moon, Sun, LogOut, User, Ellipsis, ChevronRight, Newspaper, Headphones, Shield } from 'lucide-react';
+import {
+  Home, MapPin, FileCheck, TrendingUp, Menu,
+  Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance,
+  Users, Newspaper, Headphones, Shield, ChevronLeft, ChevronDown
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLayout } from '../../contexts/LayoutContext';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import ThemeToggle from '../ui/theme-toggle';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
-import { Badge } from '../ui/badge';
-
-import { useLayout } from '../../contexts/LayoutContext';
 
 export const IslandNavigation = () => {
+  const { sidebarExpanded, toggleSidebar, isScrolledDown } = useLayout();
+  const { profile, user, hasMinRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile, user, signOut, isAdmin, isProvider, hasMinRole } = useAuth();
-  const { isScrolledDown } = useLayout();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [isVisible, setIsVisible] = useState(false); // Default to hidden
+
   const [isHovered, setIsHovered] = useState(false);
-  const [isMobile, setIsMobile] = useState(false); // Mobile detection state
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragProgress, setDragProgress] = useState(0);
-  const hideTimerRef = useRef(null);
+  const [openGroups, setOpenGroups] = useState([]);
 
-  // Touch handling refs
-  const touchStartX = useRef(0);
-  const touchCurrentX = useRef(0);
+  // Determine if sidebar should act "expanded" (Manual toggle OR hover)
+  const isBroad = sidebarExpanded || isHovered;
+  const sidebarWidth = isBroad ? 260 : 72;
+  const isNotHome = location.pathname !== '/';
 
-  // Detect Mobile Device
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Auto-hide timer function
-  const startHideTimer = useCallback(() => {
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-
-    // Only set timer if not hovered and menu is closed
-    if (!isHovered && !menuOpen && !userMenuOpen) {
-      hideTimerRef.current = setTimeout(() => {
-        setIsVisible(false);
-      }, 3000); // Hide after 3 seconds of inactivity
-    }
-  }, [isHovered, menuOpen, userMenuOpen]);
-
-  // Clear timer on interaction
-  const clearHideTimer = () => {
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    setIsVisible(true);
-  };
-
-  useEffect(() => {
-    // Start timer on mount (if visible)
-    if (isVisible) startHideTimer();
-    return () => {
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    };
-  }, [isVisible, startHideTimer]);
-
-  // Watch hover state to manage timer
-  useEffect(() => {
-    if (isHovered) {
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      setIsVisible(true);
-    } else {
-      startHideTimer();
-    }
-  }, [isHovered, menuOpen, userMenuOpen, startHideTimer]);
-
-  // Mouse Edge Detection (Desktop) & Swipe Detection (Mobile)
-  useEffect(() => {
-    // Desktop: Show when mouse hits left edge
-    const handleMouseMove = (e) => {
-      if (!isMobile) {
-        // If mouse is within 20px of left edge
-        if (e.clientX < 20) {
-          setIsVisible(true);
-          startHideTimer();
-        }
-      }
-    };
-
-    // Mobile: Swipe Right to Open
-    const handleTouchStart = (e) => {
-      touchStartX.current = e.changedTouches[0].screenX;
-      touchCurrentX.current = e.changedTouches[0].screenX;
-      setIsDragging(true);
-      setDragProgress(0);
-    };
-
-    const handleTouchMove = (e) => {
-      if (!isDragging) return;
-
-      touchCurrentX.current = e.changedTouches[0].screenX;
-      const swipeDistance = touchCurrentX.current - touchStartX.current;
-      const startZone = touchStartX.current < 50; // Only allow swipe from left edge (first 50px)
-
-      if (startZone && swipeDistance > 0) {
-        const progress = Math.min(swipeDistance / 150, 1); // 150px to fully open
-        setDragProgress(progress);
-      }
-    };
-
-    const handleTouchEnd = (e) => {
-      if (!isDragging) return;
-
-      const swipeDistance = touchCurrentX.current - touchStartX.current;
-      const startZone = touchStartX.current < 50;
-
-      setIsDragging(false);
-      setDragProgress(0);
-
-      // Swipe Right (Open) - threshold of 80px
-      if (startZone && swipeDistance > 80) {
-        setIsVisible(true);
-        startHideTimer();
-      }
-
-      // Swipe Left (Close) - threshold of 50px
-      if (swipeDistance < -50) {
-        setIsVisible(false);
-      }
-    };
-
-    if (!isMobile) {
-      window.addEventListener('mousemove', handleMouseMove);
-    } else {
-      window.addEventListener('touchstart', handleTouchStart);
-      window.addEventListener('touchmove', handleTouchMove);
-      window.addEventListener('touchend', handleTouchEnd);
-    }
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [isMobile, isDragging, startHideTimer]);
-
-  const navItems = [
-    { path: '/', icon: Home, label: 'Home', minRole: 'viewer' },
-    { path: '/map', icon: MapPin, label: 'Map', minRole: 'viewer' },
-    { path: '/verification', icon: FileCheck, label: 'Queue', minRole: 'admin' },
-    { path: '/analytics', icon: TrendingUp, label: 'Stats', minRole: 'viewer' },
-  ];
-
+  // --- Progressive Reveal & Auto-Cleanup Logic ---
   const operationItems = [
-    { path: '/hospitals', icon: Hospital, label: 'Hospitals', minRole: 'provider' },
-    { path: '/ambulances', icon: Ambulance, label: 'Ambulances', minRole: 'provider' },
-    { path: '/doctors', icon: Stethoscope, label: 'Doctors', minRole: 'provider' },
-    { path: '/users', icon: Users, label: 'Users', minRole: 'admin' },
-    { path: '/visits', icon: Calendar, label: 'Visits', minRole: 'provider' },
-    { path: '/emergencies', icon: AlertTriangle, label: 'Emergencies', minRole: 'provider' },
+    { id: 'hospitals', path: '/hospitals', icon: Hospital, label: 'Hospitals' },
+    { id: 'ambulances', path: '/ambulances', icon: Ambulance, label: 'Ambulances' },
+    { id: 'doctors', path: '/doctors', icon: Stethoscope, label: 'Doctors' },
+    { id: 'visits', path: '/visits', icon: Calendar, label: 'Visits' },
+    { id: 'emergencies', path: '/emergencies', icon: AlertTriangle, label: 'Emergencies' },
   ];
 
   const managementItems = [
-    { path: '/health-news', icon: Newspaper, label: 'Health News', minRole: 'admin' },
-    { path: '/support-tickets', icon: Headphones, label: 'Support', minRole: 'viewer' },
-    { path: '/insurance', icon: Shield, label: 'Insurance', minRole: 'admin' },
+    { id: 'verification', path: '/verification', icon: FileCheck, label: 'Queue', minRole: 'admin' },
+    { id: 'insurance', path: '/insurance', icon: Shield, label: 'Insurance', minRole: 'admin' },
+    { id: 'support', path: '/support-tickets', icon: Headphones, label: 'Support' },
+    { id: 'users', path: '/users', icon: Users, label: 'Users', minRole: 'admin' },
+    { id: 'news', path: '/health-news', icon: Newspaper, label: 'Health News', minRole: 'admin' },
   ];
 
-  const systemItems = [
-    { path: '/settings', icon: Settings, label: 'Settings', minRole: 'viewer' },
-  ];
+  // Auto-expand the group containing the active route and close others
+  useEffect(() => {
+    const isOps = operationItems.some(item => item.path === location.pathname);
+    const isMgmt = managementItems.some(item => item.path === location.pathname);
 
-  const isActive = (path) => location.pathname === path;
+    if (isOps) setOpenGroups(['ops']);
+    else if (isMgmt) setOpenGroups(['mgmt']);
+    else setOpenGroups([]);
+  }, [location.pathname]);
 
-  const handleNavigate = (path) => {
-    navigate(path);
-    setMenuOpen(false);
-    setUserMenuOpen(false);
+  const toggleGroup = (groupId) => {
+    setOpenGroups(prev => prev.includes(groupId) ? [] : [groupId]);
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/login');
+  const renderNavButton = (item, isSubItem = false) => {
+    const isActive = location.pathname === item.path;
+    const canSee = !item.minRole || hasMinRole(item.minRole);
+    if (!canSee) return null;
+
+    return (
+      <div key={item.id} className="relative flex items-center w-full px-3">
+        {isActive && (
+          <motion.div
+            layoutId="activeRail"
+            className="absolute left-0 w-1 h-6 bg-primary rounded-r-full z-10"
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          />
+        )}
+        <button
+          onClick={() => navigate(item.path)}
+          className={`w-full flex items-center h-10 rounded-lg transition-all duration-200 ${isSubItem ? 'pl-9' : 'px-3'
+            } ${isActive
+              ? 'bg-primary/10 text-primary font-bold'
+              : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+            }`}
+        >
+          <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${isActive ? 'scale-110' : 'opacity-70'}`} />
+          <AnimatePresence>
+            {isBroad && (
+              <motion.span
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0 }}
+                className="ml-3 text-sm truncate"
+              >
+                {item.label}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </button>
+      </div>
+    );
   };
 
-  // Filter items based on role
-  const filteredNavItems = navItems.filter(item => hasMinRole(item.minRole));
-  const filteredOperationItems = operationItems.filter(item => hasMinRole(item.minRole));
-  const filteredManagementItems = managementItems.filter(item => hasMinRole(item.minRole));
-  const filteredSystemItems = systemItems.filter(item => hasMinRole(item.minRole));
+  const renderGroup = (id, label, items) => {
+    const isOpen = openGroups.includes(id);
+    const isAnyChildActive = items.some(i => i.path === location.pathname);
 
-
-
-  const getRoleBadgeColor = (role) => {
-    const colors = {
-      admin: 'bg-primary/20 text-primary',
-      sponsor: 'bg-secondary/20 text-secondary',
-      provider: 'bg-info/20 text-info',
-      viewer: 'bg-muted text-muted-foreground',
-    };
-    return colors[role] || colors.viewer;
-  };
-
-  if (isMobile) return null;
-
-  return (
-    <>
-      <motion.div
-        animate={{
-          x: isScrolledDown ? -100 : 0,
-          opacity: isScrolledDown ? 0 : 1
-        }}
-        transition={{
-          type: "spring",
-          stiffness: 300,
-          damping: 30,
-          mass: 0.8
-        }}
-        className="fixed left-0 top-0 bottom-0 z-40 flex flex-col pointer-events-none"
-      >
-        {/* Glass Rail Container */}
-        <div className="flex-1 flex flex-col items-center pb-6 pt-0 gap-4 w-[72px] pointer-events-auto">
-
-          {/* Vertical Spacer to accommodate merged header logo */}
-          <div className="h-16 flex-shrink-0" />
-
-          {/* Navigation Items */}
-          <div className="flex-1 flex flex-col items-center gap-2 mt-0">
-            {filteredNavItems.map((item) => (
-              <div key={item.path} className="relative group">
-                <button
-                  onClick={() => handleNavigate(item.path)}
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${isActive(item.path)
-                    ? 'bg-background text-primary shadow-lg ring-1 ring-black/5'
-                    : 'text-muted-foreground hover:bg-white/10 hover:text-foreground'
-                    }`}
-                >
-                  <item.icon className="w-5 h-5" />
-                </button>
-                {/* Tooltip */}
-                <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs font-bold rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-sm z-50">
-                  {item.label}
-                </div>
-                {/* Active Indicator */}
-                {isActive(item.path) && (
-                  <motion.div
-                    layoutId="activeRail"
-                    className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"
-                  />
-                )}
-              </div>
-            ))}
-
-            <div className="w-8 h-px bg-white/10 my-2" />
-
-            {filteredOperationItems.map((item) => (
-              <div key={item.path} className="relative group">
-                <button
-                  onClick={() => handleNavigate(item.path)}
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${isActive(item.path)
-                    ? 'bg-background text-primary shadow-lg ring-1 ring-black/5'
-                    : 'text-muted-foreground hover:bg-white/10 hover:text-foreground'
-                    }`}
-                >
-                  <item.icon className="w-5 h-5" />
-                </button>
-                {/* Tooltip */}
-                <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs font-bold rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-sm z-50">
-                  {item.label}
-                </div>
-                {/* Active Indicator */}
-                {isActive(item.path) && (
-                  <motion.div
-                    layoutId="activeRail"
-                    className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"
-                  />
-                )}
-              </div>
-            ))}
-
-            <div className="w-8 h-px bg-white/10 my-2" />
-
-            {filteredManagementItems.map((item) => (
-              <div key={item.path} className="relative group">
-                <button
-                  onClick={() => handleNavigate(item.path)}
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${isActive(item.path)
-                    ? 'bg-background text-primary shadow-lg ring-1 ring-black/5'
-                    : 'text-muted-foreground hover:bg-white/10 hover:text-foreground'
-                    }`}
-                >
-                  <item.icon className="w-5 h-5" />
-                </button>
-                <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs font-bold rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-sm z-50">
-                  {item.label}
-                </div>
-                {isActive(item.path) && (
-                  <motion.div
-                    layoutId="activeRail"
-                    className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"
-                  />
-                )}
-              </div>
-            ))}
-
-            <div className="w-8 h-px bg-white/10 my-2" />
-
-            {filteredSystemItems.map((item) => (
-              <div key={item.path} className="relative group">
-                <button
-                  onClick={() => handleNavigate(item.path)}
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${isActive(item.path)
-                    ? 'bg-background text-primary shadow-lg ring-1 ring-black/5'
-                    : 'text-muted-foreground hover:bg-white/10 hover:text-foreground'
-                    }`}
-                >
-                  <item.icon className="w-5 h-5" />
-                </button>
-                <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs font-bold rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-sm z-50">
-                  {item.label}
-                </div>
-                {isActive(item.path) && (
-                  <motion.div
-                    layoutId="activeRail"
-                    className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Bottom Actions */}
-          <div className="flex flex-col items-center gap-3 mb-2">
-            <ThemeToggle />
-            <button
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="relative"
-            >
-              <Avatar className="h-9 w-9 rounded-xl ring-2 ring-white/10 transition-transform hover:scale-105">
-                <AvatarImage 
-                  src={getAvatarUrl(profile, user)} 
-                />
-                <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-bold text-xs">
-                  {getAvatarFallback(profile, user)}
-                </AvatarFallback>
-              </Avatar>
-            </button>
-          </div>
+    return (
+      <div key={id} className="w-full space-y-1">
+        <div className="px-3">
+          <button
+            onClick={() => toggleGroup(id)}
+            className={`w-full flex items-center h-10 px-3 rounded-lg transition-colors ${isAnyChildActive && !isOpen ? 'bg-primary/5 text-primary' : 'text-muted-foreground/60 hover:text-foreground'
+              }`}
+          >
+            {/* Folder Icon proxy for groups */}
+            <div className="w-5 h-5 flex items-center justify-center">
+              <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
+            </div>
+            {isBroad && (
+              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-3 text-[11px] font-black uppercase tracking-widest flex-1 text-left">
+                {label}
+              </motion.span>
+            )}
+          </button>
         </div>
 
-        {/* Global Glass Background for Rail */}
-        <div
-          className="absolute left-0 top-0 bottom-0 w-[72px] -z-10 bg-background/40 backdrop-blur-md"
-        />
-      </motion.div>
-    </>
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden space-y-1"
+            >
+              {items.map(item => renderNavButton(item, true))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
+  return (
+    <motion.nav
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      animate={{ width: sidebarWidth, x: isScrolledDown ? -sidebarWidth : 0 }}
+      transition={{ type: "spring", stiffness: 250, damping: 28 }}
+      className="fixed left-0 top-0 bottom-0 z-50 flex flex-col bg-background/80 backdrop-blur-xl border-r border-border/40"
+    >
+      {/* 1. BRANDING & BACK ARROW */}
+      <div className="h-16 flex-shrink-0 flex items-center px-4">
+        <div className="relative flex items-center w-full">
+          <AnimatePresence mode="wait">
+            {isNotHome ? (
+              <motion.button
+                key="back"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => navigate(-1)}
+                className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </motion.button>
+            ) : (
+              <motion.div
+                key="logo"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center gap-3"
+              >
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <img src="/logo.png" alt="logo" className="w-5 h-5 object-contain" />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {isBroad && isNotHome && (
+            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-3 text-xs font-bold text-muted-foreground">Go Back</motion.span>
+          )}
+
+          {isBroad && !isNotHome && (
+            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="ml-3 flex flex-col leading-none">
+              <span className="text-lg font-black tracking-tighter">iVisit<span className="text-primary">.</span></span>
+              <span className="text-[9px] font-black text-primary/60 uppercase tracking-widest">Console</span>
+            </motion.div>
+          )}
+        </div>
+      </div>
+
+      {/* 2. DOCK-STYLE NAVIGATION */}
+      <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar py-4">
+        <div className="space-y-1">
+          {renderNavButton({ id: 'home', path: '/', icon: Home, label: 'Dashboard' })}
+          {renderNavButton({ id: 'map', path: '/map', icon: MapPin, label: 'Live Map' })}
+          {renderNavButton({ id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics' })}
+        </div>
+
+        <div className="h-px bg-border/40 mx-6" />
+
+        {renderGroup('ops', 'Operations', operationItems)}
+        {renderGroup('mgmt', 'Management', managementItems)}
+      </div>
+
+      {/* 3. PROFILE & THEME */}
+      <div className="p-4 bg-muted/20 border-t border-border/40 space-y-3">
+        <div className="flex justify-start pl-2">
+          <ThemeToggle />
+        </div>
+
+        <button
+          onClick={() => navigate('/settings')}
+          className="w-full flex items-center gap-3 p-1 rounded-xl hover:bg-muted transition-colors group"
+        >
+          <Avatar className="h-9 w-9 rounded-lg border border-border flex-shrink-0">
+            <AvatarImage src={getAvatarUrl(profile, user)} />
+            <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
+              {getAvatarFallback(profile, user)}
+            </AvatarFallback>
+          </Avatar>
+          {isBroad && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-left overflow-hidden">
+              <p className="text-xs font-bold truncate text-foreground">{profile?.full_name || 'User'}</p>
+              <p className="text-[10px] opacity-50 truncate font-bold uppercase tracking-tight">Settings</p>
+            </motion.div>
+          )}
+        </button>
+      </div>
+    </motion.nav>
   );
 };

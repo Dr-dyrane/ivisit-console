@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useLayout } from '../../contexts/LayoutContext';
-// import { BentoBreadcrumbs } from './BentoBreadcrumbs';
 import { QuickSearch } from './QuickSearch';
 import { NotificationCenter } from '../common/NotificationCenter';
 import { NetworkStatus } from '../common/NetworkStatus';
@@ -10,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export const SmartHeader = () => {
     const { isMobile } = useNavigation();
-    const { isScrolledDown, headerConfig } = useLayout();
+    const { isScrolledDown, headerConfig, sidebarWidth } = useLayout();
     const [searchOpen, setSearchOpen] = useState(false);
 
     return (
@@ -19,7 +18,9 @@ export const SmartHeader = () => {
                 initial={{ y: -100 }}
                 animate={{
                     y: isScrolledDown ? -100 : 0,
-                    opacity: isScrolledDown ? 0 : 1
+                    opacity: isScrolledDown ? 0 : 1,
+                    // Dynamic padding based on sidebar state
+                    paddingLeft: isMobile ? 8 : sidebarWidth,
                 }}
                 transition={{
                     type: "spring",
@@ -27,41 +28,23 @@ export const SmartHeader = () => {
                     damping: 30,
                     mass: 0.8
                 }}
-                className={`fixed z-50 h-16 flex items-center justify-between transition-all duration-300 ${isMobile
-                    ? 'top-2 left-2 right-2 squircle-2xl bg-background/90 backdrop-blur-2xl border border-white/10 shadow-premium'
-                    : isScrolledDown
-                        ? 'top-0 left-0 right-0 bg-background/80 backdrop-blur-2xl shadow-lg'
-                        : 'top-0 left-0 right-0 bg-background/40 backdrop-blur-md'
+                // Lower z-index than IslandNavigation (z-50)
+                className={`fixed z-40 h-16 flex items-center justify-between transition-colors duration-300 ${isMobile
+                        ? 'top-2 left-2 right-2 squircle-2xl bg-background/90 backdrop-blur-2xl border border-white/10 shadow-premium'
+                        : isScrolledDown
+                            ? 'top-0 left-0 right-0 bg-background/80 backdrop-blur-2xl shadow-lg'
+                            : 'top-0 left-0 right-0 bg-background/40 backdrop-blur-md'
                     }`}
                 style={{
-                    paddingLeft: '0px',
                     paddingRight: '32px'
                 }}
             >
                 <div className="flex items-center gap-2 md:gap-0 overflow-hidden h-full">
-                    {/* Integrated Logo Zone - Exactly matches dock width (72px) */}
-                    <div className="w-[72px] h-full flex items-center justify-center flex-shrink-0">
-                        <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="flex-shrink-0 cursor-pointer"
-                            onClick={() => window.location.href = '/'}
-                        >
-                            <div className="w-10 h-10 squircle bg-primary/10 flex items-center justify-center shadow-inner group hover:bg-primary/20 transition-all relative">
-                                <img src="/logo.png" alt="iVisit" className="w-5 h-5 object-contain group-hover:scale-110 transition-transform" />
-                                <div className="absolute -top-1 -right-3">
-                                    <NetworkStatus />
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
+                    {/* Logo Zone - This will now slide with the paddingLeft */}
 
                     {!isMobile && (
-                        <div className="flex items-center gap-4 ml-2">
-                            {/* <BentoBreadcrumbs />
-                            {headerConfig.title && (
-                                <div className="h-4 w-px bg-white/10 mx-2" />
-                            )} */}
+                        <div className="flex items-center gap-4 ml-12">
+                            {/* Breadcrumbs or spacers can go here */}
                         </div>
                     )}
 
@@ -82,13 +65,12 @@ export const SmartHeader = () => {
                 </div>
 
                 <div className="flex items-center gap-2 md:gap-3">
-                    {/* View Toggle & Filters - Before primary actions */}
                     {headerConfig.viewToggle && !isMobile && (
                         <div className="flex items-center gap-2">
                             {headerConfig.viewToggle}
                         </div>
                     )}
-                    
+
                     {headerConfig.filterSheet && (
                         <div className="flex items-center gap-2">
                             {headerConfig.filterSheet}
@@ -99,14 +81,12 @@ export const SmartHeader = () => {
                         <div className="w-px h-6 bg-white/10 mx-1" />
                     )}
 
-                    {/* Page Actions - Hidden on mobile only if page uses view/filter system */}
-                    {headerConfig.actions && !(isMobile && (headerConfig.viewToggle || headerConfig.filterSheet)) && (
+                    {headerConfig.actions && (
                         <div className="flex items-center gap-2">
                             {headerConfig.actions}
                         </div>
                     )}
 
-                    {/* Quick Search - Hidden on tiny mobile if actions take too much space */}
                     {!isMobile && (
                         <>
                             <button
