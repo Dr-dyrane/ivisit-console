@@ -76,8 +76,9 @@ export const LoginPage = () => {
 				<div className="col-span-12 lg:col-span-5 space-y-6">
 					{/* LOGO BENTO */}
 					<motion.div
-						initial={{ opacity: 0, scale: 0.9 }}
+						initial={{ opacity: 0, scale: 0.95 }}
 						animate={{ opacity: 1, scale: 1 }}
+						transition={{ type: "tween", duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
 						className="glass-strong squircle-3xl p-10 shadow-2xl relative overflow-hidden group"
 					>
                          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
@@ -98,9 +99,9 @@ export const LoginPage = () => {
 					{/* SECONDARY STATS ROW */}
 					<div className="grid grid-cols-2 gap-6">
 						<motion.div 
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1 }}
+                            transition={{ type: "tween", duration: 0.3, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
                             className="glass squircle-2xl p-6 aspect-square flex flex-col justify-between hover-lift group"
                         >
                             <div className="flex justify-between items-start">
@@ -117,9 +118,9 @@ export const LoginPage = () => {
 							</div>
 						</motion.div>
 						<motion.div 
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
+                            transition={{ type: "tween", duration: 0.3, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
                             className="glass squircle-2xl p-6 aspect-square flex flex-col justify-between hover-lift group"
                         >
 							<div className="flex justify-between items-start">
@@ -141,8 +142,9 @@ export const LoginPage = () => {
 				{/* RIGHT COLUMN: THE FORM (Hero Bento) */}
 				<div className="col-span-12 lg:col-span-7 h-full flex flex-col justify-center">
 					<motion.div
-						initial={{ opacity: 0, x: 20 }}
+						initial={{ opacity: 0, x: 10 }}
 						animate={{ opacity: 1, x: 0 }}
+						transition={{ type: "tween", duration: 0.4, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
 						className="glass-strong squircle-3xl p-2 sm:p-3 shadow-2xl relative"
 					>
                         {/* Decorative Grid Background */}
@@ -176,6 +178,7 @@ export const LoginPage = () => {
 											initial={{ opacity: 0, height: 0 }}
 											animate={{ opacity: 1, height: 'auto' }}
 											exit={{ opacity: 0, height: 0 }}
+											transition={{ type: "tween", duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
 											className="overflow-hidden"
 										>
 											<label className="text-[10px] font-black tracking-widest uppercase opacity-40 ml-4 mb-2 block">
@@ -250,8 +253,9 @@ export const LoginPage = () => {
 								</div>
 
 								<motion.button
-									whileHover={{ scale: 1.02 }}
-									whileTap={{ scale: 0.98 }}
+									whileHover={{ scale: 1.01 }}
+									whileTap={{ scale: 0.99 }}
+									transition={{ type: "tween", duration: 0.15 }}
 									className="w-full mt-8 py-5 bg-primary text-primary-foreground font-black text-xs tracking-[0.2em] uppercase squircle-xl shadow-glow hover:shadow-lg transition-all flex items-center justify-center gap-3"
 								>
 									{loading ? (
