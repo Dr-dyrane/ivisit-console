@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Eye, Trash2, CheckCircle, Clock } from 'lucide-react';
 import { Card } from '../ui/card';
 import { motion } from 'framer-motion';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
 export const VerificationQueueTableView = ({ providers, onView, onDelete, isMobile = false }) => {
   return (
