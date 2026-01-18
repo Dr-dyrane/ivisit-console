@@ -1,116 +1,218 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MapPin, FileCheck, TrendingUp, Settings, Hospital, Ambulance, Stethoscope, Users, Calendar, AlertTriangle, LogOut, Sun, Moon, Newspaper, Headphones, Shield } from 'lucide-react';
+import {
+    Home, MapPin, FileCheck, TrendingUp, Settings,
+    Hospital, Ambulance, Stethoscope, Users,
+    Calendar, AlertTriangle, LogOut, Sun, Moon,
+    Newspaper, Headphones, Shield, ChevronDown, ChevronLeft,
+    Handshake, FolderKanban
+} from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 
 export const MobileNavMenu = ({ onClose }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { signOut, hasMinRole } = useAuth();
+    const { signOut, hasMinRole, profile, user } = useAuth();
     const { theme, toggleTheme } = useTheme();
-    const isActive = (path) => location.pathname === path;
+    const isNotHome = location.pathname !== '/';
+
+    // State to track which section is currently focused
+    const [activeGroup, setActiveGroup] = useState(null);
+
+    // Auto-focus the group based on current URL
+    useEffect(() => {
+        const opsPaths = ['/hospitals', '/ambulances', '/doctors', '/visits', '/emergencies'];
+        const mgmtPaths = ['/verification', '/insurance', '/support-tickets', '/users', '/health-news'];
+
+        if (opsPaths.includes(location.pathname)) setActiveGroup('ops');
+        else if (mgmtPaths.includes(location.pathname)) setActiveGroup('mgmt');
+    }, [location.pathname]);
 
     const handleNavigate = (path) => {
         navigate(path);
         onClose();
     };
 
-    const mainLinks = [
-        { path: '/', icon: Home, label: 'Home', minRole: 'viewer' },
-        { path: '/map', icon: MapPin, label: 'Map', minRole: 'viewer' },
-        { path: '/verification', icon: FileCheck, label: 'Queue', minRole: 'admin' },
-        { path: '/analytics', icon: TrendingUp, label: 'Stats', minRole: 'viewer' },
-    ];
+    const navGroups = {
+        main: [
+            { path: '/', icon: Home, label: 'Dashboard' },
+            { path: '/map', icon: MapPin, label: 'Live Map' },
+            { path: '/analytics', icon: TrendingUp, label: 'Statistics' },
+        ],
+        ops: {
+            label: 'Operations',
+            icon: Handshake,
+            items: [
+                { path: '/hospitals', icon: Hospital, label: 'Hospitals' },
+                { path: '/ambulances', icon: Ambulance, label: 'Ambulances' },
+                { path: '/doctors', icon: Stethoscope, label: 'Doctors' },
+                { path: '/visits', icon: Calendar, label: 'Visits' },
+                { path: '/emergencies', icon: AlertTriangle, label: 'Emergencies' },
+            ]
+        },
+        mgmt: {
+            label: 'Management',
+            icon: FolderKanban,
+            items: [
+                { path: '/verification', icon: FileCheck, label: 'Queue', minRole: 'admin' },
+                { path: '/insurance', icon: Shield, label: 'Insurance', minRole: 'admin' },
+                { path: '/support-tickets', icon: Headphones, label: 'Support' },
+                { path: '/users', icon: Users, label: 'Users', minRole: 'admin' },
+                { path: '/health-news', icon: Newspaper, label: 'Health News', minRole: 'admin' },
+            ]
+        }
+    };
 
-    const operationLinks = [
-        { path: '/hospitals', icon: Hospital, label: 'Hospitals', minRole: 'provider' },
-        { path: '/ambulances', icon: Ambulance, label: 'Ambulances', minRole: 'provider' },
-        { path: '/doctors', icon: Stethoscope, label: 'Doctors', minRole: 'provider' },
-        { path: '/users', icon: Users, label: 'Users', minRole: 'admin' },
-        { path: '/visits', icon: Calendar, label: 'Visits', minRole: 'provider' },
-        { path: '/emergencies', icon: AlertTriangle, label: 'Emergencies', minRole: 'provider' },
-    ];
+    const renderLink = (item, isSub = false) => {
+        const active = location.pathname === item.path;
+        if (item.minRole && !hasMinRole(item.minRole)) return null;
 
-    const managementLinks = [
-        { path: '/health-news', icon: Newspaper, label: 'Health News', minRole: 'admin' },
-        { path: '/support-tickets', icon: Headphones, label: 'Support', minRole: 'viewer' },
-        { path: '/insurance', icon: Shield, label: 'Insurance', minRole: 'admin' },
-    ];
-
-    const renderLink = (item) => (
-        <motion.button
-            key={item.path}
-            whileTap={{ scale: 0.96 }}
-            onClick={() => handleNavigate(item.path)}
-            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${isActive(item.path)
-                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
-                }`}
-        >
-            <div className={`p-2 rounded-xl ${isActive(item.path) ? 'bg-primary-foreground/10' : 'bg-transparent'}`}>
-                <item.icon className="h-5 w-5" />
-            </div>
-            <span className="font-bold text-base tracking-tight">{item.label}</span>
-            {isActive(item.path) && (
-                <motion.div
-                    layoutId="active-mobile-dot"
-                    className="ml-auto w-1.5 h-1.5 rounded-full bg-white"
-                />
-            )}
-        </motion.button>
-    );
+        return (
+            <motion.button
+                key={item.path}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleNavigate(item.path)}
+                className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${active ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
+                    } ${isSub ? 'pl-12' : ''}`}
+            >
+                <item.icon className={`h-5 w-5 ${active ? 'opacity-100' : 'opacity-50'}`} />
+                <span className={`text-base tracking-tight ${active ? 'font-bold' : 'font-medium'}`}>
+                    {item.label}
+                </span>
+                {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
+            </motion.button>
+        );
+    };
 
     return (
-        <div className="space-y-6 pb-6">
-            {/* Main Navigation */}
-            <div className="space-y-2">
-                <h3 className="px-4 text-xs font-black text-muted-foreground uppercase tracking-widest">Menu</h3>
-                {mainLinks.filter(l => hasMinRole(l.minRole)).map(renderLink)}
+        <div className="flex flex-col h-full bg-background text-foreground">
+            {/* 1. BRANDING & BACK ARROW */}
+            <div className="h-16 flex-shrink-0 flex items-center">
+                <div className="relative flex items-center w-full">
+                    <AnimatePresence mode="wait">
+                        {isNotHome ? (
+                            <motion.button
+                                key="back"
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => navigate(-1)}
+                                className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </motion.button>
+                        ) : (
+                            <motion.div
+                                key="logo"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="flex items-center gap-3"
+                            >
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                    <img src="/logo.png" alt="logo" className="w-5 h-5 object-contain" />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {isNotHome && (
+                        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-3 text-xs font-bold text-muted-foreground">Go Back</motion.span>
+                    )}
+
+                    {!isNotHome && (
+                        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="ml-3 flex flex-col leading-none">
+                            <span className="text-2xl font-black tracking-tighter">iVisit<span className="text-primary text-base">.</span> <span className="text-primary text-sm font-normal italic  uppercase">Console</span></span>
+                        </motion.div>
+                    )}
+                </div>
             </div>
 
-            {/* Operations */}
-            {(hasMinRole('provider') || hasMinRole('admin')) && (
-                <div className="space-y-2">
-                    <h3 className="px-4 text-xs font-black text-muted-foreground uppercase tracking-widest mt-6">Operations</h3>
-                    {operationLinks.filter(l => hasMinRole(l.minRole)).map(renderLink)}
+            {/* 2. CONTEXTUAL CONTENT (Progressive Reveal) */}
+            <div className="flex-1 overflow-y-auto space-y-2 pb-4">
+
+                {/* Always show Top-Level */}
+                <div className="space-y-1">
+                    {navGroups.main.map(link => renderLink(link))}
                 </div>
-            )}
 
-            {/* Management */}
-            {(hasMinRole('admin') || hasMinRole('viewer')) && (
-                <div className="space-y-2">
-                    <h3 className="px-4 text-xs font-black text-muted-foreground uppercase tracking-widest mt-6">Management</h3>
-                    {managementLinks.filter(l => hasMinRole(l.minRole)).map(renderLink)}
+                <div className="h-px bg-border/40 mx-4 my-4" />
+
+                {/* Groups with Accordion logic */}
+                {['ops', 'mgmt'].map(groupId => {
+                    const group = navGroups[groupId];
+                    const isOpen = activeGroup === groupId;
+                    const canSeeGroup = group.items.some(i => !i.minRole || hasMinRole(i.minRole));
+
+                    if (!canSeeGroup) return null;
+
+                    return (
+                        <div key={groupId} className="space-y-1">
+                            <button
+                                onClick={() => setActiveGroup(isOpen ? null : groupId)}
+                                className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${isOpen ? 'text-foreground' : 'text-muted-foreground/60'
+                                    }`}
+                            >
+                                <group.icon className="h-5 w-5 opacity-50" />
+                                <span className="text-sm font-black uppercase tracking-[0.2em]">{group.label}</span>
+                                <ChevronDown className={`ml-auto h-4 w-4 transition-transform duration-300 ${isOpen ? '' : '-rotate-90 opacity-30'}`} />
+                            </button>
+
+                            <AnimatePresence>
+                                {isOpen && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden space-y-1"
+                                    >
+                                        {group.items.map(item => renderLink(item, true))}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* 3. UTILITY FOOTER (Sticky & Clean) */}
+            <div className="flex-shrink-0 bg-muted/20 border-t border-border/40 space-y-4">
+                <div className="flex gap-2">
+                    <button
+                        onClick={toggleTheme}
+                        className="flex-1 flex items-center justify-center gap-2 h-12 rounded-2xl bg-background border border-border/40 text-muted-foreground font-bold text-xs uppercase tracking-widest"
+                    >
+                        {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                        Mode
+                    </button>
+                    <button
+                        onClick={() => { signOut(); navigate('/login'); }}
+                        className="flex-1 flex items-center justify-center gap-2 h-12 rounded-2xl bg-destructive/5 border border-destructive/10 text-destructive font-bold text-xs uppercase tracking-widest"
+                    >
+                        <LogOut className="h-4 w-4" />
+                        Exit
+                    </button>
                 </div>
-            )}
 
-            <div className="h-px bg-border/40 mx-4 my-4" />
-
-            {/* Theme Toggle & Settings */}
-            <div className="space-y-2">
                 <button
-                    onClick={toggleTheme}
-                    className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors group"
+                    onClick={() => handleNavigate('/settings')}
+                    className="w-full flex items-center gap-4 p-2 rounded-2xl bg-background border border-border/40"
                 >
-                    <div className="p-2 rounded-xl group-hover:bg-muted/10">
-                        {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    <Avatar className="h-10 w-10 rounded-xl">
+                        <AvatarImage src={getAvatarUrl(profile, user)} />
+                        <AvatarFallback className="bg-primary/5 text-primary text-xs">
+                            {getAvatarFallback(profile, user)}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="text-left">
+                        <p className="text-sm font-bold text-foreground truncate">{profile?.full_name || 'User'}</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Account Settings</p>
                     </div>
-                    <span className="font-bold text-base tracking-tight">
-                        {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-                    </span>
-                </button>
-
-                {renderLink({ path: '/settings', icon: Settings, label: 'Settings', minRole: 'viewer' })}
-                <button
-                    onClick={() => { signOut(); navigate('/login'); }}
-                    className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl hover:bg-destructive/10 text-destructive transition-colors group"
-                >
-                    <div className="p-2 rounded-xl group-hover:bg-destructive/10">
-                        <LogOut className="h-5 w-5" />
-                    </div>
-                    <span className="font-bold text-base tracking-tight">Sign Out</span>
                 </button>
             </div>
         </div>
