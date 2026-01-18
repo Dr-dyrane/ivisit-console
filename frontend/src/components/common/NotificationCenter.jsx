@@ -6,10 +6,13 @@ import { Bell, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationCard } from './NotificationCard';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigation } from '../../contexts/NavigationContext';
+import { Sheet, SheetContent, SheetOverlay } from '../ui/sheet';
 import { getNotifications, markNotificationAsRead, subscribeToNotifications } from '../../services/notificationService';
 
 export const NotificationCenter = () => {
   const { user } = useAuth();
+  const { isMobile } = useNavigation();
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -64,90 +67,159 @@ export const NotificationCenter = () => {
         )}
       </Button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-              className="fixed inset-0 z-40"
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute top-full right-0 mt-2 w-96 max-h-[600px] z-50"
-            >
-              <Card className="squircle-xl glass shadow-2xl border-0 overflow-hidden flex flex-col">
-                <div className="p-4 border-b border-white/10 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-black">Notifications</h3>
-                    {unreadCount > 0 && (
-                      <p className="text-xs text-muted-foreground">{unreadCount} new</p>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsOpen(false)}
-                    className="squircle h-7 w-7 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+      {/* Mobile: Sheet */}
+      {isMobile ? (
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetOverlay className="bg-black/40 backdrop-blur-[2px]" />
+          <SheetContent
+            side="bottom"
+            className="h-[60vh] rounded-t-[32px] border-0 p-0 overflow-hidden"
+          >
+            <div className="h-1.5 w-12 bg-white/20 rounded-full mx-auto mt-4 mb-6" />
+            
+            <div className="px-4 mb-4">
+              <div>
+                <h3 className="font-black text-2xl tracking-tight">Notifications</h3>
+                {unreadCount > 0 && (
+                  <p className="text-sm text-muted-foreground">{unreadCount} new</p>
+                )}
+              </div>
+            </div>
 
-                <div className="flex-1 overflow-y-auto space-y-2 p-4">
-                  {loading ? (
-                    <div className="space-y-2">
-                      {[...Array(3)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="h-20 squircle-lg bg-muted/10 animate-pulse"
-                        />
-                      ))}
-                    </div>
-                  ) : notifications.length === 0 ? (
-                    <div className="py-12 text-center">
-                      <Bell className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground font-medium">No notifications</p>
-                    </div>
-                  ) : (
-                    <AnimatePresence mode="popLayout">
-                      {notifications.map(notification => (
-                        <NotificationCard
-                          key={notification.id}
-                          notification={notification}
-                          onDismiss={handleDismiss}
-                          onMarkRead={handleMarkRead}
-                        />
-                      ))}
-                    </AnimatePresence>
-                  )}
+            <div className="max-h-[50vh] overflow-y-auto px-4 pb-20">
+              {loading ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-20 squircle-lg bg-muted/10 animate-pulse"
+                    />
+                  ))}
                 </div>
+              ) : notifications.length === 0 ? (
+                <div className="py-12 text-center">
+                  <Bell className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground font-medium">No notifications</p>
+                </div>
+              ) : (
+                <AnimatePresence mode="popLayout">
+                  {notifications.map(notification => (
+                    <NotificationCard
+                      key={notification.id}
+                      notification={notification}
+                      onDismiss={handleDismiss}
+                      onMarkRead={handleMarkRead}
+                    />
+                  ))}
+                </AnimatePresence>
+              )}
+            </div>
 
-                {notifications.length > 0 && (
-                  <div className="p-3 border-t border-white/10 bg-white/5">
+            {notifications.length > 0 && (
+              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10 bg-background/95 backdrop-blur-xl">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => {
+                    notifications
+                      .filter(n => !n.read)
+                      .forEach(n => handleMarkRead(n.id));
+                  }}
+                >
+                  Mark all as read
+                </Button>
+              </div>
+            )}
+          </SheetContent>
+        </Sheet>
+      ) : (
+        /* Desktop: Dropdown */
+        <AnimatePresence>
+          {isOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsOpen(false)}
+                className="fixed inset-0 z-40"
+              />
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute top-full right-0 mt-2 w-96 max-h-[600px] z-50"
+              >
+                <Card className="squircle-xl glass shadow-2xl border-0 overflow-hidden flex flex-col">
+                  <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-black">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <p className="text-xs text-muted-foreground">{unreadCount} new</p>
+                      )}
+                    </div>
                     <Button
                       variant="ghost"
-                      size="sm"
-                      className="w-full text-xs"
-                      onClick={() => {
-                        notifications
-                          .filter(n => !n.read)
-                          .forEach(n => handleMarkRead(n.id));
-                      }}
+                      size="icon"
+                      onClick={() => setIsOpen(false)}
+                      className="squircle h-7 w-7 p-0"
                     >
-                      Mark all as read
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
-                )}
-              </Card>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+
+                  <div className="max-h-[50vh] overflow-y-auto space-y-2 p-4">
+                    {loading ? (
+                      <div className="space-y-2">
+                        {[...Array(3)].map((_, i) => (
+                          <div
+                            key={i}
+                            className="h-20 squircle-lg bg-muted/10 animate-pulse"
+                          />
+                        ))}
+                      </div>
+                    ) : notifications.length === 0 ? (
+                      <div className="py-12 text-center">
+                        <Bell className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground font-medium">No notifications</p>
+                      </div>
+                    ) : (
+                      <AnimatePresence mode="popLayout">
+                        {notifications.map(notification => (
+                          <NotificationCard
+                            key={notification.id}
+                            notification={notification}
+                            onDismiss={handleDismiss}
+                            onMarkRead={handleMarkRead}
+                          />
+                        ))}
+                      </AnimatePresence>
+                    )}
+                  </div>
+
+                  {notifications.length > 0 && (
+                    <div className="p-3 border-t border-white/10 bg-white/5">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => {
+                          notifications
+                            .filter(n => !n.read)
+                            .forEach(n => handleMarkRead(n.id));
+                        }}
+                      >
+                        Mark all as read
+                      </Button>
+                    </div>
+                  )}
+                </Card>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 };
