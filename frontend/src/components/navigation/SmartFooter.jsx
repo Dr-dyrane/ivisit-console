@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { Activity, Database, CheckCircle2 } from 'lucide-react';
+import NoiseOverlay from '../ui/noise-overlay';
 
 export const SmartFooter = () => {
     const { isMobile, isTablet, isDesktop, sidebarOpen } = useNavigation();
@@ -36,13 +37,14 @@ export const SmartFooter = () => {
                 >
                     <div className="pointer-events-auto">
                         <div
-                            className="px-6 h-12 rounded-full glass-strong flex items-center gap-6 min-w-[320px] justify-between border-0 relative shadow-2xl"
+                            className={`px-6 h-12 rounded-full backdrop-blur-xl flex items-center gap-6 min-w-[320px] justify-between border-border/40 relative shadow-premium ${
+                                isScrolledDown ? 'bg-background/80' : 'bg-background/40'
+                            }`}
                             style={{
                                 boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
                             }}
                         >
-                            {/* Inner Glow */}
-                            <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+                            <NoiseOverlay className='rounded-full' />
 
                             {/* Left Section: Status/Context */}
                             <div className="flex items-center gap-2 text-[10px] font-black tracking-widest uppercase text-muted-foreground whitespace-nowrap">
@@ -69,7 +71,7 @@ export const SmartFooter = () => {
                             {/* Right Section: Core Stats/Indicators */}
                             <div className="flex items-center gap-3">
                                 {footerConfig.data?.stats && (
-                                    <div className="text-[10px] font-bold text-foreground/60 border-l border-white/10 pl-3">
+                                    <div className="text-[10px] font-bold text-foreground/60 border-l border-border/40 pl-3">
                                         {footerConfig.data.stats}
                                     </div>
                                 )}

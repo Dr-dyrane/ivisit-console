@@ -9,7 +9,7 @@ import NoiseOverlay from '../ui/noise-overlay';
 
 export const ContextPanelShell = () => {
   const { isMobile, isTablet, isDesktop } = useNavigation();
-  const { isContextPanelOpen, closeContextPanel, isFocusMode } = useLayout();
+  const { isContextPanelOpen, closeContextPanel, isFocusMode, isScrolledDown } = useLayout();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -51,7 +51,6 @@ export const ContextPanelShell = () => {
             className="fixed inset-0 z-40 bg-black/20 backdrop-blur-xs"
             onClick={closeContextPanel}
           />
-          <NoiseOverlay />
           
           {/* Context Panel */}
           <motion.div
@@ -59,7 +58,9 @@ export const ContextPanelShell = () => {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-            className={`fixed top-0 bottom-0 right-0 z-50 flex flex-col ${isDesktop ? 'w-[320px]' : 'w-72'} border-l border-border/40`}
+            className={`fixed top-0 bottom-0 right-0 z-50 flex flex-col ${isDesktop ? 'w-[320px]' : 'w-72'} backdrop-blur-xl border-l border-border/40 ${
+              isScrolledDown ? 'bg-background/80' : 'bg-background/40'
+            }`}
             style={{
               boxShadow: '-4px 0 24px rgba(0,0,0,0.1)'
             }}
@@ -69,13 +70,13 @@ export const ContextPanelShell = () => {
               {/* Close button positioned at top-right */}
               <button
                 onClick={closeContextPanel}
-                className="absolute top-4 right-4 w-10 h-10 geo-round bg-muted/20 hover:bg-muted/30 transition-all duration-300 flex items-center justify-center group shadow-sm z-10"
+                className="absolute top-4 right-4 w-10 h-10 geo-round bg-muted/20 hover:bg-muted/30 transition-all duration-300 flex items-center justify-center group shadow-premium z-10"
               >
                 <X className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
               </button>
               
               {/* Content area - full height except for close button space */}
-              <div className="flex-1 overflow-y-auto p-4 scrollbar-hide pt-16">
+              <div className="flex-1 overflow-y-auto p-4 scrollbar-hide pt-16 border-t border-border/20">
                 <ContextPanel />
               </div>
             </div>

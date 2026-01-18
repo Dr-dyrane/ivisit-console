@@ -1537,8 +1537,8 @@ export const ContextPanel = () => {
   };
 
   const renderPanelWithHeader = (panelContent) => (
-    <div className="h-full flex flex-col bg-transparent backdrop-blur-XS border-l border-border/20">
-      {renderPanelHeader()}
+    <div className="h-full flex flex-col bg-transparent backdrop-blur-XS border-border/20">
+      {/* {renderPanelHeader()} */}
       <div className="flex-1 overflow-y-auto">
         {panelContent}
       </div>
