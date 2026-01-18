@@ -53,8 +53,8 @@ export const useContextAction = (openModal) => {
             label: 'Center Map',
             color: 'secondary',
             action: () => {
-                // Center map logic - will be implemented in map component
-                console.log('Centering map on user location');
+                // Center map via window event
+                window.dispatchEvent(new CustomEvent('centerMap'));
             }
         };
     } else if (currentPath.includes('/analytics')) {
@@ -63,8 +63,8 @@ export const useContextAction = (openModal) => {
             label: 'Generate Report',
             color: 'primary',
             action: () => {
-                // Generate and download report
-                console.log('Generating analytics report');
+                // Open reports modal via window event
+                window.dispatchEvent(new CustomEvent('openReportsModal'));
             }
         };
     } else if (currentPath.includes('/doctors')) {

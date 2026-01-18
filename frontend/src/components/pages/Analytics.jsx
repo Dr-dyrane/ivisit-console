@@ -764,55 +764,6 @@ export const Analytics = () => {
         analyticsData={analyticsDataForReports}
         timeRange={timeRange}
       />
-      
-      {/* Floating Action Button for Reports */}
-      <motion.div
-        className="fixed bottom-6 right-6 z-[9999]"
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-        transition={{ delay: 1, duration: 0.3 }}
-        style={{ pointerEvents: 'auto' }}
-      >
-        <Button
-          onClick={() => {
-            console.log('FAB clicked!');
-            setReportsModalOpen(true);
-          }}
-          className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 bg-primary hover:bg-primary/90 text-primary-foreground group relative overflow-hidden"
-          size="lg"
-          style={{ pointerEvents: 'auto' }}
-        >
-          {/* Animated background effect */}
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/40"
-            initial={{ x: "-100%" }}
-            whileHover={{ x: "100%" }}
-            transition={{ duration: 0.5 }}
-          />
-          
-          {/* Icon with enhanced hover effect */}
-          <FileText className="h-6 w-6 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-          
-          {/* Pulse animation for attention */}
-          <motion.div
-            className="absolute inset-0 rounded-full border-2 border-primary/30"
-            animate={{ scale: [1, 1.2, 1], opacity: [1, 0, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-        </Button>
-        
-        {/* Enhanced tooltip */}
-        <motion.div
-          className="absolute -top-10 right-0 bg-background border border-border rounded-md px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
-          initial={{ y: 5 }}
-          whileHover={{ y: 0 }}
-        >
-          <span className="text-xs font-medium">Generate Reports</span>
-          <div className="absolute -bottom-1 right-4 w-2 h-2 bg-background border-l border-b border-border transform rotate-45" />
-        </motion.div>
-      </motion.div>
     </>
   );
 };
