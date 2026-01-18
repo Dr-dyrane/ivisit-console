@@ -5,7 +5,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Home, MapPin, FileCheck, TrendingUp, Menu,
   Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance,
-  Users, Newspaper, Headphones, Shield, ChevronLeft, ChevronDown
+  Users, Newspaper, Headphones, Shield, ChevronLeft, ChevronDown,
+  FolderKanban, Handshake
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
@@ -33,8 +34,8 @@ const managementItems = [
 
 // Group icons for collapsed mode
 const groupIcons = {
-  ops: FileCheck,
-  mgmt: Shield
+  ops: Handshake,
+  mgmt: FolderKanban
 };
 
 export const IslandNavigation = () => {
@@ -228,8 +229,7 @@ export const IslandNavigation = () => {
 
           {isBroad && !isNotHome && (
             <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="ml-3 flex flex-col leading-none">
-              <span className="text-lg font-black tracking-tighter">iVisit<span className="text-primary">.</span></span>
-              <span className="text-[9px] font-black text-primary/60 uppercase tracking-widest">Console</span>
+              <span className="text-2xl font-black tracking-tighter">iVisit<span className="text-primary text-base">.</span> <span className="text-primary text-sm font-normal italic  uppercase">Console</span></span>
             </motion.div>
           )}
         </div>
@@ -251,7 +251,7 @@ export const IslandNavigation = () => {
 
       {/* 3. PROFILE & THEME */}
       <div className="p-4 bg-muted/20 border-t border-border/40 space-y-3">
-        <div className="flex justify-start pl-2">
+        <div className="flex justify-center">
           <ThemeToggle />
         </div>
 
