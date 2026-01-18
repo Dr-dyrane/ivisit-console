@@ -14,6 +14,29 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import ThemeToggle from '../ui/theme-toggle';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 
+// Static navigation configuration
+const operationItems = [
+  { id: 'hospitals', path: '/hospitals', icon: Hospital, label: 'Hospitals' },
+  { id: 'ambulances', path: '/ambulances', icon: Ambulance, label: 'Ambulances' },
+  { id: 'doctors', path: '/doctors', icon: Stethoscope, label: 'Doctors' },
+  { id: 'visits', path: '/visits', icon: Calendar, label: 'Visits' },
+  { id: 'emergencies', path: '/emergencies', icon: AlertTriangle, label: 'Emergencies' },
+];
+
+const managementItems = [
+  { id: 'verification', path: '/verification', icon: FileCheck, label: 'Queue', minRole: 'admin' },
+  { id: 'insurance', path: '/insurance', icon: Shield, label: 'Insurance', minRole: 'admin' },
+  { id: 'support', path: '/support-tickets', icon: Headphones, label: 'Support' },
+  { id: 'users', path: '/users', icon: Users, label: 'Users', minRole: 'admin' },
+  { id: 'news', path: '/health-news', icon: Newspaper, label: 'Health News', minRole: 'admin' },
+];
+
+// Group icons for collapsed mode
+const groupIcons = {
+  ops: FileCheck,
+  mgmt: Shield
+};
+
 export const IslandNavigation = () => {
   const { sidebarExpanded, toggleSidebar, isScrolledDown } = useLayout();
   const { profile, user, hasMinRole } = useAuth();
@@ -29,21 +52,6 @@ export const IslandNavigation = () => {
   const isNotHome = location.pathname !== '/';
 
   // --- Progressive Reveal & Auto-Cleanup Logic ---
-  const operationItems = [
-    { id: 'hospitals', path: '/hospitals', icon: Hospital, label: 'Hospitals' },
-    { id: 'ambulances', path: '/ambulances', icon: Ambulance, label: 'Ambulances' },
-    { id: 'doctors', path: '/doctors', icon: Stethoscope, label: 'Doctors' },
-    { id: 'visits', path: '/visits', icon: Calendar, label: 'Visits' },
-    { id: 'emergencies', path: '/emergencies', icon: AlertTriangle, label: 'Emergencies' },
-  ];
-
-  const managementItems = [
-    { id: 'verification', path: '/verification', icon: FileCheck, label: 'Queue', minRole: 'admin' },
-    { id: 'insurance', path: '/insurance', icon: Shield, label: 'Insurance', minRole: 'admin' },
-    { id: 'support', path: '/support-tickets', icon: Headphones, label: 'Support' },
-    { id: 'users', path: '/users', icon: Users, label: 'Users', minRole: 'admin' },
-    { id: 'news', path: '/health-news', icon: Newspaper, label: 'Health News', minRole: 'admin' },
-  ];
 
   // Auto-expand the group containing the active route and close others
   useEffect(() => {
@@ -59,31 +67,32 @@ export const IslandNavigation = () => {
     setOpenGroups(prev => prev.includes(groupId) ? [] : [groupId]);
   };
 
-  const renderNavButton = (item, isSubItem = false) => {
+  const renderNavButton = (item, isSubItem = false, isCentered = false) => {
     const isActive = location.pathname === item.path;
     const canSee = !item.minRole || hasMinRole(item.minRole);
     if (!canSee) return null;
 
     return (
-      <div key={item.id} className="relative flex items-center w-full px-3">
-        {isActive && (
+      <div key={item.id} className={`relative flex items-center ${isCentered ? 'justify-center' : 'w-full'} px-3`}>
+        {isActive && !isCentered && (
           <motion.div
             layoutId="activeRail"
-            className="absolute left-0 w-1 h-6 bg-primary rounded-r-full z-10"
+            className="absolute left-0 w-1.5 h-7 bg-primary rounded-r-lg z-10"
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           />
         )}
         <button
           onClick={() => navigate(item.path)}
-          className={`w-full flex items-center h-10 rounded-lg transition-all duration-200 ${isSubItem ? 'pl-9' : 'px-3'
-            } ${isActive
-              ? 'bg-primary/10 text-primary font-bold'
-              : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-            }`}
+          className={`flex items-center h-10 rounded-xl transition-all duration-200 ${
+            isCentered ? 'w-10 justify-center' : `w-full ${isSubItem ? 'pl-9' : 'px-3'}`
+          } ${isActive
+            ? 'bg-primary/15 text-primary font-semibold'
+            : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+          }`}
         >
           <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${isActive ? 'scale-110' : 'opacity-70'}`} />
-          <AnimatePresence>
-            {isBroad && (
+          {isBroad && !isCentered && (
+            <AnimatePresence>
               <motion.span
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -92,8 +101,8 @@ export const IslandNavigation = () => {
               >
                 {item.label}
               </motion.span>
-            )}
-          </AnimatePresence>
+            </AnimatePresence>
+          )}
         </button>
       </div>
     );
@@ -102,24 +111,61 @@ export const IslandNavigation = () => {
   const renderGroup = (id, label, items) => {
     const isOpen = openGroups.includes(id);
     const isAnyChildActive = items.some(i => i.path === location.pathname);
+    const GroupIcon = groupIcons[id];
 
+    // In collapsed mode, show centered group icon
+    if (!isBroad) {
+      return (
+        <div key={id} className="w-full space-y-1">
+          <div className="flex justify-center px-3">
+            <button
+              onClick={() => toggleGroup(id)}
+              className={`w-10 h-10 rounded-xl transition-colors flex items-center justify-center ${
+                isAnyChildActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+              }`}
+            >
+              <GroupIcon className="w-5 h-5" />
+            </button>
+          </div>
+
+          <AnimatePresence>
+            {isOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden space-y-1"
+              >
+                <div className="flex justify-center mb-1">
+                  <ChevronDown className="w-3 h-3 text-muted-foreground/60" />
+                </div>
+                {items.map(item => renderNavButton(item, false, true))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      );
+    }
+
+    // Expanded mode - show full group with label
     return (
       <div key={id} className="w-full space-y-1">
         <div className="px-3">
           <button
             onClick={() => toggleGroup(id)}
-            className={`w-full flex items-center h-10 px-3 rounded-lg transition-colors ${isAnyChildActive && !isOpen ? 'bg-primary/5 text-primary' : 'text-muted-foreground/60 hover:text-foreground'
-              }`}
+            className={`w-full flex items-center h-10 px-3 rounded-xl transition-colors ${
+              isAnyChildActive && !isOpen ? 'bg-primary/8 text-primary' : 'text-muted-foreground/60 hover:text-foreground'
+            }`}
           >
-            {/* Folder Icon proxy for groups */}
-            <div className="w-5 h-5 flex items-center justify-center">
-              <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
-            </div>
-            {isBroad && (
-              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-3 text-[11px] font-black uppercase tracking-widest flex-1 text-left">
-                {label}
-              </motion.span>
-            )}
+            <GroupIcon className="w-5 h-5 flex-shrink-0" />
+            <AnimatePresence>
+              {isBroad && (
+                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-3 text-[11px] font-black uppercase tracking-widest flex-1 text-left">
+                  {label}
+                </motion.span>
+              )}
+            </AnimatePresence>
+            <ChevronDown className={`w-4 h-4 transition-transform flex-shrink-0 ${isOpen ? '' : '-rotate-90'}`} />
           </button>
         </div>
 
