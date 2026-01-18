@@ -7,6 +7,11 @@ const LayoutContext = createContext({
     sidebarExpanded: false,
     sidebarWidth: 72,
     toggleSidebar: () => {},
+    isContextPanelOpen: false,
+    contextMode: 'overlay',
+    isFocusMode: false,
+    openContextPanel: () => {},
+    closeContextPanel: () => {},
     headerConfig: { title: '', actions: null, viewToggle: null, filterSheet: null },
     footerConfig: { visible: false, content: null, type: 'status' },
     setHeaderConfig: () => { },
@@ -18,6 +23,8 @@ export const useLayout = () => useContext(LayoutContext);
 export const LayoutProvider = ({ children }) => {
     const [isScrolledDown, setIsScrolledDown] = useState(false);
     const [sidebarExpanded, setSidebarExpanded] = useState(false);
+    const [isContextPanelOpen, setIsContextPanelOpen] = useState(false);
+    const [contextMode, setContextMode] = useState('overlay');
     const [headerConfig, setHeaderConfig] = useState({ title: '', actions: null, viewToggle: null, filterSheet: null });
     const [footerConfig, setFooterConfig] = useState({ visible: false, content: null, type: 'status', instanceId: null });
 
@@ -31,6 +38,16 @@ export const LayoutProvider = ({ children }) => {
     const toggleSidebar = useCallback(() => {
         setSidebarExpanded(prev => !prev);
     }, []);
+
+    const openContextPanel = useCallback(() => {
+        setIsContextPanelOpen(true);
+    }, []);
+
+    const closeContextPanel = useCallback(() => {
+        setIsContextPanelOpen(false);
+    }, []);
+
+    const isFocusMode = useMemo(() => isContextPanelOpen, [isContextPanelOpen]);
 
     // Scroll Observer
     useEffect(() => {
@@ -67,11 +84,16 @@ export const LayoutProvider = ({ children }) => {
         sidebarExpanded,
         sidebarWidth,
         toggleSidebar,
+        isContextPanelOpen,
+        contextMode,
+        isFocusMode,
+        openContextPanel,
+        closeContextPanel,
         headerConfig,
         setHeaderConfig: setHeaderConfigStable,
         footerConfig,
         setFooterConfig: setFooterConfigStable
-    }), [isScrolledDown, sidebarExpanded, sidebarWidth, toggleSidebar, headerConfig, setHeaderConfigStable, footerConfig, setFooterConfigStable]);
+    }), [isScrolledDown, sidebarExpanded, sidebarWidth, toggleSidebar, isContextPanelOpen, contextMode, isFocusMode, openContextPanel, closeContextPanel, headerConfig, setHeaderConfigStable, footerConfig, setFooterConfigStable]);
 
     return (
         <LayoutContext.Provider value={value}>

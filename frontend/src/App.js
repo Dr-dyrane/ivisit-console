@@ -7,7 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { NavigationProvider } from "./contexts/NavigationContext";
 import { PageDataProvider } from "./contexts/PageDataContext";
 import { IslandNavigation } from "./components/common/IslandNavigation";
-import { ResponsiveSidebar } from "./components/navigation/ResponsiveSidebar";
+import { ContextPanelShell } from "./components/navigation/ResponsiveSidebar";
 import { LayoutProvider, useLayout } from "./contexts/LayoutContext";
 import { SmartHeader } from "./components/navigation/SmartHeader";
 import { SmartFooter } from "./components/navigation/SmartFooter";
@@ -37,7 +37,7 @@ import "./App.css";
 
 const AppShell = ({ children }) => {
 	const location = useLocation();
-	const { isScrolledDown, sidebarWidth } = useLayout();
+	const { isScrolledDown, sidebarWidth, isContextPanelOpen } = useLayout();
 	const hideNav = ["/login", "/unauthorized"].includes(location.pathname);
 
 	return (
@@ -68,8 +68,8 @@ const AppShell = ({ children }) => {
 						animate={{
 							// Push content by Sidebar Width + 24px gap
 							paddingLeft: hideNav ? 12 : (window.innerWidth >= 768 ? sidebarWidth + 24 : 12),
-							// Account for ResponsiveSidebar (320px) + Gap
-							paddingRight: hideNav ? 12 : (window.innerWidth >= 1024 ? 320 : 12),
+							// No right padding - context panel is overlay only
+							paddingRight: 12,
 							paddingTop: isScrolledDown ? 12 : 0,
 							paddingBottom: 128
 						}}
@@ -82,7 +82,7 @@ const AppShell = ({ children }) => {
 
 				{!hideNav && (
 					<div className="flex-none z-30">
-						<ResponsiveSidebar />
+						<ContextPanelShell />
 					</div>
 				)}
 			</div>

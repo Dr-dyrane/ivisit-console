@@ -4,13 +4,13 @@ import { useLayout } from '../../contexts/LayoutContext';
 import { QuickSearch } from './QuickSearch';
 import { NotificationCenter } from '../common/NotificationCenter';
 import { NetworkStatus } from '../common/NetworkStatus';
-import { Search } from 'lucide-react';
+import { Search, Info, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import NoiseOverlay from '../ui/noise-overlay';
 
 export const SmartHeader = () => {
     const { isMobile } = useNavigation();
-    const { isScrolledDown, headerConfig, sidebarWidth } = useLayout();
+    const { isScrolledDown, headerConfig, sidebarWidth, isContextPanelOpen, openContextPanel, closeContextPanel } = useLayout();
     const [searchOpen, setSearchOpen] = useState(false);
 
     return (
@@ -100,6 +100,18 @@ export const SmartHeader = () => {
                             </button>
                             <div className="w-px h-6 bg-white/10 mx-1" />
                             <NotificationCenter />
+                            <div className="w-px h-6 bg-white/10 mx-1" />
+                            <button
+                                onClick={isContextPanelOpen ? closeContextPanel : openContextPanel}
+                                className="w-10 h-10 geo-round bg-muted/20 hover:bg-muted/30 transition-all duration-300 flex items-center justify-center group shadow-sm"
+                                title={isContextPanelOpen ? "Close Context Panel" : "Open Context Panel"}
+                            >
+                                {isContextPanelOpen ? (
+                                    <X className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                                ) : (
+                                    <Info className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                                )}
+                            </button>
                         </>
                     )}
                 </div>
