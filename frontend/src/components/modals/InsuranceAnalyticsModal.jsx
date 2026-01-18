@@ -3,241 +3,178 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { X, BarChart3, TrendingUp, Calendar, Shield, CheckCircle, AlertTriangle, Building, FileText } from 'lucide-react';
+import { X, BarChart3, TrendingUp, Shield, CheckCircle, AlertTriangle, Building, FileText } from 'lucide-react';
 
 export const InsuranceAnalyticsModal = ({ open, onClose, analytics }) => {
   if (!analytics) return null;
 
-  const getPercentage = (value, total) => {
-    return total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      active: 'green',
-      expired: 'red',
-      pending: 'yellow',
-      suspended: 'gray'
-    };
-    return colors[status] || 'gray';
-  };
+  const getPercentage = (value, total) => (total > 0 ? ((value / total) * 100).toFixed(0) : 0);
 
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop - Apple uses a high-blur dark overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/30 backdrop-blur-md"
             onClick={onClose}
           />
-          
+
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="relative z-10 w-full max-w-5xl mx-4 max-h-[90vh] overflow-y-auto"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-hidden  rounded-[32px] shadow-2xl"
           >
-            <Card className="p-6">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <BarChart3 className="h-6 w-6 text-blue-500" />
-                  <h2 className="text-xl font-semibold">Insurance Analytics</h2>
+            {/* Header Area */}
+            <div className="flex items-center justify-between p-8 pb-4">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 bg-primary/20 rounded-2xl ">
+                  <BarChart3 className="h-6 w-6 text-primary" />
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClose}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">Insurance Analytics</h2>
+                  <p className="text-sm text-muted-foreground">Portfolio overview and risk assessment</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                onClick={onClose}
+                className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6">
+
+              {/* Top Level Summary: "Glass Bubbles" */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <StatBubble
+                  label="Total Policies"
+                  value={analytics.total}
+                  icon={<Shield className="h-5 w-5" />}
+                  color="text-primary"
+                  bg="bg-primary/10"
+                />
+                <StatBubble
+                  label="Active"
+                  value={analytics.active}
+                  subText={`${getPercentage(analytics.active, analytics.total)}% of total`}
+                  icon={<CheckCircle className="h-5 w-5" />}
+                  color="text-green-500"
+                  bg="bg-green-500/10"
+                />
+                <StatBubble
+                  label="Verified"
+                  value={analytics.verified}
+                  subText={`${getPercentage(analytics.verified, analytics.total)}% secure`}
+                  icon={<Shield className="h-5 w-5" />}
+                  color="text-purple-500"
+                  bg="bg-purple-500/10"
+                />
+                <StatBubble
+                  label="Expiring"
+                  value={analytics.expiringSoon}
+                  subText="Action required"
+                  icon={<AlertTriangle className="h-5 w-5" />}
+                  color="text-orange-500"
+                  bg="bg-orange-500/10"
+                />
               </div>
 
-              {/* Overview Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-blue-600 font-medium">Total Policies</p>
-                      <p className="text-3xl font-bold text-blue-900">{analytics.total}</p>
-                    </div>
-                    <Shield className="h-8 w-8 text-blue-500" />
-                  </div>
-                </Card>
-                
-                <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-green-600 font-medium">Active</p>
-                      <p className="text-3xl font-bold text-green-900">{analytics.active}</p>
-                      <p className="text-xs text-green-600">
-                        {getPercentage(analytics.active, analytics.total)}% of total
-                      </p>
-                    </div>
-                    <CheckCircle className="h-8 w-8 text-green-500" />
-                  </div>
-                </Card>
-                
-                <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-purple-600 font-medium">Verified</p>
-                      <p className="text-3xl font-bold text-purple-900">{analytics.verified}</p>
-                      <p className="text-xs text-purple-600">
-                        {getPercentage(analytics.verified, analytics.total)}% verified
-                      </p>
-                    </div>
-                    <Shield className="h-8 w-8 text-purple-500" />
-                  </div>
-                </Card>
-                
-                <Card className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-orange-600 font-medium">Expiring Soon</p>
-                      <p className="text-3xl font-bold text-orange-900">{analytics.expiringSoon}</p>
-                      <p className="text-xs text-orange-600">
-                        Need attention
-                      </p>
-                    </div>
-                    <AlertTriangle className="h-8 w-8 text-orange-500" />
-                  </div>
-                </Card>
-              </div>
-
+              {/* Main Analytics Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* By Provider */}
-                <Card className="p-6">
-                  <div className="flex items-center mb-4">
-                    <Building className="h-5 w-5 text-blue-500 mr-2" />
-                    <h3 className="text-lg font-semibold">By Provider</h3>
-                  </div>
-                  <div className="space-y-3 max-h-64 overflow-y-auto">
-                    {Object.entries(analytics.byProvider || {})
-                      .sort(([,a], [,b]) => b - a)
-                      .map(([provider, count]) => (
-                        <div key={provider} className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-                            <span className="text-sm font-medium">{provider}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">{count}</Badge>
-                            <span className="text-xs text-gray-500">
-                              ({getPercentage(count, analytics.total)}%)
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </Card>
 
-                {/* By Coverage Type */}
-                <Card className="p-6">
-                  <div className="flex items-center mb-4">
-                    <FileText className="h-5 w-5 text-green-500 mr-2" />
-                    <h3 className="text-lg font-semibold">By Coverage Type</h3>
-                  </div>
-                  <div className="space-y-3 max-h-64 overflow-y-auto">
-                    {Object.entries(analytics.byCoverageType || {})
-                      .sort(([,a], [,b]) => b - a)
-                      .map(([coverageType, count]) => (
-                        <div key={coverageType} className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                            <span className="text-sm font-medium capitalize">
-                              {coverageType.replace('_', ' ')}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">{count}</Badge>
-                            <span className="text-xs text-gray-500">
-                              ({getPercentage(count, analytics.total)}%)
-                            </span>
-                          </div>
+                {/* Provider Breakdown */}
+                <GlassCard icon={<Building className="text-primary" />} title="By Provider">
+                  <div className="space-y-4">
+                    {Object.entries(analytics.byProvider || {}).map(([provider, count]) => (
+                      <div key={provider} className="flex flex-col gap-1.5">
+                        <div className="flex justify-between text-sm font-medium px-1">
+                          <span>{provider}</span>
+                          <span className="opacity-60">{count}</span>
                         </div>
-                      ))}
-                  </div>
-                </Card>
-              </div>
-
-              {/* By Status */}
-              <Card className="p-6 lg:col-span-2">
-                <div className="flex items-center mb-4">
-                  <BarChart3 className="h-5 w-5 text-purple-500 mr-2" />
-                  <h3 className="text-lg font-semibold">By Status</h3>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(analytics.byStatus || {})
-                    .sort(([,a], [,b]) => b - a)
-                    .map(([status, count]) => (
-                      <div key={status} className="text-center p-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-center justify-center mb-2">
-                          <div className={`w-3 h-3 bg-${getStatusColor(status)}-500 rounded-full mr-2`}></div>
-                          <Badge variant={getStatusColor(status)}>
-                            {status.replace('_', ' ').charAt(0).toUpperCase() + status.replace('_', ' ').slice(1)}
-                          </Badge>
+                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${getPercentage(count, analytics.total)}%` }}
+                            className="h-full bg-primary rounded-full "
+                          />
                         </div>
-                        <p className="text-2xl font-bold text-gray-900">{count}</p>
-                        <p className="text-xs text-gray-500">
-                          {getPercentage(count, analytics.total)}%
-                        </p>
                       </div>
                     ))}
-                </div>
-              </Card>
+                  </div>
+                </GlassCard>
 
-              {/* Key Insights */}
-              <Card className="p-6 lg:col-span-2">
-                <div className="flex items-center mb-4">
-                  <TrendingUp className="h-5 w-5 text-purple-500 mr-2" />
-                  <h3 className="text-lg font-semibold">Key Insights</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-2xl font-bold text-gray-900">
-                      {Math.round((analytics.active / analytics.total) * 100) || 0}%
-                    </p>
-                    <p className="text-sm text-gray-600">Active Rate</p>
+                {/* Status Pills */}
+                <GlassCard icon={<TrendingUp className="text-purple-500" />} title="System Status">
+                  <div className="grid grid-cols-2 gap-3">
+                    {Object.entries(analytics.byStatus || {}).map(([status, count]) => (
+                      <div key={status} className="p-4 rounded-2xl bg-white/5  border-white/10  flex flex-col items-center">
+                        <span className="text-xs uppercase tracking-widest opacity-50 mb-1">{status}</span>
+                        <span className="text-2xl font-bold">{count}</span>
+                        <span className="text-[10px] font-medium text-blue-400">
+                          {getPercentage(count, analytics.total)}% Total
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-2xl font-bold text-gray-900">
-                      {Math.round((analytics.verified / analytics.total) * 100) || 0}%
-                    </p>
-                    <p className="text-sm text-gray-600">Verified Rate</p>
-                  </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-2xl font-bold text-gray-900">
-                      {Object.keys(analytics.byProvider || {}).length}
-                    </p>
-                    <p className="text-sm text-gray-600">Providers</p>
-                  </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-2xl font-bold text-gray-900">
-                      {analytics.expired}
-                    </p>
-                    <p className="text-sm text-gray-600">Expired</p>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={onClose}
-                >
-                  Close
-                </Button>
+                </GlassCard>
               </div>
-            </Card>
+
+              {/* Bottom Insights */}
+              <div className="p-6 rounded-[24px] bg-white/5  border-white/10 flex items-center justify-around text-center">
+                <div>
+                  <p className="text-3xl font-bold">{getPercentage(analytics.active, analytics.total)}%</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Active Rate</p>
+                </div>
+                <div className="w-px h-10 bg-white/10" />
+                <div>
+                  <p className="text-3xl font-bold">{analytics.expired || 0}</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Expired</p>
+                </div>
+                <div className="w-px h-10 bg-white/10" />
+                <div>
+                  <p className="text-3xl font-bold">{Object.keys(analytics.byProvider || {}).length}</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Carriers</p>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       )}
     </AnimatePresence>
   );
 };
+
+/* Sub-components for cleaner code */
+
+const StatBubble = ({ label, value, subText, icon, color, bg }) => (
+  <div className={`p-5 rounded-3xl bg-white/5  border-white/10  transition-transform hover:scale-[1.02]`}>
+    <div className="flex justify-between items-start mb-3">
+      <div className={`p-2 rounded-xl ${bg} ${color}`}>
+        {icon}
+      </div>
+      <span className={`text-2xl font-bold tracking-tight`}>{value}</span>
+    </div>
+    <p className="text-xs font-semibold opacity-70 mb-0.5">{label}</p>
+    {subText && <p className="text-[10px] opacity-40 font-medium">{subText}</p>}
+  </div>
+);
+
+const GlassCard = ({ children, title, icon }) => (
+  <div className="p-6 rounded-[28px] bg-white/5  border-white/10 ">
+    <div className="flex items-center gap-3 mb-6">
+      <div className="p-2 bg-white/5 rounded-lg">
+        {React.cloneElement(icon, { size: 18 })}
+      </div>
+      <h3 className="font-bold tracking-tight">{title}</h3>
+    </div>
+    {children}
+  </div>
+);
