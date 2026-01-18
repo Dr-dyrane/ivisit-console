@@ -59,13 +59,12 @@ export const ContextPanelShell = () => {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-            className={`fixed top-0 bottom-0 right-0 z-50 ${isDesktop ? 'w-[320px]' : 'w-72'}`}
+            className={`fixed top-0 bottom-0 right-0 z-50 flex flex-col ${isDesktop ? 'w-[320px]' : 'w-72'} border-l border-border/40`}
             style={{
-              background: isDark ? 'hsl(var(--background) / 0.95)' : 'hsl(var(--background) / 0.98)',
-              backdropFilter: 'blur(8px) saturate(180%)',
               boxShadow: '-4px 0 24px rgba(0,0,0,0.1)'
             }}
           >
+            <NoiseOverlay />
             <div className="h-full flex flex-col relative">
               {/* Close button positioned at top-right */}
               <button

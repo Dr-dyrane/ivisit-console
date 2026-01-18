@@ -173,7 +173,7 @@ export const VerificationQueue = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background px-0 md:px-12 py-6 md:py-8">
+    <div className="min-h-screen py-6 md:py-8">
       {/* Layout padding adjustment */}
       <div className="pt-2" />
 
@@ -409,7 +409,7 @@ export const VerificationQueue = () => {
                           Reject
                         </Button>
                         <Button
-                          className="squircle-lg bg-primary hover:bg-primary/90 font-bold px-6 shadow-glow border-0"
+                          className="squircle-lg bg-muted/30 hover:bg-muted/40 border border-border/30 font-bold px-6 shadow-sm"
                           onClick={() => handleVerify(selectedProvider.id, true)}
                           disabled={actionLoading}
                         >

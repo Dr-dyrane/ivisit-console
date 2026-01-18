@@ -267,7 +267,7 @@ export const HealthNewsManagementPage = () => {
   const headerActions = React.useMemo(() => isAdmin && (
     <Button
       onClick={handleCreate}
-      className="glass squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+      className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
     >
       <Plus className="h-4 w-4 mr-2" />
       ADD NEWS
@@ -292,7 +292,7 @@ export const HealthNewsManagementPage = () => {
   usePageFooter(footerContent, 'pagination', !loading && healthNews.length > 0);
 
   return (
-    <div className="min-h-screen bg-background px-0 md:px-12 py-6 md:py-8">
+    <div className="min-h-screen py-6 md:py-8">
       <div className="pt-2" />
 
       {loading ? (

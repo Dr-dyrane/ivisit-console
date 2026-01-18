@@ -197,7 +197,7 @@ export const UsersPage = () => {
       )}
       <Button
         onClick={handleCreate}
-        className="glass squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+        className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
       >
         <Plus className="h-4 w-4 mr-2" />
         ADD USER
@@ -223,7 +223,7 @@ export const UsersPage = () => {
   usePageFooter(footerContent, 'pagination', !loading && users.length > 0);
 
   return (
-    <div className="min-h-screen bg-background px-0 md:px-12 py-6 md:py-8">
+    <div className="min-h-screen py-6 md:py-8">
       <div className="pt-2" />
 
       {/* Admin Statistics Section */}

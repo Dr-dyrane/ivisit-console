@@ -37,10 +37,10 @@ export const SmartHeader = () => {
                         : 'top-0 left-0 right-0 bg-background/40 backdrop-blur-md'
                     }`}
                 style={{
-                    paddingRight: '32px'
+                    paddingRight: isMobile ? '16px' : '32px'  // 16px (2×8px) mobile, 32px (4×8px) desktop
                 }}
             >
-                <NoiseOverlay />
+                <NoiseOverlay  className={`${isMobile && 'squircle-2xl'}`}/>
                 <div className="flex items-center gap-2 md:gap-0 overflow-hidden h-full">
                     {/* Logo Zone - This will now slide with the paddingLeft */}
 

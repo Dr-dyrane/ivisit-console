@@ -754,7 +754,7 @@ export const GodModeMap = () => {
 	], [emergencyRequests, ambulances, hospitals]);
 
 	return (
-		<div className="min-h-screen bg-background p-6 md:p-8 pt-4">
+		<div className="min-h-screen py-6 md:py-8 pt-4">
 
 			{/* Map Container */}
 			<div className="flex gap-4 h-[calc(100vh-12rem)] relative">

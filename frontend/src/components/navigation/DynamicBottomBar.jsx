@@ -21,6 +21,7 @@ import { InsuranceModal } from '../modals/InsuranceModal';
 import { NotificationCenter } from '../common/NotificationCenter';
 import { QuickSearch } from './QuickSearch';
 import { useTheme } from '../../contexts/ThemeContext';
+import NoiseOverlay from '../ui/noise-overlay';
 
 export const DynamicBottomBar = () => {
     const { isMobile } = useNavigation();
@@ -88,15 +89,7 @@ export const DynamicBottomBar = () => {
                     className="pointer-events-auto"
                 >
                     <div
-                        className="flex items-center gap-1 p-1.5 rounded-full border border-white/10 shadow-premium"
-                        style={{
-                            background: 'rgba(20, 20, 20, 0.6)', // More transparent for "Apple" look
-                            backdropFilter: 'blur(20px) saturate(180%)',
-                            boxShadow: `
-                0 20px 40px rgba(0,0,0,0.4),
-                inset 0 1px 0 rgba(255,255,255,0.1)
-              `
-                        }}
+                        className="flex items-center gap-1 p-1.5 rounded-full bg-background/80 backdrop-blur-xl shadow-premium"
                     >
                         {/* Menu Trigger */}
                         <motion.button
@@ -104,7 +97,7 @@ export const DynamicBottomBar = () => {
                             onClick={() => setSheetOpen(true)}
                             className="w-12 h-12 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors"
                         >
-                            <Menu className="w-6 h-6 text-white" />
+                            <Menu className="w-6 h-6 text-black dark:text-white" />
                         </motion.button>
 
                         {/* Divider */}
@@ -116,7 +109,7 @@ export const DynamicBottomBar = () => {
                             onClick={() => setSearchOpen(true)}
                             className="w-12 h-12 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors"
                         >
-                            <Search className="w-6 h-6 text-white" />
+                            <Search className="w-6 h-6 text-black dark:text-white" />
                         </motion.button>
 
                         {/* Divider */}
@@ -153,11 +146,10 @@ export const DynamicBottomBar = () => {
                     side="bottom"
                     className="h-[90vh] rounded-t-[32px] border-0 p-0 overflow-hidden"
                     style={{
-                        background: isDark ? 'hsl(var(--background) / 0.6)' : 'hsl(var(--background) / 0.98)',
-                        backdropFilter: isDark ? 'blur(30px) saturate(180%)' : 'blur(10px)',
                         boxShadow: '0 -10px 40px rgba(0,0,0,0.2)'
                     }}
                 >
+                    <NoiseOverlay />
                     <div className="h-1.5 w-12 bg-white/20 rounded-full mx-auto mt-4 mb-6" />
 
                     {/* View Toggle (Apple-style Segmented Control) */}

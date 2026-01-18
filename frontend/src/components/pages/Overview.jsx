@@ -104,7 +104,7 @@ export const Overview = () => {
         fetchStats();
         fetchRecentRequests();
       }}
-      className="glass squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+      className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
     >
       <RefreshCw className="h-4 w-4 mr-2" />
       RELOAD
@@ -115,7 +115,7 @@ export const Overview = () => {
 
 
   return (
-    <div className="min-h-screen bg-background px-0 md:px-12 py-6 md:py-8">
+    <div className="min-h-screen py-6 md:py-8">
       <div className="space-y-6 animate-fadeIn">
         <div className="pt-2" />
 

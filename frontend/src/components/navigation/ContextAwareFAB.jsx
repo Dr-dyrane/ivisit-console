@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { useLayout } from '../../contexts/LayoutContext';
 import { useContextAction } from '../../hooks/useContextAction';
 import { useInsurance } from '../../hooks/useInsurance';
 import { useSupportTickets } from '../../hooks/useSupportTickets';
@@ -16,6 +17,7 @@ import { InsuranceModal } from '../modals/InsuranceModal';
 
 export const ContextAwareFAB = () => {
   const { isDesktop } = useNavigation();
+  const { isContextPanelOpen } = useLayout();
   const [modalStates, setModalStates] = useState({
     emergency: false,
     user: false,
@@ -56,6 +58,9 @@ export const ContextAwareFAB = () => {
   // Desktop only - Mobile uses DynamicBottomBar
   if (!isDesktop) return null;
 
+  // Hide FAB when context panel is open to reduce cognitive load
+  if (isContextPanelOpen) return null;
+
   return (
     <>
       <motion.div
@@ -68,22 +73,14 @@ export const ContextAwareFAB = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={actionConfig.action}
-          className="relative w-14 h-14 geo-round shadow-premium transition-all duration-300 group flex items-center justify-center"
+          className="relative w-14 h-14 geo-round bg-background/80 backdrop-blur-xl border border-border/40 shadow-premium transition-all duration-300 group flex items-center justify-center"
           style={{
-            // Theme-sensitive background matching page context
-            background: `hsl(var(--${actionConfig.color}) / 0.9)`,
-            backdropFilter: 'blur(20px) saturate(180%)',
-            boxShadow: `
-              0 12px 24px rgba(0, 0, 0, 0.2),
-              0 4px 8px rgba(0, 0, 0, 0.1),
-              inset 0 0 0 1px rgba(255, 255, 255, 0.15)
-            `,
-            border: 'none',
+            boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)'
           }}
           title={actionConfig.label}
         >
           {/* Icon */}
-          <actionConfig.icon className="w-6 h-6 text-white" />
+          <actionConfig.icon className={`w-6 h-6 ${actionConfig.color === 'destructive' ? 'text-destructive' : 'text-foreground'}`} />
 
           {/* Pulse ring for important actions */}
           {actionConfig.color === 'destructive' && (

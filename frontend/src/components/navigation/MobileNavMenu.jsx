@@ -181,7 +181,7 @@ export const MobileNavMenu = ({ onClose }) => {
             </div>
 
             {/* 3. UTILITY FOOTER (Sticky & Clean) */}
-            <div className="flex-shrink-0 bg-muted/20 border-t border-border/40 space-y-4">
+            <div className="flex-shrink-0 bg-muted/20 border-t border-border/40 space-y-4 py-10">
                 <div className="flex gap-2">
                     <button
                         onClick={toggleTheme}

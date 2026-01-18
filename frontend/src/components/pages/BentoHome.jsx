@@ -98,7 +98,7 @@ export const BentoHome = () => {
       variant="outline"
       size="sm"
       onClick={fetchStats}
-      className="glass squircle-full h-8 px-3 text-[10px] font-bold"
+      className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-8 px-3 text-[10px] font-bold"
     >
       <RefreshCw className="h-3 w-3 mr-1" />
       REFRESH STATS
@@ -122,7 +122,7 @@ export const BentoHome = () => {
   usePageFooter(footerContent, 'status');
 
   return (
-    <div className="min-h-screen bg-background px-0 md:px-12 py-6 md:py-8">
+    <div className="min-h-screen py-6 md:py-8">
       {/* Header */}
       {/* Layout padding adjustment */}
       <div className="pt-2" />
