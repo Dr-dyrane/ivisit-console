@@ -59,7 +59,7 @@ export const NotificationCenter = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
       >
-        <Bell className="h-4 w-4" />
+        <Bell className={`h-4 w-4 ${isMobile ? 'text-white' : ''}`} />
         {unreadCount > 0 && (
           <Badge className="absolute -top-2 -right-2 squircle-full h-5 w-5 p-0 flex items-center justify-center text-[10px] font-black bg-destructive text-destructive-foreground">
             {unreadCount > 9 ? '9+' : unreadCount}
@@ -76,7 +76,7 @@ export const NotificationCenter = () => {
             className="h-[60vh] rounded-t-[32px] border-0 p-0 overflow-hidden"
           >
             <div className="h-1.5 w-12 bg-white/20 rounded-full mx-auto mt-4 mb-6" />
-            
+
             <div className="px-4 mb-4">
               <div>
                 <h3 className="font-black text-2xl tracking-tight">Notifications</h3>
