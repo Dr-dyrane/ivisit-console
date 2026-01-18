@@ -1310,6 +1310,20 @@ export const ContextPanel = () => {
                   <Plus className="h-4 w-4 text-primary" />
                   <span className="font-black tracking-tight text-primary">Add New Policy</span>
                 </button>
+
+                <button
+                  onClick={() => {
+                    const event = new CustomEvent('openInsuranceAnalyticsModal', {
+                      detail: { button: document.querySelector('[data-analytics-button="true"]') }
+                    });
+                    window.dispatchEvent(event);
+                  }}
+                  data-analytics-button="true"
+                  className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-info/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm text-left"
+                >
+                  <BarChart3 className="h-4 w-4 text-info" />
+                  <span className="font-black tracking-tight text-info">View Analytics</span>
+                </button>
               </div>
             </motion.div>
           </>

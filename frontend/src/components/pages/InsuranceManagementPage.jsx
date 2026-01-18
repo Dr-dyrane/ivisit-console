@@ -26,7 +26,8 @@ import {
   Trash2,
   Eye,
   BarChart3,
-  Edit
+  Edit,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, LayoutGroup } from 'framer-motion';
@@ -52,7 +53,7 @@ export const InsuranceManagementPage = () => {
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
 
   // Filter state - includes search
-  const [filters, setFilters] = useState({ search: '', status: [], type: [], verified: '' });
+  const [filters, setFilters] = useState({ search: '', status: [], type: [], verified: '', kpiFilter: 'all' });
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   const { viewMode, setViewMode } = useViewMode('insurance', 'grid');
@@ -68,23 +69,65 @@ export const InsuranceManagementPage = () => {
     return () => window.removeEventListener('openInsuranceModal', handleOpenModal);
   }, []);
 
+  // Listen for 'openInsuranceAnalyticsModal' event from ContextPanel
+  useEffect(() => {
+    const handleOpenAnalytics = (event) => {
+      setAnalyticsModalOpen(true);
+      // Store the button reference if passed
+      if (event.detail?.button) {
+        console.log('Analytics button reference:', event.detail.button);
+      }
+    };
+    window.addEventListener('openInsuranceAnalyticsModal', handleOpenAnalytics);
+    return () => window.removeEventListener('openInsuranceAnalyticsModal', handleOpenAnalytics);
+  }, []);
+
   // Filter Logic
   const filteredPolicies = useMemo(() => {
-    return insurancePolicies.filter(policy => {
-      const searchTerm = filters.search?.toLowerCase() || '';
-      const matchesSearch = searchTerm === '' ||
+    let policies = insurancePolicies;
+
+    // Apply KPI filter first
+    if (filters.kpiFilter === 'active') {
+      policies = policies.filter(policy => policy.status === 'active');
+    } else if (filters.kpiFilter === 'pending') {
+      policies = policies.filter(policy => policy.status === 'pending');
+    } else if (filters.kpiFilter === 'expired') {
+      policies = policies.filter(policy => policy.status === 'expired');
+    } else if (filters.kpiFilter === 'unverified') {
+      policies = policies.filter(policy => !policy.verified);
+    }
+    // 'all' shows everything
+
+    // Apply other filters
+    const searchTerm = filters.search?.toLowerCase() || '';
+    const matchesSearch = searchTerm === '' ||
+      policies.filter(policy => 
+        policy.policy_number?.toLowerCase().includes(searchTerm) ||
+        policy.policy_holder_name?.toLowerCase().includes(searchTerm) ||
+        policy.provider_name?.toLowerCase().includes(searchTerm)
+      );
+
+    const matchesStatus = !filters.status || filters.status.length === 0 || filters.status.some(status => policies.some(policy => policy.status === status));
+    const matchesType = !filters.type || filters.type.length === 0 || filters.type.some(type => policies.some(policy => policy.policy_type === type));
+
+    let matchesVerification = true;
+    if (filters.verified === 'verified') matchesVerification = policies.some(policy => policy.verified === true);
+    if (filters.verified === 'unverified') matchesVerification = policies.some(policy => policy.verified === false);
+
+    return policies.filter(policy => {
+      const searchMatch = searchTerm === '' ||
         policy.policy_number?.toLowerCase().includes(searchTerm) ||
         policy.policy_holder_name?.toLowerCase().includes(searchTerm) ||
         policy.provider_name?.toLowerCase().includes(searchTerm);
 
-      const matchesStatus = !filters.status || filters.status.length === 0 || filters.status.includes(policy.status);
-      const matchesType = !filters.type || filters.type.length === 0 || filters.type.includes(policy.policy_type);
+      const statusMatch = !filters.status || filters.status.length === 0 || filters.status.includes(policy.status);
+      const typeMatch = !filters.type || filters.type.length === 0 || filters.type.includes(policy.policy_type);
+      const verificationMatch = !filters.verified || 
+        (filters.verified === 'verified' && policy.verified === true) ||
+        (filters.verified === 'unverified' && policy.verified === false) ||
+        (filters.verified === 'all');
 
-      let matchesVerification = true;
-      if (filters.verified === 'verified') matchesVerification = policy.verified === true;
-      if (filters.verified === 'unverified') matchesVerification = policy.verified === false;
-
-      return matchesSearch && matchesStatus && matchesType && matchesVerification;
+      return searchMatch && statusMatch && typeMatch && verificationMatch;
     });
   }, [insurancePolicies, filters]);
 
@@ -256,35 +299,43 @@ export const InsuranceManagementPage = () => {
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
 
-      {/* Bento Overview Cards */}
+      {/* Bento Overview Cards - Enhanced with Filtering */}
       <LayoutGroup>
         <motion.div
           layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8"
         >
           {/* Total Policies Card */}
           <motion.div
             layout
-            className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-1"
+            className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.1 }}
           >
-            <Card className="h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift relative overflow-hidden group">
+            <Card 
+              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
+                filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+              }`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
+            >
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
-                    <Shield className="h-5 w-5 text-primary" />
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <Shield className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
               </div>
               <div className="relative z-10">
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Total Policies</p>
-                <h3 className="text-3xl font-black tracking-tighter">{filteredPolicies.length}</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Total Policies</p>
+                  {filters.kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-black tracking-tighter">{insurancePolicies.length}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="squircle-sm bg-primary/20 text-primary border-0 font-black text-xs">
-                    {insurancePolicies.length} Total
+                  <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-black text-xs">
+                    {filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
                   </Badge>
                 </div>
               </div>
@@ -294,26 +345,34 @@ export const InsuranceManagementPage = () => {
           {/* Active Policies Card */}
           <motion.div
             layout
-            className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
+            className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.15 }}
           >
-            <Card className="h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift relative overflow-hidden group">
+            <Card 
+              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
+                filters.kpiFilter === 'active' ? 'ring-2 ring-success shadow-lg' : ''
+              }`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'active' }))}
+            >
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
-                    <CheckCircle className="h-5 w-5 text-success" />
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'active' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <CheckCircle className={`h-5 w-5 ${filters.kpiFilter === 'active' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
               </div>
               <div className="relative z-10">
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Active</p>
-                <h3 className="text-3xl font-black tracking-tighter">{filteredPolicies.filter(p => p.status === 'active').length}</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Active</p>
+                  {filters.kpiFilter === 'active' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-black tracking-tighter">{insurancePolicies.filter(p => p.status === 'active').length}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="squircle-sm bg-success/20 text-success border-0 font-black text-xs">
-                    {Math.round((filteredPolicies.filter(p => p.status === 'active').length / filteredPolicies.length) * 100) || 0}% Active
+                  <Badge className="geo-round bg-success/20 text-success border-0 font-black text-xs">
+                    {Math.round((insurancePolicies.filter(p => p.status === 'active').length / insurancePolicies.length) * 100) || 0}%
                   </Badge>
                 </div>
               </div>
@@ -323,59 +382,109 @@ export const InsuranceManagementPage = () => {
           {/* Pending Verification Card */}
           <motion.div
             layout
-            className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
+            className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.2 }}
           >
-            <Card className="h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift relative overflow-hidden group">
+            <Card 
+              className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
+                filters.kpiFilter === 'pending' ? 'ring-2 ring-warning shadow-lg' : ''
+              }`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'pending' }))}
+            >
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-warning/20 blur-xl rounded-full scale-150" />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
-                    <Clock className="h-5 w-5 text-warning" />
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'pending' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <Clock className={`h-5 w-5 ${filters.kpiFilter === 'pending' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
               </div>
               <div className="relative z-10">
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Pending</p>
-                <h3 className="text-3xl font-black tracking-tighter">{filteredPolicies.filter(p => p.status === 'pending').length}</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Pending</p>
+                  {filters.kpiFilter === 'pending' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-black tracking-tighter">{insurancePolicies.filter(p => p.status === 'pending').length}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="squircle-sm bg-warning/20 text-warning border-0 font-black text-xs">
-                    Verification
+                  <Badge className="squircle-3xl bg-warning/20 text-warning border-0 font-black text-xs">
+                    VERIFICATION
                   </Badge>
                 </div>
               </div>
             </Card>
           </motion.div>
 
-          {/* Analytics Button Card */}
+          {/* Expired Policies Card */}
           <motion.div
             layout
-            className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-1"
+            className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.25 }}
           >
             <Card 
-              className="h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer group relative overflow-hidden"
-              onClick={handleViewAnalytics}
+              className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
+                filters.kpiFilter === 'expired' ? 'ring-2 ring-destructive shadow-lg' : ''
+              }`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'expired' }))}
             >
-              <div className="absolute top-0 right-0 p-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
-                    <BarChart3 className="h-5 w-5 text-info" />
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'expired' ? 'bg-destructive/30' : 'bg-destructive/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <AlertTriangle className={`h-5 w-5 ${filters.kpiFilter === 'expired' ? 'text-destructive' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
               </div>
-              <div className="relative z-10 flex items-center justify-between h-full">
-                <div>
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Analytics</p>
-                  <h3 className="text-xl font-black tracking-tighter">View Insights</h3>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Expired</p>
+                  {filters.kpiFilter === 'expired' && <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />}
                 </div>
-                <div className="w-12 h-12 squircle bg-info/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <BarChart3 className="h-6 w-6 text-info" />
+                <h3 className="text-3xl font-black tracking-tighter">{insurancePolicies.filter(p => p.status === 'expired').length}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-ticket bg-destructive/20 text-destructive border-0 font-black text-xs">
+                    ACTION NEEDED
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Unverified Policies Card */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+          >
+            <Card 
+              className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
+                filters.kpiFilter === 'unverified' ? 'ring-2 ring-info shadow-lg' : ''
+              }`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'unverified' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'unverified' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <Shield className={`h-5 w-5 ${filters.kpiFilter === 'unverified' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
+                  </div>
+                </div>
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Unverified</p>
+                  {filters.kpiFilter === 'unverified' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-black tracking-tighter">{insurancePolicies.filter(p => !p.verified).length}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-wave bg-info/20 text-info border-0 font-black text-xs">
+                    VERIFY NOW
+                  </Badge>
                 </div>
               </div>
             </Card>
@@ -551,9 +660,30 @@ export const InsuranceManagementPage = () => {
         onSave={handleSave}
       />
 
+      {/* Analytics Modal */}
       <InsuranceAnalyticsModal
-        isOpen={analyticsModalOpen}
+        open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
+        analytics={{
+          total: insurancePolicies.length,
+          active: insurancePolicies.filter(p => p.status === 'active').length,
+          verified: insurancePolicies.filter(p => p.verified).length,
+          expired: insurancePolicies.filter(p => p.status === 'expired').length,
+          expiringSoon: insurancePolicies.filter(p => {
+            const expiryDate = new Date(p.end_date);
+            const thirtyDaysFromNow = new Date();
+            thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+            return expiryDate <= thirtyDaysFromNow && p.status === 'active';
+          }).length,
+          byProvider: insurancePolicies.reduce((acc, policy) => {
+            acc[policy.provider_name] = (acc[policy.provider_name] || 0) + 1;
+            return acc;
+          }, {}),
+          byCoverageType: insurancePolicies.reduce((acc, policy) => {
+            acc[policy.policy_type] = (acc[policy.policy_type] || 0) + 1;
+            return acc;
+          }, {})
+        }}
       />
 
       <FilterSheet

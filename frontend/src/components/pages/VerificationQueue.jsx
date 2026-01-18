@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../../lib/supabase';
+import { getVerificationQueue, verifyProvider, subscribeToVerificationQueue, canVerifyProviders } from '../../services/verificationService';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
@@ -35,14 +35,19 @@ import { VerificationQueueTableView } from '../views/VerificationQueueTableView'
 export const VerificationQueue = () => {
   const { isMobile } = useNavigation();
   const [providers, setProviders] = useState([]);
-  const [allUsers, setAllUsers] = useState([]);
+  const [stats, setStats] = useState({ pending: 0, approved: 0, total: 0 });
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('pending');
-  const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
-  const pagination = usePagination(12);
+  const [canVerify, setCanVerify] = useState(false);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    itemsPerPage: 12
+  });
   const { viewMode, setViewMode } = useViewMode('verification-queue-page', 'grid');
 
   const headerActions = React.useMemo(() => (
@@ -65,81 +70,58 @@ export const VerificationQueue = () => {
 
   usePageHeader("Identity Vault", headerActions, !isMobile ? viewToggleComponent : null);
 
-  const fetchAllData = useCallback(async () => {
+  const fetchVerificationData = useCallback(async () => {
     setLoading(true);
     try {
-      // Count total matching current filter
-      let countQuery = supabase.from('profiles').select('*', { count: 'exact', head: true });
+      // Check if user can verify providers
+      const hasPermission = await canVerifyProviders();
+      setCanVerify(hasPermission);
 
-      // Filter counts
-      const { count: totalCount } = await countQuery;
-
-      if (filterType === 'pending') {
-        countQuery = supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('role', 'provider')
-          .eq('bvn_verified', false);
-      } else if (filterType === 'approved') {
-        countQuery = supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('bvn_verified', true);
+      if (!hasPermission) {
+        toast.error('Admin access required for verification queue');
+        setLoading(false);
+        return;
       }
 
-      const { count } = await countQuery;
-      pagination.setTotalCount(count || 0);
+      const result = await getVerificationQueue({
+        status: filterType,
+        search: searchTerm,
+        page: pagination.currentPage,
+        limit: pagination.itemsPerPage
+      });
 
-      // Fetch paginated data with filter
-      let query = supabase
-        .from('profiles')
-        .select('*')
-        .range(pagination.paginationRange.start, pagination.paginationRange.end)
-        .order('created_at', { ascending: false });
-
-      if (filterType === 'pending') {
-        query = query.eq('role', 'provider').eq('bvn_verified', false);
-      } else if (filterType === 'approved') {
-        query = query.eq('bvn_verified', true);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      setProviders(data || []);
-
-      // Calculate global stats (all users)
-      const allUsersQuery = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-      const allData = allUsersQuery.data || [];
-      
-      const pending = allData.filter(u => !u.bvn_verified && u.role === 'provider').length;
-      const approved = allData.filter(u => u.bvn_verified).length;
-
-      setStats({ pending, approved, rejected: 0 });
-      setAllUsers(allData);
+      setProviders(result.data);
+      setStats(result.stats);
+      setPagination(prev => ({
+        ...prev,
+        totalCount: result.pagination.total,
+        totalPages: result.pagination.totalPages
+      }));
     } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('Failed to fetch verification queue');
+      console.error('Error fetching verification queue:', error);
+      toast.error(error.message || 'Failed to fetch verification queue');
     } finally {
       setLoading(false);
     }
-  }, [pagination, filterType]);
+  }, [filterType, searchTerm, pagination.currentPage, pagination.itemsPerPage]);
 
   useEffect(() => {
-    fetchAllData();
+    fetchVerificationData();
 
     // Real-time subscription
-    const channel = supabase
-      .channel('profile_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchAllData)
-      .subscribe();
+    let unsubscribe;
+    if (canVerify) {
+      unsubscribe = subscribeToVerificationQueue(fetchVerificationData);
+    }
 
-    return () => supabase.removeChannel(channel);
-  }, [fetchAllData]);
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [fetchVerificationData, canVerify]);
 
   useEffect(() => {
-    fetchAllData();
-  }, [pagination.currentPage, filterType, fetchAllData]);
+    fetchVerificationData();
+  }, [pagination.currentPage, filterType, searchTerm]);
 
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
@@ -149,24 +131,23 @@ export const VerificationQueue = () => {
     </div>
   ), [pagination.currentPage, pagination.totalPages, pagination.totalCount, filterType]);
 
-  usePageFooter(footerContent, 'pagination', !loading && providers.length > 0);
+  usePageFooter(footerContent, 'pagination', !loading && providers.length > 0 && canVerify);
 
   const handleVerify = async (providerId, approved) => {
+    if (!canVerify) {
+      toast.error('Admin access required for verification');
+      return;
+    }
+
     setActionLoading(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ bvn_verified: approved })
-        .eq('id', providerId);
-
-      if (error) throw error;
-
+      await verifyProvider(providerId, approved);
       toast.success(approved ? 'Provider approved successfully!' : 'Provider verification rejected');
       setSelectedProvider(null);
-      fetchAllData();
+      fetchVerificationData();
     } catch (error) {
       console.error('Error verifying provider:', error);
-      toast.error('Failed to update verification status');
+      toast.error(error.message || 'Failed to update verification status');
     } finally {
       setActionLoading(false);
     }
@@ -243,11 +224,26 @@ export const VerificationQueue = () => {
                 {filterType === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
               </div>
               <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider mb-1">Total Database</p>
-              <p className="text-4xl font-black tracking-tighter">{allUsers.length}</p>
+              <p className="text-4xl font-black tracking-tighter">{stats.total}</p>
             </div>
           </Card>
         </motion.div>
       </div>
+
+      {/* Permission Check */}
+      {!canVerify && !loading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="py-20 text-center"
+        >
+          <div className="w-20 h-20 squircle bg-warning/20 flex items-center justify-center mx-auto mb-6">
+            <Shield className="h-10 w-10 text-warning" />
+          </div>
+          <h3 className="text-2xl font-black mb-2">Access Restricted</h3>
+          <p className="text-muted-foreground font-medium">Admin access required to view verification queue.</p>
+        </motion.div>
+      )}
 
       {loading ? (
         <LayoutGroup>
@@ -364,10 +360,10 @@ export const VerificationQueue = () => {
         totalPages={pagination.totalPages}
         totalCount={pagination.totalCount}
         itemsPerPage={pagination.itemsPerPage}
-        onPrevPage={pagination.prevPage}
-        onNextPage={pagination.nextPage}
-        hasPrevPage={pagination.hasPrevPage}
-        hasNextPage={pagination.hasNextPage}
+        onPrevPage={() => setPagination(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))}
+        onNextPage={() => setPagination(prev => ({ ...prev, currentPage: Math.min(prev.totalPages, prev.currentPage + 1) }))}
+        hasPrevPage={pagination.currentPage > 1}
+        hasNextPage={pagination.currentPage < pagination.totalPages}
         loading={loading}
       />
 
@@ -404,14 +400,14 @@ export const VerificationQueue = () => {
                           variant="ghost"
                           className="squircle-lg text-destructive hover:bg-destructive/10 font-bold"
                           onClick={() => handleVerify(selectedProvider.id, false)}
-                          disabled={actionLoading}
+                          disabled={actionLoading || !canVerify}
                         >
                           Reject
                         </Button>
                         <Button
                           className="squircle-lg bg-muted/30 hover:bg-muted/40 border border-border/30 font-bold px-6 shadow-sm"
                           onClick={() => handleVerify(selectedProvider.id, true)}
-                          disabled={actionLoading}
+                          disabled={actionLoading || !canVerify}
                         >
                           {actionLoading ? 'Verifying...' : 'Approve'}
                         </Button>
@@ -421,7 +417,7 @@ export const VerificationQueue = () => {
                         variant="ghost"
                         className="squircle-lg text-warning hover:bg-warning/10 font-bold"
                         onClick={() => handleVerify(selectedProvider.id, false)}
-                        disabled={actionLoading}
+                        disabled={actionLoading || !canVerify}
                       >
                         <AlertTriangle className="w-4 h-4 mr-2" />
                         Revoke
