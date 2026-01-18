@@ -193,7 +193,7 @@ export const IslandNavigation = () => {
       onMouseLeave={() => setIsHovered(false)}
       animate={{ width: sidebarWidth, x: 0 }}
       transition={{ type: "spring", stiffness: 250, damping: 28 }}
-      className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-xl border-r border-border/40 ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'}`}
+      className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-xl  border-border/40 ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'}`}
     >
       <NoiseOverlay />
       {/* 1. BRANDING & BACK ARROW */}
@@ -253,7 +253,7 @@ export const IslandNavigation = () => {
 
       {/* 3. PROFILE & THEME */}
       <div className="p-4 bg-muted/20 border-t border-border/40 space-y-3">
-        <div className="flex justify-center">
+        <div className={`flex ${isBroad ? 'justify-start' : 'justify-center'}`}>
           <ThemeToggle />
         </div>
 
