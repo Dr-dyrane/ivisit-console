@@ -191,7 +191,7 @@ export const IslandNavigation = () => {
     <motion.nav
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      animate={{ width: sidebarWidth, x: isScrolledDown ? -sidebarWidth : 0 }}
+      animate={{ width: sidebarWidth, x: 0 }}
       transition={{ type: "spring", stiffness: 250, damping: 28 }}
       className="fixed left-0 top-0 bottom-0 z-50 flex flex-col bg-background/80 backdrop-blur-xl border-border/40"
     >

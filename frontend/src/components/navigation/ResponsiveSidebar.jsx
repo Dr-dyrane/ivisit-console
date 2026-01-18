@@ -5,6 +5,7 @@ import { ContextPanel } from './ContextPanel';
 import { X } from 'lucide-react';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import NoiseOverlay from '../ui/noise-overlay';
 
 export const ContextPanelShell = () => {
   const { isMobile, isTablet, isDesktop } = useNavigation();
@@ -50,6 +51,7 @@ export const ContextPanelShell = () => {
             className="fixed inset-0 z-40 bg-black/20 backdrop-blur-xs"
             onClick={closeContextPanel}
           />
+          <NoiseOverlay />
           
           {/* Context Panel */}
           <motion.div
