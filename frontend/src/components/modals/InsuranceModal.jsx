@@ -1,11 +1,13 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent } from '../ui/dialog';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
-import { X, Save, Upload, Shield, Calendar, Building, CreditCard, FileText, CheckCircle, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { X, Upload, Shield, Calendar, Building, CreditCard, FileText, CheckCircle, ImageIcon, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const InsuranceModal = ({
@@ -96,7 +98,6 @@ export const InsuranceModal = ({
     try {
       let finalFormData = { ...formData };
 
-      // Simulate image upload for now
       if (frontImageFile) {
         finalFormData.front_image_url = `https://example.com/front-${Date.now()}.jpg`;
       }
@@ -137,310 +138,311 @@ export const InsuranceModal = ({
   const getStatusColor = (status) => {
     const statusConfig = statuses.find(s => s.value === status);
     const color = statusConfig?.color || 'secondary';
-
-    // Map internal color names to tailwind classes if needed, or rely on badge variants
     switch (color) {
-      case 'success': return 'text-success bg-success/10 border-success/20';
-      case 'destructive': return 'text-destructive bg-destructive/10 border-destructive/20';
-      case 'warning': return 'text-warning bg-warning/10 border-warning/20';
-      default: return 'text-muted-foreground bg-muted border-muted';
+      case 'success': return 'bg-green-500/20 text-green-500';
+      case 'destructive': return 'bg-red-500/20 text-red-500';
+      case 'warning': return 'bg-orange-500/20 text-orange-500';
+      default: return 'bg-muted/20 text-muted-foreground';
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => onClose(false)}>
-      <DialogContent className="squircle-2xl bg-background/50 backdrop-blur-xs border-0 max-w-3xl max-h-[90vh] overflow-hidden p-0 gap-0 shadow-2xl bg-background/80 backdrop-blur-xl [&>button]:hidden">
-
-        {/* Geometric Header */}
-        <div className="relative h-32 bg-gradient-to-r from-primary/10 via-background to-background overflow-hidden flex items-center justify-between px-8">
-          <div className="absolute inset-0 opacity-5"
-            style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%' }}>
-          </div>
-
-          <div className="z-10">
-            <div className="flex items-center gap-2 mb-1">
-              <Badge className={`squircle-sm border font-bold uppercase tracking-widest px-2 py-0.5 text-[10px] ${getStatusColor(formData.status)}`}>
-                {formData.status}
-              </Badge>
-            </div>
-            <h2 className="text-3xl font-black tracking-tighter leading-none">
-              {mode === 'create' ? 'New Policy' : mode === 'edit' ? 'Edit Policy' : 'Policy Details'}
-            </h2>
-            <p className="text-sm font-medium text-muted-foreground mt-1 flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              {formData.provider_name || 'Select Provider'}
-            </p>
-          </div>
-
-          <div className="z-10 hidden md:block">
-            <div className="w-16 h-16 squircle-xl bg-background shadow-lg flex items-center justify-center border-4 border-background text-primary">
-              <Shield className="w-8 h-8" />
-            </div>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-4 right-4 rounded-full hover:bg-foreground/5 text-foreground z-20"
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/30 backdrop-blur-md"
             onClick={() => onClose(false)}
+          />
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative z-10 w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl"
           >
-            <X className="w-6 h-6" />
-          </Button>
-        </div>
-
-        <div className="px-8 pb-8 pt-6 relative z-10 overflow-y-auto max-h-[calc(90vh-8rem)] custom-scrollbar">
-          <form onSubmit={handleSubmit} className="space-y-8">
-
-            {/* Basic Information */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-2">
-                <UserIconLabel icon={Building} label="Provider Details" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase">Provider Name</Label>
-                  <Select
-                    value={formData.provider_name}
-                    onValueChange={(val) => handleChange('provider_name', val)}
-                    disabled={isView}
-                  >
-                    <SelectTrigger className="squircle bg-muted/30 border-0 h-12 font-medium">
-                      <SelectValue placeholder="Select provider" />
-                    </SelectTrigger>
-                    <SelectContent className="squircle border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                      {providers.map(p => (
-                        <SelectItem key={p} value={p}>{p}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            {/* Header Area */}
+            <div className="flex items-center justify-between p-8 pb-4">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 bg-primary/20 rounded-2xl">
+                  <Shield className="h-6 w-6 text-primary" />
                 </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase">Policy Holder</Label>
-                  <Input
-                    value={formData.policy_holder_name}
-                    onChange={(e) => handleChange('policy_holder_name', e.target.value)}
-                    disabled={isView}
-                    placeholder="Full Name"
-                    className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Policy Numbers */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-2">
-                <UserIconLabel icon={CreditCard} label="Policy Information" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase">Policy Number</Label>
-                  <Input
-                    value={formData.policy_number}
-                    onChange={(e) => handleChange('policy_number', e.target.value)}
-                    disabled={isView}
-                    placeholder="e.g. POL-12345678"
-                    className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-mono"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase">Group Number</Label>
-                  <Input
-                    value={formData.group_number}
-                    onChange={(e) => handleChange('group_number', e.target.value)}
-                    disabled={isView}
-                    placeholder="Optional"
-                    className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Coverage & Dates */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-2">
-                <UserIconLabel icon={Calendar} label="Coverage Period" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase">Start Date</Label>
-                  <Input
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => handleChange('start_date', e.target.value)}
-                    disabled={isView}
-                    className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase">End Date</Label>
-                  <Input
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) => handleChange('end_date', e.target.value)}
-                    disabled={isView}
-                    className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase">Coverage Type</Label>
-                  <Select
-                    value={formData.coverage_type}
-                    onValueChange={(val) => handleChange('coverage_type', val)}
-                    disabled={isView}
-                  >
-                    <SelectTrigger className="squircle bg-muted/30 border-0 h-12 font-medium">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="squircle border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                      {coverageTypes.map(t => (
-                        <SelectItem key={t} value={t}>
-                          {t.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase">Status</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(val) => handleChange('status', val)}
-                    disabled={isView}
-                  >
-                    <SelectTrigger className="squircle bg-muted/30 border-0 h-12 font-medium">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="squircle border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                      {statuses.map(s => (
-                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* Card Images */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-2">
-                <UserIconLabel icon={ImageIcon} label="Insurance Card Images" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ImageUploadBox
-                  label="Front of Card"
-                  image={formData.front_image_url}
-                  onUpload={(f) => handleImageUpload('front', f)}
-                  onRemove={() => handleImageUpload('front', null)}
-                  disabled={isView}
-                />
-                <ImageUploadBox
-                  label="Back of Card"
-                  image={formData.back_image_url}
-                  onUpload={(f) => handleImageUpload('back', f)}
-                  onRemove={() => handleImageUpload('back', null)}
-                  disabled={isView}
-                />
-              </div>
-            </div>
-
-            {/* Verification Checkbox (Admin/Edit) */}
-            {(isEdit || isView) && (
-              <div className="p-4 rounded-xl bg-muted/30 border border-border/50 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${formData.verified ? 'bg-success/20 text-success' : 'bg-muted text-muted-foreground'}`}>
-                    <CheckCircle className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm">Verification Status</h4>
-                    <p className="text-xs text-muted-foreground">Is this policy verified by admin?</p>
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                    {mode === 'create' ? 'New Policy' : mode === 'edit' ? 'Edit Policy' : 'Policy Details'}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge className={`rounded-full border-0 font-bold px-3 py-0.5 text-xs ${getStatusColor(formData.status)}`}>
+                      {formData.status?.toUpperCase()}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {formData.provider_name || 'Select Provider'}
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.verified}
-                    onChange={(e) => handleChange('verified', e.target.checked)}
-                    className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
-                    disabled={isView}
-                  />
-                </div>
               </div>
-            )}
-
-            {/* Disclaimer */}
-            <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
-              <div className="flex gap-3">
-                <FileText className="h-5 w-5 text-primary shrink-0" />
-                <div className="text-sm text-primary/80">
-                  <p className="font-bold mb-1">Important Note</p>
-                  <p className="text-xs leading-relaxed opacity-90">
-                    Ensure all information matches your physical insurance card exactly.
-                    Incorrect details may lead to claim rejections.
-                  </p>
-                </div>
-              </div>
+              <Button
+                variant="ghost"
+                onClick={() => onClose(false)}
+                className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </Button>
             </div>
 
-            {/* Footer */}
-            <div className="pt-4 flex gap-3 justify-end border-t border-border/50">
-              {!isView ? (
-                <>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => onClose(false)}
-                    className="squircle font-bold text-muted-foreground hover:bg-muted"
-                    disabled={loading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="squircle-lg bg-primary hover:bg-primary/90 shadow-glow font-bold px-8 text-primary-foreground"
-                    disabled={loading}
-                  >
-                    {loading ? 'Saving...' : (isCreate ? 'Add Policy' : 'Save Changes')}
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  type="button"
-                  onClick={() => onClose(false)}
-                  className="squircle-lg bg-muted text-foreground hover:bg-muted/80 font-bold px-8"
-                >
-                  Close
-                </Button>
-              )}
+            <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
+              <form onSubmit={handleSubmit} className="space-y-6">
+
+                {/* Basic Information */}
+                <GlassCard icon={<Building className="text-primary" />} title="Provider Details">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Provider Name</Label>
+                      <Select
+                        value={formData.provider_name}
+                        onValueChange={(val) => handleChange('provider_name', val)}
+                        disabled={isView}
+                      >
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                          <SelectValue placeholder="Select provider" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                          {providers.map(p => (
+                            <SelectItem key={p} value={p}>{p}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Policy Holder</Label>
+                      <Input
+                        value={formData.policy_holder_name}
+                        onChange={(e) => handleChange('policy_holder_name', e.target.value)}
+                        disabled={isView}
+                        placeholder="Full Name"
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
+                      />
+                    </div>
+                  </div>
+                </GlassCard>
+
+                {/* Policy Numbers */}
+                <GlassCard icon={<CreditCard className="text-primary" />} title="Policy Information">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Policy Number</Label>
+                      <Input
+                        value={formData.policy_number}
+                        onChange={(e) => handleChange('policy_number', e.target.value)}
+                        disabled={isView}
+                        placeholder="e.g. POL-12345678"
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Group Number</Label>
+                      <Input
+                        value={formData.group_number}
+                        onChange={(e) => handleChange('group_number', e.target.value)}
+                        disabled={isView}
+                        placeholder="Optional"
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-mono"
+                      />
+                    </div>
+                  </div>
+                </GlassCard>
+
+                {/* Coverage & Dates */}
+                <GlassCard icon={<Calendar className="text-primary" />} title="Coverage Period">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Start Date</Label>
+                      <Input
+                        type="date"
+                        value={formData.start_date}
+                        onChange={(e) => handleChange('start_date', e.target.value)}
+                        disabled={isView}
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">End Date</Label>
+                      <Input
+                        type="date"
+                        value={formData.end_date}
+                        onChange={(e) => handleChange('end_date', e.target.value)}
+                        disabled={isView}
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Coverage Type</Label>
+                      <Select
+                        value={formData.coverage_type}
+                        onValueChange={(val) => handleChange('coverage_type', val)}
+                        disabled={isView}
+                      >
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                          {coverageTypes.map(t => (
+                            <SelectItem key={t} value={t}>
+                              {t.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Status</Label>
+                      <Select
+                        value={formData.status}
+                        onValueChange={(val) => handleChange('status', val)}
+                        disabled={isView}
+                      >
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                          {statuses.map(s => (
+                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </GlassCard>
+
+                {/* Card Images */}
+                <GlassCard icon={<ImageIcon className="text-primary" />} title="Insurance Card Images">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ImageUploadBox
+                      label="Front of Card"
+                      image={formData.front_image_url}
+                      onUpload={(f) => handleImageUpload('front', f)}
+                      onRemove={() => handleImageUpload('front', null)}
+                      disabled={isView}
+                    />
+                    <ImageUploadBox
+                      label="Back of Card"
+                      image={formData.back_image_url}
+                      onUpload={(f) => handleImageUpload('back', f)}
+                      onRemove={() => handleImageUpload('back', null)}
+                      disabled={isView}
+                    />
+                  </div>
+                </GlassCard>
+
+                {/* Verification Checkbox */}
+                {(isEdit || isView) && (
+                  <div className="p-4 rounded-[24px] bg-muted/30  flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${formData.verified ? 'bg-green-500/20 text-green-500' : 'bg-muted text-muted-foreground'}`}>
+                        <CheckCircle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm">Verification Status</h4>
+                        <p className="text-xs text-muted-foreground">Is this policy verified by admin?</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={formData.verified}
+                        onChange={(e) => handleChange('verified', e.target.checked)}
+                        className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+                        disabled={isView}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Disclaimer */}
+                <div className="p-4 rounded-[24px] bg-primary/5 border border-primary/10">
+                  <div className="flex gap-3">
+                    <FileText className="h-5 w-5 text-primary shrink-0" />
+                    <div className="text-sm text-primary/80">
+                      <p className="font-bold mb-1">Important Note</p>
+                      <p className="text-xs leading-relaxed opacity-90">
+                        Ensure all information matches your physical insurance card exactly.
+                        Incorrect details may lead to claim rejections.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 sm:p-6 rounded-[24px] bg-muted/30  flex gap-3 justify-end">
+                  {!isView ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => onClose(false)}
+                        className="rounded-2xl font-bold text-muted-foreground hover:bg-muted"
+                        disabled={loading}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="rounded-2xl bg-primary hover:bg-primary/90 font-bold px-8 text-primary-foreground"
+                        disabled={loading}
+                      >
+                        {loading ? 'Saving...' : (isCreate ? 'Add Policy' : 'Save Changes')}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={() => onClose(false)}
+                      className="rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-bold px-8"
+                    >
+                      Close
+                    </Button>
+                  )}
+                </div>
+              </form>
             </div>
-          </form>
+          </motion.div>
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    </AnimatePresence>
   );
 };
 
-// Helper Components
-const UserIconLabel = ({ icon: Icon, label }) => (
-  <>
-    <Icon className="w-4 h-4 text-primary" />
-    <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider">{label}</h3>
-  </>
+/* Sub-components */
+const GlassCard = ({ children, title, icon }) => (
+  <div className="p-4 sm:p-6 rounded-[28px] bg-muted/30 ">
+    <div className="flex items-center gap-3 mb-4 sm:mb-6">
+      <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
+        {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
+      </div>
+      <h3 className="font-bold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
+    </div>
+    {children}
+  </div>
 );
 
 const ImageUploadBox = ({ label, image, onUpload, onRemove, disabled }) => (
   <div>
     <Label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">{label}</Label>
-    <div className={`border-2 border-dashed border-border/50 rounded-xl p-4 text-center transition-colors ${!disabled && 'hover:bg-muted/30 hover:border-primary/30'}`}>
+    <div className={`border-2 border-dashed border-border/50 rounded-2xl p-4 text-center transition-colors ${!disabled && 'hover:bg-muted/30 hover:border-primary/30'}`}>
       {image ? (
         <div className="space-y-3">
-          <div className="relative aspect-video bg-black/5 rounded-lg overflow-hidden">
+          <div className="relative aspect-video bg-muted/20 rounded-xl overflow-hidden">
             <img
-              src={image}
+              src={image || "/placeholder.svg"}
               alt={label}
               className="w-full h-full object-contain"
             />
@@ -451,7 +453,7 @@ const ImageUploadBox = ({ label, image, onUpload, onRemove, disabled }) => (
               variant="destructive"
               size="sm"
               onClick={onRemove}
-              className="squircle h-8 text-xs"
+              className="rounded-xl h-8 text-xs"
             >
               <Trash2 className="w-3 h-3 mr-2" />
               Remove
@@ -478,7 +480,7 @@ const ImageUploadBox = ({ label, image, onUpload, onRemove, disabled }) => (
                 variant="outline"
                 size="sm"
                 onClick={() => document.getElementById(`upload-${label.replace(/\s+/g, '-')}`).click()}
-                className="squircle h-8 text-xs font-bold"
+                className="rounded-xl h-8 text-xs font-bold bg-transparent"
               >
                 Choose File
               </Button>

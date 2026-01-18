@@ -1,252 +1,203 @@
+'use client';
+
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card } from '../ui/card';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { X, BarChart3, TrendingUp, Calendar, Headphones, CheckCircle, Clock, Flag, Tag } from 'lucide-react';
+import { X, Headphones, TrendingUp, CheckCircle, Clock, Flag, Tag, BarChart3 } from 'lucide-react';
 
 export const SupportAnalyticsModal = ({ open, onClose, analytics }) => {
   if (!analytics) return null;
 
-  const getPercentage = (value, total) => {
-    return total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      open: 'red',
-      in_progress: 'yellow',
-      resolved: 'green',
-      closed: 'gray'
-    };
-    return colors[status] || 'gray';
-  };
-
-  const getPriorityColor = (priority) => {
-    const colors = {
-      low: 'blue',
-      normal: 'green',
-      high: 'orange',
-      urgent: 'red'
-    };
-    return colors[priority] || 'gray';
-  };
+  const getPercentage = (value, total) => (total > 0 ? ((value / total) * 100).toFixed(0) : 0);
 
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop - Apple uses a high-blur dark overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/30 backdrop-blur-md"
             onClick={onClose}
           />
-          
+
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="relative z-10 w-full max-w-5xl mx-4 max-h-[90vh] overflow-y-auto"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl"
           >
-            <Card className="p-6">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <BarChart3 className="h-6 w-6 text-blue-500" />
-                  <h2 className="text-xl font-semibold">Support Tickets Analytics</h2>
+            {/* Header Area */}
+            <div className="flex items-center justify-between p-8 pb-4">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 bg-primary/20 rounded-2xl">
+                  <Headphones className="h-6 w-6 text-primary" />
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClose}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="hidden sm:block">
+                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">Support Analytics</h2>
+                  <p className="text-sm text-muted-foreground">Ticket overview and resolution metrics</p>
+                </div>
+                <div className="sm:hidden">
+                  <h2 className="text-xl font-bold tracking-tight text-foreground/90">Support</h2>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                onClick={onClose}
+                className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
+
+              {/* Top Level Summary: "Glass Bubbles" */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                <StatBubble
+                  label="Total"
+                  value={analytics.total}
+                  icon={<Headphones className="h-5 w-5" />}
+                  color="text-primary"
+                  bg="bg-primary/10"
+                />
+                <StatBubble
+                  label="Resolved"
+                  value={analytics.resolved}
+                  subText={`${getPercentage(analytics.resolved, analytics.total)}%`}
+                  icon={<CheckCircle className="h-5 w-5" />}
+                  color="text-green-500"
+                  bg="bg-green-500/10"
+                />
+                <StatBubble
+                  label="This Week"
+                  value={analytics.recent}
+                  subText="New"
+                  icon={<TrendingUp className="h-5 w-5" />}
+                  color="text-blue-500"
+                  bg="bg-blue-500/10"
+                />
+                <StatBubble
+                  label="Avg Time"
+                  value={`${Math.round(analytics.averageResolutionTime || 0)}h`}
+                  subText="Response"
+                  icon={<Clock className="h-5 w-5" />}
+                  color="text-orange-500"
+                  bg="bg-orange-500/10"
+                />
               </div>
 
-              {/* Overview Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-blue-600 font-medium">Total Tickets</p>
-                      <p className="text-3xl font-bold text-blue-900">{analytics.total}</p>
-                    </div>
-                    <Headphones className="h-8 w-8 text-blue-500" />
-                  </div>
-                </Card>
-                
-                <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-green-600 font-medium">Resolved</p>
-                      <p className="text-3xl font-bold text-green-900">{analytics.resolved}</p>
-                      <p className="text-xs text-green-600">
-                        {getPercentage(analytics.resolved, analytics.total)}% resolution rate
-                      </p>
-                    </div>
-                    <CheckCircle className="h-8 w-8 text-green-500" />
-                  </div>
-                </Card>
-                
-                <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-purple-600 font-medium">This Week</p>
-                      <p className="text-3xl font-bold text-purple-900">{analytics.recent}</p>
-                      <p className="text-xs text-purple-600">
-                        New tickets
-                      </p>
-                    </div>
-                    <Calendar className="h-8 w-8 text-purple-500" />
-                  </div>
-                </Card>
-                
-                <Card className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-orange-600 font-medium">Avg Resolution</p>
-                      <p className="text-3xl font-bold text-orange-900">
-                        {Math.round(analytics.averageResolutionTime || 0)}h
-                      </p>
-                      <p className="text-xs text-orange-600">
-                        Response time
-                      </p>
-                    </div>
-                    <Clock className="h-8 w-8 text-orange-500" />
-                  </div>
-                </Card>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Main Analytics Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 {/* By Status */}
-                <Card className="p-6">
-                  <div className="flex items-center mb-4">
-                    <BarChart3 className="h-5 w-5 text-blue-500 mr-2" />
-                    <h3 className="text-lg font-semibold">By Status</h3>
-                  </div>
-                  <div className="space-y-3">
+                <GlassCard icon={<BarChart3 className="text-primary" />} title="By Status">
+                  <div className="space-y-3 sm:space-y-4">
                     {Object.entries(analytics.byStatus || {})
                       .sort(([,a], [,b]) => b - a)
                       .map(([status, count]) => (
-                        <div key={status} className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className={`w-3 h-3 bg-${getStatusColor(status)}-500 rounded-full mr-3`}></div>
-                            <span className="text-sm font-medium capitalize">
-                              {status.replace('_', ' ')}
-                            </span>
+                        <div key={status} className="flex flex-col gap-1.5">
+                          <div className="flex justify-between text-sm font-medium px-1">
+                            <span className="truncate max-w-[120px] capitalize">{status.replace('_', ' ')}</span>
+                            <span className="opacity-60">{count}</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={getStatusColor(status)}>{count}</Badge>
-                            <span className="text-xs text-gray-500">
-                              ({getPercentage(count, analytics.total)}%)
-                            </span>
+                          <div className="h-2 w-full bg-muted/50 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${getPercentage(count, analytics.total)}%` }}
+                              className="h-full bg-primary rounded-full"
+                            />
                           </div>
                         </div>
                       ))}
                   </div>
-                </Card>
+                </GlassCard>
 
                 {/* By Priority */}
-                <Card className="p-6">
-                  <div className="flex items-center mb-4">
-                    <Flag className="h-5 w-5 text-orange-500 mr-2" />
-                    <h3 className="text-lg font-semibold">By Priority</h3>
-                  </div>
-                  <div className="space-y-3">
+                <GlassCard icon={<Flag className="text-orange-500" />} title="By Priority">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
                     {Object.entries(analytics.byPriority || {})
                       .sort(([,a], [,b]) => b - a)
                       .map(([priority, count]) => (
-                        <div key={priority} className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className={`w-3 h-3 bg-${getPriorityColor(priority)}-500 rounded-full mr-3`}></div>
-                            <span className="text-sm font-medium capitalize">{priority}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={getPriorityColor(priority)}>{count}</Badge>
-                            <span className="text-xs text-gray-500">
-                              ({getPercentage(count, analytics.total)}%)
-                            </span>
-                          </div>
+                        <div key={priority} className="p-3 sm:p-4 rounded-2xl bg-muted/30  flex flex-col items-center">
+                          <span className="text-xs uppercase tracking-widest opacity-50 mb-1 capitalize">{priority}</span>
+                          <span className="text-xl sm:text-2xl font-bold">{count}</span>
+                          <span className="text-[10px] sm:text-xs font-medium text-primary">
+                            {getPercentage(count, analytics.total)}%
+                          </span>
                         </div>
                       ))}
                   </div>
-                </Card>
+                </GlassCard>
               </div>
 
               {/* By Category */}
-              <Card className="p-6 lg:col-span-2">
-                <div className="flex items-center mb-4">
-                  <Tag className="h-5 w-5 text-green-500 mr-2" />
-                  <h3 className="text-lg font-semibold">By Category</h3>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <GlassCard icon={<Tag className="text-green-500" />} title="By Category">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
                   {Object.entries(analytics.byCategory || {})
                     .sort(([,a], [,b]) => b - a)
                     .map(([category, count]) => (
-                      <div key={category} className="text-center p-4 bg-gray-50 rounded-lg">
-                        <p className="text-2xl font-bold text-gray-900">{count}</p>
-                        <p className="text-sm text-gray-600 capitalize">
-                          {category.replace('_', ' ')}
-                        </p>
-                        <p className="text-xs text-gray-500">
+                      <div key={category} className="p-3 sm:p-4 rounded-2xl bg-muted/30  flex flex-col items-center">
+                        <span className="text-xs uppercase tracking-widest opacity-50 mb-1 capitalize">{category.replace('_', ' ')}</span>
+                        <span className="text-xl sm:text-2xl font-bold">{count}</span>
+                        <span className="text-[10px] sm:text-xs font-medium text-primary">
                           {getPercentage(count, analytics.total)}%
-                        </p>
+                        </span>
                       </div>
                     ))}
                 </div>
-              </Card>
+              </GlassCard>
 
-              {/* Key Insights */}
-              <Card className="p-6 lg:col-span-2">
-                <div className="flex items-center mb-4">
-                  <TrendingUp className="h-5 w-5 text-purple-500 mr-2" />
-                  <h3 className="text-lg font-semibold">Key Insights</h3>
+              {/* Bottom Insights */}
+              <div className="p-4 sm:p-6 rounded-[24px] bg-muted/30  flex items-center justify-around text-center">
+                <div>
+                  <p className="text-2xl sm:text-3xl font-bold">{getPercentage(analytics.resolved, analytics.total)}%</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Resolution Rate</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-2xl font-bold text-gray-900">
-                      {Math.round((analytics.resolved / analytics.total) * 100) || 0}%
-                    </p>
-                    <p className="text-sm text-gray-600">Resolution Rate</p>
-                  </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-2xl font-bold text-gray-900">
-                      {analytics.recent > 0 ? '+' + analytics.recent : '0'}
-                    </p>
-                    <p className="text-sm text-gray-600">Weekly Growth</p>
-                  </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-2xl font-bold text-gray-900">
-                      {Object.keys(analytics.byStatus || {}).length}
-                    </p>
-                    <p className="text-sm text-gray-600">Status Types</p>
-                  </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-2xl font-bold text-gray-900">
-                      {Math.round(analytics.averageResolutionTime || 0)}h
-                    </p>
-                    <p className="text-sm text-gray-600">Avg Response</p>
-                  </div>
+                <div className="hidden sm:block w-px h-10 bg-border" />
+                <div>
+                  <p className="text-2xl sm:text-3xl font-bold">{analytics.recent > 0 ? `+${analytics.recent}` : '0'}</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Weekly Growth</p>
                 </div>
-              </Card>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={onClose}
-                >
-                  Close
-                </Button>
+                <div className="hidden sm:block w-px h-10 bg-border" />
+                <div>
+                  <p className="text-2xl sm:text-3xl font-bold">{Object.keys(analytics.byStatus || {}).length}</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Status Types</p>
+                </div>
               </div>
-            </Card>
+            </div>
           </motion.div>
         </div>
       )}
     </AnimatePresence>
   );
 };
+
+/* Sub-components for cleaner code */
+
+const StatBubble = ({ label, value, subText, icon, color, bg }) => (
+  <div className="p-3 sm:p-5 rounded-3xl bg-muted/30  transition-transform hover:scale-[1.02]">
+    <div className="flex justify-between items-start mb-2 sm:mb-3">
+      <div className={`p-1.5 sm:p-2 rounded-xl ${bg} ${color}`}>
+        {icon}
+      </div>
+      <span className="text-lg sm:text-2xl font-bold tracking-tight">{value}</span>
+    </div>
+    <p className="text-xs font-semibold opacity-70 mb-0.5">{label}</p>
+    {subText && <p className="text-[9px] sm:text-[10px] opacity-40 font-medium">{subText}</p>}
+  </div>
+);
+
+const GlassCard = ({ children, title, icon }) => (
+  <div className="p-4 sm:p-6 rounded-[28px] bg-muted/30 ">
+    <div className="flex items-center gap-3 mb-4 sm:mb-6">
+      <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
+        {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
+      </div>
+      <h3 className="font-bold tracking-tight text-sm sm:text-base">{title}</h3>
+    </div>
+    {children}
+  </div>
+);

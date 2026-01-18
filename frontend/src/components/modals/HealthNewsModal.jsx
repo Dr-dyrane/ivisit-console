@@ -1,18 +1,17 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
-import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { X, Save, ExternalLink, Calendar, Globe, Tag, Newspaper, Eye, EyeOff, Plus, Edit } from 'lucide-react';
-import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
-import { supabase } from '../../lib/supabase';
+import { X, Save, ExternalLink, Globe, Newspaper, Eye, EyeOff, Plus, Edit } from 'lucide-react';
 
-export const HealthNewsModal = ({ isOpen, onClose, news, mode }) => {
+export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
   const isCreate = mode === 'create';
@@ -68,46 +67,10 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode }) => {
     setLoading(true);
 
     try {
-      if (isCreate) {
-        const { data, error } = await supabase
-          .from('health_news')
-          .insert([{
-            ...formData,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }])
-          .select();
-
-        if (error) throw error;
-
-        await createNotification(
-          NotificationTypes.NEWS,
-          NotificationActions.CREATED,
-          data[0].id,
-          { message: `"${formData.title}" has been created` }
-        );
-        toast.success('Health news created successfully');
-      } else if (isEdit) {
-        const { data, error } = await supabase
-          .from('health_news')
-          .update({
-            ...formData,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', news.id)
-          .select();
-
-        if (error) throw error;
-
-        await createNotification(
-          NotificationTypes.NEWS,
-          NotificationActions.UPDATED,
-          data[0].id,
-          { message: `"${formData.title}" has been updated` }
-        );
-        toast.success('Health news updated successfully');
+      if (onSave) {
+        await onSave(formData);
       }
-
+      toast.success(isCreate ? 'Health news created successfully' : 'Health news updated successfully');
       onClose(true);
     } catch (error) {
       console.error('Error saving health news:', error);
@@ -129,221 +92,248 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode }) => {
   if (!isOpen) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 border-0 bg-transparent shadow-2xl">
-        <div className="bg-background/50 backdrop-blur-xs squircle-2xl overflow-hidden flex flex-col h-full bg-background/95 backdrop-blur-xl">
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/30 backdrop-blur-md"
+            onClick={() => onClose()}
+          />
 
-          {/* Bento Header */}
-          <div className="relative p-6 pb-8 border-b border-border/10 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background" />
-
-            {/* Geometric Decorations */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/20 to-transparent opacity-50 blur-2xl rounded-bl-[100px]" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-info/10 to-transparent opacity-30 blur-2xl rounded-tr-[80px]" />
-
-            <div className="relative z-10 flex items-start justify-between">
-              <div>
-                <DialogTitle className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
-                  {isCreate && (
-                    <>
-                      <div className="p-2 geo-round bg-primary/10 border border-primary/20">
-                        <Plus className="h-6 w-6 text-primary" />
-                      </div>
-                      Create News
-                    </>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl"
+          >
+            {/* Header Area */}
+            <div className="flex items-center justify-between p-8 pb-4">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 bg-primary/20 rounded-2xl">
+                  {isCreate ? (
+                    <Plus className="h-6 w-6 text-primary" />
+                  ) : isEdit ? (
+                    <Edit className="h-6 w-6 text-primary" />
+                  ) : (
+                    <Newspaper className="h-6 w-6 text-primary" />
                   )}
-                  {isEdit && (
-                    <>
-                      <div className="p-2 geo-round bg-primary/10 border border-primary/20">
-                        <Edit className="h-6 w-6 text-primary" />
-                      </div>
-                      Edit News
-                    </>
-                  )}
-                  {isView && (
-                    <>
-                      <div className="p-2 geo-round bg-primary/10 border border-primary/20">
-                        <Newspaper className="h-6 w-6 text-primary" />
-                      </div>
-                      News Details
-                    </>
-                  )}
-                </DialogTitle>
-                <p className="text-muted-foreground mt-2 text-base font-medium max-w-md">
-                  {isCreate ? 'Publish new health updates and announcements.' :
-                    isEdit ? 'Modify existing article content.' :
-                      'View article details and metadata.'}
-                </p>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                    {isCreate ? 'Create News' : isEdit ? 'Edit News' : 'News Details'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {isCreate ? 'Publish new health updates and announcements.' :
+                      isEdit ? 'Modify existing article content.' :
+                        'View article details and metadata.'}
+                  </p>
+                </div>
               </div>
-
-              {/* Status Badge in Header */}
-              {(isEdit || isView) && (
-                <Badge className={`squircle-md px-3 py-1.5 text-sm font-bold border-0 ${formData.published
-                  ? 'bg-success/10 text-success ring-1 ring-success/20'
-                  : 'bg-warning/10 text-warning ring-1 ring-warning/20'
+              <div className="flex items-center gap-3">
+                {(isEdit || isView) && (
+                  <Badge className={`rounded-full px-3 py-1.5 text-sm font-bold border-0 ${formData.published
+                    ? 'bg-green-500/10 text-green-500'
+                    : 'bg-orange-500/10 text-orange-500'
                   }`}>
-                  {formData.published ? 'Published' : 'Draft'}
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="title" className="text-xs font-black uppercase tracking-wider text-muted-foreground ml-1">Title</Label>
-                <div className="relative group">
-                  <Input
-                    id="title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleChange}
-                    disabled={isView}
-                    className="squircle-lg bg-muted/30 border-transparent focus:bg-background focus:border-primary/20 transition-all font-bold h-11 pl-4"
-                    placeholder="Enter news title"
-                    required
-                  />
-                  <div className="absolute inset-0 rounded-lg ring-1 ring-inset ring-black/5 dark:ring-white/5 pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="source" className="text-xs font-black uppercase tracking-wider text-muted-foreground ml-1">Source</Label>
-                <Select
-                  value={formData.source}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, source: value }))}
-                  disabled={isView}
-                >
-                  <SelectTrigger className="squircle-lg bg-muted/30 border-transparent focus:bg-background focus:border-primary/20 h-11 font-medium">
-                    <SelectValue placeholder="Select source" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sources.map(source => (
-                      <SelectItem key={source} value={source} className="font-medium cursor-pointer focus:bg-primary/10 focus:text-primary rounded-md my-0.5">
-                        {source}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="category" className="text-xs font-black uppercase tracking-wider text-muted-foreground ml-1">Category</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-                  disabled={isView}
-                >
-                  <SelectTrigger className="squircle-lg bg-muted/30 border-transparent focus:bg-background focus:border-primary/20 h-11 font-medium">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map(category => (
-                      <SelectItem key={category} value={category} className="font-medium cursor-pointer focus:bg-primary/10 focus:text-primary rounded-md my-0.5">
-                        {category.charAt(0).toUpperCase() + category.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="url" className="text-xs font-black uppercase tracking-wider text-muted-foreground ml-1">External URL</Label>
-                <div className="relative">
-                  <Input
-                    id="url"
-                    name="url"
-                    value={formData.url}
-                    onChange={handleChange}
-                    disabled={isView}
-                    className="squircle-lg bg-muted/30 border-transparent focus:bg-background focus:border-primary/20 transition-all font-medium h-11 pl-10"
-                    placeholder="https://example.com"
-                    type="url"
-                  />
-                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-xs font-black uppercase tracking-wider text-muted-foreground ml-1">Short Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                disabled={isView}
-                className="squircle-lg bg-muted/30 border-transparent focus:bg-background focus:border-primary/20 min-h-[80px] font-medium resize-none p-4"
-                placeholder="Brief summary..."
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="content" className="text-xs font-black uppercase tracking-wider text-muted-foreground ml-1">Full Content</Label>
-              <Textarea
-                id="content"
-                name="content"
-                value={formData.content}
-                onChange={handleChange}
-                disabled={isView}
-                className="squircle-lg bg-muted/30 border-transparent focus:bg-background focus:border-primary/20 min-h-[150px] font-medium p-4"
-                placeholder="Write the full article here..."
-              />
-            </div>
-
-            {!isView && (
-              <div className="flex items-center p-4 squircle-lg bg-muted/30 border border-transparent hover:bg-muted/40 transition-colors cursor-pointer" onClick={() => !isView && setFormData(prev => ({ ...prev, published: !prev.published }))}>
-                <div className={`p-2 rounded-lg mr-4 transition-colors ${formData.published ? 'bg-success/20 text-success' : 'bg-muted text-muted-foreground'}`}>
-                  {formData.published ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-                </div>
-                <div className="flex-1">
-                  <div className="font-bold text-sm">Publish Immediately</div>
-                  <div className="text-xs text-muted-foreground">Make this article visible to all users upon saving</div>
-                </div>
-                <div className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${formData.published ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${formData.published ? 'left-7' : 'left-1'}`} />
-                </div>
-              </div>
-            )}
-
-            <DialogFooter className="gap-3 pt-4 border-t border-border/10">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => onClose()}
-                disabled={loading}
-                className="squircle-lg font-bold hover:bg-muted/50"
-              >
-                Cancel
-              </Button>
-
-              {!isView && (
+                    {formData.published ? 'Published' : 'Draft'}
+                  </Badge>
+                )}
                 <Button
-                  type="submit"
-                  disabled={loading}
-                  className="squircle-lg bg-primary hover:bg-primary/90 text-primary-foreground font-black px-8 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all"
+                  variant="ghost"
+                  onClick={() => onClose()}
+                  className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
                 >
-                  {loading ? 'Saving...' : (isCreate ? 'Create Article' : 'Save Changes')}
+                  <X className="h-5 w-5" />
                 </Button>
-              )}
+              </div>
+            </div>
 
-              {isView && formData.url && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => window.open(formData.url, '_blank')}
-                  className="squircle-lg border-primary/20 hover:bg-primary/5 font-bold"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Visit Source
-                </Button>
-              )}
-            </DialogFooter>
-          </form>
+            <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                
+                {/* Basic Info */}
+                <GlassCard title="Article Info">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title" className="text-xs font-bold text-muted-foreground uppercase">Title</Label>
+                      <Input
+                        id="title"
+                        name="title"
+                        value={formData.title}
+                        onChange={handleChange}
+                        disabled={isView}
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-bold"
+                        placeholder="Enter news title"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="source" className="text-xs font-bold text-muted-foreground uppercase">Source</Label>
+                      <Select
+                        value={formData.source}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, source: value }))}
+                        disabled={isView}
+                      >
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                          <SelectValue placeholder="Select source" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                          {sources.map(source => (
+                            <SelectItem key={source} value={source} className="font-medium">
+                              {source}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </GlassCard>
+
+                {/* Category & URL */}
+                <GlassCard title="Classification">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="category" className="text-xs font-bold text-muted-foreground uppercase">Category</Label>
+                      <Select
+                        value={formData.category}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                        disabled={isView}
+                      >
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                          {categories.map(category => (
+                            <SelectItem key={category} value={category} className="font-medium capitalize">
+                              {category.charAt(0).toUpperCase() + category.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="url" className="text-xs font-bold text-muted-foreground uppercase">External URL</Label>
+                      <div className="relative">
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="url"
+                          name="url"
+                          value={formData.url}
+                          onChange={handleChange}
+                          disabled={isView}
+                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-medium"
+                          placeholder="https://example.com"
+                          type="url"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </GlassCard>
+
+                {/* Content */}
+                <GlassCard title="Content">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="description" className="text-xs font-bold text-muted-foreground uppercase">Short Description</Label>
+                      <Textarea
+                        id="description"
+                        name="description"
+                        value={formData.description}
+                        onChange={handleChange}
+                        disabled={isView}
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px] font-medium resize-none p-4"
+                        placeholder="Brief summary..."
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="content" className="text-xs font-bold text-muted-foreground uppercase">Full Content</Label>
+                      <Textarea
+                        id="content"
+                        name="content"
+                        value={formData.content}
+                        onChange={handleChange}
+                        disabled={isView}
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[150px] font-medium p-4"
+                        placeholder="Write the full article here..."
+                      />
+                    </div>
+                  </div>
+                </GlassCard>
+
+                {/* Publish Toggle */}
+                {!isView && (
+                  <div 
+                    className="p-4 sm:p-5 rounded-[24px] bg-muted/30  flex items-center hover:bg-muted/40 transition-colors cursor-pointer" 
+                    onClick={() => setFormData(prev => ({ ...prev, published: !prev.published }))}
+                  >
+                    <div className={`p-2 rounded-xl mr-4 transition-colors ${formData.published ? 'bg-green-500/20 text-green-500' : 'bg-muted text-muted-foreground'}`}>
+                      {formData.published ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-sm">Publish Immediately</div>
+                      <div className="text-xs text-muted-foreground">Make this article visible to all users upon saving</div>
+                    </div>
+                    <div className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${formData.published ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-background shadow-sm transition-all duration-300 ${formData.published ? 'left-7' : 'left-1'}`} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Footer Actions */}
+                <div className="p-4 sm:p-6 rounded-[24px] bg-muted/30  flex gap-3 justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => onClose()}
+                    disabled={loading}
+                    className="rounded-2xl font-bold hover:bg-muted/50"
+                  >
+                    Cancel
+                  </Button>
+
+                  {!isView && (
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8"
+                    >
+                      {loading ? 'Saving...' : (isCreate ? 'Create Article' : 'Save Changes')}
+                    </Button>
+                  )}
+
+                  {isView && formData.url && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => window.open(formData.url, '_blank')}
+                      className="rounded-2xl border-primary/20 hover:bg-primary/5 font-bold bg-transparent"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Visit Source
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </div>
+          </motion.div>
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    </AnimatePresence>
   );
 };
+
+/* Sub-components */
+const GlassCard = ({ children, title }) => (
+  <div className="p-4 sm:p-6 rounded-[28px] bg-muted/30 ">
+    <h3 className="font-bold tracking-tight text-sm sm:text-base uppercase mb-4 sm:mb-6">{title}</h3>
+    {children}
+  </div>
+);
