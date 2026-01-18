@@ -47,7 +47,7 @@ export const ContextPanelShell = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-xs"
             onClick={closeContextPanel}
           />
           
@@ -60,7 +60,7 @@ export const ContextPanelShell = () => {
             className={`fixed top-0 bottom-0 right-0 z-50 ${isDesktop ? 'w-[320px]' : 'w-72'}`}
             style={{
               background: isDark ? 'hsl(var(--background) / 0.95)' : 'hsl(var(--background) / 0.98)',
-              backdropFilter: 'blur(32px) saturate(200%)',
+              backdropFilter: 'blur(8px) saturate(180%)',
               boxShadow: '-4px 0 24px rgba(0,0,0,0.1)'
             }}
           >
