@@ -76,7 +76,7 @@ export const ContextPanelShell = () => {
               </button>
               
               {/* Content area - full height except for close button space */}
-              <div className="flex-1 overflow-y-auto p-4 scrollbar-hide pt-16 border-t border-border/20">
+              <div className="flex-1 overflow-y-auto scrollbar-hide pt-16 border-border/20">
                 <ContextPanel />
               </div>
             </div>
