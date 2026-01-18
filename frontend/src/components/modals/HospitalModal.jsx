@@ -92,11 +92,11 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                     {formData.name || 'New Facility'}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge className={`rounded-full border-0 font-bold px-3 py-0.5 text-xs ${formData.status === 'available' ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
-                      {formData.status?.toUpperCase() || 'AVAILABLE'}
+                    <Badge className={`rounded-full border-0 font-bold px-3 py-0.5 text-[10px] uppercase tracking-wider ${formData.status === 'available' ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
+                      {formData.status || 'AVAILABLE'}
                     </Badge>
-                    <Badge className="rounded-full bg-muted/50 border-0 font-medium px-3 py-0.5 text-xs">
-                      {formData.type?.toUpperCase()}
+                    <Badge className="rounded-full bg-white/10 border-0 font-bold px-3 py-0.5 text-[10px] uppercase tracking-wider text-blue-400">
+                      {formData.type}
                     </Badge>
                   </div>
                 </div>
@@ -104,7 +104,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
               <Button
                 variant="ghost"
                 onClick={() => onClose(false)}
-                className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
+                className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
               >
                 <X className="h-5 w-5" />
               </Button>
@@ -114,32 +114,32 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 
                 {/* General Information */}
-                <GlassCard icon={<Activity className="text-primary" />} title="Facility Details">
+                <GlassCard icon={<Activity />} title="Facility Details">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="col-span-1 md:col-span-2 space-y-2">
-                      <Label htmlFor="name" className="text-xs font-bold text-muted-foreground uppercase">Hospital Name</Label>
+                      <Label htmlFor="name" className="text-xs font-bold text-muted-foreground uppercase px-1">Hospital Name</Label>
                       <Input
                         id="name"
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-bold text-lg"
+                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-bold text-lg"
                         placeholder="General Hospital..."
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="type" className="text-xs font-bold text-muted-foreground uppercase">Tier</Label>
+                      <Label htmlFor="type" className="text-xs font-bold text-muted-foreground uppercase px-1">Tier</Label>
                       <Select 
                         value={formData.type} 
                         onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-medium">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                        <SelectContent className="rounded-2xl border-white/10 shadow-xl bg-background/95 backdrop-blur-xl">
                           <SelectItem value="premium">Premium</SelectItem>
                           <SelectItem value="standard">Standard</SelectItem>
                           <SelectItem value="basic">Basic</SelectItem>
@@ -148,14 +148,14 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="emergency_level" className="text-xs font-bold text-muted-foreground uppercase">Trauma Level</Label>
+                      <Label htmlFor="emergency_level" className="text-xs font-bold text-muted-foreground uppercase px-1">Trauma Level</Label>
                       <Input
                         id="emergency_level"
                         name="emergency_level"
                         value={formData.emergency_level}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
+                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
                         placeholder="Level 1 Trauma..."
                       />
                     </div>
@@ -163,10 +163,10 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                 </GlassCard>
 
                 {/* Capacity & Stats */}
-                <GlassCard icon={<Activity className="text-blue-500" />} title="Live Capacity">
+                <GlassCard icon={<Activity />} title="Live Capacity">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-bold text-muted-foreground uppercase">Beds</Label>
+                      <Label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Beds</Label>
                       <div className="relative">
                         <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -175,12 +175,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.available_beds}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-background border-0 h-10 pl-9 font-bold"
+                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-bold"
                         />
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-bold text-muted-foreground uppercase">Ambulances</Label>
+                      <Label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Ambulances</Label>
                       <div className="relative">
                         <Ambulance className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -189,12 +189,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.ambulances_count}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-background border-0 h-10 pl-9 font-bold"
+                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-bold"
                         />
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-bold text-muted-foreground uppercase">Wait Time</Label>
+                      <Label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Wait Time</Label>
                       <div className="relative">
                         <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -202,12 +202,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.wait_time}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-background border-0 h-10 pl-9 font-bold"
+                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-bold"
                         />
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-bold text-muted-foreground uppercase">Rating</Label>
+                      <Label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Rating</Label>
                       <div className="relative">
                         <Star className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500 fill-orange-500" />
                         <Input
@@ -217,7 +217,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.rating}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-background border-0 h-10 pl-9 font-bold"
+                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-bold"
                         />
                       </div>
                     </div>
@@ -225,10 +225,10 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                 </GlassCard>
 
                 {/* Location & Contact */}
-                <GlassCard icon={<MapPin className="text-primary" />} title="Location & Contact">
+                <GlassCard icon={<MapPin />} title="Location & Contact">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="col-span-1 md:col-span-2 space-y-2">
-                      <Label htmlFor="address" className="text-xs font-bold text-muted-foreground uppercase">Address</Label>
+                      <Label htmlFor="address" className="text-xs font-bold text-muted-foreground uppercase px-1">Address</Label>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                         <Textarea
@@ -237,12 +237,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.address}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px] pl-10 pt-3 font-medium resize-none"
+                          className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px] pl-10 pt-3 font-medium resize-none"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-xs font-bold text-muted-foreground uppercase">Phone</Label>
+                      <Label htmlFor="phone" className="text-xs font-bold text-muted-foreground uppercase px-1">Phone</Label>
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -251,21 +251,21 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.phone}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-mono"
+                          className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-mono"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="status" className="text-xs font-bold text-muted-foreground uppercase">Operational Status</Label>
+                      <Label htmlFor="status" className="text-xs font-bold text-muted-foreground uppercase px-1">Operational Status</Label>
                       <Select 
                         value={formData.status} 
                         onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-medium">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                        <SelectContent className="rounded-2xl border-white/10 shadow-xl bg-background/95 backdrop-blur-xl">
                           <SelectItem value="available">Available</SelectItem>
                           <SelectItem value="busy">Busy</SelectItem>
                           <SelectItem value="closed">Closed</SelectItem>
@@ -276,21 +276,21 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                 </GlassCard>
 
                 {/* Footer Actions */}
-                <div className="p-4 sm:p-6 rounded-[24px] bg-muted/30  flex gap-3 justify-end">
+                <div className="p-4 sm:p-6 rounded-[24px] bg-white/5 border border-white/10 flex gap-3 justify-end">
                   {!isView ? (
                     <>
                       <Button
                         type="button"
                         variant="ghost"
                         onClick={() => onClose(false)}
-                        className="rounded-2xl font-bold text-muted-foreground hover:bg-muted"
+                        className="rounded-2xl font-bold text-muted-foreground hover:bg-white/10"
                         disabled={loading}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
-                        className="rounded-2xl bg-primary hover:bg-primary/90 font-bold px-8"
+                        className="rounded-2xl bg-primary hover:bg-primary/90 font-bold px-8 shadow-lg shadow-primary/20"
                         disabled={loading}
                       >
                         {loading ? 'Saving...' : (isCreate ? 'Add Facility' : 'Save Changes')}
@@ -300,7 +300,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                     <Button
                       type="button"
                       onClick={() => onClose(false)}
-                      className="rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-bold px-8"
+                      className="rounded-2xl bg-white/10 text-foreground hover:bg-white/20 font-bold px-8"
                     >
                       Close
                     </Button>
@@ -317,12 +317,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
 
 /* Sub-components */
 const GlassCard = ({ children, title, icon }) => (
-  <div className="p-4 sm:p-6 rounded-[28px] bg-muted/30 ">
+  <div className="p-4 sm:p-6 rounded-[28px] bg-white/5 border border-white/10 ">
     <div className="flex items-center gap-3 mb-4 sm:mb-6">
-      <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
-        {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
+      <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
+        {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5 text-primary' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
+      <h3 className="font-bold tracking-tight text-sm sm:text-base">{title}</h3>
     </div>
     {children}
   </div>

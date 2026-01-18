@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent } from '../ui/dialog';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -17,33 +17,31 @@ import {
   Calendar,
   FileText,
   Heart,
-  Zap
+  Zap,
+  ChevronRight
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { motion } from 'framer-motion';
 
 export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
   if (!request) return null;
 
   const getPriorityColor = (priority) => {
     switch(priority) {
-      case 'critical': return 'bg-destructive text-destructive-foreground';
-      case 'high': return 'bg-orange-500 text-white';
-      case 'medium': return 'bg-yellow-500 text-white';
-      case 'low': return 'bg-blue-500 text-white';
-      default: return 'bg-muted text-muted-foreground';
+      case 'critical': return 'text-red-500';
+      case 'high': return 'text-orange-500';
+      case 'medium': return 'text-yellow-500';
+      case 'low': return 'text-blue-500';
+      default: return 'text-muted-foreground';
     }
   };
 
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'pending': return 'text-yellow-500 bg-yellow-500/10';
-      case 'dispatched': return 'text-blue-500 bg-blue-500/10';
-      case 'en_route': return 'text-purple-500 bg-purple-500/10';
-      case 'arrived': return 'text-indigo-500 bg-indigo-500/10';
-      case 'completed': return 'text-green-500 bg-green-500/10';
-      case 'cancelled': return 'text-red-500 bg-red-500/10';
-      default: return 'text-muted-foreground bg-muted/10';
+  const getPriorityBg = (priority) => {
+    switch(priority) {
+      case 'critical': return 'bg-red-500/10';
+      case 'high': return 'bg-orange-500/10';
+      case 'medium': return 'bg-yellow-500/10';
+      case 'low': return 'bg-blue-500/10';
+      default: return 'bg-muted/10';
     }
   };
 
@@ -58,243 +56,203 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => onClose(false)}>
-      <DialogContent className="squircle-2xl bg-background/50 backdrop-blur-xs border-0 max-w-4xl max-h-[90vh] overflow-hidden p-0 gap-0 shadow-2xl bg-background/80 backdrop-blur-xl [&>button]:hidden">
-        
-        {/* Header with Priority Gradient */}
-        <div className={`relative h-40 overflow-hidden ${
-          request.priority === 'critical' ? 'bg-gradient-to-br from-destructive/30 via-destructive/10 to-background' :
-          request.priority === 'high' ? 'bg-gradient-to-br from-orange-500/30 via-orange-500/10 to-background' :
-          'bg-gradient-to-br from-blue-500/30 via-blue-500/10 to-background'
-        }`}>
-          {/* Geometric Pattern Overlay */}
-          <div className="absolute inset-0 opacity-5" 
-               style={{ 
-                 backgroundImage: `
-                   repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.1) 35px, rgba(255,255,255,.1) 70px),
-                   repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(255,255,255,.05) 35px, rgba(255,255,255,.05) 70px)
-                 ` 
-               }}>
-          </div>
-          
-          {/* Header Content */}
-          <div className="absolute top-6 left-8 right-8 flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <motion.div 
-                className={`p-4 squircle-xl ${getPriorityColor(request.priority)} shadow-lg`}
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                {getEmergencyIcon(request.emergency_type)}
-              </motion.div>
-              <div>
-                <h2 className="text-sm font-black text-muted-foreground uppercase tracking-widest mb-1">
-                  Emergency Incident
-                </h2>
-                <h1 className="text-3xl font-black tracking-tight mb-2">
-                  {request.emergency_type?.replace('_', ' ').toUpperCase() || 'UNKNOWN EMERGENCY'}
-                </h1>
-                <div className="flex items-center gap-2">
-                  <Badge className={`squircle-sm border-0 ${getPriorityColor(request.priority)}`}>
-                    {request.priority?.toUpperCase()}
-                  </Badge>
-                  <Badge className={`squircle-sm border-0 ${getStatusColor(request.status)}`}>
-                    {request.status?.replace('_', ' ').toUpperCase()}
-                  </Badge>
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/30 backdrop-blur-md"
+            onClick={() => onClose(false)}
+          />
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl"
+          >
+            {/* Header Area */}
+            <div className="flex items-center justify-between p-8 pb-4">
+              <div className="flex items-center gap-4">
+                <div className={`p-2.5 rounded-2xl ${getPriorityBg(request.priority)} ${getPriorityColor(request.priority)}`}>
+                  {getEmergencyIcon(request.emergency_type)}
                 </div>
+                <div className="hidden sm:block">
+                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                    {request.emergency_type?.replace('_', ' ').toUpperCase() || 'EMERGENCY REQUEST'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    Case ID: <span className="font-mono text-xs opacity-70">#{request.id?.slice(0, 8)}</span>
+                    <span className="opacity-30">•</span>
+                    {request.created_at ? format(new Date(request.created_at), 'MMM dd, HH:mm') : 'Recently'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className={`rounded-full px-4 py-1 border-0 ${getPriorityBg(request.priority)} ${getPriorityColor(request.priority)}`}>
+                  {request.priority?.toUpperCase()}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  onClick={() => onClose(false)}
+                  className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
               </div>
             </div>
 
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="rounded-full hover:bg-black/10 text-foreground z-20"
-              onClick={() => onClose(false)}
-            >
-              <X className="w-6 h-6" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Bento Grid Content */}
-        <div className="px-8 pb-8 pt-6 overflow-y-auto max-h-[calc(90vh-12rem)] custom-scrollbar">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-fr">
-            
-            {/* Primary Info Card - Spans 2 columns */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="md:col-span-2 row-span-1"
-            >
-              <div className="h-full squircle-xl bg-muted/30 p-6 border border-border/20">
-                <div className="flex items-center gap-2 mb-4">
-                  <FileText className="w-4 h-4 text-primary" />
-                  <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider">
-                    Situation Report
-                  </h3>
-                </div>
-                <p className="text-base leading-relaxed font-medium text-foreground/90 mb-4">
-                  {request.description || 'No description provided for this emergency incident.'}
-                </p>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span className="font-mono">
-                      {request.created_at ? format(new Date(request.created_at), 'dd MMM yyyy') : 'Unknown'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    <span className="font-mono">
-                      {request.created_at ? format(new Date(request.created_at), 'HH:mm:ss') : 'Unknown'}
-                    </span>
-                  </div>
-                </div>
+            <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
+              {/* Status Tracker Bubbles */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {['pending', 'dispatched', 'en_route', 'arrived', 'completed'].map((step, i, arr) => {
+                  const isCurrent = request.status === step;
+                  const isPast = arr.indexOf(request.status) > i;
+                  return (
+                    <div key={step} className={`p-3 rounded-2xl text-center border transition-all ${
+                      isCurrent ? 'bg-primary/10 border-primary/20 text-primary' :
+                      isPast ? 'bg-green-500/5 border-green-500/10 text-green-500 opacity-60' :
+                      'bg-white/5 border-white/10 text-muted-foreground opacity-30'
+                    }`}>
+                      <p className="text-[10px] font-bold uppercase tracking-widest">{step.replace('_', ' ')}</p>
+                    </div>
+                  );
+                })}
               </div>
-            </motion.div>
 
-            {/* Status Card */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="row-span-1"
-            >
-              <div className="h-full squircle-xl bg-gradient-to-br from-primary/10 to-primary/5 p-6 border border-primary/20">
-                <div className="flex items-center gap-2 mb-4">
-                  <Activity className="w-4 h-4 text-primary" />
-                  <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider">
-                    Status
-                  </h3>
-                </div>
-                <div className="space-y-3">
-                  {['pending', 'dispatched', 'en_route', 'arrived', 'completed'].map((step, i, arr) => {
-                    const isCurrent = request.status === step;
-                    const isPast = arr.indexOf(request.status) > i;
-                    return (
-                      <div key={step} className="flex items-center gap-3">
-                        <div className={`w-3 h-3 squircle-full ${
-                          isCurrent ? 'bg-primary' : 
-                          isPast ? 'bg-primary/30' : 'bg-muted'
-                        }`} />
-                        <span className={`text-xs font-bold uppercase tracking-wider ${
-                          isCurrent ? 'text-primary' : 
-                          isPast ? 'text-muted-foreground/50' : 'text-muted-foreground/30'
-                        }`}>
-                          {step.replace('_', ' ')}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Location Card - Spans full width */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="md:col-span-3"
-            >
-              <div className="squircle-xl bg-muted/30 p-6 border border-border/20">
-                <div className="flex items-center gap-2 mb-4">
-                  <MapPin className="w-4 h-4 text-primary" />
-                  <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider">
-                    Location Information
-                  </h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-bold text-muted-foreground uppercase mb-2">Address</p>
-                    <p className="font-medium text-foreground">
-                      {request.location || 'Location not specified'}
+              {/* Main Info Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Situation Report */}
+                <GlassCard icon={<FileText className="text-primary" />} title="Situation Report" className="lg:col-span-2">
+                  <div className="space-y-4">
+                    <p className="text-lg font-medium leading-relaxed text-foreground/90">
+                      {request.description || 'No detailed description provided for this emergency incident.'}
                     </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-bold text-muted-foreground uppercase mb-1">Latitude</p>
-                      <p className="font-mono text-sm">
-                        {request.latitude || 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-muted-foreground uppercase mb-1">Longitude</p>
-                      <p className="font-mono text-sm">
-                        {request.longitude || 'N/A'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                {(request.latitude && request.longitude) && (
-                  <Button 
-                    variant="outline" 
-                    className="mt-4 squircle border-primary/20 text-primary hover:bg-primary/10"
-                    onClick={() => window.open(`https://maps.google.com/?q=${request.latitude},${request.longitude}`, '_blank')}
-                  >
-                    <Navigation className="w-4 h-4 mr-2" />
-                    Open in Maps
-                  </Button>
-                )}
-              </div>
-            </motion.div>
-
-            {/* Requester Info Card */}
-            {request.profiles && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="md:col-span-3"
-              >
-                <div className="squircle-xl bg-gradient-to-br from-muted/30 to-muted/10 p-6 border border-border/20">
-                  <div className="flex items-center gap-2 mb-4">
-                    <User className="w-4 h-4 text-primary" />
-                    <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider">
-                      Requester Information
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16 squircle-xl border-2 border-background shadow-sm">
-                      <AvatarImage src={request.profiles.avatar_url} />
-                      <AvatarFallback className="font-bold text-lg">
-                        {request.profiles.username?.[0]?.toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <p className="text-xl font-black mb-1">
-                        {request.profiles.full_name || request.profiles.username || 'Unknown User'}
-                      </p>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Phone className="w-3 h-3" />
-                          <span>{request.profiles.phone || 'No phone'}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Shield className="w-3 h-3" />
-                          <span>{request.profiles.role || 'patient'}</span>
-                        </div>
+                    <div className="flex flex-wrap gap-4 pt-4 border-t border-white/5">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="w-4 h-4" />
+                        <span>{request.created_at ? format(new Date(request.created_at), 'EEEE, MMMM do yyyy') : 'Unknown Date'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="w-4 h-4" />
+                        <span>{request.created_at ? format(new Date(request.created_at), 'HH:mm:ss') : 'Unknown Time'}</span>
                       </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            )}
+                </GlassCard>
 
-          </div>
+                {/* Requester Info */}
+                <GlassCard icon={<User className="text-purple-500" />} title="Requester">
+                  {request.profiles ? (
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-4">
+                        <Avatar className="h-16 w-16 rounded-[20px] border-2 border-white/10 shadow-xl">
+                          <AvatarImage src={request.profiles.avatar_url} />
+                          <AvatarFallback className="text-xl font-bold">{request.profiles.username?.[0]}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h4 className="text-lg font-bold">{request.profiles.username || 'Unknown'}</h4>
+                          <p className="text-sm text-muted-foreground uppercase tracking-wider">{request.profiles.role || 'Patient'}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-3 pt-4 border-t border-white/5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="opacity-50">Phone</span>
+                          <span className="font-medium">{request.profiles.phone || 'Not provided'}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="opacity-50">Email</span>
+                          <span className="font-medium truncate max-w-[150px]">{request.profiles.email || 'Not provided'}</span>
+                        </div>
+                      </div>
+                      <Button variant="outline" className="w-full rounded-2xl border-white/10 hover:bg-white/5 gap-2">
+                        <Phone className="w-4 h-4" />
+                        Call Patient
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center opacity-40">
+                      <p className="text-sm italic">User profile not available</p>
+                    </div>
+                  )}
+                </GlassCard>
 
-          {/* Footer Actions */}
-          <div className="pt-6 flex gap-3 justify-end border-t border-border/50 mt-6">
-            <Button
-              onClick={() => onClose(false)}
-              className="squircle-lg bg-muted text-foreground hover:bg-muted/80 font-bold px-8"
-            >
-              Close Details
-            </Button>
-          </div>
+                {/* Location Card */}
+                <GlassCard icon={<MapPin className="text-green-500" />} title="Location Data" className="lg:col-span-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Address</p>
+                        <p className="text-lg font-bold">{request.location || 'N/A'}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Latitude</p>
+                          <p className="font-mono text-sm font-bold">{request.latitude || '0.0000'}</p>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Longitude</p>
+                          <p className="font-mono text-sm font-bold">{request.longitude || '0.0000'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="aspect-video rounded-3xl bg-white/5 border border-white/10 overflow-hidden relative group">
+                        <div className="absolute inset-0 flex items-center justify-center bg-primary/5 transition-colors group-hover:bg-primary/10">
+                          <MapPin className="w-12 h-12 text-primary opacity-20" />
+                        </div>
+                        <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10">
+                          <p className="text-xs font-medium text-white/70">Geographic coordinates verified</p>
+                        </div>
+                      </div>
+                      <Button 
+                        onClick={() => window.open(`https://maps.google.com/?q=${request.latitude},${request.longitude}`, '_blank')}
+                        className="w-full rounded-2xl bg-primary hover:bg-primary/90 text-white gap-2"
+                      >
+                        <Navigation className="w-4 h-4" />
+                        Navigate to Scene
+                      </Button>
+                    </div>
+                  </div>
+                </GlassCard>
+              </div>
+
+              {/* Bottom Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4">
+                <Button
+                  variant="ghost"
+                  onClick={() => onClose(false)}
+                  className="rounded-full px-8 h-12 font-bold"
+                >
+                  Dismiss
+                </Button>
+                <Button
+                  className="rounded-full px-8 h-12 bg-white/10 hover:bg-white/20 border border-white/10 font-bold"
+                >
+                  Generate Incident Report
+                </Button>
+              </div>
+            </div>
+          </motion.div>
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    </AnimatePresence>
   );
 };
+
+/* Sub-components */
+
+const GlassCard = ({ children, title, icon, className }) => (
+  <div className={`p-4 sm:p-6 rounded-[28px] bg-white/5 border-white/10 ${className}`}>
+    <div className="flex items-center gap-3 mb-4 sm:mb-6">
+      <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
+        {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
+      </div>
+      <h3 className="font-bold tracking-tight text-sm sm:text-base">{title}</h3>
+    </div>
+    {children}
+  </div>
+);

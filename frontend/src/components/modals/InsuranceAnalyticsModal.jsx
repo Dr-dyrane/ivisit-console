@@ -53,7 +53,7 @@ export const InsuranceAnalyticsModal = ({ open, onClose, analytics }) => {
               </Button>
             </div>
 
-            <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6">
+            <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
 
               {/* Top Level Summary: "Glass Bubbles" */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">

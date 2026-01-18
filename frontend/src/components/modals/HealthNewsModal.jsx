@@ -9,7 +9,7 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
-import { X, Save, ExternalLink, Globe, Newspaper, Eye, EyeOff, Plus, Edit } from 'lucide-react';
+import { X, Save, ExternalLink, Globe, Newspaper, Eye, EyeOff, Plus, Edit, FileText, File, FileCheck } from 'lucide-react';
 
 export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
   const isView = mode === 'view';
@@ -157,33 +157,33 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 
                 {/* Basic Info */}
-                <GlassCard title="Article Info">
+                <GlassCard title="Article Info" icon={<Newspaper />}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="title" className="text-xs font-bold text-muted-foreground uppercase">Title</Label>
+                      <Label htmlFor="title" className="text-xs font-bold text-muted-foreground uppercase px-1">Title</Label>
                       <Input
                         id="title"
                         name="title"
                         value={formData.title}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-bold"
+                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-bold"
                         placeholder="Enter news title"
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="source" className="text-xs font-bold text-muted-foreground uppercase">Source</Label>
+                      <Label htmlFor="source" className="text-xs font-bold text-muted-foreground uppercase px-1">Source</Label>
                       <Select
                         value={formData.source}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, source: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-medium">
                           <SelectValue placeholder="Select source" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                        <SelectContent className="rounded-2xl border-white/10 shadow-xl bg-background/95 backdrop-blur-xl">
                           {sources.map(source => (
                             <SelectItem key={source} value={source} className="font-medium">
                               {source}
@@ -196,19 +196,19 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                 </GlassCard>
 
                 {/* Category & URL */}
-                <GlassCard title="Classification">
+                <GlassCard title="Classification" icon={<Globe />}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="category" className="text-xs font-bold text-muted-foreground uppercase">Category</Label>
+                      <Label htmlFor="category" className="text-xs font-bold text-muted-foreground uppercase px-1">Category</Label>
                       <Select
                         value={formData.category}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-medium">
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                        <SelectContent className="rounded-2xl border-white/10 shadow-xl bg-background/95 backdrop-blur-xl">
                           {categories.map(category => (
                             <SelectItem key={category} value={category} className="font-medium capitalize">
                               {category.charAt(0).toUpperCase() + category.slice(1)}
@@ -219,7 +219,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="url" className="text-xs font-bold text-muted-foreground uppercase">External URL</Label>
+                      <Label htmlFor="url" className="text-xs font-bold text-muted-foreground uppercase px-1">External URL</Label>
                       <div className="relative">
                         <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -228,7 +228,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                           value={formData.url}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-medium"
+                          className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-medium"
                           placeholder="https://example.com"
                           type="url"
                         />
@@ -238,30 +238,30 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                 </GlassCard>
 
                 {/* Content */}
-                <GlassCard title="Content">
+                <GlassCard title="Content" icon={<FileText />}>
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="description" className="text-xs font-bold text-muted-foreground uppercase">Short Description</Label>
+                      <Label htmlFor="description" className="text-xs font-bold text-muted-foreground uppercase px-1">Short Description</Label>
                       <Textarea
                         id="description"
                         name="description"
                         value={formData.description}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px] font-medium resize-none p-4"
+                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px] font-medium resize-none p-4"
                         placeholder="Brief summary..."
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="content" className="text-xs font-bold text-muted-foreground uppercase">Full Content</Label>
+                      <Label htmlFor="content" className="text-xs font-bold text-muted-foreground uppercase px-1">Full Content</Label>
                       <Textarea
                         id="content"
                         name="content"
                         value={formData.content}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[150px] font-medium p-4"
+                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[150px] font-medium p-4"
                         placeholder="Write the full article here..."
                       />
                     </div>
@@ -271,30 +271,30 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                 {/* Publish Toggle */}
                 {!isView && (
                   <div 
-                    className="p-4 sm:p-5 rounded-[24px] bg-muted/30  flex items-center hover:bg-muted/40 transition-colors cursor-pointer" 
+                    className="p-4 sm:p-5 rounded-[24px] bg-white/5 border border-white/10 flex items-center hover:bg-white/10 transition-colors cursor-pointer" 
                     onClick={() => setFormData(prev => ({ ...prev, published: !prev.published }))}
                   >
-                    <div className={`p-2 rounded-xl mr-4 transition-colors ${formData.published ? 'bg-green-500/20 text-green-500' : 'bg-muted text-muted-foreground'}`}>
-                      {formData.published ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                    <div className={`p-2 rounded-xl mr-4 transition-colors ${formData.published ? 'bg-green-500/20 text-green-500' : 'bg-white/10 text-muted-foreground'}`}>
+                      {formData.published ? <FileCheck className="h-5 w-5" /> : <File className="h-5 w-5" />}
                     </div>
                     <div className="flex-1">
                       <div className="font-bold text-sm">Publish Immediately</div>
                       <div className="text-xs text-muted-foreground">Make this article visible to all users upon saving</div>
                     </div>
-                    <div className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${formData.published ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
-                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-background shadow-sm transition-all duration-300 ${formData.published ? 'left-7' : 'left-1'}`} />
+                    <div className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${formData.published ? 'bg-primary' : 'bg-white/20'}`}>
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${formData.published ? 'left-7' : 'left-1'}`} />
                     </div>
                   </div>
                 )}
 
                 {/* Footer Actions */}
-                <div className="p-4 sm:p-6 rounded-[24px] bg-muted/30  flex gap-3 justify-end">
+                <div className="p-4 sm:p-6 rounded-[24px] bg-white/5 border border-white/10 flex gap-3 justify-end">
                   <Button
                     type="button"
                     variant="ghost"
                     onClick={() => onClose()}
                     disabled={loading}
-                    className="rounded-2xl font-bold hover:bg-muted/50"
+                    className="rounded-2xl font-bold hover:bg-white/10"
                   >
                     Cancel
                   </Button>
@@ -303,7 +303,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8"
+                      className="rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8 shadow-lg shadow-primary/20"
                     >
                       {loading ? 'Saving...' : (isCreate ? 'Create Article' : 'Save Changes')}
                     </Button>
@@ -314,7 +314,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                       type="button"
                       variant="outline"
                       onClick={() => window.open(formData.url, '_blank')}
-                      className="rounded-2xl border-primary/20 hover:bg-primary/5 font-bold bg-transparent"
+                      className="rounded-2xl border-white/10 hover:bg-white/5 font-bold bg-transparent"
                     >
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Visit Source
@@ -331,9 +331,14 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
 };
 
 /* Sub-components */
-const GlassCard = ({ children, title }) => (
-  <div className="p-4 sm:p-6 rounded-[28px] bg-muted/30 ">
-    <h3 className="font-bold tracking-tight text-sm sm:text-base uppercase mb-4 sm:mb-6">{title}</h3>
+const GlassCard = ({ children, title, icon }) => (
+  <div className="p-4 sm:p-6 rounded-[28px] bg-white/5 border border-white/10 ">
+    <div className="flex items-center gap-3 mb-4 sm:mb-6">
+      <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
+        {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5 text-primary' })}
+      </div>
+      <h3 className="font-bold tracking-tight text-sm sm:text-base">{title}</h3>
+    </div>
     {children}
   </div>
 );

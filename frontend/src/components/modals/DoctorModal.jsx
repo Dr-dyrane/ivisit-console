@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
-import { X, Stethoscope, Mail, Phone, Building, Award, Star, Activity, User } from 'lucide-react';
+import { X, Stethoscope, Mail, Phone, Building, Award, Star, Activity, User, Shield } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
@@ -64,7 +64,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
 
     try {
       const submitData = { ...formData };
-      delete submitData.hospitals; // Remove joined data
+      delete submitData.hospitals;
 
       if (isCreate) {
         const { data, error } = await supabase
@@ -106,240 +106,223 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => onClose(false)}>
-      <DialogContent className="squircle-2xl bg-background/50 backdrop-blur-xs border-0 max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0 shadow-2xl bg-background/80 backdrop-blur-xl [&>button]:hidden">
-        
-        {/* Professional Profile Header */}
-        <div className="relative h-40 bg-gradient-to-r from-primary/10 via-background to-background overflow-hidden">
-             <div className="absolute inset-0 opacity-5" 
-                  style={{ backgroundImage: 'radial-gradient(#7a1a1a 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
-             </div>
-             
-             <Button 
-                variant="ghost" 
-                size="icon" 
-                className="absolute top-4 right-4 rounded-full hover:bg-black/10 text-foreground z-20"
-                onClick={() => onClose(false)}
-            >
-                <X className="w-6 h-6" />
-            </Button>
-        </div>
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/30 backdrop-blur-md"
+            onClick={() => onClose(false)}
+          />
 
-        <div className="px-8 pb-8 -mt-16 relative z-10 overflow-y-auto max-h-[calc(90vh-10rem)] custom-scrollbar">
-            <div className="flex flex-col md:flex-row items-start md:items-end gap-6 mb-8">
-                 <div className="relative">
-                    <Avatar className="h-32 w-32 squircle-2xl border-4 border-background shadow-xl bg-muted">
-                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.name}`} className="object-cover" />
-                        <AvatarFallback className="text-4xl font-black text-muted-foreground">
-                            {formData.name?.[0]?.toUpperCase() || 'D'}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div className={`absolute bottom-2 right-2 w-6 h-6 rounded-full border-4 border-background ${
-                        formData.status === 'available' ? 'bg-success' : 
-                        formData.status === 'busy' ? 'bg-warning' : 'bg-muted'
-                    }`} />
-                 </div>
-
-                 <div className="flex-1 space-y-1 mb-2">
-                     <h2 className="text-3xl font-black tracking-tighter leading-none">
-                         {formData.name || 'New Doctor'}
-                     </h2>
-                     <p className="text-lg font-medium text-primary">
-                         {formData.specialization || 'Medical Specialist'}
-                     </p>
-                     <div className="flex items-center gap-3 pt-1">
-                         <Badge className="squircle-sm bg-muted/50 text-muted-foreground border-0 font-mono text-xs">
-                             LIC: {formData.license_number || 'PENDING'}
-                         </Badge>
-                     </div>
-                 </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl"
+          >
+            {/* Header Area */}
+            <div className="flex items-center justify-between p-8 pb-4">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 bg-primary/20 rounded-2xl">
+                  <Stethoscope className="h-6 w-6 text-primary" />
+                </div>
+                <div className="hidden sm:block">
+                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                    {formData.name || 'Professional Profile'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">{formData.specialization || 'Medical Specialist'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className={`rounded-full px-4 py-1 border-0 ${
+                  formData.status === 'available' ? 'bg-green-500/10 text-green-500' : 
+                  formData.status === 'busy' ? 'bg-orange-500/10 text-orange-500' : 'bg-muted/10 text-muted-foreground'
+                }`}>
+                  {formData.status?.toUpperCase()}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  onClick={() => onClose(false)}
+                  className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-                
-                {/* Stats Grid */}
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="p-4 squircle-xl bg-primary/5 border border-primary/10 text-center">
-                        <div className="flex justify-center mb-2">
-                            <Award className="w-5 h-5 text-primary" />
-                        </div>
-                        <p className="text-2xl font-black text-primary">{formData.experience}+</p>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Years Exp</p>
-                    </div>
-                    <div className="p-4 squircle-xl bg-warning/5 border border-warning/10 text-center">
-                        <div className="flex justify-center mb-2">
-                            <Star className="w-5 h-5 text-warning fill-warning" />
-                        </div>
-                        <p className="text-2xl font-black text-foreground">{formData.rating}</p>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Rating</p>
-                    </div>
-                    <div className="p-4 squircle-xl bg-info/5 border border-info/10 text-center">
-                        <div className="flex justify-center mb-2">
-                            <Activity className="w-5 h-5 text-info" />
-                        </div>
-                        <p className="text-2xl font-black text-foreground">Active</p>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Status</p>
-                    </div>
+            <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
+              
+              {/* Profile Summary Bubbles */}
+              <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
+                  <div className="flex justify-center mb-1">
+                    <Award className="w-5 h-5 text-primary opacity-60" />
+                  </div>
+                  <p className="text-xl font-bold">{formData.experience}+</p>
+                  <p className="text-[10px] uppercase tracking-widest opacity-50">Years Exp</p>
                 </div>
-
-                {/* Personal & Professional Info */}
-                <div className="space-y-4">
-                     <div className="flex items-center gap-2 mb-2">
-                        <User className="w-4 h-4 text-primary" />
-                        <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider">Profile Details</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name" className="text-xs font-bold text-muted-foreground uppercase">Full Name</Label>
-                            <Input
-                                id="name"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                disabled={isView}
-                                required
-                                className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-bold"
-                                placeholder="Dr. John Smith"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="specialization" className="text-xs font-bold text-muted-foreground uppercase">Specialty</Label>
-                            <div className="relative">
-                                <Stethoscope className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                    id="specialization"
-                                    name="specialization"
-                                    value={formData.specialization}
-                                    onChange={handleChange}
-                                    disabled={isView}
-                                    required
-                                    className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-medium"
-                                    placeholder="Cardiology"
-                                />
-                            </div>
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="license_number" className="text-xs font-bold text-muted-foreground uppercase">Medical License</Label>
-                            <Input
-                                id="license_number"
-                                name="license_number"
-                                value={formData.license_number}
-                                onChange={handleChange}
-                                disabled={isView}
-                                className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-mono"
-                                placeholder="MD-123456"
-                            />
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="status" className="text-xs font-bold text-muted-foreground uppercase">Current Status</Label>
-                            <Select 
-                                value={formData.status} 
-                                onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
-                                disabled={isView}
-                            >
-                                <SelectTrigger className="squircle bg-muted/30 border-0 h-12 font-medium">
-                                <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="squircle border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                                <SelectItem value="available">Available</SelectItem>
-                                <SelectItem value="busy">Busy</SelectItem>
-                                <SelectItem value="off_duty">Off Duty</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
+                <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
+                  <div className="flex justify-center mb-1">
+                    <Star className="w-5 h-5 text-yellow-500 opacity-60 fill-yellow-500/20" />
+                  </div>
+                  <p className="text-xl font-bold">{formData.rating}</p>
+                  <p className="text-[10px] uppercase tracking-widest opacity-50">Rating</p>
                 </div>
+                <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
+                  <div className="flex justify-center mb-1">
+                    <Shield className="w-5 h-5 text-blue-500 opacity-60" />
+                  </div>
+                  <p className="text-xl font-bold truncate px-1">{formData.license_number?.slice(0, 8) || 'MD-...'}</p>
+                  <p className="text-[10px] uppercase tracking-widest opacity-50">License</p>
+                </div>
+              </div>
 
-                {/* Contact & Affiliation */}
-                <div className="space-y-4">
-                     <div className="flex items-center gap-2 mb-2">
-                        <Building className="w-4 h-4 text-primary" />
-                        <h3 className="text-sm font-black text-muted-foreground uppercase tracking-wider">Affiliation & Contact</h3>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Personal Info */}
+                  <GlassCard icon={<User className="text-primary" />} title="Personal Details">
+                    <div className="space-y-4">
+                      <div className="flex justify-center mb-4">
+                        <Avatar className="h-24 w-24 rounded-[32px] border-4 border-white/5 shadow-2xl">
+                          <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.name}`} />
+                          <AvatarFallback className="text-2xl font-bold">{formData.name?.[0]}</AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Full Name</Label>
+                          <Input
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            disabled={isView}
+                            required
+                            placeholder="Dr. John Smith"
+                            className="rounded-xl bg-white/5 border-white/10 h-11"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Specialty</Label>
+                          <Input
+                            name="specialization"
+                            value={formData.specialization}
+                            onChange={handleChange}
+                            disabled={isView}
+                            required
+                            placeholder="Cardiology"
+                            className="rounded-xl bg-white/5 border-white/10 h-11"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="col-span-1 md:col-span-2 space-y-2">
-                            <Label htmlFor="hospital_id" className="text-xs font-bold text-muted-foreground uppercase">Primary Hospital</Label>
-                            <Select 
-                                value={formData.hospital_id} 
-                                onValueChange={(value) => setFormData(prev => ({ ...prev, hospital_id: value }))}
-                                disabled={isView}
-                            >
-                                <SelectTrigger className="squircle bg-muted/30 border-0 h-12 font-medium">
-                                <SelectValue placeholder="Select hospital" />
-                                </SelectTrigger>
-                                <SelectContent className="squircle border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                                {hospitals.map(h => (
-                                    <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
-                                ))}
-                                </SelectContent>
-                            </Select>
+                  </GlassCard>
+
+                  {/* Professional & Contact */}
+                  <div className="space-y-6">
+                    <GlassCard icon={<Building className="text-purple-500" />} title="Professional">
+                      <div className="space-y-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Primary Hospital</Label>
+                          <Select 
+                            value={formData.hospital_id} 
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, hospital_id: value }))}
+                            disabled={isView}
+                          >
+                            <SelectTrigger className="rounded-xl bg-white/5 border-white/10 h-11">
+                              <SelectValue placeholder="Select hospital" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
+                              {hospitals.map(h => (
+                                <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email" className="text-xs font-bold text-muted-foreground uppercase">Email</Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    disabled={isView}
-                                    className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-medium"
-                                />
-                            </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">License Number</Label>
+                          <Input
+                            name="license_number"
+                            value={formData.license_number}
+                            onChange={handleChange}
+                            disabled={isView}
+                            placeholder="MD-123456"
+                            className="rounded-xl bg-white/5 border-white/10 h-11 font-mono"
+                          />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="phone" className="text-xs font-bold text-muted-foreground uppercase">Phone</Label>
-                            <div className="relative">
-                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                    id="phone"
-                                    name="phone"
-                                    value={formData.phone}
-                                    onChange={handleChange}
-                                    disabled={isView}
-                                    className="squircle bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-mono"
-                                />
-                            </div>
+                      </div>
+                    </GlassCard>
+
+                    <GlassCard icon={<Phone className="text-green-500" />} title="Contact Info">
+                      <div className="space-y-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Email Address</Label>
+                          <Input
+                            name="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            disabled={isView}
+                            className="rounded-xl bg-white/5 border-white/10 h-11"
+                          />
                         </div>
-                    </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Phone Number</Label>
+                          <Input
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            disabled={isView}
+                            className="rounded-xl bg-white/5 border-white/10 h-11 font-mono"
+                          />
+                        </div>
+                      </div>
+                    </GlassCard>
+                  </div>
                 </div>
 
                 {/* Footer Actions */}
-                <div className="pt-4 flex gap-3 justify-end border-t border-border/50">
-                    {!isView ? (
-                        <>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={() => onClose(false)}
-                                className="squircle font-bold text-muted-foreground hover:bg-muted"
-                                disabled={loading}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                className="squircle-lg bg-primary hover:bg-primary/90 shadow-glow font-bold px-8"
-                                disabled={loading}
-                            >
-                                {loading ? 'Saving...' : (isCreate ? 'Add Doctor' : 'Save Changes')}
-                            </Button>
-                        </>
-                    ) : (
-                        <Button
-                            type="button"
-                            onClick={() => onClose(false)}
-                            className="squircle-lg bg-muted text-foreground hover:bg-muted/80 font-bold px-8"
-                        >
-                            Close
-                        </Button>
-                    )}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => onClose(false)}
+                    className="rounded-full px-8 h-12 font-bold"
+                  >
+                    {isView ? 'Dismiss' : 'Cancel'}
+                  </Button>
+                  {!isView && (
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="rounded-full px-12 h-12 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20"
+                    >
+                      {loading ? 'Saving...' : (isCreate ? 'Add Professional' : 'Save Changes')}
+                    </Button>
+                  )}
                 </div>
-            </form>
+              </form>
+            </div>
+          </motion.div>
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    </AnimatePresence>
   );
 };
+
+/* Sub-components */
+
+const GlassCard = ({ children, title, icon, className }) => (
+  <div className={`p-4 sm:p-6 rounded-[28px] bg-white/5 border-white/10 ${className}`}>
+    <div className="flex items-center gap-3 mb-4 sm:mb-6">
+      <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
+        {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
+      </div>
+      <h3 className="font-bold tracking-tight text-sm sm:text-base">{title}</h3>
+    </div>
+    {children}
+  </div>
+);

@@ -2,7 +2,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Edit, Trash2, Eye, EyeOff, Clock, Globe, Tag, Calendar } from 'lucide-react';
+import { Edit, Trash2, Eye, EyeOff, Clock, Globe, Tag, Calendar, FileCheck, File } from 'lucide-react';
 import { Card } from '../ui/card';
 import { motion } from 'framer-motion';
 
@@ -86,7 +86,7 @@ export const HealthNewsTableView = ({ healthNews, onView, onEdit, onDelete, onTo
                             onClick={() => onTogglePublish(news)}
                             className="squircle h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-warning/10 hover:text-warning"
                           >
-                            {news.published ? <EyeOff className="h-3 w-3 md:h-4 md:w-4" /> : <Eye className="h-3 w-3 md:h-4 md:w-4" />}
+                            {news.published ? <FileCheck className="h-3 w-3 md:h-4 md:w-4" /> : <File className="h-3 w-3 md:h-4 md:w-4" />}
                           </Button>
                           <Button
                             variant="ghost"

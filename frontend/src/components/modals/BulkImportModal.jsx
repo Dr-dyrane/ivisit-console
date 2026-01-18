@@ -31,7 +31,6 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
         if (file.type === 'application/json') {
           data = JSON.parse(e.target.result);
         } else {
-          // Parse CSV
           const lines = e.target.result.split('\n');
           const headers = lines[0].split(',').map(h => h.trim());
           data = lines.slice(1)
@@ -45,13 +44,11 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
               return obj;
             });
         }
-        
-        setPreview(data.slice(0, 5)); // Show first 5 items as preview
+        setPreview(data.slice(0, 5));
       } catch (error) {
         toast.error('Failed to parse file');
       }
     };
-    
     reader.readAsText(file);
   };
 
@@ -59,7 +56,6 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFileSelect(e.dataTransfer.files[0]);
     }
@@ -77,17 +73,14 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
 
   const handleImport = async () => {
     if (!file) return;
-    
     setLoading(true);
     try {
       const reader = new FileReader();
-      
       reader.onload = async (e) => {
         let data;
         if (file.type === 'application/json') {
           data = JSON.parse(e.target.result);
         } else {
-          // Parse CSV
           const lines = e.target.result.split('\n');
           const headers = lines[0].split(',').map(h => h.trim());
           data = lines.slice(1)
@@ -101,12 +94,10 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
               return obj;
             });
         }
-        
         await onImport(data);
         setFile(null);
         setPreview([]);
       };
-      
       reader.readAsText(file);
     } catch (error) {
       toast.error('Failed to import file');
@@ -134,187 +125,193 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/30 backdrop-blur-md"
             onClick={onClose}
           />
-          
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="relative z-10 w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto"
-          >
-            <Card className="p-6">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <Upload className="h-6 w-6 text-blue-500" />
-                  <h2 className="text-xl font-semibold">Bulk Import Health News</h2>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClose}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
 
-              {/* File Upload Area */}
-              <div className="mb-6">
-                <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                    dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-                  }`}
-                  onDrop={handleDrop}
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                >
-                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-700 mb-2">
-                    Drop your file here, or click to browse
-                  </p>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Supports CSV and JSON files
-                  </p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".csv,.json"
-                    onChange={(e) => e.target.files[0] && handleFileSelect(e.target.files[0])}
-                    className="hidden"
-                  />
-                  <Button
-                    onClick={() => fileInputRef.current?.click()}
-                    variant="outline"
-                    className="mb-4"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Select File
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={downloadTemplate}
-                    className="text-sm"
-                  >
-                    Download Template
-                  </Button>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative z-10 w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl"
+          >
+            {/* Header Area */}
+            <div className="flex items-center justify-between p-8 pb-4">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 bg-primary/20 rounded-2xl">
+                  <Upload className="h-6 w-6 text-primary" />
+                </div>
+                <div className="hidden sm:block">
+                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">Bulk Import</h2>
+                  <p className="text-sm text-muted-foreground">Upload CSV or JSON files for batch processing</p>
+                </div>
+                <div className="sm:hidden">
+                  <h2 className="text-xl font-bold tracking-tight text-foreground/90">Import</h2>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                onClick={onClose}
+                className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
+              {/* Upload Zone */}
+              <div
+                className={`relative group rounded-[28px] border-2 border-dashed transition-all p-12 text-center ${
+                  dragActive ? 'border-primary bg-primary/5' : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
+                }`}
+                onDrop={handleDrop}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.json"
+                  onChange={(e) => e.target.files[0] && handleFileSelect(e.target.files[0])}
+                  className="hidden"
+                />
+                
+                <div className="flex flex-col items-center gap-4">
+                  <div className={`p-4 rounded-2xl ${dragActive ? 'bg-primary/20 text-primary' : 'bg-white/10 text-muted-foreground'} transition-colors`}>
+                    <Upload className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">
+                      {file ? file.name : 'Drop your file here'}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Supports CSV and JSON files (max 10MB)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 mt-2">
+                    <Button
+                      onClick={() => fileInputRef.current?.click()}
+                      variant="outline"
+                      className="rounded-full px-6"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Select File
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={downloadTemplate}
+                      className="text-sm rounded-full"
+                    >
+                      Download Template
+                    </Button>
+                  </div>
                 </div>
 
                 {file && (
-                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center">
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                      <span className="text-sm font-medium text-green-700">
-                        {file.name} selected
-                      </span>
-                    </div>
-                  </div>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute top-4 right-4"
+                  >
+                    <Badge className="bg-green-500/20 text-green-500 border-0 flex items-center gap-1.5 py-1 px-3">
+                      <CheckCircle className="h-3 w-3" />
+                      Ready
+                    </Badge>
+                  </motion.div>
                 )}
               </div>
 
-              {/* Preview */}
+              {/* Preview Area */}
               {preview.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-medium mb-3">Preview (First 5 items)</h3>
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                            Title
-                          </th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                            Source
-                          </th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                            Category
-                          </th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                            Published
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {preview.map((item, index) => (
-                          <tr key={index}>
-                            <td className="px-4 py-2 text-sm truncate max-w-xs">
-                              {item.title || '-'}
-                            </td>
-                            <td className="px-4 py-2 text-sm">
-                              {item.source || '-'}
-                            </td>
-                            <td className="px-4 py-2 text-sm">
-                              <Badge variant="outline">
-                                {item.category || 'general'}
-                              </Badge>
-                            </td>
-                            <td className="px-4 py-2 text-sm">
-                              <Badge variant={item.published === 'true' ? 'success' : 'secondary'}>
-                                {item.published === 'true' ? 'Yes' : 'No'}
-                              </Badge>
-                            </td>
+                <GlassCard icon={<FileText className="text-primary" />} title={`Preview (${preview.length} items)`}>
+                  <div className="rounded-2xl overflow-hidden border border-white/5 bg-white/5">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm border-collapse">
+                        <thead>
+                          <tr className="bg-white/5 border-b border-white/10">
+                            <th className="px-4 py-3 font-semibold opacity-60">Title</th>
+                            <th className="px-4 py-3 font-semibold opacity-60">Source</th>
+                            <th className="px-4 py-3 font-semibold opacity-60">Category</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {preview.map((item, index) => (
+                            <tr key={index} className="hover:bg-white/5 transition-colors">
+                              <td className="px-4 py-3 truncate max-w-[200px]">{item.title || '-'}</td>
+                              <td className="px-4 py-3">{item.source || '-'}</td>
+                              <td className="px-4 py-3">
+                                <Badge variant="outline" className="border-white/10 bg-white/5">
+                                  {item.category || 'general'}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                  {preview.length >= 5 && (
-                    <p className="text-sm text-gray-500 mt-2">
-                      And {preview.length - 5} more items...
-                    </p>
-                  )}
-                </div>
+                </GlassCard>
               )}
 
               {/* Instructions */}
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-start">
-                  <AlertCircle className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
-                  <div className="text-sm text-blue-700">
-                    <p className="font-medium mb-2">File Requirements:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>CSV file with headers: title, source, category, url, icon, published</li>
-                      <li>JSON array of objects with the same fields</li>
-                      <li>Required fields: title, source</li>
-                      <li>Optional fields: category (defaults to 'general'), url, icon, published</li>
-                      <li>Published field should be 'true' or 'false'</li>
-                    </ul>
-                  </div>
+              <div className="p-6 rounded-[24px] bg-blue-500/5 border border-blue-500/10 flex gap-4 items-start">
+                <div className="p-2 bg-blue-500/10 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-blue-500" />
+                </div>
+                <div className="text-sm">
+                  <p className="font-bold text-blue-400 mb-1">File Requirements</p>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 opacity-70">
+                    <li>• Headers: title, source, category, url</li>
+                    <li>• JSON array of objects format</li>
+                    <li>• Required: title and source</li>
+                    <li>• Optional: category (default: general)</li>
+                  </ul>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t">
+              <div className="flex items-center justify-end gap-3 pt-4">
                 <Button
-                  type="button"
-                  variant="outline"
+                  variant="ghost"
                   onClick={onClose}
                   disabled={loading}
+                  className="rounded-full px-6"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleImport}
                   disabled={!file || loading}
-                  className="flex items-center gap-2"
+                  className="rounded-full px-8 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20"
                 >
-                  <Upload className="h-4 w-4" />
-                  {loading ? 'Importing...' : `Import ${preview.length} Items`}
+                  {loading ? 'Processing...' : 'Start Import'}
                 </Button>
               </div>
-            </Card>
+            </div>
           </motion.div>
         </div>
       )}
     </AnimatePresence>
   );
 };
+
+/* Sub-components */
+
+const GlassCard = ({ children, title, icon }) => (
+  <div className="p-4 sm:p-6 rounded-[28px] bg-white/5 border-white/10">
+    <div className="flex items-center gap-3 mb-4 sm:mb-6">
+      <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
+        {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
+      </div>
+      <h3 className="font-bold tracking-tight text-sm sm:text-base">{title}</h3>
+    </div>
+    {children}
+  </div>
+);
