@@ -490,127 +490,148 @@ export const InsuranceManagementPage = () => {
             </Card>
           </motion.div>
         </motion.div>
+
       </LayoutGroup>
 
       {loading ? (
         <TableSkeleton rows={8} />
+      ) : filteredPolicies.length === 0 ? (
+        <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
+          <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="font-black text-xl mb-2">
+            {filters.search ? 'No Policies Found' : 
+             filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 'No Policies Yet' :
+             'No Matching Policies'}
+          </h3>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            {filters.search ? `No policies found matching "${filters.search}". Try adjusting your search terms.` :
+             filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 
+             'Create your first insurance policy to get started with managing your coverage.' :
+             'Try adjusting your filters or search criteria to find the policies you\'re looking for.'}
+          </p>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            {filters.search && (
+              <Button onClick={() => setFilters(prev => ({ ...prev, search: '' }))} variant="outline" className="squircle">
+                <X className="h-4 w-4 mr-2" />
+                Clear Search
+              </Button>
+            )}
+            {(filters.kpiFilter !== 'all' || Object.keys(filters).filter(k => k !== 'kpiFilter').some(k => filters[k])) && (
+              <Button onClick={() => setFilters({ kpiFilter: 'all', status: '', type: '', verification: '', search: '' })} variant="outline" className="squircle">
+                <FilterIcon className="h-4 w-4 mr-2" />
+                Reset Filters
+              </Button>
+            )}
+            <Button onClick={handleCreate} className="squircle bg-primary">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Policy
+            </Button>
+          </div>
+        </Card>
       ) : (
         <>
           {/* Grid View */}
           {viewMode === 'grid' && (
-            filteredPolicies.length === 0 ? (
-              <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
-                <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="font-black text-xl mb-2">No Policies Found</h3>
-                <p className="text-muted-foreground mb-6">Create a new policy to get started</p>
-                <Button onClick={handleCreate} className="squircle bg-primary">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Policy
-                </Button>
-              </Card>
-            ) : (
-              <LayoutGroup>
-                <motion.div
-                  layout
-                  className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
-                >
-                  {paginatedPolicies.map((policy, index) => (
-                    <motion.div
-                      layout
-                      key={policy.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="col-span-1"
-                    >
-                      <Card className="h-full squircle-xl bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
-                        {/* Decorative Elements */}
-                        <div className="absolute top-0 right-0 p-5 z-20">
-                          <div className="relative">
-                            <div className={`absolute inset-0 ${policy.status === 'expired' ? 'bg-destructive/20' : 'bg-primary/10'} blur-xl rounded-full scale-150`} />
-                            <div className="w-10 h-10 geo-round bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
-                              <Shield className={`h-5 w-5 ${policy.status === 'expired' ? 'text-destructive' : 'text-primary'}`} />
-                            </div>
+            <LayoutGroup>
+              <motion.div
+                layout
+                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
+              >
+                {paginatedPolicies.map((policy, index) => (
+                  <motion.div
+                    layout
+                    key={policy.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="col-span-1"
+                  >
+                    <Card className="h-full squircle-xl bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
+                      {/* Decorative Elements */}
+                      <div className="absolute top-0 right-0 p-5 z-20">
+                        <div className="relative">
+                          <div className={`absolute inset-0 ${policy.status === 'expired' ? 'bg-destructive/20' : 'bg-primary/10'} blur-xl rounded-full scale-150`} />
+                          <div className="w-10 h-10 geo-round bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                            <Shield className={`h-5 w-5 ${policy.status === 'expired' ? 'text-destructive' : 'text-primary'}`} />
                           </div>
                         </div>
+                      </div>
 
-                        {/* Content */}
-                        <div className="flex items-center gap-2 mb-4 relative z-10">
-                          <Badge className={`geo-sharp ${getStatusBadge(policy.status)} border-0 font-black editorial-subtitle px-3 py-1`}>
-                            {policy.status}
+                      {/* Content */}
+                      <div className="flex items-center gap-2 mb-4 relative z-10">
+                        <Badge className={`geo-sharp ${getStatusBadge(policy.status)} border-0 font-black editorial-subtitle px-3 py-1`}>
+                          {policy.status}
+                        </Badge>
+                        {policy.verified && (
+                          <Badge variant="outline" className="geo-sharp border-primary/20 text-primary px-2 py-1 font-bold gap-1">
+                            <CheckCircle className="w-3 h-3" /> VERIFIED
                           </Badge>
-                          {policy.verified && (
-                            <Badge variant="outline" className="geo-sharp border-primary/20 text-primary px-2 py-1 font-bold gap-1">
-                              <CheckCircle className="w-3 h-3" /> VERIFIED
-                            </Badge>
-                          )}
+                        )}
+                      </div>
+                      <h3 className="font-black text-lg mb-2 tracking-tight relative z-10">
+                        {policy.policy_holder_name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-6 font-mono tracking-tight">{policy.policy_number}</p>
+
+                      <div className="space-y-3 mb-6 relative z-10 flex-1">
+                        <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <DollarSign className="h-4 w-4 text-primary" />
+                            <span className="font-medium">Coverage</span>
+                          </div>
+                          <span className="font-bold text-foreground">
+                            ${policy.coverage_amount?.toLocaleString() || '0'}
+                          </span>
                         </div>
-
-                        <h3 className="font-black text-xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
-                          {policy.policy_holder_name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mb-6 font-mono tracking-tight">{policy.policy_number}</p>
-
-                        <div className="space-y-3 mb-6 relative z-10 flex-1">
-                          <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <DollarSign className="h-4 w-4 text-primary" />
-                              <span className="font-medium">Coverage</span>
-                            </div>
-                            <span className="font-bold text-foreground">
-                              ${policy.coverage_amount?.toLocaleString() || '0'}
-                            </span>
+                        <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Clock className="h-4 w-4 text-warning" />
+                            <span className="font-medium">Expires</span>
                           </div>
-                          <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Clock className="h-4 w-4 text-warning" />
-                              <span className="font-medium">Expires</span>
-                            </div>
-                            <span className="font-bold text-foreground">
-                              {policy.end_date ? new Date(policy.end_date).toLocaleDateString() : 'N/A'}
-                            </span>
-                          </div>
+                          <span className="font-bold text-foreground">
+                            {policy.end_date ? new Date(policy.end_date).toLocaleDateString() : 'N/A'}
+                          </span>
                         </div>
+                      </div>
 
-                        {/* Actions */}
-                        <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
-                          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                            ACTIONS
-                          </div>
-                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleView(policy)}
-                              className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(policy)}
-                              className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(policy)}
-                              className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                      {/* Actions */}
+                      <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
+                        <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                          ACTIONS
                         </div>
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleView(policy)}
+                            className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(policy)}
+                            className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(policy)}
+                            className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
 
-                      </Card>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </LayoutGroup>
-            )
+                    </Card>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </LayoutGroup>
           )}
 
           {/* List View */}
