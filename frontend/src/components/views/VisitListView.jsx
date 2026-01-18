@@ -29,7 +29,7 @@ export const VisitListView = ({ visits, onView, onEdit, onDelete, getStatusBadge
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <Card className="squircle-lg glass shadow-sm p-4 border-0 hover:shadow-md transition-shadow group">
+          <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-sm p-4 border-0 hover:shadow-md transition-shadow group">
             <div className="flex items-center gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">

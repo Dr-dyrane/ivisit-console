@@ -189,7 +189,7 @@ export const UsersPage = () => {
           variant="ghost"
           size="sm"
           onClick={() => setShowStatistics(!showStatistics)}
-          className="glass squircle h-9 px-3 text-[10px] font-black tracking-widest uppercase"
+          className="bg-background/35 backdrop-blur-xs squircle h-9 px-3 text-[10px] font-black tracking-widest uppercase"
         >
           <BarChart3 className="h-4 w-4 mr-2" />
           {showStatistics ? 'HIDE' : 'SHOW'} STATS
@@ -228,7 +228,7 @@ export const UsersPage = () => {
 
       {/* Admin Statistics Section */}
       {isAdmin() && showStatistics && statistics && (
-        <Card className="squircle-lg glass shadow-premium p-6 border-0 mb-6">
+        <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 mb-6">
           <h3 className="font-black text-xl mb-4 flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-primary" />
             User Statistics
@@ -271,7 +271,7 @@ export const UsersPage = () => {
           <>
             {viewMode === 'grid' && (
               users.length === 0 ? (
-                <Card className="squircle-lg glass shadow-premium p-12 border-0 text-center">
+                <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
                   <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="font-black text-xl mb-2">No Users Yet</h3>
                   <p className="text-muted-foreground mb-6">Get started by creating your first user</p>
@@ -295,7 +295,7 @@ export const UsersPage = () => {
                   transition={{ delay: index * 0.03 }}
                   className="col-span-1"
                 >
-                  <Card className="h-full geo-ticket glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
+                  <Card className="h-full geo-ticket bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
 
                     {/* Top Right Icon */}
                     <div className="absolute top-0 right-0 p-5 z-20">

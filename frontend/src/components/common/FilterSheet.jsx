@@ -143,7 +143,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className="fixed top-16 left-4 right-4 z-50 mx-auto max-w-2xl"
           >
-            <div className="squircle-xl glass shadow-premium backdrop-blur-2xl p-6">
+            <div className="squircle-xl bg-background/35 backdrop-blur-xs shadow-premium backdrop-blur-2xl p-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-8">
                 <div>

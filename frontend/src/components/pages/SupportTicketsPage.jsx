@@ -252,7 +252,7 @@ export const SupportTicketsPage = () => {
       {loading ? (
         <TableSkeleton rows={8} />
       ) : supportTickets.length === 0 ? (
-        <Card className="squircle-lg glass shadow-premium p-12 border-0 text-center col-span-full">
+        <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center col-span-full">
           <Headphones className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
           <h3 className="font-black text-xl mb-2">No Support Tickets</h3>
           <p className="text-muted-foreground mb-6">There are currently no active support tickets.</p>

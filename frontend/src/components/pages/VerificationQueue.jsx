@@ -185,7 +185,7 @@ export const VerificationQueue = () => {
           transition={{ delay: 0.1 }}
         >
           <Card
-            className={`h-full squircle-lg p-6 glass border-0 cursor-pointer transition-all duration-300 relative overflow-hidden group ${filterType === 'pending' ? 'ring-2 ring-warning shadow-lg' : 'hover-lift opacity-70 hover:opacity-100'}`}
+            className={`h-full squircle-lg p-6 bg-background/35 backdrop-blur-xs border-0 cursor-pointer transition-all duration-300 relative overflow-hidden group ${filterType === 'pending' ? 'ring-2 ring-warning shadow-lg' : 'hover-lift opacity-70 hover:opacity-100'}`}
             onClick={() => setFilterType('pending')}
           >
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-warning/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
@@ -208,7 +208,7 @@ export const VerificationQueue = () => {
           transition={{ delay: 0.2 }}
         >
           <Card
-            className={`h-full squircle-lg p-6 glass border-0 cursor-pointer transition-all duration-300 relative overflow-hidden group ${filterType === 'approved' ? 'ring-2 ring-success shadow-lg' : 'hover-lift opacity-70 hover:opacity-100'}`}
+            className={`h-full squircle-lg p-6 bg-background/35 backdrop-blur-xs border-0 cursor-pointer transition-all duration-300 relative overflow-hidden group ${filterType === 'approved' ? 'ring-2 ring-success shadow-lg' : 'hover-lift opacity-70 hover:opacity-100'}`}
             onClick={() => setFilterType('approved')}
           >
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-success/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
@@ -231,7 +231,7 @@ export const VerificationQueue = () => {
           transition={{ delay: 0.3 }}
         >
           <Card
-            className={`h-full squircle-lg p-6 glass border-0 cursor-pointer transition-all duration-300 relative overflow-hidden group ${filterType === 'all' ? 'ring-2 ring-primary shadow-lg' : 'hover-lift opacity-70 hover:opacity-100'}`}
+            className={`h-full squircle-lg p-6 bg-background/35 backdrop-blur-xs border-0 cursor-pointer transition-all duration-300 relative overflow-hidden group ${filterType === 'all' ? 'ring-2 ring-primary shadow-lg' : 'hover-lift opacity-70 hover:opacity-100'}`}
             onClick={() => setFilterType('all')}
           >
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
@@ -295,7 +295,7 @@ export const VerificationQueue = () => {
                   transition={{ duration: 0.3 }}
                 >
                   <Card
-                    className="h-full squircle-lg glass shadow-premium p-6 flex flex-col justify-between hover-lift group border-0 relative overflow-hidden cursor-pointer"
+                    className="h-full squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-6 flex flex-col justify-between hover-lift group border-0 relative overflow-hidden cursor-pointer"
                     onClick={() => setSelectedProvider(provider)}
                   >
                     {/* Card Hover Gradient */}
@@ -373,7 +373,7 @@ export const VerificationQueue = () => {
 
       {/* Review Modal - Apple Style Sheet */}
       <Dialog open={!!selectedProvider} onOpenChange={() => setSelectedProvider(null)}>
-        <DialogContent className="squircle-2xl glass border-0 max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 shadow-2xl">
+        <DialogContent className="squircle-2xl bg-background/35 backdrop-blur-xs border-0 max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 shadow-2xl">
           {selectedProvider && (
             <div className="flex flex-col h-full">
               {/* Hero Header */}

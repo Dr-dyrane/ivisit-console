@@ -225,7 +225,7 @@ export const HospitalsPage = () => {
                 transition={{ delay: index * 0.05 }}
                 className="col-span-1"
               >
-                <Card className="h-full geo-block glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
+                <Card className="h-full geo-block bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
 
                   {/* Top Right Icon */}
                   <div className="absolute top-0 right-0 p-5 z-20">

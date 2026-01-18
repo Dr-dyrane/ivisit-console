@@ -114,7 +114,7 @@ const MapFallback = () => (
 			</div>
 		</div>
 
-		<div className="text-center z-10 glass squircle-lg p-8">
+		<div className="text-center z-10 bg-background/35 backdrop-blur-xs squircle-lg p-8">
 			<MapPin className="h-12 w-12 mx-auto mb-4 text-primary" />
 			<p className="font-black text-lg mb-2">Map Preview Mode</p>
 			<p className="text-sm text-muted-foreground max-w-xs">
@@ -571,7 +571,7 @@ export const GodModeMap = () => {
 	const headerActions = React.useMemo(() => (
 		<div className="flex items-center gap-2">
 			{/* Layer Toggles */}
-			<div className="flex items-center gap-1 glass squircle px-2 py-1">
+			<div className="flex items-center gap-1 bg-background/35 backdrop-blur-xs squircle px-2 py-1">
 				<Button
 					variant={showLayers.emergencies ? "default" : "ghost"}
 					size="sm"
@@ -602,7 +602,7 @@ export const GodModeMap = () => {
 			</div>
 
 			{/* Filter */}
-			<div className="flex items-center gap-1 glass squircle px-2 py-1 hidden lg:flex">
+			<div className="flex items-center gap-1 bg-background/35 backdrop-blur-xs squircle px-2 py-1 hidden lg:flex">
 				{["all", "pending", "dispatched", "en_route"].map((f) => (
 					<Button
 						key={f}
@@ -759,7 +759,7 @@ export const GodModeMap = () => {
 			{/* Map Container */}
 			<div className="flex gap-4 h-[calc(100vh-12rem)] relative">
 				{/* Map */}
-				<Card className="flex-1 squircle-2xl p-0 overflow-hidden glass border-0 relative shadow-premium">
+				<Card className="flex-1 squircle-2xl p-0 overflow-hidden bg-background/35 backdrop-blur-xs border-0 relative shadow-premium">
 					{isSwitchingMap && (
 						<div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center">
 							<AlertTriangle className="h-12 w-12 text-destructive mb-4 animate-bounce" />
@@ -816,7 +816,7 @@ export const GodModeMap = () => {
 														window.dispatchEvent(new CustomEvent('recenter-map'));
 													}
 												}}
-												className="glass squircle-full h-8 px-3 text-[10px] font-bold"
+												className="bg-background/35 backdrop-blur-xs squircle-full h-8 px-3 text-[10px] font-bold"
 											>
 												<MapPin className="h-3 w-3 mr-1" />
 												RE-CENTER
@@ -1022,10 +1022,10 @@ export const GodModeMap = () => {
 						/>
 					)}
 				</Card>
-				{/* Floating Sidebar (Glass Island) */}
+				{/* Floating Sidebar (bg-background/35 backdrop-blur-xs Island) */}
 				<div className="absolute top-4 left-4 z-[400] w-80 space-y-4 hidden lg:block">
 					{/* Live Stats */}
-					<Card className="squircle-xl p-5 glass-strong border-0 shadow-premium backdrop-blur-xl bg-background/60">
+					<Card className="squircle-xl p-5 bg-background/50 backdrop-blur-xs border-0 shadow-premium backdrop-blur-xl bg-background/60">
 						<h3 className="font-black text-lg mb-4 flex items-center gap-2">
 							<Activity className="h-5 w-5 text-primary" />
 							Live Statistics
@@ -1062,7 +1062,7 @@ export const GodModeMap = () => {
 					</Card>
 
 					{/* Recent Emergencies (Collapsible or Scrollable) */}
-					<Card className="squircle-xl p-5 glass-strong border-0 shadow-premium backdrop-blur-xl bg-background/60">
+					<Card className="squircle-xl p-5 bg-background/50 backdrop-blur-xs border-0 shadow-premium backdrop-blur-xl bg-background/60">
 						<h3 className="font-black text-lg mb-4 flex items-center gap-2">
 							<AlertTriangle className="h-5 w-5 text-warning" />
 							Recent Alerts
@@ -1117,7 +1117,7 @@ export const GodModeMap = () => {
 							exit={{ opacity: 0, x: 20, scale: 0.95 }}
 							className="absolute top-4 right-4 z-[400] w-80"
 						>
-							<Card className="squircle-xl p-0 overflow-hidden glass-strong border-0 shadow-premium backdrop-blur-xl bg-background/60">
+							<Card className="squircle-xl p-0 overflow-hidden bg-background/50 backdrop-blur-xs border-0 shadow-premium backdrop-blur-xl bg-background/60">
 								{/* Header Image/Color */}
 								<div
 									className={`h-24 relative ${selectedMarker.type === "emergency"

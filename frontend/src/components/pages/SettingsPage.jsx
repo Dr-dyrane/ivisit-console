@@ -70,7 +70,7 @@ export const SettingsPage = () => {
                         animate={{ opacity: 1, scale: 1 }}
                         className="col-span-1 md:col-span-2 row-span-2"
                     >
-                        <Card className="h-full squircle-2xl glass-strong border-0 p-0 overflow-hidden relative group">
+                        <Card className="h-full squircle-2xl bg-background/50 backdrop-blur-xs border-0 p-0 overflow-hidden relative group">
                             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-50" />
 
                             {/* Header Background */}
@@ -157,7 +157,7 @@ export const SettingsPage = () => {
                         transition={{ delay: 0.1 }}
                         className="col-span-1"
                     >
-                        <Card className="h-full squircle-2xl glass border-0 p-6 flex flex-col">
+                        <Card className="h-full squircle-2xl bg-background/35 backdrop-blur-xs border-0 p-6 flex flex-col">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="p-3 squircle bg-primary/10 text-primary">
                                     <Lock className="h-6 w-6" />
@@ -190,7 +190,7 @@ export const SettingsPage = () => {
                         transition={{ delay: 0.2 }}
                         className="col-span-1"
                     >
-                        <Card className="h-full squircle-2xl glass border-0 p-6 flex flex-col group hover-lift">
+                        <Card className="h-full squircle-2xl bg-background/35 backdrop-blur-xs border-0 p-6 flex flex-col group hover-lift">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="p-3 squircle bg-warning/10 text-warning">
                                     <Globe className="h-6 w-6" />
@@ -233,7 +233,7 @@ export const SettingsPage = () => {
                         transition={{ delay: 0.3 }}
                         className="col-span-1"
                     >
-                        <Card className="h-full squircle-2xl glass border-0 p-6 flex flex-col justify-between bg-destructive/5 hover:bg-destructive/10 transition-colors cursor-pointer group" onClick={handleSignOut}>
+                        <Card className="h-full squircle-2xl bg-background/35 backdrop-blur-xs border-0 p-6 flex flex-col justify-between bg-destructive/5 hover:bg-destructive/10 transition-colors cursor-pointer group" onClick={handleSignOut}>
                             <div className="flex items-center justify-between">
                                 <div className="p-3 squircle bg-destructive/10 text-destructive group-hover:bg-destructive group-hover:text-white transition-colors">
                                     <LogOut className="h-6 w-6" />

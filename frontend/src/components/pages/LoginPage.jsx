@@ -79,7 +79,7 @@ export const LoginPage = () => {
 						initial={{ opacity: 0, scale: 0.95 }}
 						animate={{ opacity: 1, scale: 1 }}
 						transition={{ type: "tween", duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-						className="glass-strong squircle-3xl p-10 shadow-2xl relative overflow-hidden group"
+						className="bg-background/50 backdrop-blur-xs squircle-3xl p-10 shadow-2xl relative overflow-hidden group"
 					>
                          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
 						
@@ -102,7 +102,7 @@ export const LoginPage = () => {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ type: "tween", duration: 0.3, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
-                            className="glass squircle-2xl p-6 aspect-square flex flex-col justify-between hover-lift group"
+                            className="bg-background/35 backdrop-blur-xs squircle-2xl p-6 aspect-square flex flex-col justify-between hover-lift group"
                         >
                             <div className="flex justify-between items-start">
 							    <Globe className="w-6 h-6 text-primary opacity-60 group-hover:opacity-100 transition-opacity" />
@@ -121,7 +121,7 @@ export const LoginPage = () => {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ type: "tween", duration: 0.3, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-                            className="glass squircle-2xl p-6 aspect-square flex flex-col justify-between hover-lift group"
+                            className="bg-background/35 backdrop-blur-xs squircle-2xl p-6 aspect-square flex flex-col justify-between hover-lift group"
                         >
 							<div className="flex justify-between items-start">
 							    <Server className="w-6 h-6 text-secondary opacity-60 group-hover:opacity-100 transition-opacity" />
@@ -145,7 +145,7 @@ export const LoginPage = () => {
 						initial={{ opacity: 0, x: 10 }}
 						animate={{ opacity: 1, x: 0 }}
 						transition={{ type: "tween", duration: 0.4, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-						className="glass-strong squircle-3xl p-2 sm:p-3 shadow-2xl relative"
+						className="bg-background/50 backdrop-blur-xs squircle-3xl p-2 sm:p-3 shadow-2xl relative"
 					>
                         {/* Decorative Grid Background */}
                         <div className="absolute inset-0 opacity-5" 

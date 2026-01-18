@@ -18,7 +18,7 @@ export const NotFoundPage = () => {
         transition={{ duration: 0.5 }}
         className="max-w-md w-full"
       >
-        <Card className="squircle-3xl glass-strong border-0 p-10 relative overflow-hidden shadow-2xl">
+        <Card className="squircle-3xl bg-background/50 backdrop-blur-xs border-0 p-10 relative overflow-hidden shadow-2xl">
           {/* Decorative Background */}
           <div className="absolute inset-0 bg-gradient-to-br from-destructive/5 via-transparent to-background opacity-50" />
           <div className="absolute -top-20 -right-20 w-60 h-60 bg-destructive/10 rounded-full blur-[80px]" />

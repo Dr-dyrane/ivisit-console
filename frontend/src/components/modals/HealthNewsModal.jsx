@@ -131,7 +131,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 border-0 bg-transparent shadow-2xl">
-        <div className="glass-strong squircle-2xl overflow-hidden flex flex-col h-full bg-background/95 backdrop-blur-xl">
+        <div className="bg-background/50 backdrop-blur-xs squircle-2xl overflow-hidden flex flex-col h-full bg-background/95 backdrop-blur-xl">
 
           {/* Bento Header */}
           <div className="relative p-6 pb-8 border-b border-border/10 overflow-hidden">

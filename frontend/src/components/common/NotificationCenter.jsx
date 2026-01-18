@@ -151,7 +151,7 @@ export const NotificationCenter = () => {
                 exit={{ opacity: 0, y: -10 }}
                 className="absolute top-full right-0 mt-2 w-96 max-h-[600px] z-50"
               >
-                <Card className="squircle-xl glass shadow-2xl border-0 overflow-hidden flex flex-col">
+                <Card className="squircle-xl bg-background/35 backdrop-blur-xs shadow-2xl border-0 overflow-hidden flex flex-col">
                   <div className="p-4 border-b border-white/10 flex items-center justify-between">
                     <div>
                       <h3 className="font-black">Notifications</h3>

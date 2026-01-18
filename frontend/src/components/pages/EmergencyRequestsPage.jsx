@@ -236,7 +236,7 @@ export const EmergencyRequestsPage = () => {
         <>
           {viewMode === 'grid' && (
             requests.length === 0 ? (
-              <Card className="squircle-lg glass shadow-premium p-12 border-0 text-center">
+              <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
                 <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="font-black text-xl mb-2">No Active Emergencies</h3>
                 <p className="text-muted-foreground">All clear for now</p>
@@ -256,7 +256,7 @@ export const EmergencyRequestsPage = () => {
                 transition={{ delay: index * 0.05 }}
                 className="col-span-1"
               >
-                <Card className={`h-full geo-arrow glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col ${req.priority === 'critical' ? 'ring-1 ring-destructive/20' : ''}`}>
+                <Card className={`h-full geo-arrow bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col ${req.priority === 'critical' ? 'ring-1 ring-destructive/20' : ''}`}>
 
                   {/* Top Right Icon */}
                   <div className="absolute top-0 right-0 p-5 z-20">

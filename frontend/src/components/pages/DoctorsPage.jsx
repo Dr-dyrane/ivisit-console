@@ -228,7 +228,7 @@ export const DoctorsPage = () => {
         <>
           {viewMode === 'grid' && (
             doctors.length === 0 ? (
-              <Card className="squircle-lg glass shadow-premium p-12 border-0 text-center">
+              <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
                 <Stethoscope className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="font-black text-xl mb-2">No Doctors Yet</h3>
                 <p className="text-muted-foreground mb-6">Get started by adding your first doctor</p>
@@ -253,7 +253,7 @@ export const DoctorsPage = () => {
                 transition={{ delay: index * 0.05 }}
                 className="col-span-1"
               >
-                <Card className="h-full geo-chamfer glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col" data-testid={`doctor - card - ${doctor.id} `}>
+                <Card className="h-full geo-chamfer bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col" data-testid={`doctor - card - ${doctor.id} `}>
 
                   {/* Top Right Icon */}
                   <div className="absolute top-0 right-0 p-5 z-20">

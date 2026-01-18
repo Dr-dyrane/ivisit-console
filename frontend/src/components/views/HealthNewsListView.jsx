@@ -19,7 +19,7 @@ export const HealthNewsListView = ({ healthNews, onView, onEdit, onDelete, onTog
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <Card className="squircle-lg glass shadow-premium p-3 md:p-4 border-0 hover-lift group relative overflow-hidden">
+          <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-3 md:p-4 border-0 hover-lift group relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <div className="relative z-10 flex items-center gap-3 md:gap-4 justify-between">
               <div className="flex-1 min-w-0">

@@ -223,7 +223,7 @@ export const VisitsPage = () => {
         <>
           {viewMode === 'grid' && (
             visits.length === 0 ? (
-              <Card className="squircle-lg glass shadow-premium p-12 border-0 text-center">
+              <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
                 <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="font-black text-xl mb-2">No Visits Yet</h3>
                 <p className="text-muted-foreground mb-6">Get started by scheduling the first visit</p>
@@ -248,7 +248,7 @@ export const VisitsPage = () => {
                 transition={{ delay: index * 0.03 }}
                 className="col-span-1"
               >
-                <Card className="h-full squircle-xl glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col" data-testid={`visit-card-${visit.id}`}>
+                <Card className="h-full squircle-xl bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col" data-testid={`visit-card-${visit.id}`}>
 
                   {/* Top Right Icon */}
                   <div className="absolute top-0 right-0 p-5 z-20">

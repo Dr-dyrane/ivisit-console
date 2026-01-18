@@ -11,7 +11,7 @@ export const BackButton = ({ to = '/', label = 'Back to Dashboard' }) => {
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       onClick={() => navigate(to)}
-      className="group flex items-center gap-3 px-5 py-3 squircle-lg glass shadow-premium hover-lift border-0 transition-smooth"
+      className="group flex items-center gap-3 px-5 py-3 squircle-lg bg-background/35 backdrop-blur-xs shadow-premium hover-lift border-0 transition-smooth"
     >
       <div className="w-10 h-10 squircle bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
         <ArrowLeft className="h-5 w-5 text-primary" />

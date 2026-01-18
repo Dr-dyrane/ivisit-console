@@ -17,7 +17,7 @@ export const StatsCard = ({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className={cn("squircle-lg p-6 glass hover:shadow-glow transition-smooth", className)}>
+      <Card className={cn("squircle-lg p-6 bg-background/35 backdrop-blur-xs hover:shadow-glow transition-smooth", className)}>
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>

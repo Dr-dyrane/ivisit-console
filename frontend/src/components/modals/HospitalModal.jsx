@@ -90,7 +90,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose(false)}>
-      <DialogContent className="squircle-2xl glass-strong border-0 max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0 shadow-2xl bg-background/80 backdrop-blur-xl [&>button]:hidden">
+      <DialogContent className="squircle-2xl bg-background/50 backdrop-blur-xs border-0 max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0 shadow-2xl bg-background/80 backdrop-blur-xl [&>button]:hidden">
         
         {/* Immersive Header */}
         <div className="relative h-48 bg-gradient-to-br from-info/20 via-background to-background overflow-hidden">

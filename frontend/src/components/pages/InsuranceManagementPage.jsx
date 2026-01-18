@@ -270,7 +270,7 @@ export const InsuranceManagementPage = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.1 }}
           >
-            <Card className="h-full min-h-[140px] geo-sharp glass-strong shadow-2xl p-6 border-0 hover-lift relative overflow-hidden group">
+            <Card className="h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
@@ -299,7 +299,7 @@ export const InsuranceManagementPage = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.15 }}
           >
-            <Card className="h-full min-h-[140px] geo-round glass-strong shadow-2xl p-6 border-0 hover-lift relative overflow-hidden group">
+            <Card className="h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
@@ -328,7 +328,7 @@ export const InsuranceManagementPage = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.2 }}
           >
-            <Card className="h-full min-h-[140px] squircle-3xl glass-strong shadow-2xl p-6 border-0 hover-lift relative overflow-hidden group">
+            <Card className="h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className="absolute inset-0 bg-warning/20 blur-xl rounded-full scale-150" />
@@ -358,7 +358,7 @@ export const InsuranceManagementPage = () => {
             transition={{ duration: 0.4, delay: 0.25 }}
           >
             <Card 
-              className="h-full min-h-[140px] geo-ticket glass-strong shadow-2xl p-6 border-0 hover-lift cursor-pointer group relative overflow-hidden"
+              className="h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer group relative overflow-hidden"
               onClick={handleViewAnalytics}
             >
               <div className="absolute top-0 right-0 p-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -390,7 +390,7 @@ export const InsuranceManagementPage = () => {
           {/* Grid View */}
           {viewMode === 'grid' && (
             filteredPolicies.length === 0 ? (
-              <Card className="squircle-lg glass shadow-premium p-12 border-0 text-center">
+              <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
                 <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="font-black text-xl mb-2">No Policies Found</h3>
                 <p className="text-muted-foreground mb-6">Create a new policy to get started</p>
@@ -414,7 +414,7 @@ export const InsuranceManagementPage = () => {
                       transition={{ delay: index * 0.05 }}
                       className="col-span-1"
                     >
-                      <Card className="h-full squircle-xl glass shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
+                      <Card className="h-full squircle-xl bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
                         {/* Decorative Elements */}
                         <div className="absolute top-0 right-0 p-5 z-20">
                           <div className="relative">

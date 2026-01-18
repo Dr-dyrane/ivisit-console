@@ -56,7 +56,7 @@ export const NotificationCard = ({ notification, onDismiss, onMarkRead }) => {
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className={`squircle-lg glass shadow-lg p-4 border-0 ${borderConfig[notification.color]} relative overflow-hidden group hover:shadow-xl transition-shadow`}>
+      <Card className={`squircle-lg bg-background/35 backdrop-blur-xs shadow-lg p-4 border-0 ${borderConfig[notification.color]} relative overflow-hidden group hover:shadow-xl transition-shadow`}>
         <div className="flex items-start gap-4">
           <div className={`w-10 h-10 squircle flex items-center justify-center flex-shrink-0 ${colorConfig[notification.color]}`}>
             {IconComponent ? <IconComponent className="h-5 w-5" /> : null}

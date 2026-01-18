@@ -59,7 +59,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose(false)}>
-      <DialogContent className="squircle-2xl glass-strong border-0 max-w-4xl max-h-[90vh] overflow-hidden p-0 gap-0 shadow-2xl bg-background/80 backdrop-blur-xl [&>button]:hidden">
+      <DialogContent className="squircle-2xl bg-background/50 backdrop-blur-xs border-0 max-w-4xl max-h-[90vh] overflow-hidden p-0 gap-0 shadow-2xl bg-background/80 backdrop-blur-xl [&>button]:hidden">
         
         {/* Header with Priority Gradient */}
         <div className={`relative h-40 overflow-hidden ${

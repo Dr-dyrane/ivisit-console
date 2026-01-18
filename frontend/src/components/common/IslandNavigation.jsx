@@ -252,7 +252,7 @@ export const IslandNavigation = () => {
       </div>
 
       {/* 3. PROFILE & THEME */}
-      <div className="p-4 bg-muted/20 border-t border-border/40 space-y-3">
+      <div className="p-4 bg-muted/20  border-border/40 space-y-3">
         <div className={`flex ${isBroad ? 'justify-start' : 'justify-center'}`}>
           <ThemeToggle />
         </div>

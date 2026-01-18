@@ -36,7 +36,7 @@ export const SupportTicketSimpleListView = ({
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <Card className="squircle-lg glass shadow-premium p-3 md:p-4 border-0 hover-lift transition-all group">
+          <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-3 md:p-4 border-0 hover-lift transition-all group">
             <div className="flex items-center gap-3 md:gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 md:gap-3 mb-2">

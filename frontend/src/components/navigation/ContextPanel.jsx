@@ -138,7 +138,7 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Emergency Overview</h3>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-destructive/20 flex items-center justify-center">
@@ -153,7 +153,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-warning/20 flex items-center justify-center">
@@ -168,7 +168,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-info/20 flex items-center justify-center">
@@ -183,7 +183,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
@@ -210,7 +210,7 @@ export const ContextPanel = () => {
 
           <div className="space-y-2">
             {emergencyData.slice(0, 3).map((request) => (
-              <Card key={request.id} className="glass-strong squircle-lg p-3 border-0 shadow-sm">
+              <Card key={request.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 geo-round ${request.priority === 'critical' ? 'bg-destructive' :
@@ -244,7 +244,7 @@ export const ContextPanel = () => {
 
           <button 
             onClick={handleCreateEmergency}
-            className="w-full p-4 geo-sharp glass-strong hover:bg-destructive/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+            className="w-full p-4 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-destructive/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
           >
             <Zap className="h-4 w-4 text-destructive" />
             <span className="font-black tracking-tight text-destructive">New Emergency Request</span>
@@ -272,7 +272,7 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Role Distribution</h3>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
@@ -284,7 +284,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-info/20 flex items-center justify-center">
@@ -296,7 +296,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-muted/20 flex items-center justify-center">
@@ -320,7 +320,7 @@ export const ContextPanel = () => {
 
           <button 
             onClick={handleCreateUser}
-            className="w-full p-4 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+            className="w-full p-4 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
           >
             <Users className="h-4 w-4 text-primary" />
             <span className="font-black tracking-tight text-primary">Add New User</span>
@@ -348,7 +348,7 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Capacity Status</h3>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
@@ -360,7 +360,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-warning/20 flex items-center justify-center">
@@ -372,7 +372,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-destructive/20 flex items-center justify-center">
@@ -394,7 +394,7 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Location Filter</h3>
 
-          <button className="w-full p-3 geo-sharp glass-strong hover:bg-muted/50 transition-colors flex items-center gap-3">
+          <button className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-muted/50 transition-colors flex items-center gap-3">
             <MapPin className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">Near Me</span>
           </button>
@@ -411,7 +411,7 @@ export const ContextPanel = () => {
 
           <button 
             onClick={handleCreateHospital}
-            className="w-full p-4 geo-sharp glass-strong hover:bg-info/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+            className="w-full p-4 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-info/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
           >
             <Hospital className="h-4 w-4 text-info" />
             <span className="font-black tracking-tight text-info">Add New Hospital</span>
@@ -439,7 +439,7 @@ export const ContextPanel = () => {
       >
         <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Fleet Status</h3>
 
-        <Card className="glass squircle-lg p-4 border-0">
+        <Card className="bg-background/35 backdrop-blur-xs squircle-lg p-4 border-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 geo-round bg-success/20 flex items-center justify-center">
@@ -451,7 +451,7 @@ export const ContextPanel = () => {
           </div>
         </Card>
 
-        <Card className="glass squircle-lg p-4 border-0">
+        <Card className="bg-background/35 backdrop-blur-xs squircle-lg p-4 border-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 geo-round bg-info/20 flex items-center justify-center">
@@ -463,7 +463,7 @@ export const ContextPanel = () => {
           </div>
         </Card>
 
-        <Card className="glass squircle-lg p-4 border-0">
+        <Card className="bg-background/35 backdrop-blur-xs squircle-lg p-4 border-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
@@ -485,7 +485,7 @@ export const ContextPanel = () => {
       >
         <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Performance</h3>
 
-        <Card className="glass squircle-lg p-4 border-0">
+        <Card className="bg-background/35 backdrop-blur-xs squircle-lg p-4 border-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 geo-round bg-primary/20 flex items-center justify-center">
@@ -509,7 +509,7 @@ export const ContextPanel = () => {
 
         <button 
           onClick={handleCreateAmbulance}
-          className="w-full p-4 geo-sharp glass-strong hover:bg-warning/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+          className="w-full p-4 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-warning/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
         >
           <Ambulance className="h-4 w-4 text-warning" />
           <span className="font-black tracking-tight text-warning">Add New Ambulance</span>
@@ -530,7 +530,7 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Live Statistics</h3>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-destructive/20 flex items-center justify-center">
@@ -545,7 +545,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
@@ -573,7 +573,7 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Map Controls</h3>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
@@ -595,7 +595,7 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
-          <button className="w-full p-4 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm">
+          <button className="w-full p-4 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm">
             <Zap className="h-4 w-4 text-primary" />
             <span className="font-black tracking-tight text-primary">Center Map</span>
           </button>
@@ -628,7 +628,7 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Analytics Overview</h3>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
@@ -640,7 +640,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
@@ -652,7 +652,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-info/20 flex items-center justify-center">
@@ -674,7 +674,7 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Performance Insights</h3>
           
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-warning/20 flex items-center justify-center">
@@ -702,7 +702,7 @@ export const ContextPanel = () => {
           <div className="space-y-2">
             <button 
               onClick={handleOpenReports}
-              className="w-full p-4 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+              className="w-full p-4 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
             >
               <FileText className="h-4 w-4 text-primary" />
               <span className="font-black tracking-tight text-primary">Generate Reports</span>
@@ -710,7 +710,7 @@ export const ContextPanel = () => {
 
             <button 
               onClick={handleExportData}
-              className="w-full p-4 geo-sharp glass-strong hover:bg-success/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+              className="w-full p-4 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-success/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
             >
               <TrendingUp className="h-4 w-4 text-success" />
               <span className="font-black tracking-tight text-success">Export Data</span>
@@ -739,7 +739,7 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Doctor Statistics</h3>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
@@ -751,7 +751,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-info/20 flex items-center justify-center">
@@ -763,7 +763,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
@@ -787,7 +787,7 @@ export const ContextPanel = () => {
 
           <button 
             onClick={handleCreateDoctor}
-            className="w-full p-4 geo-sharp glass-strong hover:bg-info/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+            className="w-full p-4 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-info/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
           >
             <Stethoscope className="h-4 w-4 text-info" />
             <span className="font-black tracking-tight text-info">Add New Doctor</span>
@@ -815,7 +815,7 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Visit Statistics</h3>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
@@ -827,7 +827,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-warning/20 flex items-center justify-center">
@@ -839,7 +839,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
@@ -863,7 +863,7 @@ export const ContextPanel = () => {
 
           <button 
             onClick={handleCreateVisit}
-            className="w-full p-4 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+            className="w-full p-4 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
           >
             <Calendar className="h-4 w-4 text-primary" />
             <span className="font-black tracking-tight text-primary">Schedule New Visit</span>
@@ -885,7 +885,7 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Verification Queue</h3>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-warning/20 flex items-center justify-center">
@@ -897,7 +897,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
@@ -909,7 +909,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
@@ -1233,7 +1233,7 @@ export const ContextPanel = () => {
             >
               <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Policy Overview</h3>
 
-              <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+              <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
@@ -1249,7 +1249,7 @@ export const ContextPanel = () => {
               </Card>
 
               <div className="grid grid-cols-2 gap-2">
-                <Card className="glass-strong squircle-lg p-3 border-0 shadow-sm">
+                <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 geo-round bg-success/20 flex items-center justify-center">
                       <CheckCircle className="h-4 w-4 text-success" />
@@ -1261,7 +1261,7 @@ export const ContextPanel = () => {
                   </div>
                 </Card>
 
-                <Card className="glass-strong squircle-lg p-3 border-0 shadow-sm">
+                <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
                       <Clock className="h-4 w-4 text-warning" />
@@ -1274,7 +1274,7 @@ export const ContextPanel = () => {
                 </Card>
               </div>
 
-              <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+              <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 geo-round bg-info/20 flex items-center justify-center">
@@ -1305,7 +1305,7 @@ export const ContextPanel = () => {
                     const event = new CustomEvent('openInsuranceModal');
                     window.dispatchEvent(event);
                   }}
-                  className="w-full p-3 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm text-left"
+                  className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm text-left"
                 >
                   <Plus className="h-4 w-4 text-primary" />
                   <span className="font-black tracking-tight text-primary">Add New Policy</span>
@@ -1331,7 +1331,7 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Settings</h3>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-muted/20 flex items-center justify-center">
@@ -1342,7 +1342,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
@@ -1398,7 +1398,7 @@ export const ContextPanel = () => {
         >
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">App Overview</h3>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-destructive/20 flex items-center justify-center">
@@ -1413,7 +1413,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
@@ -1428,7 +1428,7 @@ export const ContextPanel = () => {
             </div>
           </Card>
 
-          <Card className="glass-strong squircle-lg p-4 border-0 shadow-premium">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
@@ -1454,7 +1454,7 @@ export const ContextPanel = () => {
           <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">System Health</h3>
 
           <div className="grid grid-cols-2 gap-2">
-            <Card className="glass-strong squircle-lg p-3 border-0 shadow-sm">
+            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 geo-round bg-info/20 flex items-center justify-center">
                   <Hospital className="h-4 w-4 text-info" />
@@ -1466,7 +1466,7 @@ export const ContextPanel = () => {
               </div>
             </Card>
 
-            <Card className="glass-strong squircle-lg p-3 border-0 shadow-sm">
+            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
                   <Ambulance className="h-4 w-4 text-warning" />
@@ -1478,7 +1478,7 @@ export const ContextPanel = () => {
               </div>
             </Card>
 
-            <Card className="glass-strong squircle-lg p-3 border-0 shadow-sm">
+            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 geo-round bg-success/20 flex items-center justify-center">
                   <Stethoscope className="h-4 w-4 text-success" />
@@ -1490,7 +1490,7 @@ export const ContextPanel = () => {
               </div>
             </Card>
 
-            <Card className="glass-strong squircle-lg p-3 border-0 shadow-sm">
+            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
                   <Shield className="h-4 w-4 text-warning" />
@@ -1516,7 +1516,7 @@ export const ContextPanel = () => {
           <div className="space-y-2">
             <button 
               onClick={handleEmergencyResponse}
-              className="w-full p-3 geo-sharp glass-strong hover:bg-destructive/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+              className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-destructive/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
             >
               <AlertTriangle className="h-4 w-4 text-destructive" />
               <span className="font-black tracking-tight text-destructive">Emergency Response</span>
@@ -1524,7 +1524,7 @@ export const ContextPanel = () => {
 
             <button 
               onClick={handleViewAnalytics}
-              className="w-full p-3 geo-sharp glass-strong hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
+              className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
             >
               <BarChart3 className="h-4 w-4 text-primary" />
               <span className="font-black tracking-tight text-primary">View Analytics</span>

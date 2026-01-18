@@ -37,7 +37,7 @@ export const InsuranceListView = ({
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ delay: index * 0.05 }}
                     >
-                        <Card className="glass squircle-lg p-0 border-0 shadow-premium hover-lift transition-all group overflow-hidden">
+                        <Card className="bg-background/35 backdrop-blur-xs squircle-lg p-0 border-0 shadow-premium hover-lift transition-all group overflow-hidden">
                             <div className="p-5 flex flex-col md:flex-row md:items-center gap-4 relative">
                                 {/* Status Strip Gradient */}
                                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${policy.status === 'active' ? 'bg-success' : policy.status === 'expired' ? 'bg-destructive' : 'bg-warning'}`} />

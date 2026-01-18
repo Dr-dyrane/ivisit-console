@@ -122,7 +122,7 @@ Metadata:
             transition={{ duration: 0.4, type: 'spring', stiffness: 200 }}
             className="relative z-10 w-full max-w-2xl"
           >
-            <div className="squircle-2xl glass-strong shadow-2xl p-8 border-0 overflow-hidden relative">
+            <div className="squircle-2xl bg-background/50 backdrop-blur-xs shadow-2xl p-8 border-0 overflow-hidden relative">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-destructive/50 via-warning/50 to-destructive/50" />
               
               {/* Copy Button - Top Right */}

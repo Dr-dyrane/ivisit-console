@@ -12,7 +12,7 @@ export const DoctorTableView = ({ doctors, onView, onEdit, onDelete, getStatusBa
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <Card className="squircle-lg glass shadow-premium border-0 overflow-hidden">
+      <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium border-0 overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="border-b border-white/10 hover:bg-transparent">

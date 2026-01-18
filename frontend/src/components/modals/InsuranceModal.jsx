@@ -149,7 +149,7 @@ export const InsuranceModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose(false)}>
-      <DialogContent className="squircle-2xl glass-strong border-0 max-w-3xl max-h-[90vh] overflow-hidden p-0 gap-0 shadow-2xl bg-background/80 backdrop-blur-xl [&>button]:hidden">
+      <DialogContent className="squircle-2xl bg-background/50 backdrop-blur-xs border-0 max-w-3xl max-h-[90vh] overflow-hidden p-0 gap-0 shadow-2xl bg-background/80 backdrop-blur-xl [&>button]:hidden">
 
         {/* Geometric Header */}
         <div className="relative h-32 bg-gradient-to-r from-primary/10 via-background to-background overflow-hidden flex items-center justify-between px-8">

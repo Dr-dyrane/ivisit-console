@@ -151,7 +151,7 @@ export const Overview = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 squircle-lg p-6 glass">
+          <Card className="lg:col-span-2 squircle-lg p-6 bg-background/35 backdrop-blur-xs">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-lg font-semibold">Emergency Requests Trend</h3>
@@ -196,7 +196,7 @@ export const Overview = () => {
             </ResponsiveContainer>
           </Card>
 
-          <Card className="squircle-lg p-6 glass">
+          <Card className="squircle-lg p-6 bg-background/35 backdrop-blur-xs">
             <h3 className="text-lg font-semibold mb-6 flex items-center justify-between">
               Quick Stats
               <Clock className="h-5 w-5 text-muted-foreground" />
@@ -236,7 +236,7 @@ export const Overview = () => {
           </Card>
         </div>
 
-        <Card className="squircle-lg p-6 glass">
+        <Card className="squircle-lg p-6 bg-background/35 backdrop-blur-xs">
           <h3 className="text-lg font-semibold mb-4">Recent Emergency Requests</h3>
           <div className="space-y-3">
             {recentRequests.length === 0 ? (
