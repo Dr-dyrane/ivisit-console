@@ -12,6 +12,7 @@ import { LayoutProvider, useLayout } from "./contexts/LayoutContext";
 import { SmartHeader } from "./components/navigation/SmartHeader";
 import { SmartFooter } from "./components/navigation/SmartFooter";
 import { ContextAwareFAB } from "./components/navigation/ContextAwareFAB";
+import { DynamicBottomBar } from "./components/navigation/DynamicBottomBar";
 import { ProtectedRoute, UnauthorizedPage } from "./components/common/ProtectedRoute";
 import { BentoHome } from "./components/pages/BentoHome";
 import { GodModeMap } from "./components/pages/GodModeMap";
@@ -91,6 +92,7 @@ const AppShell = ({ children }) => {
 				<>
 					<SmartFooter />
 					<ContextAwareFAB />
+					<DynamicBottomBar />
 				</>
 			)}
 		</div>
