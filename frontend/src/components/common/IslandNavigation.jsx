@@ -14,6 +14,7 @@ import { useLayout } from '../../contexts/LayoutContext';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import ThemeToggle from '../ui/theme-toggle';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
+import NoiseOverlay from '../ui/noise-overlay';
 
 // Static navigation configuration
 const operationItems = [
@@ -192,8 +193,9 @@ export const IslandNavigation = () => {
       onMouseLeave={() => setIsHovered(false)}
       animate={{ width: sidebarWidth, x: isScrolledDown ? -sidebarWidth : 0 }}
       transition={{ type: "spring", stiffness: 250, damping: 28 }}
-      className="fixed left-0 top-0 bottom-0 z-50 flex flex-col bg-background/80 backdrop-blur-xl border-r border-border/40"
+      className="fixed left-0 top-0 bottom-0 z-50 flex flex-col bg-background/80 backdrop-blur-xl border-border/40"
     >
+      <NoiseOverlay />
       {/* 1. BRANDING & BACK ARROW */}
       <div className="h-16 flex-shrink-0 flex items-center px-4">
         <div className="relative flex items-center w-full">

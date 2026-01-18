@@ -6,6 +6,7 @@ import { NotificationCenter } from '../common/NotificationCenter';
 import { NetworkStatus } from '../common/NetworkStatus';
 import { Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import NoiseOverlay from '../ui/noise-overlay';
 
 export const SmartHeader = () => {
     const { isMobile } = useNavigation();
@@ -30,15 +31,16 @@ export const SmartHeader = () => {
                 }}
                 // Lower z-index than IslandNavigation (z-50)
                 className={`fixed z-40 h-16 flex items-center justify-between transition-colors duration-300 ${isMobile
-                        ? 'top-2 left-2 right-2 squircle-2xl bg-background/90 backdrop-blur-2xl border border-white/10 shadow-premium'
-                        : isScrolledDown
-                            ? 'top-0 left-0 right-0 bg-background/80 backdrop-blur-2xl shadow-lg'
-                            : 'top-0 left-0 right-0 bg-background/40 backdrop-blur-md'
+                    ? 'top-2 left-2 right-2 squircle-2xl bg-background/90 backdrop-blur-2xl border border-white/10 shadow-premium'
+                    : isScrolledDown
+                        ? 'top-0 left-0 right-0 bg-background/80 backdrop-blur-2xl shadow-lg'
+                        : 'top-0 left-0 right-0 bg-background/40 backdrop-blur-md'
                     }`}
                 style={{
                     paddingRight: '32px'
                 }}
             >
+                <NoiseOverlay />
                 <div className="flex items-center gap-2 md:gap-0 overflow-hidden h-full">
                     {/* Logo Zone - This will now slide with the paddingLeft */}
 

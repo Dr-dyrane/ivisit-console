@@ -28,7 +28,7 @@ export const SmartFooter = () => {
                         damping: 30,
                         mass: 0.8
                     }}
-                    className="hidden md:flex fixed bottom-8 z-[100] justify-center pointer-events-none"
+                    className="hidden md:flex fixed bottom-8 z-[40] justify-center pointer-events-none"
                     style={{
                         left: `${leftOffset}px`,
                         right: `${rightOffset}px`,
