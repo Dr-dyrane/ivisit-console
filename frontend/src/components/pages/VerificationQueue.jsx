@@ -121,7 +121,7 @@ export const VerificationQueue = () => {
 
   useEffect(() => {
     fetchVerificationData();
-  }, [pagination.currentPage, filterType, searchTerm]);
+  }, [pagination.currentPage, filterType, searchTerm, fetchVerificationData]);
 
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
