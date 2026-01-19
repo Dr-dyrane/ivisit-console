@@ -379,7 +379,7 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                   </div>
 
                   {/* Recipients List */}
-                  <div className="ios-bubble max-h-60 overflow-y-auto">
+                  <div className="ios-bubble max-h-60 overflow-y-auto scrollbar-hide">
                     {filteredAvailableSubscribers().length === 0 ? (
                       <div className="p-6 text-center text-muted-foreground opacity-40 text-sm">
                         {searchTerm ? 'No nodes found' : 'No available nodes'}
@@ -596,7 +596,7 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                       </div>
 
                       {/* Recipients List */}
-                      <div className="ios-bubble max-h-60 overflow-y-auto">
+                      <div className="ios-bubble max-h-60 overflow-y-auto scrollbar-hide">
                         {filteredAvailableSubscribers().length === 0 ? (
                           <div className="p-6 text-center text-muted-foreground opacity-40 text-sm">
                             {searchTerm ? 'No nodes found' : 'No available nodes'}

@@ -9,18 +9,22 @@ import { Menu, Zap, Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetOverlay } from '../ui/sheet';
 import { ContextPanel } from './ContextPanel';
 import { MobileNavMenu } from './MobileNavMenu';
-import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
-import { UserModal } from '../modals/UserModal';
-import { HospitalModal } from '../modals/HospitalModal';
-import { AmbulanceModal } from '../modals/AmbulanceModal';
-import { DoctorModal } from '../modals/DoctorModal';
-import { VisitModal } from '../modals/VisitModal';
-import { HealthNewsModal } from '../modals/HealthNewsModal';
-import { SupportTicketModal } from '../modals/SupportTicketModal';
-import { InsuranceModal } from '../modals/InsuranceModal';
+import { 
+    EmergencyRequestModal, 
+    UserModal, 
+    HospitalModal, 
+    AmbulanceModal, 
+    DoctorModal, 
+    VisitModal, 
+    HealthNewsModal, 
+    SupportTicketModal, 
+    InsuranceModal,
+    SubscriptionModal 
+} from '../modals/index';
 import { NotificationCenter } from '../common/NotificationCenter';
 import { QuickSearch } from './QuickSearch';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useSubscription } from '../../hooks/useSubscription';
 import NoiseOverlay from '../ui/noise-overlay';
 
 export const DynamicBottomBar = () => {
@@ -39,7 +43,9 @@ export const DynamicBottomBar = () => {
         visit: false,
         healthNews: false,
         supportTicket: false,
-        insurance: false
+        insurance: false,
+        subscription: false,
+        emailActions: false
     });
 
     const openModal = (type) => {
@@ -52,6 +58,7 @@ export const DynamicBottomBar = () => {
 
     const { createPolicy } = useInsurance();
     const { createTicket } = useSupportTickets();
+    const { createSubscriber } = useSubscription();
 
     // Constants for SupportTicketModal
     const TICKET_PRIORITIES = [
@@ -243,6 +250,8 @@ export const DynamicBottomBar = () => {
                                 />
                             );
                         case 'insurance': return <InsuranceModal key={key} {...props} onSave={createPolicy} mode="create" />;
+                        case 'subscription': return <SubscriptionModal key={key} {...props} onSave={createSubscriber} mode="create" />;
+                        case 'emailActions': return <SubscriptionModal key={key} {...props} mode="emailActions" />;
                         default: return null;
                     }
                 })}

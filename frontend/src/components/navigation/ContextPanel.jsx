@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { usePageData } from '../../contexts/PageDataContext';
+import { useSubscription } from '../../hooks/useSubscription';
 import {
   AlertTriangle,
   Activity,
@@ -28,10 +29,10 @@ import {
   Newspaper,
   Eye,
   EyeOff,
-  Plus,
-  TrendingUp as TrendingUpIcon,
-  Headphones,
-  FileText
+  Mail,
+  Send,
+  UserPlus,
+  Users2
 } from 'lucide-react';
 
 export const ContextPanel = () => {
@@ -50,6 +51,8 @@ export const ContextPanel = () => {
     getInsuranceStats,
     useMockData
   } = usePageData();
+  
+  const { subscribers, loading: subscribersLoading, fetchSubscribers } = useSubscription();
 
   const emergencyStats = getEmergencyStats();
 
@@ -68,7 +71,8 @@ export const ContextPanel = () => {
       '/support-tickets': { title: 'Support', subtitle: 'Ticket Management' },
       '/insurance': { title: 'Insurance', subtitle: 'Policy Management' },
       '/map': { title: 'Map Intelligence', subtitle: 'Location Services' },
-      '/settings': { title: 'System Settings', subtitle: 'Configuration' }
+      '/settings': { title: 'System Settings', subtitle: 'Configuration' },
+      '/subscriptions': { title: 'Subscriptions', subtitle: 'Email Management' }
     };
 
     const currentHeader = Object.keys(headers).find(key =>
@@ -1550,6 +1554,182 @@ export const ContextPanel = () => {
     return panel;
   };
 
+  const renderSubscriptionsPanel = () => {
+    const handleOpenEmailActions = () => {
+      const event = new CustomEvent('openEmailActionsModal');
+      window.dispatchEvent(event);
+    };
+
+    const handleOpenCreateSubscriber = () => {
+      const event = new CustomEvent('openCreateSubscriberModal');
+      window.dispatchEvent(event);
+    };
+
+    const activeSubscribers = subscribers.filter(s => s.status === 'active').length;
+    const pendingSubscribers = subscribers.filter(s => s.status === 'pending').length;
+    const freeSubscribers = subscribers.filter(s => s.type === 'free').length;
+    const paidSubscribers = subscribers.filter(s => s.type === 'paid').length;
+
+    return (
+      <div className="p-4 space-y-4">
+        {/* Subscriber Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-3"
+        >
+          <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Subscriber Overview</h3>
+
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
+                  <Users2 className="h-5 w-5 text-success" />
+                </div>
+                <div>
+                  <span className="font-black tracking-tight">Active</span>
+                  <p className="text-xs text-muted-foreground">Engaged subscribers</p>
+                </div>
+              </div>
+              <Badge className="bg-success/20 text-success border-0">{activeSubscribers}</Badge>
+            </div>
+          </Card>
+
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 geo-round bg-warning/20 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-warning" />
+                </div>
+                <div>
+                  <span className="font-black tracking-tight">Pending</span>
+                  <p className="text-xs text-muted-foreground">Awaiting confirmation</p>
+                </div>
+              </div>
+              <Badge className="bg-warning/20 text-warning border-0">{pendingSubscribers}</Badge>
+            </div>
+          </Card>
+
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
+                  <Mail className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <span className="font-black tracking-tight">Total</span>
+                  <p className="text-xs text-muted-foreground">All subscribers</p>
+                </div>
+              </div>
+              <Badge className="bg-primary/20 text-primary border-0">{subscribers.length}</Badge>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Subscription Types */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="space-y-3"
+        >
+          <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Subscription Types</h3>
+
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 geo-round bg-info/20 flex items-center justify-center">
+                  <UserPlus className="h-5 w-5 text-info" />
+                </div>
+                <div>
+                  <span className="font-black tracking-tight">Free Tier</span>
+                  <p className="text-xs text-muted-foreground">Basic access</p>
+                </div>
+              </div>
+              <Badge className="bg-info/20 text-info border-0">{freeSubscribers}</Badge>
+            </div>
+          </Card>
+
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 geo-round bg-purple-20 flex items-center justify-center">
+                  <Shield className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <span className="font-black tracking-tight">Premium</span>
+                  <p className="text-xs text-muted-foreground">Full access</p>
+                </div>
+              </div>
+              <Badge className="bg-purple-20 text-purple-600 border-0">{paidSubscribers}</Badge>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-3"
+        >
+          <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={handleOpenEmailActions}
+            className="w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 flex items-center gap-3 transition-colors"
+          >
+            <Send className="h-4 w-4" />
+            <span className="font-medium text-sm">Send Email</span>
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={handleOpenCreateSubscriber}
+            className="w-full bg-success/10 hover:bg-success/20 text-success border border-success/20 rounded-xl p-3 flex items-center gap-3 transition-colors"
+          >
+            <UserPlus className="h-4 w-4" />
+            <span className="font-medium text-sm">Add Subscriber</span>
+          </motion.button>
+        </motion.div>
+
+        {/* Recent Subscribers */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="space-y-3"
+        >
+          <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Recent Subscribers</h3>
+
+          <div className="space-y-2">
+            {subscribers.slice(0, 3).map((subscriber) => (
+              <Card key={subscriber.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 geo-round ${subscriber.status === 'active' ? 'bg-success' :
+                      subscriber.status === 'pending' ? 'bg-warning' : 'bg-muted'
+                      }`} />
+                    <div>
+                      <p className="font-medium text-sm truncate max-w-[120px]">{subscriber.email}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {subscriber.type} • {new Date(subscriber.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {subscriber.status}
+                  </Badge>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    );
+  };
+
   const renderPanelWithHeader = (panelContent) => (
     <div className="h-full flex flex-col bg-transparent backdrop-blur-XS border-border/20">
       {/* {renderPanelHeader()} */}
@@ -1586,6 +1766,8 @@ export const ContextPanel = () => {
     return renderPanelWithHeader(renderSupportTicketsPanel());
   } else if (currentPath.includes('/insurance')) {
     return renderPanelWithHeader(renderInsurancePanel());
+  } else if (currentPath.includes('/subscriptions')) {
+    return renderPanelWithHeader(renderSubscriptionsPanel());
   } else if (currentPath.includes('/settings')) {
     return renderPanelWithHeader(renderSettingsPanel());
   }
