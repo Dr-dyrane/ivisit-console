@@ -123,7 +123,9 @@ function getDefaultEmailTemplate(email: string, subject: string, content: string
       padding: 0; 
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif; 
       line-height: 1.5; 
-      background-color: #ffffff; 
+      background: 
+        linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%),
+        url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vd...') /* subtle medical pattern */;
       color: #1d1d1f;
       -webkit-font-smoothing: antialiased;
     }
@@ -160,6 +162,26 @@ function getDefaultEmailTemplate(email: string, subject: string, content: string
     }
     
     .content { text-align: center; max-width: 480px; margin: 0 auto; }
+    .hero-banner {
+      background: linear-gradient(135deg, #86100E 0%, #B71C1C 100%);
+      color: white;
+      padding: 60px 40px;
+      border-radius: 16px;
+      margin-bottom: 60px;
+      text-align: center;
+    }
+    .banner-title {
+      font-size: 32px;
+      font-weight: 700;
+      margin: 0 0 20px 0;
+      letter-spacing: -0.02em;
+    }
+    .banner-subtitle {
+      font-size: 18px;
+      opacity: 0.9;
+      margin: 0;
+      font-weight: 500;
+    }
     .body-text { 
       font-size: 19px; 
       line-height: 1.5; 
@@ -233,6 +255,13 @@ function getDefaultEmailTemplate(email: string, subject: string, content: string
       </div>
       
       <div class="content">
+        <div class="hero-banner">
+          <div class="banner-content">
+            <h2 class="banner-title">Skip the wait. Get care now.</h2>
+            <p class="banner-subtitle">Real-time healthcare access when you need it most</p>
+          </div>
+        </div>
+        
         <div class="sub-headline">Smarter healthcare access.</div>
         <div class="body-text">${content}</div>
         
