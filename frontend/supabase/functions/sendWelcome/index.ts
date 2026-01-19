@@ -10,60 +10,6 @@ interface WelcomeEmailPayload {
   email: string
 }
 
-// SMTP Email Function using Deno's connect API
-async function sendViaSMTP(email: string, emailData: any) {
-  try {
-    const encoder = new TextEncoder()
-    // @ts-ignore - Deno global is available in runtime
-    const smtpUsername = Deno.env.get('SMTP_USERNAME') || 'a05915001@smtp-brevo.com'
-    // @ts-ignore - Deno global is available in runtime
-    const smtpPassword = Deno.env.get('SMTP_PASSWORD') || 'Z5zkvynr60GYmNpT'
-    
-    const base64Username = btoa(smtpUsername)
-    const base64Password = btoa(smtpPassword)
-    
-    const emailContent = `
-From: ${emailData.sender.name} <${emailData.sender.email}>
-To: ${email}
-Subject: ${emailData.subject}
-MIME-Version: 1.0
-Content-Type: text/html; charset=UTF-8
-
-${emailData.htmlContent}
-`.trim()
-
-    // Connect to Brevo SMTP
-    // @ts-ignore - Deno global is available in runtime
-    const conn = await Deno.connect({
-      hostname: 'smtp-relay.brevo.com',
-      port: 587,
-      transport: 'tcp',
-    })
-
-    const writer = conn.writable.getWriter()
-    
-    // SMTP authentication and sending
-    await writer.write(encoder.encode('EHLO ivisit.ng\r\n'))
-    await writer.write(encoder.encode('STARTTLS\r\n'))
-    await writer.write(encoder.encode('EHLO ivisit.ng\r\n'))
-    await writer.write(encoder.encode('AUTH LOGIN\r\n'))
-    await writer.write(encoder.encode(base64Username + '\r\n'))
-    await writer.write(encoder.encode(base64Password + '\r\n'))
-    await writer.write(encoder.encode(`MAIL FROM:<${emailData.sender.email}>\r\n`))
-    await writer.write(encoder.encode(`RCPT TO:<${email}>\r\n`))
-    await writer.write(encoder.encode('DATA\r\n'))
-    await writer.write(encoder.encode(emailContent + '\r\n.\r\n'))
-    await writer.write(encoder.encode('QUIT\r\n'))
-    
-    conn.close()
-    
-    return new Response(JSON.stringify({ success: true }))
-  } catch (error: any) {
-    console.error('SMTP Error:', error)
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 })
-  }
-}
-
 // @ts-ignore - Deno global is available in runtime
 export const handler = async (req: Request, supabaseClient?: any) => {
   // Handle CORS preflight requests
@@ -93,32 +39,31 @@ export const handler = async (req: Request, supabaseClient?: any) => {
     // @ts-ignore - Deno global is available in runtime
     const brevoApiKey = Deno.env.get('BREVO_API_KEY')
     
-    // Send welcome email via Brevo SMTP
-    const emailData = {
-      sender: {
-        name: 'iVisit',
-        email: 'noreply@ivisit.ng'
-      },
-      to: [{ email }],
-      subject: 'Welcome to iVisit!',
-      htmlContent: getWelcomeEmailTemplate(email),
+    if (!brevoApiKey) {
+      throw new Error('BREVO_API_KEY environment variable is required')
     }
 
-    let emailResponse
-    if (brevoApiKey) {
-      // Use Brevo API if API key is available
-      emailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': brevoApiKey,
+    // Email content
+    const subject = 'Welcome to iVisit!'
+    const html = getWelcomeEmailTemplate(email)
+
+    // Brevo HTTP API request
+    const emailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': brevoApiKey,
+      },
+      body: JSON.stringify({
+        sender: {
+          email: 'noreply@ivisit.ng',
+          name: 'iVisit'
         },
-        body: JSON.stringify(emailData),
-      })
-    } else {
-      // Fallback to SMTP using Deno's connect API
-      emailResponse = await sendViaSMTP(email, emailData)
-    }
+        to: [{ email }],
+        subject,
+        htmlContent: html
+      }),
+    })
 
     if (!emailResponse.ok) {
       const errorData = await emailResponse.text()
@@ -138,10 +83,7 @@ export const handler = async (req: Request, supabaseClient?: any) => {
     const { error: updateError } = await supabaseClient
       .from('subscribers')
       .update({ 
-        welcome_email_sent: true, 
-        welcome_email_sent_at: new Date().toISOString(),
-        new_user: false,
-        status: 'active'
+        new_user: false
       })
       .eq('email', email)
 

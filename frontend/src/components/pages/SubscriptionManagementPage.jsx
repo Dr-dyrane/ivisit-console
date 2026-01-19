@@ -33,6 +33,8 @@ import {
 import { toast } from 'sonner';
 import { motion, LayoutGroup } from 'framer-motion';
 import { Badge } from '../ui/badge';
+import { subscribeToSubscribers } from '../../services/subscribersService';
+import { supabase } from '../../lib/supabase';
 
 export const SubscriptionManagementPage = () => {
   const { isAdmin } = useAuth();
@@ -87,6 +89,47 @@ export const SubscriptionManagementPage = () => {
     window.addEventListener('openSubscriptionAnalyticsModal', handleOpenAnalytics);
     return () => window.removeEventListener('openSubscriptionAnalyticsModal', handleOpenAnalytics);
   }, []);
+
+  // Real-time listener for new subscribers
+  useEffect(() => {
+    const handleNewSubscriber = async (newSubscriber, eventType) => {
+      // Only handle INSERT events for new users
+      if (eventType === 'INSERT' && newSubscriber.new_user) {
+        // Show real-time notification in dashboard UI
+        toast.success(`New subscriber: ${newSubscriber.email}`, {
+          duration: 5000,
+          icon: <Mail className="h-4 w-4" />
+        });
+
+        // Trigger Edge Function to send welcome email
+        try {
+          const { data, error } = await supabase.functions.invoke('sendWelcome', {
+            body: { email: newSubscriber.email }
+          });
+
+          if (error) {
+            console.error('Failed to send welcome email:', error);
+            toast.error(`Failed to send welcome email to ${newSubscriber.email}`);
+          } else {
+            console.log('Welcome email sent successfully:', data);
+            toast.success(`Welcome email sent to ${newSubscriber.email}`);
+            
+            // Refresh subscribers list to show updated status
+            fetchSubscribers();
+          }
+        } catch (error) {
+          console.error('Error calling sendWelcome function:', error);
+          toast.error(`Error sending welcome email to ${newSubscriber.email}`);
+        }
+      }
+    };
+
+    const unsubscribe = subscribeToSubscribers(handleNewSubscriber);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [fetchSubscribers]);
 
   // Filter Logic (enhanced based on insurance baseline)
   const filteredSubscribers = useMemo(() => {

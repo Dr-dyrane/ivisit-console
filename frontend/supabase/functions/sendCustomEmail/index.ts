@@ -1,19 +1,27 @@
-// Simple custom email function without external dependencies
+// Simple custom email function using Brevo HTTP API
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Content-Type': 'application/json',
 }
 
+interface CustomEmailPayload {
+  email: string
+  subject: string
+  content: string
+}
+
 // @ts-ignore
-export const handler = async (req) => {
+export const handler = async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { email, subject, content } = await req.json()
+    const { email, subject, content }: CustomEmailPayload = await req.json()
     
     if (!email) {
       return new Response(
@@ -45,13 +53,36 @@ export const handler = async (req) => {
       )
     }
 
-    // Log the custom email request for now (you can implement actual email sending later)
-    console.log('Custom email request:', {
-      email,
-      subject,
-      content,
-      timestamp: new Date().toISOString()
+    // @ts-ignore - Deno global is available in runtime
+    const brevoApiKey = Deno.env.get('BREVO_API_KEY')
+    
+    if (!brevoApiKey) {
+      throw new Error('BREVO_API_KEY environment variable is required')
+    }
+
+    // Send email using Brevo HTTP API
+    const emailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': brevoApiKey,
+      },
+      body: JSON.stringify({
+        sender: {
+          email: 'noreply@ivisit.ng',
+          name: 'iVisit'
+        },
+        to: [{ email }],
+        subject,
+        htmlContent: content
+      }),
     })
+
+    if (!emailResponse.ok) {
+      const errorData = await emailResponse.text()
+      console.error('Brevo API error:', errorData)
+      throw new Error(`Failed to send email: ${errorData}`)
+    }
 
     return new Response(
       JSON.stringify({ 
@@ -62,9 +93,8 @@ export const handler = async (req) => {
       { status: 200, headers: corsHeaders }
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in sendCustomEmail function:', error)
-    // @ts-ignore
     return new Response(
       JSON.stringify({ error: error.message || 'Unknown error occurred' }),
       { status: 500, headers: corsHeaders }

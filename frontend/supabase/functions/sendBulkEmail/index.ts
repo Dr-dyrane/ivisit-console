@@ -1,4 +1,6 @@
-// Simple bulk email function without external dependencies
+// Simple bulk email function using Brevo HTTP API
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -52,18 +54,58 @@ export const handler = async (req: Request) => {
       )
     }
 
-    // Log the bulk email request for now (you can implement actual email sending later)
-    console.log('Bulk email request:', {
-      emails,
-      subject,
-      content,
-      timestamp: new Date().toISOString()
-    })
+    // @ts-ignore - Deno global is available in runtime
+    const brevoApiKey = Deno.env.get('BREVO_API_KEY')
+    
+    if (!brevoApiKey) {
+      throw new Error('BREVO_API_KEY environment variable is required')
+    }
+
+    // Send emails using Brevo HTTP API
+    const results = []
+    for (const email of emails) {
+      try {
+        const emailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'api-key': brevoApiKey,
+          },
+          body: JSON.stringify({
+            sender: {
+              email: 'noreply@ivisit.ng',
+              name: 'iVisit'
+            },
+            to: [{ email }],
+            subject,
+            htmlContent: content
+          }),
+        })
+
+        if (emailResponse.ok) {
+          results.push({ email, status: 'success' })
+        } else {
+          const errorData = await emailResponse.text()
+          results.push({ email, status: 'error', error: errorData })
+          console.error(`Failed to send to ${email}:`, errorData)
+        }
+      } catch (error: any) {
+        results.push({ email, status: 'error', error: error.message })
+        console.error(`Error sending to ${email}:`, error)
+      }
+    }
+
+    const successCount = results.filter(r => r.status === 'success').length
+    const failureCount = results.length - successCount
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Bulk email processed for ${emails.length} recipients`,
+        message: `Bulk email processed: ${successCount} sent, ${failureCount} failed`,
+        total_emails: emails.length,
+        successful: successCount,
+        failed: failureCount,
+        results: results,
         processed_at: new Date().toISOString()
       }),
       { status: 200, headers: corsHeaders }
@@ -77,3 +119,6 @@ export const handler = async (req: Request) => {
     )
   }
 }
+
+// @ts-ignore - Deno global is available in runtime
+serve(handler)
