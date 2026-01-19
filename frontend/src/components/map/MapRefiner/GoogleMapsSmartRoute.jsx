@@ -50,7 +50,7 @@ export const GoogleMapsSmartRoute = ({ start, end, options }) => {
         }, 200);
 
         return () => clearTimeout(timeoutId);
-    }, [directionsService, start.lat, start.lng, end.lat, end.lng]);
+    }, [directionsService, start, end]);
 
     // Create & Update Polyline
     useEffect(() => {
