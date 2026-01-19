@@ -10,6 +10,7 @@ import { RefreshCw } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import NoiseOverlay from '../ui/noise-overlay'; // Add NoiseOverlay
+import { transformActivityData } from '../../utils/activityUtils';
 import {
   Activity,
   Users,
@@ -46,6 +47,9 @@ export const BentoHome = () => {
     doctorsData,
     visitsData,
     verificationData,
+    activityData,
+    fetchActivityData,
+    refreshAllData
   } = usePageData();
 
   // Use subscription hook for real data
@@ -70,32 +74,26 @@ export const BentoHome = () => {
     responseTime: Math.round((analyticsData?.avgResponseTime || 4.2) * 10) / 10, // Round to 1 decimal place
     activeProviders: doctorsData?.totalDoctors || 48,
     todayRequests: emergencyStats?.total || 0,
-    totalUsers: doctorsData?.totalDoctors + 25, // doctors + other staff
+    totalUsers: verificationData?.total || 16, // Real user count from profiles table
     completionRate: analyticsData?.completionRate || 94,
     availableAmbulances: analyticsData?.availableAmbulances || 12,
     pendingVerifications: verificationData?.pending || 15
   };
 
-  const fetchStats = useCallback(async () => {
-    try {
-      const [requests, providers] = await Promise.all([
-        supabase.from('emergency_requests').select('*', { count: 'exact' }),
-        supabase.from('profiles').select('*', { count: 'exact' }).eq('role', 'provider')
-      ]);
+  // Transform activity data for display
+  const recentActivities = transformActivityData(activityData || []);
 
-      setStats(prev => ({
-        ...prev,
-        liveEmergencies: requests.count || prev.liveEmergencies,
-        activeProviders: providers.count || prev.activeProviders
-      }));
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+  const headerActions = React.useMemo(() => (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={refreshAllData || fetchActivityData}
+      className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-8 px-3 text-[10px] font-bold"
+    >
+      <RefreshCw className="h-3 w-3 mr-1" />
+      REFRESH STATS
+    </Button>
+  ), [refreshAllData, fetchActivityData]);
 
   // Fetch subscription analytics
   useEffect(() => {
@@ -119,18 +117,6 @@ export const BentoHome = () => {
     { time: '16:00', value: 18 },
     { time: '20:00', value: 12 },
   ];
-
-  const headerActions = React.useMemo(() => (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={fetchStats}
-      className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-8 px-3 text-[10px] font-bold"
-    >
-      <RefreshCw className="h-3 w-3 mr-1" />
-      REFRESH STATS
-    </Button>
-  ), [fetchStats]);
 
   usePageHeader("Command Center", headerActions);
 
@@ -378,7 +364,7 @@ export const BentoHome = () => {
                   <div className="w-12 h-12 squircle bg-warning/10 flex items-center justify-center">
                     <FileCheck className="h-6 w-6 text-warning" />
                   </div>
-                  <Badge className="squircle-sm bg-warning/20 text-warning border-0 font-black editorial-subtitle px-2 py-0.5">8 PENDING</Badge>
+                  <Badge className="squircle-sm bg-warning/20 text-warning border-0 font-black editorial-subtitle px-2 py-0.5">{appStats.pendingVerifications} PENDING</Badge>
                 </div>
                 <div>
                   <h4 className="font-black text-xl tracking-tight">Verification</h4>
@@ -433,12 +419,12 @@ export const BentoHome = () => {
 
           {/* Quick Actions Grid */}
           {[
-            { id: 'hospitals', icon: Hospital, label: 'Hospitals', sub: '28 active', color: 'primary', path: '/hospitals', minRole: 'provider' },
+            { id: 'hospitals', icon: Hospital, label: 'Hospitals', sub: `${analyticsData?.activeHospitals || 8} active`, color: 'primary', path: '/hospitals', minRole: 'provider' },
             { id: 'ambulances', icon: Ambulance, label: 'Fleet', sub: `${appStats.availableAmbulances} units`, color: 'success', path: '/ambulances', minRole: 'provider' },
-            { id: 'doctors', icon: Stethoscope, label: 'Doctors', sub: 'Medical staff', color: 'info', path: '/doctors', minRole: 'provider' },
-            { id: 'users', icon: Users, label: 'Users', sub: '1,247 total', color: 'secondary', path: '/users', minRole: 'admin' },
-            { id: 'visits', icon: Calendar, label: 'Visits', sub: 'Appointments', color: 'warning', path: '/visits', minRole: 'provider' },
-            { id: 'emergencies', icon: AlertTriangle, label: 'Emergencies', sub: 'Requests', color: 'destructive', path: '/emergencies', minRole: 'provider' },
+            { id: 'doctors', icon: Stethoscope, label: 'Doctors', sub: `${doctorsData?.totalDoctors || 48} medical staff`, color: 'info', path: '/doctors', minRole: 'provider' },
+            { id: 'users', icon: Users, label: 'Users', sub: `${appStats.totalUsers} total`, color: 'secondary', path: '/users', minRole: 'admin' },
+            { id: 'visits', icon: Calendar, label: 'Visits', sub: `${visitsData?.today || 24} today`, color: 'warning', path: '/visits', minRole: 'provider' },
+            { id: 'emergencies', icon: AlertTriangle, label: 'Emergencies', sub: `${emergencyStats?.total || 0} requests`, color: 'destructive', path: '/emergencies', minRole: 'provider' },
           ].filter(item => !item.minRole || hasMinRole(item.minRole)).map((item, idx) => (
             <motion.div
               layout
@@ -590,10 +576,30 @@ export const BentoHome = () => {
               <h4 className="font-black text-lg mb-6 tracking-tight">System Status</h4>
               <div className="grid grid-cols-1 gap-6 flex-1">
                 {[
-                  { label: 'Success Rate', value: '94%', progress: 94, color: 'success' },
-                  { label: 'Fleet Active', value: '78%', progress: 78, color: 'primary' },
-                  { label: 'Beds Available', value: '156', progress: 65, color: 'info' },
-                  { label: 'System Health', value: '99%', progress: 99, color: 'success' },
+                  { 
+                    label: 'Success Rate', 
+                    value: `${appStats.completionRate}%`, 
+                    progress: appStats.completionRate, 
+                    color: 'success' 
+                  },
+                  { 
+                    label: 'Fleet Active', 
+                    value: `${Math.round((appStats.availableAmbulances / (appStats.availableAmbulances + 4)) * 100)}%`, 
+                    progress: Math.round((appStats.availableAmbulances / (appStats.availableAmbulances + 4)) * 100), 
+                    color: 'primary' 
+                  },
+                  { 
+                    label: 'Beds Available', 
+                    value: appStats.availableAmbulances * 13, // Estimate beds per ambulance
+                    progress: Math.min(65, appStats.availableAmbulances * 5), 
+                    color: 'info' 
+                  },
+                  { 
+                    label: 'System Health', 
+                    value: '99%', 
+                    progress: 99, 
+                    color: 'success' 
+                  },
                 ].map((stat, idx) => (
                   <div key={idx} className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -630,23 +636,28 @@ export const BentoHome = () => {
 
               <h4 className="font-black text-lg mb-5 tracking-tight relative z-10">Recent Activity</h4>
               <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar relative z-10">
-                {[
-                  { type: 'emergency', msg: 'New emergency request from Victoria Island', time: '2m ago', icon: AlertCircle, color: 'text-primary', bg: 'bg-primary/10' },
-                  { type: 'complete', msg: 'Emergency response completed - Lekki', time: '15m ago', icon: CheckCircle2, color: 'text-success', bg: 'bg-success/10' },
-                  { type: 'provider', msg: 'New provider verified - Dr. Adebayo', time: '1h ago', icon: FileCheck, color: 'text-info', bg: 'bg-info/10' },
-                  { type: 'emergency', msg: 'Ambulance dispatched to Ikeja', time: '2h ago', icon: Ambulance, color: 'text-warning', bg: 'bg-warning/10' },
-                  { type: 'system', msg: 'System backup completed successfully', time: '3h ago', icon: CheckCircle2, color: 'text-secondary', bg: 'bg-secondary/10' },
-                ].map((activity, idx) => (
-                  <div key={idx} className="flex items-start gap-4 p-4 squircle bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group border-0">
-                    <div className={`w-10 h-10 squircle flex items-center justify-center ${activity.bg} flex-shrink-0 group-hover:scale-110 transition-transform shadow-inner`}>
-                      <activity.icon className={`h-5 w-5 ${activity.color}`} />
+                {recentActivities.length > 0 ? (
+                  recentActivities.map((activity, idx) => (
+                    <div key={activity.id || idx} className="flex items-start gap-4 p-4 squircle bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group border-0">
+                      <div className={`w-10 h-10 squircle flex items-center justify-center ${activity.bg} flex-shrink-0 group-hover:scale-110 transition-transform shadow-inner`}>
+                        <activity.icon className={`h-5 w-5 ${activity.color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold leading-snug truncate-2">{activity.msg}</p>
+                        <p className="text-xs text-muted-foreground mt-1 font-semibold">{activity.time}</p>
+                        {activity.user && (
+                          <p className="text-xs text-muted-foreground mt-1 font-medium">by {activity.user}</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold leading-snug truncate-2">{activity.msg}</p>
-                      <p className="text-xs text-muted-foreground mt-1 font-semibold">{activity.time}</p>
-                    </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center py-8">
+                    <Activity className="h-8 w-8 text-muted-foreground mb-3" />
+                    <p className="text-sm text-muted-foreground font-medium">No recent activity</p>
+                    <p className="text-xs text-muted-foreground mt-1">Activity will appear here as users interact with the system</p>
                   </div>
-                ))}
+                )}
               </div>
             </Card>
           </motion.div>

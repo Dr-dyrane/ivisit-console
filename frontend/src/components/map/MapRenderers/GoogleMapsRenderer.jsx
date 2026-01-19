@@ -72,12 +72,12 @@ export const GoogleMapsRenderer = ({
 					markers={allMarkers}
 					styles={mapStyles}
 				/>
-				
+
 				{/* Routes/Polylines */}
 				{activeRoutes.map((route) => (
 					<GoogleMapsPolyline
 						key={route.id}
-						path={route.path}
+						path={route.positions.map(p => ({ lat: p[0], lng: p[1] }))}
 						options={{
 							strokeColor: route.color,
 							strokeOpacity: 0.9,

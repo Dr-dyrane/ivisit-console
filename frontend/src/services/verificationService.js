@@ -5,6 +5,8 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { getCurrentUser } from './authService';
+import { logProviderActivity } from './activityService';
 import { isAdmin, AuthorizationError, logAuthorizationEvent, handleServiceError } from './rbacPatterns';
 
 const TABLE_NAME = 'profiles';
@@ -133,6 +135,22 @@ export async function verifyProvider(providerId, approved) {
 
     logAuthorizationEvent('verification', 'verifyProvider', providerId, true, 
       `${approved ? 'Approved' : 'Rejected'} provider: ${provider.username}`);
+
+    // Log activity
+    try {
+      if (approved) {
+        await logProviderActivity.verified(
+          providerId,
+          `New provider verified - ${provider.username}`,
+          {
+            email: provider.email,
+            username: provider.username
+          }
+        );
+      }
+    } catch (activityError) {
+      console.warn('Failed to log activity:', activityError);
+    }
 
     return data;
 

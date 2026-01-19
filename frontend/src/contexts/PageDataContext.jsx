@@ -91,6 +91,7 @@ export const PageDataProvider = ({ children }) => {
   const [verificationData, setVerificationData] = useState(mockVerificationData);
   const [supportTicketsData, setSupportTicketsData] = useState(mockSupportTicketsData);
   const [insurancePolicies, setInsurancePolicies] = useState([]);
+  const [activityData, setActivityData] = useState([]);
   const [loading, setLoading] = useState({
     emergency: false,
     analytics: false,
@@ -101,7 +102,8 @@ export const PageDataProvider = ({ children }) => {
     ambulances: false,
     users: false,
     supportTickets: false,
-    insurance: false
+    insurance: false,
+    activity: false
   });
   const [useMockData, setUseMockData] = useState(false);
 
@@ -477,6 +479,42 @@ export const PageDataProvider = ({ children }) => {
     }
   }, [useMockData]);
 
+  // Fetch activity data
+  const fetchActivityData = useCallback(async () => {
+    try {
+      setLoading(prev => ({ ...prev, activity: true }));
+
+      if (useMockData) {
+        // Use mock activity data for now
+        setActivityData([
+          { id: 'mock-1', action: 'emergency_created', description: 'New emergency request from Victoria Island', time_ago: '2m ago' },
+          { id: 'mock-2', action: 'emergency_completed', description: 'Emergency response completed - Lekki', time_ago: '15m ago' },
+          { id: 'mock-3', action: 'provider_verified', description: 'New provider verified - Dr. Adebayo', time_ago: '1h ago' },
+          { id: 'mock-4', action: 'ambulance_dispatched', description: 'Ambulance dispatched to Ikeja', time_ago: '2h ago' },
+          { id: 'mock-5', action: 'system_backup', description: 'System backup completed successfully', time_ago: '3h ago' },
+        ]);
+        return;
+      }
+
+      const { data, error } = await supabase.rpc('get_recent_activity', {
+        limit_count: 20,
+        offset_count: 0
+      });
+
+      if (error) {
+        console.warn('Supabase error for activity:', error);
+        setActivityData([]);
+      } else {
+        setActivityData(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching activity data:', error);
+      setActivityData([]);
+    } finally {
+      setLoading(prev => ({ ...prev, activity: false }));
+    }
+  }, [useMockData]);
+
   // Initialize all data on mount
   useEffect(() => {
     fetchEmergencyData();
@@ -489,6 +527,7 @@ export const PageDataProvider = ({ children }) => {
     fetchUsersData();
     fetchSupportTicketsData();
     fetchInsurancePolicies();
+    fetchActivityData();
   }, [
     fetchEmergencyData,
     fetchVerificationData,
@@ -499,7 +538,8 @@ export const PageDataProvider = ({ children }) => {
     fetchAmbulancesData,
     fetchUsersData,
     fetchSupportTicketsData,
-    fetchInsurancePolicies
+    fetchInsurancePolicies,
+    fetchActivityData
   ]);
 
   // Real-time subscription for emergency data
@@ -598,6 +638,23 @@ export const PageDataProvider = ({ children }) => {
     }
   }, [useMockData, fetchSupportTicketsData]);
 
+  // Real-time subscription for activity data
+  useEffect(() => {
+    fetchActivityData();
+
+    if (!useMockData) {
+      const channel = supabase
+        .channel('activity_changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'user_activity' },
+          fetchActivityData
+        )
+        .subscribe();
+
+      return () => supabase.removeChannel(channel);
+    }
+  }, [useMockData, fetchActivityData]);
+
   // Calculate emergency statistics
   const getEmergencyStats = () => {
     const critical = emergencyData.filter(req => req.priority === 'critical').length;
@@ -643,6 +700,7 @@ export const PageDataProvider = ({ children }) => {
     visitsData,
     verificationData,
     supportTicketsData,
+    activityData,
     // Add insurance data directly to value so it's accessible
     insurance: insurancePolicies,
 
@@ -661,6 +719,7 @@ export const PageDataProvider = ({ children }) => {
     fetchUsersData,
     fetchSupportTicketsData,
     fetchInsurancePolicies,
+    fetchActivityData,
     getEmergencyStats,
     getInsuranceStats,
     setUseMockData,

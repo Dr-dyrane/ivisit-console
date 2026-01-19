@@ -13,7 +13,7 @@ export const MapLayerControls = ({ showLayers, setShowLayers }) => {
 
 	const toggleLayer = (layer, e) => {
 		e.stopPropagation(); // Prevent collapsing when clicking a layer
-		setShowLayers(prev => ({ ...prev, [layer]: !prev[layer] }));
+		setShowLayers(layer);
 	};
 
 	return (

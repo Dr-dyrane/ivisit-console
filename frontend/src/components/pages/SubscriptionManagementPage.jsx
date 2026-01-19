@@ -800,6 +800,8 @@ export const SubscriptionManagementPage = () => {
         filterSchema={filterSchema}
         onApply={setFilters}
         initialValues={filters}
+        viewToggle={viewToggleComponent}
+        isMobile={isMobile}
       />
     </div>
   );

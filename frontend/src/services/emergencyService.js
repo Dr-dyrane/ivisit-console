@@ -5,8 +5,19 @@
 
 import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './authService';
+import { logEmergencyActivity } from './activityService';
 
 const TABLE_NAME = 'emergency_requests';
+
+/**
+ * Calculate response time in minutes
+ */
+function calculateResponseTime(createdAt) {
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now - created;
+  return Math.round(diffMs / 60000); // Convert to minutes
+}
 
 /**
  * Get all emergency requests with optional filters
@@ -110,6 +121,22 @@ export async function createEmergencyRequest(input) {
 
     if (error) throw error;
 
+    // Log activity
+    try {
+      await logEmergencyActivity.created(
+        data.id,
+        `New emergency request from ${input.pickup_location?.address || 'Unknown location'}`,
+        {
+          service_type: input.service_type,
+          specialty: input.specialty,
+          location: input.pickup_location?.address,
+          priority: input.priority || 'medium'
+        }
+      );
+    } catch (activityError) {
+      console.warn('Failed to log activity:', activityError);
+    }
+
     return data;
   } catch (error) {
     console.error('Error creating emergency request:', error);
@@ -135,6 +162,37 @@ export async function updateEmergencyRequest(requestId, input) {
       .single();
 
     if (error) throw error;
+
+    // Log activity for completed emergencies
+    if (input.status === 'completed') {
+      try {
+        await logEmergencyActivity.completed(
+          requestId,
+          `Emergency response completed - ${data.destination_location?.address || 'Location'}`,
+          {
+            location: data.destination_location?.address,
+            response_time: calculateResponseTime(data.created_at),
+            service_type: data.service_type
+          }
+        );
+      } catch (activityError) {
+        console.warn('Failed to log activity:', activityError);
+      }
+    } else if (input.status) {
+      try {
+        await logEmergencyActivity.updated(
+          requestId,
+          `Emergency request updated to ${input.status}`,
+          {
+            old_status: data.status,
+            new_status: input.status,
+            location: data.pickup_location?.address
+          }
+        );
+      } catch (activityError) {
+        console.warn('Failed to log activity:', activityError);
+      }
+    }
 
     return data;
   } catch (error) {

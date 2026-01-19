@@ -6,6 +6,22 @@ export const LeafletMapRefiner = ({ userLocation, markers, onZoomComplete }) => 
 	const zoomedStatus = React.useRef('none');
 
 	useEffect(() => {
+		const handleRecenter = () => {
+			if (userLocation) {
+				map.setView([userLocation.lat, userLocation.lng], 15, {
+					animate: true,
+					duration: 1.5
+				});
+				zoomedStatus.current = 'user';
+			}
+		};
+
+		window.addEventListener('recenter-map', handleRecenter);
+		return () => window.removeEventListener('recenter-map', handleRecenter);
+	}, [map, userLocation]);
+
+	// Original effect
+	useEffect(() => {
 		if (!map || !userLocation) return;
 
 		const top5 = markers && markers.length > 0 ? [...markers]

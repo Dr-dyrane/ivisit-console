@@ -64,6 +64,9 @@ export const GoogleMapsMapRefiner = ({ userLocation, markers, styles }) => {
 			.slice(0, 5);
 	}, [userLocation, markers]);
 
+	// State to force re-run of centering logic
+	const [recenterTrigger, setRecenterTrigger] = useState(0);
+
 	useEffect(() => {
 		if (!map || !userLocation) return;
 
@@ -87,13 +90,14 @@ export const GoogleMapsMapRefiner = ({ userLocation, markers, styles }) => {
 			});
 			zoomedStatus.current = 'full';
 		}
-	}, [map, userLocation, top5]);
+	}, [map, userLocation, top5, recenterTrigger]);
 
 	// Listen for re-center events
 	useEffect(() => {
 		const handleRecenter = () => {
 			console.log("MapRefiner: Resetting focus status for re-center request");
 			zoomedStatus.current = 'none';
+			setRecenterTrigger(prev => prev + 1); // Trigger the main effect
 		};
 		window.addEventListener('recenter-map', handleRecenter);
 		return () => window.removeEventListener('recenter-map', handleRecenter);
