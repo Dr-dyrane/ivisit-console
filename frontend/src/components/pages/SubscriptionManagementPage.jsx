@@ -242,7 +242,7 @@ export const SubscriptionManagementPage = () => {
     isAdmin && (
       <Button
         onClick={handleCreate}
-        className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+        className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] text-foreground font-black tracking-widest uppercase"
       >
         <Plus className="h-4 w-4 mr-2" />
         <span className="hidden md:inline">ADD SUBSCRIBER</span>
@@ -748,6 +748,15 @@ export const SubscriptionManagementPage = () => {
           premium: subscribers.filter(s => s.type === 'paid').length, // Same as paid
           pending: subscribers.filter(s => s.status === 'pending').length,
         }}
+      />
+
+      {/* Filter Sheet */}
+      <FilterSheet
+        isOpen={filterSheetOpen}
+        onOpenChange={setFilterSheetOpen}
+        filterSchema={filterSchema}
+        onApply={setFilters}
+        initialValues={filters}
       />
     </div>
   );
