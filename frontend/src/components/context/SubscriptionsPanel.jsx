@@ -8,7 +8,9 @@ import {
   Mail,
   UserPlus,
   Shield,
-  Send
+  Send,
+  BarChart3,
+  Plus
 } from 'lucide-react';
 
 export const SubscriptionsPanel = ({ subscribers }) => {
@@ -18,7 +20,14 @@ export const SubscriptionsPanel = ({ subscribers }) => {
   };
 
   const handleOpenCreateSubscriber = () => {
-    const event = new CustomEvent('openCreateSubscriberModal');
+    const event = new CustomEvent('openSubscriptionModal');
+    window.dispatchEvent(event);
+  };
+
+  const handleOpenAnalytics = () => {
+    const event = new CustomEvent('openSubscriptionAnalyticsModal', {
+      detail: { button: document.querySelector('[data-subscription-analytics="true"]') }
+    });
     window.dispatchEvent(event);
   };
 
@@ -132,23 +141,43 @@ export const SubscriptionsPanel = ({ subscribers }) => {
       >
         <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={handleOpenEmailActions}
-          className="w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 flex items-center gap-3 transition-colors"
-        >
-          <Send className="h-4 w-4" />
-          <span className="font-medium text-sm">Send Email</span>
-        </motion.button>
+        <div className="grid grid-cols-2 gap-2">
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={handleOpenCreateSubscriber}
+            className="bg-success/10 hover:bg-success/20 text-success border border-success/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="font-medium text-xs">Add</span>
+          </motion.button>
 
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={handleOpenCreateSubscriber}
-          className="w-full bg-success/10 hover:bg-success/20 text-success border border-success/20 rounded-xl p-3 flex items-center gap-3 transition-colors"
-        >
-          <UserPlus className="h-4 w-4" />
-          <span className="font-medium text-sm">Add Subscriber</span>
-        </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={handleOpenAnalytics}
+            data-subscription-analytics="true"
+            className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+          >
+            <BarChart3 className="h-4 w-4" />
+            <span className="font-medium text-xs">Analytics</span>
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={handleOpenEmailActions}
+            className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+          >
+            <Send className="h-4 w-4" />
+            <span className="font-medium text-xs">Email</span>
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+          >
+            <UserPlus className="h-4 w-4" />
+            <span className="font-medium text-xs">Export</span>
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* Recent Subscribers */}

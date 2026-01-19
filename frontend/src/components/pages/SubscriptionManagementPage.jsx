@@ -52,12 +52,14 @@ export const SubscriptionManagementPage = () => {
   const [modalMode, setModalMode] = useState(null); // 'create' | 'edit' | 'view'
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
 
-  // Filter state - includes search
+  // Filter state - includes search (enhanced based on insurance baseline)
   const [filters, setFilters] = useState({ 
     search: '', 
     status: [], 
     type: [], 
-    kpiFilter: 'all' 
+    kpiFilter: 'all',
+    welcomeEmailSent: '',
+    dateRange: 'all'
   });
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
@@ -86,7 +88,7 @@ export const SubscriptionManagementPage = () => {
     return () => window.removeEventListener('openSubscriptionAnalyticsModal', handleOpenAnalytics);
   }, []);
 
-  // Filter Logic
+  // Filter Logic (enhanced based on insurance baseline)
   const filteredSubscribers = useMemo(() => {
     let subscribers_list = subscribers;
 
@@ -101,6 +103,32 @@ export const SubscriptionManagementPage = () => {
       subscribers_list = subscribers_list.filter(subscriber => subscriber.type === 'free');
     }
 
+    // Apply date range filter
+    if (filters.dateRange !== 'all') {
+      const now = new Date();
+      let cutoffDate;
+      
+      switch (filters.dateRange) {
+        case '7d':
+          cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30d':
+          cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '90d':
+          cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          cutoffDate = null;
+      }
+      
+      if (cutoffDate) {
+        subscribers_list = subscribers_list.filter(subscriber => 
+          new Date(subscriber.subscription_date || subscriber.created_at) >= cutoffDate
+        );
+      }
+    }
+
     // Apply other filters
     const searchTerm = filters.search?.toLowerCase() || '';
     const matchesSearch = searchTerm === '' ||
@@ -111,14 +139,25 @@ export const SubscriptionManagementPage = () => {
     const matchesStatus = !filters.status || filters.status.length === 0 || filters.status.some(status => subscribers_list.some(subscriber => subscriber.status === status));
     const matchesType = !filters.type || filters.type.length === 0 || filters.type.some(type => subscribers_list.some(subscriber => subscriber.type === type));
 
+    let matchesWelcomeEmail = true;
+    if (filters.welcomeEmailSent === 'sent') {
+      matchesWelcomeEmail = subscribers_list.some(subscriber => subscriber.welcome_email_sent === true);
+    } else if (filters.welcomeEmailSent === 'pending') {
+      matchesWelcomeEmail = subscribers_list.some(subscriber => subscriber.welcome_email_sent === false);
+    }
+
     return subscribers_list.filter(subscriber => {
       const searchMatch = searchTerm === '' ||
         subscriber.email?.toLowerCase().includes(searchTerm);
 
       const statusMatch = !filters.status || filters.status.length === 0 || filters.status.includes(subscriber.status);
       const typeMatch = !filters.type || filters.type.length === 0 || filters.type.includes(subscriber.type);
+      const welcomeEmailMatch = !filters.welcomeEmailSent || 
+        (filters.welcomeEmailSent === 'sent' && subscriber.welcome_email_sent === true) ||
+        (filters.welcomeEmailSent === 'pending' && subscriber.welcome_email_sent === false) ||
+        (filters.welcomeEmailSent === 'all');
 
-      return searchMatch && statusMatch && typeMatch;
+      return searchMatch && statusMatch && typeMatch && welcomeEmailMatch;
     });
   }, [subscribers, filters]);
 
@@ -188,7 +227,11 @@ export const SubscriptionManagementPage = () => {
       className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
     >
       <FilterIcon className="h-4 w-4" />
-      {(filters.search || (filters.status && filters.status.length > 0) || (filters.type && filters.type.length > 0)) && (
+      {(filters.search || 
+        (filters.status && filters.status.length > 0) || 
+        (filters.type && filters.type.length > 0) ||
+        filters.welcomeEmailSent ||
+        filters.dateRange !== 'all') && (
         <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
       )}
     </Button>
@@ -245,7 +288,7 @@ export const SubscriptionManagementPage = () => {
     }
   };
 
-  // Filter Schema
+  // Filter Schema (enhanced based on insurance baseline)
   const filterSchema = useMemo(() => [
     {
       key: 'search',
@@ -271,6 +314,27 @@ export const SubscriptionManagementPage = () => {
       options: [
         { value: 'free', label: 'Free' },
         { value: 'paid', label: 'Paid' }
+      ]
+    },
+    {
+      key: 'welcomeEmailSent',
+      type: 'select',
+      label: 'Welcome Email',
+      options: [
+        { value: '', label: 'All' },
+        { value: 'sent', label: 'Sent' },
+        { value: 'pending', label: 'Pending' }
+      ]
+    },
+    {
+      key: 'dateRange',
+      type: 'select',
+      label: 'Date Range',
+      options: [
+        { value: 'all', label: 'All Time' },
+        { value: '7d', label: 'Last 7 Days' },
+        { value: '30d', label: 'Last 30 Days' },
+        { value: '90d', label: 'Last 90 Days' }
       ]
     }
   ], []);
@@ -494,8 +558,12 @@ export const SubscriptionManagementPage = () => {
                 Clear Search
               </Button>
             )}
-            {(filters.kpiFilter !== 'all' || Object.keys(filters).filter(k => k !== 'kpiFilter').some(k => filters[k])) && (
-              <Button onClick={() => setFilters({ kpiFilter: 'all', status: [], type: [], search: '' })} variant="outline" className="squircle">
+            {(filters.kpiFilter !== 'all' || 
+              Object.keys(filters).filter(k => k !== 'kpiFilter').some(k => {
+                if (k === 'status' || k === 'type') return filters[k] && filters[k].length > 0;
+                return filters[k] && filters[k] !== '' && filters[k] !== 'all';
+              })) && (
+              <Button onClick={() => setFilters({ kpiFilter: 'all', status: [], type: [], search: '', welcomeEmailSent: '', dateRange: 'all' })} variant="outline" className="squircle">
                 <FilterIcon className="h-4 w-4 mr-2" />
                 Reset Filters
               </Button>
@@ -675,6 +743,10 @@ export const SubscriptionManagementPage = () => {
           newUsers: subscribers.filter(s => s.new_user).length,
           welcomeEmailsSent: subscribers.filter(s => s.welcome_email_sent).length,
           paidConversionRate: subscribers.length > 0 ? Math.round((subscribers.filter(s => s.type === 'paid').length / subscribers.length) * 100) : 0,
+          // Add missing fields expected by modal
+          verified: subscribers.filter(s => s.status === 'active').length, // Using active as verified proxy
+          premium: subscribers.filter(s => s.type === 'paid').length, // Same as paid
+          pending: subscribers.filter(s => s.status === 'pending').length,
         }}
       />
     </div>

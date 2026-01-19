@@ -7,6 +7,7 @@ import { getUserStatistics } from './profilesService';
 import { getEmergencyRequests } from './emergencyService';
 import { getHospitals } from './hospitalsService';
 import { getAmbulances } from './ambulancesService';
+import { getSubscriptionAnalytics } from './subscriptionService';
 import { supabase } from '../lib/supabase';
 
 // Cache for performance optimization
@@ -45,11 +46,12 @@ export const getAnalyticsData = async (options = {}) => {
     } = options;
 
     // Parallel fetch all required data
-    const [userStats, emergencies, hospitals, ambulances] = await Promise.all([
+    const [userStats, emergencies, hospitals, ambulances, subscriptionData] = await Promise.all([
       getCachedOrFetch('userStats', getUserStatistics),
       getCachedOrFetch('emergencies', getEmergencyRequests),
       getCachedOrFetch('hospitals', getHospitals),
-      getCachedOrFetch('ambulances', getAmbulances)
+      getCachedOrFetch('ambulances', getAmbulances),
+      getCachedOrFetch('subscriptionAnalytics', getSubscriptionAnalytics)
     ]);
 
     // Apply time range filtering
@@ -93,6 +95,20 @@ export const getAnalyticsData = async (options = {}) => {
       totalHospitals: hospitals.length,
       totalAmbulances: ambulances.length,
       
+      // Subscription analytics
+      subscriptionAnalytics: {
+        totalSubscribers: subscriptionData.total || 0,
+        activeSubscribers: subscriptionData.active || 0,
+        paidSubscribers: subscriptionData.paid || 0,
+        freeSubscribers: subscriptionData.free || 0,
+        newUsers: subscriptionData.newUsers || 0,
+        welcomeEmailsSent: subscriptionData.welcomeEmailsSent || 0,
+        paidConversionRate: subscriptionData.paidConversionRate || 0,
+        byType: subscriptionData.byType || {},
+        byStatus: subscriptionData.byStatus || {},
+        recentSubscriptions: subscriptionData.recentSubscriptions || 0,
+      },
+      
       // Trend analytics
       trends: trendData,
       
@@ -101,6 +117,7 @@ export const getAnalyticsData = async (options = {}) => {
         emergencies: filteredEmergencies,
         hospitals,
         ambulances,
+        subscriptionData,
       })
     };
 
@@ -127,6 +144,11 @@ export const getAnalyticsSummary = async (options = {}) => {
       successRate: analytics.successRate,
       totalHospitals: analytics.totalHospitals,
       totalAmbulances: analytics.totalAmbulances,
+      // Add subscription summary metrics
+      totalSubscribers: analytics.subscriptionAnalytics.totalSubscribers,
+      activeSubscribers: analytics.subscriptionAnalytics.activeSubscribers,
+      paidSubscribers: analytics.subscriptionAnalytics.paidSubscribers,
+      paidConversionRate: analytics.subscriptionAnalytics.paidConversionRate,
       trends: analytics.trends
     };
   } catch (error) {

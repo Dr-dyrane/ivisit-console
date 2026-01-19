@@ -18,7 +18,10 @@ import {
   AlertTriangle,
   ChevronRight,
   FileText,
-  Plus
+  Plus,
+  Mail,
+  Crown,
+  CheckCircle
 } from 'lucide-react';
 import {
   LineChart,
@@ -41,6 +44,7 @@ import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { usePageHeader } from '../../contexts/LayoutContext';
 import { ReportsModal } from '../modals/ReportsModal';
+import { useSubscription } from '../../hooks/useSubscription';
 
 const CHART_COLORS = {
   primary: '#7a1a1a',
@@ -64,6 +68,22 @@ export const Analytics = () => {
     totalHospitals: 0,
     totalAmbulances: 0,
   });
+  
+  // Use subscription hook instead of direct service call
+  const { fetchAnalytics: fetchSubscriptionAnalytics } = useSubscription();
+  const [subscriptionStats, setSubscriptionStats] = useState({
+    total: 0,
+    active: 0,
+    paid: 0,
+    free: 0,
+    newUsers: 0,
+    welcomeEmailsSent: 0,
+    paidConversionRate: 0,
+    activeFree: 0,
+    activePremium: 0,
+    inactiveFree: 0,
+    inactivePremium: 0,
+  });
 
   const [responseTimeData, setResponseTimeData] = useState([]);
   const [requestsByStatus, setRequestsByStatus] = useState([]);
@@ -82,6 +102,15 @@ export const Analytics = () => {
       ['Total Users', stats.totalUsers, ''],
       ['Total Hospitals', stats.totalHospitals, ''],
       ['Total Ambulances', stats.totalAmbulances, ''],
+      [],
+      ['Subscription Metrics', 'Value', 'Percentage'],
+      ['Total Subscribers', subscriptionStats.total, ''],
+      ['Active Subscribers', subscriptionStats.active, subscriptionStats.total > 0 ? `${Math.round((subscriptionStats.active / subscriptionStats.total) * 100)}%` : ''],
+      ['Paid Subscribers', subscriptionStats.paid, subscriptionStats.total > 0 ? `${Math.round((subscriptionStats.paid / subscriptionStats.total) * 100)}%` : ''],
+      ['Free Subscribers', subscriptionStats.free, subscriptionStats.total > 0 ? `${Math.round((subscriptionStats.free / subscriptionStats.total) * 100)}%` : ''],
+      ['New Users', subscriptionStats.newUsers, subscriptionStats.total > 0 ? `${Math.round((subscriptionStats.newUsers / subscriptionStats.total) * 100)}%` : ''],
+      ['Welcome Emails Sent', subscriptionStats.welcomeEmailsSent, subscriptionStats.total > 0 ? `${Math.round((subscriptionStats.welcomeEmailsSent / subscriptionStats.total) * 100)}%` : ''],
+      ['Paid Conversion Rate', `${subscriptionStats.paidConversionRate}%`, ''],
       [],
       ['Emergency Types', 'Count', 'Percentage'],
       ...emergencyTypes.map(type => [
@@ -118,7 +147,7 @@ export const Analytics = () => {
     URL.revokeObjectURL(url);
     
     toast.success('Analytics data exported successfully');
-  }, [stats, emergencyTypes, requestsByStatus, responseTimeData]);
+  }, [stats, subscriptionStats, emergencyTypes, requestsByStatus, responseTimeData]);
 
   // Prepare analytics data for reports
   const analyticsDataForReports = useMemo(() => ({
@@ -132,8 +161,18 @@ export const Analytics = () => {
     requestsByStatus,
     requestsByDay,
     emergencyTypes,
-    dominantType
-  }), [stats, responseTimeData, requestsByStatus, requestsByDay, emergencyTypes, dominantType]);
+    dominantType,
+    // Add subscription analytics
+    subscriptionAnalytics: {
+      totalSubscribers: subscriptionStats.total,
+      activeSubscribers: subscriptionStats.active,
+      paidSubscribers: subscriptionStats.paid,
+      freeSubscribers: subscriptionStats.free,
+      newUsers: subscriptionStats.newUsers,
+      welcomeEmailsSent: subscriptionStats.welcomeEmailsSent,
+      paidConversionRate: subscriptionStats.paidConversionRate,
+    }
+  }), [stats, responseTimeData, requestsByStatus, requestsByDay, emergencyTypes, dominantType, subscriptionStats]);
 
   const headerActions = useMemo(() => (
     <div className="flex items-center gap-3">
@@ -219,11 +258,12 @@ export const Analytics = () => {
     setLoading(true);
     try {
       // Fetch all data in parallel
-      const [requestsRes, usersRes, hospitalsRes, ambulancesRes] = await Promise.all([
+      const [requestsRes, usersRes, hospitalsRes, ambulancesRes, subscriptionData] = await Promise.all([
         supabase.from('emergency_requests').select('*'),
         supabase.from('profiles').select('*', { count: 'exact' }),
         supabase.from('hospitals').select('*', { count: 'exact' }),
         supabase.from('ambulances').select('*', { count: 'exact' }),
+        fetchSubscriptionAnalytics() // Use hook instead of direct service call
       ]);
 
       const requests = requestsRes.data || [];
@@ -239,6 +279,8 @@ export const Analytics = () => {
         totalAmbulances: ambulancesRes.count || 0,
       });
 
+      setSubscriptionStats(subscriptionData);
+
       generateChartData(requests);
     } catch (error) {
       console.error('Error fetching analytics:', error);
@@ -246,7 +288,7 @@ export const Analytics = () => {
     } finally {
       setLoading(false);
     }
-  }, [generateChartData]);
+  }, [fetchSubscriptionAnalytics, generateChartData]);
 
   useEffect(() => {
     fetchAnalytics();
@@ -409,13 +451,83 @@ export const Analytics = () => {
             </Card>
           </motion.div>
 
+          {/* Subscription Analytics Card - Single Comprehensive Card */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-2"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.45 }}
+          >
+            <Card className="h-full min-h-[350px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-8 border-0 flex flex-col relative overflow-hidden group">
+              {/* Top Right Icon */}
+              <div className="absolute top-0 right-0 p-6 z-20">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
+                  <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <Mail className="h-6 w-6 text-info" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6 relative z-10">
+                <h3 className="font-black text-xl tracking-tight">Subscriptions</h3>
+                <p className="text-sm text-muted-foreground font-semibold">Community engagement overview</p>
+              </div>
+
+              <div className="flex-1 relative min-h-[200px] flex items-center justify-center">
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Active', value: subscriptionStats.active, fill: CHART_COLORS.success },
+                        { name: 'Inactive', value: subscriptionStats.total - subscriptionStats.active, fill: CHART_COLORS.muted },
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={65}
+                      outerRadius={85}
+                      paddingAngle={2}
+                      dataKey="value"
+                      stroke="none"
+                      cornerRadius={4}
+                    >
+                      <Cell fill={CHART_COLORS.success} />
+                      <Cell fill={CHART_COLORS.muted} />
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Center Text Overlay */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
+                  <div className="text-center">
+                    <p className="text-4xl font-black tracking-tighter text-foreground">{subscriptionStats.total}</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">TOTAL</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Type Pills Below */}
+              <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-warning/20 text-xs font-semibold">
+                  <div className="w-2 h-2 rounded-full bg-warning" />
+                  <span>Premium {subscriptionStats.paid}</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-semibold">
+                  <div className="w-2 h-2 rounded-full bg-muted" />
+                  <span>Free {subscriptionStats.free}</span>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
           {/* Request Status Breakdown - Pie Chart -> GEO-TICKET (Rounded cutouts) */}
           <motion.div
             layout
             className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-2 row-span-2"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 }}
+            transition={{ delay: 0.5 }}
           >
             <Card className="h-full min-h-[400px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-8 border-0 flex flex-col relative overflow-hidden group">
               {/* Top Right Icon */}

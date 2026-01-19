@@ -267,6 +267,11 @@ export async function getSubscriptionAnalytics() {
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         return new Date(item.subscription_date || item.created_at) >= thirtyDaysAgo;
       }).length || 0,
+      // Add 4-segment breakdown for donut chart
+      activeFree: data?.filter(item => item.status === 'active' && item.type === 'free').length || 0,
+      activePremium: data?.filter(item => item.status === 'active' && item.type === 'paid').length || 0,
+      inactiveFree: data?.filter(item => item.status !== 'active' && item.type === 'free').length || 0,
+      inactivePremium: data?.filter(item => item.status !== 'active' && item.type === 'paid').length || 0,
     };
 
     // Calculate paid conversion rate

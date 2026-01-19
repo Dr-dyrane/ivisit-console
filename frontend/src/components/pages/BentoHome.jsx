@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePageData } from '../../contexts/PageDataContext';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { useSubscription } from '../../hooks/useSubscription';
 import { Button } from '../ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Card } from '../ui/card';
@@ -24,7 +25,10 @@ import {
   Calendar,
   AlertTriangle,
   Grid, // Use Grid or LayoutGrid if available
-  TrendingUp
+  TrendingUp,
+  BarChart3,
+  ArrowRight,
+  Mail
 } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
@@ -43,6 +47,15 @@ export const BentoHome = () => {
     visitsData,
     verificationData,
   } = usePageData();
+  
+  // Use subscription hook for real data
+  const { fetchAnalytics: fetchSubscriptionAnalytics } = useSubscription();
+  const [subscriptionStats, setSubscriptionStats] = useState({
+    total: 0,
+    active: 0,
+    paid: 0,
+    free: 0,
+  });
 
 
 
@@ -83,6 +96,20 @@ export const BentoHome = () => {
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  // Fetch subscription analytics
+  useEffect(() => {
+    const fetchSubscriptionData = async () => {
+      try {
+        const data = await fetchSubscriptionAnalytics();
+        setSubscriptionStats(data);
+      } catch (error) {
+        console.error('Error fetching subscription stats:', error);
+      }
+    };
+    
+    fetchSubscriptionData();
+  }, [fetchSubscriptionAnalytics]);
 
   const chartData = [
     { time: '00:00', value: 5 },
@@ -141,7 +168,7 @@ export const BentoHome = () => {
           {/* Live Emergency Counter - Hero Card (Big & Wide) -> SHARP (Brutalist Anchor) */}
           <motion.div
             layout
-            className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-4 row-span-2"
+            className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 row-span-2"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4 }}
@@ -404,7 +431,7 @@ export const BentoHome = () => {
             </Card>
           </motion.div>
 
-          {/* Quick Access Cards (Small & Dense) */}
+          {/* Quick Actions Grid */}
           {[
             { id: 'hospitals', icon: Hospital, label: 'Hospitals', sub: '28 active', color: 'primary', path: '/hospitals', minRole: 'provider' },
             { id: 'ambulances', icon: Ambulance, label: 'Fleet', sub: `${appStats.availableAmbulances} units`, color: 'success', path: '/ambulances', minRole: 'provider' },
@@ -487,6 +514,62 @@ export const BentoHome = () => {
                   <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
                     <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
                       <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Subscription Card */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-1"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.85 }}
+          >
+            <Card
+              className="h-full min-h-[160px] geo-bg bg-background/50 backdrop-blur-xs shadow-2xl p-6 hover-lift cursor-pointer group relative overflow-hidden border-0 flex flex-col justify-between"
+              onClick={() => navigate('/subscriptions')}
+            >
+              {/* Subscription Background Pattern */}
+              <div className="absolute inset-0 opacity-5"
+                style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, currentColor 0%, transparent 40%), radial-gradient(circle at 75% 75%, currentColor 0%, transparent 40%), radial-gradient(circle at 75% 25%, currentColor 0%, transparent 30%), radial-gradient(circle at 25% 75%, currentColor 0%, transparent 30%)', backgroundSize: '50px 50px, 50px 50px, 40px 40px, 40px 40px', backgroundPosition: '0% 0%, 100% 100%, 100% 0%, 0% 100%', color: 'hsl(var(--info))' }}>
+              </div>
+
+              <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <Mail className="h-5 w-5 text-info" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+                <div className="flex justify-between items-start">
+                  <div className="w-12 h-12 squircle bg-info/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
+                    <Mail className="h-6 w-6 text-info" />
+                  </div>
+                  <Badge className="squircle-sm bg-info/20 text-info border-0 font-black editorial-subtitle px-2 py-0.5">SUBSCRIPTIONS</Badge>
+                </div>
+                <div>
+                  <p className="editorial-subtitle text-info mb-1">COMMUNITY</p>
+                  <h4 className="font-black text-xl tracking-tight">Subscriptions</h4>
+                  <p className="text-sm text-muted-foreground font-semibold">Manage subscribers & engagement</p>
+                  <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-success" />
+                      <span className="text-xs font-bold text-success">{subscriptionStats.active} active</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-warning" />
+                      <span className="text-xs font-bold text-warning">{subscriptionStats.paid} premium</span>
+                    </div>
+                  </div>
+                  <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
+                    <div className="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                      <ArrowRight className="h-5 w-5 text-info" />
                     </div>
                   </div>
                 </div>
