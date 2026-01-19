@@ -243,7 +243,10 @@ function getDefaultBulkEmailTemplate(email: string, subject: string, content: st
   <div class="wrapper">
     <div class="container">
       <div class="header">
-        <div class="logo-container"><span class="logo-text">iVisit<span class="dot">.</span></span></div>
+        <div class="logo-container">
+          <img src="https://www.ivisit.ng/logo.png" alt="iVisit" class="logo-img">
+          <div class="logo-text" style="margin-top: 15px;">iVisit<span class="dot">.</span></div>
+        </div>
         <h1 class="hero-title">${subject}<span class="dot">.</span></h1>
       </div>
       
