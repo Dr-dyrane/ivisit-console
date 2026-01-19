@@ -47,7 +47,7 @@ export const BentoHome = () => {
     visitsData,
     verificationData,
   } = usePageData();
-  
+
   // Use subscription hook for real data
   const { fetchAnalytics: fetchSubscriptionAnalytics } = useSubscription();
   const [subscriptionStats, setSubscriptionStats] = useState({
@@ -107,7 +107,7 @@ export const BentoHome = () => {
         console.error('Error fetching subscription stats:', error);
       }
     };
-    
+
     fetchSubscriptionData();
   }, [fetchSubscriptionAnalytics]);
 
@@ -569,7 +569,7 @@ export const BentoHome = () => {
                   </div>
                   <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
                     <div className="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                      <ArrowRight className="h-5 w-5 text-info" />
+                      <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
                     </div>
                   </div>
                 </div>
