@@ -18,7 +18,7 @@ export const MapProvider = ({ children }) => {
     ambulances: [],
     hospitals: [],
     users: [], // Patient locations
-    showLayers: { emergencies: true, ambulances: true, hospitals: true },
+    showLayers: { emergencies: false, ambulances: true, hospitals: false },
     filter: 'all',
     loading: true,
     selectedMarker: null,

@@ -672,6 +672,39 @@ export const PageDataProvider = ({ children }) => {
     };
   };
 
+  // Refresh all data
+  const refreshAllData = useCallback(async () => {
+    try {
+      await Promise.all([
+        fetchEmergencyData(),
+        fetchVerificationData(),
+        fetchAnalyticsData(),
+        fetchDoctorsData(),
+        fetchVisitsData(),
+        fetchHospitalsData(),
+        fetchAmbulancesData(),
+        fetchUsersData(),
+        fetchSupportTicketsData(),
+        fetchInsurancePolicies(),
+        fetchActivityData()
+      ]);
+    } catch (error) {
+      console.error('Error refreshing all data:', error);
+    }
+  }, [
+    fetchEmergencyData,
+    fetchVerificationData,
+    fetchAnalyticsData,
+    fetchDoctorsData,
+    fetchVisitsData,
+    fetchHospitalsData,
+    fetchAmbulancesData,
+    fetchUsersData,
+    fetchSupportTicketsData,
+    fetchInsurancePolicies,
+    fetchActivityData
+  ]);
+
   const getInsuranceStats = () => {
     const policies = insurancePolicies || [];
     const active = policies.filter(p => p.status === 'active').length;
@@ -723,6 +756,7 @@ export const PageDataProvider = ({ children }) => {
     getEmergencyStats,
     getInsuranceStats,
     setUseMockData,
+    refreshAllData,
 
     // Mock data for reference
     mockData: {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -11,148 +11,244 @@ import {
   Zap,
   Clock,
   CheckCircle,
-  Radio
+  Radio,
+  MapPin,
+  Phone,
+  Hospital,
+  ArrowLeft,
+  ChevronRight,
+  User
 } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 export const MapPanel = ({ emergencyStats }) => {
-  const { mapData, setFilter } = useMapContext();
-  const activeFilter = mapData.filter || 'all';
+  const { mapData, setFilter, setSelectedMarker, recenterMap } = useMapContext();
+  const { selectedMarker, emergencyRequests, filter: activeFilter } = mapData;
+
+  // Filter Logic for List
+  const filteredList = React.useMemo(() => {
+    if (activeFilter === 'all') return emergencyRequests;
+    return emergencyRequests.filter(req => req.priority === activeFilter);
+  }, [emergencyRequests, activeFilter]);
 
   const emergencyFilters = [
-    {
-      key: 'all',
-      label: 'All',
-      icon: Radio,
-      count: emergencyStats.critical + emergencyStats.pending + emergencyStats.inProgress
-    },
-    {
-      key: 'pending',
-      label: 'Pending',
-      icon: Clock,
-      count: emergencyStats.pending
-    },
-    {
-      key: 'dispatched',
-      label: 'Dispatched',
-      icon: CheckCircle,
-      count: emergencyStats.inProgress
-    },
-    {
-      key: 'en_route',
-      label: 'En Route',
-      icon: Ambulance,
-      count: Math.max(0, emergencyStats.inProgress - 2) // Estimate
-    }
+    { key: 'all', label: 'All', icon: Radio, count: emergencyStats.critical + emergencyStats.pending + emergencyStats.inProgress },
+    { key: 'pending', label: 'Pending', icon: Clock, count: emergencyStats.pending },
+    { key: 'dispatched', label: 'Dispatched', icon: CheckCircle, count: emergencyStats.inProgress },
+    { key: 'en_route', label: 'En Route', icon: Ambulance, count: Math.max(0, emergencyStats.inProgress - 2) }
   ];
 
-  return (
-    <div className="p-4 space-y-4">
-      {/* Live Statistics (Mobile Parity) */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-3"
-      >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Live Statistics</h3>
+  // --- INSPECTOR VIEW (Selected Marker) ---
+  if (selectedMarker) {
+    return (
+      <div className="h-full flex flex-col">
+        {/* Back Navigation */}
+        <div className="p-4 pb-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedMarker(null)}
+            className="text-muted-foreground hover:text-foreground pl-0 gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Live Feed
+          </Button>
+        </div>
 
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-destructive/20 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <span className="font-black tracking-tight">Active Emergencies</span>
-                <p className="text-xs text-muted-foreground">Critical & High</p>
-              </div>
+        <div className="flex-1 overflow-y-auto p-4 pt-0 space-y-4">
+          {/* Header Card */}
+          <Card className="overflow-hidden bg-background/50 backdrop-blur-xs border-0 shadow-premium">
+            <div className={`h-24 relative flex items-center justify-center ${selectedMarker.type === "emergency" ? "bg-destructive/20" :
+              selectedMarker.type === "ambulance" ? "bg-success/20" : "bg-info/20"
+              }`}>
+              {selectedMarker.type === "emergency" && <AlertTriangle className="h-12 w-12 text-destructive opacity-50" />}
+              {selectedMarker.type === "ambulance" && <Ambulance className="h-12 w-12 text-success opacity-50" />}
+              {selectedMarker.type === "hospital" && <Hospital className="h-12 w-12 text-info opacity-50" />}
             </div>
-            <Badge className="bg-destructive/20 text-destructive border-0">{emergencyStats.critical + emergencyStats.pending}</Badge>
-          </div>
-        </Card>
 
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
-                <Ambulance className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <span className="font-black tracking-tight">Available Units</span>
-                <p className="text-xs text-muted-foreground">Ready for dispatch</p>
-              </div>
-            </div>
-            <Badge className="bg-success/20 text-success border-0">
-              {/* Fallback estimation since we don't have direct ambulance status in emergencyStats */}
-              {Math.max(0, 12 - emergencyStats.inProgress)}
-            </Badge>
-          </div>
-        </Card>
-      </motion.div>
-
-      {/* Emergency Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="space-y-3"
-      >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Emergency Filters</h3>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-premium">
-          <div className="space-y-2">
-            {emergencyFilters.map((filter, index) => {
-              const Icon = filter.icon;
-              const isActive = activeFilter === filter.key;
-
-              return (
-                <Button
-                  key={filter.key}
-                  variant={isActive ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setFilter(filter.key)}
-                  className={`w-full justify-between h-auto p-3 transition-all duration-200 ${isActive
-                      ? 'bg-primary text-primary-foreground shadow-premium'
-                      : 'hover:bg-muted/50 text-muted-foreground'
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 geo-round flex items-center justify-center ${isActive ? 'bg-primary-foreground/20' : 'bg-muted/50'
-                      }`}>
-                      <Icon className={`h-4 w-4 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
-                    </div>
-                    <span className="font-medium text-sm">{filter.label}</span>
-                  </div>
-                  <Badge className={`${isActive
-                      ? 'bg-primary-foreground/20 text-primary-foreground border-0'
-                      : 'bg-muted/50 text-muted-foreground border-0'
-                    }`}>
-                    {filter.count}
+            <div className="p-5">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <Badge variant="outline" className="mb-2 border-0 bg-muted uppercase tracking-wider text-[10px] font-bold">
+                    {selectedMarker.type}
                   </Badge>
+                  <h2 className="text-2xl font-black leading-tight">
+                    {selectedMarker.data.name || selectedMarker.data.call_sign || `#${selectedMarker.data.id?.slice(0, 6)}`}
+                  </h2>
+                </div>
+              </div>
+
+              {/* Type-Specific Details */}
+              {selectedMarker.type === "emergency" && (
+                <div className="space-y-4 mt-4">
+                  <div className="flex gap-2">
+                    <Badge className={`squircle font-bold px-3 py-1 ${selectedMarker.data.priority === 'critical' ? 'bg-destructive text-destructive-foreground' : 'bg-primary'
+                      }`}>
+                      {selectedMarker.data.priority?.toUpperCase()}
+                    </Badge>
+                    <Badge variant="secondary" className="squircle capitalize">
+                      {selectedMarker.data.status}
+                    </Badge>
+                  </div>
+
+                  <div className="p-3 bg-muted/30 rounded-xl space-y-2">
+                    <div className="flex items-start gap-3">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
+                      <div>
+                        <p className="text-sm font-medium leading-snug">
+                          {selectedMarker.data.location || "Coordinates Received"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 font-mono">
+                          {Number(selectedMarker.data.lat).toFixed(6)}, {Number(selectedMarker.data.lng).toFixed(6)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button className="w-full squircle font-bold h-12 text-lg shadow-lg shadow-primary/20">
+                    Dispatch Unit Now
+                  </Button>
+                </div>
+              )}
+
+              {selectedMarker.type === "ambulance" && (
+                <div className="space-y-4 mt-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-muted/30 rounded-xl text-center">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Status</span>
+                      <p className={`font-black text-lg ${selectedMarker.data.status === 'available' ? 'text-success' : 'text-warning'
+                        }`}>{selectedMarker.data.status?.toUpperCase()}</p>
+                    </div>
+                    <div className="p-3 bg-muted/30 rounded-xl text-center">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Type</span>
+                      <p className="font-black text-lg">{selectedMarker.data.type || 'ALS'}</p>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded-xl">
+                    <span className="text-sm font-bold text-muted-foreground">Vehicle No.</span>
+                    <span className="font-mono font-bold bg-background px-2 py-1 rounded">
+                      {selectedMarker.data.vehicle_number}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {selectedMarker.type === "hospital" && (
+                <div className="space-y-4 mt-4">
+                  <p className="text-sm text-muted-foreground">{selectedMarker.data.address || "Address not available"}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-muted/30 rounded-xl">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Available Beds</span>
+                      <p className="font-black text-2xl text-primary">{selectedMarker.data.available_beds ?? '-'}</p>
+                    </div>
+                    <div className="p-3 bg-muted/30 rounded-xl">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Ambulances</span>
+                      <p className="font-black text-2xl">{selectedMarker.data.ambulances_count ?? 0}</p>
+                    </div>
+                  </div>
+                  {selectedMarker.data.phone && (
+                    <Button variant="outline" className="w-full squircle gap-2">
+                      <Phone className="h-4 w-4" /> Call Facility
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // --- DEFAULT DASHBOARD VIEW ---
+  return (
+    <div className="h-full flex flex-col p-4 space-y-4 overflow-y-auto">
+      {/* Live Statistics */}
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm flex flex-col justify-between">
+          <AlertTriangle className="h-5 w-5 text-destructive mb-2" />
+          <div>
+            <span className="text-2xl font-black">{emergencyStats.critical + emergencyStats.pending}</span>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">Active</p>
+          </div>
+        </Card>
+        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm flex flex-col justify-between">
+          <Ambulance className="h-5 w-5 text-success mb-2" />
+          <div>
+            <span className="text-2xl font-black">{Math.max(0, 12 - emergencyStats.inProgress)}</span>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">Ready</p>
+          </div>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+        {emergencyFilters.map(f => (
+          <Button
+            key={f.key}
+            variant={activeFilter === f.key ? "default" : "secondary"}
+            size="sm"
+            onClick={() => setFilter(f.key)}
+            className="h-8 rounded-full text-xs font-bold whitespace-nowrap"
+          >
+            {f.label} ({f.count})
+          </Button>
+        ))}
+      </div>
+
+      {/* Live Feed */}
+      <div className="space-y-3">
+        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground/70 flex items-center justify-between">
+          Live Feed
+          <Badge variant="outline" className="h-5 text-[10px]">Recent {Math.min(filteredList.length, 3)}</Badge>
+        </h3>
+
+        <div className="space-y-3 pb-4">
+          {filteredList.length === 0 ? (
+            <div className="text-center py-10 opacity-50">
+              <CheckCircle className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm font-medium">No active requests</p>
+            </div>
+          ) : (
+            <>
+              {filteredList.slice(0, 3).map((req) => (
+                <Card
+                  key={req.id}
+                  onClick={() => {
+                    setSelectedMarker({ type: 'emergency', data: req });
+                    window.dispatchEvent(new CustomEvent('recenter-map-target', { detail: { lat: req.lat, lng: req.lng } }));
+                  }}
+                  className="group cursor-pointer bg-background/60 hover:bg-background/80 transition-all border-0 shadow-sm hover:shadow-md p-3 squircle-lg relative overflow-hidden"
+                >
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${req.priority === 'critical' ? 'bg-destructive' : 'bg-primary'
+                    }`} />
+
+                  <div className="flex justify-between items-start pl-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-sm">#{req.id.slice(0, 4)}</span>
+                        {req.priority === 'critical' && <span className="flex h-2 w-2 rounded-full bg-destructive animate-pulse" />}
+                        <Badge variant="secondary" className="text-[10px] h-4 px-1">{req.status}</Badge>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>{new Date(req.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </Card>
+              ))}
+
+              {filteredList.length > 3 && (
+                <Button variant="ghost" className="w-full text-xs text-muted-foreground hover:text-foreground h-8">
+                  View {filteredList.length - 3} more emergencies...
                 </Button>
-              );
-            })}
-          </div>
-        </Card>
-      </motion.div>
-
-      {/* Recent Alerts */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="space-y-3"
-      >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Recent Alerts</h3>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="text-center py-6">
-            <AlertTriangle className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-50" />
-            <p className="text-sm text-muted-foreground font-medium">No active emergencies</p>
-            <p className="text-xs text-muted-foreground mt-1">System is operating normally</p>
-          </div>
-        </Card>
-      </motion.div>
-
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

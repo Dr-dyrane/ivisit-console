@@ -317,10 +317,7 @@ const GodModeMapContent = () => {
 				</Card>
 
 				{/* Selected Marker Details Panel */}
-				<MarkerDetailPanel
-					selectedMarker={selectedMarker}
-					setSelectedMarker={setSelectedMarker}
-				/>
+
 			</div>
 		</div>
 	);

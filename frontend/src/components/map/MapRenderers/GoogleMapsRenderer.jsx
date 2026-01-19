@@ -1,6 +1,7 @@
 import React from 'react';
 import { APIProvider, Map, Marker as GoogleMarker } from '@vis.gl/react-google-maps';
 import { GoogleMapsPolyline, GoogleMapsMapRefiner } from '../MapRefiner/GoogleMapsRefiner';
+import { GoogleMapsSmartRoute } from '../MapRefiner/GoogleMapsSmartRoute';
 import { AlertTriangle, Ambulance, Hospital, MapPin } from 'lucide-react';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
@@ -74,13 +75,15 @@ export const GoogleMapsRenderer = ({
 				/>
 
 				{/* Routes/Polylines */}
+				{/* Routes/Polylines - Traffic Aware */}
 				{activeRoutes.map((route) => (
-					<GoogleMapsPolyline
+					<GoogleMapsSmartRoute
 						key={route.id}
-						path={route.positions.map(p => ({ lat: p[0], lng: p[1] }))}
+						start={{ lat: route.positions[0][0], lng: route.positions[0][1] }}
+						end={{ lat: route.positions[1][0], lng: route.positions[1][1] }}
 						options={{
 							strokeColor: route.color,
-							strokeOpacity: 0.9,
+							strokeOpacity: 0.8,
 							strokeWeight: 6,
 							geodesic: true,
 							icons: [

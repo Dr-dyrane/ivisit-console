@@ -1,21 +1,43 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { Switch } from '../ui/switch';
+import { Input } from '../ui/input';
 import {
   AlertTriangle,
   Users,
   TrendingUp,
-  Hospital,
-  Ambulance,
-  Stethoscope,
+  Activity,
+  Settings,
+  Download,
+  RefreshCw,
   Shield,
-  BarChart3
+  Clock,
+  Zap,
+  BarChart3,
+  Bell,
+  Ambulance,
+  Stethoscope
 } from 'lucide-react';
+import { usePageData } from '../../contexts/PageDataContext';
+import { transformActivityData } from '../../utils/activityUtils';
 
-export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, verificationData, useMockData }) => {
+export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, verificationData, useMockData, activityData, refreshAllData }) => {
   const navigate = useNavigate();
+
+  // Command Center State
+  const [realTimeEnabled, setRealTimeEnabled] = useState(true);
+  const [alertThresholds, setAlertThresholds] = useState({
+    criticalEmergencies: 5,
+    responseTimeMinutes: 10,
+    lowAmbulances: 3
+  });
+
+  // Transform activity data for mini-feed
+  const recentActivities = transformActivityData(activityData || []).slice(0, 5);
 
   const handleEmergencyResponse = () => {
     // BentoHome special case: navigate to emergencies page then open modal
@@ -25,6 +47,52 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
       const event = new CustomEvent('openEmergencyModal');
       window.dispatchEvent(event);
     }, 100);
+  };
+
+  const handleRefreshAll = () => {
+    refreshAllData && refreshAllData();
+  };
+
+  const handleExportReport = () => {
+    // Generate and download system report
+    const reportData = {
+      timestamp: new Date().toISOString(),
+      emergencyStats,
+      analyticsData,
+      doctorsData,
+      verificationData,
+      recentActivities
+    };
+
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dashboard-report-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSystemBackup = async () => {
+    try {
+      // Trigger system backup via API
+      const response = await fetch('/api/backup', { method: 'POST' });
+      if (response.ok) {
+        const event = new CustomEvent('systemBackupTriggered');
+        window.dispatchEvent(event);
+      }
+    } catch (error) {
+      console.error('Backup failed:', error);
+    }
+  };
+
+  const handleThresholdChange = (key, value) => {
+    setAlertThresholds(prev => ({
+      ...prev,
+      [key]: parseInt(value) || 0
+    }));
   };
 
   const handleViewAnalytics = () => {
@@ -48,121 +116,81 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
         </motion.div>
       )}
 
-      {/* App Overview */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-3"
-      >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">App Overview</h3>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-destructive/20 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <span className="font-black tracking-tight">Active Emergencies</span>
-                <p className="text-xs text-muted-foreground">Critical & High</p>
-              </div>
-            </div>
-            <Badge className="bg-destructive/20 text-destructive border-0">{emergencyStats.critical + emergencyStats.pending}</Badge>
-          </div>
-        </Card>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <span className="font-black tracking-tight">Total Users</span>
-                <p className="text-xs text-muted-foreground">All roles</p>
-              </div>
-            </div>
-            <Badge className="bg-primary/20 text-primary border-0">{doctorsData.totalDoctors + 25}</Badge>
-          </div>
-        </Card>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <span className="font-black tracking-tight">Response Time</span>
-                <p className="text-xs text-muted-foreground">Average</p>
-              </div>
-            </div>
-            <Badge className="bg-success/20 text-success border-0">{Math.round((analyticsData.avgResponseTime || 0) * 10) / 10}m</Badge>
-          </div>
-        </Card>
-      </motion.div>
-
-      {/* System Health */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="space-y-3"
-      >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">System Health</h3>
-
-        <div className="grid grid-cols-2 gap-2">
-          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 geo-round bg-info/20 flex items-center justify-center">
-                <Hospital className="h-4 w-4 text-info" />
-              </div>
-              <div>
-                <p className="font-black text-sm">{analyticsData.activeHospitals}</p>
-                <p className="text-xs text-muted-foreground">Hospitals</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
-                <Ambulance className="h-4 w-4 text-warning" />
-              </div>
-              <div>
-                <p className="font-black text-sm">{analyticsData.availableAmbulances}</p>
-                <p className="text-xs text-muted-foreground">Ambulances</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 geo-round bg-success/20 flex items-center justify-center">
-                <Stethoscope className="h-4 w-4 text-success" />
-              </div>
-              <div>
-                <p className="font-black text-sm">{doctorsData.onCall}</p>
-                <p className="text-xs text-muted-foreground">On Call</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
-                <Shield className="h-4 w-4 text-warning" />
-              </div>
-              <div>
-                <p className="font-black text-sm">{verificationData.pending}</p>
-                <p className="text-xs text-muted-foreground">Pending</p>
-              </div>
-            </div>
-          </Card>
+      {/* System Controls */}
+      <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+        <div className="flex items-center gap-2 mb-3">
+          <Shield className="h-5 w-5 text-primary" />
+          <h3 className="font-black text-sm uppercase tracking-wider">System Controls</h3>
         </div>
-      </motion.div>
 
-      {/* Quick Actions */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Real-time Updates</span>
+            <Switch checked={realTimeEnabled} onCheckedChange={setRealTimeEnabled} />
+          </div>
+
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={handleRefreshAll}>
+              <RefreshCw className="h-3 w-3 mr-2" /> Refresh
+            </Button>
+            <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={handleExportReport}>
+              <Download className="h-3 w-3 mr-2" /> Export
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Key Metrics Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 geo-round bg-primary/20 flex items-center justify-center">
+              <Users className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="font-black text-sm">{emergencyStats.pending + emergencyStats.inProgress}</p>
+              <p className="text-xs text-muted-foreground">Active Cases</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
+              <Ambulance className="h-4 w-4 text-warning" />
+            </div>
+            <div>
+              <p className="font-black text-sm">{analyticsData.availableAmbulances}</p>
+              <p className="text-xs text-muted-foreground">Ambulances</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 geo-round bg-success/20 flex items-center justify-center">
+              <Stethoscope className="h-4 w-4 text-success" />
+            </div>
+            <div>
+              <p className="font-black text-sm">{doctorsData.onCall}</p>
+              <p className="text-xs text-muted-foreground">On Call</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
+              <Shield className="h-4 w-4 text-warning" />
+            </div>
+            <div>
+              <p className="font-black text-sm">{verificationData.pending}</p>
+              <p className="text-xs text-muted-foreground">Pending</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -172,7 +200,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
         <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
         <div className="space-y-2">
-          <button 
+          <button
             onClick={handleEmergencyResponse}
             className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-destructive/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
           >
@@ -180,7 +208,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
             <span className="font-black tracking-tight text-destructive">Emergency Response</span>
           </button>
 
-          <button 
+          <button
             onClick={handleViewAnalytics}
             className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
           >
