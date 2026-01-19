@@ -6,7 +6,7 @@ import {
   Home, MapPin, FileCheck, TrendingUp, Menu,
   Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance,
   Users, Newspaper, Headphones, Shield, ChevronLeft, ChevronDown,
-  FolderKanban, Handshake
+  FolderKanban, Handshake, Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
@@ -28,6 +28,7 @@ const operationItems = [
 const managementItems = [
   { id: 'verification', path: '/verification', icon: FileCheck, label: 'Queue', minRole: 'admin' },
   { id: 'insurance', path: '/insurance', icon: Shield, label: 'Insurance', minRole: 'admin' },
+  { id: 'subscriptions', path: '/subscriptions', icon: Mail, label: 'Subscriptions', minRole: 'admin' },
   { id: 'support', path: '/support-tickets', icon: Headphones, label: 'Support' },
   { id: 'users', path: '/users', icon: Users, label: 'Users', minRole: 'admin' },
   { id: 'news', path: '/health-news', icon: Newspaper, label: 'Health News', minRole: 'admin' },

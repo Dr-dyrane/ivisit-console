@@ -5,6 +5,7 @@ import { useLayout } from '../../contexts/LayoutContext';
 import { useContextAction } from '../../hooks/useContextAction';
 import { useInsurance } from '../../hooks/useInsurance';
 import { useSupportTickets } from '../../hooks/useSupportTickets';
+import { useSubscription } from '../../hooks/useSubscription';
 import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
 import { UserModal } from '../modals/UserModal';
 import { HospitalModal } from '../modals/HospitalModal';
@@ -14,9 +15,10 @@ import { VisitModal } from '../modals/VisitModal';
 import { HealthNewsModal } from '../modals/HealthNewsModal';
 import { SupportTicketModal } from '../modals/SupportTicketModal';
 import { InsuranceModal } from '../modals/InsuranceModal';
+import { SubscriptionModal } from '../modals/SubscriptionModal';
 
 export const ContextAwareFAB = () => {
-  const { isDesktop } = useNavigation();
+  const { isDesktop, isMobile } = useNavigation();
   const { isContextPanelOpen } = useLayout();
   const [modalStates, setModalStates] = useState({
     emergency: false,
@@ -27,7 +29,9 @@ export const ContextAwareFAB = () => {
     visit: false,
     healthNews: false,
     supportTicket: false,
-    insurance: false
+    insurance: false,
+    subscription: false,
+    emailActions: false
   });
 
   const openModal = (type) => {
@@ -42,6 +46,7 @@ export const ContextAwareFAB = () => {
   const actionConfig = useContextAction(openModal);
   const { createPolicy } = useInsurance();
   const { createTicket } = useSupportTickets();
+  const { createSubscriber } = useSubscription();
 
   // Constants for SupportTicketModal
   const TICKET_PRIORITIES = [
@@ -56,7 +61,7 @@ export const ContextAwareFAB = () => {
   ];
 
   // Desktop only - Mobile uses DynamicBottomBar
-  if (!isDesktop) return null;
+  if (isMobile) return null;
 
   // Hide FAB when context panel is open to reduce cognitive load
   if (isContextPanelOpen) return null;
@@ -124,6 +129,8 @@ export const ContextAwareFAB = () => {
                 />
               );
             case 'insurance': return <InsuranceModal key={key} {...props} onSave={createPolicy} mode="create" />;
+            case 'subscription': return <SubscriptionModal key={key} {...props} onSave={createSubscriber} mode="create" />;
+            case 'emailActions': return <SubscriptionModal key={key} {...props} mode="emailActions" />;
             default: return null;
           }
         })}

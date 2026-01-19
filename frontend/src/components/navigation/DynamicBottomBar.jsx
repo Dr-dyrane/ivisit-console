@@ -184,7 +184,7 @@ export const DynamicBottomBar = () => {
                         </div>
                     </div>
 
-                    <div className="h-full overflow-y-auto px-4 pb-44 scrollbar-hide">
+                    <div className="h-full overflow-y-auto px-4 pb-20 scrollbar-hide">
                         <AnimatePresence mode="wait">
                             {activeView === 'menu' ? (
                                 <motion.div

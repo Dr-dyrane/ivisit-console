@@ -30,6 +30,7 @@ import { NotFoundPage } from "./components/pages/NotFoundPage";
 import { HealthNewsManagementPage } from "./components/pages/HealthNewsManagementPage";
 import { SupportTicketsPage } from "./components/pages/SupportTicketsPage";
 import { InsuranceManagementPage } from "./components/pages/InsuranceManagementPage";
+import { SubscriptionManagementPage } from "./components/pages/SubscriptionManagementPage";
 import { Toaster } from "./components/ui/sonner";
 import NoiseOverlay from "./components/ui/noise-overlay";
 import { motion } from "framer-motion";
@@ -133,6 +134,7 @@ function AppRoutes() {
 					<Route path="/health-news" element={<ProtectedRoute minRole="admin"><HealthNewsManagementPage /></ProtectedRoute>} />
 					<Route path="/support-tickets" element={<ProtectedRoute minRole="viewer"><SupportTicketsPage /></ProtectedRoute>} />
 					<Route path="/insurance" element={<ProtectedRoute minRole="admin"><InsuranceManagementPage /></ProtectedRoute>} />
+					<Route path="/subscriptions" element={<ProtectedRoute minRole="admin"><SubscriptionManagementPage /></ProtectedRoute>} />
 					<Route path="*" element={<NotFoundPage />} />
 				</Routes>
 			</AppLayout>

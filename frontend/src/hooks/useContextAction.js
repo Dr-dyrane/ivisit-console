@@ -11,7 +11,9 @@ import {
     Settings,
     BarChart3,
     Newspaper,
-    Headphones
+    Headphones,
+    Mail,
+    Send
 } from 'lucide-react';
 
 export const useContextAction = (openModal) => {
@@ -119,6 +121,13 @@ export const useContextAction = (openModal) => {
             label: 'Add Policy',
             color: 'primary', // or 'success' depending on theme preference
             action: () => openModal('insurance')
+        };
+    } else if (currentPath.includes('/subscriptions')) {
+        return {
+            icon: Mail,
+            label: 'Email Actions',
+            color: 'primary',
+            action: () => openModal('emailActions')
         };
     } else {
         return {

@@ -7,7 +7,7 @@ import {
     Hospital, Ambulance, Stethoscope, Users,
     Calendar, AlertTriangle, LogOut, Sun, Moon,
     Newspaper, Headphones, Shield, ChevronDown, ChevronLeft,
-    Handshake, FolderKanban
+    FolderKanban, Handshake, Mail
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -62,6 +62,7 @@ export const MobileNavMenu = ({ onClose }) => {
             items: [
                 { path: '/verification', icon: FileCheck, label: 'Queue', minRole: 'admin' },
                 { path: '/insurance', icon: Shield, label: 'Insurance', minRole: 'admin' },
+                { path: '/subscriptions', icon: Mail, label: 'Subscriptions', minRole: 'admin' },
                 { path: '/support-tickets', icon: Headphones, label: 'Support' },
                 { path: '/users', icon: Users, label: 'Users', minRole: 'admin' },
                 { path: '/health-news', icon: Newspaper, label: 'Health News', minRole: 'admin' },
