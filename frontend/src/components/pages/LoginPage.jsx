@@ -3,24 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-	LogIn,
-	UserPlus,
 	Mail,
 	Lock,
 	User,
 	Eye,
 	EyeOff,
 	ShieldCheck,
-	Activity,
-	Globe,
-	Cpu,
 	Zap,
+	Globe,
 	Server,
-    LayoutGrid
 } from "lucide-react";
 import ThemeToggle from "../ui/theme-toggle";
-import NoiseOverlay from "../ui/noise-overlay";
-
 import { toast } from "sonner";
 
 export const LoginPage = () => {
@@ -28,18 +21,26 @@ export const LoginPage = () => {
 	const { signIn, signUp, user, profile, loading } = useAuth();
 	const [isLogin, setIsLogin] = useState(true);
 	const [showPassword, setShowPassword] = useState(false);
+	const [greeting, setGreeting] = useState("");
 	const [formData, setFormData] = useState({
 		email: "",
 		password: "",
 		username: "",
 	});
 
+	useEffect(() => {
+		const hour = new Date().getHours();
+		if (hour < 12) setGreeting("Good Morning");
+		else if (hour < 18) setGreeting("Good Afternoon");
+		else setGreeting("Good Evening");
+	}, []);
+
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		try {
 			if (isLogin) {
 				await signIn(formData.email, formData.password);
-				toast.success("System Linked");
+				toast.success("Identity Verified");
 			} else {
 				const data = await signUp(
 					formData.email,
@@ -52,7 +53,7 @@ export const LoginPage = () => {
 				}
 			}
 		} catch (err) {
-			toast.error(err.message || "Breach Detected");
+			toast.error(err.message || "Access Denied");
 		}
 	};
 
@@ -63,220 +64,196 @@ export const LoginPage = () => {
 	}, [loading, user, profile, navigate]);
 
 	return (
-		<div className="relative min-h-screen bg-background text-foreground overflow-hidden selection:bg-primary/20">
-			{/* 1. PROCEDURAL DEPTH LAYER */}
+		<div className="relative min-h-[100dvh] bg-background text-foreground flex flex-col items-center">
+			{/* PERFORMANCE BACKGROUND: No Blur filters, just gradients */}
 			<div className="fixed inset-0 z-0 pointer-events-none">
-				<NoiseOverlay opacity={0.5} />
-				<div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[120px]" />
-				<div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary/10 rounded-full blur-[120px]" />
+				<div className="absolute top-[-10%] right-[-10%] w-[70%] h-[50%] opacity-20 bg-[radial-gradient(circle,hsl(var(--primary))_0%,transparent_70%)]" />
+				<div className="absolute bottom-[-5%] left-[-10%] w-[60%] h-[40%] opacity-10 bg-[radial-gradient(circle,hsl(var(--primary))_0%,transparent_70%)]" />
 			</div>
 
-			<div className="relative z-10 max-w-[1200px] mx-auto min-h-screen grid grid-cols-12 gap-6 px-0 md:px-12 py-6 md:py-12 items-center">
-				{/* LEFT COLUMN: BRANDING & META (Bento Stack) */}
-				<div className="col-span-12 lg:col-span-5 space-y-6">
-					{/* LOGO BENTO */}
+			<div className="relative z-10 w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 min-h-[100dvh]">
+				{/* LEFT: DESKTOP BRANDING */}
+				<div className="hidden lg:flex col-span-5 flex-col justify-center p-12 space-y-8">
 					<motion.div
-						initial={{ opacity: 0, scale: 0.95 }}
-						animate={{ opacity: 1, scale: 1 }}
-						transition={{ type: "tween", duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-						className="bg-background/50 backdrop-blur-xs squircle-3xl p-10 shadow-2xl relative overflow-hidden group"
+						initial={{ opacity: 0, x: -20 }}
+						animate={{ opacity: 1, x: 0 }}
 					>
-                         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
-						
-                        <div className="relative z-10">
-                            <div className="w-16 h-16 squircle-xl bg-primary flex items-center justify-center mb-8 shadow-glow">
-                                <ShieldCheck className="text-primary-foreground w-8 h-8" />
-                            </div>
-                            <h1 className="text-5xl font-black tracking-tighter leading-none mb-4">
-                                iVisit<span className="text-primary">.</span>
-                            </h1>
-                            <p className="text-muted-foreground leading-relaxed max-w-[280px] font-medium text-lg">
-                                Secure Interface for Emergency Response Coordination.
-                            </p>
-                        </div>
+						<div className="w-16 h-16 bg-primary rounded-[22%] flex items-center justify-center mb-8 shadow-2xl">
+							<ShieldCheck className="text-white w-9 h-9" />
+						</div>
+						<div className="space-y-1 mb-6">
+							<p className="text-2xl font-medium tracking-tight opacity-40">
+								{greeting},
+							</p>
+							<h1 className="text-7xl font-black tracking-tighter leading-none">
+								iVisit<span className="text-primary">.</span>
+							</h1>
+						</div>
+						<p className="text-xl text-muted-foreground font-medium leading-tight max-w-sm">
+							Mission-critical emergency response coordination link.
+						</p>
 					</motion.div>
 
-					{/* SECONDARY STATS ROW */}
-					<div className="grid grid-cols-2 gap-6">
-						<motion.div 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ type: "tween", duration: 0.3, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
-                            className="bg-background/35 backdrop-blur-xs squircle-2xl p-6 aspect-square flex flex-col justify-between hover-lift group"
-                        >
-                            <div className="flex justify-between items-start">
-							    <Globe className="w-6 h-6 text-primary opacity-60 group-hover:opacity-100 transition-opacity" />
-                                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                            </div>
-							<div>
-								<span className="block text-[10px] font-black tracking-widest uppercase opacity-40 mb-1">
-									Network Status
-								</span>
-								<span className="text-2xl font-black tracking-tight">
-									Online
-								</span>
-							</div>
-						</motion.div>
-						<motion.div 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ type: "tween", duration: 0.3, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-                            className="bg-background/35 backdrop-blur-xs squircle-2xl p-6 aspect-square flex flex-col justify-between hover-lift group"
-                        >
-							<div className="flex justify-between items-start">
-							    <Server className="w-6 h-6 text-secondary opacity-60 group-hover:opacity-100 transition-opacity" />
-                                <Activity className="w-4 h-4 text-muted-foreground" />
-                            </div>
-							<div>
-								<span className="block text-[10px] font-black tracking-widest uppercase opacity-40 mb-1">
-									System Load
-								</span>
-								<span className="text-2xl font-black tracking-tight">
-									Optimal
-								</span>
-							</div>
-						</motion.div>
+					{/* QUICK STATS */}
+					<div className="flex gap-4">
+						<div className="flex items-center gap-2 px-4 py-2 bg-foreground/5 rounded-full border border-foreground/5">
+							<Globe size={14} className="text-primary" />
+							<span className="text-[10px] font-black tracking-widest uppercase opacity-60">
+								HQ-Core
+							</span>
+						</div>
+						<div className="flex items-center gap-2 px-4 py-2 bg-foreground/5 rounded-full border border-foreground/5">
+							<Server size={14} className="text-primary" />
+							<span className="text-[10px] font-black tracking-widest uppercase opacity-60">
+								Secure
+							</span>
+						</div>
 					</div>
 				</div>
 
-				{/* RIGHT COLUMN: THE FORM (Hero Bento) */}
-				<div className="col-span-12 lg:col-span-7 h-full flex flex-col justify-center">
+				{/* RIGHT: THE FORM */}
+				<div className="col-span-12 lg:col-span-7 flex items-center justify-center">
 					<motion.div
-						initial={{ opacity: 0, x: 10 }}
-						animate={{ opacity: 1, x: 0 }}
-						transition={{ type: "tween", duration: 0.4, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-						className="bg-background/50 backdrop-blur-xs squircle-3xl p-2 sm:p-3 shadow-2xl relative"
+						initial={{ opacity: 0, y: 30 }}
+						animate={{ opacity: 1, y: 0 }}
+						className="ios-material  lg:rounded-[48px] shadow-2xl overflow-hidden w-full max-w-[560px]"
 					>
-                        {/* Decorative Grid Background */}
-                        <div className="absolute inset-0 opacity-5" 
-                             style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '24px 24px' }}>
-                        </div>
+						{/* MOBILE ONLY LOGO */}
+						<div className="lg:hidden flex flex-col items-center pt-12 pb-6">
+							<div className="space-y-1 text-center">
+								<p className="text-sm font-medium tracking-tight opacity-40">
+									{greeting},
+								</p>
+								<h1 className="text-4xl font-black tracking-tighter">
+									iVisit<span className="text-primary">.</span>
+								</h1>
+							</div>
+						</div>
 
-						{/* INNER FORM CONTAINER */}
-						<div className="bg-background/40 backdrop-blur-md squircle-3xl p-8 sm:p-12 relative z-10">
-							{/* SELECTOR PILL */}
-							<div className="flex bg-muted/50 p-1 rounded-full w-fit mx-auto mb-12 shadow-inner">
-								{["Login", "Create"].map((label, i) => (
-									<button
-										key={label}
-										onClick={() => setIsLogin(i === 0)}
-										className={`px-8 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300 ${
-											(isLogin && i === 0) || (!isLogin && i === 1)
-												? "bg-background text-foreground shadow-sm scale-105"
-												: "text-muted-foreground hover:text-foreground"
-										}`}
-									>
-										{label}
-									</button>
-								))}
+						<div className="p-8 sm:p-14 lg:p-16">
+							{/* SEGMENTED CONTROL - iOS NATIVE LOOK */}
+							<div className="relative flex p-1 bg-foreground/[0.05] rounded-xl mb-10 w-full max-w-[320px] mx-auto">
+								<motion.div
+									className="absolute inset-y-1 bg-background rounded-[9px] shadow-sm"
+									animate={{ x: isLogin ? "0%" : "100%", width: "50%" }}
+									transition={{ type: "spring", stiffness: 350, damping: 35 }}
+								/>
+								<button
+									onClick={() => setIsLogin(true)}
+									className={`relative z-10 w-1/2 py-2 text-xs font-bold transition-colors ${
+										isLogin ? "text-foreground" : "text-muted-foreground"
+									}`}
+								>
+									Sign In
+								</button>
+								<button
+									onClick={() => setIsLogin(false)}
+									className={`relative z-10 w-1/2 py-2 text-xs font-bold transition-colors ${
+										!isLogin ? "text-foreground" : "text-muted-foreground"
+									}`}
+								>
+									Register
+								</button>
 							</div>
 
-							<form onSubmit={handleSubmit} className="space-y-6">
+							<form onSubmit={handleSubmit} className="space-y-4">
 								<AnimatePresence mode="wait">
 									{!isLogin && (
 										<motion.div
 											initial={{ opacity: 0, height: 0 }}
-											animate={{ opacity: 1, height: 'auto' }}
+											animate={{ opacity: 1, height: "auto" }}
 											exit={{ opacity: 0, height: 0 }}
-											transition={{ type: "tween", duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
-											className="overflow-hidden"
 										>
-											<label className="text-[10px] font-black tracking-widest uppercase opacity-40 ml-4 mb-2 block">
-												Registry Name
+											<label className="text-[10px] font-bold tracking-widest uppercase opacity-40 ml-4 mb-1.5 block">
+												Identity_Operator
 											</label>
-											<div className="squircle-xl bg-muted/30 group focus-within:bg-muted/50 transition-colors duration-300 border-0">
-												<div className="flex items-center px-6">
-													<User className="w-5 h-5 opacity-40 group-focus-within:opacity-100 group-focus-within:text-primary transition-all" />
-													<input
-														className="w-full bg-transparent border-none py-5 px-4 outline-none text-sm font-medium placeholder:text-muted-foreground/30"
-														placeholder="OPERATOR_ID"
-														onChange={(e) =>
-															setFormData({
-																...formData,
-																username: e.target.value,
-															})
-														}
-													/>
-												</div>
+											<div className="ios-input-well rounded-2xl flex items-center px-5">
+												<User size={18} className="opacity-20" />
+												<input
+													className="w-full bg-transparent border-none py-4.5 px-4 text-base outline-none font-medium"
+													placeholder="Operator Name"
+													onChange={(e) =>
+														setFormData({
+															...formData,
+															username: e.target.value,
+														})
+													}
+												/>
 											</div>
 										</motion.div>
 									)}
 								</AnimatePresence>
 
-								<div className="space-y-2">
-									<label className="text-[10px] font-black tracking-widest uppercase opacity-40 ml-4">
+								<div className="space-y-1.5">
+									<label className="text-[10px] font-bold tracking-widest uppercase opacity-40 ml-4">
 										Neural Link Email
 									</label>
-									<div className="squircle-xl bg-muted/30 group focus-within:bg-muted/50 transition-colors duration-300 border-0">
-										<div className="flex items-center px-6">
-											<Mail className="w-5 h-5 opacity-40 group-focus-within:opacity-100 group-focus-within:text-primary transition-all" />
-											<input
-												type="email"
-												className="w-full bg-transparent border-none py-5 px-4 outline-none text-sm font-medium placeholder:text-muted-foreground/30"
-												placeholder="identity@visit.com"
-												onChange={(e) =>
-													setFormData({ ...formData, email: e.target.value })
-												}
-											/>
-										</div>
+									<div className="ios-input-well rounded-2xl flex items-center px-5">
+										<Mail size={18} className="opacity-20" />
+										<input
+											type="email"
+											className="w-full bg-transparent border-none py-4.5 px-4 text-base outline-none font-medium"
+											placeholder="auth@ivisit.com"
+											onChange={(e) =>
+												setFormData({ ...formData, email: e.target.value })
+											}
+										/>
 									</div>
 								</div>
 
-								<div className="space-y-2">
-									<label className="text-[10px] font-black tracking-widest uppercase opacity-40 ml-4">
-										Access Phrase
+								<div className="space-y-1.5">
+									<label className="text-[10px] font-bold tracking-widest uppercase opacity-40 ml-4">
+										Access Cipher Phrase
 									</label>
-									<div className="squircle-xl bg-muted/30 group focus-within:bg-muted/50 transition-colors duration-300 border-0">
-										<div className="flex items-center px-6">
-											<Lock className="w-5 h-5 opacity-40 group-focus-within:opacity-100 group-focus-within:text-primary transition-all" />
-											<input
-												type={showPassword ? "text" : "password"}
-												className="w-full bg-transparent border-none py-5 px-4 outline-none text-sm font-medium placeholder:text-muted-foreground/30"
-												placeholder="••••••••"
-												onChange={(e) =>
-													setFormData({ ...formData, password: e.target.value })
-												}
-											/>
-											<button
-												type="button"
-												onClick={() => setShowPassword(!showPassword)}
-												className="opacity-40 hover:opacity-100 transition-opacity"
-											>
-												{showPassword ? (
-													<EyeOff size={18} />
-												) : (
-													<Eye size={18} />
-												)}
-											</button>
-										</div>
+									<div className="ios-input-well rounded-2xl flex items-center px-5">
+										<Lock size={18} className="opacity-20" />
+										<input
+											type={showPassword ? "text" : "password"}
+											className="w-full bg-transparent border-none py-4.5 px-4 text-base outline-none font-medium"
+											placeholder="••••••••"
+											onChange={(e) =>
+												setFormData({ ...formData, password: e.target.value })
+											}
+										/>
+										<button
+											type="button"
+											onClick={() => setShowPassword(!showPassword)}
+											className="opacity-20 hover:opacity-100 transition-opacity"
+										>
+											{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+										</button>
 									</div>
 								</div>
 
 								<motion.button
-									whileHover={{ scale: 1.01 }}
-									whileTap={{ scale: 0.99 }}
-									transition={{ type: "tween", duration: 0.15 }}
-									className="w-full mt-8 py-5 bg-primary text-primary-foreground font-black text-xs tracking-[0.2em] uppercase squircle-xl shadow-glow hover:shadow-lg transition-all flex items-center justify-center gap-3"
+									whileTap={{ scale: 0.98 }}
+									className="w-full mt-8 py-5 bg-primary text-white font-bold text-sm tracking-widest uppercase rounded-2xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 active:brightness-90 transition-all"
 								>
 									{loading ? (
-										<div className="w-5 h-5 border-2 border-primary-foreground/20 border-t-primary-foreground rounded-full animate-spin" />
+										<div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
 									) : (
 										<>
 											<span>
-												{isLogin ? "Initiate Access" : "Register Link"}
+												{isLogin ? "Initialize Link" : "Register Node"}
 											</span>
-											<Zap size={16} className="fill-current" />
+											<Zap size={16} fill="currentColor" />
 										</>
 									)}
 								</motion.button>
 							</form>
+
+							<div className="mt-12 text-center">
+								<p className="text-[10px] font-black tracking-[0.3em] uppercase opacity-20">
+									IVISIT TERMINAL ACCESS • HQ-01
+								</p>
+							</div>
 						</div>
 					</motion.div>
 				</div>
 			</div>
 
-			{/* FLOATING ACCESSORIES */}
-			<div className="fixed top-8 right-8 z-50">
+			{/* ACCESSORY TOGGLE */}
+			<div className="fixed bottom-6 right-6 z-50 p-1.5 rounded-full ios-material shadow-lg">
 				<ThemeToggle />
 			</div>
 		</div>
