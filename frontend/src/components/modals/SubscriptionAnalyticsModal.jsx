@@ -32,7 +32,7 @@ export const SubscriptionAnalyticsModal = ({ open, onClose, analytics }) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 100 }}
             transition={{ type: "spring", damping: 30, stiffness: 350 }}
-            className="ios-material ios-sheet-container relative z-10 md:rounded-[40px] shadow-2xl overflow-hidden border border-foreground/10"
+            className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-hidden  rounded-[32px] shadow-2xl"
           >
             {/* Header: No border, just padding and depth */}
             <div className="flex items-center justify-between p-6 md:p-10 pb-4">
@@ -86,7 +86,7 @@ export const SubscriptionAnalyticsModal = ({ open, onClose, analytics }) => {
               {/* Conversion & Engagement: Stacked Materials */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                <div className="ios-bubble p-8 space-y-6">
+                <div className="p-3 sm:p-5 rounded-3xl bg-white/5  border-white/10  transition-transform hover:scale-[1.02]p-8 space-y-6">
                   <div className="flex items-center justify-between">
                     <h3 className="font-black tracking-tight text-lg">Acquisition</h3>
                     <TrendingUp className="text-primary h-5 w-5 opacity-40" />
@@ -106,7 +106,7 @@ export const SubscriptionAnalyticsModal = ({ open, onClose, analytics }) => {
                   </div>
                 </div>
 
-                <div className="ios-bubble p-8 flex flex-col justify-center text-center space-y-2">
+                <div className="p-3 sm:p-5 rounded-3xl bg-white/5  border-white/10  transition-transform hover:scale-[1.02] p-8 flex flex-col justify-center text-center space-y-2">
                   <Mail className="h-8 w-8 text-primary mx-auto mb-2 opacity-40" />
                   <p className="text-4xl font-black tracking-tighter">
                     {getPct(analytics.welcomeEmailsSent, analytics.total)}%
@@ -165,7 +165,7 @@ export const SubscriptionAnalyticsModal = ({ open, onClose, analytics }) => {
 /* --- APPLE UI SUB-COMPONENTS --- */
 
 const StatBubble = ({ label, value, subText, icon }) => (
-  <div className="ios-bubble p-6 group hover:scale-[1.02] transition-transform">
+  <div className="p-3 sm:p-5 rounded-3xl bg-white/5  border-white/10  transition-transform hover:scale-[1.02]">
     <div className="flex justify-between items-start mb-4">
       <div className="p-2 bg-foreground/[0.03] rounded-xl">{icon}</div>
       <ChevronRight className="h-4 w-4 opacity-10 group-hover:opacity-100 transition-opacity" />
