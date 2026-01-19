@@ -10,7 +10,8 @@ import {
     Crown,
     Eye,
     Trash2,
-    Calendar
+    Calendar,
+    Edit
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,6 +19,7 @@ export const SubscriptionListView = ({
     subscribers,
     onView,
     onDelete,
+    onEdit,
     getStatusBadge,
     getTypeBadge,
     isMobile
@@ -126,6 +128,17 @@ export const SubscriptionListView = ({
                                     >
                                         <Eye className="h-4 w-4" />
                                     </Button>
+
+                                    {onEdit && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => onEdit(subscriber)}
+                                            className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                    )}
 
                                     {onDelete && (
                                         <Button
