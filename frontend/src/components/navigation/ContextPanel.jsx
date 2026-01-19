@@ -21,8 +21,6 @@ import {
   DashboardPanel,
   SubscriptionsPanel
 } from '../context';
-import { DashboardPanel as DashboardPanelCommandCenter } from '../context/DashboardPanel_CommandCenter';
-import { MapPanel as MapPanelCommandCenter } from '../context/MapPanel_CommandCenter';
 
 export const ContextPanel = () => {
   const location = useLocation();
@@ -113,7 +111,7 @@ export const ContextPanel = () => {
   // Render based on current path
   if (currentPath === '/' || currentPath === '') {
     return renderPanelWithHeader(
-      <DashboardPanelCommandCenter 
+      <DashboardPanel 
         emergencyStats={emergencyStats}
         analyticsData={analyticsData}
         doctorsData={doctorsData}
@@ -138,7 +136,7 @@ export const ContextPanel = () => {
     return renderPanelWithHeader(<AmbulancesPanel />);
   } else if (currentPath.includes('/map')) {
     return renderPanelWithHeader(
-      <MapPanelCommandCenter emergencyStats={emergencyStats} />
+      <MapPanel emergencyStats={emergencyStats} />
     );
   } else if (currentPath.includes('/analytics')) {
     return renderPanelWithHeader(<AnalyticsPanel analyticsData={analyticsData} />);
