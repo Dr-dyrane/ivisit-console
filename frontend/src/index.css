@@ -267,11 +267,9 @@ code {
 	/* Optimized Background Orbs (No Blur Property) */
 	.bg-orb {
 		/* Use radial gradients instead of the 'blur' filter for background depth */
-		background: radial-gradient(
-			circle,
-			hsl(var(--primary) / 0.15) 0%,
-			transparent 70%
-		);
+		background: radial-gradient(circle,
+				hsl(var(--primary) / 0.15) 0%,
+				transparent 70%);
 	}
 
 	.ios-material {
@@ -292,17 +290,31 @@ code {
 		background: hsl(var(--foreground) / 0.08);
 	}
 
+	.ios-action-pill {
+		background: hsl(var(--background) / 0.6);
+		backdrop-filter: saturate(210%) blur(20px);
+		-webkit-backdrop-filter: saturate(210%) blur(20px);
+		box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1);
+		display: flex;
+		items-center: center;
+		overflow: hidden;
+	}
+
+	.ios-icon-active {
+		background: hsl(var(--primary)/0.5);
+		box-shadow: inset 0 1px 1px hsl(var(--background) / 0.3);
+		@apply text-white;
+	}
+
 	/* Arsenal of Geometric Luxury - Command Station Level */
 	.geo-chamfer {
 		border-radius: 0;
-		clip-path: polygon(
-			30px 0,
-			100% 0,
-			100% calc(100% - 30px),
-			calc(100% - 30px) 100%,
-			0 100%,
-			0 30px
-		);
+		clip-path: polygon(30px 0,
+				100% 0,
+				100% calc(100% - 30px),
+				calc(100% - 30px) 100%,
+				0 100%,
+				0 30px);
 	}
 
 	.geo-shard {
@@ -317,16 +329,12 @@ code {
 
 	.geo-ticket {
 		border-radius: 2rem;
-		mask: radial-gradient(circle at 0 50%, transparent 20px, black 21px) top
-				left,
-			radial-gradient(circle at 100% 50%, transparent 20px, black 21px) top
-				right;
+		mask: radial-gradient(circle at 0 50%, transparent 20px, black 21px) top left,
+			radial-gradient(circle at 100% 50%, transparent 20px, black 21px) top right;
 		mask-size: 51% 100%;
 		mask-repeat: no-repeat;
-		-webkit-mask: radial-gradient(circle at 0 50%, transparent 20px, black 21px)
-				top left,
-			radial-gradient(circle at 100% 50%, transparent 20px, black 21px) top
-				right;
+		-webkit-mask: radial-gradient(circle at 0 50%, transparent 20px, black 21px) top left,
+			radial-gradient(circle at 100% 50%, transparent 20px, black 21px) top right;
 		-webkit-mask-size: 51% 100%;
 		-webkit-mask-repeat: no-repeat;
 	}
@@ -396,11 +404,9 @@ code {
 	}
 
 	.text-gradient-primary {
-		background: linear-gradient(
-			135deg,
-			hsl(var(--primary)),
-			hsl(var(--secondary))
-		);
+		background: linear-gradient(135deg,
+				hsl(var(--primary)),
+				hsl(var(--secondary)));
 		-webkit-background-clip: text;
 		-webkit-text-fill-color: transparent;
 		background-clip: text;
@@ -436,12 +442,10 @@ code {
 
 	.shimmer {
 		animation: shimmer 2s infinite linear;
-		background: linear-gradient(
-			90deg,
-			hsl(var(--muted) / 0.3) 0%,
-			hsl(var(--muted) / 0.5) 50%,
-			hsl(var(--muted) / 0.3) 100%
-		);
+		background: linear-gradient(90deg,
+				hsl(var(--muted) / 0.3) 0%,
+				hsl(var(--muted) / 0.5) 50%,
+				hsl(var(--muted) / 0.3) 100%);
 		background-size: 1000px 100%;
 	}
 
@@ -530,6 +534,7 @@ code {
 	}
 
 	@keyframes pulse-dot {
+
 		0%,
 		100% {
 			opacity: 1;
@@ -648,7 +653,7 @@ code {
 		display: contents !important;
 	}
 
-	[data-debug-wrapper="true"] > * {
+	[data-debug-wrapper="true"]>* {
 		margin-left: inherit;
 		margin-right: inherit;
 		margin-top: inherit;

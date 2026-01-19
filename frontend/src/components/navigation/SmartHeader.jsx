@@ -3,7 +3,6 @@ import { useNavigation } from '../../contexts/NavigationContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { QuickSearch } from './QuickSearch';
 import { NotificationCenter } from '../common/NotificationCenter';
-import { NetworkStatus } from '../common/NetworkStatus';
 import { Search, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import NoiseOverlay from '../ui/noise-overlay';

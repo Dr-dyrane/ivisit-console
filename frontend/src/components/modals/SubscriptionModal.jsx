@@ -280,7 +280,7 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 100 }}
           transition={{ type: "spring", damping: 30, stiffness: 350 }}
-          className={`ios-material ios-sheet relative z-10 w-full ${mode === 'bulk' ? 'max-w-5xl' : 'max-w-lg'} md:rounded-[40px] shadow-2xl border border-foreground/10 overflow-hidden`}
+          className={`ios-material ios-sheet relative z-10 w-full ${mode === 'bulk' ? 'max-w-5xl' : 'max-w-lg'} md:rounded-[40px] shadow-2xl border border-foreground/10 overflow-scroll no-scrollbar`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

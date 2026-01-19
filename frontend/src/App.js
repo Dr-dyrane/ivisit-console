@@ -6,6 +6,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { NavigationProvider } from "./contexts/NavigationContext";
 import { PageDataProvider } from "./contexts/PageDataContext";
+import { MapProvider } from "./contexts/MapContext";
 import { IslandNavigation } from "./components/common/IslandNavigation";
 import { ContextPanelShell } from "./components/navigation/ResponsiveSidebar";
 import { LayoutProvider, useLayout } from "./contexts/LayoutContext";
@@ -103,13 +104,15 @@ const AppShell = ({ children }) => {
 };
 
 const AppLayout = ({ children }) => (
-	<PageDataProvider>
-		<NavigationProvider>
-			<LayoutProvider>
-				<AppShell>{children}</AppShell>
-			</LayoutProvider>
-		</NavigationProvider>
-	</PageDataProvider>
+	<MapProvider>
+		<PageDataProvider>
+			<NavigationProvider>
+				<LayoutProvider>
+					<AppShell>{children}</AppShell>
+				</LayoutProvider>
+			</NavigationProvider>
+		</PageDataProvider>
+	</MapProvider>
 );
 
 function AppRoutes() {
