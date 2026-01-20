@@ -209,8 +209,7 @@ export const EmergencyRequestsPage = () => {
         onClick={fetchRequests}
         className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
       >
-        <RefreshCw className="h-4 w-4 mr-2" />
-        RELOAD
+        <RefreshCw className="h-4 w-4" />
       </Button>
     </div>
   ), [fetchRequests, handleCreateEmergency]);
