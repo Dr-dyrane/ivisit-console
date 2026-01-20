@@ -1,0 +1,179 @@
+
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { X, Upload, User, Smartphone, Camera, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuth } from '../../contexts/AuthContext';
+import { getAvatarUrl } from '../../lib/avatarUtils';
+
+export const ProfileEditModal = ({ isOpen, onClose }) => {
+    const { user, profile, updateProfile, uploadAvatar } = useAuth();
+    const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
+
+    const [formData, setFormData] = useState({
+        username: '',
+        phone: '',
+        avatar_url: ''
+    });
+
+    useEffect(() => {
+        if (profile) {
+            setFormData({
+                username: profile.username || '',
+                phone: profile.phone || '',
+                avatar_url: profile.avatar_url || ''
+            });
+        }
+    }, [profile]);
+
+    const handleImageUpload = async (event) => {
+        try {
+            setUploading(true);
+            const file = event.target.files?.[0];
+            if (!file) return;
+
+            const publicUrl = await uploadAvatar(file);
+
+            setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
+            toast.success('Image uploaded successfully');
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            toast.error('Error uploading image');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+
+        try {
+            await updateProfile({
+                username: formData.username,
+                phone: formData.phone,
+                avatar_url: formData.avatar_url,
+                updated_at: new Date().toISOString(),
+            });
+            toast.success('Profile updated successfully');
+            onClose();
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to update profile');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-black/30 backdrop-blur-md"
+                        onClick={onClose}
+                    />
+
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                        className="relative z-10 w-full max-w-md bg-background/95 backdrop-blur-xl rounded-[32px] shadow-2xl overflow-hidden"
+                    >
+                        <div className="p-6 border-b border-border/10 flex justify-between items-center">
+                            <h2 className="text-xl font-bold tracking-tight">Edit Profile</h2>
+                            <Button
+                                variant="ghost"
+                                onClick={onClose}
+                                className="h-8 w-8 rounded-full bg-muted/50 hover:bg-muted transition-colors p-0"
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                            {/* Avatar Section */}
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="relative group cursor-pointer">
+                                    <div className="h-28 w-28 rounded-full overflow-hidden border-4 border-background shadow-xl ring-2 ring-muted">
+                                        {(uploading) ? (
+                                            <div className="flex items-center justify-center h-full bg-muted">
+                                                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                                            </div>
+                                        ) : (
+                                            <img
+                                                src={formData.avatar_url || getAvatarUrl(profile)}
+                                                alt="Profile"
+                                                className="h-full w-full object-cover transition-opacity group-hover:opacity-75"
+                                            />
+                                        )}
+                                    </div>
+                                    <label
+                                        htmlFor="avatar-upload"
+                                        className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 rounded-full transition-all cursor-pointer"
+                                    >
+                                        <Camera className="w-8 h-8 text-white" />
+                                    </label>
+                                    <input
+                                        type="file"
+                                        id="avatar-upload"
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                        className="hidden"
+                                        disabled={uploading}
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Tap to change photo</p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold uppercase text-muted-foreground ml-1">Username</Label>
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                                        <Input
+                                            value={formData.username}
+                                            onChange={(e) => setFormData(p => ({ ...p, username: e.target.value }))}
+                                            className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary"
+                                            placeholder="jdoe"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold uppercase text-muted-foreground ml-1">Phone Number</Label>
+                                    <div className="relative">
+                                        <Smartphone className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                                        <Input
+                                            value={formData.phone}
+                                            onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
+                                            className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary"
+                                            placeholder="+1 (555) 000-0000"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-2 flex gap-3">
+                                <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-2xl h-12 border-0 bg-muted/50 hover:bg-muted font-semibold">
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={loading || uploading} className="flex-1 rounded-2xl h-12 font-bold bg-primary hover:bg-primary/90 text-primary-foreground">
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
+                                </Button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+    );
+};

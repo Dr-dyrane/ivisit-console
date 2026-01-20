@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { DynamicAuthSkeleton } from '../components/ui/skeleton';
+import { updateProfile as updateProfileService, uploadProfileAvatar } from '../services/profilesService';
+import { updatePassword as updatePasswordService } from '../services/authService';
 
 const AuthContext = createContext({});
 
@@ -199,6 +201,32 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   const isProvider = () => hasMinRole('provider');
   const isViewer = () => hasMinRole('viewer');
 
+  const updateProfile = async (updates) => {
+    try {
+      if (!user) throw new Error('No user logged in');
+      const data = await updateProfileService(user.id, updates);
+      setProfile(data);
+      return data;
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
+  };
+
+  const uploadAvatar = async (file) => {
+    try {
+      if (!user) throw new Error('No user logged in');
+      return await uploadProfileAvatar(user.id, file);
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      throw error;
+    }
+  };
+
+  const updatePassword = async (password) => {
+    return await updatePasswordService(password);
+  };
+
   const value = {
     user,
     profile,
@@ -206,6 +234,9 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     signIn,
     signUp,
     signOut,
+    updateProfile,
+    uploadAvatar,
+    updatePassword,
     hasRole,
     hasMinRole,
     isAdmin,

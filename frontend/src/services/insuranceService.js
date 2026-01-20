@@ -173,7 +173,7 @@ export async function updatePolicyStatus(policyId, status) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .update({ 
+      .update({
         status,
         updated_at: new Date().toISOString()
       })
@@ -197,7 +197,7 @@ export async function verifyInsurancePolicy(policyId, verified) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .update({ 
+      .update({
         verified,
         verified_at: verified ? new Date().toISOString() : null,
         updated_at: new Date().toISOString()
@@ -284,4 +284,30 @@ export function subscribeToInsurancePolicies(callback) {
     .subscribe();
 
   return () => supabase.removeChannel(channel);
+}
+
+/**
+ * Upload insurance card image
+ */
+export async function uploadInsuranceCardImage(file) {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+    const filePath = `insurance-cards/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from('documents')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  } catch (error) {
+    console.error('Error uploading insurance card image:', error);
+    throw error;
+  }
 }

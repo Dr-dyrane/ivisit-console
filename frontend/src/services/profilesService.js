@@ -66,7 +66,7 @@ export async function getUserStatistics() {
   try {
     const { data, error } = await supabase.rpc('get_user_statistics');
     if (error) throw error;
-    
+
     // Transform the row data into a more usable format
     return data && data.length > 0 ? {
       totalUsers: data[0].total_users,
@@ -109,12 +109,12 @@ export async function searchUsers(searchTerm) {
 export async function getProfiles(filter) {
   try {
     const user = await getCurrentUser();
-    
+
     // If admin and wants full user data, use admin service
     if (user?.role === 'admin' && filter?.includeAuthData) {
       return await getProfilesWithAuthData(filter);
     }
-    
+
     let query = supabase.from(TABLE_NAME).select('*');
 
     // Apply authorization - admins get full access, others get filtered
@@ -367,4 +367,30 @@ export function subscribeToProfile(profileId, callback) {
     .subscribe();
 
   return () => supabase.removeChannel(channel);
+}
+
+/**
+ * Upload profile avatar to storage
+ */
+export async function uploadProfileAvatar(userId, file) {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}-${Math.random()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  } catch (error) {
+    console.error('Error uploading avatar:', error);
+    throw error;
+  }
 }

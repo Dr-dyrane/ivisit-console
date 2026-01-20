@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../ui/badge';
 import { X, Upload, Shield, Calendar, Building, CreditCard, FileText, CheckCircle, ImageIcon, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { uploadInsuranceCardImage } from '../../services/insuranceService';
 
 export const InsuranceModal = ({
   isOpen,
@@ -99,10 +100,12 @@ export const InsuranceModal = ({
       let finalFormData = { ...formData };
 
       if (frontImageFile) {
-        finalFormData.front_image_url = `https://example.com/front-${Date.now()}.jpg`;
+        const url = await uploadInsuranceCardImage(frontImageFile);
+        finalFormData.front_image_url = url;
       }
       if (backImageFile) {
-        finalFormData.back_image_url = `https://example.com/back-${Date.now()}.jpg`;
+        const url = await uploadInsuranceCardImage(backImageFile);
+        finalFormData.back_image_url = url;
       }
 
       if (mode === 'create') {

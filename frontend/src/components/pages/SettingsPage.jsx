@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card } from '../ui/card';
@@ -12,10 +12,35 @@ import { toast } from 'sonner';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { usePageHeader } from '../../contexts/LayoutContext';
 
+import { ProfileEditModal } from '../modals/ProfileEditModal';
+import { SecurityModal } from '../modals/SecurityModal';
+import { SupportModal } from '../modals/SupportModal';
+
 export const SettingsPage = () => {
     const { user, profile, signOut, isAdmin, isSponsor, isProvider } = useAuth();
     const [darkMode, setDarkMode] = useState(document.documentElement.classList.contains('dark'));
     const navigate = useNavigate();
+
+    // Modal States
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
+    const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+
+    useEffect(() => {
+        const handleOpenProfile = () => setIsProfileModalOpen(true);
+        const handleOpenSecurity = () => setIsSecurityModalOpen(true);
+        const handleOpenSupport = () => setIsSupportModalOpen(true);
+
+        window.addEventListener('openProfileModal', handleOpenProfile);
+        window.addEventListener('openSecurityModal', handleOpenSecurity);
+        window.addEventListener('openSupportModal', handleOpenSupport);
+
+        return () => {
+            window.removeEventListener('openProfileModal', handleOpenProfile);
+            window.removeEventListener('openSecurityModal', handleOpenSecurity);
+            window.removeEventListener('openSupportModal', handleOpenSupport);
+        };
+    }, []);
 
 
 
@@ -120,7 +145,10 @@ export const SettingsPage = () => {
                                     </div>
 
                                     <div className="flex-shrink-0">
-                                        <Button className="squircle-xl shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6">
+                                        <Button
+                                            onClick={() => setIsProfileModalOpen(true)}
+                                            className="squircle-xl shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6"
+                                        >
                                             Edit Profile
                                         </Button>
                                     </div>
@@ -252,14 +280,22 @@ export const SettingsPage = () => {
                                 </div>
 
                                 <div className="space-y-3">
-                                    <Button variant="outline" className="w-full justify-between h-auto py-3 px-4 squircle-xl border-white/10 hover:bg-muted/30 font-medium">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setIsSecurityModalOpen(true)}
+                                        className="w-full justify-between h-auto py-3 px-4 squircle-xl border-white/10 hover:bg-muted/30 font-medium"
+                                    >
                                         <span className="flex items-center gap-2">
                                             <Key className="w-4 h-4 text-muted-foreground" />
                                             Change Password
                                         </span>
                                         <ChevronRight className="w-4 h-4 text-muted-foreground" />
                                     </Button>
-                                    <Button variant="outline" className="w-full justify-between h-auto py-3 px-4 squircle-xl border-white/10 hover:bg-muted/30 font-medium">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setIsSupportModalOpen(true)}
+                                        className="w-full justify-between h-auto py-3 px-4 squircle-xl border-white/10 hover:bg-muted/30 font-medium"
+                                    >
                                         <span className="flex items-center gap-2">
                                             <HelpCircle className="w-4 h-4 text-muted-foreground" />
                                             Support Center
@@ -272,6 +308,20 @@ export const SettingsPage = () => {
                     </div>
                 </div>
             </LayoutGroup>
+
+            {/* Modals */}
+            <ProfileEditModal
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+            />
+            <SecurityModal
+                isOpen={isSecurityModalOpen}
+                onClose={() => setIsSecurityModalOpen(false)}
+            />
+            <SupportModal
+                isOpen={isSupportModalOpen}
+                onClose={() => setIsSupportModalOpen(false)}
+            />
         </div>
     );
 };

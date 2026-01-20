@@ -13,13 +13,43 @@ import {
   Clock
 } from 'lucide-react';
 
+import { toast } from 'sonner';
+
 export const SettingsPanel = () => {
   // Quick Actions configuration
   const quickActions = [
-    { label: 'Edit Profile', icon: UserCog, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
-    { label: 'Security', icon: ShieldCheck, color: 'text-success', bg: 'bg-success/10', border: 'border-success/20' },
-    { label: 'Billing', icon: CreditCard, color: 'text-purple-500', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
-    { label: 'Help', icon: HelpCircle, color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+    {
+      label: 'Edit Profile',
+      icon: UserCog,
+      color: 'text-primary',
+      bg: 'bg-primary/10',
+      border: 'border-primary/20',
+      action: () => window.dispatchEvent(new Event('openProfileModal'))
+    },
+    {
+      label: 'Security',
+      icon: ShieldCheck,
+      color: 'text-success',
+      bg: 'bg-success/10',
+      border: 'border-success/20',
+      action: () => window.dispatchEvent(new Event('openSecurityModal'))
+    },
+    {
+      label: 'Billing',
+      icon: CreditCard,
+      color: 'text-purple-500',
+      bg: 'bg-purple-500/10',
+      border: 'border-purple-500/20',
+      action: () => toast.info('Billing portal coming soon')
+    },
+    {
+      label: 'Help',
+      icon: HelpCircle,
+      color: 'text-orange-500',
+      bg: 'bg-orange-500/10',
+      border: 'border-orange-500/20',
+      action: () => window.dispatchEvent(new Event('openSupportModal'))
+    },
   ];
 
   return (
@@ -40,6 +70,7 @@ export const SettingsPanel = () => {
               key={index}
               whileTap={{ scale: 0.98 }}
               whileHover={{ scale: 1.02 }}
+              onClick={action.action}
               className={`p-3 h-24 flex flex-col items-center justify-center gap-2 squircle-2xl border ${action.bg} ${action.border} hover:bg-opacity-80 transition-all`}
             >
               <action.icon className={`w-6 h-6 ${action.color}`} />

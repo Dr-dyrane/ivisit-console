@@ -48,7 +48,7 @@ export function buildAuthQuery(query, user, userIdField = 'user_id') {
     // Admin gets full access - no filtering
     return query;
   }
-  
+
   // Non-admin users only see their own data
   return query.eq(userIdField, user?.id);
 }
@@ -57,8 +57,8 @@ export function buildAuthQuery(query, user, userIdField = 'user_id') {
  * Apply authorization filters to service queries
  */
 export function applyAuthFilter(baseQuery, user, options = {}) {
-  const { 
-    userIdField = 'user_id', 
+  const {
+    userIdField = 'user_id',
     bypassForAdmin = true,
     additionalFilters = {}
   } = options;
@@ -81,4 +81,20 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
   });
 
   return query;
+}
+/**
+ * Update user password
+ */
+export async function updatePassword(password) {
+  try {
+    const { data, error } = await supabase.auth.updateUser({
+      password: password
+    });
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error updating password:', error);
+    throw error;
+  }
 }
