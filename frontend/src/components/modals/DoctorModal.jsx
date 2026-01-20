@@ -10,6 +10,8 @@ import { X, Stethoscope, Mail, Phone, Building, Award, Star, Activity, User, Shi
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
+import { uploadImage } from '../../services/storageService';
+import { Loader2, Upload } from 'lucide-react';
 
 export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
   const isView = mode === 'view';
@@ -30,6 +32,27 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const publicUrl = await uploadImage(file, 'doctors');
+      setFormData(prev => ({
+        ...prev,
+        image: publicUrl
+      }));
+      toast.success('Image uploaded successfully');
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     fetchHospitals();
@@ -139,7 +162,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
               </div>
               <div className="flex items-center gap-3">
                 <Badge className={`rounded-full px-4 py-1 border-0 ${formData.status === 'available' ? 'bg-green-500/10 text-green-500' :
-                    formData.status === 'busy' ? 'bg-orange-500/10 text-orange-500' : 'bg-muted/10 text-muted-foreground'
+                  formData.status === 'busy' ? 'bg-orange-500/10 text-orange-500' : 'bg-muted/10 text-muted-foreground'
                   }`}>
                   {formData.status?.toUpperCase()}
                 </Badge>
@@ -185,11 +208,39 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
                   {/* Personal Info */}
                   <GlassCard icon={<User className="text-primary" />} title="Personal Details">
                     <div className="space-y-4">
-                      <div className="flex justify-center mb-4">
-                        <Avatar className="h-24 w-24 rounded-[32px] border-4 border-white/5 shadow-2xl">
-                          <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.name}`} />
-                          <AvatarFallback className="text-2xl font-semibold">{formData.name?.[0]}</AvatarFallback>
-                        </Avatar>
+                      <div className="flex flex-col items-center mb-6">
+                        <div className="relative group">
+                          <Avatar className="h-32 w-32 rounded-[32px] border-4 border-white/5 shadow-2xl">
+                            <AvatarImage src={formData.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.name}`} className="object-cover" />
+                            <AvatarFallback className="text-4xl font-semibold">{formData.name?.[0]}</AvatarFallback>
+                          </Avatar>
+
+                          {!isView && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-[32px] opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm cursor-pointer" onClick={() => document.getElementById('doctor-image-upload').click()}>
+                              {uploading ? (
+                                <Loader2 className="h-8 w-8 text-white animate-spin" />
+                              ) : (
+                                <Upload className="h-8 w-8 text-white" />
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {!isView && (
+                          <div className="mt-4 w-full max-w-[200px]">
+                            <input
+                              type="file"
+                              id="doctor-image-upload"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              disabled={uploading}
+                            />
+                            <div className="text-center">
+                              <p className="text-xs text-muted-foreground mb-2">Click to upload photo</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div className="space-y-3">
                         <div className="space-y-1.5">
@@ -251,6 +302,24 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
                             placeholder="MD-123456"
                             className="rounded-xl bg-white/5 border-white/10 h-11 font-mono"
                           />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Status</Label>
+                          <Select
+                            value={formData.status}
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                            disabled={isView}
+                          >
+                            <SelectTrigger className="rounded-xl bg-white/5 border-white/10 h-11">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
+                              <SelectItem value="available">Available</SelectItem>
+                              <SelectItem value="busy">Busy</SelectItem>
+                              <SelectItem value="off_duty">Off Duty</SelectItem>
+                              <SelectItem value="on_call">On Call</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     </GlassCard>

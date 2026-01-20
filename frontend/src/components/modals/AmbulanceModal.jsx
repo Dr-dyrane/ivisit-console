@@ -10,6 +10,9 @@ import { X, Ambulance, MapPin, Activity, Star, Calendar, Hospital, Shield, Zap }
 import { Badge } from '../ui/badge';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 
+import { uploadImage } from '../../services/storageService';
+import { Loader2, Upload } from 'lucide-react';
+
 export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
@@ -27,6 +30,28 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [showImage, setShowImage] = useState(false);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const publicUrl = await uploadImage(file, 'ambulances');
+      setFormData(prev => ({
+        ...prev,
+        image: publicUrl
+      }));
+      toast.success('Image uploaded successfully');
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -114,7 +139,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
               </div>
               <div className="flex items-center gap-3">
                 <Badge className={`rounded-full px-4 py-1 border-0 ${formData.status === 'available' ? 'bg-green-500/10 text-green-500' :
-                    'bg-orange-500/10 text-orange-500'
+                  'bg-orange-500/10 text-orange-500'
                   }`}>
                   {formData.status?.toUpperCase()}
                 </Badge>
@@ -218,6 +243,73 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                             <SelectItem value="critical">Critical Care Transport</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="image" className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Ambulance Image</Label>
+                          {formData.image && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowImage(!showImage)}
+                              className="h-5 text-[10px] text-primary hover:text-primary/90 hover:bg-primary/10 px-2"
+                            >
+                              {showImage ? 'Hide Preview' : 'View Image'}
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Image Preview */}
+                        <AnimatePresence>
+                          {showImage && formData.image && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                              animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
+                              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                              className="rounded-xl overflow-hidden border border-white/10 relative bg-black/20"
+                            >
+                              <img
+                                src={formData.image}
+                                alt="Ambulance Preview"
+                                className="w-full h-48 object-cover"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        {/* Inputs */}
+                        {!isView ? (
+                          <div className="flex gap-2">
+                            <Input
+                              name="image"
+                              value={formData.image || ''}
+                              onChange={handleChange}
+                              disabled={uploading}
+                              placeholder="https://..."
+                              className="rounded-xl bg-white/5 border-white/10 h-11 flex-1"
+                            />
+                            <div className="relative">
+                              <input
+                                type="file"
+                                id="ambulance-image-upload"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                disabled={uploading}
+                              />
+                              <Label
+                                htmlFor="ambulance-image-upload"
+                                className={`h-11 px-4 flex items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                              >
+                                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                              </Label>
+                            </div>
+                          </div>
+                        ) : (
+                          !formData.image && <p className="text-sm text-muted-foreground italic px-1">No image available</p>
+                        )}
                       </div>
                     </div>
                   </GlassCard>

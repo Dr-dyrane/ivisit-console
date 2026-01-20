@@ -379,13 +379,13 @@ export async function uploadProfileAvatar(userId, file) {
     const filePath = `${fileName}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('avatars')
+      .from('images')
       .upload(filePath, file);
 
     if (uploadError) throw uploadError;
 
     const { data } = supabase.storage
-      .from('avatars')
+      .from('images')
       .getPublicUrl(filePath);
 
     return data.publicUrl;

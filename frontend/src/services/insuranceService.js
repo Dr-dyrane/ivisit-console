@@ -302,8 +302,6 @@ export async function uploadInsuranceCardImage(file) {
     if (uploadError) throw uploadError;
 
     // Use Signed URL for private buckets. 1 year expiry (31536000 seconds).
-    // This allows the app to store a working URL without requiring a full refactor 
-    // to "path-based" storage + "on-the-fly signing" for every read.
     const { data, error: urlError } = await supabase.storage
       .from('documents')
       .createSignedUrl(filePath, 31536000);

@@ -72,7 +72,7 @@ export const EmergencyPanel = ({ emergencyData = [], emergencyStats, useMockData
                 <Activity className="h-4 w-4 text-info" />
               </div>
               <div>
-                <p className="font-bold text-sm">{emergencyStats.inProgress}</p>
+                <p className="font-bold text-sm">{emergencyStats.active || 0}</p>
                 <p className="text-xs text-muted-foreground">Active</p>
               </div>
             </div>
@@ -141,7 +141,7 @@ export const EmergencyPanel = ({ emergencyData = [], emergencyStats, useMockData
         <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Recent Requests</h3>
 
         <div className="space-y-2">
-          {emergencyData.slice(0, 3).map((request) => (
+          {((emergencyData?.recent || (Array.isArray(emergencyData) ? emergencyData : []))).slice(0, 3).map((request) => (
             <Card key={request.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -162,7 +162,7 @@ export const EmergencyPanel = ({ emergencyData = [], emergencyStats, useMockData
               </div>
             </Card>
           ))}
-          {emergencyData.length === 0 && (
+          {((emergencyData?.recent || (Array.isArray(emergencyData) ? emergencyData : []))).length === 0 && (
             <div className="text-center py-4 text-sm text-muted-foreground">
               No recent emergencies
             </div>

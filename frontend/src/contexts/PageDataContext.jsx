@@ -116,26 +116,42 @@ export const PageDataProvider = ({ children }) => {
       setLoading(prev => ({ ...prev, emergency: true }));
 
       if (useMockData) {
-        setEmergencyData(mockEmergencyData);
+        setEmergencyData(mockEmergencyData); // Ensure mock data structure is updated elsewhere if needed, or handle here
         return;
       }
 
       const { data, error } = await supabase
         .from('emergency_requests')
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.warn('Supabase error, using mock data:', error);
-        setEmergencyData(mockEmergencyData);
+        setEmergencyData({ stats: { total: 0, critical: 0, high: 0, pending: 0, active: 0 }, recent: [] });
         setUseMockData(true);
       } else {
-        setEmergencyData(data || mockEmergencyData);
+        const total = data?.length || 0;
+        const critical = data?.filter(r => r.priority === 'critical').length || 0;
+        const high = data?.filter(r => r.priority === 'high').length || 0;
+        const pending = data?.filter(r => r.status === 'pending').length || 0;
+        const active = data?.filter(r => ['assigned', 'in_progress'].includes(r.status)).length || 0;
+        const completed = data?.filter(r => r.status === 'completed').length || 0;
+
+        setEmergencyData({
+          stats: {
+            total,
+            critical,
+            high,
+            pending,
+            active,
+            completed
+          },
+          recent: data?.slice(0, 5) || []
+        });
       }
     } catch (error) {
       console.error('Error fetching emergency data:', error);
-      setEmergencyData(mockEmergencyData);
+      setEmergencyData({ stats: { total: 0, critical: 0, high: 0, pending: 0, active: 0 }, recent: [] });
       setUseMockData(true);
     } finally {
       setLoading(prev => ({ ...prev, emergency: false }));
@@ -202,17 +218,20 @@ export const PageDataProvider = ({ children }) => {
         setUseMockData(true);
       } else {
         // Calculate real doctor stats
-        const totalDoctors = data?.length || 0;
-        const onCall = data?.filter(d => d.on_call).length || 0;
-        const available = data?.filter(d => d.available).length || 0;
-        const busy = data?.filter(d => !d.available && !d.on_call).length || 0;
+        const total = data?.length || 0;
+        const available = data?.filter(d => d.status === 'available').length || 0;
+        const busy = data?.filter(d => d.status === 'busy').length || 0;
+        const off_duty = data?.filter(d => d.status === 'off_duty').length || 0;
+        const onCall = data?.filter(d => d.status === 'on_call').length || 0; // Keeping for compatibility if needed
 
         setDoctorsData({
           stats: {
-            totalDoctors,
+            total,
+            totalDoctors: total, // Backward compatibility
             onCall,
             available,
-            busy
+            busy,
+            off_duty
           },
           recent: data?.slice(0, 5) || []
         });
@@ -248,16 +267,19 @@ export const PageDataProvider = ({ children }) => {
         // Calculate real visit stats
         const today = new Date().toISOString().split('T')[0];
         const todayVisits = data?.filter(v => v.visit_date === today).length || 0;
-        const pending = data?.filter(v => v.status === 'pending').length || 0;
+        const scheduled = data?.filter(v => v.status === 'scheduled').length || 0;
+        const inProgress = data?.filter(v => v.status === 'in_progress').length || 0;
         const completed = data?.filter(v => v.status === 'completed').length || 0;
-        const upcoming = data?.filter(v => new Date(v.visit_date) > new Date()).length || 0;
+        const cancelled = data?.filter(v => v.status === 'cancelled').length || 0;
 
         setVisitsData({
           stats: {
+            total: data?.length || 0,
             today: todayVisits,
-            pending,
+            scheduled,
+            inProgress,
             completed,
-            upcoming
+            cancelled
           },
           recent: data?.slice(0, 5) || []
         });
@@ -782,18 +804,26 @@ export const PageDataProvider = ({ children }) => {
 
   // Calculate emergency statistics
   const getEmergencyStats = () => {
-    const critical = emergencyData.filter(req => req.priority === 'critical').length;
-    const high = emergencyData.filter(req => req.priority === 'high').length;
-    const pending = emergencyData.filter(req => req.status === 'pending').length;
-    const inProgress = emergencyData.filter(req => req.status === 'in_progress').length;
+    // If emergencyData has stats property (new structure), use it
+    if (emergencyData && emergencyData.stats) {
+      return emergencyData.stats;
+    }
+
+    // Fallback for array structure (legacy or initial state) or default
+    const safeData = Array.isArray(emergencyData) ? emergencyData : [];
+
+    const critical = safeData.filter(req => req.priority === 'critical').length;
+    const high = safeData.filter(req => req.priority === 'high').length;
+    const pending = safeData.filter(req => req.status === 'pending').length;
+    const inProgress = safeData.filter(req => req.status === 'in_progress').length;
 
     return {
-      total: emergencyData.length,
+      total: safeData.length,
       critical,
       high,
       pending,
       inProgress,
-      completed: emergencyData.filter(req => req.status === 'completed').length
+      completed: safeData.filter(req => req.status === 'completed').length
     };
   };
 

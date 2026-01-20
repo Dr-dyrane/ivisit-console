@@ -21,15 +21,19 @@ import { FilterSheet } from '../common/FilterSheet';
 import { AmbulanceListView } from '../views/AmbulanceListView';
 import { AmbulanceTableView } from '../views/AmbulanceTableView';
 
+import { usePageData } from '../../contexts/PageDataContext';
+
 export const AmbulancesPage = () => {
   const { isAdmin, isProvider } = useAuth();
   const { isMobile } = useNavigation();
+  const { ambulancesData, refreshAllData } = usePageData();
   const [ambulances, setAmbulances] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedAmbulance, setSelectedAmbulance] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({});
+  const [kpiFilter, setKpiFilter] = useState('all');
 
   const { viewMode, setViewMode } = useViewMode('ambulances-page', 'grid');
   const pagination = usePagination(20);
@@ -40,9 +44,19 @@ export const AmbulancesPage = () => {
 
       let query = supabase.from('ambulances').select('*', { count: 'exact', head: true });
 
+      if (filters.search) {
+        query = query.or(`call_sign.ilike.%${filters.search}%,vehicle_number.ilike.%${filters.search}%`);
+      }
+
       if (filters.status && filters.status.length > 0) {
         query = query.in('status', filters.status);
       }
+
+      // Apply KPI Filter to count query
+      if (kpiFilter === 'available') query = query.eq('status', 'available');
+      if (kpiFilter === 'on_route') query = query.eq('status', 'on_route');
+      if (kpiFilter === 'busy') query = query.eq('status', 'busy');
+      if (kpiFilter === 'maintenance') query = query.eq('status', 'maintenance');
 
       const { count } = await query;
       pagination.setTotalCount(count || 0);
@@ -53,9 +67,19 @@ export const AmbulancesPage = () => {
         .range(pagination.paginationRange.start, pagination.paginationRange.end)
         .order('created_at', { ascending: false });
 
+      if (filters.search) {
+        dataQuery = dataQuery.or(`call_sign.ilike.%${filters.search}%,vehicle_number.ilike.%${filters.search}%`);
+      }
+
       if (filters.status && filters.status.length > 0) {
         dataQuery = dataQuery.in('status', filters.status);
       }
+
+      // Apply KPI Filter to data query
+      if (kpiFilter === 'available') dataQuery = dataQuery.eq('status', 'available');
+      if (kpiFilter === 'on_route') dataQuery = dataQuery.eq('status', 'on_route');
+      if (kpiFilter === 'busy') dataQuery = dataQuery.eq('status', 'busy');
+      if (kpiFilter === 'maintenance') dataQuery = dataQuery.eq('status', 'maintenance');
 
       const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load ambulances - timeout');
 
@@ -67,7 +91,7 @@ export const AmbulancesPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination, filters]);
+  }, [pagination, filters, kpiFilter]);
 
   useEffect(() => {
     fetchAmbulances();
@@ -145,6 +169,13 @@ export const AmbulancesPage = () => {
   };
 
   const filterSchema = React.useMemo(() => [
+
+    {
+      key: 'search',
+      type: 'text',
+      label: 'Search',
+      placeholder: 'Search call sign, plate...',
+    },
     {
       key: 'status',
       type: 'multiselect',
@@ -314,7 +345,196 @@ export const AmbulancesPage = () => {
 
   return (
     <div className="min-h-screen py-6 md:py-8">
-      <div className="pt-2" />
+
+      {/* Bento Overview Cards - Enhanced with Filtering */}
+      {!loading && ambulancesData?.stats && (
+        <LayoutGroup>
+          <motion.div
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8"
+          >
+            {/* Fleet Size Card */}
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+            >
+              <Card
+                className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+                  }`}
+                onClick={() => setKpiFilter('all')}
+              >
+                <div className="absolute top-0 right-0 p-4 z-20">
+                  <div className="relative">
+                    <div className={`absolute inset-0 ${kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                      <Ambulance className={`h-5 w-5 ${kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
+                    </div>
+                  </div>
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Fleet Size</p>
+                    {kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+                  </div>
+                  <h3 className="text-3xl font-bold tracking-tighter">{ambulancesData.stats.total || 0}</h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
+                      {kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+
+            {/* Available Card */}
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.15 }}
+            >
+              <Card
+                className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'available' ? 'ring-2 ring-success shadow-lg' : ''
+                  }`}
+                onClick={() => setKpiFilter('available')}
+              >
+                <div className="absolute top-0 right-0 p-4 z-20">
+                  <div className="relative">
+                    <div className={`absolute inset-0 ${kpiFilter === 'available' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                      <MapPin className={`h-5 w-5 ${kpiFilter === 'available' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
+                    </div>
+                  </div>
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Available</p>
+                    {kpiFilter === 'available' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
+                  </div>
+                  <h3 className="text-3xl font-bold tracking-tighter">{ambulancesData.stats.available || 0}</h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge className="geo-round bg-success/20 text-success border-0 font-bold text-xs">
+                      READY
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+
+            {/* En Route Card */}
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+            >
+              <Card
+                className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'on_route' ? 'ring-2 ring-warning shadow-lg' : ''
+                  }`}
+                onClick={() => setKpiFilter('on_route')}
+              >
+                <div className="absolute top-0 right-0 p-4 z-20">
+                  <div className="relative">
+                    <div className={`absolute inset-0 ${kpiFilter === 'on_route' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                      <Activity className={`h-5 w-5 ${kpiFilter === 'on_route' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
+                    </div>
+                  </div>
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">En Route</p>
+                    {kpiFilter === 'on_route' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
+                  </div>
+                  <h3 className="text-3xl font-bold tracking-tighter">{ambulancesData.stats.onRoute || 0}</h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge className="squircle-3xl bg-warning/20 text-warning border-0 font-bold text-xs">
+                      ACTIVE
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+
+            {/* Busy Card */}
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.22 }}
+            >
+              <Card
+                className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'busy' ? 'ring-2 ring-destructive shadow-lg' : ''
+                  }`}
+                onClick={() => setKpiFilter('busy')}
+              >
+                <div className="absolute top-0 right-0 p-4 z-20">
+                  <div className="relative">
+                    <div className={`absolute inset-0 ${kpiFilter === 'busy' ? 'bg-destructive/30' : 'bg-destructive/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                      <Ambulance className={`h-5 w-5 ${kpiFilter === 'busy' ? 'text-destructive' : 'text-muted-foreground'} transition-colors duration-200`} />
+                    </div>
+                  </div>
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Busy</p>
+                    {kpiFilter === 'busy' && <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />}
+                  </div>
+                  <h3 className="text-3xl font-bold tracking-tighter">{ambulancesData.stats.busy || 0}</h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge className="geo-ticket bg-destructive/20 text-destructive border-0 font-bold text-xs">
+                      ENGAGED
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+
+            {/* Maintenance Card */}
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.25 }}
+            >
+              <Card
+                className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'maintenance' ? 'ring-2 ring-muted shadow-lg' : ''
+                  }`}
+                onClick={() => setKpiFilter('maintenance')}
+              >
+                <div className="absolute top-0 right-0 p-4 z-20">
+                  <div className="relative">
+                    <div className={`absolute inset-0 ${kpiFilter === 'maintenance' ? 'bg-muted/30' : 'bg-muted/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                      <Filter className={`h-5 w-5 ${kpiFilter === 'maintenance' ? 'text-muted-foreground' : 'text-muted-foreground'} transition-colors duration-200`} />
+                    </div>
+                  </div>
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Maintenance</p>
+                    {kpiFilter === 'maintenance' && <div className="h-2 w-2 rounded-full bg-muted animate-pulse" />}
+                  </div>
+                  <h3 className="text-3xl font-bold tracking-tighter">{ambulancesData.stats.maintenance || 0}</h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge className="geo-wave bg-muted/20 text-muted-foreground border-0 font-bold text-xs">
+                      OFFLINE
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          </motion.div>
+        </LayoutGroup>
+      )}
 
       {loading ? (
         <TableSkeleton rows={8} />

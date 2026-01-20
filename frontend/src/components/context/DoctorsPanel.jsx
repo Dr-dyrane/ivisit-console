@@ -134,19 +134,21 @@ export const DoctorsPanel = ({ doctorsData }) => {
             <Card key={doctor.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 geo-round ${doctor.available ? 'bg-success' : 'bg-muted'
+                  <div className={`w-2 h-2 geo-round ${doctor.status === 'available' ? 'bg-success' :
+                    doctor.status === 'busy' ? 'bg-warning' :
+                      doctor.status === 'on_call' ? 'bg-purple-500' : 'bg-muted'
                     }`} />
                   <div>
                     <p className="font-normal text-sm truncate max-w-[120px]">
-                      {doctor.name || doctor.first_name ? `${doctor.first_name} ${doctor.last_name}` : 'Doctor #' + doctor.id.substring(0, 4)}
+                      {doctor.name || doctor.first_name ? `${doctor.first_name || ''} ${doctor.last_name || ''}`.trim() || doctor.name : 'Doctor #' + doctor.id.substring(0, 4)}
                     </p>
                     <p className="text-xs text-muted-foreground truncate max-w-[120px]">
                       {doctor.specialization || 'General Practitioner'}
                     </p>
                   </div>
                 </div>
-                {doctor.on_call && (
-                  <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/20 px-1.5 py-0.5 h-5">
+                {doctor.status === 'on_call' && (
+                  <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-500 border-purple-500/20 px-1.5 py-0.5 h-5">
                     On Call
                   </Badge>
                 )}
