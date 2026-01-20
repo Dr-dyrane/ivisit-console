@@ -11,13 +11,13 @@ import { Badge } from '../ui/badge';
 import { X, Save, MessageSquare, Tag, User, Headphones, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
-export const SupportTicketModal = ({ 
-  ticket, 
-  mode, 
-  onClose, 
-  onSave, 
-  priorities, 
-  categories 
+export const SupportTicketModal = ({
+  ticket,
+  mode,
+  onClose,
+  onSave,
+  priorities,
+  categories
 }) => {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
@@ -117,14 +117,14 @@ export const SupportTicketModal = ({
                   <Headphones className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
                     {isCreate ? 'New Ticket' : isEdit ? 'Edit Ticket' : 'Ticket Details'}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge className={`rounded-full border-0 font-bold px-3 py-0.5 text-xs ${getPriorityColor(formData.priority)}`}>
+                    <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${getPriorityColor(formData.priority)}`}>
                       {formData.priority?.toUpperCase() || 'NORMAL'}
                     </Badge>
-                    <Badge className={`rounded-full border-0 font-bold px-3 py-0.5 text-xs ${getStatusColor(formData.status)}`}>
+                    <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${getStatusColor(formData.status)}`}>
                       {formData.status?.replace('_', ' ').toUpperCase() || 'OPEN'}
                     </Badge>
                   </div>
@@ -141,33 +141,33 @@ export const SupportTicketModal = ({
 
             <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
               <form onSubmit={handleSubmit} className="space-y-6">
-                
+
                 {/* Ticket Details */}
                 <GlassCard icon={<MessageSquare className="text-primary" />} title="Ticket Details">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="subject" className="text-xs font-bold text-muted-foreground uppercase">Subject</Label>
+                      <Label htmlFor="subject" className="text-xs font-semibold text-muted-foreground uppercase">Subject</Label>
                       <Input
                         id="subject"
                         name="subject"
                         value={formData.subject}
                         onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
                         disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-bold text-lg"
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-semibold text-lg"
                         placeholder="Brief description of the issue"
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="message" className="text-xs font-bold text-muted-foreground uppercase">Message</Label>
+                      <Label htmlFor="message" className="text-xs font-semibold text-muted-foreground uppercase">Message</Label>
                       <Textarea
                         id="message"
                         name="message"
                         value={formData.message}
                         onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
                         disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[120px] font-medium resize-none"
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[120px] font-normal resize-none"
                         placeholder="Detailed description of the issue or request"
                         required
                       />
@@ -179,18 +179,18 @@ export const SupportTicketModal = ({
                 <GlassCard icon={<Tag className="text-primary" />} title="Classification">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="category" className="text-xs font-bold text-muted-foreground uppercase">Category</Label>
-                      <Select 
-                        value={formData.category} 
+                      <Label htmlFor="category" className="text-xs font-semibold text-muted-foreground uppercase">Category</Label>
+                      <Select
+                        value={formData.category}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                          {(categories || []).map(cat => 
-                            typeof cat === 'string' 
+                          {(categories || []).map(cat =>
+                            typeof cat === 'string'
                               ? <SelectItem key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ')}</SelectItem>
                               : <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
                           )}
@@ -199,13 +199,13 @@ export const SupportTicketModal = ({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="priority" className="text-xs font-bold text-muted-foreground uppercase">Priority</Label>
-                      <Select 
-                        value={formData.priority} 
+                      <Label htmlFor="priority" className="text-xs font-semibold text-muted-foreground uppercase">Priority</Label>
+                      <Select
+                        value={formData.priority}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -223,13 +223,13 @@ export const SupportTicketModal = ({
                   <GlassCard icon={<User className="text-primary" />} title="Management">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="status" className="text-xs font-bold text-muted-foreground uppercase">Status</Label>
-                        <Select 
-                          value={formData.status} 
+                        <Label htmlFor="status" className="text-xs font-semibold text-muted-foreground uppercase">Status</Label>
+                        <Select
+                          value={formData.status}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
                           disabled={isView}
                         >
-                          <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                          <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -256,7 +256,7 @@ export const SupportTicketModal = ({
                       variant="outline"
                       onClick={() => onClose(false)}
                       disabled={loading}
-                      className="rounded-2xl border-0 bg-muted/50 hover:bg-muted font-bold"
+                      className="rounded-2xl border-0 bg-muted/50 hover:bg-muted font-semibold"
                     >
                       Cancel
                     </Button>
@@ -264,7 +264,7 @@ export const SupportTicketModal = ({
                       <Button
                         type="submit"
                         disabled={loading}
-                        className="rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6"
+                        className="rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6"
                       >
                         {loading ? (
                           <div className="flex items-center gap-2">
@@ -297,7 +297,7 @@ const GlassCard = ({ children, title, icon }) => (
       <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
     </div>
     {children}
   </div>

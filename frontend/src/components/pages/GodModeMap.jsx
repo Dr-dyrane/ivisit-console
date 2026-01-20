@@ -262,7 +262,7 @@ const GodModeMapContent = () => {
 					{isSwitchingMap && (
 						<div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center">
 							<AlertTriangle className="h-12 w-12 text-destructive mb-4 animate-bounce" />
-							<h3 className="text-xl font-bold mb-2">Map Error Detected</h3>
+							<h3 className="text-xl font-semibold mb-2">Map Error Detected</h3>
 							<p className="text-muted-foreground">Switching to backup provider...</p>
 						</div>
 					)}

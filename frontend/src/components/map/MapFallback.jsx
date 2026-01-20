@@ -40,7 +40,7 @@ export const MapFallback = () => (
 
 		<div className="text-center z-10 bg-background/35 backdrop-blur-xs squircle-lg p-8">
 			<MapPin className="h-12 w-12 mx-auto mb-4 text-primary" />
-			<p className="font-black text-lg mb-2">Map Preview Mode</p>
+			<p className="font-bold text-lg mb-2">Map Preview Mode</p>
 			<p className="text-sm text-muted-foreground max-w-xs">
 				Google Maps API requires domain authorization. Using simulated view for
 				preview.

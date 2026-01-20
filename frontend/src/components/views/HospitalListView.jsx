@@ -23,10 +23,10 @@ export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, getStatu
             <div className="flex items-center gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-black text-lg truncate group-hover:text-primary transition-colors">
+                  <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
                     {hospital.name || 'Unknown Hospital'}
                   </h3>
-                  <Badge className={`squircle-sm ${getStatusBadge(hospital.status)} border-0 font-black`}>
+                  <Badge className={`squircle-sm ${getStatusBadge(hospital.status)} border-0 font-bold`}>
                     {hospital.status}
                   </Badge>
                 </div>
@@ -39,7 +39,7 @@ export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, getStatu
                 <div className="text-right pr-4 border-r border-white/10">
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 text-warning fill-warning" />
-                    <p className="font-black text-lg">{hospital.rating || 'N/A'}</p>
+                    <p className="font-bold text-lg">{hospital.rating || 'N/A'}</p>
                   </div>
                 </div>
                 <div className={`flex gap-1 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>

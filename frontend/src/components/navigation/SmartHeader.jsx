@@ -57,7 +57,7 @@ export const SmartHeader = () => {
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: 10 }}
-                                className="text-sm md:text-lg font-black tracking-tight text-foreground/90 truncate max-w-[150px] md:max-w-[300px] uppercase"
+                                className="text-sm md:text-lg font-bold tracking-tight text-foreground/90 truncate max-w-[150px] md:max-w-[300px] uppercase"
                             >
                                 {headerConfig.title}
                             </motion.h1>

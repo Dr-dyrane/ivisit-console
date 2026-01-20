@@ -55,10 +55,10 @@ export const SubscriptionManagementPage = () => {
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
 
   // Filter state - includes search (enhanced based on insurance baseline)
-  const [filters, setFilters] = useState({ 
-    search: '', 
-    status: [], 
-    type: [], 
+  const [filters, setFilters] = useState({
+    search: '',
+    status: [],
+    type: [],
     kpiFilter: 'all',
     welcomeEmailSent: '',
     dateRange: 'all'
@@ -113,7 +113,7 @@ export const SubscriptionManagementPage = () => {
           } else {
             console.log('Welcome email sent successfully:', data);
             toast.success(`Welcome email sent to ${newSubscriber.email}`);
-            
+
             // Refresh subscribers list to show updated status
             fetchSubscribers();
           }
@@ -150,7 +150,7 @@ export const SubscriptionManagementPage = () => {
     if (filters.dateRange !== 'all') {
       const now = new Date();
       let cutoffDate;
-      
+
       switch (filters.dateRange) {
         case '7d':
           cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -164,9 +164,9 @@ export const SubscriptionManagementPage = () => {
         default:
           cutoffDate = null;
       }
-      
+
       if (cutoffDate) {
-        subscribers_list = subscribers_list.filter(subscriber => 
+        subscribers_list = subscribers_list.filter(subscriber =>
           new Date(subscriber.subscription_date || subscriber.created_at) >= cutoffDate
         );
       }
@@ -175,7 +175,7 @@ export const SubscriptionManagementPage = () => {
     // Apply other filters
     const searchTerm = filters.search?.toLowerCase() || '';
     const matchesSearch = searchTerm === '' ||
-      subscribers_list.filter(subscriber => 
+      subscribers_list.filter(subscriber =>
         subscriber.email?.toLowerCase().includes(searchTerm)
       );
 
@@ -195,7 +195,7 @@ export const SubscriptionManagementPage = () => {
 
       const statusMatch = !filters.status || filters.status.length === 0 || filters.status.includes(subscriber.status);
       const typeMatch = !filters.type || filters.type.length === 0 || filters.type.includes(subscriber.type);
-      const welcomeEmailMatch = !filters.welcomeEmailSent || 
+      const welcomeEmailMatch = !filters.welcomeEmailSent ||
         (filters.welcomeEmailSent === 'sent' && subscriber.welcome_email_sent === true) ||
         (filters.welcomeEmailSent === 'pending' && subscriber.welcome_email_sent === false) ||
         (filters.welcomeEmailSent === 'all');
@@ -270,13 +270,13 @@ export const SubscriptionManagementPage = () => {
       className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
     >
       <FilterIcon className="h-4 w-4" />
-      {(filters.search || 
-        (filters.status && filters.status.length > 0) || 
+      {(filters.search ||
+        (filters.status && filters.status.length > 0) ||
         (filters.type && filters.type.length > 0) ||
         filters.welcomeEmailSent ||
         filters.dateRange !== 'all') && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
-      )}
+          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+        )}
     </Button>
   ), [filters]);
 
@@ -285,7 +285,7 @@ export const SubscriptionManagementPage = () => {
     isAdmin && (
       <Button
         onClick={handleCreate}
-        className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] text-foreground font-black tracking-widest uppercase"
+        className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] text-foreground font-bold tracking-widest uppercase"
       >
         <Plus className="h-4 w-4 mr-2" />
         <span className="hidden md:inline">ADD SUBSCRIBER</span>
@@ -304,7 +304,7 @@ export const SubscriptionManagementPage = () => {
   // Footer Configuration
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
         <span>Page {pagination.currentPage} of {pagination.totalPages} • {filteredSubscribers.length} Subscribers</span>
       </div>
     </div>
@@ -399,10 +399,9 @@ export const SubscriptionManagementPage = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.1 }}
           >
-            <Card 
-              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-                filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
-              }`}
+            <Card
+              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+                }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
             >
               <div className="absolute top-0 right-0 p-4 z-20">
@@ -415,12 +414,12 @@ export const SubscriptionManagementPage = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Total Subscribers</p>
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Subscribers</p>
                   {filters.kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter">{subscribers.length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{subscribers.length}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-black text-xs">
+                  <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
                     {filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
                   </Badge>
                 </div>
@@ -436,10 +435,9 @@ export const SubscriptionManagementPage = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.15 }}
           >
-            <Card 
-              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-                filters.kpiFilter === 'active' ? 'ring-2 ring-success shadow-lg' : ''
-              }`}
+            <Card
+              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'active' ? 'ring-2 ring-success shadow-lg' : ''
+                }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'active' }))}
             >
               <div className="absolute top-0 right-0 p-4 z-20">
@@ -452,12 +450,12 @@ export const SubscriptionManagementPage = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Active</p>
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Active</p>
                   {filters.kpiFilter === 'active' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter">{subscribers.filter(s => s.status === 'active').length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{subscribers.filter(s => s.status === 'active').length}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-round bg-success/20 text-success border-0 font-black text-xs">
+                  <Badge className="geo-round bg-success/20 text-success border-0 font-bold text-xs">
                     {Math.round((subscribers.filter(s => s.status === 'active').length / subscribers.length) * 100) || 0}%
                   </Badge>
                 </div>
@@ -473,10 +471,9 @@ export const SubscriptionManagementPage = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.2 }}
           >
-            <Card 
-              className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-                filters.kpiFilter === 'new' ? 'ring-2 ring-warning shadow-lg' : ''
-              }`}
+            <Card
+              className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'new' ? 'ring-2 ring-warning shadow-lg' : ''
+                }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'new' }))}
             >
               <div className="absolute top-0 right-0 p-4 z-20">
@@ -489,12 +486,12 @@ export const SubscriptionManagementPage = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">New Users</p>
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">New Users</p>
                   {filters.kpiFilter === 'new' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter">{subscribers.filter(s => s.new_user).length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{subscribers.filter(s => s.new_user).length}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="squircle-3xl bg-warning/20 text-warning border-0 font-black text-xs">
+                  <Badge className="squircle-3xl bg-warning/20 text-warning border-0 font-bold text-xs">
                     RECENT
                   </Badge>
                 </div>
@@ -510,10 +507,9 @@ export const SubscriptionManagementPage = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.25 }}
           >
-            <Card 
-              className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-                filters.kpiFilter === 'paid' ? 'ring-2 ring-primary shadow-lg' : ''
-              }`}
+            <Card
+              className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'paid' ? 'ring-2 ring-primary shadow-lg' : ''
+                }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'paid' }))}
             >
               <div className="absolute top-0 right-0 p-4 z-20">
@@ -526,12 +522,12 @@ export const SubscriptionManagementPage = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Paid</p>
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Paid</p>
                   {filters.kpiFilter === 'paid' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter">{subscribers.filter(s => s.type === 'paid').length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{subscribers.filter(s => s.type === 'paid').length}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-ticket bg-primary/20 text-primary border-0 font-black text-xs">
+                  <Badge className="geo-ticket bg-primary/20 text-primary border-0 font-bold text-xs">
                     SUPPORTERS
                   </Badge>
                 </div>
@@ -547,10 +543,9 @@ export const SubscriptionManagementPage = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.3 }}
           >
-            <Card 
-              className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-                filters.kpiFilter === 'free' ? 'ring-2 ring-info shadow-lg' : ''
-              }`}
+            <Card
+              className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'free' ? 'ring-2 ring-info shadow-lg' : ''
+                }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'free' }))}
             >
               <div className="absolute top-0 right-0 p-4 z-20">
@@ -563,12 +558,12 @@ export const SubscriptionManagementPage = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Free</p>
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Free</p>
                   {filters.kpiFilter === 'free' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter">{subscribers.filter(s => s.type === 'free').length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{subscribers.filter(s => s.type === 'free').length}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-wave bg-info/20 text-info border-0 font-black text-xs">
+                  <Badge className="geo-wave bg-info/20 text-info border-0 font-bold text-xs">
                     EARLY ACCESS
                   </Badge>
                 </div>
@@ -583,16 +578,16 @@ export const SubscriptionManagementPage = () => {
       ) : filteredSubscribers.length === 0 ? (
         <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
           <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="font-black text-xl mb-2">
-            {filters.search ? 'No Subscribers Found' : 
-             filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 'No Subscribers Yet' :
-             'No Matching Subscribers'}
+          <h3 className="font-bold text-xl mb-2">
+            {filters.search ? 'No Subscribers Found' :
+              filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 'No Subscribers Yet' :
+                'No Matching Subscribers'}
           </h3>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             {filters.search ? `No subscribers found matching "${filters.search}". Try adjusting your search terms.` :
-             filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 
-             'Create your first subscriber to get started with managing your community.' :
-             'Try adjusting your filters or search criteria to find the subscribers you\'re looking for.'}
+              filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ?
+                'Create your first subscriber to get started with managing your community.' :
+                'Try adjusting your filters or search criteria to find the subscribers you\'re looking for.'}
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             {filters.search && (
@@ -601,16 +596,16 @@ export const SubscriptionManagementPage = () => {
                 Clear Search
               </Button>
             )}
-            {(filters.kpiFilter !== 'all' || 
+            {(filters.kpiFilter !== 'all' ||
               Object.keys(filters).filter(k => k !== 'kpiFilter').some(k => {
                 if (k === 'status' || k === 'type') return filters[k] && filters[k].length > 0;
                 return filters[k] && filters[k] !== '' && filters[k] !== 'all';
               })) && (
-              <Button onClick={() => setFilters({ kpiFilter: 'all', status: [], type: [], search: '', welcomeEmailSent: '', dateRange: 'all' })} variant="outline" className="squircle">
-                <FilterIcon className="h-4 w-4 mr-2" />
-                Reset Filters
-              </Button>
-            )}
+                <Button onClick={() => setFilters({ kpiFilter: 'all', status: [], type: [], search: '', welcomeEmailSent: '', dateRange: 'all' })} variant="outline" className="squircle">
+                  <FilterIcon className="h-4 w-4 mr-2" />
+                  Reset Filters
+                </Button>
+              )}
             <Button onClick={handleCreate} className="squircle bg-primary">
               <Plus className="h-4 w-4 mr-2" />
               Add Subscriber
@@ -648,19 +643,19 @@ export const SubscriptionManagementPage = () => {
 
                       {/* Content */}
                       <div className="flex items-center gap-2 mb-4 relative z-10">
-                        <Badge className={`geo-sharp ${getStatusBadge(subscriber.status)} border-0 font-black editorial-subtitle px-3 py-1`}>
+                        <Badge className={`geo-sharp ${getStatusBadge(subscriber.status)} border-0 font-bold editorial-subtitle px-3 py-1`}>
                           {subscriber.status}
                         </Badge>
-                        <Badge className={`geo-sharp ${getTypeBadge(subscriber.type)} border-0 font-black editorial-subtitle px-3 py-1`}>
+                        <Badge className={`geo-sharp ${getTypeBadge(subscriber.type)} border-0 font-bold editorial-subtitle px-3 py-1`}>
                           {subscriber.type}
                         </Badge>
                         {subscriber.new_user && (
-                          <Badge variant="outline" className="geo-sharp border-warning/20 text-warning px-2 py-1 font-bold gap-1">
+                          <Badge variant="outline" className="geo-sharp border-warning/20 text-warning px-2 py-1 font-semibold gap-1">
                             <Clock className="w-3 h-3" /> NEW
                           </Badge>
                         )}
                       </div>
-                      <h3 className="font-black text-lg mb-2 tracking-tight relative z-10 truncate">
+                      <h3 className="font-bold text-lg mb-2 tracking-tight relative z-10 truncate">
                         {subscriber.email}
                       </h3>
                       <p className="text-sm text-muted-foreground mb-6 font-mono tracking-tight">
@@ -671,18 +666,18 @@ export const SubscriptionManagementPage = () => {
                         <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Mail className="h-4 w-4 text-primary" />
-                            <span className="font-medium">Email Sent</span>
+                            <span className="font-normal">Email Sent</span>
                           </div>
-                          <span className="font-bold text-foreground">
+                          <span className="font-semibold text-foreground">
                             {subscriber.welcome_email_sent ? 'Yes' : 'No'}
                           </span>
                         </div>
                         <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Clock className="h-4 w-4 text-warning" />
-                            <span className="font-medium">Last Active</span>
+                            <span className="font-normal">Last Active</span>
                           </div>
-                          <span className="font-bold text-foreground">
+                          <span className="font-semibold text-foreground">
                             {subscriber.last_engagement_at ? new Date(subscriber.last_engagement_at).toLocaleDateString() : 'Never'}
                           </span>
                         </div>
@@ -690,7 +685,7 @@ export const SubscriptionManagementPage = () => {
 
                       {/* Actions */}
                       <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
-                        <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                           ACTIONS
                         </div>
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">

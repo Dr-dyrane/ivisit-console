@@ -189,7 +189,7 @@ export const VisitsPage = () => {
   const headerActions = React.useMemo(() => (
     <Button
       onClick={handleCreate}
-      className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+      className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
     >
       <Plus className="h-4 w-4 mr-2" />
       SCHEDULE VISIT
@@ -205,7 +205,7 @@ export const VisitsPage = () => {
 
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
         <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Visits</span>
       </div>
     </div>
@@ -225,7 +225,7 @@ export const VisitsPage = () => {
             visits.length === 0 ? (
               <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
                 <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="font-black text-xl mb-2">No Visits Yet</h3>
+                <h3 className="font-bold text-xl mb-2">No Visits Yet</h3>
                 <p className="text-muted-foreground mb-6">Get started by scheduling the first visit</p>
                 <Button onClick={handleCreate} className="squircle bg-primary" data-testid="add-first-visit-btn">
                   <Plus className="h-4 w-4 mr-2" />
@@ -240,100 +240,100 @@ export const VisitsPage = () => {
                   data-testid="visits-list"
                 >
                   {visits.map((visit, index) => (
-              <motion.div
-                layout
-                key={visit.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.03 }}
-                className="col-span-1"
-              >
-                <Card className="h-full squircle-xl bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col" data-testid={`visit-card-${visit.id}`}>
+                    <motion.div
+                      layout
+                      key={visit.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.03 }}
+                      className="col-span-1"
+                    >
+                      <Card className="h-full squircle-xl bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col" data-testid={`visit-card-${visit.id}`}>
 
-                  {/* Top Right Icon */}
-                  <div className="absolute top-0 right-0 p-5 z-20">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-info/10 blur-xl rounded-full scale-150" />
-                      <div className="w-10 h-10 squircle-sm bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
-                        <Calendar className="h-5 w-5 text-info" />
-                      </div>
-                    </div>
-                  </div>
+                        {/* Top Right Icon */}
+                        <div className="absolute top-0 right-0 p-5 z-20">
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-info/10 blur-xl rounded-full scale-150" />
+                            <div className="w-10 h-10 squircle-sm bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                              <Calendar className="h-5 w-5 text-info" />
+                            </div>
+                          </div>
+                        </div>
 
-                  <div className="flex items-center gap-2 mb-4 relative z-10">
-                    <Badge className={`squircle-sm ${getStatusBadge(visit.status)} border-0 font-black editorial-subtitle px-3 py-1`}>
-                      {visit.status || 'scheduled'}
-                    </Badge>
-                    {visit.visit_type && (
-                      <Badge className="squircle-sm bg-primary/10 text-primary border-0 px-2 py-1 font-bold">
-                        {visit.visit_type}
-                      </Badge>
-                    )}
-                  </div>
+                        <div className="flex items-center gap-2 mb-4 relative z-10">
+                          <Badge className={`squircle-sm ${getStatusBadge(visit.status)} border-0 font-bold editorial-subtitle px-3 py-1`}>
+                            {visit.status || 'scheduled'}
+                          </Badge>
+                          {visit.visit_type && (
+                            <Badge className="squircle-sm bg-primary/10 text-primary border-0 px-2 py-1 font-semibold">
+                              {visit.visit_type}
+                            </Badge>
+                          )}
+                        </div>
 
-                  <h3 className="font-black text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
-                    Visit #{visit.id?.slice(-6) || 'N/A'}
-                  </h3>
+                        <h3 className="font-bold text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
+                          Visit #{visit.id?.slice(-6) || 'N/A'}
+                        </h3>
 
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 relative z-10">
-                    <Clock className="h-4 w-4 text-info" />
-                    <span className="font-medium">{formatDate(visit.scheduled_at || visit.created_at)}</span>
-                  </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 relative z-10">
+                          <Clock className="h-4 w-4 text-info" />
+                          <span className="font-normal">{formatDate(visit.scheduled_at || visit.created_at)}</span>
+                        </div>
 
-                  <div className="grid grid-cols-2 gap-3 mb-6 relative z-10">
-                    <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center gap-2 mb-1">
-                        <User className="h-4 w-4 text-primary" />
-                        <p className="text-xs text-muted-foreground font-semibold">Patient</p>
-                      </div>
-                      <p className="font-bold truncate">{visit.user_id ? 'Linked' : 'Unknown'}</p>
-                    </div>
-                    <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Hospital className="h-4 w-4 text-success" />
-                        <p className="text-xs text-muted-foreground font-semibold">Hospital</p>
-                      </div>
-                      <p className="font-bold truncate">{visit.hospital_id ? 'Linked' : 'None'}</p>
-                    </div>
-                  </div>
+                        <div className="grid grid-cols-2 gap-3 mb-6 relative z-10">
+                          <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center gap-2 mb-1">
+                              <User className="h-4 w-4 text-primary" />
+                              <p className="text-xs text-muted-foreground font-medium">Patient</p>
+                            </div>
+                            <p className="font-semibold truncate">{visit.user_id ? 'Linked' : 'Unknown'}</p>
+                          </div>
+                          <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Hospital className="h-4 w-4 text-success" />
+                              <p className="text-xs text-muted-foreground font-medium">Hospital</p>
+                            </div>
+                            <p className="font-semibold truncate">{visit.hospital_id ? 'Linked' : 'None'}</p>
+                          </div>
+                        </div>
 
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
-                    <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      ACTIONS
-                    </div>
+                        <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            ACTIONS
+                          </div>
 
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleView(visit)}
-                        className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                        data-testid={`view-visit-${visit.id}`}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(visit)}
-                        className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                        data-testid={`edit-visit-${visit.id}`}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(visit)}
-                        className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                        data-testid={`delete-visit-${visit.id}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleView(visit)}
+                              className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                              data-testid={`view-visit-${visit.id}`}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(visit)}
+                              className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                              data-testid={`edit-visit-${visit.id}`}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(visit)}
+                              className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                              data-testid={`delete-visit-${visit.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    </motion.div>
                   ))}
                 </motion.div>
               </LayoutGroup>

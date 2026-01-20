@@ -28,8 +28,8 @@ export const NotFoundPage = () => {
               <AlertTriangle className="w-12 h-12 text-destructive" />
             </div>
 
-            <h1 className="text-8xl font-black tracking-tighter text-foreground/20 mb-2">404</h1>
-            <h2 className="text-2xl font-bold mb-8">Signal Lost</h2>
+            <h1 className="text-8xl font-bold tracking-tighter text-foreground/20 mb-2">404</h1>
+            <h2 className="text-2xl font-semibold mb-8">Signal Lost</h2>
 
             {/* Haiku Section */}
             <div className="mb-10 space-y-2 font-serif italic text-lg text-muted-foreground">
@@ -42,7 +42,7 @@ export const NotFoundPage = () => {
               <Button
                 onClick={() => navigate(-1)}
                 variant="outline"
-                className="w-full squircle-xl h-12 font-bold border-0 bg-muted/30 hover:bg-muted/50"
+                className="w-full squircle-xl h-12 font-semibold border-0 bg-muted/30 hover:bg-muted/50"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Go Back
@@ -50,7 +50,7 @@ export const NotFoundPage = () => {
 
               <Button
                 onClick={() => navigate('/')}
-                className="w-full squircle-xl h-12 font-bold shadow-glow bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="w-full squircle-xl h-12 font-semibold shadow-glow bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 <Clock className="w-4 h-4 mr-2" />
                 Return to Dashboard

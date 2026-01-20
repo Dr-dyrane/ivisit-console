@@ -23,10 +23,10 @@ export const DoctorListView = ({ doctors, onView, onEdit, onDelete, getStatusBad
             <div className="flex items-center gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-black text-lg truncate group-hover:text-primary transition-colors">
+                  <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
                     {doctor.name || 'Unknown Doctor'}
                   </h3>
-                  <Badge className={`squircle-sm ${getStatusBadge(doctor.status)} border-0 font-black`}>
+                  <Badge className={`squircle-sm ${getStatusBadge(doctor.status)} border-0 font-bold`}>
                     {doctor.status}
                   </Badge>
                 </div>
@@ -37,8 +37,8 @@ export const DoctorListView = ({ doctors, onView, onEdit, onDelete, getStatusBad
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="text-right pr-4 border-r border-white/10">
-                  <p className="text-xs text-muted-foreground font-semibold">RATING</p>
-                  <p className="font-black text-lg">{doctor.rating || 'N/A'}</p>
+                  <p className="text-xs text-muted-foreground font-medium">RATING</p>
+                  <p className="font-bold text-lg">{doctor.rating || 'N/A'}</p>
                 </div>
                 <div className={`flex gap-1 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
                   <Button

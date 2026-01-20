@@ -71,7 +71,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
           .from('doctors')
           .insert([submitData])
           .select();
-        
+
         if (error) throw error;
         await createNotification(
           NotificationTypes.DOCTOR,
@@ -85,7 +85,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
           .from('doctors')
           .update(submitData)
           .eq('id', doctor.id);
-        
+
         if (error) throw error;
         await createNotification(
           NotificationTypes.DOCTOR,
@@ -95,7 +95,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
         );
         toast.success('Doctor updated successfully');
       }
-      
+
       onClose(true);
     } catch (error) {
       console.error('Error saving doctor:', error);
@@ -131,17 +131,16 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
                   <Stethoscope className="h-6 w-6 text-primary" />
                 </div>
                 <div className="hidden sm:block">
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
                     {formData.name || 'Professional Profile'}
                   </h2>
                   <p className="text-sm text-muted-foreground">{formData.specialization || 'Medical Specialist'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Badge className={`rounded-full px-4 py-1 border-0 ${
-                  formData.status === 'available' ? 'bg-green-500/10 text-green-500' : 
-                  formData.status === 'busy' ? 'bg-orange-500/10 text-orange-500' : 'bg-muted/10 text-muted-foreground'
-                }`}>
+                <Badge className={`rounded-full px-4 py-1 border-0 ${formData.status === 'available' ? 'bg-green-500/10 text-green-500' :
+                    formData.status === 'busy' ? 'bg-orange-500/10 text-orange-500' : 'bg-muted/10 text-muted-foreground'
+                  }`}>
                   {formData.status?.toUpperCase()}
                 </Badge>
                 <Button
@@ -155,28 +154,28 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
             </div>
 
             <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
-              
+
               {/* Profile Summary Bubbles */}
               <div className="grid grid-cols-3 gap-3 sm:gap-4">
                 <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
                   <div className="flex justify-center mb-1">
                     <Award className="w-5 h-5 text-primary opacity-60" />
                   </div>
-                  <p className="text-xl font-bold">{formData.experience}+</p>
+                  <p className="text-xl font-semibold">{formData.experience}+</p>
                   <p className="text-[10px] uppercase tracking-widest opacity-50">Years Exp</p>
                 </div>
                 <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
                   <div className="flex justify-center mb-1">
                     <Star className="w-5 h-5 text-yellow-500 opacity-60 fill-yellow-500/20" />
                   </div>
-                  <p className="text-xl font-bold">{formData.rating}</p>
+                  <p className="text-xl font-semibold">{formData.rating}</p>
                   <p className="text-[10px] uppercase tracking-widest opacity-50">Rating</p>
                 </div>
                 <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
                   <div className="flex justify-center mb-1">
                     <Shield className="w-5 h-5 text-blue-500 opacity-60" />
                   </div>
-                  <p className="text-xl font-bold truncate px-1">{formData.license_number?.slice(0, 8) || 'MD-...'}</p>
+                  <p className="text-xl font-semibold truncate px-1">{formData.license_number?.slice(0, 8) || 'MD-...'}</p>
                   <p className="text-[10px] uppercase tracking-widest opacity-50">License</p>
                 </div>
               </div>
@@ -189,7 +188,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
                       <div className="flex justify-center mb-4">
                         <Avatar className="h-24 w-24 rounded-[32px] border-4 border-white/5 shadow-2xl">
                           <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.name}`} />
-                          <AvatarFallback className="text-2xl font-bold">{formData.name?.[0]}</AvatarFallback>
+                          <AvatarFallback className="text-2xl font-semibold">{formData.name?.[0]}</AvatarFallback>
                         </Avatar>
                       </div>
                       <div className="space-y-3">
@@ -227,8 +226,8 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
                       <div className="space-y-3">
                         <div className="space-y-1.5">
                           <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Primary Hospital</Label>
-                          <Select 
-                            value={formData.hospital_id} 
+                          <Select
+                            value={formData.hospital_id}
                             onValueChange={(value) => setFormData(prev => ({ ...prev, hospital_id: value }))}
                             disabled={isView}
                           >
@@ -290,7 +289,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
                     type="button"
                     variant="ghost"
                     onClick={() => onClose(false)}
-                    className="rounded-full px-8 h-12 font-bold"
+                    className="rounded-full px-8 h-12 font-semibold"
                   >
                     {isView ? 'Dismiss' : 'Cancel'}
                   </Button>
@@ -298,7 +297,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="rounded-full px-12 h-12 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20"
+                      className="rounded-full px-12 h-12 bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg shadow-primary/20"
                     >
                       {loading ? 'Saving...' : (isCreate ? 'Add Professional' : 'Save Changes')}
                     </Button>
@@ -321,7 +320,7 @@ const GlassCard = ({ children, title, icon, className }) => (
       <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>
     </div>
     {children}
   </div>

@@ -267,7 +267,7 @@ export const HealthNewsManagementPage = () => {
   const headerActions = React.useMemo(() => isAdmin && (
     <Button
       onClick={handleCreate}
-      className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+      className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
     >
       <Plus className="h-4 w-4 mr-2" />
       ADD NEWS
@@ -283,7 +283,7 @@ export const HealthNewsManagementPage = () => {
 
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
         <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Articles</span>
       </div>
     </div>
@@ -327,7 +327,7 @@ export const HealthNewsManagementPage = () => {
                       </div>
 
                       <div className="flex items-center gap-2 mb-3 md:mb-4 relative z-10">
-                        <Badge className={`geo-badge ${getStatusBadge(news.published)} border-0 font-black editorial-subtitle px-2 md:px-3 py-1 text-xs`}>
+                        <Badge className={`geo-badge ${getStatusBadge(news.published)} border-0 font-bold editorial-subtitle px-2 md:px-3 py-1 text-xs`}>
                           {news.published ? 'Published' : 'Draft'}
                         </Badge>
                         <Badge className="geo-badge bg-info/20 text-info border-0 px-2 py-1 text-xs">
@@ -335,7 +335,7 @@ export const HealthNewsManagementPage = () => {
                         </Badge>
                       </div>
 
-                      <h3 className="font-black text-lg md:text-2xl mb-2 tracking-tight group-hover:text-primary transition-colors line-clamp-2 relative z-10">
+                      <h3 className="font-bold text-lg md:text-2xl mb-2 tracking-tight group-hover:text-primary transition-colors line-clamp-2 relative z-10">
                         {news.title || 'Untitled Article'}
                       </h3>
 
@@ -348,23 +348,23 @@ export const HealthNewsManagementPage = () => {
                         <div className="p-2 md:p-3 geo-sharp bg-muted/30 hover:bg-muted/50 transition-colors">
                           <div className="flex items-center gap-1 md:gap-2 mb-1">
                             <Clock className="h-3 w-3 md:h-4 md:w-4 text-info" />
-                            <p className="text-xs text-muted-foreground font-semibold">Time</p>
+                            <p className="text-xs text-muted-foreground font-medium">Time</p>
                           </div>
-                          <p className="font-black text-sm md:text-base truncate">{news.time || 'No time'}</p>
+                          <p className="font-bold text-sm md:text-base truncate">{news.time || 'No time'}</p>
                         </div>
                         <div className="p-2 md:p-3 geo-sharp bg-muted/30 hover:bg-muted/50 transition-colors">
                           <div className="flex items-center gap-1 md:gap-2 mb-1">
                             <Tag className="h-3 w-3 md:h-4 md:w-4 text-success" />
-                            <p className="text-xs text-muted-foreground font-semibold">Category</p>
+                            <p className="text-xs text-muted-foreground font-medium">Category</p>
                           </div>
-                          <p className="font-black text-sm md:text-base truncate">{news.category || 'General'}</p>
+                          <p className="font-bold text-sm md:text-base truncate">{news.category || 'General'}</p>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between mt-auto pt-3 md:pt-4 border-t border-muted/20 relative z-10 px-2">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="h-3 w-3 md:h-4 md:w-4 text-warning" />
-                          <span className="font-bold text-xs md:text-sm truncate">{new Date(news.created_at).toLocaleDateString()}</span>
+                          <span className="font-semibold text-xs md:text-sm truncate">{new Date(news.created_at).toLocaleDateString()}</span>
                         </div>
 
                         <div className="flex gap-1 md:gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mr-2 md:mr-4">

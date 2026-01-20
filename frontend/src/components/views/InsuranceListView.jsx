@@ -54,7 +54,7 @@ export const InsuranceListView = ({
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <h3 className="font-black text-lg tracking-tight text-foreground line-clamp-1">
+                                                    <h3 className="font-bold text-lg tracking-tight text-foreground line-clamp-1">
                                                         {policy.policy_number}
                                                     </h3>
                                                     {policy.verified && (
@@ -64,7 +64,7 @@ export const InsuranceListView = ({
                                                     )}
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                                                    <span className="font-medium text-foreground/80">{policy.provider_name}</span>
+                                                    <span className="font-normal text-foreground/80">{policy.provider_name}</span>
                                                     <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
                                                     <span>{policy.policy_type || 'General'}</span>
                                                 </div>
@@ -77,8 +77,8 @@ export const InsuranceListView = ({
                                             <div className="flex items-center gap-2">
                                                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                                                 <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Expires</span>
-                                                    <span className="text-sm font-medium">
+                                                    <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Expires</span>
+                                                    <span className="text-sm font-normal">
                                                         {policy.end_date ? new Date(policy.end_date).toLocaleDateString() : 'N/A'}
                                                     </span>
                                                 </div>
@@ -87,8 +87,8 @@ export const InsuranceListView = ({
                                             <div className="flex items-center gap-2">
                                                 <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
                                                 <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Coverage</span>
-                                                    <span className="text-sm font-medium">
+                                                    <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Coverage</span>
+                                                    <span className="text-sm font-normal">
                                                         {policy.coverage_amount ? `$${policy.coverage_amount.toLocaleString()}` : 'N/A'}
                                                     </span>
                                                 </div>
@@ -96,7 +96,7 @@ export const InsuranceListView = ({
 
                                             <div className="flex items-center gap-2">
                                                 <div className="flex flex-col md:items-end">
-                                                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Status</span>
+                                                    <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Status</span>
                                                     <Badge className={`geo-sharp border-0 px-2 py-0.5 ${getStatusBadge(policy.status)}`}>
                                                         {policy.status}
                                                     </Badge>
@@ -114,7 +114,7 @@ export const InsuranceListView = ({
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => onVerify(policy)}
-                                            className="squircle h-8 px-3 text-xs font-bold hover:bg-success/10 hover:text-success"
+                                            className="squircle h-8 px-3 text-xs font-semibold hover:bg-success/10 hover:text-success"
                                         >
                                             Verify
                                         </Button>

@@ -61,7 +61,7 @@ export const NotificationCenter = () => {
       >
         <Bell className={`h-4 w-4 ${isMobile ? 'text-black dark:text-white' : ''}`} />
         {unreadCount > 0 && (
-          <Badge className="absolute -top-2 -right-2 squircle-full h-5 w-5 p-0 flex items-center justify-center text-[10px] font-black bg-destructive text-destructive-foreground">
+          <Badge className="absolute -top-2 -right-2 squircle-full h-5 w-5 p-0 flex items-center justify-center text-[10px] font-bold bg-destructive text-destructive-foreground">
             {unreadCount > 9 ? '9+' : unreadCount}
           </Badge>
         )}
@@ -79,7 +79,7 @@ export const NotificationCenter = () => {
 
             <div className="px-4 mb-4">
               <div>
-                <h3 className="font-black text-2xl tracking-tight">Notifications</h3>
+                <h3 className="font-bold text-2xl tracking-tight">Notifications</h3>
                 {unreadCount > 0 && (
                   <p className="text-sm text-muted-foreground">{unreadCount} new</p>
                 )}
@@ -99,7 +99,7 @@ export const NotificationCenter = () => {
               ) : notifications.length === 0 ? (
                 <div className="py-12 text-center">
                   <Bell className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground font-medium">No notifications</p>
+                  <p className="text-sm text-muted-foreground font-normal">No notifications</p>
                 </div>
               ) : (
                 <AnimatePresence mode="popLayout">
@@ -154,7 +154,7 @@ export const NotificationCenter = () => {
                 <Card className="squircle-xl bg-background/35 backdrop-blur-xs shadow-2xl border-0 overflow-hidden flex flex-col">
                   <div className="p-4 border-b border-white/10 flex items-center justify-between">
                     <div>
-                      <h3 className="font-black">Notifications</h3>
+                      <h3 className="font-bold">Notifications</h3>
                       {unreadCount > 0 && (
                         <p className="text-xs text-muted-foreground">{unreadCount} new</p>
                       )}
@@ -182,7 +182,7 @@ export const NotificationCenter = () => {
                     ) : notifications.length === 0 ? (
                       <div className="py-12 text-center">
                         <Bell className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-                        <p className="text-sm text-muted-foreground font-medium">No notifications</p>
+                        <p className="text-sm text-muted-foreground font-normal">No notifications</p>
                       </div>
                     ) : (
                       <AnimatePresence mode="popLayout">

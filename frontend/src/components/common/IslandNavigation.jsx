@@ -88,7 +88,7 @@ export const IslandNavigation = () => {
           onClick={() => navigate(item.path)}
           className={`flex items-center h-10 rounded-xl transition-all duration-200 ${isCentered ? 'w-10 justify-center' : `w-full ${isSubItem ? 'pl-9' : 'px-3'}`
             } ${isActive
-              ? 'bg-primary/15 text-primary font-semibold'
+              ? 'bg-primary/15 text-primary font-medium'
               : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
             }`}
         >
@@ -160,7 +160,7 @@ export const IslandNavigation = () => {
             <GroupIcon className="w-5 h-5 flex-shrink-0" />
             <AnimatePresence>
               {isBroad && (
-                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-3 text-[11px] font-black uppercase tracking-widest flex-1 text-left">
+                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-3 text-[11px] font-bold uppercase tracking-widest flex-1 text-left">
                   {label}
                 </motion.span>
               )}
@@ -224,12 +224,12 @@ export const IslandNavigation = () => {
           </AnimatePresence>
 
           {isBroad && isNotHome && (
-            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-3 text-xs font-bold text-muted-foreground">Go Back</motion.span>
+            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-3 text-xs font-semibold text-muted-foreground">Go Back</motion.span>
           )}
 
           {isBroad && !isNotHome && (
             <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="ml-3 flex flex-col leading-none">
-              <span className="text-2xl font-black tracking-tighter">iVisit<span className="text-primary text-base">.</span> <span className="text-primary text-sm font-normal italic  uppercase">Console</span></span>
+              <span className="text-2xl font-bold tracking-tighter">iVisit<span className="text-primary text-base">.</span> <span className="text-primary text-sm font-normal italic  uppercase">Console</span></span>
             </motion.div>
           )}
         </div>
@@ -261,14 +261,14 @@ export const IslandNavigation = () => {
         >
           <Avatar className="h-9 w-9 rounded-lg border border-border flex-shrink-0">
             <AvatarImage src={getAvatarUrl(profile, user)} />
-            <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
+            <AvatarFallback className="bg-primary/5 text-primary text-xs font-semibold">
               {getAvatarFallback(profile, user)}
             </AvatarFallback>
           </Avatar>
           {isBroad && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-left overflow-hidden">
-              <p className="text-xs font-bold truncate text-foreground">{profile?.full_name || 'User'}</p>
-              <p className="text-[10px] opacity-50 truncate font-bold uppercase tracking-tight">Settings</p>
+              <p className="text-xs font-semibold truncate text-foreground">{profile?.full_name || 'User'}</p>
+              <p className="text-[10px] opacity-50 truncate font-semibold uppercase tracking-tight">Settings</p>
             </motion.div>
           )}
         </button>

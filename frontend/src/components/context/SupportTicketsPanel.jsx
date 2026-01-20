@@ -30,7 +30,7 @@ export const SupportTicketsPanel = ({ supportTicketsData, loading, useMockData }
         >
           <div className="flex items-center gap-2 text-xs text-warning">
             <AlertTriangle className="h-3 w-3" />
-            <span className="font-medium">Using Mock Data</span>
+            <span className="font-normal">Using Mock Data</span>
           </div>
         </motion.div>
       )}
@@ -46,10 +46,10 @@ export const SupportTicketsPanel = ({ supportTicketsData, loading, useMockData }
             >
               <Card className="p-3 bg-background/50 border-border/30 text-center">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Support Queue</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Support Queue</span>
                   <Headphones className="h-4 w-4 text-primary" />
                 </div>
-                <div className="text-2xl font-black text-foreground">0</div>
+                <div className="text-2xl font-bold text-foreground">0</div>
                 <div className="text-xs text-muted-foreground">No active tickets</div>
               </Card>
             </motion.div>
@@ -63,10 +63,10 @@ export const SupportTicketsPanel = ({ supportTicketsData, loading, useMockData }
               >
                 <Card className="p-3 bg-background/50 border-border/30">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Total Tickets</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Total Tickets</span>
                     <Headphones className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="text-2xl font-black text-foreground">{supportTicketsData.total}</div>
+                  <div className="text-2xl font-bold text-foreground">{supportTicketsData.total}</div>
                   <div className="text-xs text-muted-foreground">All time</div>
                 </Card>
               </motion.div>
@@ -81,16 +81,16 @@ export const SupportTicketsPanel = ({ supportTicketsData, loading, useMockData }
                 <Card className="p-3 bg-background/50 border-border/30">
                   <div className="flex items-center justify-between mb-1">
                     <Clock className="h-3 w-3 text-warning" />
-                    <span className="text-xs text-warning font-medium">Open</span>
+                    <span className="text-xs text-warning font-normal">Open</span>
                   </div>
-                  <div className="text-lg font-bold">{supportTicketsData.open}</div>
+                  <div className="text-lg font-semibold">{supportTicketsData.open}</div>
                 </Card>
                 <Card className="p-3 bg-background/50 border-border/30">
                   <div className="flex items-center justify-between mb-1">
                     <Activity className="h-3 w-3 text-info" />
-                    <span className="text-xs text-info font-medium">In Progress</span>
+                    <span className="text-xs text-info font-normal">In Progress</span>
                   </div>
-                  <div className="text-lg font-bold">{supportTicketsData.inProgress}</div>
+                  <div className="text-lg font-semibold">{supportTicketsData.inProgress}</div>
                 </Card>
               </motion.div>
 
@@ -104,16 +104,16 @@ export const SupportTicketsPanel = ({ supportTicketsData, loading, useMockData }
                 <Card className="p-3 bg-background/50 border-border/30">
                   <div className="flex items-center justify-between mb-1">
                     <CheckCircle className="h-3 w-3 text-success" />
-                    <span className="text-xs text-success font-medium">Resolved</span>
+                    <span className="text-xs text-success font-normal">Resolved</span>
                   </div>
-                  <div className="text-lg font-bold">{supportTicketsData.resolved}</div>
+                  <div className="text-lg font-semibold">{supportTicketsData.resolved}</div>
                 </Card>
                 <Card className="p-3 bg-background/50 border-border/30">
                   <div className="flex items-center justify-between mb-1">
                     <TrendingUp className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground font-medium">This Week</span>
+                    <span className="text-xs text-muted-foreground font-normal">This Week</span>
                   </div>
-                  <div className="text-lg font-bold">{supportTicketsData.thisWeek}</div>
+                  <div className="text-lg font-semibold">{supportTicketsData.thisWeek}</div>
                 </Card>
               </motion.div>
 
@@ -125,10 +125,10 @@ export const SupportTicketsPanel = ({ supportTicketsData, loading, useMockData }
               >
                 <Card className="p-3 bg-background/50 border-border/30">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Avg Resolution</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Avg Resolution</span>
                     <Clock className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="text-xl font-bold text-foreground">{supportTicketsData.averageResolutionTime}h</div>
+                  <div className="text-xl font-semibold text-foreground">{supportTicketsData.averageResolutionTime}h</div>
                   <div className="text-xs text-muted-foreground">Response time</div>
                 </Card>
               </motion.div>
@@ -142,7 +142,7 @@ export const SupportTicketsPanel = ({ supportTicketsData, loading, useMockData }
             transition={{ delay: 0.5 }}
           >
             <div className="space-y-2">
-              <div className="text-xs font-black uppercase tracking-wider text-muted-foreground px-1">Quick Actions</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Quick Actions</div>
               <div className="space-y-1">
                 <button
                   onClick={() => {
@@ -152,7 +152,7 @@ export const SupportTicketsPanel = ({ supportTicketsData, loading, useMockData }
                   className="w-full p-2 rounded-lg bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-all duration-300 flex items-center gap-2 cursor-pointer text-left"
                 >
                   <Plus className="h-3 w-3 text-primary" />
-                  <span className="text-xs font-medium text-primary">New Ticket</span>
+                  <span className="text-xs font-normal text-primary">New Ticket</span>
                 </button>
               </div>
             </div>

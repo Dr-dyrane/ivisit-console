@@ -24,7 +24,7 @@ export const AmbulancesPanel = () => {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Fleet Status</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Fleet Status</h3>
 
         <Card className="bg-background/35 backdrop-blur-xs squircle-lg p-4 border-0">
           <div className="flex items-center justify-between">
@@ -32,7 +32,7 @@ export const AmbulancesPanel = () => {
               <div className="w-8 h-8 geo-round bg-success/20 flex items-center justify-center">
                 <Ambulance className="h-4 w-4 text-success" />
               </div>
-              <span className="font-medium">Available</span>
+              <span className="font-normal">Available</span>
             </div>
             <Badge className="bg-success/20 text-success">8</Badge>
           </div>
@@ -44,7 +44,7 @@ export const AmbulancesPanel = () => {
               <div className="w-8 h-8 geo-round bg-info/20 flex items-center justify-center">
                 <Activity className="h-4 w-4 text-info" />
               </div>
-              <span className="font-medium">On Route</span>
+              <span className="font-normal">On Route</span>
             </div>
             <Badge className="bg-info/20 text-info">4</Badge>
           </div>
@@ -56,7 +56,7 @@ export const AmbulancesPanel = () => {
               <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
                 <Clock className="h-4 w-4 text-warning" />
               </div>
-              <span className="font-medium">Busy</span>
+              <span className="font-normal">Busy</span>
             </div>
             <Badge className="bg-warning/20 text-warning">3</Badge>
           </div>
@@ -70,7 +70,7 @@ export const AmbulancesPanel = () => {
         transition={{ delay: 0.1 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Performance</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Performance</h3>
 
         <Card className="bg-background/35 backdrop-blur-xs squircle-lg p-4 border-0">
           <div className="flex items-center justify-between">
@@ -78,7 +78,7 @@ export const AmbulancesPanel = () => {
               <div className="w-8 h-8 geo-round bg-primary/20 flex items-center justify-center">
                 <TrendingUp className="h-4 w-4 text-primary" />
               </div>
-              <span className="font-medium">Avg Response</span>
+              <span className="font-normal">Avg Response</span>
             </div>
             <Badge className="bg-primary/20 text-primary">4.2 min</Badge>
           </div>
@@ -92,14 +92,14 @@ export const AmbulancesPanel = () => {
         transition={{ delay: 0.2 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
-        <button 
+        <button
           onClick={handleCreateAmbulance}
           className="w-full p-4 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-warning/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
         >
           <Ambulance className="h-4 w-4 text-warning" />
-          <span className="font-black tracking-tight text-warning">Add New Ambulance</span>
+          <span className="font-bold tracking-tight text-warning">Add New Ambulance</span>
         </button>
       </motion.div>
     </div>

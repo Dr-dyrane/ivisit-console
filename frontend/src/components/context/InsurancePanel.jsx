@@ -31,7 +31,7 @@ export const InsurancePanel = ({ loading, getInsuranceStats }) => {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-3"
           >
-            <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Policy Overview</h3>
+            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Policy Overview</h3>
 
             <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
               <div className="flex items-center justify-between">
@@ -40,7 +40,7 @@ export const InsurancePanel = ({ loading, getInsuranceStats }) => {
                     <Shield className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <span className="font-black tracking-tight">Total Policies</span>
+                    <span className="font-bold tracking-tight">Total Policies</span>
                     <p className="text-xs text-muted-foreground">All insurance records</p>
                   </div>
                 </div>
@@ -55,7 +55,7 @@ export const InsurancePanel = ({ loading, getInsuranceStats }) => {
                     <CheckCircle className="h-4 w-4 text-success" />
                   </div>
                   <div>
-                    <p className="font-black text-sm">{stats.active}</p>
+                    <p className="font-bold text-sm">{stats.active}</p>
                     <p className="text-xs text-muted-foreground">Active</p>
                   </div>
                 </div>
@@ -67,7 +67,7 @@ export const InsurancePanel = ({ loading, getInsuranceStats }) => {
                     <Clock className="h-4 w-4 text-warning" />
                   </div>
                   <div>
-                    <p className="font-black text-sm">{stats.pending}</p>
+                    <p className="font-bold text-sm">{stats.pending}</p>
                     <p className="text-xs text-muted-foreground">Pending</p>
                   </div>
                 </div>
@@ -81,7 +81,7 @@ export const InsurancePanel = ({ loading, getInsuranceStats }) => {
                     <TrendingUp className="h-5 w-5 text-info" />
                   </div>
                   <div>
-                    <span className="font-black tracking-tight">Verification Rate</span>
+                    <span className="font-bold tracking-tight">Verification Rate</span>
                     <p className="text-xs text-muted-foreground">Verified policies</p>
                   </div>
                 </div>
@@ -97,7 +97,7 @@ export const InsurancePanel = ({ loading, getInsuranceStats }) => {
             transition={{ delay: 0.2 }}
             className="space-y-3"
           >
-            <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
             <div className="space-y-2">
               <button
@@ -108,7 +108,7 @@ export const InsurancePanel = ({ loading, getInsuranceStats }) => {
                 className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm text-left"
               >
                 <Plus className="h-4 w-4 text-primary" />
-                <span className="font-black tracking-tight text-primary">Add New Policy</span>
+                <span className="font-bold tracking-tight text-primary">Add New Policy</span>
               </button>
 
               <button
@@ -122,7 +122,7 @@ export const InsurancePanel = ({ loading, getInsuranceStats }) => {
                 className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-info/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm text-left"
               >
                 <BarChart3 className="h-4 w-4 text-info" />
-                <span className="font-black tracking-tight text-info">View Analytics</span>
+                <span className="font-bold tracking-tight text-info">View Analytics</span>
               </button>
             </div>
           </motion.div>

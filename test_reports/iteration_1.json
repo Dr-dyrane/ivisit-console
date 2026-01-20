@@ -9,7 +9,7 @@
       {
         "component": "DoctorsPage.jsx",
         "issue": "Double 'Dr.' prefix displayed - shows 'Dr. Dr. Jennifer Lopez' instead of 'Dr. Jennifer Lopez'. The code adds 'Dr. ' prefix on line 141, but the data in Supabase already contains 'Dr.' in the name field.",
-        "selector": "h3.font-black in doctor cards",
+        "selector": "h3.font-bold in doctor cards",
         "priority": "MEDIUM",
         "fix": "Either remove 'Dr. ' prefix from line 141 in DoctorsPage.jsx OR update Supabase data to not include 'Dr.' prefix"
       }

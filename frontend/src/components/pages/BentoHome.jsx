@@ -88,7 +88,7 @@ export const BentoHome = () => {
       variant="outline"
       size="sm"
       onClick={refreshAllData || fetchActivityData}
-      className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-8 px-3 text-[10px] font-bold"
+      className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-8 px-3 text-[10px] font-semibold"
     >
       <RefreshCw className="h-3 w-3 mr-1" />
       REFRESH STATS
@@ -122,11 +122,11 @@ export const BentoHome = () => {
 
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/10 border border-success/20 uppercase tracking-widest text-[10px] font-black text-success">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/10 border border-success/20 uppercase tracking-widest text-[10px] font-bold text-success">
         <Activity className="w-3 h-3" />
         <span>Vitals: Nominal</span>
       </div>
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
         <span>Nodes: 3 Active</span>
       </div>
     </div>
@@ -180,18 +180,18 @@ export const BentoHome = () => {
 
               <div className="relative z-10 flex flex-col flex-1">
                 <div className="flex items-center justify-between mb-6">
-                  <Badge className="squircle-sm bg-primary text-primary-foreground border-0 px-4 py-2 font-black editorial-subtitle shadow-glow">LIVE</Badge>
+                  <Badge className="squircle-sm bg-primary text-primary-foreground border-0 px-4 py-2 font-bold editorial-subtitle shadow-glow">LIVE</Badge>
                 </div>
 
                 <div className="space-y-3 flex-1">
                   <p className="editorial-subtitle text-primary">ACTIVE EMERGENCIES</p>
                   {/* Use clamp or dynamic text sizing to prevent overflow */}
-                  <h2 className="text-7xl lg:text-8xl font-black tracking-tighter text-gradient-primary leading-none break-words">{appStats.liveEmergencies}</h2>
+                  <h2 className="text-7xl lg:text-8xl font-bold tracking-tighter text-gradient-primary leading-none break-words">{appStats.liveEmergencies}</h2>
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 squircle-sm bg-success/10 flex items-center justify-center">
                       <TrendingUp className="h-4 w-4 text-success" />
                     </div>
-                    <span className="text-sm font-bold text-success whitespace-nowrap">-15% vs yesterday</span>
+                    <span className="text-sm font-semibold text-success whitespace-nowrap">-15% vs yesterday</span>
                   </div>
                 </div>
               </div>
@@ -251,11 +251,11 @@ export const BentoHome = () => {
 
               <div className="relative z-10 flex flex-col flex-1 mt-12">
                 <p className="editorial-subtitle text-success mb-3">AVG RESPONSE TIME</p>
-                <h3 className="text-5xl lg:text-6xl font-black tracking-tighter break-words leading-tight">
-                  {appStats.responseTime}<span className="text-3xl text-muted-foreground font-bold ml-1">m</span>
+                <h3 className="text-5xl lg:text-6xl font-bold tracking-tighter break-words leading-tight">
+                  {appStats.responseTime}<span className="text-3xl text-muted-foreground font-semibold ml-1">m</span>
                 </h3>
               </div>
-              <div className="flex items-center gap-2 text-success font-bold text-sm relative z-10 mt-4">
+              <div className="flex items-center gap-2 text-success font-semibold text-sm relative z-10 mt-4">
                 <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
                 <span>23% faster today</span>
               </div>
@@ -288,9 +288,9 @@ export const BentoHome = () => {
 
               <div className="relative z-10 flex flex-col flex-1 mt-12">
                 <p className="editorial-subtitle text-info mb-3">TODAY&apos;S REQUESTS</p>
-                <h3 className="text-5xl lg:text-6xl font-black tracking-tighter break-words leading-tight">{appStats.todayRequests}</h3>
+                <h3 className="text-5xl lg:text-6xl font-bold tracking-tighter break-words leading-tight">{appStats.todayRequests}</h3>
               </div>
-              <div className="flex items-center gap-2 text-primary font-bold text-sm relative z-10 mt-4">
+              <div className="flex items-center gap-2 text-primary font-semibold text-sm relative z-10 mt-4">
                 <TrendingUp className="h-5 w-5 flex-shrink-0" />
                 <span>+8% vs yesterday</span>
               </div>
@@ -339,8 +339,8 @@ export const BentoHome = () => {
                 </div>
                 <div>
                   <p className="editorial-subtitle text-secondary mb-1">MAP VIEW</p>
-                  <h4 className="font-black text-xl tracking-tight">God Mode</h4>
-                  <p className="text-sm text-muted-foreground font-semibold">Live tracking</p>
+                  <h4 className="font-bold text-xl tracking-tight">God Mode</h4>
+                  <p className="text-sm text-muted-foreground font-medium">Live tracking</p>
                 </div>
               </div>
             </Card>
@@ -364,11 +364,11 @@ export const BentoHome = () => {
                   <div className="w-12 h-12 squircle bg-warning/10 flex items-center justify-center">
                     <FileCheck className="h-6 w-6 text-warning" />
                   </div>
-                  <Badge className="squircle-sm bg-warning/20 text-warning border-0 font-black editorial-subtitle px-2 py-0.5">{appStats.pendingVerifications} PENDING</Badge>
+                  <Badge className="squircle-sm bg-warning/20 text-warning border-0 font-bold editorial-subtitle px-2 py-0.5">{appStats.pendingVerifications} PENDING</Badge>
                 </div>
                 <div>
-                  <h4 className="font-black text-xl tracking-tight">Verification</h4>
-                  <p className="text-sm text-muted-foreground font-semibold">Review queue</p>
+                  <h4 className="font-bold text-xl tracking-tight">Verification</h4>
+                  <p className="text-sm text-muted-foreground font-medium">Review queue</p>
                   <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
                     <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
                       <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
@@ -405,8 +405,8 @@ export const BentoHome = () => {
                 </div>
                 <div>
                   <p className="editorial-subtitle text-success mb-1">INSIGHTS</p>
-                  <h4 className="font-black text-xl tracking-tight">Analytics</h4>
-                  <p className="text-sm text-muted-foreground font-semibold">Impact metrics</p>
+                  <h4 className="font-bold text-xl tracking-tight">Analytics</h4>
+                  <p className="text-sm text-muted-foreground font-medium">Impact metrics</p>
                   <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
                     <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
                       <ChevronRight className="h-5 w-5 text-success ml-0.5" />
@@ -450,8 +450,8 @@ export const BentoHome = () => {
                   </div>
                 </div>
                 <div>
-                  <h4 className="font-black tracking-tight">{item.label}</h4>
-                  <p className="text-xs text-muted-foreground font-semibold truncate">{item.sub}</p>
+                  <h4 className="font-bold tracking-tight">{item.label}</h4>
+                  <p className="text-xs text-muted-foreground font-medium truncate">{item.sub}</p>
                 </div>
               </Card>
             </motion.div>
@@ -491,12 +491,12 @@ export const BentoHome = () => {
                   <div className="w-12 h-12 squircle bg-warning/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
                     <TrendingUp className="h-6 w-6 text-warning" />
                   </div>
-                  <Badge className="squircle-sm bg-warning/20 text-warning border-0 font-black editorial-subtitle px-2 py-0.5">TRENDING</Badge>
+                  <Badge className="squircle-sm bg-warning/20 text-warning border-0 font-bold editorial-subtitle px-2 py-0.5">TRENDING</Badge>
                 </div>
                 <div>
                   <p className="editorial-subtitle text-warning mb-1">INSIGHTS</p>
-                  <h4 className="font-black text-xl tracking-tight">Trending Topics</h4>
-                  <p className="text-sm text-muted-foreground font-semibold">24 hot topics today</p>
+                  <h4 className="font-bold text-xl tracking-tight">Trending Topics</h4>
+                  <p className="text-sm text-muted-foreground font-medium">24 hot topics today</p>
                   <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
                     <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
                       <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
@@ -537,20 +537,20 @@ export const BentoHome = () => {
                   <div className="w-12 h-12 squircle bg-info/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
                     <Mail className="h-6 w-6 text-info" />
                   </div>
-                  <Badge className="squircle-sm bg-info/20 text-info border-0 font-black editorial-subtitle px-2 py-0.5">SUBSCRIPTIONS</Badge>
+                  <Badge className="squircle-sm bg-info/20 text-info border-0 font-bold editorial-subtitle px-2 py-0.5">SUBSCRIPTIONS</Badge>
                 </div>
                 <div>
                   <p className="editorial-subtitle text-info mb-1">COMMUNITY</p>
-                  <h4 className="font-black text-xl tracking-tight">Subscriptions</h4>
-                  <p className="text-sm text-muted-foreground font-semibold">Manage subscribers & engagement</p>
+                  <h4 className="font-bold text-xl tracking-tight">Subscriptions</h4>
+                  <p className="text-sm text-muted-foreground font-medium">Manage subscribers & engagement</p>
                   <div className="flex items-center gap-4 mt-2">
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 rounded-full bg-success" />
-                      <span className="text-xs font-bold text-success">{subscriptionStats.active} active</span>
+                      <span className="text-xs font-semibold text-success">{subscriptionStats.active} active</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 rounded-full bg-warning" />
-                      <span className="text-xs font-bold text-warning">{subscriptionStats.paid} premium</span>
+                      <span className="text-xs font-semibold text-warning">{subscriptionStats.paid} premium</span>
                     </div>
                   </div>
                   <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
@@ -573,38 +573,38 @@ export const BentoHome = () => {
           >
             <Card className="h-full min-h-[300px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-7 border-0 flex flex-col w-full relative overflow-hidden">
               {/* Tech Grid Background */}
-              <h4 className="font-black text-lg mb-6 tracking-tight">System Status</h4>
+              <h4 className="font-bold text-lg mb-6 tracking-tight">System Status</h4>
               <div className="grid grid-cols-1 gap-6 flex-1">
                 {[
-                  { 
-                    label: 'Success Rate', 
-                    value: `${appStats.completionRate}%`, 
-                    progress: appStats.completionRate, 
-                    color: 'success' 
+                  {
+                    label: 'Success Rate',
+                    value: `${appStats.completionRate}%`,
+                    progress: appStats.completionRate,
+                    color: 'success'
                   },
-                  { 
-                    label: 'Fleet Active', 
-                    value: `${Math.round((appStats.availableAmbulances / (appStats.availableAmbulances + 4)) * 100)}%`, 
-                    progress: Math.round((appStats.availableAmbulances / (appStats.availableAmbulances + 4)) * 100), 
-                    color: 'primary' 
+                  {
+                    label: 'Fleet Active',
+                    value: `${Math.round((appStats.availableAmbulances / (appStats.availableAmbulances + 4)) * 100)}%`,
+                    progress: Math.round((appStats.availableAmbulances / (appStats.availableAmbulances + 4)) * 100),
+                    color: 'primary'
                   },
-                  { 
-                    label: 'Beds Available', 
+                  {
+                    label: 'Beds Available',
                     value: appStats.availableAmbulances * 13, // Estimate beds per ambulance
-                    progress: Math.min(65, appStats.availableAmbulances * 5), 
-                    color: 'info' 
+                    progress: Math.min(65, appStats.availableAmbulances * 5),
+                    color: 'info'
                   },
-                  { 
-                    label: 'System Health', 
-                    value: '99%', 
-                    progress: 99, 
-                    color: 'success' 
+                  {
+                    label: 'System Health',
+                    value: '99%',
+                    progress: 99,
+                    color: 'success'
                   },
                 ].map((stat, idx) => (
                   <div key={idx} className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground font-semibold">{stat.label}</span>
-                      <span className={`text-xl font-black tracking-tighter text-${stat.color}`}>{stat.value}</span>
+                      <span className="text-sm text-muted-foreground font-medium">{stat.label}</span>
+                      <span className={`text-xl font-bold tracking-tighter text-${stat.color}`}>{stat.value}</span>
                     </div>
                     <div className="h-2 bg-muted/30 squircle-sm overflow-hidden">
                       <motion.div
@@ -634,7 +634,7 @@ export const BentoHome = () => {
                 style={{ backgroundImage: 'repeating-linear-gradient(45deg, currentColor 0, currentColor 1px, transparent 0, transparent 50%)', backgroundSize: '10px 10px' }}>
               </div>
 
-              <h4 className="font-black text-lg mb-5 tracking-tight relative z-10">Recent Activity</h4>
+              <h4 className="font-bold text-lg mb-5 tracking-tight relative z-10">Recent Activity</h4>
               <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar relative z-10">
                 {recentActivities.length > 0 ? (
                   recentActivities.map((activity, idx) => (
@@ -643,10 +643,10 @@ export const BentoHome = () => {
                         <activity.icon className={`h-5 w-5 ${activity.color}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold leading-snug truncate-2">{activity.msg}</p>
-                        <p className="text-xs text-muted-foreground mt-1 font-semibold">{activity.time}</p>
+                        <p className="text-sm font-semibold leading-snug truncate-2">{activity.msg}</p>
+                        <p className="text-xs text-muted-foreground mt-1 font-medium">{activity.time}</p>
                         {activity.user && (
-                          <p className="text-xs text-muted-foreground mt-1 font-medium">by {activity.user}</p>
+                          <p className="text-xs text-muted-foreground mt-1 font-normal">by {activity.user}</p>
                         )}
                       </div>
                     </div>
@@ -654,7 +654,7 @@ export const BentoHome = () => {
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center py-8">
                     <Activity className="h-8 w-8 text-muted-foreground mb-3" />
-                    <p className="text-sm text-muted-foreground font-medium">No recent activity</p>
+                    <p className="text-sm text-muted-foreground font-normal">No recent activity</p>
                     <p className="text-xs text-muted-foreground mt-1">Activity will appear here as users interact with the system</p>
                   </div>
                 )}

@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { 
-  X, 
-  Siren, 
-  MapPin, 
-  Clock, 
-  Activity, 
-  Phone, 
-  User, 
+import {
+  X,
+  Siren,
+  MapPin,
+  Clock,
+  Activity,
+  Phone,
+  User,
   Navigation,
   AlertTriangle,
   Shield,
@@ -26,7 +26,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
   if (!request) return null;
 
   const getPriorityColor = (priority) => {
-    switch(priority) {
+    switch (priority) {
       case 'critical': return 'text-red-500';
       case 'high': return 'text-orange-500';
       case 'medium': return 'text-yellow-500';
@@ -36,7 +36,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
   };
 
   const getPriorityBg = (priority) => {
-    switch(priority) {
+    switch (priority) {
       case 'critical': return 'bg-red-500/10';
       case 'high': return 'bg-orange-500/10';
       case 'medium': return 'bg-yellow-500/10';
@@ -46,7 +46,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
   };
 
   const getEmergencyIcon = (type) => {
-    switch(type) {
+    switch (type) {
       case 'cardiac': return <Heart className="w-5 h-5" />;
       case 'accident': return <AlertTriangle className="w-5 h-5" />;
       case 'respiratory': return <Activity className="w-5 h-5" />;
@@ -81,7 +81,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                   {getEmergencyIcon(request.emergency_type)}
                 </div>
                 <div className="hidden sm:block">
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
                     {request.emergency_type?.replace('_', ' ').toUpperCase() || 'EMERGENCY REQUEST'}
                   </h2>
                   <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -112,12 +112,11 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                   const isCurrent = request.status === step;
                   const isPast = arr.indexOf(request.status) > i;
                   return (
-                    <div key={step} className={`p-3 rounded-2xl text-center border transition-all ${
-                      isCurrent ? 'bg-primary/10 border-primary/20 text-primary' :
+                    <div key={step} className={`p-3 rounded-2xl text-center border transition-all ${isCurrent ? 'bg-primary/10 border-primary/20 text-primary' :
                       isPast ? 'bg-green-500/5 border-green-500/10 text-green-500 opacity-60' :
-                      'bg-white/5 border-white/10 text-muted-foreground opacity-30'
-                    }`}>
-                      <p className="text-[10px] font-bold uppercase tracking-widest">{step.replace('_', ' ')}</p>
+                        'bg-white/5 border-white/10 text-muted-foreground opacity-30'
+                      }`}>
+                      <p className="text-[10px] font-semibold uppercase tracking-widest">{step.replace('_', ' ')}</p>
                     </div>
                   );
                 })}
@@ -128,7 +127,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                 {/* Situation Report */}
                 <GlassCard icon={<FileText className="text-primary" />} title="Situation Report" className="lg:col-span-2">
                   <div className="space-y-4">
-                    <p className="text-lg font-medium leading-relaxed text-foreground/90">
+                    <p className="text-lg font-normal leading-relaxed text-foreground/90">
                       {request.description || 'No detailed description provided for this emergency incident.'}
                     </p>
                     <div className="flex flex-wrap gap-4 pt-4 border-t border-white/5">
@@ -151,21 +150,21 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                       <div className="flex items-center gap-4">
                         <Avatar className="h-16 w-16 rounded-[20px] border-2 border-white/10 shadow-xl">
                           <AvatarImage src={request.profiles.avatar_url} />
-                          <AvatarFallback className="text-xl font-bold">{request.profiles.username?.[0]}</AvatarFallback>
+                          <AvatarFallback className="text-xl font-semibold">{request.profiles.username?.[0]}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <h4 className="text-lg font-bold">{request.profiles.username || 'Unknown'}</h4>
+                          <h4 className="text-lg font-semibold">{request.profiles.username || 'Unknown'}</h4>
                           <p className="text-sm text-muted-foreground uppercase tracking-wider">{request.profiles.role || 'Patient'}</p>
                         </div>
                       </div>
                       <div className="space-y-3 pt-4 border-t border-white/5">
                         <div className="flex items-center justify-between text-sm">
                           <span className="opacity-50">Phone</span>
-                          <span className="font-medium">{request.profiles.phone || 'Not provided'}</span>
+                          <span className="font-normal">{request.profiles.phone || 'Not provided'}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="opacity-50">Email</span>
-                          <span className="font-medium truncate max-w-[150px]">{request.profiles.email || 'Not provided'}</span>
+                          <span className="font-normal truncate max-w-[150px]">{request.profiles.email || 'Not provided'}</span>
                         </div>
                       </div>
                       <Button variant="outline" className="w-full rounded-2xl border-white/10 hover:bg-white/5 gap-2">
@@ -186,16 +185,16 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                     <div className="space-y-4">
                       <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Address</p>
-                        <p className="text-lg font-bold">{request.location || 'N/A'}</p>
+                        <p className="text-lg font-semibold">{request.location || 'N/A'}</p>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Latitude</p>
-                          <p className="font-mono text-sm font-bold">{request.latitude || '0.0000'}</p>
+                          <p className="font-mono text-sm font-semibold">{request.latitude || '0.0000'}</p>
                         </div>
                         <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Longitude</p>
-                          <p className="font-mono text-sm font-bold">{request.longitude || '0.0000'}</p>
+                          <p className="font-mono text-sm font-semibold">{request.longitude || '0.0000'}</p>
                         </div>
                       </div>
                     </div>
@@ -205,10 +204,10 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                           <MapPin className="w-12 h-12 text-primary opacity-20" />
                         </div>
                         <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10">
-                          <p className="text-xs font-medium text-white/70">Geographic coordinates verified</p>
+                          <p className="text-xs font-normal text-white/70">Geographic coordinates verified</p>
                         </div>
                       </div>
-                      <Button 
+                      <Button
                         onClick={() => window.open(`https://maps.google.com/?q=${request.latitude},${request.longitude}`, '_blank')}
                         className="w-full rounded-2xl bg-primary hover:bg-primary/90 text-white gap-2"
                       >
@@ -225,12 +224,12 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                 <Button
                   variant="ghost"
                   onClick={() => onClose(false)}
-                  className="rounded-full px-8 h-12 font-bold"
+                  className="rounded-full px-8 h-12 font-semibold"
                 >
                   Dismiss
                 </Button>
                 <Button
-                  className="rounded-full px-8 h-12 bg-white/10 hover:bg-white/20 border border-white/10 font-bold"
+                  className="rounded-full px-8 h-12 bg-white/10 hover:bg-white/20 border border-white/10 font-semibold"
                 >
                   Generate Incident Report
                 </Button>
@@ -251,7 +250,7 @@ const GlassCard = ({ children, title, icon, className }) => (
       <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>
     </div>
     {children}
   </div>

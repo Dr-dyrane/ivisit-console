@@ -4,24 +4,24 @@ import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { 
-  Eye, 
-  Trash2, 
-  CheckCircle, 
-  Clock, 
-  Calendar, 
-  Shield, 
-  Mail, 
-  UserCheck 
+import {
+  Eye,
+  Trash2,
+  CheckCircle,
+  Clock,
+  Calendar,
+  Shield,
+  Mail,
+  UserCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const VerificationQueueListView = ({ 
-  providers, 
-  onView, 
-  onDelete, 
+export const VerificationQueueListView = ({
+  providers,
+  onView,
+  onDelete,
   getStatusBadge,
-  isMobile = false 
+  isMobile = false
 }) => {
   if (!providers || providers.length === 0) return null;
 
@@ -40,26 +40,25 @@ export const VerificationQueueListView = ({
             <Card className="bg-background/35 backdrop-blur-xs squircle-lg p-0 border-0 shadow-premium hover-lift transition-all group overflow-hidden">
               <div className="p-5 flex flex-col md:flex-row md:items-center gap-4 relative">
                 {/* Status Strip Gradient */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                  provider.verification_status === 'approved' ? 'bg-success' : 
+                <div className={`absolute left-0 top-0 bottom-0 w-1 ${provider.verification_status === 'approved' ? 'bg-success' :
                   provider.verification_status === 'rejected' ? 'bg-destructive' : 'bg-warning'
-                }`} />
+                  }`} />
 
                 {/* Main Content */}
                 <div className="flex-1 space-y-3 md:space-y-0 md:pl-4">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    
+
                     {/* Provider Info */}
                     <div className="flex items-start gap-4">
                       <Avatar className="h-12 w-12 squircle flex-shrink-0 border-2 border-white/5 shadow-inner">
                         <AvatarImage src={getAvatarUrl(provider)} />
-                        <AvatarFallback className="font-black bg-primary/10 text-primary text-sm">
+                        <AvatarFallback className="font-bold bg-primary/10 text-primary text-sm">
                           {getAvatarFallback(provider)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-black text-lg tracking-tight text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                          <h3 className="font-bold text-lg tracking-tight text-foreground group-hover:text-primary transition-colors line-clamp-1">
                             {provider.username || provider.full_name || 'Unknown Provider'}
                           </h3>
                           {provider.bvn_verified && (
@@ -74,7 +73,7 @@ export const VerificationQueueListView = ({
                             {provider.email || 'No email'}
                           </span>
                           <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                          <span className="flex items-center gap-1 uppercase font-bold text-[10px] tracking-wider text-foreground/70">
+                          <span className="flex items-center gap-1 uppercase font-semibold text-[10px] tracking-wider text-foreground/70">
                             {provider.role || 'N/A'}
                           </span>
                         </div>
@@ -86,8 +85,8 @@ export const VerificationQueueListView = ({
                       <div className="flex items-center gap-2">
                         <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                         <div className="flex flex-col">
-                          <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Joined</span>
-                          <span className="text-sm font-medium">
+                          <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Joined</span>
+                          <span className="text-sm font-normal">
                             {new Date(provider.created_at).toLocaleDateString()}
                           </span>
                         </div>
@@ -95,7 +94,7 @@ export const VerificationQueueListView = ({
 
                       <div className="flex items-center gap-2">
                         <div className="flex flex-col md:items-end">
-                          <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Status</span>
+                          <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Status</span>
                           <Badge className={`geo-sharp border-0 px-2.5 py-0.5 ${getStatusBadge ? getStatusBadge(provider.verification_status) : 'bg-muted text-muted-foreground'}`}>
                             {provider.verification_status || 'pending'}
                           </Badge>

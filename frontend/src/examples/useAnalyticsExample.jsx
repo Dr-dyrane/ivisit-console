@@ -54,12 +54,12 @@ export const AnalyticsWithHook = () => {
       {/* Header with controls */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
+          <h1 className="text-2xl font-semibold">Analytics Dashboard</h1>
           <p className="text-muted-foreground">
             {formatDateRange()} • Last updated: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'Never'}
           </p>
         </div>
-        
+
         <div className="flex gap-2">
           <Select value={timeRange} onValueChange={actions.changeTimeRange}>
             <SelectTrigger className="w-40">
@@ -73,16 +73,16 @@ export const AnalyticsWithHook = () => {
               ))}
             </SelectContent>
           </Select>
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             size="sm"
             onClick={actions.refresh}
             disabled={isLoading}
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
-          
+
           <Button variant="outline" size="sm" onClick={actions.exportCSV}>
             <Download className="w-4 h-4 mr-2" />
             Export CSV
@@ -95,7 +95,7 @@ export const AnalyticsWithHook = () => {
         <Card className="mb-6 p-4 border-destructive">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="font-semibold text-destructive">Error loading analytics</h3>
+              <h3 className="font-medium text-destructive">Error loading analytics</h3>
               <p className="text-sm text-muted-foreground">{error}</p>
             </div>
             <Button variant="outline" size="sm" onClick={actions.clearError}>
@@ -118,8 +118,8 @@ export const AnalyticsWithHook = () => {
           {/* Summary cards - using metrics directly */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card className="p-4">
-              <h3 className="font-semibold text-sm text-muted-foreground">Total Emergencies</h3>
-              <p className="text-2xl font-bold">{metrics.totalEmergencies}</p>
+              <h3 className="font-medium text-sm text-muted-foreground">Total Emergencies</h3>
+              <p className="text-2xl font-semibold">{metrics.totalEmergencies}</p>
               {summary?.trends && (
                 <div className="flex items-center text-sm">
                   <TrendingUp className={`w-4 h-4 mr-1 ${summary.trends.isPositiveTrend ? 'text-green-500' : 'text-red-500'}`} />
@@ -127,16 +127,16 @@ export const AnalyticsWithHook = () => {
                 </div>
               )}
             </Card>
-            
+
             <Card className="p-4">
-              <h3 className="font-semibold text-sm text-muted-foreground">Avg Response Time</h3>
-              <p className="text-2xl font-bold">{metrics.avgResponseTime.toFixed(1)} min</p>
+              <h3 className="font-medium text-sm text-muted-foreground">Avg Response Time</h3>
+              <p className="text-2xl font-semibold">{metrics.avgResponseTime.toFixed(1)} min</p>
               <p className="text-sm text-muted-foreground">Last 7 days</p>
             </Card>
-            
+
             <Card className="p-4">
-              <h3 className="font-semibold text-sm text-muted-foreground">Success Rate</h3>
-              <p className="text-2xl font-bold">{metrics.successRate}%</p>
+              <h3 className="font-medium text-sm text-muted-foreground">Success Rate</h3>
+              <p className="text-2xl font-semibold">{metrics.successRate}%</p>
               <p className="text-sm text-muted-foreground">Completed emergencies</p>
             </Card>
           </div>
@@ -145,7 +145,7 @@ export const AnalyticsWithHook = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Response Time Chart */}
             <Card className="p-6">
-              <h3 className="font-semibold mb-4">Response Time Trend</h3>
+              <h3 className="font-medium mb-4">Response Time Trend</h3>
               {/* Your existing LineChart component */}
               {/* <LineChart data={responseTimeData} colors={chartColors} /> */}
               <div className="h-64 flex items-center justify-center text-muted-foreground">
@@ -155,7 +155,7 @@ export const AnalyticsWithHook = () => {
 
             {/* Emergency Types Chart */}
             <Card className="p-6">
-              <h3 className="font-semibold mb-4">Emergency Types</h3>
+              <h3 className="font-medium mb-4">Emergency Types</h3>
               {/* Your existing PieChart component */}
               {/* <PieChart data={emergencyTypes} colors={chartColors} /> */}
               <div className="h-64 flex items-center justify-center text-muted-foreground">

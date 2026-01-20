@@ -35,7 +35,7 @@ export const VerificationPanel = ({ verificationData, loading }) => {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-3"
           >
-            <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Verification Overview</h3>
+            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Verification Overview</h3>
 
             <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
               <div className="flex items-center justify-between">
@@ -44,7 +44,7 @@ export const VerificationPanel = ({ verificationData, loading }) => {
                     <Shield className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <span className="font-black tracking-tight">Total Applications</span>
+                    <span className="font-bold tracking-tight">Total Applications</span>
                     <p className="text-xs text-muted-foreground">All verification requests</p>
                   </div>
                 </div>
@@ -59,7 +59,7 @@ export const VerificationPanel = ({ verificationData, loading }) => {
                     <Clock className="h-4 w-4 text-warning" />
                   </div>
                   <div>
-                    <p className="font-black text-sm">{stats.pending}</p>
+                    <p className="font-bold text-sm">{stats.pending}</p>
                     <p className="text-xs text-muted-foreground">Pending</p>
                   </div>
                 </div>
@@ -71,7 +71,7 @@ export const VerificationPanel = ({ verificationData, loading }) => {
                     <CheckCircle className="h-4 w-4 text-success" />
                   </div>
                   <div>
-                    <p className="font-black text-sm">{stats.approved}</p>
+                    <p className="font-bold text-sm">{stats.approved}</p>
                     <p className="text-xs text-muted-foreground">Verified</p>
                   </div>
                 </div>
@@ -85,7 +85,7 @@ export const VerificationPanel = ({ verificationData, loading }) => {
                     <TrendingUp className="h-5 w-5 text-info" />
                   </div>
                   <div>
-                    <span className="font-black tracking-tight">Success Rate</span>
+                    <span className="font-bold tracking-tight">Success Rate</span>
                     <p className="text-xs text-muted-foreground">Approval percentage</p>
                   </div>
                 </div>
@@ -101,7 +101,7 @@ export const VerificationPanel = ({ verificationData, loading }) => {
             transition={{ delay: 0.2 }}
             className="space-y-3"
           >
-            <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
             <div className="space-y-2">
               <button
@@ -112,7 +112,7 @@ export const VerificationPanel = ({ verificationData, loading }) => {
                 className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm text-left"
               >
                 <Eye className="h-4 w-4 text-primary" />
-                <span className="font-black tracking-tight text-primary">View Queue</span>
+                <span className="font-bold tracking-tight text-primary">View Queue</span>
               </button>
 
               <button
@@ -123,7 +123,7 @@ export const VerificationPanel = ({ verificationData, loading }) => {
                 className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-info/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm text-left"
               >
                 <Users className="h-4 w-4 text-info" />
-                <span className="font-black tracking-tight text-info">Manage Providers</span>
+                <span className="font-bold tracking-tight text-info">Manage Providers</span>
               </button>
             </div>
           </motion.div>
@@ -136,13 +136,13 @@ export const VerificationPanel = ({ verificationData, loading }) => {
               transition={{ delay: 0.3 }}
               className="space-y-3"
             >
-              <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Critical Alerts</h3>
+              <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Critical Alerts</h3>
               <Card className="bg-destructive/10 border-destructive/20 squircle-lg p-4 border">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
                   <div>
-                    <p className="font-black text-sm text-destructive uppercase tracking-tight">High Backlog</p>
-                    <p className="text-xs text-destructive/80 font-medium leading-relaxed">
+                    <p className="font-bold text-sm text-destructive uppercase tracking-tight">High Backlog</p>
+                    <p className="text-xs text-destructive/80 font-normal leading-relaxed">
                       There are currently {stats.pending} applications pending review. Action is required to maintain SLAs.
                     </p>
                   </div>

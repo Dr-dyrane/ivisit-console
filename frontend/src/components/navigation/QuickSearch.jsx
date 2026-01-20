@@ -92,7 +92,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
             <Search className="w-5 h-5 text-muted-foreground mr-3" />
             <input
               autoFocus
-              className="flex-1 h-12 bg-transparent border-0 outline-none text-lg placeholder:text-muted-foreground/50 font-medium"
+              className="flex-1 h-12 bg-transparent border-0 outline-none text-lg placeholder:text-muted-foreground/50 font-normal"
               placeholder="Search doctors, hospitals, visits, emergencies..."
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
@@ -104,7 +104,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
               </button>
             )}
             <div className="hidden sm:flex gap-2 ml-4">
-              <kbd className="h-6 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground flex">
+              <kbd className="h-6 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-normal text-muted-foreground flex">
                 <span className="text-xs">ESC</span>
               </kbd>
             </div>
@@ -156,10 +156,10 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                             style={{ backgroundColor: categoryColors[category.category] }}
                           />
                         )}
-                        <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                           {category.category}
                         </h3>
-                        <span className="text-xs font-semibold text-muted-foreground/60">
+                        <span className="text-xs font-medium text-muted-foreground/60">
                           {category.items.length}
                         </span>
                       </div>
@@ -180,7 +180,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                                 <img src={item.avatar} alt={item.title || 'Item avatar'} className="w-full h-full rounded-lg object-cover" />
                               ) : (
                                 <div
-                                  className="w-full h-full rounded-lg flex items-center justify-center text-white font-bold text-xs"
+                                  className="w-full h-full rounded-lg flex items-center justify-center text-white font-semibold text-xs"
                                   style={{ backgroundColor: categoryColors[category.category] }}
                                 >
                                   {item.title?.charAt(0)?.toUpperCase() || '?'}
@@ -189,7 +189,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-sm text-foreground truncate">
+                              <p className="font-medium text-sm text-foreground truncate">
                                 {item.title || 'Untitled'}
                               </p>
                               <p className="text-xs text-muted-foreground truncate">
@@ -198,7 +198,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                             </div>
 
                             {item.rating && (
-                              <span className="text-xs font-bold text-muted-foreground">
+                              <span className="text-xs font-semibold text-muted-foreground">
                                 ⭐ {item.rating}
                               </span>
                             )}
@@ -225,7 +225,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                     <div>
                       <div className="flex items-center gap-2 mb-3 px-2">
                         <Clock className="w-4 h-4 text-muted-foreground" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                           Recent Searches
                         </h3>
                       </div>
@@ -238,7 +238,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group text-left"
                           >
                             <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                            <span className="flex-1 font-medium text-sm text-foreground">{item.query}</span>
+                            <span className="flex-1 font-normal text-sm text-foreground">{item.query}</span>
                             <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0" />
                           </motion.button>
                         ))}
@@ -251,7 +251,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                     <div>
                       <div className="flex items-center gap-2 mb-3 px-2">
                         <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                           Trending This Week
                         </h3>
                       </div>
@@ -264,13 +264,13 @@ export const QuickSearch = ({ isOpen, onClose }) => {
                             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group text-left"
                           >
                             <span
-                              className="w-6 h-6 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+                              className="w-6 h-6 rounded-lg flex items-center justify-center text-white font-semibold text-xs flex-shrink-0"
                               style={{ backgroundColor: item.color }}
                             >
                               {idx + 1}
                             </span>
                             <div className="flex-1">
-                              <p className="font-medium text-sm text-foreground">{item.query}</p>
+                              <p className="font-normal text-sm text-foreground">{item.query}</p>
                               <p className="text-xs text-muted-foreground">{item.count} searches</p>
                             </div>
                             <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0" />

@@ -44,7 +44,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Subscriber Overview</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Subscriber Overview</h3>
 
         <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
           <div className="flex items-center justify-between">
@@ -53,7 +53,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
                 <Users2 className="h-5 w-5 text-success" />
               </div>
               <div>
-                <span className="font-black tracking-tight">Active</span>
+                <span className="font-bold tracking-tight">Active</span>
                 <p className="text-xs text-muted-foreground">Engaged subscribers</p>
               </div>
             </div>
@@ -68,7 +68,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
                 <Clock className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <span className="font-black tracking-tight">Pending</span>
+                <span className="font-bold tracking-tight">Pending</span>
                 <p className="text-xs text-muted-foreground">Awaiting confirmation</p>
               </div>
             </div>
@@ -83,7 +83,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
                 <Mail className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <span className="font-black tracking-tight">Total</span>
+                <span className="font-bold tracking-tight">Total</span>
                 <p className="text-xs text-muted-foreground">All subscribers</p>
               </div>
             </div>
@@ -99,7 +99,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
         transition={{ delay: 0.1 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Subscription Types</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Subscription Types</h3>
 
         <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
           <div className="flex items-center justify-between">
@@ -108,7 +108,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
                 <UserPlus className="h-5 w-5 text-info" />
               </div>
               <div>
-                <span className="font-black tracking-tight">Free Tier</span>
+                <span className="font-bold tracking-tight">Free Tier</span>
                 <p className="text-xs text-muted-foreground">Basic access</p>
               </div>
             </div>
@@ -123,7 +123,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
                 <Shield className="h-5 w-5 text-purple-600" />
               </div>
               <div>
-                <span className="font-black tracking-tight">Premium</span>
+                <span className="font-bold tracking-tight">Premium</span>
                 <p className="text-xs text-muted-foreground">Full access</p>
               </div>
             </div>
@@ -139,7 +139,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
         transition={{ delay: 0.2 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
         <div className="grid grid-cols-2 gap-2">
           <motion.button
@@ -148,7 +148,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
             className="bg-success/10 hover:bg-success/20 text-success border border-success/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            <span className="font-medium text-xs">Add</span>
+            <span className="font-normal text-xs">Add</span>
           </motion.button>
 
           <motion.button
@@ -158,7 +158,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
             className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
           >
             <BarChart3 className="h-4 w-4" />
-            <span className="font-medium text-xs">Analytics</span>
+            <span className="font-normal text-xs">Analytics</span>
           </motion.button>
 
           <motion.button
@@ -167,7 +167,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
             className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
           >
             <Send className="h-4 w-4" />
-            <span className="font-medium text-xs">Email</span>
+            <span className="font-normal text-xs">Email</span>
           </motion.button>
 
           <motion.button
@@ -175,7 +175,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
             className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
           >
             <UserPlus className="h-4 w-4" />
-            <span className="font-medium text-xs">Export</span>
+            <span className="font-normal text-xs">Export</span>
           </motion.button>
         </div>
       </motion.div>
@@ -187,7 +187,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
         transition={{ delay: 0.3 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Recent Subscribers</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Recent Subscribers</h3>
 
         <div className="space-y-2">
           {subscribers.slice(0, 3).map((subscriber) => (
@@ -198,7 +198,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
                     subscriber.status === 'pending' ? 'bg-warning' : 'bg-muted'
                     }`} />
                   <div>
-                    <p className="font-medium text-sm truncate max-w-[120px]">{subscriber.email}</p>
+                    <p className="font-normal text-sm truncate max-w-[120px]">{subscriber.email}</p>
                     <p className="text-xs text-muted-foreground">
                       {subscriber.type} • {new Date(subscriber.created_at).toLocaleDateString()}
                     </p>

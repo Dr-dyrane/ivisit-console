@@ -9,17 +9,17 @@ import { Menu, Zap, Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetOverlay } from '../ui/sheet';
 import { ContextPanel } from './ContextPanel';
 import { MobileNavMenu } from './MobileNavMenu';
-import { 
-    EmergencyRequestModal, 
-    UserModal, 
-    HospitalModal, 
-    AmbulanceModal, 
-    DoctorModal, 
-    VisitModal, 
-    HealthNewsModal, 
-    SupportTicketModal, 
+import {
+    EmergencyRequestModal,
+    UserModal,
+    HospitalModal,
+    AmbulanceModal,
+    DoctorModal,
+    VisitModal,
+    HealthNewsModal,
+    SupportTicketModal,
     InsuranceModal,
-    SubscriptionModal 
+    SubscriptionModal
 } from '../modals/index';
 import { NotificationCenter } from '../common/NotificationCenter';
 import { QuickSearch } from './QuickSearch';
@@ -176,14 +176,14 @@ export const DynamicBottomBar = () => {
 
                             <button
                                 onClick={() => setActiveView('menu')}
-                                className={`flex-1 relative z-10 py-2 text-sm font-bold text-center transition-colors duration-200 ${activeView === 'menu' ? 'text-foreground' : 'text-muted-foreground'
+                                className={`flex-1 relative z-10 py-2 text-sm font-semibold text-center transition-colors duration-200 ${activeView === 'menu' ? 'text-foreground' : 'text-muted-foreground'
                                     }`}
                             >
                                 Menu
                             </button>
                             <button
                                 onClick={() => setActiveView('context')}
-                                className={`flex-1 relative z-10 py-2 text-sm font-bold text-center transition-colors duration-200 ${activeView === 'context' ? 'text-foreground' : 'text-muted-foreground'
+                                className={`flex-1 relative z-10 py-2 text-sm font-semibold text-center transition-colors duration-200 ${activeView === 'context' ? 'text-foreground' : 'text-muted-foreground'
                                     }`}
                             >
                                 Context
@@ -213,8 +213,8 @@ export const DynamicBottomBar = () => {
                                 >
                                     <div className="flex items-center justify-between mb-4">
                                         <div>
-                                            <h2 className="font-black text-2xl tracking-tight">Context</h2>
-                                            <p className="text-sm text-muted-foreground font-medium">Quick Access & Insights</p>
+                                            <h2 className="font-bold text-2xl tracking-tight">Context</h2>
+                                            <p className="text-sm text-muted-foreground font-normal">Quick Access & Insights</p>
                                         </div>
                                     </div>
                                     <ContextPanel />

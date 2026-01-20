@@ -16,13 +16,13 @@ export const HospitalTableView = ({ hospitals, onView, onEdit, onDelete, getStat
         <Table>
           <TableHeader>
             <TableRow className="border-b border-white/10 hover:bg-transparent">
-              <TableHead className="font-black uppercase tracking-wider">Name</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Address</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Status</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Beds</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Fleet</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Rating</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Actions</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Name</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Address</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Status</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Beds</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Fleet</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Rating</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -34,19 +34,19 @@ export const HospitalTableView = ({ hospitals, onView, onEdit, onDelete, getStat
                 transition={{ delay: index * 0.02 }}
                 className="border-b border-white/10 hover:bg-white/5 transition-colors group"
               >
-                <TableCell className="font-black">{hospital.name || 'Unknown'}</TableCell>
+                <TableCell className="font-bold">{hospital.name || 'Unknown'}</TableCell>
                 <TableCell className="text-muted-foreground truncate">{hospital.address || '-'}</TableCell>
                 <TableCell>
-                  <Badge className={`squircle-sm ${getStatusBadge(hospital.status)} border-0 font-black`}>
+                  <Badge className={`squircle-sm ${getStatusBadge(hospital.status)} border-0 font-bold`}>
                     {hospital.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-semibold">{hospital.available_beds || '0'}</TableCell>
-                <TableCell className="font-semibold">{hospital.ambulances_count || '0'}</TableCell>
+                <TableCell className="font-medium">{hospital.available_beds || '0'}</TableCell>
+                <TableCell className="font-medium">{hospital.ambulances_count || '0'}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 text-warning fill-warning" />
-                    <span className="font-black">{hospital.rating || 'N/A'}</span>
+                    <span className="font-bold">{hospital.rating || 'N/A'}</span>
                   </div>
                 </TableCell>
                 <TableCell>

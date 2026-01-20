@@ -125,11 +125,11 @@ export const VerificationModal = ({
                   <Shield className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
                     {mode === 'view' ? 'Provider Details' : 'Verification Review'}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge className={`rounded-full border-0 font-bold px-3 py-0.5 text-xs ${formData.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
+                    <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${formData.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
                       {formData.bvn_verified ? 'VERIFIED' : 'PENDING'}
                     </Badge>
                     <span className="text-sm text-muted-foreground">
@@ -155,15 +155,15 @@ export const VerificationModal = ({
                   <div className="flex items-center gap-6 mb-6">
                     <Avatar className="h-20 w-20 rounded-2xl shadow-lg">
                       <AvatarImage src={getAvatarUrl(provider)} />
-                      <AvatarFallback className="text-xl font-black bg-primary/10 text-primary">
+                      <AvatarFallback className="text-xl font-bold bg-primary/10 text-primary">
                         {getAvatarFallback(provider)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <h3 className="text-xl font-black tracking-tight">{formData.username}</h3>
-                      <p className="text-muted-foreground font-medium">{formData.email}</p>
+                      <h3 className="text-xl font-bold tracking-tight">{formData.username}</h3>
+                      <p className="text-muted-foreground font-normal">{formData.email}</p>
                       <div className="flex items-center gap-2 mt-2">
-                        <Badge className={`rounded-full border-0 font-bold px-3 py-0.5 text-xs ${formData.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
+                        <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${formData.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
                           {formData.bvn_verified ? 'BVN VERIFIED' : 'BVN PENDING'}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
@@ -175,35 +175,35 @@ export const VerificationModal = ({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase">Email Address</Label>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Email Address</Label>
                       <Input
                         value={formData.email}
                         onChange={(e) => handleChange('email', e.target.value)}
                         disabled={isView}
                         placeholder="email@example.com"
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-normal"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase">Phone Number</Label>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Phone Number</Label>
                       <Input
                         value={formData.phone}
                         onChange={(e) => handleChange('phone', e.target.value)}
                         disabled={isView}
                         placeholder="+1 (555) 123-4567"
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-normal"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase">Role</Label>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Role</Label>
                       <Select
                         value={formData.role}
                         onValueChange={(val) => handleChange('role', val)}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -225,24 +225,24 @@ export const VerificationModal = ({
                           {formData.bvn_verified ? <CheckCircle className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
                         </div>
                         <div>
-                          <h4 className="font-bold text-sm">BVN Verification</h4>
+                          <h4 className="font-semibold text-sm">BVN Verification</h4>
                           <p className="text-xs text-muted-foreground">Bank Verification Number status</p>
                         </div>
                       </div>
-                      <Badge className={`rounded-full border-0 font-bold px-3 py-0.5 text-xs ${formData.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
+                      <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${formData.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
                         {formData.bvn_verified ? 'VERIFIED' : 'PENDING'}
                       </Badge>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase">Verification Notes</Label>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Verification Notes</Label>
                       <textarea
                         value={formData.verification_notes}
                         onChange={(e) => handleChange('verification_notes', e.target.value)}
                         disabled={isView}
                         placeholder="Add notes about this verification..."
                         rows={4}
-                        className="w-full rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 p-4 font-medium resize-none"
+                        className="w-full rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 p-4 font-normal resize-none"
                       />
                     </div>
                   </div>
@@ -253,7 +253,7 @@ export const VerificationModal = ({
                   <div className="flex gap-3">
                     <FileText className="h-5 w-5 text-primary shrink-0" />
                     <div className="text-sm text-primary/80">
-                      <p className="font-bold mb-1">Security Notice</p>
+                      <p className="font-semibold mb-1">Security Notice</p>
                       <p className="text-xs leading-relaxed opacity-90">
                         Verification actions are logged and audited. Only approve providers who have completed all required security checks.
                       </p>
@@ -268,7 +268,7 @@ export const VerificationModal = ({
                       <Button
                         type="button"
                         onClick={() => onClose(false)}
-                        className="rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-bold px-8"
+                        className="rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-semibold px-8"
                       >
                         Close
                       </Button>
@@ -279,7 +279,7 @@ export const VerificationModal = ({
                             variant="destructive"
                             onClick={() => handleVerifyAction(false)}
                             disabled={loading}
-                            className="rounded-2xl font-bold px-8"
+                            className="rounded-2xl font-semibold px-8"
                           >
                             {loading ? 'Processing...' : 'Reject'}
                           </Button>
@@ -287,7 +287,7 @@ export const VerificationModal = ({
                             type="button"
                             onClick={() => handleVerifyAction(true)}
                             disabled={loading}
-                            className="rounded-2xl bg-success hover:bg-success/90 font-bold px-8 text-success-foreground"
+                            className="rounded-2xl bg-success hover:bg-success/90 font-semibold px-8 text-success-foreground"
                           >
                             {loading ? 'Processing...' : 'Approve'}
                           </Button>
@@ -300,14 +300,14 @@ export const VerificationModal = ({
                         type="button"
                         variant="ghost"
                         onClick={() => onClose(false)}
-                        className="rounded-2xl font-bold text-muted-foreground hover:bg-muted"
+                        className="rounded-2xl font-semibold text-muted-foreground hover:bg-muted"
                         disabled={loading}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
-                        className="rounded-2xl bg-primary hover:bg-primary/90 font-bold px-8 text-primary-foreground"
+                        className="rounded-2xl bg-primary hover:bg-primary/90 font-semibold px-8 text-primary-foreground"
                         disabled={loading}
                       >
                         {loading ? 'Saving...' : 'Save Changes'}
@@ -331,7 +331,7 @@ const GlassCard = ({ children, title, icon }) => (
       <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
     </div>
     {children}
   </div>

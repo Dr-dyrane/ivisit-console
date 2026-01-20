@@ -37,9 +37,8 @@ export const SmartFooter = () => {
                 >
                     <div className="pointer-events-auto">
                         <div
-                            className={`px-6 h-12 rounded-full backdrop-blur-xl flex items-center gap-6 min-w-[320px] justify-between border-border/40 relative shadow-premium ${
-                                isScrolledDown ? 'bg-background/80' : 'bg-background/40'
-                            }`}
+                            className={`px-6 h-12 rounded-full backdrop-blur-xl flex items-center gap-6 min-w-[320px] justify-between border-border/40 relative shadow-premium ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'
+                                }`}
                             style={{
                                 boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
                             }}
@@ -47,7 +46,7 @@ export const SmartFooter = () => {
                             <NoiseOverlay className='rounded-full' />
 
                             {/* Left Section: Status/Context */}
-                            <div className="flex items-center gap-2 text-[10px] font-black tracking-widest uppercase text-muted-foreground whitespace-nowrap">
+                            <div className="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground whitespace-nowrap">
                                 {footerConfig.type === 'pagination' ? (
                                     <Database className="w-3.5 h-3.5 text-primary" />
                                 ) : (
@@ -62,7 +61,7 @@ export const SmartFooter = () => {
                                     <div className="flex items-center gap-4">
                                         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10">
                                             <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                                            <span className="text-[10px] font-bold text-foreground/80">LIVE SYNC ACTIVE</span>
+                                            <span className="text-[10px] font-semibold text-foreground/80">LIVE SYNC ACTIVE</span>
                                         </div>
                                     </div>
                                 )}
@@ -71,7 +70,7 @@ export const SmartFooter = () => {
                             {/* Right Section: Core Stats/Indicators */}
                             <div className="flex items-center gap-3">
                                 {footerConfig.data?.stats && (
-                                    <div className="text-[10px] font-bold text-foreground/60 border-l border-border/40 pl-3">
+                                    <div className="text-[10px] font-semibold text-foreground/60 border-l border-border/40 pl-3">
                                         {footerConfig.data.stats}
                                     </div>
                                 )}

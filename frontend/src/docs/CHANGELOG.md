@@ -47,7 +47,7 @@ const GlassCard = ({ children, title, icon }) => (
       <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
     </div>
     {children}
   </div>
@@ -177,7 +177,7 @@ squircle-lg, squircle, geo-sharp, shadow-glow
 **After**:
 ```css
 rounded-2xl, bg-primary, hover:bg-primary/90
-font-bold, px-8, consistent spacing
+font-semibold, px-8, consistent spacing
 ```
 
 ### ✅ Form Field Consistency

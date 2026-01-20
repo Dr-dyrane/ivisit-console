@@ -26,8 +26,8 @@ The login page has been completely redesigned to a **terminal/hacker-style inter
 >
   <ShieldCheck className="text-white w-8 h-8" />
 </motion.div>
-<h1 className="text-2xl font-medium tracking-tight mb-1">iVisit Command</h1>
-<p className="text-sm text-white/40 font-medium">Emergency Response Protocol</p>
+<h1 className="text-2xl font-normal tracking-tight mb-1">iVisit Command</h1>
+<p className="text-sm text-white/40 font-normal">Emergency Response Protocol</p>
 ```
 
 ### Logo Evolution
@@ -43,7 +43,7 @@ The login page has been completely redesigned to a **terminal/hacker-style inter
 - **Background**: Gradient from `primary` to `primary/50`
 - **Icon**: `ShieldCheck` in white
 - **"iVisit<span className="text-primary">.</span> Command"**: Apple-style with red accent
-- **Subtitle**: `text-sm text-muted-foreground font-medium`
+- **Subtitle**: `text-sm text-muted-foreground font-normal`
 
 ---
 
@@ -222,8 +222,8 @@ The login page has been completely redesigned to a **terminal/hacker-style inter
 
 ### Typography Classes
 - **Terminal style**: `tracking-widest uppercase` for labels
-- **System text**: `font-medium tracking-tighter` for metrics
-- **Button text**: `font-black text-[12px] tracking-[0.2em] uppercase`
+- **System text**: `font-normal tracking-tighter` for metrics
+- **Button text**: `font-bold text-[12px] tracking-[0.2em] uppercase`
 
 ---
 

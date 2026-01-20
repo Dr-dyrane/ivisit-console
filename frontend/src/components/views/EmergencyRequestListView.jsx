@@ -23,10 +23,10 @@ export const EmergencyRequestListView = ({ requests, onView, onDelete, getPriori
             <div className="flex items-center gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-black text-lg truncate group-hover:text-primary transition-colors">
+                  <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
                     {req.emergency_type || 'Unknown Emergency'}
                   </h3>
-                  <Badge className={`squircle-sm ${getPriorityBadge(req.priority)} border-0 font-black`}>
+                  <Badge className={`squircle-sm ${getPriorityBadge(req.priority)} border-0 font-bold`}>
                     {req.priority}
                   </Badge>
                 </div>

@@ -109,11 +109,11 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                   <Calendar className="h-6 w-6 text-blue-500" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
                     {formData.visit_type ? formData.visit_type.charAt(0).toUpperCase() + formData.visit_type.slice(1) : 'New Visit'}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge className={`rounded-full border-0 font-bold px-3 py-0.5 text-xs ${getStatusColor(formData.status)}`}>
+                    <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${getStatusColor(formData.status)}`}>
                       {formData.status?.toUpperCase()}
                     </Badge>
                     <span className="text-sm text-muted-foreground flex items-center gap-1">
@@ -134,18 +134,18 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
 
             <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
               <form onSubmit={handleSubmit} className="space-y-6">
-                
+
                 {/* Participants Section */}
                 <GlassCard icon={<User className="text-primary" />} title="Participants">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="user_id" className="text-xs font-bold text-muted-foreground uppercase">Patient</Label>
-                      <Select 
-                        value={formData.user_id} 
+                      <Label htmlFor="user_id" className="text-xs font-semibold text-muted-foreground uppercase">Patient</Label>
+                      <Select
+                        value={formData.user_id}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, user_id: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-14 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-14 font-normal">
                           <SelectValue placeholder="Select patient" />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -165,13 +165,13 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="hospital_id" className="text-xs font-bold text-muted-foreground uppercase">Facility</Label>
-                      <Select 
-                        value={formData.hospital_id} 
+                      <Label htmlFor="hospital_id" className="text-xs font-semibold text-muted-foreground uppercase">Facility</Label>
+                      <Select
+                        value={formData.hospital_id}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, hospital_id: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-14 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-14 font-normal">
                           <SelectValue placeholder="Select facility" />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -193,13 +193,13 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                 <GlassCard icon={<FileText className="text-primary" />} title="Details & Schedule">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="visit_type" className="text-xs font-bold text-muted-foreground uppercase">Visit Type</Label>
-                      <Select 
-                        value={formData.visit_type} 
+                      <Label htmlFor="visit_type" className="text-xs font-semibold text-muted-foreground uppercase">Visit Type</Label>
+                      <Select
+                        value={formData.visit_type}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, visit_type: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -213,13 +213,13 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="status" className="text-xs font-bold text-muted-foreground uppercase">Current Status</Label>
-                      <Select 
-                        value={formData.status} 
+                      <Label htmlFor="status" className="text-xs font-semibold text-muted-foreground uppercase">Current Status</Label>
+                      <Select
+                        value={formData.status}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -232,7 +232,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     </div>
 
                     <div className="col-span-1 md:col-span-2 space-y-2">
-                      <Label htmlFor="scheduled_at" className="text-xs font-bold text-muted-foreground uppercase">Date & Time</Label>
+                      <Label htmlFor="scheduled_at" className="text-xs font-semibold text-muted-foreground uppercase">Date & Time</Label>
                       <Input
                         id="scheduled_at"
                         name="scheduled_at"
@@ -245,20 +245,20 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     </div>
 
                     <div className="col-span-1 md:col-span-2 space-y-2">
-                      <Label htmlFor="reason" className="text-xs font-bold text-muted-foreground uppercase">Reason for Visit</Label>
+                      <Label htmlFor="reason" className="text-xs font-semibold text-muted-foreground uppercase">Reason for Visit</Label>
                       <Input
                         id="reason"
                         name="reason"
                         value={formData.reason}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-normal"
                         placeholder="e.g., Annual checkup"
                       />
                     </div>
 
                     <div className="col-span-1 md:col-span-2 space-y-2">
-                      <Label htmlFor="notes" className="text-xs font-bold text-muted-foreground uppercase">Clinical Notes</Label>
+                      <Label htmlFor="notes" className="text-xs font-semibold text-muted-foreground uppercase">Clinical Notes</Label>
                       <Textarea
                         id="notes"
                         name="notes"
@@ -280,14 +280,14 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                         type="button"
                         variant="ghost"
                         onClick={() => onClose(false)}
-                        className="rounded-2xl font-bold text-muted-foreground hover:bg-muted"
+                        className="rounded-2xl font-semibold text-muted-foreground hover:bg-muted"
                         disabled={loading}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
-                        className="rounded-2xl bg-primary hover:bg-primary/90 font-bold px-8"
+                        className="rounded-2xl bg-primary hover:bg-primary/90 font-semibold px-8"
                         disabled={loading}
                       >
                         {loading ? 'Saving...' : (isCreate ? 'Schedule Visit' : 'Save Changes')}
@@ -297,7 +297,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     <Button
                       type="button"
                       onClick={() => onClose(false)}
-                      className="rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-bold px-8"
+                      className="rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-semibold px-8"
                     >
                       Close
                     </Button>
@@ -319,7 +319,7 @@ const GlassCard = ({ children, title, icon }) => (
       <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
     </div>
     {children}
   </div>

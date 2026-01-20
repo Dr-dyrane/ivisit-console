@@ -68,7 +68,7 @@ export const MapPanel = ({ emergencyStats }) => {
         mapStyle
       }
     };
-    
+
     const blob = new Blob([JSON.stringify(mapDataExport, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -109,10 +109,10 @@ export const MapPanel = ({ emergencyStats }) => {
           <div className="space-y-6">
             <div className="flex justify-between items-start">
               <div>
-                <Badge variant="outline" className="mb-2 border-0 bg-muted uppercase tracking-wider text-[10px] font-bold">
+                <Badge variant="outline" className="mb-2 border-0 bg-muted uppercase tracking-wider text-[10px] font-semibold">
                   {selectedMarker.type}
                 </Badge>
-                <h2 className="text-2xl font-black leading-tight">
+                <h2 className="text-2xl font-bold leading-tight">
                   {selectedMarker.data.name || selectedMarker.data.call_sign || `#${selectedMarker.data.id?.slice(0, 6)}`}
                 </h2>
               </div>
@@ -122,7 +122,7 @@ export const MapPanel = ({ emergencyStats }) => {
             {selectedMarker.type === "emergency" && (
               <div className="space-y-6 mt-6">
                 <div className="flex gap-2">
-                  <Badge className={`squircle font-bold px-3 py-1 ${selectedMarker.data.priority === 'critical' ? 'bg-destructive text-destructive-foreground' : 'bg-primary'
+                  <Badge className={`squircle font-semibold px-3 py-1 ${selectedMarker.data.priority === 'critical' ? 'bg-destructive text-destructive-foreground' : 'bg-primary'
                     }`}>
                     {selectedMarker.data.priority?.toUpperCase()}
                   </Badge>
@@ -135,7 +135,7 @@ export const MapPanel = ({ emergencyStats }) => {
                   <div className="flex items-start gap-3">
                     <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
                     <div>
-                      <p className="text-sm font-medium leading-snug">
+                      <p className="text-sm font-normal leading-snug">
                         {selectedMarker.data.location || "Coordinates Received"}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -162,7 +162,7 @@ export const MapPanel = ({ emergencyStats }) => {
                   <div className="flex items-start gap-3">
                     <User className="h-4 w-4 text-muted-foreground mt-1" />
                     <div>
-                      <p className="text-sm font-medium leading-snug">
+                      <p className="text-sm font-normal leading-snug">
                         {selectedMarker.data.call_sign || "Ambulance Unit"}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -195,25 +195,25 @@ export const MapPanel = ({ emergencyStats }) => {
       <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-4">
           <Settings className="h-5 w-5 text-primary" />
-          <h3 className="font-black text-sm uppercase tracking-wider">Map Controls</h3>
+          <h3 className="font-bold text-sm uppercase tracking-wider">Map Controls</h3>
         </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Real-time Tracking</span>
-            <Switch 
-              checked={realTimeTracking} 
+            <Switch
+              checked={realTimeTracking}
               onCheckedChange={setRealTimeTracking}
             />
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Auto Recenter</span>
-            <Switch 
-              checked={autoRecenter} 
+            <Switch
+              checked={autoRecenter}
               onCheckedChange={setAutoRecenter}
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-muted-foreground font-medium">Alert Radius (km)</label>
+            <label className="text-xs text-muted-foreground font-normal">Alert Radius (km)</label>
             <Input
               type="number"
               value={alertRadius}
@@ -229,7 +229,7 @@ export const MapPanel = ({ emergencyStats }) => {
       <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-4">
           <Zap className="h-5 w-5 text-success" />
-          <h3 className="font-black text-sm uppercase tracking-wider">Quick Actions</h3>
+          <h3 className="font-bold text-sm uppercase tracking-wider">Quick Actions</h3>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <Card
@@ -239,7 +239,7 @@ export const MapPanel = ({ emergencyStats }) => {
           >
             <div className="flex flex-col gap-2">
               <Navigation className="h-4 w-4 mx-auto text-muted-foreground" />
-              <span className="text-sm font-medium">Recenter Map</span>
+              <span className="text-sm font-normal">Recenter Map</span>
             </div>
           </Card>
           <Card
@@ -249,7 +249,7 @@ export const MapPanel = ({ emergencyStats }) => {
           >
             <div className="flex flex-col gap-2">
               <Filter className="h-4 w-4 mx-auto text-muted-foreground" />
-              <span className="text-sm font-medium">Export Data</span>
+              <span className="text-sm font-normal">Export Data</span>
             </div>
           </Card>
         </div>
@@ -259,7 +259,7 @@ export const MapPanel = ({ emergencyStats }) => {
       <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-4">
           <Shield className="h-5 w-5 text-info" />
-          <h3 className="font-black text-sm uppercase tracking-wider">Live Statistics</h3>
+          <h3 className="font-bold text-sm uppercase tracking-wider">Live Statistics</h3>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-lg">
@@ -267,7 +267,7 @@ export const MapPanel = ({ emergencyStats }) => {
               <AlertTriangle className="h-4 w-4 text-destructive" />
               <div>
                 <p className="text-xs text-muted-foreground">Active</p>
-                <p className="text-lg font-black tracking-tight">
+                <p className="text-lg font-bold tracking-tight">
                   {(emergencyStats?.critical || 0) + (emergencyStats?.pending || 0)}
                 </p>
               </div>
@@ -278,7 +278,7 @@ export const MapPanel = ({ emergencyStats }) => {
               <Ambulance className="h-4 w-4 text-success" />
               <div>
                 <p className="text-xs text-muted-foreground">Available</p>
-                <p className="text-lg font-black tracking-tight">
+                <p className="text-lg font-bold tracking-tight">
                   {Math.max(0, 12 - (emergencyStats?.inProgress || 0))}
                 </p>
               </div>
@@ -289,7 +289,7 @@ export const MapPanel = ({ emergencyStats }) => {
               <CheckCircle className="h-4 w-4 text-primary" />
               <div>
                 <p className="text-xs text-muted-foreground">Response Rate</p>
-                <p className="text-lg font-black tracking-tight">
+                <p className="text-lg font-bold tracking-tight">
                   {Math.round(((emergencyStats?.completed || 0) / Math.max(1, emergencyStats?.total || 1)) * 100)}%
                 </p>
               </div>
@@ -300,7 +300,7 @@ export const MapPanel = ({ emergencyStats }) => {
               <Clock className="h-4 w-4 text-warning" />
               <div>
                 <p className="text-xs text-muted-foreground">Avg Response</p>
-                <p className="text-lg font-black tracking-tight">4.2m</p>
+                <p className="text-lg font-bold tracking-tight">4.2m</p>
               </div>
             </div>
           </div>
@@ -311,33 +311,31 @@ export const MapPanel = ({ emergencyStats }) => {
       <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="h-5 w-5 text-warning" />
-          <h3 className="font-black text-sm uppercase tracking-wider">Emergency Filters</h3>
+          <h3 className="font-bold text-sm uppercase tracking-wider">Emergency Filters</h3>
         </div>
         <div className="grid grid-cols-2 gap-4">
           {emergencyFilters.map(f => (
             <Card
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`cursor-pointer transition-all hover:shadow-md relative ${
-                activeFilter === f.key 
-                  ? 'bg-primary/20 border-primary/30' 
-                  : 'bg-muted/20 hover:bg-muted/30'
-              } border-0 p-4 rounded-lg text-center`}
+              className={`cursor-pointer transition-all hover:shadow-md relative ${activeFilter === f.key
+                ? 'bg-primary/20 border-primary/30'
+                : 'bg-muted/20 hover:bg-muted/30'
+                } border-0 p-4 rounded-lg text-center`}
               title={`Filter ${f.label} emergencies`}
             >
               {/* Icon fixed to top left */}
               <div className="absolute top-2 left-2">
-                <f.icon className={`h-4 w-4 ${
-                  activeFilter === f.key ? 'text-primary' : 'text-muted-foreground'
-                }`} />
+                <f.icon className={`h-4 w-4 ${activeFilter === f.key ? 'text-primary' : 'text-muted-foreground'
+                  }`} />
               </div>
-              
+
               {/* Centered content */}
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">{f.label}</span>
-                <Badge 
-                  variant={activeFilter === f.key ? "default" : "secondary"} 
-                  className="h-6 px-2 text-xs font-bold"
+                <span className="text-sm font-normal">{f.label}</span>
+                <Badge
+                  variant={activeFilter === f.key ? "default" : "secondary"}
+                  className="h-6 px-2 text-xs font-semibold"
                 >
                   {f.count}
                 </Badge>
@@ -351,7 +349,7 @@ export const MapPanel = ({ emergencyStats }) => {
       <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-4">
           <Bell className="h-5 w-5 text-destructive" />
-          <h3 className="font-black text-sm uppercase tracking-wider">Live Feed</h3>
+          <h3 className="font-bold text-sm uppercase tracking-wider">Live Feed</h3>
           <Badge variant="outline" className="h-5 text-[10px] ml-auto">
             Recent {Math.min(filteredList.length, 5)}
           </Badge>
@@ -360,7 +358,7 @@ export const MapPanel = ({ emergencyStats }) => {
           {filteredList.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
               <CheckCircle className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p className="text-sm font-medium">No active requests</p>
+              <p className="text-sm font-normal">No active requests</p>
             </div>
           ) : (
             <>
@@ -379,7 +377,7 @@ export const MapPanel = ({ emergencyStats }) => {
                   <div className="flex justify-between items-start pl-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-black text-sm">#{req.id.slice(0, 4)}</span>
+                        <span className="font-bold text-sm">#{req.id.slice(0, 4)}</span>
                         {req.priority === 'critical' && <span className="flex h-2 w-2 rounded-full bg-destructive animate-pulse" />}
                         <Badge variant="secondary" className="text-[10px] h-4 px-1">{req.status}</Badge>
                       </div>

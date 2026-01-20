@@ -4,25 +4,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
-import { 
-  Edit, 
-  Trash2, 
-  UserCheck, 
-  Calendar, 
+import {
+  Edit,
+  Trash2,
+  UserCheck,
+  Calendar,
   MessageSquare,
   Clock
 } from 'lucide-react';
 
-export const SupportTicketTableView = ({ 
-  tickets, 
-  onView, 
-  onEdit, 
-  onDelete, 
-  onAssign, 
-  getStatusConfig, 
-  getPriorityColor, 
-  isAdmin, 
-  isMobile 
+export const SupportTicketTableView = ({
+  tickets,
+  onView,
+  onEdit,
+  onDelete,
+  onAssign,
+  getStatusConfig,
+  getPriorityColor,
+  isAdmin,
+  isMobile
 }) => {
   return (
     <motion.div
@@ -34,13 +34,13 @@ export const SupportTicketTableView = ({
           <Table>
             <TableHeader>
               <TableRow className="border-b border-white/10 hover:bg-transparent">
-                <TableHead className="font-black uppercase tracking-wider text-xs md:text-sm">Subject</TableHead>
-                <TableHead className="font-black uppercase tracking-wider text-xs md:text-sm">Category</TableHead>
-                <TableHead className="font-black uppercase tracking-wider text-xs md:text-sm">Priority</TableHead>
-                <TableHead className="font-black uppercase tracking-wider text-xs md:text-sm">Status</TableHead>
-                <TableHead className="font-black uppercase tracking-wider text-xs md:text-sm">Assigned</TableHead>
-                <TableHead className="font-black uppercase tracking-wider text-xs md:text-sm">Created</TableHead>
-                <TableHead className="font-black uppercase tracking-wider text-xs md:text-sm text-right">Actions</TableHead>
+                <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Subject</TableHead>
+                <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Category</TableHead>
+                <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Priority</TableHead>
+                <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Status</TableHead>
+                <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Assigned</TableHead>
+                <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Created</TableHead>
+                <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -52,23 +52,23 @@ export const SupportTicketTableView = ({
                   transition={{ delay: index * 0.02 }}
                   className="border-b border-white/10 hover:bg-white/5 transition-colors group"
                 >
-                  <TableCell className="font-black truncate max-w-[150px] md:max-w-[200px] text-xs md:text-sm">
+                  <TableCell className="font-bold truncate max-w-[150px] md:max-w-[200px] text-xs md:text-sm">
                     <div className="truncate" title={ticket.subject}>
                       {ticket.subject || 'No Subject'}
                     </div>
                   </TableCell>
                   <TableCell className="text-xs md:text-sm">
-                    <Badge className="squircle-sm bg-info/20 text-info border-0 font-black text-xs">
+                    <Badge className="squircle-sm bg-info/20 text-info border-0 font-bold text-xs">
                       {ticket.category || 'general'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs md:text-sm">
-                    <Badge className={`squircle-sm ${getPriorityColor(ticket.priority)} border-0 font-black text-xs`}>
+                    <Badge className={`squircle-sm ${getPriorityColor(ticket.priority)} border-0 font-bold text-xs`}>
                       {ticket.priority || 'normal'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs md:text-sm">
-                    <Badge className={`squircle-sm ${getStatusConfig(ticket.status).badgeClass} border-0 font-black text-xs`}>
+                    <Badge className={`squircle-sm ${getStatusConfig(ticket.status).badgeClass} border-0 font-bold text-xs`}>
                       {ticket.status?.replace('_', ' ') || 'open'}
                     </Badge>
                   </TableCell>

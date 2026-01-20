@@ -24,7 +24,7 @@ export const HospitalsPanel = () => {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Capacity Status</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Capacity Status</h3>
 
         <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
           <div className="flex items-center justify-between">
@@ -32,7 +32,7 @@ export const HospitalsPanel = () => {
               <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
                 <Hospital className="h-5 w-5 text-success" />
               </div>
-              <span className="font-black tracking-tight">Available</span>
+              <span className="font-bold tracking-tight">Available</span>
             </div>
             <Badge className="bg-success/20 text-success border-0">5</Badge>
           </div>
@@ -44,7 +44,7 @@ export const HospitalsPanel = () => {
               <div className="w-10 h-10 geo-round bg-warning/20 flex items-center justify-center">
                 <Ambulance className="h-5 w-5 text-warning" />
               </div>
-              <span className="font-medium">Busy</span>
+              <span className="font-normal">Busy</span>
             </div>
             <Badge className="bg-warning/20 text-warning border-0">3</Badge>
           </div>
@@ -56,7 +56,7 @@ export const HospitalsPanel = () => {
               <div className="w-10 h-10 geo-round bg-destructive/20 flex items-center justify-center">
                 <AlertTriangle className="h-5 w-5 text-destructive" />
               </div>
-              <span className="font-medium">Full</span>
+              <span className="font-normal">Full</span>
             </div>
             <Badge className="bg-destructive/20 text-destructive border-0">1</Badge>
           </div>
@@ -70,11 +70,11 @@ export const HospitalsPanel = () => {
         transition={{ delay: 0.1 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Location Filter</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Location Filter</h3>
 
         <button className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-muted/50 transition-colors flex items-center gap-3">
           <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium">Near Me</span>
+          <span className="font-normal">Near Me</span>
         </button>
       </motion.div>
 
@@ -85,14 +85,14 @@ export const HospitalsPanel = () => {
         transition={{ delay: 0.2 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
-        <button 
+        <button
           onClick={handleCreateHospital}
           className="w-full p-4 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-info/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
         >
           <Hospital className="h-4 w-4 text-info" />
-          <span className="font-black tracking-tight text-info">Add New Hospital</span>
+          <span className="font-bold tracking-tight text-info">Add New Hospital</span>
         </button>
       </motion.div>
     </div>

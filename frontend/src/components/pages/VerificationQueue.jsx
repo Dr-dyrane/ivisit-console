@@ -6,18 +6,18 @@ import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { VerificationModal } from '../modals/VerificationModal';
-import { 
-  CheckCircle, 
-  FileText, 
-  User, 
-  Phone, 
-  FileCheck, 
-  Search, 
-  Filter as FilterIcon, 
-  Clock, 
-  Shield, 
-  AlertTriangle, 
-  ChevronRight, 
+import {
+  CheckCircle,
+  FileText,
+  User,
+  Phone,
+  FileCheck,
+  Search,
+  Filter as FilterIcon,
+  Clock,
+  Shield,
+  AlertTriangle,
+  ChevronRight,
   MoreHorizontal,
   Ban
 } from 'lucide-react';
@@ -46,7 +46,7 @@ export const VerificationQueue = () => {
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  
+
   // Filter state matching Insurance/Subscription pattern
   const [filters, setFilters] = useState({ search: '', status: 'pending' });
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
@@ -75,7 +75,7 @@ export const VerificationQueue = () => {
 
   const fetchVerificationData = useCallback(async () => {
     if (!canVerify) return;
-    
+
     setLoading(true);
     try {
       const result = await getVerificationQueue({
@@ -141,7 +141,7 @@ export const VerificationQueue = () => {
 
   const footerContent = useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
         <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} {filters.status === 'pending' ? 'Pending' : filters.status === 'approved' ? 'Verified' : filters.status === 'rejected' ? 'Rejected' : 'Total'}</span>
       </div>
     </div>
@@ -190,7 +190,7 @@ export const VerificationQueue = () => {
 
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
-      
+
       {/* Bento Overview Cards - Updated with geo styles and responsive filtering */}
       <LayoutGroup>
         <motion.div
@@ -205,9 +205,8 @@ export const VerificationQueue = () => {
             transition={{ duration: 0.4, delay: 0.1 }}
           >
             <Card
-              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-                filters.status === 'pending' ? 'ring-2 ring-warning shadow-lg' : ''
-              }`}
+              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'pending' ? 'ring-2 ring-warning shadow-lg' : ''
+                }`}
               onClick={() => setFilters(prev => ({ ...prev, status: 'pending' }))}
             >
               <div className="absolute top-0 right-0 p-4 z-20">
@@ -220,12 +219,12 @@ export const VerificationQueue = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Pending Review</p>
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pending Review</p>
                   {filters.status === 'pending' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter">{stats.pending}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{stats.pending}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-sharp bg-warning/20 text-warning border-0 font-black text-xs">
+                  <Badge className="geo-sharp bg-warning/20 text-warning border-0 font-bold text-xs">
                     ACTION REQUIRED
                   </Badge>
                 </div>
@@ -241,9 +240,8 @@ export const VerificationQueue = () => {
             transition={{ duration: 0.4, delay: 0.15 }}
           >
             <Card
-              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-                filters.status === 'approved' ? 'ring-2 ring-success shadow-lg' : ''
-              }`}
+              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'approved' ? 'ring-2 ring-success shadow-lg' : ''
+                }`}
               onClick={() => setFilters(prev => ({ ...prev, status: 'approved' }))}
             >
               <div className="absolute top-0 right-0 p-4 z-20">
@@ -256,12 +254,12 @@ export const VerificationQueue = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Verified Users</p>
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Verified Users</p>
                   {filters.status === 'approved' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter">{stats.approved}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{stats.approved}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-round bg-success/20 text-success border-0 font-black text-xs">
+                  <Badge className="geo-round bg-success/20 text-success border-0 font-bold text-xs">
                     {Math.round((stats.approved / (stats.total || 1)) * 100)}% TOTAL
                   </Badge>
                 </div>
@@ -277,9 +275,8 @@ export const VerificationQueue = () => {
             transition={{ duration: 0.4, delay: 0.2 }}
           >
             <Card
-              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-                filters.status === 'rejected' ? 'ring-2 ring-destructive shadow-lg' : ''
-              }`}
+              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'rejected' ? 'ring-2 ring-destructive shadow-lg' : ''
+                }`}
               onClick={() => setFilters(prev => ({ ...prev, status: 'rejected' }))}
             >
               <div className="absolute top-0 right-0 p-4 z-20">
@@ -292,12 +289,12 @@ export const VerificationQueue = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Rejected</p>
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Rejected</p>
                   {filters.status === 'rejected' && <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter">{stats.rejected}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{stats.rejected}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-sharp bg-destructive/20 text-destructive border-0 font-black text-xs">
+                  <Badge className="geo-sharp bg-destructive/20 text-destructive border-0 font-bold text-xs">
                     INACTIVE
                   </Badge>
                 </div>
@@ -313,9 +310,8 @@ export const VerificationQueue = () => {
             transition={{ duration: 0.4, delay: 0.25 }}
           >
             <Card
-              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-                filters.status === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
-              }`}
+              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+                }`}
               onClick={() => setFilters(prev => ({ ...prev, status: 'all' }))}
             >
               <div className="absolute top-0 right-0 p-4 z-20">
@@ -328,12 +324,12 @@ export const VerificationQueue = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Total Database</p>
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Database</p>
                   {filters.status === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter">{stats.total}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{stats.total}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-round bg-primary/20 text-primary border-0 font-black text-xs">
+                  <Badge className="geo-round bg-primary/20 text-primary border-0 font-bold text-xs">
                     OVERVIEW
                   </Badge>
                 </div>
@@ -363,8 +359,8 @@ export const VerificationQueue = () => {
           <div className="w-20 h-20 squircle bg-warning/20 flex items-center justify-center mx-auto mb-6">
             <Shield className="h-10 w-10 text-warning" />
           </div>
-          <h3 className="text-2xl font-black mb-2">Access Restricted</h3>
-          <p className="text-muted-foreground font-medium">Admin access required to view verification queue.</p>
+          <h3 className="text-2xl font-bold mb-2">Access Restricted</h3>
+          <p className="text-muted-foreground font-normal">Admin access required to view verification queue.</p>
         </motion.div>
       )}
 
@@ -394,8 +390,8 @@ export const VerificationQueue = () => {
           <div className="w-20 h-20 squircle bg-muted/20 flex items-center justify-center mx-auto mb-6">
             <FileCheck className="h-10 w-10 text-muted-foreground" />
           </div>
-          <h3 className="text-2xl font-black mb-2">All Clear</h3>
-          <p className="text-muted-foreground font-medium">No applications found matching your criteria.</p>
+          <h3 className="text-2xl font-bold mb-2">All Clear</h3>
+          <p className="text-muted-foreground font-normal">No applications found matching your criteria.</p>
         </motion.div>
       ) : viewMode === 'grid' ? (
         <LayoutGroup>
@@ -424,7 +420,7 @@ export const VerificationQueue = () => {
                       <div className="relative mb-4">
                         <Avatar className="h-24 w-24 squircle-xl shadow-lg group-hover:scale-105 transition-transform duration-300">
                           <AvatarImage src={getAvatarUrl(provider)} />
-                          <AvatarFallback className="text-2xl font-black bg-primary/10 text-primary">
+                          <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
                             {getAvatarFallback(provider)}
                           </AvatarFallback>
                         </Avatar>
@@ -434,8 +430,8 @@ export const VerificationQueue = () => {
                         </Badge>
                       </div>
 
-                      <h3 className="text-xl font-black tracking-tight mb-1 truncate w-full">{provider.username || 'Unknown'}</h3>
-                      <p className="text-sm text-muted-foreground font-semibold mb-4 truncate w-full">{provider.email}</p>
+                      <h3 className="text-xl font-bold tracking-tight mb-1 truncate w-full">{provider.username || 'Unknown'}</h3>
+                      <p className="text-sm text-muted-foreground font-medium mb-4 truncate w-full">{provider.email}</p>
 
                       <div className="flex items-center gap-2 w-full justify-center">
                         {provider.role && (
@@ -450,7 +446,7 @@ export const VerificationQueue = () => {
                     </div>
 
                     <div className="relative z-10 mt-6 pt-4 flex items-center justify-between">
-                      <span className="text-xs font-bold text-muted-foreground">VIEW DETAILS</span>
+                      <span className="text-xs font-semibold text-muted-foreground">VIEW DETAILS</span>
                       <div className="w-8 h-8 rounded-full bg-muted/20 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
                         <ChevronRight className="w-4 h-4" />
                       </div>
@@ -465,14 +461,14 @@ export const VerificationQueue = () => {
         <VerificationQueueListView
           providers={providers}
           onView={setSelectedProvider}
-          onDelete={() => {}}
+          onDelete={() => { }}
           isMobile={isMobile}
         />
       ) : (
         <VerificationQueueTableView
           providers={providers}
           onView={setSelectedProvider}
-          onDelete={() => {}}
+          onDelete={() => { }}
           isMobile={isMobile}
         />
       )}

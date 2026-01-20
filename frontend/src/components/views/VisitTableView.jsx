@@ -26,11 +26,11 @@ export const VisitTableView = ({ visits, onView, onEdit, onDelete, getStatusBadg
         <Table>
           <TableHeader>
             <TableRow className="border-b border-white/10 hover:bg-transparent">
-              <TableHead className="font-black uppercase tracking-wider">Visit ID</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Status</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Type</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Scheduled</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Actions</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Visit ID</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Status</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Type</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Scheduled</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -42,9 +42,9 @@ export const VisitTableView = ({ visits, onView, onEdit, onDelete, getStatusBadg
                 transition={{ delay: index * 0.02 }}
                 className="border-b border-white/10 hover:bg-white/5 transition-colors group"
               >
-                <TableCell className="font-black">#{visit.id?.slice(-6) || 'N/A'}</TableCell>
+                <TableCell className="font-bold">#{visit.id?.slice(-6) || 'N/A'}</TableCell>
                 <TableCell>
-                  <Badge className={`squircle-sm ${getStatusBadge(visit.status)} border-0 font-black`}>
+                  <Badge className={`squircle-sm ${getStatusBadge(visit.status)} border-0 font-bold`}>
                     {visit.status}
                   </Badge>
                 </TableCell>

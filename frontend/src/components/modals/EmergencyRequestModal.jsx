@@ -72,9 +72,9 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
           .from('emergency_requests')
           .insert([submitData])
           .select();
-        
+
         if (error) throw error;
-        
+
         const createdId = data?.[0]?.id;
         if (createdId) {
           await createNotification(
@@ -84,26 +84,26 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
             { message: `Emergency request created - Priority: ${submitData.priority}` }
           );
         }
-        
+
         toast.success('Emergency request dispatched');
       } else if (isEdit) {
         const { error } = await supabase
           .from('emergency_requests')
           .update(submitData)
           .eq('id', request.id);
-        
+
         if (error) throw error;
-        
+
         await createNotification(
           NotificationTypes.EMERGENCY,
           NotificationActions.UPDATED,
           request.id,
           { message: `Emergency request updated - Status: ${submitData.status}` }
         );
-        
+
         toast.success('Incident report updated');
       }
-      
+
       onClose(true);
     } catch (error) {
       console.error('Error saving emergency request:', error);
@@ -114,7 +114,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
   };
 
   const getPriorityColor = (p) => {
-    switch(p) {
+    switch (p) {
       case 'critical': return 'text-red-500';
       case 'high': return 'text-orange-500';
       case 'medium': return 'text-yellow-500';
@@ -124,7 +124,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
   };
 
   const getPriorityBg = (p) => {
-    switch(p) {
+    switch (p) {
       case 'critical': return 'bg-red-500/10';
       case 'high': return 'bg-orange-500/10';
       case 'medium': return 'bg-yellow-500/10';
@@ -161,7 +161,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                   <Siren className="h-6 w-6" />
                 </div>
                 <div className="hidden sm:block">
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
                     {formData.emergency_type ? formData.emergency_type.replace('_', ' ').toUpperCase() : 'NEW EMERGENCY'}
                   </h2>
                   <p className="text-sm text-muted-foreground">Incident dispatch and reporting system</p>
@@ -183,7 +183,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
 
             <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
               <form onSubmit={handleSubmit} className="space-y-6">
-                
+
                 {/* Status Bar */}
                 <div className="p-1.5 rounded-[20px] bg-white/5 border border-white/10 flex items-center justify-between gap-2">
                   {['pending', 'dispatched', 'en_route', 'arrived', 'completed'].map((step, i, arr) => {
@@ -193,11 +193,10 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                       <button
                         key={step}
                         type="button"
-                        onClick={!isView ? () => setFormData(prev => ({...prev, status: step})) : undefined}
-                        className={`flex-1 py-2 px-3 rounded-xl transition-all text-[10px] font-bold uppercase tracking-wider ${
-                          isCurrent ? 'bg-primary text-white shadow-lg shadow-primary/20' : 
-                          isPast ? 'text-primary/70 bg-primary/5' : 'text-muted-foreground/40'
-                        }`}
+                        onClick={!isView ? () => setFormData(prev => ({ ...prev, status: step })) : undefined}
+                        className={`flex-1 py-2 px-3 rounded-xl transition-all text-[10px] font-semibold uppercase tracking-wider ${isCurrent ? 'bg-primary text-white shadow-lg shadow-primary/20' :
+                            isPast ? 'text-primary/70 bg-primary/5' : 'text-muted-foreground/40'
+                          }`}
                       >
                         {step.replace('_', ' ')}
                       </button>
@@ -211,8 +210,8 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                     <GlassCard icon={<User className="text-primary" />} title="Requester">
                       <div className="space-y-4">
                         {!isView ? (
-                          <Select 
-                            value={formData.user_id} 
+                          <Select
+                            value={formData.user_id}
                             onValueChange={(value) => setFormData(prev => ({ ...prev, user_id: value }))}
                           >
                             <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12">
@@ -239,7 +238,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                               <AvatarFallback>{selectedUser?.username?.[0] || 'U'}</AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-bold">{selectedUser?.username || 'Unknown User'}</p>
+                              <p className="font-semibold">{selectedUser?.username || 'Unknown User'}</p>
                               <p className="text-xs text-muted-foreground">{selectedUser?.phone || 'No phone'}</p>
                             </div>
                           </div>
@@ -288,8 +287,8 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1.5">
                             <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Type</Label>
-                            <Select 
-                              value={formData.emergency_type} 
+                            <Select
+                              value={formData.emergency_type}
                               onValueChange={(value) => setFormData(prev => ({ ...prev, emergency_type: value }))}
                               disabled={isView}
                             >
@@ -308,8 +307,8 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                           </div>
                           <div className="space-y-1.5">
                             <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Priority</Label>
-                            <Select 
-                              value={formData.priority} 
+                            <Select
+                              value={formData.priority}
                               onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
                               disabled={isView}
                             >
@@ -347,7 +346,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                     type="button"
                     variant="ghost"
                     onClick={() => onClose(false)}
-                    className="rounded-full px-8 h-12 font-bold"
+                    className="rounded-full px-8 h-12 font-semibold"
                   >
                     {isView ? 'Close' : 'Cancel'}
                   </Button>
@@ -355,7 +354,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="rounded-full px-12 h-12 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20"
+                      className="rounded-full px-12 h-12 bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg shadow-primary/20"
                     >
                       {loading ? 'Processing...' : (isCreate ? 'Dispatch Unit' : 'Update Record')}
                     </Button>
@@ -378,7 +377,7 @@ const GlassCard = ({ children, title, icon, className }) => (
       <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>
     </div>
     {children}
   </div>

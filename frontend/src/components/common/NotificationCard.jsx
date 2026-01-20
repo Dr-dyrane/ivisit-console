@@ -64,7 +64,7 @@ export const NotificationCard = ({ notification, onDismiss, onMarkRead }) => {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-black text-sm">{notification.title}</h3>
+              <h3 className="font-bold text-sm">{notification.title}</h3>
               {!notification.read && (
                 <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               )}

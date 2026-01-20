@@ -48,7 +48,7 @@ export const GoogleMapsRenderer = ({
 				<div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
 					<div className="bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border shadow-sm flex items-center gap-2">
 						<div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-						<span className="text-[10px] font-mono font-bold tracking-wider uppercase opacity-70">
+						<span className="text-[10px] font-mono font-semibold tracking-wider uppercase opacity-70">
 							Session ID: {simulatedSessionId}
 						</span>
 					</div>
@@ -61,7 +61,7 @@ export const GoogleMapsRenderer = ({
 								window.dispatchEvent(new CustomEvent('recenter-map'));
 							}
 						}}
-						className="bg-background/35 backdrop-blur-xs squircle-full h-8 px-3 text-[10px] font-bold"
+						className="bg-background/35 backdrop-blur-xs squircle-full h-8 px-3 text-[10px] font-semibold"
 					>
 						<MapPin className="h-3 w-3 mr-1" />
 						RE-CENTER

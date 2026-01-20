@@ -42,7 +42,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
       case 'text':
         return (
           <div key={key} className="space-y-3 px-3 py-3 rounded-lg hover:bg-white/3 transition-colors">
-            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{label}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
             <input
               type="text"
               value={currentValue || ''}
@@ -56,7 +56,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
       case 'multiselect':
         return (
           <div key={key} className="space-y-3">
-            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground px-3">{label}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-3">{label}</p>
             <div className="space-y-2">
               {options.map(option => (
                 <div key={option.value} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
@@ -71,7 +71,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
                     }}
                     className="w-5 h-5"
                   />
-                  <Label htmlFor={`${key}-${option.value}`} className="text-sm font-medium cursor-pointer">
+                  <Label htmlFor={`${key}-${option.value}`} className="text-sm font-normal cursor-pointer">
                     {option.label}
                   </Label>
                 </div>
@@ -83,7 +83,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
       case 'range':
         return (
           <div key={key} className="space-y-3 px-3 py-3 rounded-lg hover:bg-white/3 transition-colors">
-            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{label}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
             <Slider
               min={min}
               max={max}
@@ -102,7 +102,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
       case 'select':
         return (
           <div key={key} className="space-y-3">
-            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground px-3">{label}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-3">{label}</p>
             <div className="space-y-2">
               {options.map(option => (
                 <div key={option.value} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
@@ -115,7 +115,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
                     onChange={(e) => handleFilterChange(key, e.target.value)}
                     className="w-5 h-5 rounded-full accent-primary"
                   />
-                  <Label htmlFor={`${key}-${option.value}`} className="text-sm font-medium cursor-pointer">
+                  <Label htmlFor={`${key}-${option.value}`} className="text-sm font-normal cursor-pointer">
                     {option.label}
                   </Label>
                 </div>
@@ -152,7 +152,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
               {/* Header */}
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-sm font-black uppercase tracking-widest">
+                  <h2 className="text-sm font-bold uppercase tracking-widest">
                     {isMobile ? 'View & Filters' : 'Filters'}
                   </h2>
                 </div>

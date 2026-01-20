@@ -124,7 +124,7 @@ Metadata:
           >
             <div className="squircle-2xl bg-background/50 backdrop-blur-xs shadow-2xl p-8 border-0 overflow-hidden relative">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-destructive/50 via-warning/50 to-destructive/50" />
-              
+
               {/* Copy Button - Top Right */}
               {process.env.NODE_ENV !== 'production' && (
                 <motion.button
@@ -136,7 +136,7 @@ Metadata:
                   title="Copy error details"
                 >
                   <motion.div
-                    animate={{ 
+                    animate={{
                       rotate: this.state.copied ? 360 : 0,
                       scale: this.state.copied ? [1, 0.8, 1] : 1
                     }}
@@ -162,10 +162,10 @@ Metadata:
                 </motion.div>
 
                 <div>
-                  <h1 className="text-4xl font-black tracking-tighter text-foreground mb-3">
+                  <h1 className="text-4xl font-bold tracking-tighter text-foreground mb-3">
                     Something Went Wrong
                   </h1>
-                  <p className="text-lg text-muted-foreground font-medium">
+                  <p className="text-lg text-muted-foreground font-normal">
                     We apologize for the inconvenience. An unexpected error has occurred.
                   </p>
                 </div>
@@ -179,7 +179,7 @@ Metadata:
                   >
                     <div className="text-left space-y-3">
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">
                           Error Message
                         </p>
                         <p className="text-sm text-destructive font-mono break-words">
@@ -188,7 +188,7 @@ Metadata:
                       </div>
                       {this.state.errorInfo && (
                         <div>
-                          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">
+                          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">
                             Component Stack
                           </p>
                           <pre className="text-xs text-muted-foreground font-mono whitespace-pre-wrap break-words">
@@ -201,7 +201,7 @@ Metadata:
                 )}
 
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/50 text-xs font-bold">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted/50 text-xs font-semibold">
                     {this.state.errorCount}
                   </span>
                   <span>Error{this.state.errorCount > 1 ? 's' : ''} occurred</span>
@@ -212,7 +212,7 @@ Metadata:
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={this.handleReset}
-                    className="flex-1 h-12 squircle-lg bg-muted/50 hover:bg-muted text-foreground font-bold transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 h-12 squircle-lg bg-muted/50 hover:bg-muted text-foreground font-semibold transition-colors flex items-center justify-center gap-2"
                   >
                     <RefreshCw className="w-4 h-4" />
                     Try Again
@@ -221,7 +221,7 @@ Metadata:
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={this.handleReload}
-                    className="flex-1 h-12 squircle-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-glow transition-all flex items-center justify-center gap-2"
+                    className="flex-1 h-12 squircle-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow transition-all flex items-center justify-center gap-2"
                   >
                     <Home className="w-4 h-4" />
                     Go Home

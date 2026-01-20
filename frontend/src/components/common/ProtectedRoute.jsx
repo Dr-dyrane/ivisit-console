@@ -67,10 +67,10 @@ export const UnauthorizedPage = () => {
 						</motion.div>
 					</div>
 
-					<h1 className="text-3xl font-black tracking-tighter mb-2">
+					<h1 className="text-3xl font-bold tracking-tighter mb-2">
 						Access Restricted
 					</h1>
-					<p className="text-muted-foreground font-medium mb-8">
+					<p className="text-muted-foreground font-normal mb-8">
 						Your clearance level ({profile?.role || "Guest"}) does not grant
 						access to this secure area.
 					</p>
@@ -79,21 +79,20 @@ export const UnauthorizedPage = () => {
 					{profile && (
 						<div className="squircle-lg bg-muted/30 p-4 mb-8 flex items-center justify-between border border-white/5">
 							<div className="text-left">
-								<p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+								<p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
 									Current Identity
 								</p>
-								<p className="font-bold text-sm truncate max-w-[150px]">
+								<p className="font-semibold text-sm truncate max-w-[150px]">
 									{profile.email}
 								</p>
 							</div>
 							<div
-								className={`px-3 py-1 squircle-sm text-xs font-black uppercase tracking-wide ${
-									profile.role === "admin"
-										? "bg-primary/20 text-primary"
-										: profile.role === "provider"
+								className={`px-3 py-1 squircle-sm text-xs font-bold uppercase tracking-wide ${profile.role === "admin"
+									? "bg-primary/20 text-primary"
+									: profile.role === "provider"
 										? "bg-info/20 text-info"
 										: "bg-muted text-muted-foreground"
-								}`}
+									}`}
 							>
 								{profile.role}
 							</div>
@@ -104,14 +103,14 @@ export const UnauthorizedPage = () => {
 					<div className="space-y-3">
 						<button
 							onClick={() => navigate(-1)}
-							className="w-full h-12 squircle-lg bg-muted/50 hover:bg-muted text-foreground font-bold transition-colors"
+							className="w-full h-12 squircle-lg bg-muted/50 hover:bg-muted text-foreground font-semibold transition-colors"
 						>
 							Go Back
 						</button>
 						<div className="flex flex-fow w-full gap-2 justify-center items-center">
 							<button
 								onClick={() => navigate("/")}
-								className="w-full h-12 squircle-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-glow transition-all hover:scale-[1.02] active:scale-[0.98]"
+								className="w-full h-12 squircle-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow transition-all hover:scale-[1.02] active:scale-[0.98]"
 							>
 								Return to Dashboard
 							</button>

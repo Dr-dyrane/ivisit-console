@@ -40,11 +40,11 @@ export const VerificationQueueTableView = ({
                 <Table>
                     <TableHeader className="bg-muted/30">
                         <TableRow className="border-b border-white/10 hover:bg-transparent">
-                            <TableHead className="w-[300px] text-[10px] font-black uppercase tracking-widest text-muted-foreground py-4 pl-6">Applicant</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Role</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Joined</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</TableHead>
-                            <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground pr-6">Actions</TableHead>
+                            <TableHead className="w-[300px] text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 pl-6">Applicant</TableHead>
+                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Role</TableHead>
+                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Joined</TableHead>
+                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</TableHead>
+                            <TableHead className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground pr-6">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -63,13 +63,13 @@ export const VerificationQueueTableView = ({
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-10 w-10 squircle border-2 border-white/5 shadow-inner shrink-0">
                                                 <AvatarImage src={getAvatarUrl(provider)} />
-                                                <AvatarFallback className="font-black bg-primary/10 text-primary text-xs">
+                                                <AvatarFallback className="font-bold bg-primary/10 text-primary text-xs">
                                                     {getAvatarFallback(provider)}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div className="flex flex-col">
                                                 <div className="flex items-center gap-1.5">
-                                                    <span className="font-bold text-sm tracking-tight text-foreground">{provider.username || provider.full_name || 'Unknown'}</span>
+                                                    <span className="font-semibold text-sm tracking-tight text-foreground">{provider.username || provider.full_name || 'Unknown'}</span>
                                                     {provider.bvn_verified && (
                                                         <CheckCircle className="h-3.5 w-3.5 text-primary fill-primary/10" />
                                                     )}
@@ -79,14 +79,14 @@ export const VerificationQueueTableView = ({
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-white/10 text-foreground/70 bg-white/5">
+                                        <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest border-white/10 text-foreground/70 bg-white/5">
                                             {provider.role || 'N/A'}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-2 text-muted-foreground">
                                             <Calendar className="h-3.5 w-3.5" />
-                                            <span className="text-xs font-medium">
+                                            <span className="text-xs font-normal">
                                                 {new Date(provider.created_at).toLocaleDateString()}
                                             </span>
                                         </div>

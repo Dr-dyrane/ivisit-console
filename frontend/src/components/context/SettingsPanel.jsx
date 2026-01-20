@@ -15,7 +15,7 @@ export const SettingsPanel = () => {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Settings</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Settings</h3>
 
         <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
           <div className="flex items-center justify-between">
@@ -23,7 +23,7 @@ export const SettingsPanel = () => {
               <div className="w-10 h-10 geo-round bg-muted/20 flex items-center justify-center">
                 <Settings className="h-5 w-5 text-muted-foreground" />
               </div>
-              <span className="font-black tracking-tight">General</span>
+              <span className="font-bold tracking-tight">General</span>
             </div>
           </div>
         </Card>
@@ -34,7 +34,7 @@ export const SettingsPanel = () => {
               <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
                 <Shield className="h-5 w-5 text-primary" />
               </div>
-              <span className="font-black tracking-tight">Security</span>
+              <span className="font-bold tracking-tight">Security</span>
             </div>
           </div>
         </Card>

@@ -29,36 +29,35 @@ export const SubscriptionTableView = ({
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-border/20">
-                            <th className="text-left p-4 font-black text-sm uppercase tracking-wider text-muted-foreground">
+                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
                                 Subscriber
                             </th>
-                            <th className="text-left p-4 font-black text-sm uppercase tracking-wider text-muted-foreground">
+                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
                                 Type
                             </th>
-                            <th className="text-left p-4 font-black text-sm uppercase tracking-wider text-muted-foreground">
+                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
                                 Status
                             </th>
-                            <th className="text-left p-4 font-black text-sm uppercase tracking-wider text-muted-foreground">
+                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
                                 Joined
                             </th>
-                            <th className="text-left p-4 font-black text-sm uppercase tracking-wider text-muted-foreground">
+                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
                                 Welcome Email
                             </th>
-                            <th className="text-left p-4 font-black text-sm uppercase tracking-wider text-muted-foreground">
+                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
                                 Source
                             </th>
-                            <th className="text-right p-4 font-black text-sm uppercase tracking-wider text-muted-foreground">
+                            <th className="text-right p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
                                 Actions
                             </th>
                         </tr>
                     </thead>
                     <tbody>
                         {subscribers.map((subscriber, index) => (
-                            <tr 
+                            <tr
                                 key={subscriber.id}
-                                className={`border-b border-border/10 hover:bg-muted/20 transition-colors ${
-                                    index % 2 === 0 ? 'bg-background/20' : 'bg-transparent'
-                                }`}
+                                className={`border-b border-border/10 hover:bg-muted/20 transition-colors ${index % 2 === 0 ? 'bg-background/20' : 'bg-transparent'
+                                    }`}
                             >
                                 <td className="p-4">
                                     <div className="flex items-center gap-3">
@@ -71,7 +70,7 @@ export const SubscriptionTableView = ({
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <span className="font-medium text-foreground">
+                                                <span className="font-normal text-foreground">
                                                     {subscriber.email}
                                                 </span>
                                                 {subscriber.new_user && (
@@ -84,7 +83,7 @@ export const SubscriptionTableView = ({
                                     </div>
                                 </td>
                                 <td className="p-4">
-                                    <Badge className={`geo-sharp ${getTypeBadge(subscriber.type)} border-0 font-black editorial-subtitle px-2 py-1`}>
+                                    <Badge className={`geo-sharp ${getTypeBadge(subscriber.type)} border-0 font-bold editorial-subtitle px-2 py-1`}>
                                         {subscriber.type}
                                     </Badge>
                                 </td>

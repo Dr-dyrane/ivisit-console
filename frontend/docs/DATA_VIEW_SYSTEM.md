@@ -394,7 +394,7 @@ To add new filter type, extend `FilterSheet` renderFilterControl:
 case 'date_range':
   return (
     <div key={key} className="space-y-3">
-      <p className="text-xs font-black uppercase tracking-widest text-muted-foreground px-3">{label}</p>
+      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-3">{label}</p>
       {/* Your date picker component */}
     </div>
   );

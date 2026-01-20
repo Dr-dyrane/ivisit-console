@@ -16,14 +16,14 @@ export const BackButton = ({ to = '/', label = 'Back to Dashboard' }) => {
       <div className="w-10 h-10 squircle bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
         <ArrowLeft className="h-5 w-5 text-primary" />
       </div>
-      <span className="font-bold text-sm">{label}</span>
+      <span className="font-semibold text-sm">{label}</span>
     </motion.button>
   );
 };
 
 export const PageHeader = ({ title, subtitle, action, showBack = true }) => {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       className="mb-8"
@@ -33,12 +33,12 @@ export const PageHeader = ({ title, subtitle, action, showBack = true }) => {
           <BackButton />
         </div>
       )}
-      
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="editorial-title text-4xl mb-2">{title}</h1>
           {subtitle && (
-            <p className="text-muted-foreground font-semibold">{subtitle}</p>
+            <p className="text-muted-foreground font-medium">{subtitle}</p>
           )}
         </div>
         {action && (

@@ -26,7 +26,7 @@ const REPORT_TYPES = [
     dataKeys: ['totalUsers', 'totalHospitals', 'totalAmbulances', 'completionRate']
   },
   {
-    id: 'usage', 
+    id: 'usage',
     name: 'Usage Analytics',
     description: 'User engagement and platform usage patterns',
     icon: Users,
@@ -58,8 +58,8 @@ export const ReportsModal = ({ open, onClose, analyticsData, timeRange }) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const toggleReport = (reportId) => {
-    setSelectedReports(prev => 
-      prev.includes(reportId) 
+    setSelectedReports(prev =>
+      prev.includes(reportId)
         ? prev.filter(id => id !== reportId)
         : [...prev, reportId]
     );
@@ -120,7 +120,7 @@ export const ReportsModal = ({ open, onClose, analyticsData, timeRange }) => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     toast.success(`${report.name} report downloaded successfully`);
   };
 
@@ -131,7 +131,7 @@ export const ReportsModal = ({ open, onClose, analyticsData, timeRange }) => {
     }
 
     setIsGenerating(true);
-    
+
     try {
       for (let i = 0; i < selectedReports.length; i++) {
         const reportId = selectedReports[i];
@@ -182,11 +182,11 @@ export const ReportsModal = ({ open, onClose, analyticsData, timeRange }) => {
                   <BarChart3 className="h-6 w-6 text-primary" />
                 </div>
                 <div className="hidden sm:block">
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">Analytics Reports</h2>
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">Analytics Reports</h2>
                   <p className="text-sm text-muted-foreground">Generate and download detailed reports</p>
                 </div>
                 <div className="sm:hidden">
-                  <h2 className="text-xl font-bold tracking-tight text-foreground/90">Reports</h2>
+                  <h2 className="text-xl font-semibold tracking-tight text-foreground/90">Reports</h2>
                 </div>
               </div>
               <Button
@@ -202,17 +202,16 @@ export const ReportsModal = ({ open, onClose, analyticsData, timeRange }) => {
 
               {/* Time Range Selector */}
               <div className="p-4 sm:p-6 rounded-[28px] bg-muted/30 ">
-                <p className="text-xs font-semibold opacity-70 mb-3 uppercase tracking-widest">Time Range</p>
+                <p className="text-xs font-medium opacity-70 mb-3 uppercase tracking-widest">Time Range</p>
                 <div className="flex gap-2 flex-wrap">
                   {TIME_RANGES.map(range => (
                     <button
                       key={range.value}
                       onClick={() => setSelectedTimeRange(range.value)}
-                      className={`px-4 py-2 rounded-2xl text-sm font-medium transition-all ${
-                        selectedTimeRange === range.value 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted/50 hover:bg-muted text-foreground'
-                      }`}
+                      className={`px-4 py-2 rounded-2xl text-sm font-normal transition-all ${selectedTimeRange === range.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 hover:bg-muted text-foreground'
+                        }`}
                     >
                       {range.label}
                     </button>
@@ -228,11 +227,10 @@ export const ReportsModal = ({ open, onClose, analyticsData, timeRange }) => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => toggleReport(report.id)}
-                    className={`p-4 sm:p-5 rounded-[24px] cursor-pointer border-2 transition-all ${
-                      selectedReports.includes(report.id) 
-                        ? 'border-primary bg-primary/5' 
-                        : 'border-border/50 bg-muted/30 hover:border-muted-foreground/20'
-                    }`}
+                    className={`p-4 sm:p-5 rounded-[24px] cursor-pointer border-2 transition-all ${selectedReports.includes(report.id)
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border/50 bg-muted/30 hover:border-muted-foreground/20'
+                      }`}
                   >
                     <div className="flex items-start gap-3">
                       <div className={`p-2 rounded-xl ${report.bg} ${report.color} flex-shrink-0`}>
@@ -240,7 +238,7 @@ export const ReportsModal = ({ open, onClose, analyticsData, timeRange }) => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-bold text-sm">{report.name}</h3>
+                          <h3 className="font-semibold text-sm">{report.name}</h3>
                           {selectedReports.includes(report.id) && (
                             <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
                           )}

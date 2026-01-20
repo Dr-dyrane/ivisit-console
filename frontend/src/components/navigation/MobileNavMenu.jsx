@@ -83,7 +83,7 @@ export const MobileNavMenu = ({ onClose }) => {
                     } ${isSub ? 'pl-12' : ''}`}
             >
                 <item.icon className={`h-5 w-5 ${active ? 'opacity-100' : 'opacity-50'}`} />
-                <span className={`text-base tracking-tight ${active ? 'font-bold' : 'font-medium'}`}>
+                <span className={`text-base tracking-tight ${active ? 'font-semibold' : 'font-normal'}`}>
                     {item.label}
                 </span>
                 {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
@@ -123,12 +123,12 @@ export const MobileNavMenu = ({ onClose }) => {
                     </AnimatePresence>
 
                     {isNotHome && (
-                        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-3 text-xs font-bold text-muted-foreground">Go Back</motion.span>
+                        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-3 text-xs font-semibold text-muted-foreground">Go Back</motion.span>
                     )}
 
                     {!isNotHome && (
                         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="ml-3 flex flex-col leading-none">
-                            <span className="text-2xl font-black tracking-tighter">iVisit<span className="text-primary text-base">.</span> <span className="text-primary text-sm font-normal italic  uppercase">Console</span></span>
+                            <span className="text-2xl font-bold tracking-tighter">iVisit<span className="text-primary text-base">.</span> <span className="text-primary text-sm font-normal italic  uppercase">Console</span></span>
                         </motion.div>
                     )}
                 </div>
@@ -160,7 +160,7 @@ export const MobileNavMenu = ({ onClose }) => {
                                     }`}
                             >
                                 <group.icon className="h-5 w-5 opacity-50" />
-                                <span className="text-sm font-black uppercase tracking-[0.2em]">{group.label}</span>
+                                <span className="text-sm font-bold uppercase tracking-[0.2em]">{group.label}</span>
                                 <ChevronDown className={`ml-auto h-4 w-4 transition-transform duration-300 ${isOpen ? '' : '-rotate-90 opacity-30'}`} />
                             </button>
 
@@ -186,14 +186,14 @@ export const MobileNavMenu = ({ onClose }) => {
                 <div className="flex gap-2">
                     <button
                         onClick={toggleTheme}
-                        className="flex-1 flex items-center justify-center gap-2 h-12 rounded-2xl bg-background border border-border/40 text-muted-foreground font-bold text-xs uppercase tracking-widest"
+                        className="flex-1 flex items-center justify-center gap-2 h-12 rounded-2xl bg-background border border-border/40 text-muted-foreground font-semibold text-xs uppercase tracking-widest"
                     >
                         {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                         Mode
                     </button>
                     <button
                         onClick={() => { signOut(); navigate('/login'); }}
-                        className="flex-1 flex items-center justify-center gap-2 h-12 rounded-2xl bg-destructive/5 border border-destructive/10 text-destructive font-bold text-xs uppercase tracking-widest"
+                        className="flex-1 flex items-center justify-center gap-2 h-12 rounded-2xl bg-destructive/5 border border-destructive/10 text-destructive font-semibold text-xs uppercase tracking-widest"
                     >
                         <LogOut className="h-4 w-4" />
                         Exit
@@ -211,8 +211,8 @@ export const MobileNavMenu = ({ onClose }) => {
                         </AvatarFallback>
                     </Avatar>
                     <div className="text-left">
-                        <p className="text-sm font-bold text-foreground truncate">{profile?.full_name || 'User'}</p>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Account Settings</p>
+                        <p className="text-sm font-semibold text-foreground truncate">{profile?.full_name || 'User'}</p>
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-tight">Account Settings</p>
                     </div>
                 </button>
             </div>

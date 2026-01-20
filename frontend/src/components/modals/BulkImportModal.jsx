@@ -24,7 +24,7 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
 
   const parseFile = (file) => {
     const reader = new FileReader();
-    
+
     reader.onload = (e) => {
       try {
         let data;
@@ -148,11 +148,11 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
                   <Upload className="h-6 w-6 text-primary" />
                 </div>
                 <div className="hidden sm:block">
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">Bulk Import</h2>
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">Bulk Import</h2>
                   <p className="text-sm text-muted-foreground">Upload CSV or JSON files for batch processing</p>
                 </div>
                 <div className="sm:hidden">
-                  <h2 className="text-xl font-bold tracking-tight text-foreground/90">Import</h2>
+                  <h2 className="text-xl font-semibold tracking-tight text-foreground/90">Import</h2>
                 </div>
               </div>
               <Button
@@ -167,9 +167,8 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
             <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
               {/* Upload Zone */}
               <div
-                className={`relative group rounded-[28px] border-2 border-dashed transition-all p-12 text-center ${
-                  dragActive ? 'border-primary bg-primary/5' : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
-                }`}
+                className={`relative group rounded-[28px] border-2 border-dashed transition-all p-12 text-center ${dragActive ? 'border-primary bg-primary/5' : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
+                  }`}
                 onDrop={handleDrop}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -182,13 +181,13 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
                   onChange={(e) => e.target.files[0] && handleFileSelect(e.target.files[0])}
                   className="hidden"
                 />
-                
+
                 <div className="flex flex-col items-center gap-4">
                   <div className={`p-4 rounded-2xl ${dragActive ? 'bg-primary/20 text-primary' : 'bg-white/10 text-muted-foreground'} transition-colors`}>
                     <Upload className="h-8 w-8" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold">
+                    <h3 className="text-lg font-semibold">
                       {file ? file.name : 'Drop your file here'}
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -215,7 +214,7 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
                 </div>
 
                 {file && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="absolute top-4 right-4"
@@ -236,9 +235,9 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
                       <table className="w-full text-left text-sm border-collapse">
                         <thead>
                           <tr className="bg-white/5 border-b border-white/10">
-                            <th className="px-4 py-3 font-semibold opacity-60">Title</th>
-                            <th className="px-4 py-3 font-semibold opacity-60">Source</th>
-                            <th className="px-4 py-3 font-semibold opacity-60">Category</th>
+                            <th className="px-4 py-3 font-medium opacity-60">Title</th>
+                            <th className="px-4 py-3 font-medium opacity-60">Source</th>
+                            <th className="px-4 py-3 font-medium opacity-60">Category</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -266,7 +265,7 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
                   <AlertCircle className="h-5 w-5 text-blue-500" />
                 </div>
                 <div className="text-sm">
-                  <p className="font-bold text-blue-400 mb-1">File Requirements</p>
+                  <p className="font-semibold text-blue-400 mb-1">File Requirements</p>
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 opacity-70">
                     <li>• Headers: title, source, category, url</li>
                     <li>• JSON array of objects format</li>
@@ -310,7 +309,7 @@ const GlassCard = ({ children, title, icon }) => (
       <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>
     </div>
     {children}
   </div>

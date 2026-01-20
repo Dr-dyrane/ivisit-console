@@ -17,13 +17,13 @@ export const HealthNewsTableView = ({ healthNews, onView, onEdit, onDelete, onTo
           <Table>
             <TableHeader>
               <TableRow className="border-b border-white/10 hover:bg-transparent">
-                <TableHead className="font-black uppercase tracking-wider text-xs md:text-sm">Title</TableHead>
-                <TableHead className="font-black uppercase tracking-wider text-xs md:text-sm">Source</TableHead>
-                <TableHead className="font-black uppercase tracking-wider text-xs md:text-sm">Category</TableHead>
-                <TableHead className="font-black uppercase tracking-wider text-xs md:text-sm">Status</TableHead>
-                <TableHead className="font-black uppercase tracking-wider text-xs md:text-sm">Time</TableHead>
-                <TableHead className="font-black uppercase tracking-wider text-xs md:text-sm">Date</TableHead>
-                <TableHead className="font-black uppercase tracking-wider text-xs md:text-sm text-right">Actions</TableHead>
+                <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Title</TableHead>
+                <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Source</TableHead>
+                <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Category</TableHead>
+                <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Status</TableHead>
+                <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Time</TableHead>
+                <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Date</TableHead>
+                <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -35,7 +35,7 @@ export const HealthNewsTableView = ({ healthNews, onView, onEdit, onDelete, onTo
                   transition={{ delay: index * 0.02 }}
                   className="border-b border-white/10 hover:bg-primary/5 transition-colors group cursor-default"
                 >
-                  <TableCell className="font-black truncate max-w-[150px] md:max-w-[200px] text-xs md:text-sm">
+                  <TableCell className="font-bold truncate max-w-[150px] md:max-w-[200px] text-xs md:text-sm">
                     <div className="truncate" title={news.title}>
                       {news.title || 'Untitled'}
                     </div>
@@ -47,12 +47,12 @@ export const HealthNewsTableView = ({ healthNews, onView, onEdit, onDelete, onTo
                     </div>
                   </TableCell>
                   <TableCell className="text-xs md:text-sm">
-                    <Badge className="squircle-sm bg-info/20 text-info border-0 font-black text-xs">
+                    <Badge className="squircle-sm bg-info/20 text-info border-0 font-bold text-xs">
                       {news.category || 'General'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs md:text-sm">
-                    <Badge className={`squircle-sm ${getStatusBadge(news.published)} border-0 font-black text-xs`}>
+                    <Badge className={`squircle-sm ${getStatusBadge(news.published)} border-0 font-bold text-xs`}>
                       {news.published ? 'Published' : 'Draft'}
                     </Badge>
                   </TableCell>

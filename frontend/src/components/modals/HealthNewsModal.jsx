@@ -124,7 +124,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                   )}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
                     {isCreate ? 'Create News' : isEdit ? 'Edit News' : 'News Details'}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -136,10 +136,10 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
               </div>
               <div className="flex items-center gap-3">
                 {(isEdit || isView) && (
-                  <Badge className={`rounded-full px-3 py-1.5 text-sm font-bold border-0 ${formData.published
+                  <Badge className={`rounded-full px-3 py-1.5 text-sm font-semibold border-0 ${formData.published
                     ? 'bg-green-500/10 text-green-500'
                     : 'bg-orange-500/10 text-orange-500'
-                  }`}>
+                    }`}>
                     {formData.published ? 'Published' : 'Draft'}
                   </Badge>
                 )}
@@ -155,37 +155,37 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
 
             <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
               <form onSubmit={handleSubmit} className="space-y-6">
-                
+
                 {/* Basic Info */}
                 <GlassCard title="Article Info" icon={<Newspaper />}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="title" className="text-xs font-bold text-muted-foreground uppercase px-1">Title</Label>
+                      <Label htmlFor="title" className="text-xs font-semibold text-muted-foreground uppercase px-1">Title</Label>
                       <Input
                         id="title"
                         name="title"
                         value={formData.title}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-bold"
+                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-semibold"
                         placeholder="Enter news title"
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="source" className="text-xs font-bold text-muted-foreground uppercase px-1">Source</Label>
+                      <Label htmlFor="source" className="text-xs font-semibold text-muted-foreground uppercase px-1">Source</Label>
                       <Select
                         value={formData.source}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, source: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-normal">
                           <SelectValue placeholder="Select source" />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-white/10 shadow-xl bg-background/95 backdrop-blur-xl">
                           {sources.map(source => (
-                            <SelectItem key={source} value={source} className="font-medium">
+                            <SelectItem key={source} value={source} className="font-normal">
                               {source}
                             </SelectItem>
                           ))}
@@ -199,18 +199,18 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                 <GlassCard title="Classification" icon={<Globe />}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="category" className="text-xs font-bold text-muted-foreground uppercase px-1">Category</Label>
+                      <Label htmlFor="category" className="text-xs font-semibold text-muted-foreground uppercase px-1">Category</Label>
                       <Select
                         value={formData.category}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-normal">
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-white/10 shadow-xl bg-background/95 backdrop-blur-xl">
                           {categories.map(category => (
-                            <SelectItem key={category} value={category} className="font-medium capitalize">
+                            <SelectItem key={category} value={category} className="font-normal capitalize">
                               {category.charAt(0).toUpperCase() + category.slice(1)}
                             </SelectItem>
                           ))}
@@ -219,7 +219,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="url" className="text-xs font-bold text-muted-foreground uppercase px-1">External URL</Label>
+                      <Label htmlFor="url" className="text-xs font-semibold text-muted-foreground uppercase px-1">External URL</Label>
                       <div className="relative">
                         <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -228,7 +228,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                           value={formData.url}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-medium"
+                          className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-normal"
                           placeholder="https://example.com"
                           type="url"
                         />
@@ -241,27 +241,27 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                 <GlassCard title="Content" icon={<FileText />}>
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="description" className="text-xs font-bold text-muted-foreground uppercase px-1">Short Description</Label>
+                      <Label htmlFor="description" className="text-xs font-semibold text-muted-foreground uppercase px-1">Short Description</Label>
                       <Textarea
                         id="description"
                         name="description"
                         value={formData.description}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px] font-medium resize-none p-4"
+                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px] font-normal resize-none p-4"
                         placeholder="Brief summary..."
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="content" className="text-xs font-bold text-muted-foreground uppercase px-1">Full Content</Label>
+                      <Label htmlFor="content" className="text-xs font-semibold text-muted-foreground uppercase px-1">Full Content</Label>
                       <Textarea
                         id="content"
                         name="content"
                         value={formData.content}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[150px] font-medium p-4"
+                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[150px] font-normal p-4"
                         placeholder="Write the full article here..."
                       />
                     </div>
@@ -270,15 +270,15 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
 
                 {/* Publish Toggle */}
                 {!isView && (
-                  <div 
-                    className="p-4 sm:p-5 rounded-[24px] bg-white/5 border border-white/10 flex items-center hover:bg-white/10 transition-colors cursor-pointer" 
+                  <div
+                    className="p-4 sm:p-5 rounded-[24px] bg-white/5 border border-white/10 flex items-center hover:bg-white/10 transition-colors cursor-pointer"
                     onClick={() => setFormData(prev => ({ ...prev, published: !prev.published }))}
                   >
                     <div className={`p-2 rounded-xl mr-4 transition-colors ${formData.published ? 'bg-green-500/20 text-green-500' : 'bg-white/10 text-muted-foreground'}`}>
                       {formData.published ? <FileCheck className="h-5 w-5" /> : <File className="h-5 w-5" />}
                     </div>
                     <div className="flex-1">
-                      <div className="font-bold text-sm">Publish Immediately</div>
+                      <div className="font-semibold text-sm">Publish Immediately</div>
                       <div className="text-xs text-muted-foreground">Make this article visible to all users upon saving</div>
                     </div>
                     <div className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${formData.published ? 'bg-primary' : 'bg-white/20'}`}>
@@ -294,7 +294,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                     variant="ghost"
                     onClick={() => onClose()}
                     disabled={loading}
-                    className="rounded-2xl font-bold hover:bg-white/10"
+                    className="rounded-2xl font-semibold hover:bg-white/10"
                   >
                     Cancel
                   </Button>
@@ -303,7 +303,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8 shadow-lg shadow-primary/20"
+                      className="rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 shadow-lg shadow-primary/20"
                     >
                       {loading ? 'Saving...' : (isCreate ? 'Create Article' : 'Save Changes')}
                     </Button>
@@ -314,7 +314,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                       type="button"
                       variant="outline"
                       onClick={() => window.open(formData.url, '_blank')}
-                      className="rounded-2xl border-white/10 hover:bg-white/5 font-bold bg-transparent"
+                      className="rounded-2xl border-white/10 hover:bg-white/5 font-semibold bg-transparent"
                     >
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Visit Source
@@ -337,7 +337,7 @@ const GlassCard = ({ children, title, icon }) => (
       <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5 text-primary' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>
     </div>
     {children}
   </div>

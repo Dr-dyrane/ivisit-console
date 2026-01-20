@@ -135,7 +135,7 @@ className="text-sm md:text-lg"  // ⚠️ Too small (sm = 14px, lg = 18px)
 
 // IslandNavigation.jsx - Logo text
 text-2xl                        // ✅ Good (24px)
-text-xs font-bold text-muted    // ⚠️ Inconsistent with header
+text-xs font-semibold text-muted    // ⚠️ Inconsistent with header
 ```
 
 **Apple Standard:**

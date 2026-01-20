@@ -176,7 +176,7 @@ export const AmbulancesPage = () => {
   const headerActions = React.useMemo(() => (
     <Button
       onClick={handleCreate}
-      className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] text-foreground font-black tracking-widest uppercase"
+      className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] text-foreground font-bold tracking-widest uppercase"
     >
       <Plus className="h-4 w-4 mr-2" />
       ADD AMBULANCE
@@ -192,7 +192,7 @@ export const AmbulancesPage = () => {
 
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
         <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Ambulances</span>
       </div>
     </div>
@@ -228,15 +228,15 @@ export const AmbulancesPage = () => {
               </div>
 
               <div className="flex items-center gap-2 mb-4 relative z-10">
-                <Badge className={`squircle-sm ${getStatusBadge(ambulance.status)} border-0 font-black editorial-subtitle px-3 py-1`}>
+                <Badge className={`squircle-sm ${getStatusBadge(ambulance.status)} border-0 font-bold editorial-subtitle px-3 py-1`}>
                   {ambulance.status}
                 </Badge>
               </div>
 
-              <h3 className="font-black text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
+              <h3 className="font-bold text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
                 {ambulance.call_sign || 'Unknown Unit'}
               </h3>
-              <p className="text-sm font-semibold text-muted-foreground mb-4 relative z-10">
+              <p className="text-sm font-medium text-muted-foreground mb-4 relative z-10">
                 {ambulance.type || 'Standard'} • {ambulance.vehicle_number || 'No Plate'}
               </p>
 
@@ -244,16 +244,16 @@ export const AmbulancesPage = () => {
                 <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-2 mb-1">
                     <MapPin className="h-4 w-4 text-info" />
-                    <p className="text-xs text-muted-foreground font-semibold">ETA</p>
+                    <p className="text-xs text-muted-foreground font-medium">ETA</p>
                   </div>
-                  <p className="font-black text-xl">{ambulance.eta || 'N/A'}</p>
+                  <p className="font-bold text-xl">{ambulance.eta || 'N/A'}</p>
                 </div>
                 <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-2 mb-1">
                     <Star className="h-4 w-4 text-warning fill-warning" />
-                    <p className="text-xs text-muted-foreground font-semibold">Rating</p>
+                    <p className="text-xs text-muted-foreground font-medium">Rating</p>
                   </div>
-                  <p className="font-black text-xl">{ambulance.rating}</p>
+                  <p className="font-bold text-xl">{ambulance.rating}</p>
                 </div>
               </div>
 
@@ -261,11 +261,11 @@ export const AmbulancesPage = () => {
                 <div className="mb-4 p-3 squircle bg-primary/5 relative z-10">
                   <div className="flex items-center gap-2 mb-2">
                     <Activity className="h-3 w-3 text-primary" />
-                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Active Crew</p>
+                    <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Active Crew</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {ambulance.crew.map((member, idx) => (
-                      <Badge key={idx} className="squircle-sm bg-background/80 text-foreground border-0 font-medium">
+                      <Badge key={idx} className="squircle-sm bg-background/80 text-foreground border-0 font-normal">
                         {member}
                       </Badge>
                     ))}
@@ -274,7 +274,7 @@ export const AmbulancesPage = () => {
               )}
 
               <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
-                <div className="text-xs font-bold text-muted-foreground">
+                <div className="text-xs font-semibold text-muted-foreground">
                   STATION: {ambulance.hospital || 'HQ'}
                 </div>
 

@@ -16,12 +16,12 @@ export const UserTableView = ({ users, onView, onEdit, onDelete, isMobile = fals
         <Table>
           <TableHeader>
             <TableRow className="border-b border-white/10 hover:bg-transparent">
-              <TableHead className="font-black uppercase tracking-wider">Username</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Email</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Role</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Provider Type</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Verified</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Actions</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Username</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Email</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Role</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Provider Type</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Verified</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -33,14 +33,13 @@ export const UserTableView = ({ users, onView, onEdit, onDelete, isMobile = fals
                 transition={{ delay: index * 0.02 }}
                 className="border-b border-white/10 hover:bg-white/5 transition-colors group"
               >
-                <TableCell className="font-black">{user.username || 'Unknown'}</TableCell>
+                <TableCell className="font-bold">{user.username || 'Unknown'}</TableCell>
                 <TableCell className="text-muted-foreground">{user.email || '-'}</TableCell>
                 <TableCell>
-                  <Badge className={`squircle-sm ${
-                    user.role === 'admin' ? 'bg-warning/20 text-warning' :
-                    user.role === 'provider' ? 'bg-success/20 text-success' :
-                    'bg-info/20 text-info'
-                  } border-0 font-black`}>
+                  <Badge className={`squircle-sm ${user.role === 'admin' ? 'bg-warning/20 text-warning' :
+                      user.role === 'provider' ? 'bg-success/20 text-success' :
+                        'bg-info/20 text-info'
+                    } border-0 font-bold`}>
                     {user.role}
                   </Badge>
                 </TableCell>

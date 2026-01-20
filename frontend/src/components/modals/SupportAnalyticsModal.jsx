@@ -37,11 +37,11 @@ export const SupportAnalyticsModal = ({ open, onClose, analytics }) => {
                   <Headphones className="h-6 w-6 text-primary" />
                 </div>
                 <div className="hidden sm:block">
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">Support Analytics</h2>
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">Support Analytics</h2>
                   <p className="text-sm text-muted-foreground">Ticket overview and resolution metrics</p>
                 </div>
                 <div className="sm:hidden">
-                  <h2 className="text-xl font-bold tracking-tight text-foreground/90">Support</h2>
+                  <h2 className="text-xl font-semibold tracking-tight text-foreground/90">Support</h2>
                 </div>
               </div>
               <Button
@@ -96,10 +96,10 @@ export const SupportAnalyticsModal = ({ open, onClose, analytics }) => {
                 <GlassCard icon={<BarChart3 className="text-primary" />} title="By Status">
                   <div className="space-y-3 sm:space-y-4">
                     {Object.entries(analytics.byStatus || {})
-                      .sort(([,a], [,b]) => b - a)
+                      .sort(([, a], [, b]) => b - a)
                       .map(([status, count]) => (
                         <div key={status} className="flex flex-col gap-1.5">
-                          <div className="flex justify-between text-sm font-medium px-1">
+                          <div className="flex justify-between text-sm font-normal px-1">
                             <span className="truncate max-w-[120px] capitalize">{status.replace('_', ' ')}</span>
                             <span className="opacity-60">{count}</span>
                           </div>
@@ -119,12 +119,12 @@ export const SupportAnalyticsModal = ({ open, onClose, analytics }) => {
                 <GlassCard icon={<Flag className="text-orange-500" />} title="By Priority">
                   <div className="grid grid-cols-2 gap-2 sm:gap-3">
                     {Object.entries(analytics.byPriority || {})
-                      .sort(([,a], [,b]) => b - a)
+                      .sort(([, a], [, b]) => b - a)
                       .map(([priority, count]) => (
                         <div key={priority} className="p-3 sm:p-4 rounded-2xl bg-muted/30  flex flex-col items-center">
                           <span className="text-xs uppercase tracking-widest opacity-50 mb-1 capitalize">{priority}</span>
-                          <span className="text-xl sm:text-2xl font-bold">{count}</span>
-                          <span className="text-[10px] sm:text-xs font-medium text-primary">
+                          <span className="text-xl sm:text-2xl font-semibold">{count}</span>
+                          <span className="text-[10px] sm:text-xs font-normal text-primary">
                             {getPercentage(count, analytics.total)}%
                           </span>
                         </div>
@@ -137,12 +137,12 @@ export const SupportAnalyticsModal = ({ open, onClose, analytics }) => {
               <GlassCard icon={<Tag className="text-green-500" />} title="By Category">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
                   {Object.entries(analytics.byCategory || {})
-                    .sort(([,a], [,b]) => b - a)
+                    .sort(([, a], [, b]) => b - a)
                     .map(([category, count]) => (
                       <div key={category} className="p-3 sm:p-4 rounded-2xl bg-muted/30  flex flex-col items-center">
                         <span className="text-xs uppercase tracking-widest opacity-50 mb-1 capitalize">{category.replace('_', ' ')}</span>
-                        <span className="text-xl sm:text-2xl font-bold">{count}</span>
-                        <span className="text-[10px] sm:text-xs font-medium text-primary">
+                        <span className="text-xl sm:text-2xl font-semibold">{count}</span>
+                        <span className="text-[10px] sm:text-xs font-normal text-primary">
                           {getPercentage(count, analytics.total)}%
                         </span>
                       </div>
@@ -153,17 +153,17 @@ export const SupportAnalyticsModal = ({ open, onClose, analytics }) => {
               {/* Bottom Insights */}
               <div className="p-4 sm:p-6 rounded-[24px] bg-muted/30  flex items-center justify-around text-center">
                 <div>
-                  <p className="text-2xl sm:text-3xl font-bold">{getPercentage(analytics.resolved, analytics.total)}%</p>
+                  <p className="text-2xl sm:text-3xl font-semibold">{getPercentage(analytics.resolved, analytics.total)}%</p>
                   <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Resolution Rate</p>
                 </div>
                 <div className="hidden sm:block w-px h-10 bg-border" />
                 <div>
-                  <p className="text-2xl sm:text-3xl font-bold">{analytics.recent > 0 ? `+${analytics.recent}` : '0'}</p>
+                  <p className="text-2xl sm:text-3xl font-semibold">{analytics.recent > 0 ? `+${analytics.recent}` : '0'}</p>
                   <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Weekly Growth</p>
                 </div>
                 <div className="hidden sm:block w-px h-10 bg-border" />
                 <div>
-                  <p className="text-2xl sm:text-3xl font-bold">{Object.keys(analytics.byStatus || {}).length}</p>
+                  <p className="text-2xl sm:text-3xl font-semibold">{Object.keys(analytics.byStatus || {}).length}</p>
                   <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Status Types</p>
                 </div>
               </div>
@@ -183,10 +183,10 @@ const StatBubble = ({ label, value, subText, icon, color, bg }) => (
       <div className={`p-1.5 sm:p-2 rounded-xl ${bg} ${color}`}>
         {icon}
       </div>
-      <span className="text-lg sm:text-2xl font-bold tracking-tight">{value}</span>
+      <span className="text-lg sm:text-2xl font-semibold tracking-tight">{value}</span>
     </div>
-    <p className="text-xs font-semibold opacity-70 mb-0.5">{label}</p>
-    {subText && <p className="text-[9px] sm:text-[10px] opacity-40 font-medium">{subText}</p>}
+    <p className="text-xs font-medium opacity-70 mb-0.5">{label}</p>
+    {subText && <p className="text-[9px] sm:text-[10px] opacity-40 font-normal">{subText}</p>}
   </div>
 );
 
@@ -196,7 +196,7 @@ const GlassCard = ({ children, title, icon }) => (
       <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>
     </div>
     {children}
   </div>

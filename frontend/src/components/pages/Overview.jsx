@@ -104,7 +104,7 @@ export const Overview = () => {
         fetchStats();
         fetchRecentRequests();
       }}
-      className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+      className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
     >
       <RefreshCw className="h-4 w-4 mr-2" />
       RELOAD
@@ -154,7 +154,7 @@ export const Overview = () => {
           <Card className="lg:col-span-2 squircle-lg p-6 bg-background/35 backdrop-blur-xs">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold">Emergency Requests Trend</h3>
+                <h3 className="text-lg font-medium">Emergency Requests Trend</h3>
                 <p className="text-sm text-muted-foreground">Last 7 days performance</p>
               </div>
               <Badge variant="outline" className="squircle">
@@ -197,7 +197,7 @@ export const Overview = () => {
           </Card>
 
           <Card className="squircle-lg p-6 bg-background/35 backdrop-blur-xs">
-            <h3 className="text-lg font-semibold mb-6 flex items-center justify-between">
+            <h3 className="text-lg font-medium mb-6 flex items-center justify-between">
               Quick Stats
               <Clock className="h-5 w-5 text-muted-foreground" />
             </h3>
@@ -206,7 +206,7 @@ export const Overview = () => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-muted-foreground">Avg Response Time</span>
-                  <span className="text-2xl font-bold text-success">{stats.avgResponseTime}m</span>
+                  <span className="text-2xl font-semibold text-success">{stats.avgResponseTime}m</span>
                 </div>
                 <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                   <motion.div
@@ -221,7 +221,7 @@ export const Overview = () => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-muted-foreground">Success Rate</span>
-                  <span className="text-2xl font-bold text-primary">94%</span>
+                  <span className="text-2xl font-semibold text-primary">94%</span>
                 </div>
                 <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                   <motion.div
@@ -237,7 +237,7 @@ export const Overview = () => {
         </div>
 
         <Card className="squircle-lg p-6 bg-background/35 backdrop-blur-xs">
-          <h3 className="text-lg font-semibold mb-4">Recent Emergency Requests</h3>
+          <h3 className="text-lg font-medium mb-4">Recent Emergency Requests</h3>
           <div className="space-y-3">
             {recentRequests.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">No recent requests</p>
@@ -255,7 +255,7 @@ export const Overview = () => {
                       <Activity className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium">{request.patient?.username || 'Unknown Patient'}</p>
+                      <p className="font-normal">{request.patient?.username || 'Unknown Patient'}</p>
                       <p className="text-sm text-muted-foreground">
                         {request.hospital?.name || 'Hospital not assigned'}
                       </p>

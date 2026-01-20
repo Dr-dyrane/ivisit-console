@@ -46,7 +46,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
           .from('ambulances')
           .insert([formData])
           .select();
-        
+
         if (error) throw error;
         await createNotification(
           NotificationTypes.AMBULANCE,
@@ -60,7 +60,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
           .from('ambulances')
           .update(formData)
           .eq('id', ambulance.id);
-        
+
         if (error) throw error;
         await createNotification(
           NotificationTypes.AMBULANCE,
@@ -70,7 +70,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
         );
         toast.success('Ambulance updated successfully');
       }
-      
+
       onClose(true);
     } catch (error) {
       console.error('Error saving ambulance:', error);
@@ -106,17 +106,16 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                   <Ambulance className="h-6 w-6 text-green-500" />
                 </div>
                 <div className="hidden sm:block">
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
                     {formData.call_sign || 'Fleet Management'}
                   </h2>
                   <p className="text-sm text-muted-foreground">Emergency response vehicle configuration</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Badge className={`rounded-full px-4 py-1 border-0 ${
-                  formData.status === 'available' ? 'bg-green-500/10 text-green-500' : 
-                  'bg-orange-500/10 text-orange-500'
-                }`}>
+                <Badge className={`rounded-full px-4 py-1 border-0 ${formData.status === 'available' ? 'bg-green-500/10 text-green-500' :
+                    'bg-orange-500/10 text-orange-500'
+                  }`}>
                   {formData.status?.toUpperCase()}
                 </Badge>
                 <Button
@@ -130,28 +129,28 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
             </div>
 
             <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
-              
+
               {/* Vehicle Summary Bubbles */}
               <div className="grid grid-cols-3 gap-3 sm:gap-4">
                 <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
                   <div className="flex justify-center mb-1">
                     <Zap className="w-5 h-5 text-primary opacity-60" />
                   </div>
-                  <p className="text-xl font-bold">{formData.type === 'critical' ? 'ALS' : 'BLS'}</p>
+                  <p className="text-xl font-semibold">{formData.type === 'critical' ? 'ALS' : 'BLS'}</p>
                   <p className="text-[10px] uppercase tracking-widest opacity-50">Configuration</p>
                 </div>
                 <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
                   <div className="flex justify-center mb-1">
                     <Star className="w-5 h-5 text-yellow-500 opacity-60 fill-yellow-500/20" />
                   </div>
-                  <p className="text-xl font-bold">{formData.rating}</p>
+                  <p className="text-xl font-semibold">{formData.rating}</p>
                   <p className="text-[10px] uppercase tracking-widest opacity-50">Crew Rank</p>
                 </div>
                 <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
                   <div className="flex justify-center mb-1">
                     <Shield className="w-5 h-5 text-blue-500 opacity-60" />
                   </div>
-                  <p className="text-xl font-bold truncate px-1">{formData.vehicle_number || '---'}</p>
+                  <p className="text-xl font-semibold truncate px-1">{formData.vehicle_number || '---'}</p>
                   <p className="text-[10px] uppercase tracking-widest opacity-50">Registry</p>
                 </div>
               </div>
@@ -169,7 +168,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                           onChange={handleChange}
                           disabled={isView}
                           placeholder="MEDIC-1"
-                          className="rounded-xl bg-white/5 border-white/10 h-11 font-bold"
+                          className="rounded-xl bg-white/5 border-white/10 h-11 font-semibold"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
@@ -186,8 +185,8 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Status</Label>
-                          <Select 
-                            value={formData.status} 
+                          <Select
+                            value={formData.status}
                             onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
                             disabled={isView}
                           >
@@ -205,8 +204,8 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Vehicle Type</Label>
-                        <Select 
-                          value={formData.type} 
+                        <Select
+                          value={formData.type}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
                           disabled={isView}
                         >
@@ -266,7 +265,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                             value={formData.rating}
                             onChange={handleChange}
                             disabled={isView}
-                            className="rounded-xl bg-white/5 border-white/10 h-11 font-bold"
+                            className="rounded-xl bg-white/5 border-white/10 h-11 font-semibold"
                           />
                         </div>
                       </div>
@@ -280,7 +279,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                     type="button"
                     variant="ghost"
                     onClick={() => onClose(false)}
-                    className="rounded-full px-8 h-12 font-bold"
+                    className="rounded-full px-8 h-12 font-semibold"
                   >
                     {isView ? 'Close' : 'Cancel'}
                   </Button>
@@ -288,7 +287,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="rounded-full px-12 h-12 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20"
+                      className="rounded-full px-12 h-12 bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg shadow-primary/20"
                     >
                       {loading ? 'Processing...' : (isCreate ? 'Add Unit' : 'Save Configuration')}
                     </Button>
@@ -311,7 +310,7 @@ const GlassCard = ({ children, title, icon, className }) => (
       <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>
     </div>
     {children}
   </div>

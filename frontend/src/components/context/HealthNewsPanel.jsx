@@ -42,10 +42,10 @@ export const HealthNewsPanel = () => {
       >
         <Card className="p-3 bg-background/50 border-border/30">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Total News</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Total News</span>
             <Newspaper className="h-4 w-4 text-primary" />
           </div>
-          <div className="text-2xl font-black text-foreground">{newsStats.total}</div>
+          <div className="text-2xl font-bold text-foreground">{newsStats.total}</div>
           <div className="text-xs text-muted-foreground">All time articles</div>
         </Card>
       </motion.div>
@@ -60,16 +60,16 @@ export const HealthNewsPanel = () => {
         <Card className="p-3 bg-background/50 border-border/30">
           <div className="flex items-center justify-between mb-1">
             <Eye className="h-3 w-3 text-success" />
-            <span className="text-xs text-success font-medium">Published</span>
+            <span className="text-xs text-success font-normal">Published</span>
           </div>
-          <div className="text-lg font-bold">{newsStats.published}</div>
+          <div className="text-lg font-semibold">{newsStats.published}</div>
         </Card>
         <Card className="p-3 bg-background/50 border-border/30">
           <div className="flex items-center justify-between mb-1">
             <EyeOff className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground font-medium">Draft</span>
+            <span className="text-xs text-muted-foreground font-normal">Draft</span>
           </div>
-          <div className="text-lg font-bold">{newsStats.draft}</div>
+          <div className="text-lg font-semibold">{newsStats.draft}</div>
         </Card>
       </motion.div>
 
@@ -81,10 +81,10 @@ export const HealthNewsPanel = () => {
       >
         <Card className="p-3 bg-background/50 border-border/30">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">This Week</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">This Week</span>
             <TrendingUp className="h-4 w-4 text-info" />
           </div>
-          <div className="text-xl font-bold text-foreground">{newsStats.thisWeek}</div>
+          <div className="text-xl font-semibold text-foreground">{newsStats.thisWeek}</div>
           <div className="text-xs text-muted-foreground">New articles</div>
         </Card>
       </motion.div>
@@ -97,10 +97,10 @@ export const HealthNewsPanel = () => {
       >
         <Card className="p-3 bg-background/50 border-border/30">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Categories</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Categories</span>
             <Filter className="h-4 w-4 text-warning" />
           </div>
-          <div className="text-xl font-bold text-foreground">{newsStats.categories}</div>
+          <div className="text-xl font-semibold text-foreground">{newsStats.categories}</div>
           <div className="text-xs text-muted-foreground">Active categories</div>
         </Card>
       </motion.div>
@@ -112,7 +112,7 @@ export const HealthNewsPanel = () => {
         transition={{ delay: 0.5 }}
       >
         <div className="space-y-2">
-          <div className="text-xs font-black uppercase tracking-wider text-muted-foreground px-1">Quick Actions</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Quick Actions</div>
           <div className="space-y-1">
             <div
               onClick={handleCreateNews}
@@ -120,7 +120,7 @@ export const HealthNewsPanel = () => {
             >
               <div className="flex items-center gap-2">
                 <Plus className="h-3 w-3 text-primary" />
-                <span className="text-xs font-medium">Create News</span>
+                <span className="text-xs font-normal">Create News</span>
               </div>
             </div>
             <div
@@ -129,7 +129,7 @@ export const HealthNewsPanel = () => {
             >
               <div className="flex items-center gap-2">
                 <Filter className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs font-medium">View All Filters</span>
+                <span className="text-xs font-normal">View All Filters</span>
               </div>
             </div>
           </div>

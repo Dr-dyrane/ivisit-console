@@ -55,7 +55,7 @@ export const PaginationControls = ({
             <Button
                 onClick={onPrevPage}
                 disabled={!hasPrevPage || loading}
-                className="bg-background/35 backdrop-blur-xs squircle h-10 px-4 text-xs font-black tracking-widest uppercase disabled:opacity-30 disabled:cursor-not-allowed shadow-premium hover-lift"
+                className="bg-background/35 backdrop-blur-xs squircle h-10 px-4 text-xs font-bold tracking-widest uppercase disabled:opacity-30 disabled:cursor-not-allowed shadow-premium hover-lift"
                 aria-label="Previous page"
             >
                 <ChevronLeft className="h-4 w-4 mr-1" />
@@ -64,16 +64,16 @@ export const PaginationControls = ({
 
             {/* Page Indicator */}
             <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-background/50 backdrop-blur-xs border border-white/10 shadow-lg backdrop-blur-md">
-                <span className="text-xs font-black tracking-widest uppercase text-muted-foreground">
+                <span className="text-xs font-bold tracking-widest uppercase text-muted-foreground">
                     Page
                 </span>
-                <span className="text-sm font-black text-foreground">
+                <span className="text-sm font-bold text-foreground">
                     {currentPage}
                 </span>
                 <span className="text-xs text-muted-foreground">
                     of
                 </span>
-                <span className="text-sm font-black text-foreground">
+                <span className="text-sm font-bold text-foreground">
                     {totalPages}
                 </span>
             </div>
@@ -82,7 +82,7 @@ export const PaginationControls = ({
             <Button
                 onClick={onNextPage}
                 disabled={!hasNextPage || loading}
-                className="bg-background/35 backdrop-blur-xs squircle h-10 px-4 text-xs font-black tracking-widest uppercase disabled:opacity-30 disabled:cursor-not-allowed shadow-premium hover-lift"
+                className="bg-background/35 backdrop-blur-xs squircle h-10 px-4 text-xs font-bold tracking-widest uppercase disabled:opacity-30 disabled:cursor-not-allowed shadow-premium hover-lift"
                 aria-label="Next page"
             >
                 Next

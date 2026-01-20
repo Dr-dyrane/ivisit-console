@@ -173,11 +173,11 @@ export const InsuranceModal = ({
                   <Shield className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
                     {mode === 'create' ? 'New Policy' : mode === 'edit' ? 'Edit Policy' : 'Policy Details'}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge className={`rounded-full border-0 font-bold px-3 py-0.5 text-xs ${getStatusColor(formData.status)}`}>
+                    <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${getStatusColor(formData.status)}`}>
                       {formData.status?.toUpperCase()}
                     </Badge>
                     <span className="text-sm text-muted-foreground">
@@ -202,13 +202,13 @@ export const InsuranceModal = ({
                 <GlassCard icon={<Building className="text-primary" />} title="Provider Details">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase">Provider Name</Label>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Provider Name</Label>
                       <Select
                         value={formData.provider_name}
                         onValueChange={(val) => handleChange('provider_name', val)}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
                           <SelectValue placeholder="Select provider" />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -220,13 +220,13 @@ export const InsuranceModal = ({
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase">Policy Holder</Label>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Policy Holder</Label>
                       <Input
                         value={formData.policy_holder_name}
                         onChange={(e) => handleChange('policy_holder_name', e.target.value)}
                         disabled={isView}
                         placeholder="Full Name"
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-normal"
                       />
                     </div>
                   </div>
@@ -236,7 +236,7 @@ export const InsuranceModal = ({
                 <GlassCard icon={<CreditCard className="text-primary" />} title="Policy Information">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase">Policy Number</Label>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Policy Number</Label>
                       <Input
                         value={formData.policy_number}
                         onChange={(e) => handleChange('policy_number', e.target.value)}
@@ -247,7 +247,7 @@ export const InsuranceModal = ({
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase">Group Number</Label>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Group Number</Label>
                       <Input
                         value={formData.group_number}
                         onChange={(e) => handleChange('group_number', e.target.value)}
@@ -263,7 +263,7 @@ export const InsuranceModal = ({
                 <GlassCard icon={<Calendar className="text-primary" />} title="Coverage Period">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase">Start Date</Label>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Start Date</Label>
                       <Input
                         type="date"
                         value={formData.start_date}
@@ -274,7 +274,7 @@ export const InsuranceModal = ({
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase">End Date</Label>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">End Date</Label>
                       <Input
                         type="date"
                         value={formData.end_date}
@@ -285,13 +285,13 @@ export const InsuranceModal = ({
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase">Coverage Type</Label>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Coverage Type</Label>
                       <Select
                         value={formData.coverage_type}
                         onValueChange={(val) => handleChange('coverage_type', val)}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -304,13 +304,13 @@ export const InsuranceModal = ({
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase">Status</Label>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Status</Label>
                       <Select
                         value={formData.status}
                         onValueChange={(val) => handleChange('status', val)}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -351,7 +351,7 @@ export const InsuranceModal = ({
                         <CheckCircle className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-sm">Verification Status</h4>
+                        <h4 className="font-semibold text-sm">Verification Status</h4>
                         <p className="text-xs text-muted-foreground">Is this policy verified by admin?</p>
                       </div>
                     </div>
@@ -372,7 +372,7 @@ export const InsuranceModal = ({
                   <div className="flex gap-3">
                     <FileText className="h-5 w-5 text-primary shrink-0" />
                     <div className="text-sm text-primary/80">
-                      <p className="font-bold mb-1">Important Note</p>
+                      <p className="font-semibold mb-1">Important Note</p>
                       <p className="text-xs leading-relaxed opacity-90">
                         Ensure all information matches your physical insurance card exactly.
                         Incorrect details may lead to claim rejections.
@@ -389,14 +389,14 @@ export const InsuranceModal = ({
                         type="button"
                         variant="ghost"
                         onClick={() => onClose(false)}
-                        className="rounded-2xl font-bold text-muted-foreground hover:bg-muted"
+                        className="rounded-2xl font-semibold text-muted-foreground hover:bg-muted"
                         disabled={loading}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
-                        className="rounded-2xl bg-primary hover:bg-primary/90 font-bold px-8 text-primary-foreground"
+                        className="rounded-2xl bg-primary hover:bg-primary/90 font-semibold px-8 text-primary-foreground"
                         disabled={loading}
                       >
                         {loading ? 'Saving...' : (isCreate ? 'Add Policy' : 'Save Changes')}
@@ -406,7 +406,7 @@ export const InsuranceModal = ({
                     <Button
                       type="button"
                       onClick={() => onClose(false)}
-                      className="rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-bold px-8"
+                      className="rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-semibold px-8"
                     >
                       Close
                     </Button>
@@ -428,7 +428,7 @@ const GlassCard = ({ children, title, icon }) => (
       <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
     </div>
     {children}
   </div>
@@ -436,7 +436,7 @@ const GlassCard = ({ children, title, icon }) => (
 
 const ImageUploadBox = ({ label, image, onUpload, onRemove, disabled }) => (
   <div>
-    <Label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">{label}</Label>
+    <Label className="text-xs font-semibold text-muted-foreground uppercase mb-2 block">{label}</Label>
     <div className={`border-2 border-dashed border-border/50 rounded-2xl p-4 text-center transition-colors ${!disabled && 'hover:bg-muted/30 hover:border-primary/30'}`}>
       {image ? (
         <div className="space-y-3">
@@ -465,7 +465,7 @@ const ImageUploadBox = ({ label, image, onUpload, onRemove, disabled }) => (
           <div className="w-12 h-12 rounded-full bg-muted/50 mx-auto flex items-center justify-center">
             <Upload className="h-6 w-6 text-muted-foreground" />
           </div>
-          <p className="text-xs text-muted-foreground font-medium">Click to upload image</p>
+          <p className="text-xs text-muted-foreground font-normal">Click to upload image</p>
           {!disabled && (
             <>
               <input
@@ -480,7 +480,7 @@ const ImageUploadBox = ({ label, image, onUpload, onRemove, disabled }) => (
                 variant="outline"
                 size="sm"
                 onClick={() => document.getElementById(`upload-${label.replace(/\s+/g, '-')}`).click()}
-                className="rounded-xl h-8 text-xs font-bold bg-transparent"
+                className="rounded-xl h-8 text-xs font-semibold bg-transparent"
               >
                 Choose File
               </Button>

@@ -16,13 +16,13 @@ export const DoctorTableView = ({ doctors, onView, onEdit, onDelete, getStatusBa
         <Table>
           <TableHeader>
             <TableRow className="border-b border-white/10 hover:bg-transparent">
-              <TableHead className="font-black uppercase tracking-wider">Name</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Specialization</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Hospital</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Experience</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Status</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Rating</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Actions</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Name</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Specialization</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Hospital</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Experience</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Status</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Rating</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -34,16 +34,16 @@ export const DoctorTableView = ({ doctors, onView, onEdit, onDelete, getStatusBa
                 transition={{ delay: index * 0.02 }}
                 className="border-b border-white/10 hover:bg-white/5 transition-colors group"
               >
-                <TableCell className="font-black">{doctor.name || 'Unknown'}</TableCell>
+                <TableCell className="font-bold">{doctor.name || 'Unknown'}</TableCell>
                 <TableCell>{doctor.specialization || 'General Practitioner'}</TableCell>
                 <TableCell className="text-muted-foreground">{doctor.hospitals?.name || '-'}</TableCell>
-                <TableCell className="font-semibold">{doctor.experience || '0'}y</TableCell>
+                <TableCell className="font-medium">{doctor.experience || '0'}y</TableCell>
                 <TableCell>
-                  <Badge className={`squircle-sm ${getStatusBadge(doctor.status)} border-0 font-black`}>
+                  <Badge className={`squircle-sm ${getStatusBadge(doctor.status)} border-0 font-bold`}>
                     {doctor.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-black">{doctor.rating || 'N/A'}</TableCell>
+                <TableCell className="font-bold">{doctor.rating || 'N/A'}</TableCell>
                 <TableCell>
                   <div className={`flex gap-1 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
                     <Button

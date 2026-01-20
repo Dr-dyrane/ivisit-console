@@ -42,7 +42,7 @@ export const UsersPage = () => {
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const roleParam = searchParams.get('role');
-    
+
     if (roleParam === 'provider') {
       setFilters({ role: 'provider' });
     }
@@ -54,7 +54,7 @@ export const UsersPage = () => {
   // Filter users based on KPI filter and other filters
   const filteredUsers = useMemo(() => {
     let filtered = [...users];
-    
+
     // Apply KPI filter
     if (filters.kpiFilter === 'verified') {
       filtered = filtered.filter(u => u.bvn_verified);
@@ -63,34 +63,34 @@ export const UsersPage = () => {
     } else if (filters.kpiFilter === 'provider') {
       filtered = filtered.filter(u => u.role === 'provider');
     }
-    
+
     // Apply search filter
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(u => 
+      filtered = filtered.filter(u =>
         (u.username || u.profile_username || '').toLowerCase().includes(searchTerm) ||
         (u.email || '').toLowerCase().includes(searchTerm) ||
         (u.phone || '').toLowerCase().includes(searchTerm)
       );
     }
-    
+
     // Apply role filter
     if (filters.role && filters.role.length > 0) {
       filtered = filtered.filter(u => filters.role.includes(u.role));
     }
-    
+
     // Apply verification filter
     if (filters.bvn_verified === 'verified') {
       filtered = filtered.filter(u => u.bvn_verified);
     } else if (filters.bvn_verified === 'unverified') {
       filtered = filtered.filter(u => !u.bvn_verified);
     }
-    
+
     // Apply provider type filter
     if (filters.provider_type && filters.provider_type.length > 0) {
       filtered = filtered.filter(u => filters.provider_type.includes(u.provider_type));
     }
-    
+
     return filtered;
   }, [users, filters]);
 
@@ -108,7 +108,7 @@ export const UsersPage = () => {
         provider_type: filters.provider_type,
         verified: filters.bvn_verified === 'verified' ? true : filters.bvn_verified === 'unverified' ? false : undefined,
       };
-      
+
       // Use the enhanced service
       const data = await getProfiles(filterOptions);
 
@@ -116,14 +116,14 @@ export const UsersPage = () => {
         // Calculate total count and apply pagination for admins
         const totalCount = data.length;
         pagination.setTotalCount(totalCount);
-        
+
         // Apply pagination manually
         const paginatedData = data.slice(
           pagination.paginationRange.start,
           pagination.paginationRange.start + pagination.itemsPerPage
         );
         setUsers(paginatedData);
-        
+
         // Fetch statistics for admins
         const stats = await getUserStatistics();
         setStatistics(stats);
@@ -267,7 +267,7 @@ export const UsersPage = () => {
     isAdmin() && (
       <Button
         onClick={handleCreate}
-        className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase text-foreground"
+        className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase text-foreground"
       >
         <Plus className="h-4 w-4 mr-2" />
         <span className="hidden md:inline">ADD USER</span>
@@ -279,7 +279,7 @@ export const UsersPage = () => {
   // Footer Configuration
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
         <span>Page {pagination.currentPage} of {pagination.totalPages} • {users.length} Users</span>
       </div>
     </div>
@@ -316,10 +316,9 @@ export const UsersPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.05 }}
         >
-          <Card 
-            className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-              filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
-            }`}
+          <Card
+            className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+              }`}
             onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
           >
             <div className="absolute top-0 right-0 p-4 z-20">
@@ -332,12 +331,12 @@ export const UsersPage = () => {
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-2">
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Total Users</p>
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Users</p>
                 {filters.kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
               </div>
-              <h3 className="text-3xl font-black tracking-tighter">{users.length}</h3>
+              <h3 className="text-3xl font-bold tracking-tighter">{users.length}</h3>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-black text-xs">
+                <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
                   {filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
                 </Badge>
               </div>
@@ -353,10 +352,9 @@ export const UsersPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.15 }}
         >
-          <Card 
-            className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-              filters.kpiFilter === 'verified' ? 'ring-2 ring-success shadow-lg' : ''
-            }`}
+          <Card
+            className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'verified' ? 'ring-2 ring-success shadow-lg' : ''
+              }`}
             onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'verified' }))}
           >
             <div className="absolute top-0 right-0 p-4 z-20">
@@ -369,12 +367,12 @@ export const UsersPage = () => {
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-2">
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Verified</p>
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Verified</p>
                 {filters.kpiFilter === 'verified' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
               </div>
-              <h3 className="text-3xl font-black tracking-tighter">{users.filter(u => u.bvn_verified).length}</h3>
+              <h3 className="text-3xl font-bold tracking-tighter">{users.filter(u => u.bvn_verified).length}</h3>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className="geo-round bg-success/20 text-success border-0 font-black text-xs">
+                <Badge className="geo-round bg-success/20 text-success border-0 font-bold text-xs">
                   VERIFIED
                 </Badge>
               </div>
@@ -390,10 +388,9 @@ export const UsersPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.25 }}
         >
-          <Card 
-            className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-              filters.kpiFilter === 'admin' ? 'ring-2 ring-warning shadow-lg' : ''
-            }`}
+          <Card
+            className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'admin' ? 'ring-2 ring-warning shadow-lg' : ''
+              }`}
             onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'admin' }))}
           >
             <div className="absolute top-0 right-0 p-4 z-20">
@@ -406,12 +403,12 @@ export const UsersPage = () => {
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-2">
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Admins</p>
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Admins</p>
                 {filters.kpiFilter === 'admin' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
               </div>
-              <h3 className="text-3xl font-black tracking-tighter">{users.filter(u => u.role === 'admin').length}</h3>
+              <h3 className="text-3xl font-bold tracking-tighter">{users.filter(u => u.role === 'admin').length}</h3>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className="geo-ticket bg-warning/20 text-warning border-0 font-black text-xs">
+                <Badge className="geo-ticket bg-warning/20 text-warning border-0 font-bold text-xs">
                   ADMIN ACCESS
                 </Badge>
               </div>
@@ -427,10 +424,9 @@ export const UsersPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card 
-            className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-              filters.kpiFilter === 'provider' ? 'ring-2 ring-info shadow-lg' : ''
-            }`}
+          <Card
+            className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'provider' ? 'ring-2 ring-info shadow-lg' : ''
+              }`}
             onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'provider' }))}
           >
             <div className="absolute top-0 right-0 p-4 z-20">
@@ -443,12 +439,12 @@ export const UsersPage = () => {
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-2">
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Providers</p>
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Providers</p>
                 {filters.kpiFilter === 'provider' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
               </div>
-              <h3 className="text-3xl font-black tracking-tighter">{users.filter(u => u.role === 'provider').length}</h3>
+              <h3 className="text-3xl font-bold tracking-tighter">{users.filter(u => u.role === 'provider').length}</h3>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className="geo-round bg-info/20 text-info border-0 font-black text-xs">
+                <Badge className="geo-round bg-info/20 text-info border-0 font-bold text-xs">
                   HEALTHCARE
                 </Badge>
               </div>
@@ -464,7 +460,7 @@ export const UsersPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.35 }}
         >
-          <Card 
+          <Card
             className="h-full min-h-[140px] geo-ticket bg-gradient-to-br from-primary/20 to-primary/5 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
             onClick={handleViewAnalytics}
           >
@@ -478,11 +474,11 @@ export const UsersPage = () => {
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-2">
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Analytics</p>
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Analytics</p>
               </div>
-              <h3 className="text-3xl font-black tracking-tighter">View All</h3>
+              <h3 className="text-3xl font-bold tracking-tighter">View All</h3>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-black text-xs">
+                <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
                   DEEP DIVE
                 </Badge>
               </div>
@@ -493,33 +489,33 @@ export const UsersPage = () => {
       {/* Admin Statistics Section */}
       {isAdmin() && showStatistics && statistics && (
         <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 mb-6">
-          <h3 className="font-black text-xl mb-4 flex items-center gap-2">
+          <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-primary" />
             User Statistics
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-muted/20 rounded-lg">
-              <div className="text-2xl font-bold text-primary">{statistics.totalUsers}</div>
+              <div className="text-2xl font-semibold text-primary">{statistics.totalUsers}</div>
               <div className="text-sm text-muted-foreground">Total Users</div>
             </div>
             <div className="text-center p-4 bg-muted/20 rounded-lg">
-              <div className="text-2xl font-bold text-success">{statistics.emailVerifiedUsers}</div>
+              <div className="text-2xl font-semibold text-success">{statistics.emailVerifiedUsers}</div>
               <div className="text-sm text-muted-foreground">Email Verified</div>
             </div>
             <div className="text-center p-4 bg-muted/20 rounded-lg">
-              <div className="text-2xl font-bold text-info">{statistics.recentSignups}</div>
+              <div className="text-2xl font-semibold text-info">{statistics.recentSignups}</div>
               <div className="text-sm text-muted-foreground">Recent (30d)</div>
             </div>
             <div className="text-center p-4 bg-muted/20 rounded-lg">
-              <div className="text-2xl font-bold text-warning">{statistics.totalProfiles}</div>
+              <div className="text-2xl font-semibold text-warning">{statistics.totalProfiles}</div>
               <div className="text-sm text-muted-foreground">Profiles</div>
             </div>
           </div>
           <div className="mt-4">
-            <h4 className="font-semibold mb-2">Role Distribution</h4>
+            <h4 className="font-medium mb-2">Role Distribution</h4>
             <div className="flex flex-wrap gap-2">
               {Object.entries(statistics.roleDistribution).map(([role, count]) => (
-                <Badge key={role} className={`bg-primary/20 text-primary border-0 font-black editorial-subtitle px-3 py-1`}>
+                <Badge key={role} className={`bg-primary/20 text-primary border-0 font-bold editorial-subtitle px-3 py-1`}>
                   {role}: {count}
                 </Badge>
               ))}
@@ -536,16 +532,16 @@ export const UsersPage = () => {
           {users.length === 0 ? (
             <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
               <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="font-black text-xl mb-2">
-                {filters.search ? 'No Users Found' : 
-                 filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 'No Users Yet' :
-                 'No Matching Users'}
+              <h3 className="font-bold text-xl mb-2">
+                {filters.search ? 'No Users Found' :
+                  filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 'No Users Yet' :
+                    'No Matching Users'}
               </h3>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                 {filters.search ? `No users found matching "${filters.search}". Try adjusting your search terms.` :
-                 filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 
-                 'Create your first user to get started with managing your system.' :
-                 'Try adjusting your filters or search criteria to find the users you\'re looking for.'}
+                  filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ?
+                    'Create your first user to get started with managing your system.' :
+                    'Try adjusting your filters or search criteria to find the users you\'re looking for.'}
               </p>
               <div className="flex items-center justify-center gap-3 flex-wrap">
                 {filters.search && (
@@ -560,7 +556,7 @@ export const UsersPage = () => {
                     Reset Filters
                   </Button>
                 )}
-                <Button onClick={handleCreate} className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase text-foreground">
+                <Button onClick={handleCreate} className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase text-foreground">
                   <Plus className="h-4 w-4 mr-2" />
                   ADD USER
                 </Button>
@@ -596,7 +592,7 @@ export const UsersPage = () => {
                           </div>
 
                           <div className="flex items-center gap-2 mb-4 relative z-10">
-                            <Badge className={`geo-badge bg-primary/20 text-primary border-0 font-black editorial-subtitle px-3 py-1`}>
+                            <Badge className={`geo-badge bg-primary/20 text-primary border-0 font-bold editorial-subtitle px-3 py-1`}>
                               {user.role || 'patient'}
                             </Badge>
                             {user.bvn_verified && (
@@ -619,17 +615,17 @@ export const UsersPage = () => {
                                   }}
                                 />
                               ) : (
-                                <span className="text-2xl font-black text-muted-foreground">
+                                <span className="text-2xl font-bold text-muted-foreground">
                                   {(user.username || user.profile_username || 'Unknown User')?.[0]?.toUpperCase() || 'U'}
                                 </span>
                               )}
                             </div>
                             <div>
-                              <h3 className="font-black text-xl tracking-tight truncate w-40">
+                              <h3 className="font-bold text-xl tracking-tight truncate w-40">
                                 {user.username || user.profile_username || 'Unknown User'}
                               </h3>
                               {user.provider_type && (
-                                <p className="text-sm font-semibold text-primary">{user.provider_type}</p>
+                                <p className="text-sm font-medium text-primary">{user.provider_type}</p>
                               )}
                               <p className="text-xs text-muted-foreground">{user.email}</p>
                             </div>
@@ -638,18 +634,18 @@ export const UsersPage = () => {
                           <div className="space-y-3 mb-6 relative z-10">
                             <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
                               <Mail className="h-4 w-4 text-info" />
-                              <span className="truncate font-medium">{user.email || 'No email'}</span>
+                              <span className="truncate font-normal">{user.email || 'No email'}</span>
                             </div>
                             {user.phone && (
                               <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
                                 <Phone className="h-4 w-4 text-success" />
-                                <span className="font-medium">{user.phone}</span>
+                                <span className="font-normal">{user.phone}</span>
                               </div>
                             )}
                             {user.last_sign_in_at && (
                               <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
                                 <UserCheck className="h-4 w-4 text-primary" />
-                                <span className="font-medium">
+                                <span className="font-normal">
                                   Last login: {new Date(user.last_sign_in_at).toLocaleDateString()}
                                 </span>
                               </div>
@@ -662,7 +658,7 @@ export const UsersPage = () => {
                               size="sm"
                               variant="ghost"
                               onClick={() => handleView(user)}
-                              className="flex-1 h-8 bg-muted/20 hover:bg-muted/30 border border-border/20 text-[10px] font-black tracking-widest uppercase text-foreground"
+                              className="flex-1 h-8 bg-muted/20 hover:bg-muted/30 border border-border/20 text-[10px] font-bold tracking-widest uppercase text-foreground"
                             >
                               <Eye className="h-3 w-3 mr-1" />
                               VIEW
@@ -673,7 +669,7 @@ export const UsersPage = () => {
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleEdit(user)}
-                                  className="flex-1 h-8 bg-muted/20 hover:bg-muted/30 border border-border/20 text-[10px] font-black tracking-widest uppercase text-foreground"
+                                  className="flex-1 h-8 bg-muted/20 hover:bg-muted/30 border border-border/20 text-[10px] font-bold tracking-widest uppercase text-foreground"
                                 >
                                   <Edit className="h-3 w-3 mr-1" />
                                   EDIT
@@ -682,7 +678,7 @@ export const UsersPage = () => {
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleDelete(user)}
-                                  className="flex-1 h-8 bg-destructive/20 hover:bg-destructive/30 border border-destructive/20 text-[10px] font-black tracking-widest uppercase text-destructive"
+                                  className="flex-1 h-8 bg-destructive/20 hover:bg-destructive/30 border border-destructive/20 text-[10px] font-bold tracking-widest uppercase text-destructive"
                                 >
                                   <Trash2 className="h-3 w-3 mr-1" />
                                   DELETE
@@ -699,7 +695,7 @@ export const UsersPage = () => {
 
               {/* List View */}
               {viewMode === 'list' && (
-                <UserListView 
+                <UserListView
                   users={filteredUsers}
                   onView={handleView}
                   onEdit={handleEdit}
@@ -710,7 +706,7 @@ export const UsersPage = () => {
 
               {/* Table View */}
               {viewMode === 'table' && (
-                <UserTableView 
+                <UserTableView
                   users={filteredUsers}
                   onView={handleView}
                   onEdit={handleEdit}

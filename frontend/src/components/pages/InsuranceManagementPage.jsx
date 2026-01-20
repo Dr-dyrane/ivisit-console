@@ -101,7 +101,7 @@ export const InsuranceManagementPage = () => {
     // Apply other filters
     const searchTerm = filters.search?.toLowerCase() || '';
     const matchesSearch = searchTerm === '' ||
-      policies.filter(policy => 
+      policies.filter(policy =>
         policy.policy_number?.toLowerCase().includes(searchTerm) ||
         policy.policy_holder_name?.toLowerCase().includes(searchTerm) ||
         policy.provider_name?.toLowerCase().includes(searchTerm)
@@ -122,7 +122,7 @@ export const InsuranceManagementPage = () => {
 
       const statusMatch = !filters.status || filters.status.length === 0 || filters.status.includes(policy.status);
       const typeMatch = !filters.type || filters.type.length === 0 || filters.type.includes(policy.policy_type);
-      const verificationMatch = !filters.verified || 
+      const verificationMatch = !filters.verified ||
         (filters.verified === 'verified' && policy.verified === true) ||
         (filters.verified === 'unverified' && policy.verified === false) ||
         (filters.verified === 'all');
@@ -217,7 +217,7 @@ export const InsuranceManagementPage = () => {
     isAdmin && (
       <Button
         onClick={handleCreate}
-        className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase text-foreground"
+        className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase text-foreground"
       >
         <Plus className="h-4 w-4 mr-2" />
         <span className="hidden md:inline">ADD POLICY</span>
@@ -236,7 +236,7 @@ export const InsuranceManagementPage = () => {
   // Footer Configuration
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
         <span>Page {pagination.currentPage} of {pagination.totalPages} • {filteredPolicies.length} Policies</span>
       </div>
     </div>
@@ -313,10 +313,9 @@ export const InsuranceManagementPage = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.1 }}
           >
-            <Card 
-              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-                filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
-              }`}
+            <Card
+              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+                }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
             >
               <div className="absolute top-0 right-0 p-4 z-20">
@@ -329,12 +328,12 @@ export const InsuranceManagementPage = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Total Policies</p>
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Policies</p>
                   {filters.kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter">{insurancePolicies.length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{insurancePolicies.length}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-black text-xs">
+                  <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
                     {filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
                   </Badge>
                 </div>
@@ -350,10 +349,9 @@ export const InsuranceManagementPage = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.15 }}
           >
-            <Card 
-              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-                filters.kpiFilter === 'active' ? 'ring-2 ring-success shadow-lg' : ''
-              }`}
+            <Card
+              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'active' ? 'ring-2 ring-success shadow-lg' : ''
+                }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'active' }))}
             >
               <div className="absolute top-0 right-0 p-4 z-20">
@@ -366,12 +364,12 @@ export const InsuranceManagementPage = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Active</p>
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Active</p>
                   {filters.kpiFilter === 'active' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter">{insurancePolicies.filter(p => p.status === 'active').length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{insurancePolicies.filter(p => p.status === 'active').length}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-round bg-success/20 text-success border-0 font-black text-xs">
+                  <Badge className="geo-round bg-success/20 text-success border-0 font-bold text-xs">
                     {Math.round((insurancePolicies.filter(p => p.status === 'active').length / insurancePolicies.length) * 100) || 0}%
                   </Badge>
                 </div>
@@ -387,10 +385,9 @@ export const InsuranceManagementPage = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.2 }}
           >
-            <Card 
-              className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-                filters.kpiFilter === 'pending' ? 'ring-2 ring-warning shadow-lg' : ''
-              }`}
+            <Card
+              className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'pending' ? 'ring-2 ring-warning shadow-lg' : ''
+                }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'pending' }))}
             >
               <div className="absolute top-0 right-0 p-4 z-20">
@@ -403,12 +400,12 @@ export const InsuranceManagementPage = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Pending</p>
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pending</p>
                   {filters.kpiFilter === 'pending' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter">{insurancePolicies.filter(p => p.status === 'pending').length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{insurancePolicies.filter(p => p.status === 'pending').length}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="squircle-3xl bg-warning/20 text-warning border-0 font-black text-xs">
+                  <Badge className="squircle-3xl bg-warning/20 text-warning border-0 font-bold text-xs">
                     VERIFICATION
                   </Badge>
                 </div>
@@ -424,10 +421,9 @@ export const InsuranceManagementPage = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.25 }}
           >
-            <Card 
-              className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-                filters.kpiFilter === 'expired' ? 'ring-2 ring-destructive shadow-lg' : ''
-              }`}
+            <Card
+              className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'expired' ? 'ring-2 ring-destructive shadow-lg' : ''
+                }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'expired' }))}
             >
               <div className="absolute top-0 right-0 p-4 z-20">
@@ -440,12 +436,12 @@ export const InsuranceManagementPage = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Expired</p>
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Expired</p>
                   {filters.kpiFilter === 'expired' && <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter">{insurancePolicies.filter(p => p.status === 'expired').length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{insurancePolicies.filter(p => p.status === 'expired').length}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-ticket bg-destructive/20 text-destructive border-0 font-black text-xs">
+                  <Badge className="geo-ticket bg-destructive/20 text-destructive border-0 font-bold text-xs">
                     ACTION NEEDED
                   </Badge>
                 </div>
@@ -461,10 +457,9 @@ export const InsuranceManagementPage = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.3 }}
           >
-            <Card 
-              className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
-                filters.kpiFilter === 'unverified' ? 'ring-2 ring-info shadow-lg' : ''
-              }`}
+            <Card
+              className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'unverified' ? 'ring-2 ring-info shadow-lg' : ''
+                }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'unverified' }))}
             >
               <div className="absolute top-0 right-0 p-4 z-20">
@@ -477,12 +472,12 @@ export const InsuranceManagementPage = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Unverified</p>
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Unverified</p>
                   {filters.kpiFilter === 'unverified' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-black tracking-tighter">{insurancePolicies.filter(p => !p.verified).length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{insurancePolicies.filter(p => !p.verified).length}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-wave bg-info/20 text-info border-0 font-black text-xs">
+                  <Badge className="geo-wave bg-info/20 text-info border-0 font-bold text-xs">
                     VERIFY NOW
                   </Badge>
                 </div>
@@ -498,16 +493,16 @@ export const InsuranceManagementPage = () => {
       ) : filteredPolicies.length === 0 ? (
         <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
           <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="font-black text-xl mb-2">
-            {filters.search ? 'No Policies Found' : 
-             filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 'No Policies Yet' :
-             'No Matching Policies'}
+          <h3 className="font-bold text-xl mb-2">
+            {filters.search ? 'No Policies Found' :
+              filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 'No Policies Yet' :
+                'No Matching Policies'}
           </h3>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             {filters.search ? `No policies found matching "${filters.search}". Try adjusting your search terms.` :
-             filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 
-             'Create your first insurance policy to get started with managing your coverage.' :
-             'Try adjusting your filters or search criteria to find the policies you\'re looking for.'}
+              filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ?
+                'Create your first insurance policy to get started with managing your coverage.' :
+                'Try adjusting your filters or search criteria to find the policies you\'re looking for.'}
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             {filters.search && (
@@ -559,16 +554,16 @@ export const InsuranceManagementPage = () => {
 
                       {/* Content */}
                       <div className="flex items-center gap-2 mb-4 relative z-10">
-                        <Badge className={`geo-sharp ${getStatusBadge(policy.status)} border-0 font-black editorial-subtitle px-3 py-1`}>
+                        <Badge className={`geo-sharp ${getStatusBadge(policy.status)} border-0 font-bold editorial-subtitle px-3 py-1`}>
                           {policy.status}
                         </Badge>
                         {policy.verified && (
-                          <Badge variant="outline" className="geo-sharp border-primary/20 text-primary px-2 py-1 font-bold gap-1">
+                          <Badge variant="outline" className="geo-sharp border-primary/20 text-primary px-2 py-1 font-semibold gap-1">
                             <CheckCircle className="w-3 h-3" /> VERIFIED
                           </Badge>
                         )}
                       </div>
-                      <h3 className="font-black text-lg mb-2 tracking-tight relative z-10">
+                      <h3 className="font-bold text-lg mb-2 tracking-tight relative z-10">
                         {policy.policy_holder_name}
                       </h3>
                       <p className="text-sm text-muted-foreground mb-6 font-mono tracking-tight">{policy.policy_number}</p>
@@ -577,18 +572,18 @@ export const InsuranceManagementPage = () => {
                         <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <DollarSign className="h-4 w-4 text-primary" />
-                            <span className="font-medium">Coverage</span>
+                            <span className="font-normal">Coverage</span>
                           </div>
-                          <span className="font-bold text-foreground">
+                          <span className="font-semibold text-foreground">
                             ${policy.coverage_amount?.toLocaleString() || '0'}
                           </span>
                         </div>
                         <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Clock className="h-4 w-4 text-warning" />
-                            <span className="font-medium">Expires</span>
+                            <span className="font-normal">Expires</span>
                           </div>
-                          <span className="font-bold text-foreground">
+                          <span className="font-semibold text-foreground">
                             {policy.end_date ? new Date(policy.end_date).toLocaleDateString() : 'N/A'}
                           </span>
                         </div>
@@ -596,7 +591,7 @@ export const InsuranceManagementPage = () => {
 
                       {/* Actions */}
                       <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
-                        <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                           ACTIONS
                         </div>
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">

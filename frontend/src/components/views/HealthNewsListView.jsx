@@ -24,14 +24,14 @@ export const HealthNewsListView = ({ healthNews, onView, onEdit, onDelete, onTog
             <div className="relative z-10 flex items-center gap-3 md:gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 md:gap-3 mb-2">
-                  <h3 className="font-black text-sm md:text-lg truncate group-hover:text-primary transition-colors">
+                  <h3 className="font-bold text-sm md:text-lg truncate group-hover:text-primary transition-colors">
                     {news.title || 'Untitled Article'}
                   </h3>
                   <div className="flex gap-1 md:gap-2 flex-shrink-0">
-                    <Badge className={`squircle-sm ${getStatusBadge(news.published)} border-0 font-black text-xs`}>
+                    <Badge className={`squircle-sm ${getStatusBadge(news.published)} border-0 font-bold text-xs`}>
                       {news.published ? 'Published' : 'Draft'}
                     </Badge>
-                    <Badge className="squircle-sm bg-info/20 text-info border-0 font-black text-xs">
+                    <Badge className="squircle-sm bg-info/20 text-info border-0 font-bold text-xs">
                       {news.category || 'General'}
                     </Badge>
                   </div>

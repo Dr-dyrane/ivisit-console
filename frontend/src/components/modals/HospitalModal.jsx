@@ -88,14 +88,14 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                   <Hospital className="h-6 w-6 text-blue-500" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
                     {formData.name || 'New Facility'}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge className={`rounded-full border-0 font-bold px-3 py-0.5 text-[10px] uppercase tracking-wider ${formData.status === 'available' ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
+                    <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-[10px] uppercase tracking-wider ${formData.status === 'available' ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
                       {formData.status || 'AVAILABLE'}
                     </Badge>
-                    <Badge className="rounded-full bg-white/10 border-0 font-bold px-3 py-0.5 text-[10px] uppercase tracking-wider text-blue-400">
+                    <Badge className="rounded-full bg-white/10 border-0 font-semibold px-3 py-0.5 text-[10px] uppercase tracking-wider text-blue-400">
                       {formData.type}
                     </Badge>
                   </div>
@@ -112,31 +112,31 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
 
             <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
               <form onSubmit={handleSubmit} className="space-y-6">
-                
+
                 {/* General Information */}
                 <GlassCard icon={<Activity />} title="Facility Details">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="col-span-1 md:col-span-2 space-y-2">
-                      <Label htmlFor="name" className="text-xs font-bold text-muted-foreground uppercase px-1">Hospital Name</Label>
+                      <Label htmlFor="name" className="text-xs font-semibold text-muted-foreground uppercase px-1">Hospital Name</Label>
                       <Input
                         id="name"
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-bold text-lg"
+                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-semibold text-lg"
                         placeholder="General Hospital..."
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
-                      <Label htmlFor="type" className="text-xs font-bold text-muted-foreground uppercase px-1">Tier</Label>
-                      <Select 
-                        value={formData.type} 
+                      <Label htmlFor="type" className="text-xs font-semibold text-muted-foreground uppercase px-1">Tier</Label>
+                      <Select
+                        value={formData.type}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-normal">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-white/10 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -146,16 +146,16 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div className="space-y-2">
-                      <Label htmlFor="emergency_level" className="text-xs font-bold text-muted-foreground uppercase px-1">Trauma Level</Label>
+                      <Label htmlFor="emergency_level" className="text-xs font-semibold text-muted-foreground uppercase px-1">Trauma Level</Label>
                       <Input
                         id="emergency_level"
                         name="emergency_level"
                         value={formData.emergency_level}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
+                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-normal"
                         placeholder="Level 1 Trauma..."
                       />
                     </div>
@@ -166,7 +166,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                 <GlassCard icon={<Activity />} title="Live Capacity">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Beds</Label>
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Beds</Label>
                       <div className="relative">
                         <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -175,12 +175,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.available_beds}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-bold"
+                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
                         />
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Ambulances</Label>
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Ambulances</Label>
                       <div className="relative">
                         <Ambulance className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -189,12 +189,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.ambulances_count}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-bold"
+                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
                         />
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Wait Time</Label>
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Wait Time</Label>
                       <div className="relative">
                         <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -202,12 +202,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.wait_time}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-bold"
+                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
                         />
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Rating</Label>
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Rating</Label>
                       <div className="relative">
                         <Star className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500 fill-orange-500" />
                         <Input
@@ -217,7 +217,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.rating}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-bold"
+                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
                         />
                       </div>
                     </div>
@@ -228,7 +228,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                 <GlassCard icon={<MapPin />} title="Location & Contact">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="col-span-1 md:col-span-2 space-y-2">
-                      <Label htmlFor="address" className="text-xs font-bold text-muted-foreground uppercase px-1">Address</Label>
+                      <Label htmlFor="address" className="text-xs font-semibold text-muted-foreground uppercase px-1">Address</Label>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                         <Textarea
@@ -237,12 +237,12 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.address}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px] pl-10 pt-3 font-medium resize-none"
+                          className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px] pl-10 pt-3 font-normal resize-none"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-xs font-bold text-muted-foreground uppercase px-1">Phone</Label>
+                      <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground uppercase px-1">Phone</Label>
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -256,13 +256,13 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="status" className="text-xs font-bold text-muted-foreground uppercase px-1">Operational Status</Label>
-                      <Select 
-                        value={formData.status} 
+                      <Label htmlFor="status" className="text-xs font-semibold text-muted-foreground uppercase px-1">Operational Status</Label>
+                      <Select
+                        value={formData.status}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-medium">
+                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-normal">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-white/10 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -283,14 +283,14 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         type="button"
                         variant="ghost"
                         onClick={() => onClose(false)}
-                        className="rounded-2xl font-bold text-muted-foreground hover:bg-white/10"
+                        className="rounded-2xl font-semibold text-muted-foreground hover:bg-white/10"
                         disabled={loading}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
-                        className="rounded-2xl bg-primary hover:bg-primary/90 font-bold px-8 shadow-lg shadow-primary/20"
+                        className="rounded-2xl bg-primary hover:bg-primary/90 font-semibold px-8 shadow-lg shadow-primary/20"
                         disabled={loading}
                       >
                         {loading ? 'Saving...' : (isCreate ? 'Add Facility' : 'Save Changes')}
@@ -300,7 +300,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                     <Button
                       type="button"
                       onClick={() => onClose(false)}
-                      className="rounded-2xl bg-white/10 text-foreground hover:bg-white/20 font-bold px-8"
+                      className="rounded-2xl bg-white/10 text-foreground hover:bg-white/20 font-semibold px-8"
                     >
                       Close
                     </Button>
@@ -322,7 +322,7 @@ const GlassCard = ({ children, title, icon }) => (
       <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5 text-primary' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>
     </div>
     {children}
   </div>

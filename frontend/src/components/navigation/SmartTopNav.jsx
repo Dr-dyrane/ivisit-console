@@ -38,7 +38,7 @@ export const SmartTopNav = () => {
                     >
                         <Search className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
                         <span className="text-sm text-muted-foreground group-hover:text-foreground hidden lg:inline-block">Search...</span>
-                        <kbd className="hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted/20 px-1.5 font-mono text-[10px] font-medium text-muted-foreground ml-auto opacity-50">
+                        <kbd className="hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted/20 px-1.5 font-mono text-[10px] font-normal text-muted-foreground ml-auto opacity-50">
                             ⌘K
                         </kbd>
                     </button>

@@ -83,8 +83,8 @@ export const ContextPanel = () => {
       >
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-black text-lg tracking-tight">{title}</h2>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{subtitle}</p>
+            <h2 className="font-bold text-lg tracking-tight">{title}</h2>
+            <p className="text-xs text-muted-foreground font-normal uppercase tracking-wider">{subtitle}</p>
           </div>
           <div className="flex items-center gap-2">
             {/* Live indicator */}
@@ -196,7 +196,7 @@ export const ContextPanel = () => {
         className="text-center py-12"
       >
         <Sparkles className="h-8 w-8 text-primary mx-auto mb-4" />
-        <h3 className="font-black text-lg mb-2">Context Panel</h3>
+        <h3 className="font-bold text-lg mb-2">Context Panel</h3>
         <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
           Navigate to a page to see relevant information and quick actions
         </p>
@@ -208,7 +208,7 @@ export const ContextPanel = () => {
           className="flex items-center justify-center gap-2"
         >
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-xs font-medium text-primary uppercase tracking-wider">Smart Context</span>
+          <span className="text-xs font-normal text-primary uppercase tracking-wider">Smart Context</span>
         </motion.div>
       </motion.div>
     </div>

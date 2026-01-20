@@ -28,7 +28,7 @@ import { transformActivityData } from '../../utils/activityUtils';
 
 export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, verificationData, activityData, refreshAllData }) => {
   const navigate = useNavigate();
-  
+
   // Command Center State
   const [realTimeEnabled, setRealTimeEnabled] = useState(true);
   const [alertThresholds, setAlertThresholds] = useState({
@@ -36,7 +36,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
     responseTimeMinutes: 10,
     lowAmbulances: 3
   });
-  
+
   // Transform activity data for mini-feed
   const recentActivities = transformActivityData(activityData || []).slice(0, 5);
 
@@ -78,7 +78,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
       verificationData,
       recentActivities
     };
-    
+
     const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -121,13 +121,13 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
       <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-3">
           <Shield className="h-5 w-5 text-primary" />
-          <h3 className="font-black text-sm uppercase tracking-wider">System Controls</h3>
+          <h3 className="font-bold text-sm uppercase tracking-wider">System Controls</h3>
         </div>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Real-time Updates</span>
-            <Switch 
-              checked={realTimeEnabled} 
+            <Switch
+              checked={realTimeEnabled}
               onCheckedChange={setRealTimeEnabled}
             />
           </div>
@@ -138,10 +138,10 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
       <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-3">
           <Zap className="h-5 w-5 text-success" />
-          <h3 className="font-black text-sm uppercase tracking-wider">Quick Actions</h3>
+          <h3 className="font-bold text-sm uppercase tracking-wider">Quick Actions</h3>
         </div>
         <div className="grid grid-cols-1 gap-2">
-          <Button 
+          <Button
             onClick={handleRefreshAll}
             className="w-full justify-start"
             variant="outline"
@@ -150,7 +150,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh All Data
           </Button>
-          <Button 
+          <Button
             onClick={handleExportReport}
             className="w-full justify-start"
             variant="outline"
@@ -159,7 +159,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
             <Download className="h-4 w-4 mr-2" />
             Export Report
           </Button>
-          <Button 
+          <Button
             onClick={handleSystemBackup}
             className="w-full justify-start"
             variant="outline"
@@ -175,7 +175,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
       <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-3">
           <Activity className="h-5 w-5 text-warning" />
-          <h3 className="font-black text-sm uppercase tracking-wider">Recent Activity</h3>
+          <h3 className="font-bold text-sm uppercase tracking-wider">Recent Activity</h3>
         </div>
         <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
           {recentActivities.length > 0 ? (
@@ -186,7 +186,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
                     <activity.icon className={`h-3 w-3 ${activity.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium leading-snug truncate-2">{activity.msg}</p>
+                    <p className="text-xs font-normal leading-snug truncate-2">{activity.msg}</p>
                     <p className="text-xs text-muted-foreground">{activity.time}</p>
                   </div>
                 </div>
@@ -204,11 +204,11 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
       <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-3">
           <Bell className="h-5 w-5 text-destructive" />
-          <h3 className="font-black text-sm uppercase tracking-wider">Alert Thresholds</h3>
+          <h3 className="font-bold text-sm uppercase tracking-wider">Alert Thresholds</h3>
         </div>
         <div className="space-y-3">
           <div className="space-y-1">
-            <label className="text-xs text-muted-foreground font-medium">Critical Emergencies</label>
+            <label className="text-xs text-muted-foreground font-normal">Critical Emergencies</label>
             <Input
               type="number"
               value={alertThresholds.criticalEmergencies}
@@ -218,7 +218,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-muted-foreground font-medium">Response Time (minutes)</label>
+            <label className="text-xs text-muted-foreground font-normal">Response Time (minutes)</label>
             <Input
               type="number"
               value={alertThresholds.responseTimeMinutes}
@@ -228,7 +228,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-muted-foreground font-medium">Low Ambulances</label>
+            <label className="text-xs text-muted-foreground font-normal">Low Ambulances</label>
             <Input
               type="number"
               value={alertThresholds.lowAmbulances}
@@ -244,24 +244,24 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
       <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-3">
           <BarChart3 className="h-5 w-5 text-info" />
-          <h3 className="font-black text-sm uppercase tracking-wider">Performance Metrics</h3>
+          <h3 className="font-bold text-sm uppercase tracking-wider">Performance Metrics</h3>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Response Time</p>
-            <p className="text-lg font-black tracking-tight">{formatTime(analyticsData?.avgResponseTime || 4.2)}</p>
+            <p className="text-lg font-bold tracking-tight">{formatTime(analyticsData?.avgResponseTime || 4.2)}</p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">System Uptime</p>
-            <p className="text-lg font-black tracking-tight">99.9%</p>
+            <p className="text-lg font-bold tracking-tight">99.9%</p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Completion Rate</p>
-            <p className="text-lg font-black tracking-tight">{formatPercentage(analyticsData?.completionRate)}%</p>
+            <p className="text-lg font-bold tracking-tight">{formatPercentage(analyticsData?.completionRate)}%</p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Active Users</p>
-            <p className="text-lg font-black tracking-tight">{doctorsData?.totalDoctors || 0}</p>
+            <p className="text-lg font-bold tracking-tight">{doctorsData?.totalDoctors || 0}</p>
           </div>
         </div>
       </Card>
@@ -272,7 +272,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
         animate={{ opacity: 1, y: 0 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">App Overview</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">App Overview</h3>
 
         <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
           <div className="flex items-center justify-between">
@@ -281,7 +281,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
                 <AlertTriangle className="h-5 w-5 text-destructive" />
               </div>
               <div>
-                <span className="font-black tracking-tight">Active Emergencies</span>
+                <span className="font-bold tracking-tight">Active Emergencies</span>
                 <p className="text-xs text-muted-foreground">Critical & High</p>
               </div>
             </div>
@@ -298,7 +298,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
                 <Users className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <span className="font-black tracking-tight">Total Users</span>
+                <span className="font-bold tracking-tight">Total Users</span>
                 <p className="text-xs text-muted-foreground">All roles</p>
               </div>
             </div>
@@ -315,7 +315,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
                 <TrendingUp className="h-5 w-5 text-success" />
               </div>
               <div>
-                <span className="font-black tracking-tight">Response Time</span>
+                <span className="font-bold tracking-tight">Response Time</span>
                 <p className="text-xs text-muted-foreground">Average</p>
               </div>
             </div>
@@ -332,7 +332,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
                 <BarChart3 className="h-5 w-5 text-info" />
               </div>
               <div>
-                <span className="font-black tracking-tight">Completion Rate</span>
+                <span className="font-bold tracking-tight">Completion Rate</span>
                 <p className="text-xs text-muted-foreground">Success Rate</p>
               </div>
             </div>

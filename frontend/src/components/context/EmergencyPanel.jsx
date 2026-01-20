@@ -28,7 +28,7 @@ export const EmergencyPanel = ({ emergencyData, emergencyStats, useMockData }) =
         >
           <div className="flex items-center gap-2 text-xs text-warning">
             <AlertTriangle className="h-3 w-3" />
-            <span className="font-medium">Using Mock Data</span>
+            <span className="font-normal">Using Mock Data</span>
           </div>
         </motion.div>
       )}
@@ -39,7 +39,7 @@ export const EmergencyPanel = ({ emergencyData, emergencyStats, useMockData }) =
         animate={{ opacity: 1, y: 0 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Emergency Overview</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Emergency Overview</h3>
 
         <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
           <div className="flex items-center justify-between">
@@ -48,7 +48,7 @@ export const EmergencyPanel = ({ emergencyData, emergencyStats, useMockData }) =
                 <AlertTriangle className="h-5 w-5 text-destructive" />
               </div>
               <div>
-                <span className="font-black tracking-tight">Critical</span>
+                <span className="font-bold tracking-tight">Critical</span>
                 <p className="text-xs text-muted-foreground">Immediate attention</p>
               </div>
             </div>
@@ -63,7 +63,7 @@ export const EmergencyPanel = ({ emergencyData, emergencyStats, useMockData }) =
                 <Clock className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <span className="font-black tracking-tight">Pending</span>
+                <span className="font-bold tracking-tight">Pending</span>
                 <p className="text-xs text-muted-foreground">Awaiting response</p>
               </div>
             </div>
@@ -78,7 +78,7 @@ export const EmergencyPanel = ({ emergencyData, emergencyStats, useMockData }) =
                 <Activity className="h-5 w-5 text-info" />
               </div>
               <div>
-                <span className="font-black tracking-tight">In Progress</span>
+                <span className="font-bold tracking-tight">In Progress</span>
                 <p className="text-xs text-muted-foreground">Being handled</p>
               </div>
             </div>
@@ -93,7 +93,7 @@ export const EmergencyPanel = ({ emergencyData, emergencyStats, useMockData }) =
                 <TrendingUp className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <span className="font-black tracking-tight">Total Requests</span>
+                <span className="font-bold tracking-tight">Total Requests</span>
                 <p className="text-xs text-muted-foreground">All time</p>
               </div>
             </div>
@@ -109,7 +109,7 @@ export const EmergencyPanel = ({ emergencyData, emergencyStats, useMockData }) =
         transition={{ delay: 0.1 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Recent Activity</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Recent Activity</h3>
 
         <div className="space-y-2">
           {emergencyData.slice(0, 3).map((request) => (
@@ -121,7 +121,7 @@ export const EmergencyPanel = ({ emergencyData, emergencyStats, useMockData }) =
                       request.priority === 'medium' ? 'bg-info' : 'bg-success'
                     }`} />
                   <div>
-                    <p className="font-medium text-sm">{request.patient_name}</p>
+                    <p className="font-normal text-sm">{request.patient_name}</p>
                     <p className="text-xs text-muted-foreground truncate max-w-[120px]">
                       {request.location || 'Unknown location'}
                     </p>
@@ -143,14 +143,14 @@ export const EmergencyPanel = ({ emergencyData, emergencyStats, useMockData }) =
         transition={{ delay: 0.2 }}
         className="space-y-3"
       >
-        <h3 className="font-black text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
-        <button 
+        <button
           onClick={handleCreateEmergency}
           className="w-full p-4 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-destructive/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
         >
           <Zap className="h-4 w-4 text-destructive" />
-          <span className="font-black tracking-tight text-destructive">New Emergency Request</span>
+          <span className="font-bold tracking-tight text-destructive">New Emergency Request</span>
         </button>
       </motion.div>
     </div>

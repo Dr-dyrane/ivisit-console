@@ -41,11 +41,10 @@ export const SubscriptionListView = ({
                         <Card className="bg-background/35 backdrop-blur-xs squircle-lg p-0 border-0 shadow-premium hover-lift transition-all group overflow-hidden">
                             <div className="p-5 flex flex-col md:flex-row md:items-center gap-4 relative">
                                 {/* Status Strip Gradient */}
-                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                                    subscriber.status === 'active' ? 'bg-success' : 
-                                    subscriber.status === 'unsubscribed' ? 'bg-destructive' : 
-                                    subscriber.status === 'pending' ? 'bg-warning' : 'bg-muted'
-                                }`} />
+                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${subscriber.status === 'active' ? 'bg-success' :
+                                    subscriber.status === 'unsubscribed' ? 'bg-destructive' :
+                                        subscriber.status === 'pending' ? 'bg-warning' : 'bg-muted'
+                                    }`} />
 
                                 {/* Main Content */}
                                 <div className="flex-1 space-y-3 md:space-y-0 md:pl-4">
@@ -63,7 +62,7 @@ export const SubscriptionListView = ({
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <h3 className="font-black text-lg tracking-tight text-foreground line-clamp-1">
+                                                    <h3 className="font-bold text-lg tracking-tight text-foreground line-clamp-1">
                                                         {subscriber.email}
                                                     </h3>
                                                     {subscriber.new_user && (
@@ -73,7 +72,7 @@ export const SubscriptionListView = ({
                                                     )}
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                                                    <Badge className={`geo-sharp ${getTypeBadge(subscriber.type)} border-0 font-black editorial-subtitle px-2 py-0.5`}>
+                                                    <Badge className={`geo-sharp ${getTypeBadge(subscriber.type)} border-0 font-bold editorial-subtitle px-2 py-0.5`}>
                                                         {subscriber.type}
                                                     </Badge>
                                                     <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
@@ -88,8 +87,8 @@ export const SubscriptionListView = ({
                                             <div className="flex items-center gap-2">
                                                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                                                 <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Joined</span>
-                                                    <span className="text-sm font-medium">
+                                                    <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Joined</span>
+                                                    <span className="text-sm font-normal">
                                                         {subscriber.subscription_date ? new Date(subscriber.subscription_date).toLocaleDateString() : 'N/A'}
                                                     </span>
                                                 </div>
@@ -98,8 +97,8 @@ export const SubscriptionListView = ({
                                             <div className="flex items-center gap-2">
                                                 <Mail className="h-3.5 w-3.5 text-muted-foreground" />
                                                 <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Welcome</span>
-                                                    <span className="text-sm font-medium">
+                                                    <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Welcome</span>
+                                                    <span className="text-sm font-normal">
                                                         {subscriber.welcome_email_sent ? 'Sent' : 'Pending'}
                                                     </span>
                                                 </div>
@@ -107,7 +106,7 @@ export const SubscriptionListView = ({
 
                                             <div className="flex items-center gap-2">
                                                 <div className="flex flex-col md:items-end">
-                                                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Status</span>
+                                                    <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Status</span>
                                                     <Badge className={`geo-sharp border-0 px-2 py-0.5 ${getStatusBadge(subscriber.status)}`}>
                                                         {subscriber.status}
                                                     </Badge>

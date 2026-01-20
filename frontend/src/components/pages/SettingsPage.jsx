@@ -32,7 +32,7 @@ export const SettingsPage = () => {
         <Button
             variant="ghost"
             onClick={handleSignOut}
-            className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase text-destructive hover:bg-destructive/10"
+            className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase text-destructive hover:bg-destructive/10"
         >
             <LogOut className="h-4 w-4 mr-2" />
             SIGN OUT
@@ -83,17 +83,17 @@ export const SettingsPage = () => {
                             <div className="px-8 pb-8 -mt-16 relative z-10">
                                 <div className="flex items-end gap-6 mb-6">
                                     <Avatar className="h-32 w-32 squircle-2xl border-4 border-background shadow-2xl">
-                                        <AvatarImage 
-                                          src={getAvatarUrl(profile, user)} 
-                                          className="object-cover" 
+                                        <AvatarImage
+                                            src={getAvatarUrl(profile, user)}
+                                            className="object-cover"
                                         />
-                                        <AvatarFallback className="squircle bg-muted text-muted-foreground font-black text-4xl">
+                                        <AvatarFallback className="squircle bg-muted text-muted-foreground font-bold text-4xl">
                                             {getAvatarFallback(profile, user)}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="mb-2">
-                                        <h2 className="text-3xl font-black tracking-tighter">{profile?.username || 'User'}</h2>
-                                        <p className="text-muted-foreground font-medium flex items-center gap-2">
+                                        <h2 className="text-3xl font-bold tracking-tighter">{profile?.username || 'User'}</h2>
+                                        <p className="text-muted-foreground font-normal flex items-center gap-2">
                                             <Mail className="h-4 w-4" /> {user?.email || profile?.email}
                                         </p>
                                     </div>
@@ -105,14 +105,14 @@ export const SettingsPage = () => {
                                             <div className="p-2 squircle bg-primary/10 text-primary">
                                                 <Shield className="w-5 h-5" />
                                             </div>
-                                            <span className="font-bold text-sm uppercase text-muted-foreground">Account Role</span>
+                                            <span className="font-semibold text-sm uppercase text-muted-foreground">Account Role</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Badge className={`squircle font-black text-sm px-3 py-1 ${getRoleBadgeColor(profile?.role)}`}>
+                                            <Badge className={`squircle font-bold text-sm px-3 py-1 ${getRoleBadgeColor(profile?.role)}`}>
                                                 {profile?.role?.toUpperCase() || 'VIEWER'}
                                             </Badge>
                                             {profile?.bvn_verified && (
-                                                <Badge className="squircle bg-success/20 text-success font-bold border-0">
+                                                <Badge className="squircle bg-success/20 text-success font-semibold border-0">
                                                     VERIFIED
                                                 </Badge>
                                             )}
@@ -124,9 +124,9 @@ export const SettingsPage = () => {
                                             <div className="p-2 squircle bg-info/10 text-info">
                                                 <Smartphone className="w-5 h-5" />
                                             </div>
-                                            <span className="font-bold text-sm uppercase text-muted-foreground">Contact</span>
+                                            <span className="font-semibold text-sm uppercase text-muted-foreground">Contact</span>
                                         </div>
-                                        <p className="font-mono font-bold text-lg">{profile?.phone || 'Not linked'}</p>
+                                        <p className="font-mono font-semibold text-lg">{profile?.phone || 'Not linked'}</p>
                                     </div>
 
                                     <div className="p-4 squircle-xl bg-muted/30 hover:bg-muted/50 transition-colors col-span-1 md:col-span-2">
@@ -136,11 +136,11 @@ export const SettingsPage = () => {
                                                     <CreditCard className="w-5 h-5" />
                                                 </div>
                                                 <div>
-                                                    <span className="font-bold text-sm uppercase text-muted-foreground block">Subscription Plan</span>
-                                                    <span className="font-black text-lg">Free Tier</span>
+                                                    <span className="font-semibold text-sm uppercase text-muted-foreground block">Subscription Plan</span>
+                                                    <span className="font-bold text-lg">Free Tier</span>
                                                 </div>
                                             </div>
-                                            <Button variant="ghost" className="squircle bg-primary/10 text-primary hover:bg-primary/20 font-bold">
+                                            <Button variant="ghost" className="squircle bg-primary/10 text-primary hover:bg-primary/20 font-semibold">
                                                 Upgrade
                                             </Button>
                                         </div>
@@ -164,19 +164,19 @@ export const SettingsPage = () => {
                                 </div>
                                 <Badge className="squircle bg-primary/10 text-primary border-0">Security</Badge>
                             </div>
-                            <h3 className="font-black text-xl mb-4">Access Rights</h3>
+                            <h3 className="font-bold text-xl mb-4">Access Rights</h3>
 
                             <div className="space-y-3 flex-1">
                                 <div className="flex items-center justify-between p-3 squircle-lg bg-muted/30">
-                                    <span className="font-semibold text-sm">Dashboard</span>
+                                    <span className="font-medium text-sm">Dashboard</span>
                                     <div className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
                                 </div>
                                 <div className="flex items-center justify-between p-3 squircle-lg bg-muted/30">
-                                    <span className="font-semibold text-sm">CRUD Ops</span>
+                                    <span className="font-medium text-sm">CRUD Ops</span>
                                     <div className={`w-2 h-2 rounded-full ${isProvider() ? 'bg-success shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-muted-foreground'}`} />
                                 </div>
                                 <div className="flex items-center justify-between p-3 squircle-lg bg-muted/30">
-                                    <span className="font-semibold text-sm">User Mgmt</span>
+                                    <span className="font-medium text-sm">User Mgmt</span>
                                     <div className={`w-2 h-2 rounded-full ${isAdmin() ? 'bg-success shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-muted-foreground'}`} />
                                 </div>
                             </div>
@@ -196,13 +196,13 @@ export const SettingsPage = () => {
                                     <Globe className="h-6 w-6" />
                                 </div>
                             </div>
-                            <h3 className="font-black text-xl mb-4">App Preferences</h3>
+                            <h3 className="font-bold text-xl mb-4">App Preferences</h3>
 
                             <div className="space-y-4 flex-1">
                                 <div className="flex items-center justify-between p-4 squircle-lg bg-muted/30 group-hover:bg-muted/50 transition-colors">
                                     <div className="flex items-center gap-3">
                                         {darkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-                                        <span className="font-bold">Dark Mode</span>
+                                        <span className="font-semibold">Dark Mode</span>
                                     </div>
                                     <Button
                                         variant="ghost"
@@ -216,7 +216,7 @@ export const SettingsPage = () => {
                                 <div className="flex items-center justify-between p-4 squircle-lg bg-muted/30 group-hover:bg-muted/50 transition-colors">
                                     <div className="flex items-center gap-3">
                                         <Bell className="h-5 w-5" />
-                                        <span className="font-bold">Notifications</span>
+                                        <span className="font-semibold">Notifications</span>
                                     </div>
                                     <Badge className="squircle bg-primary/20 text-primary hover:bg-primary/30 cursor-pointer">
                                         Enabled
@@ -241,8 +241,8 @@ export const SettingsPage = () => {
                                 <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-destructive transition-colors" />
                             </div>
                             <div>
-                                <h3 className="font-black text-xl text-destructive mb-1">Sign Out</h3>
-                                <p className="text-sm font-medium text-muted-foreground">End your current session securely</p>
+                                <h3 className="font-bold text-xl text-destructive mb-1">Sign Out</h3>
+                                <p className="text-sm font-normal text-muted-foreground">End your current session securely</p>
                             </div>
                         </Card>
                     </motion.div>

@@ -7,7 +7,7 @@ export const BentoBreadcrumbs = () => {
     const pathnames = location.pathname.split('/').filter((x) => x);
 
     return (
-        <nav className="flex items-center text-sm font-medium text-muted-foreground">
+        <nav className="flex items-center text-sm font-normal text-muted-foreground">
             <Link
                 to="/"
                 className="flex items-center hover:text-foreground transition-colors p-1.5 rounded-lg hover:bg-white/5"
@@ -23,7 +23,7 @@ export const BentoBreadcrumbs = () => {
                     <div key={to} className="flex items-center">
                         <ChevronRight className="w-4 h-4 mx-1 text-muted-foreground/40" />
                         {isLast ? (
-                            <span className="text-foreground font-semibold px-2 py-1 bg-white/5 rounded-md capitalize">
+                            <span className="text-foreground font-medium px-2 py-1 bg-white/5 rounded-md capitalize">
                                 {value.replace(/-/g, ' ')}
                             </span>
                         ) : (

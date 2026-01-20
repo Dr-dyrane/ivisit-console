@@ -50,10 +50,10 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker }) => {
 					<div className="p-5 -mt-6 relative z-10">
 						<div className="squircle-lg bg-background shadow-lg p-4 mb-4 flex items-center justify-between">
 							<div>
-								<p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+								<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
 									{selectedMarker.type}
 								</p>
-								<h3 className="font-black text-xl truncate w-48">
+								<h3 className="font-bold text-xl truncate w-48">
 									{selectedMarker.data.name ||
 										selectedMarker.data.call_sign ||
 										`#${selectedMarker.data.id?.slice(-6)}`}
@@ -65,7 +65,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker }) => {
 							<div className="space-y-4">
 								<div className="flex items-center gap-2">
 									<Badge
-										className={`squircle font-bold ${selectedMarker.data.priority === "critical"
+										className={`squircle font-semibold ${selectedMarker.data.priority === "critical"
 											? "bg-destructive text-destructive-foreground"
 											: selectedMarker.data.priority === "high"
 												? "bg-warning text-warning-foreground"
@@ -85,14 +85,14 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker }) => {
 								<div className="p-3 squircle bg-muted/30">
 									<div className="flex items-start gap-2 text-sm">
 										<MapPin className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
-										<span className="font-medium">
+										<span className="font-normal">
 											{selectedMarker.data.location || "Location shared"}
 										</span>
 									</div>
 								</div>
 
 								<Button
-									className="w-full squircle bg-primary shadow-glow font-bold"
+									className="w-full squircle bg-primary shadow-glow font-semibold"
 									size="lg"
 								>
 									Dispatch Unit
@@ -104,11 +104,11 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker }) => {
 							<div className="space-y-4">
 								<div className="grid grid-cols-2 gap-3">
 									<div className="p-3 squircle bg-muted/30 text-center">
-										<p className="text-xs text-muted-foreground font-bold">
+										<p className="text-xs text-muted-foreground font-semibold">
 											STATUS
 										</p>
 										<p
-											className={`font-black ${selectedMarker.data.status === "available"
+											className={`font-bold ${selectedMarker.data.status === "available"
 												? "text-success"
 												: "text-warning"
 												}`}
@@ -117,19 +117,19 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker }) => {
 										</p>
 									</div>
 									<div className="p-3 squircle bg-muted/30 text-center">
-										<p className="text-xs text-muted-foreground font-bold">
+										<p className="text-xs text-muted-foreground font-semibold">
 											TYPE
 										</p>
-										<p className="font-black">
+										<p className="font-bold">
 											{selectedMarker.data.type || "BLS"}
 										</p>
 									</div>
 								</div>
 								<div className="p-3 squircle bg-muted/30 flex justify-between items-center">
-									<span className="text-sm font-semibold text-muted-foreground">
+									<span className="text-sm font-medium text-muted-foreground">
 										Vehicle No.
 									</span>
-									<span className="font-bold font-mono">
+									<span className="font-semibold font-mono">
 										{selectedMarker.data.vehicle_number}
 									</span>
 								</div>
@@ -143,18 +143,18 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker }) => {
 								</p>
 								<div className="grid grid-cols-2 gap-3">
 									<div className="p-3 squircle bg-muted/30">
-										<p className="text-xs text-muted-foreground font-bold mb-1">
+										<p className="text-xs text-muted-foreground font-semibold mb-1">
 											BEDS
 										</p>
-										<p className="font-black text-2xl text-primary">
+										<p className="font-bold text-2xl text-primary">
 											{selectedMarker.data.available_beds || 0}
 										</p>
 									</div>
 									<div className="p-3 squircle bg-muted/30">
-										<p className="text-xs text-muted-foreground font-bold mb-1">
+										<p className="text-xs text-muted-foreground font-semibold mb-1">
 											FLEET
 										</p>
-										<p className="font-black text-2xl">
+										<p className="font-bold text-2xl">
 											{selectedMarker.data.ambulances_count || 0}
 										</p>
 									</div>
@@ -162,7 +162,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker }) => {
 								{selectedMarker.data.phone && (
 									<Button
 										variant="outline"
-										className="w-full squircle font-bold"
+										className="w-full squircle font-semibold"
 										size="sm"
 									>
 										<Phone className="h-4 w-4 mr-2" />

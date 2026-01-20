@@ -96,7 +96,7 @@ export const ContextAwareFAB = () => {
           <motion.div
             initial={{ opacity: 0, x: 10 }}
             whileHover={{ opacity: 1, x: 0 }}
-            className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1 bg-foreground text-background text-sm font-medium rounded-lg whitespace-nowrap pointer-events-none"
+            className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1 bg-foreground text-background text-sm font-normal rounded-lg whitespace-nowrap pointer-events-none"
           >
             {actionConfig.label}
             <div className="absolute left-full top-1/2 -translate-y-1/2 w-0 h-0 border-l-8 border-l-foreground border-y-4 border-y-transparent" />

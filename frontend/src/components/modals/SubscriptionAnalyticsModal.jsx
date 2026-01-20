@@ -41,8 +41,8 @@ export const SubscriptionAnalyticsModal = ({ open, onClose, analytics }) => {
                   <Users className="h-7 w-7 text-primary" />
                 </div>
                 <div>
-                  <h2 className="font-black text-2xl tracking-tighter leading-none">Analytics</h2>
-                  <p className="text-sm font-medium text-muted-foreground opacity-60">Subscriber growth & performance</p>
+                  <h2 className="font-bold text-2xl tracking-tighter leading-none">Analytics</h2>
+                  <p className="text-sm font-normal text-muted-foreground opacity-60">Subscriber growth & performance</p>
                 </div>
               </div>
               <button
@@ -88,7 +88,7 @@ export const SubscriptionAnalyticsModal = ({ open, onClose, analytics }) => {
 
                 <div className="p-3 sm:p-5 rounded-3xl bg-white/5  border-white/10  transition-transform hover:scale-[1.02]p-8 space-y-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-black tracking-tight text-lg">Acquisition</h3>
+                    <h3 className="font-bold tracking-tight text-lg">Acquisition</h3>
                     <TrendingUp className="text-primary h-5 w-5 opacity-40" />
                   </div>
 
@@ -108,10 +108,10 @@ export const SubscriptionAnalyticsModal = ({ open, onClose, analytics }) => {
 
                 <div className="p-3 sm:p-5 rounded-3xl bg-white/5  border-white/10  transition-transform hover:scale-[1.02] p-8 flex flex-col justify-center text-center space-y-2">
                   <Mail className="h-8 w-8 text-primary mx-auto mb-2 opacity-40" />
-                  <p className="text-4xl font-black tracking-tighter">
+                  <p className="text-4xl font-bold tracking-tighter">
                     {getPct(analytics.welcomeEmailsSent, analytics.total)}%
                   </p>
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                     Welcome Engagement
                   </p>
                 </div>
@@ -122,7 +122,7 @@ export const SubscriptionAnalyticsModal = ({ open, onClose, analytics }) => {
               <div className="ios-bubble p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <BarChart3 className="h-5 w-5 text-primary" />
-                  <h3 className="font-black tracking-tight text-lg">Health Insights</h3>
+                  <h3 className="font-bold tracking-tight text-lg">Health Insights</h3>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -150,7 +150,7 @@ export const SubscriptionAnalyticsModal = ({ open, onClose, analytics }) => {
             <div className="p-6 md:p-10 pt-4 flex justify-end">
               <Button
                 onClick={onClose}
-                className="w-full md:w-auto py-6 px-10 rounded-2xl bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] shadow-xl shadow-primary/20"
+                className="w-full md:w-auto py-6 px-10 rounded-2xl bg-primary text-white font-semibold uppercase text-[10px] tracking-[0.3em] shadow-xl shadow-primary/20"
               >
                 Close Analytics
               </Button>
@@ -170,15 +170,15 @@ const StatBubble = ({ label, value, subText, icon }) => (
       <div className="p-2 bg-foreground/[0.03] rounded-xl">{icon}</div>
       <ChevronRight className="h-4 w-4 opacity-10 group-hover:opacity-100 transition-opacity" />
     </div>
-    <p className="text-3xl font-black tracking-tighter mb-1">{value}</p>
-    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">{label}</p>
-    {subText && <p className="text-[10px] text-primary font-medium mt-1">{subText}</p>}
+    <p className="text-3xl font-bold tracking-tighter mb-1">{value}</p>
+    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground opacity-60">{label}</p>
+    {subText && <p className="text-[10px] text-primary font-normal mt-1">{subText}</p>}
   </div>
 );
 
 const ProgressRow = ({ label, pct, color }) => (
   <div className="space-y-2">
-    <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest">
+    <div className="flex justify-between text-[11px] font-semibold uppercase tracking-widest">
       <span className="opacity-40">{label}</span>
       <span className="text-primary">{pct}%</span>
     </div>
@@ -200,8 +200,8 @@ const InsightCard = ({ title, desc, status }) => {
   };
   return (
     <div className={`p-4 rounded-2xl ${colors[status]} border border-current/10`}>
-      <h4 className="font-bold text-xs uppercase tracking-widest mb-1">{title}</h4>
-      <p className="text-sm font-medium opacity-80">{desc}</p>
+      <h4 className="font-semibold text-xs uppercase tracking-widest mb-1">{title}</h4>
+      <p className="text-sm font-normal opacity-80">{desc}</p>
     </div>
   );
 };

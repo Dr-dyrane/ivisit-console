@@ -81,24 +81,24 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
             <div className="flex items-center justify-between p-8 pb-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16 rounded-2xl border-4 border-background shadow-xl">
-                  <AvatarImage 
-                    src={formData.imageuri || formData.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.username}`} 
-                    className="object-cover" 
+                  <AvatarImage
+                    src={formData.imageuri || formData.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.username}`}
+                    className="object-cover"
                   />
-                  <AvatarFallback className="text-2xl font-black bg-muted text-muted-foreground rounded-2xl">
+                  <AvatarFallback className="text-2xl font-bold bg-muted text-muted-foreground rounded-2xl">
                     {formData.username?.[0]?.toUpperCase() || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
                     {formData.username || 'New User'}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge className="rounded-full bg-primary/10 text-primary border-0 font-bold px-3 py-0.5 text-xs">
+                    <Badge className="rounded-full bg-primary/10 text-primary border-0 font-semibold px-3 py-0.5 text-xs">
                       {formData.role?.toUpperCase() || 'PATIENT'}
                     </Badge>
                     {formData.bvn_verified && (
-                      <Badge className="rounded-full bg-green-500/10 text-green-500 border-0 font-bold px-3 py-0.5 text-xs flex items-center gap-1">
+                      <Badge className="rounded-full bg-green-500/10 text-green-500 border-0 font-semibold px-3 py-0.5 text-xs flex items-center gap-1">
                         <BadgeCheck className="w-3 h-3" /> VERIFIED
                       </Badge>
                     )}
@@ -116,24 +116,24 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
 
             <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
               <form onSubmit={handleSubmit} className="space-y-6">
-                
+
                 {/* Personal Information Section */}
                 <GlassCard icon={<User className="text-primary" />} title="Personal Information">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="username" className="text-xs font-bold text-muted-foreground uppercase">Full Name</Label>
+                      <Label htmlFor="username" className="text-xs font-semibold text-muted-foreground uppercase">Full Name</Label>
                       <Input
                         id="username"
                         name="username"
                         value={formData.username}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-semibold"
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
                         placeholder="John Doe"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-xs font-bold text-muted-foreground uppercase">Email Address</Label>
+                      <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground uppercase">Email Address</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -143,13 +143,13 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                           value={formData.email}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-medium"
+                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-normal"
                           placeholder="john@example.com"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-xs font-bold text-muted-foreground uppercase">Phone Number</Label>
+                      <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground uppercase">Phone Number</Label>
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -164,7 +164,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="date_of_birth" className="text-xs font-bold text-muted-foreground uppercase">Date of Birth</Label>
+                      <Label htmlFor="date_of_birth" className="text-xs font-semibold text-muted-foreground uppercase">Date of Birth</Label>
                       <div className="relative">
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -174,7 +174,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                           value={formData.date_of_birth}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-medium"
+                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-normal"
                         />
                       </div>
                     </div>
@@ -185,13 +185,13 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                 <GlassCard icon={<Shield className="text-primary" />} title="Role & Access">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="role" className="text-xs font-bold text-muted-foreground uppercase">System Role</Label>
-                      <Select 
-                        value={formData.role} 
+                      <Label htmlFor="role" className="text-xs font-semibold text-muted-foreground uppercase">System Role</Label>
+                      <Select
+                        value={formData.role}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-semibold">
+                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -204,13 +204,13 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
 
                     {formData.role === 'provider' && (
                       <div className="space-y-2">
-                        <Label htmlFor="provider_type" className="text-xs font-bold text-muted-foreground uppercase">Provider Type</Label>
-                        <Select 
-                          value={formData.provider_type} 
+                        <Label htmlFor="provider_type" className="text-xs font-semibold text-muted-foreground uppercase">Provider Type</Label>
+                        <Select
+                          value={formData.provider_type}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, provider_type: value }))}
                           disabled={isView}
                         >
-                          <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-semibold">
+                          <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
                             <SelectValue placeholder="Select type" />
                           </SelectTrigger>
                           <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -222,14 +222,14 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                         </Select>
                       </div>
                     )}
-                    
+
                     <div className="col-span-1 md:col-span-2 p-4 rounded-2xl bg-primary/5 flex items-center justify-between border border-primary/10">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                           <CreditCard className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="font-bold text-sm">Identity Verification</p>
+                          <p className="font-semibold text-sm">Identity Verification</p>
                           <p className="text-xs text-muted-foreground">BVN and document status</p>
                         </div>
                       </div>
@@ -245,14 +245,14 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                 {/* Address Section */}
                 <GlassCard icon={<MapPin className="text-primary" />} title="Location">
                   <div className="space-y-2">
-                    <Label htmlFor="address" className="text-xs font-bold text-muted-foreground uppercase">Full Address</Label>
+                    <Label htmlFor="address" className="text-xs font-semibold text-muted-foreground uppercase">Full Address</Label>
                     <Input
                       id="address"
                       name="address"
                       value={formData.address}
                       onChange={handleChange}
                       disabled={isView}
-                      className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
+                      className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-normal"
                       placeholder="Street address, City, State"
                     />
                   </div>
@@ -266,14 +266,14 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                         type="button"
                         variant="ghost"
                         onClick={() => onClose(false)}
-                        className="rounded-2xl font-bold text-muted-foreground hover:bg-muted"
+                        className="rounded-2xl font-semibold text-muted-foreground hover:bg-muted"
                         disabled={loading}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
-                        className="rounded-2xl bg-primary hover:bg-primary/90 font-bold px-8"
+                        className="rounded-2xl bg-primary hover:bg-primary/90 font-semibold px-8"
                         disabled={loading}
                       >
                         {loading ? 'Saving...' : (isCreate ? 'Create Profile' : 'Save Changes')}
@@ -283,7 +283,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                     <Button
                       type="button"
                       onClick={() => onClose(false)}
-                      className="rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-bold px-8"
+                      className="rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-semibold px-8"
                     >
                       Close
                     </Button>
@@ -305,7 +305,7 @@ const GlassCard = ({ children, title, icon }) => (
       <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
-      <h3 className="font-bold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
+      <h3 className="font-semibold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
     </div>
     {children}
   </div>

@@ -16,12 +16,12 @@ export const EmergencyRequestTableView = ({ requests, onView, onDelete, getPrior
         <Table>
           <TableHeader>
             <TableRow className="border-b border-white/10 hover:bg-transparent">
-              <TableHead className="font-black uppercase tracking-wider">Type</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Priority</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Status</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Location</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Time</TableHead>
-              <TableHead className="font-black uppercase tracking-wider">Actions</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Type</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Priority</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Status</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Location</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Time</TableHead>
+              <TableHead className="font-bold uppercase tracking-wider">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -33,9 +33,9 @@ export const EmergencyRequestTableView = ({ requests, onView, onDelete, getPrior
                 transition={{ delay: index * 0.02 }}
                 className="border-b border-white/10 hover:bg-white/5 transition-colors group"
               >
-                <TableCell className="font-black">{req.emergency_type || 'Unknown'}</TableCell>
+                <TableCell className="font-bold">{req.emergency_type || 'Unknown'}</TableCell>
                 <TableCell>
-                  <Badge className={`squircle-sm ${getPriorityBadge(req.priority)} border-0 font-black`}>
+                  <Badge className={`squircle-sm ${getPriorityBadge(req.priority)} border-0 font-bold`}>
                     {req.priority}
                   </Badge>
                 </TableCell>

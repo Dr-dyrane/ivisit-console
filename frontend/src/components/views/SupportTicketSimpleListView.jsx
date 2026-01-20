@@ -40,14 +40,14 @@ export const SupportTicketSimpleListView = ({
             <div className="flex items-center gap-3 md:gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 md:gap-3 mb-2">
-                  <h3 className="font-black text-sm md:text-lg truncate group-hover:text-primary transition-colors">
+                  <h3 className="font-bold text-sm md:text-lg truncate group-hover:text-primary transition-colors">
                     {ticket.subject || 'No Subject'}
                   </h3>
                   <div className="flex gap-1 md:gap-2 flex-shrink-0">
-                    <Badge className={`squircle-sm ${getPriorityColor(ticket.priority)} border-0 font-black text-xs`}>
+                    <Badge className={`squircle-sm ${getPriorityColor(ticket.priority)} border-0 font-bold text-xs`}>
                       {ticket.priority || 'normal'}
                     </Badge>
-                    <Badge className={`squircle-sm ${getStatusConfig(ticket.status).badgeClass} border-0 font-black text-xs`}>
+                    <Badge className={`squircle-sm ${getStatusConfig(ticket.status).badgeClass} border-0 font-bold text-xs`}>
                       {ticket.status?.replace('_', ' ') || 'open'}
                     </Badge>
                   </div>

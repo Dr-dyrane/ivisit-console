@@ -82,14 +82,14 @@ export const LoginPage = () => {
 							<ShieldCheck className="text-white w-9 h-9" />
 						</div>
 						<div className="space-y-1 mb-6">
-							<p className="text-2xl font-medium tracking-tight opacity-40">
+							<p className="text-2xl font-normal tracking-tight opacity-40">
 								{greeting},
 							</p>
-							<h1 className="text-7xl font-black tracking-tighter leading-none">
+							<h1 className="text-7xl font-bold tracking-tighter leading-none">
 								iVisit<span className="text-primary">.</span>
 							</h1>
 						</div>
-						<p className="text-xl text-muted-foreground font-medium leading-tight max-w-sm">
+						<p className="text-xl text-muted-foreground font-normal leading-tight max-w-sm">
 							Mission-critical emergency response coordination link.
 						</p>
 					</motion.div>
@@ -98,13 +98,13 @@ export const LoginPage = () => {
 					<div className="flex gap-4">
 						<div className="flex items-center gap-2 px-4 py-2 bg-foreground/5 rounded-full border border-foreground/5">
 							<Globe size={14} className="text-primary" />
-							<span className="text-[10px] font-black tracking-widest uppercase opacity-60">
+							<span className="text-[10px] font-bold tracking-widest uppercase opacity-60">
 								HQ-Core
 							</span>
 						</div>
 						<div className="flex items-center gap-2 px-4 py-2 bg-foreground/5 rounded-full border border-foreground/5">
 							<Server size={14} className="text-primary" />
-							<span className="text-[10px] font-black tracking-widest uppercase opacity-60">
+							<span className="text-[10px] font-bold tracking-widest uppercase opacity-60">
 								Secure
 							</span>
 						</div>
@@ -121,10 +121,10 @@ export const LoginPage = () => {
 						{/* MOBILE ONLY LOGO */}
 						<div className="lg:hidden flex flex-col items-center pt-12 pb-6">
 							<div className="space-y-1 text-center">
-								<p className="text-sm font-medium tracking-tight opacity-40">
+								<p className="text-sm font-normal tracking-tight opacity-40">
 									{greeting},
 								</p>
-								<h1 className="text-4xl font-black tracking-tighter">
+								<h1 className="text-4xl font-bold tracking-tighter">
 									iVisit<span className="text-primary">.</span>
 								</h1>
 							</div>
@@ -140,17 +140,15 @@ export const LoginPage = () => {
 								/>
 								<button
 									onClick={() => setIsLogin(true)}
-									className={`relative z-10 w-1/2 py-2 text-xs font-bold transition-colors ${
-										isLogin ? "text-foreground" : "text-muted-foreground"
-									}`}
+									className={`relative z-10 w-1/2 py-2 text-xs font-semibold transition-colors ${isLogin ? "text-foreground" : "text-muted-foreground"
+										}`}
 								>
 									Sign In
 								</button>
 								<button
 									onClick={() => setIsLogin(false)}
-									className={`relative z-10 w-1/2 py-2 text-xs font-bold transition-colors ${
-										!isLogin ? "text-foreground" : "text-muted-foreground"
-									}`}
+									className={`relative z-10 w-1/2 py-2 text-xs font-semibold transition-colors ${!isLogin ? "text-foreground" : "text-muted-foreground"
+										}`}
 								>
 									Register
 								</button>
@@ -164,13 +162,13 @@ export const LoginPage = () => {
 											animate={{ opacity: 1, height: "auto" }}
 											exit={{ opacity: 0, height: 0 }}
 										>
-											<label className="text-[10px] font-bold tracking-widest uppercase opacity-40 ml-4 mb-1.5 block">
+											<label className="text-[10px] font-semibold tracking-widest uppercase opacity-40 ml-4 mb-1.5 block">
 												Identity_Operator
 											</label>
 											<div className="ios-input-well rounded-2xl flex items-center px-5">
 												<User size={18} className="opacity-20" />
 												<input
-													className="w-full bg-transparent border-none py-4.5 px-4 text-base outline-none font-medium"
+													className="w-full bg-transparent border-none py-4.5 px-4 text-base outline-none font-normal"
 													placeholder="Operator Name"
 													onChange={(e) =>
 														setFormData({
@@ -185,14 +183,14 @@ export const LoginPage = () => {
 								</AnimatePresence>
 
 								<div className="space-y-1.5">
-									<label className="text-[10px] font-bold tracking-widest uppercase opacity-40 ml-4">
+									<label className="text-[10px] font-semibold tracking-widest uppercase opacity-40 ml-4">
 										Neural Link Email
 									</label>
 									<div className="ios-input-well rounded-2xl flex items-center px-5">
 										<Mail size={18} className="opacity-20" />
 										<input
 											type="email"
-											className="w-full bg-transparent border-none py-4.5 px-4 text-base outline-none font-medium"
+											className="w-full bg-transparent border-none py-4.5 px-4 text-base outline-none font-normal"
 											placeholder="auth@ivisit.com"
 											onChange={(e) =>
 												setFormData({ ...formData, email: e.target.value })
@@ -202,14 +200,14 @@ export const LoginPage = () => {
 								</div>
 
 								<div className="space-y-1.5">
-									<label className="text-[10px] font-bold tracking-widest uppercase opacity-40 ml-4">
+									<label className="text-[10px] font-semibold tracking-widest uppercase opacity-40 ml-4">
 										Access Cipher Phrase
 									</label>
 									<div className="ios-input-well rounded-2xl flex items-center px-5">
 										<Lock size={18} className="opacity-20" />
 										<input
 											type={showPassword ? "text" : "password"}
-											className="w-full bg-transparent border-none py-4.5 px-4 text-base outline-none font-medium"
+											className="w-full bg-transparent border-none py-4.5 px-4 text-base outline-none font-normal"
 											placeholder="••••••••"
 											onChange={(e) =>
 												setFormData({ ...formData, password: e.target.value })
@@ -227,7 +225,7 @@ export const LoginPage = () => {
 
 								<motion.button
 									whileTap={{ scale: 0.98 }}
-									className="w-full mt-8 py-5 bg-primary text-white font-bold text-sm tracking-widest uppercase rounded-2xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 active:brightness-90 transition-all"
+									className="w-full mt-8 py-5 bg-primary text-white font-semibold text-sm tracking-widest uppercase rounded-2xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 active:brightness-90 transition-all"
 								>
 									{loading ? (
 										<div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -243,7 +241,7 @@ export const LoginPage = () => {
 							</form>
 
 							<div className="mt-12 text-center">
-								<p className="text-[10px] font-black tracking-[0.3em] uppercase opacity-20">
+								<p className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-20">
 									IVISIT TERMINAL ACCESS • HQ-01
 								</p>
 							</div>

@@ -177,7 +177,7 @@ export const Analytics = () => {
   const headerActions = useMemo(() => (
     <div className="flex items-center gap-3">
       <Select value={timeRange} onValueChange={setTimeRange}>
-        <SelectTrigger className="w-[140px] h-9 squircle-lg bg-background/35 backdrop-blur-xs border-0 shadow-sm text-xs font-bold uppercase tracking-wider">
+        <SelectTrigger className="w-[140px] h-9 squircle-lg bg-background/35 backdrop-blur-xs border-0 shadow-sm text-xs font-semibold uppercase tracking-wider">
           <SelectValue placeholder="Range" />
         </SelectTrigger>
         <SelectContent className="squircle border-0 shadow-xl bg-background/95 backdrop-blur-xl">
@@ -190,7 +190,7 @@ export const Analytics = () => {
       <Button
         variant="outline"
         size="sm"
-        className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+        className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
         onClick={handleExport}
       >
         <Download className="h-3 w-3 mr-2" />
@@ -318,11 +318,11 @@ export const Analytics = () => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-background/35 backdrop-blur-xs squircle p-3 shadow-lg border-0 bg-background/80 backdrop-blur-md">
-          <p className="font-bold text-sm mb-1">{label}</p>
+          <p className="font-semibold text-sm mb-1">{label}</p>
           {payload.map((entry, index) => (
             <div key={index} className="flex items-center gap-2 text-sm">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-              <span className="font-medium" style={{ color: entry.color }}>
+              <span className="font-normal" style={{ color: entry.color }}>
                 {entry.name}: {entry.value}
               </span>
             </div>
@@ -375,8 +375,8 @@ export const Analytics = () => {
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">{stat.title}</p>
-                      <h3 className="text-4xl font-black tracking-tighter">{stat.value}</h3>
+                      <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">{stat.title}</p>
+                      <h3 className="text-4xl font-bold tracking-tighter">{stat.value}</h3>
                     </div>
                   </div>
                 </Card>
@@ -399,11 +399,11 @@ export const Analytics = () => {
 
                 <div className="flex items-center justify-between mb-6 relative z-10">
                   <div>
-                    <h3 className="font-black text-2xl tracking-tight">Response Time Trend</h3>
-                    <p className="text-muted-foreground font-semibold">Average response time over {timeRange}</p>
+                    <h3 className="font-bold text-2xl tracking-tight">Response Time Trend</h3>
+                    <p className="text-muted-foreground font-medium">Average response time over {timeRange}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Badge className="squircle bg-success/10 text-success border-0 font-bold px-3 py-1">
+                    <Badge className="squircle bg-success/10 text-success border-0 font-semibold px-3 py-1">
                       <TrendingDown className="h-4 w-4 mr-1" />
                       -2.4m avg
                     </Badge>
@@ -470,8 +470,8 @@ export const Analytics = () => {
                   </div>
                 </div>
 
-                <h3 className="font-black text-xl mb-1 tracking-tight">Status</h3>
-                <p className="text-sm text-muted-foreground font-semibold mb-6 w-3/4">Live distribution of requests</p>
+                <h3 className="font-bold text-xl mb-1 tracking-tight">Status</h3>
+                <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Live distribution of requests</p>
 
                 <div className="flex-1 relative min-h-[200px] flex items-center justify-center">
                   <ResponsiveContainer width="100%" height={220}>
@@ -497,15 +497,15 @@ export const Analytics = () => {
                   {/* Center Text Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
                     <div className="text-center">
-                      <p className="text-4xl font-black tracking-tighter text-foreground">{stats.successRate}%</p>
-                      <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">SUCCESS</p>
+                      <p className="text-4xl font-bold tracking-tighter text-foreground">{stats.successRate}%</p>
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">SUCCESS</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2 justify-center">
                   {requestsByStatus.slice(0, 3).map((status, index) => (
-                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-semibold">
+                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
                       <span className="opacity-80">{status.name}</span>
                     </div>
@@ -534,8 +534,8 @@ export const Analytics = () => {
                 </div>
 
                 <div className="mb-6 relative z-10">
-                  <h3 className="font-black text-xl tracking-tight">Subscriptions</h3>
-                  <p className="text-sm text-muted-foreground font-semibold">Community engagement overview</p>
+                  <h3 className="font-bold text-xl tracking-tight">Subscriptions</h3>
+                  <p className="text-sm text-muted-foreground font-medium">Community engagement overview</p>
                 </div>
 
                 <div className="flex-1 relative min-h-[200px] flex items-center justify-center">
@@ -564,19 +564,19 @@ export const Analytics = () => {
                   {/* Center Text Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
                     <div className="text-center">
-                      <p className="text-4xl font-black tracking-tighter text-foreground">{subscriptionStats.total}</p>
-                      <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">TOTAL</p>
+                      <p className="text-4xl font-bold tracking-tighter text-foreground">{subscriptionStats.total}</p>
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">TOTAL</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Type Pills Below */}
                 <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                  <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-warning/20 text-xs font-semibold">
+                  <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-warning/20 text-xs font-medium">
                     <div className="w-2 h-2 rounded-full bg-warning" />
                     <span>Premium {subscriptionStats.paid}</span>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-semibold">
+                  <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
                     <div className="w-2 h-2 rounded-full bg-muted" />
                     <span>Free {subscriptionStats.free}</span>
                   </div>
@@ -586,7 +586,7 @@ export const Analytics = () => {
 
             {/* Small Stat Cards - Row 3 */}
             {[
-              { title: "Total Users", value: stats.totalUsers, icon: Users, trend: "up", trendValue: "+8", color: CHART_COLORS.secondary ,},
+              { title: "Total Users", value: stats.totalUsers, icon: Users, trend: "up", trendValue: "+8", color: CHART_COLORS.secondary, },
               { title: "Hospitals", value: stats.totalHospitals, icon: Hospital, trend: null, trendValue: null, color: CHART_COLORS.info },
               { title: "Ambulances", value: stats.totalAmbulances, icon: Ambulance, trend: null, trendValue: null, color: CHART_COLORS.success },
             ].map((stat, idx) => (
@@ -609,9 +609,9 @@ export const Analytics = () => {
                       <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/5">
                         <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
                       </div>
-                      <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">{stat.title}</p>
+                      <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{stat.title}</p>
                     </div>
-                    <h3 className="text-3xl font-black tracking-tighter">{stat.value}</h3>
+                    <h3 className="text-3xl font-bold tracking-tighter">{stat.value}</h3>
                   </div>
                 </Card>
               </motion.div>
@@ -637,8 +637,8 @@ export const Analytics = () => {
                 </div>
 
                 <div className="mb-6 relative z-10">
-                  <h3 className="font-black text-xl tracking-tight">Daily Volume</h3>
-                  <p className="text-sm text-muted-foreground font-semibold">Requests per day</p>
+                  <h3 className="font-bold text-xl tracking-tight">Daily Volume</h3>
+                  <p className="text-sm text-muted-foreground font-medium">Requests per day</p>
                 </div>
 
                 <div className="flex-1 w-full min-h-[250px] relative z-10">
@@ -695,11 +695,11 @@ export const Analytics = () => {
                 </div>
 
                 <div className="mb-2 relative z-10">
-                  <h3 className="font-black text-xl tracking-tight">Dominant Case</h3>
+                  <h3 className="font-bold text-xl tracking-tight">Dominant Case</h3>
                   {dominantType && (
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-3xl font-black text-destructive tracking-tighter">{dominantType.name}</span>
-                      <Badge className="squircle bg-destructive/10 text-destructive border-0 font-bold">
+                      <span className="text-3xl font-bold text-destructive tracking-tighter">{dominantType.name}</span>
+                      <Badge className="squircle bg-destructive/10 text-destructive border-0 font-semibold">
                         {Math.round((dominantType.value / stats.totalEmergencies) * 100)}% of cases
                       </Badge>
                     </div>
@@ -766,8 +766,8 @@ export const Analytics = () => {
                 </div>
 
                 <div className="mb-6 relative z-10">
-                  <h3 className="font-black text-xl tracking-tight">Search Analytics</h3>
-                  <p className="text-sm text-muted-foreground font-semibold">User search patterns and trends</p>
+                  <h3 className="font-bold text-xl tracking-tight">Search Analytics</h3>
+                  <p className="text-sm text-muted-foreground font-medium">User search patterns and trends</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 flex-1 relative z-10">
@@ -779,12 +779,12 @@ export const Analytics = () => {
                   ].map((metric, idx) => (
                     <div key={idx} className="p-4 geo-round bg-muted/30 hover:bg-muted/50 transition-colors">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-muted-foreground font-semibold">{metric.label}</span>
-                        <Badge className={`squircle-sm ${metric.positive ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'} border-0 font-black text-xs`}>
+                        <span className="text-xs text-muted-foreground font-medium">{metric.label}</span>
+                        <Badge className={`squircle-sm ${metric.positive ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'} border-0 font-bold text-xs`}>
                           {metric.change}
                         </Badge>
                       </div>
-                      <p className="text-2xl font-black tracking-tighter">{metric.value}</p>
+                      <p className="text-2xl font-bold tracking-tighter">{metric.value}</p>
                     </div>
                   ))}
                 </div>
@@ -816,8 +816,8 @@ export const Analytics = () => {
                 </div>
 
                 <div className="mb-6 relative z-10">
-                  <h3 className="font-black text-xl tracking-tight">Performance Metrics</h3>
-                  <p className="text-sm text-muted-foreground font-semibold">System health and efficiency</p>
+                  <h3 className="font-bold text-xl tracking-tight">Performance Metrics</h3>
+                  <p className="text-sm text-muted-foreground font-medium">System health and efficiency</p>
                 </div>
 
                 <div className="space-y-4 flex-1 relative z-10">
@@ -831,14 +831,14 @@ export const Analytics = () => {
                     <div key={idx} className="flex items-center justify-between p-3 geo-sharp bg-muted/20 hover:bg-muted/30 transition-colors">
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
-                          <span className="text-sm font-bold">{metric.label}</span>
+                          <span className="text-sm font-semibold">{metric.label}</span>
                           <Badge className={`squircle-sm ${metric.status === 'excellent' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
-                            } border-0 font-black text-xs`}>
+                            } border-0 font-bold text-xs`}>
                             {metric.status}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4 mt-1">
-                          <span className="text-lg font-black">{metric.value}</span>
+                          <span className="text-lg font-bold">{metric.value}</span>
                           <span className="text-xs text-muted-foreground">Target: {metric.target}</span>
                         </div>
                       </div>

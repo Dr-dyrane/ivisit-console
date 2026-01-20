@@ -3,26 +3,26 @@ import { motion, LayoutGroup } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { 
-  Edit, 
-  Trash2, 
-  UserCheck, 
-  Calendar, 
-  Flag, 
+import {
+  Edit,
+  Trash2,
+  UserCheck,
+  Calendar,
+  Flag,
   Headphones,
-  MessageSquare 
+  MessageSquare
 } from 'lucide-react';
 
-export const SupportTicketListView = ({ 
-  tickets, 
-  onView, 
-  onEdit, 
-  onDelete, 
-  onAssign, 
-  getStatusConfig, 
-  getPriorityColor, 
-  isAdmin, 
-  isMobile 
+export const SupportTicketListView = ({
+  tickets,
+  onView,
+  onEdit,
+  onDelete,
+  onAssign,
+  getStatusConfig,
+  getPriorityColor,
+  isAdmin,
+  isMobile
 }) => {
   return (
     <LayoutGroup>
@@ -33,7 +33,7 @@ export const SupportTicketListView = ({
         {tickets.map((ticket, index) => {
           const statusConfig = getStatusConfig(ticket.status);
           const StatusIcon = statusConfig.icon;
-          
+
           return (
             <motion.div
               layout
@@ -56,18 +56,18 @@ export const SupportTicketListView = ({
                 </div>
 
                 <div className="flex items-center gap-2 mb-4 relative z-10">
-                  <Badge className={`squircle-sm ${getStatusConfig(ticket.status).badgeClass} border-0 font-black editorial-subtitle px-3 py-1`}>
+                  <Badge className={`squircle-sm ${getStatusConfig(ticket.status).badgeClass} border-0 font-bold editorial-subtitle px-3 py-1`}>
                     {ticket.status}
                   </Badge>
-                  <Badge className={`squircle-sm ${getPriorityColor(ticket.priority)} border-0 font-black editorial-subtitle px-3 py-1`}>
+                  <Badge className={`squircle-sm ${getPriorityColor(ticket.priority)} border-0 font-bold editorial-subtitle px-3 py-1`}>
                     {ticket.priority}
                   </Badge>
                 </div>
 
-                <h3 className="font-black text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
+                <h3 className="font-bold text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
                   {ticket.subject || 'No Subject'}
                 </h3>
-                <p className="text-sm font-semibold text-muted-foreground mb-4 relative z-10 line-clamp-2">
+                <p className="text-sm font-medium text-muted-foreground mb-4 relative z-10 line-clamp-2">
                   {ticket.message || 'No description'}
                 </p>
 
@@ -75,16 +75,16 @@ export const SupportTicketListView = ({
                   <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-2 mb-1">
                       <MessageSquare className="h-4 w-4 text-info" />
-                      <p className="text-xs text-muted-foreground font-semibold">Category</p>
+                      <p className="text-xs text-muted-foreground font-medium">Category</p>
                     </div>
-                    <p className="font-black text-xl truncate">{ticket.category || 'general'}</p>
+                    <p className="font-bold text-xl truncate">{ticket.category || 'general'}</p>
                   </div>
                   <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-2 mb-1">
                       <UserCheck className="h-4 w-4 text-warning" />
-                      <p className="text-xs text-muted-foreground font-semibold">Assigned</p>
+                      <p className="text-xs text-muted-foreground font-medium">Assigned</p>
                     </div>
-                    <p className="font-black text-xl truncate">{ticket.assigned_to || 'Unassigned'}</p>
+                    <p className="font-bold text-xl truncate">{ticket.assigned_to || 'Unassigned'}</p>
                   </div>
                 </div>
 
@@ -92,9 +92,9 @@ export const SupportTicketListView = ({
                   <div className="mb-4 p-3 squircle bg-primary/5 relative z-10">
                     <div className="flex items-center gap-2 mb-2">
                       <Calendar className="h-4 w-4 text-primary" />
-                      <p className="text-xs text-muted-foreground font-semibold">Created</p>
+                      <p className="text-xs text-muted-foreground font-medium">Created</p>
                     </div>
-                    <p className="font-black text-sm">{new Date(ticket.created_at).toLocaleDateString()}</p>
+                    <p className="font-bold text-sm">{new Date(ticket.created_at).toLocaleDateString()}</p>
                   </div>
                 )}
 
@@ -103,7 +103,7 @@ export const SupportTicketListView = ({
                     <Button
                       size="sm"
                       onClick={() => onView(ticket)}
-                      className="flex-1 squircle bg-primary hover:bg-primary/90 text-primary-foreground font-black"
+                      className="flex-1 squircle bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
                     >
                       <MessageSquare className="h-4 w-4 mr-2" />
                       View
@@ -114,7 +114,7 @@ export const SupportTicketListView = ({
                           size="sm"
                           variant="outline"
                           onClick={() => onEdit(ticket)}
-                          className="squircle border-0 bg-muted/20 hover:bg-muted/30 font-black"
+                          className="squircle border-0 bg-muted/20 hover:bg-muted/30 font-bold"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -122,7 +122,7 @@ export const SupportTicketListView = ({
                           size="sm"
                           variant="outline"
                           onClick={() => onDelete(ticket.id)}
-                          className="squircle border-0 bg-destructive/20 hover:bg-destructive/30 text-destructive font-black"
+                          className="squircle border-0 bg-destructive/20 hover:bg-destructive/30 text-destructive font-bold"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

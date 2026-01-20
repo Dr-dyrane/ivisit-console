@@ -37,8 +37,8 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
         type: subscriber.type || 'free',
         status: subscriber.status || 'pending',
         source: subscriber.source || 'website',
-        subscription_date: subscriber.subscription_date ? 
-          new Date(subscriber.subscription_date).toISOString().split('T')[0] : 
+        subscription_date: subscriber.subscription_date ?
+          new Date(subscriber.subscription_date).toISOString().split('T')[0] :
           new Date().toISOString().split('T')[0],
         sendWelcomeEmail: false,
         selectedSubscribers: [],
@@ -125,10 +125,10 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
 
     setBulkEmailLoading(true);
     try {
-      const selectedSubscribersData = availableSubscribers.filter(sub => 
+      const selectedSubscribersData = availableSubscribers.filter(sub =>
         formData.selectedSubscribers.includes(sub.id)
       );
-      
+
       await sendBulkEmail(selectedSubscribersData, formData.bulkEmailSubject, formData.bulkEmailContent);
       toast.success(`Email sent to ${formData.selectedSubscribers.length} subscribers`);
       onClose();
@@ -207,7 +207,7 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
     if (selectAll) {
       setFormData(prev => ({
         ...prev,
-        selectedSubscribers: prev.selectedSubscribers.filter(id => 
+        selectedSubscribers: prev.selectedSubscribers.filter(id =>
           !filteredSubscribers.some(sub => sub.id === id)
         )
       }));
@@ -215,7 +215,7 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
       setFormData(prev => ({
         ...prev,
         selectedSubscribers: [
-          ...prev.selectedSubscribers.filter(id => 
+          ...prev.selectedSubscribers.filter(id =>
             !filteredSubscribers.some(sub => sub.id === id)
           ),
           ...filteredSubscribers.map(sub => sub.id)
@@ -300,10 +300,10 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                 )}
               </div>
               <div>
-                <h2 className="font-black text-2xl tracking-tighter leading-none">
+                <h2 className="font-bold text-2xl tracking-tighter leading-none">
                   {mode === 'bulk' ? 'Broadcast' : mode === 'emailActions' ? 'Email Actions' : isViewMode ? 'Details' : isEditMode ? 'Edit' : 'New Link'}
                 </h2>
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground opacity-50 mt-1">
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground opacity-50 mt-1">
                   System Registry v2
                 </p>
               </div>
@@ -313,43 +313,43 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
             </button>
           </div>
 
-          <form onSubmit={(e) => { 
-            e.preventDefault(); 
+          <form onSubmit={(e) => {
+            e.preventDefault();
             if (mode === 'bulk') {
               handleBulkEmailSubmit();
             } else if (mode === 'emailActions') {
               handleEmailActionsSubmit();
             } else {
-              onSave(formData); 
+              onSave(formData);
               onClose();
             }
           }} className="p-6 md:p-10 pt-2 space-y-6">
-            
+
             {mode === 'bulk' ? (
               <>
                 {/* Email Subject */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black tracking-widest uppercase opacity-30 ml-4">Broadcast_Subject</label>
+                  <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Broadcast_Subject</label>
                   <div className="ios-input-well rounded-2xl flex items-center px-5">
                     <Mail size={18} className="opacity-20" />
-                    <input 
-                      className="w-full bg-transparent border-none py-4 px-4 text-base outline-none font-medium text-foreground placeholder:text-muted-foreground" 
+                    <input
+                      className="w-full bg-transparent border-none py-4 px-4 text-base outline-none font-normal text-foreground placeholder:text-muted-foreground"
                       placeholder="Subject line..."
                       value={formData.bulkEmailSubject}
-                      onChange={(e) => setFormData({...formData, bulkEmailSubject: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, bulkEmailSubject: e.target.value })}
                     />
                   </div>
                 </div>
 
                 {/* Email Content */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black tracking-widest uppercase opacity-30 ml-4">Message_Content</label>
+                  <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Message_Content</label>
                   <div className="ios-input-well rounded-2xl p-5">
-                    <textarea 
-                      className="w-full bg-transparent border-none outline-none font-medium resize-none min-h-[120px] text-foreground placeholder:text-muted-foreground" 
+                    <textarea
+                      className="w-full bg-transparent border-none outline-none font-normal resize-none min-h-[120px] text-foreground placeholder:text-muted-foreground"
                       placeholder="Compose your broadcast message..."
                       value={formData.bulkEmailContent}
-                      onChange={(e) => setFormData({...formData, bulkEmailContent: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, bulkEmailContent: e.target.value })}
                     />
                   </div>
                 </div>
@@ -357,11 +357,11 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                 {/* Recipients Selection */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black tracking-widest uppercase opacity-30">Target_Nodes ({formData.selectedSubscribers.length})</label>
+                    <label className="text-[10px] font-bold tracking-widest uppercase opacity-30">Target_Nodes ({formData.selectedSubscribers.length})</label>
                     <button
                       type="button"
                       onClick={toggleSelectAll}
-                      className="text-xs font-bold text-primary opacity-60 hover:opacity-100 transition-opacity"
+                      className="text-xs font-semibold text-primary opacity-60 hover:opacity-100 transition-opacity"
                     >
                       {selectAll ? 'Deselect All' : 'Select All'}
                     </button>
@@ -370,8 +370,8 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                   {/* Search */}
                   <div className="ios-input-well rounded-2xl flex items-center px-5">
                     <Search size={18} className="opacity-20" />
-                    <input 
-                      className="w-full bg-transparent border-none py-4 px-4 text-base outline-none font-medium text-foreground placeholder:text-muted-foreground" 
+                    <input
+                      className="w-full bg-transparent border-none py-4 px-4 text-base outline-none font-normal text-foreground placeholder:text-muted-foreground"
                       placeholder="Filter recipients..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -397,19 +397,18 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                               checked={formData.selectedSubscribers.includes(subscriber.id)}
                               onChange={() => toggleSubscriberSelection(subscriber.id)}
                             />
-                            <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${
-                              formData.selectedSubscribers.includes(subscriber.id) 
-                                ? 'bg-primary border-primary' 
-                                : 'border-foreground/20'
-                            }`}>
+                            <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${formData.selectedSubscribers.includes(subscriber.id)
+                              ? 'bg-primary border-primary'
+                              : 'border-foreground/20'
+                              }`}>
                               {formData.selectedSubscribers.includes(subscriber.id) && (
                                 <Check size={12} className="text-white" />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{subscriber.email}</p>
+                              <p className="text-sm font-normal truncate">{subscriber.email}</p>
                               <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs font-bold uppercase tracking-wider opacity-40">
+                                <span className="text-xs font-semibold uppercase tracking-wider opacity-40">
                                   {subscriber.type}
                                 </span>
                                 <span className="text-xs opacity-30">
@@ -428,34 +427,34 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
               <>
                 {/* Action Selection */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black tracking-widest uppercase opacity-30 ml-4">Select_Action</label>
+                  <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Select_Action</label>
                   <div className="relative flex p-1 bg-foreground/[0.05] rounded-xl border border-foreground/5">
-                    <motion.div 
+                    <motion.div
                       className="absolute inset-y-1 bg-background rounded-[9px] shadow-sm w-1/3"
-                      animate={{ 
-                        x: formData.selectedEmailAction === 'sendCustom' ? 0 : 
-                           formData.selectedEmailAction === 'sendWelcome' ? '100%' : '200%', 
+                      animate={{
+                        x: formData.selectedEmailAction === 'sendCustom' ? 0 :
+                          formData.selectedEmailAction === 'sendWelcome' ? '100%' : '200%',
                       }}
                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
-                    <button 
-                      type="button" 
-                      onClick={() => setFormData({...formData, selectedEmailAction: 'sendCustom'})}
-                      className={`relative z-10 w-1/3 py-2 text-xs font-bold transition-colors ${formData.selectedEmailAction === 'sendCustom' ? "text-foreground" : "text-muted-foreground"}`}
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, selectedEmailAction: 'sendCustom' })}
+                      className={`relative z-10 w-1/3 py-2 text-xs font-semibold transition-colors ${formData.selectedEmailAction === 'sendCustom' ? "text-foreground" : "text-muted-foreground"}`}
                     >
                       <Mail size={12} className="inline mr-1 mb-0.5" /> Custom
                     </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setFormData({...formData, selectedEmailAction: 'sendWelcome'})}
-                      className={`relative z-10 w-1/3 py-2 text-xs font-bold transition-colors ${formData.selectedEmailAction === 'sendWelcome' ? "text-foreground" : "text-muted-foreground"}`}
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, selectedEmailAction: 'sendWelcome' })}
+                      className={`relative z-10 w-1/3 py-2 text-xs font-semibold transition-colors ${formData.selectedEmailAction === 'sendWelcome' ? "text-foreground" : "text-muted-foreground"}`}
                     >
                       <Users size={12} className="inline mr-1 mb-0.5" /> Welcome
                     </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setFormData({...formData, selectedEmailAction: 'sendBulk'})}
-                      className={`relative z-10 w-1/3 py-2 text-xs font-bold transition-colors ${formData.selectedEmailAction === 'sendBulk' ? "text-foreground" : "text-muted-foreground"}`}
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, selectedEmailAction: 'sendBulk' })}
+                      className={`relative z-10 w-1/3 py-2 text-xs font-semibold transition-colors ${formData.selectedEmailAction === 'sendBulk' ? "text-foreground" : "text-muted-foreground"}`}
                     >
                       <Send size={12} className="inline mr-1 mb-0.5" /> Bulk
                     </button>
@@ -466,12 +465,12 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                   <>
                     {/* Subscriber Selection */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black tracking-widest uppercase opacity-30 ml-4">Select_Subscriber</label>
+                      <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Select_Subscriber</label>
                       <div className="ios-input-well rounded-2xl p-5">
-                        <select 
-                          className="w-full bg-transparent border-none outline-none font-medium appearance-none text-foreground"
+                        <select
+                          className="w-full bg-transparent border-none outline-none font-normal appearance-none text-foreground"
                           value={formData.selectedSubscriberForEmail || ''}
-                          onChange={(e) => setFormData({...formData, selectedSubscriberForEmail: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, selectedSubscriberForEmail: e.target.value })}
                         >
                           <option value="" className="bg-background">Choose a subscriber...</option>
                           {availableSubscribers.map((subscriber) => (
@@ -485,27 +484,27 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
 
                     {/* Email Subject */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black tracking-widest uppercase opacity-30 ml-4">Email_Subject</label>
+                      <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Email_Subject</label>
                       <div className="ios-input-well rounded-2xl flex items-center px-5">
                         <Mail size={18} className="opacity-20" />
-                        <input 
-                          className="w-full bg-transparent border-none py-4 px-4 text-base outline-none font-medium text-foreground placeholder:text-muted-foreground" 
+                        <input
+                          className="w-full bg-transparent border-none py-4 px-4 text-base outline-none font-normal text-foreground placeholder:text-muted-foreground"
                           placeholder="Subject line..."
                           value={formData.customEmailSubject}
-                          onChange={(e) => setFormData({...formData, customEmailSubject: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, customEmailSubject: e.target.value })}
                         />
                       </div>
                     </div>
 
                     {/* Email Content */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black tracking-widest uppercase opacity-30 ml-4">Message_Content</label>
+                      <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Message_Content</label>
                       <div className="ios-input-well rounded-2xl p-5">
-                        <textarea 
-                          className="w-full bg-transparent border-none outline-none font-medium resize-none min-h-[120px] text-foreground placeholder:text-muted-foreground" 
+                        <textarea
+                          className="w-full bg-transparent border-none outline-none font-normal resize-none min-h-[120px] text-foreground placeholder:text-muted-foreground"
                           placeholder="Compose your message..."
                           value={formData.customEmailContent}
-                          onChange={(e) => setFormData({...formData, customEmailContent: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, customEmailContent: e.target.value })}
                         />
                       </div>
                     </div>
@@ -514,12 +513,12 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                   <>
                     {/* Subscriber Selection */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black tracking-widest uppercase opacity-30 ml-4">Select_Subscriber</label>
+                      <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Select_Subscriber</label>
                       <div className="ios-input-well rounded-2xl p-5">
-                        <select 
-                          className="w-full bg-transparent border-none outline-none font-medium appearance-none text-foreground"
+                        <select
+                          className="w-full bg-transparent border-none outline-none font-normal appearance-none text-foreground"
                           value={formData.selectedSubscriberForEmail || ''}
-                          onChange={(e) => setFormData({...formData, selectedSubscriberForEmail: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, selectedSubscriberForEmail: e.target.value })}
                         >
                           <option value="" className="bg-background">Choose a subscriber...</option>
                           {availableSubscribers.map((subscriber) => (
@@ -534,7 +533,7 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                     <div className="ios-bubble p-6 space-y-4">
                       <div className="flex items-center gap-3">
                         <Mail size={18} className="text-primary opacity-60" />
-                        <span className="text-sm font-bold tracking-tight">Send welcome email to selected subscriber</span>
+                        <span className="text-sm font-semibold tracking-tight">Send welcome email to selected subscriber</span>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         This will send the standard welcome email template to the subscriber.
@@ -546,27 +545,27 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                     {/* Bulk Email Form */}
                     {/* Email Subject */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black tracking-widest uppercase opacity-30 ml-4">Broadcast_Subject</label>
+                      <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Broadcast_Subject</label>
                       <div className="ios-input-well rounded-2xl flex items-center px-5">
                         <Mail size={18} className="opacity-20" />
-                        <input 
-                          className="w-full bg-transparent border-none py-4 px-4 text-base outline-none font-medium text-foreground placeholder:text-muted-foreground" 
+                        <input
+                          className="w-full bg-transparent border-none py-4 px-4 text-base outline-none font-normal text-foreground placeholder:text-muted-foreground"
                           placeholder="Subject line..."
                           value={formData.bulkEmailSubject}
-                          onChange={(e) => setFormData({...formData, bulkEmailSubject: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, bulkEmailSubject: e.target.value })}
                         />
                       </div>
                     </div>
 
                     {/* Email Content */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black tracking-widest uppercase opacity-30 ml-4">Message_Content</label>
+                      <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Message_Content</label>
                       <div className="ios-input-well rounded-2xl p-5">
-                        <textarea 
-                          className="w-full bg-transparent border-none outline-none font-medium resize-none min-h-[120px] text-foreground placeholder:text-muted-foreground" 
+                        <textarea
+                          className="w-full bg-transparent border-none outline-none font-normal resize-none min-h-[120px] text-foreground placeholder:text-muted-foreground"
                           placeholder="Compose your broadcast message..."
                           value={formData.bulkEmailContent}
-                          onChange={(e) => setFormData({...formData, bulkEmailContent: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, bulkEmailContent: e.target.value })}
                         />
                       </div>
                     </div>
@@ -574,11 +573,11 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                     {/* Recipients Selection */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-black tracking-widest uppercase opacity-30">Target_Nodes ({formData.selectedSubscribers.length})</label>
+                        <label className="text-[10px] font-bold tracking-widest uppercase opacity-30">Target_Nodes ({formData.selectedSubscribers.length})</label>
                         <button
                           type="button"
                           onClick={toggleSelectAll}
-                          className="text-xs font-bold text-primary opacity-60 hover:opacity-100 transition-opacity"
+                          className="text-xs font-semibold text-primary opacity-60 hover:opacity-100 transition-opacity"
                         >
                           {selectAll ? 'Deselect All' : 'Select All'}
                         </button>
@@ -587,8 +586,8 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                       {/* Search */}
                       <div className="ios-input-well rounded-2xl flex items-center px-5">
                         <Search size={18} className="opacity-20" />
-                        <input 
-                          className="w-full bg-transparent border-none py-4 px-4 text-base outline-none font-medium text-foreground placeholder:text-muted-foreground" 
+                        <input
+                          className="w-full bg-transparent border-none py-4 px-4 text-base outline-none font-normal text-foreground placeholder:text-muted-foreground"
                           placeholder="Filter recipients..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
@@ -614,19 +613,18 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                                   checked={formData.selectedSubscribers.includes(subscriber.id)}
                                   onChange={() => toggleSubscriberSelection(subscriber.id)}
                                 />
-                                <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${
-                                  formData.selectedSubscribers.includes(subscriber.id) 
-                                    ? 'bg-primary border-primary' 
-                                    : 'border-foreground/20'
-                                }`}>
+                                <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${formData.selectedSubscribers.includes(subscriber.id)
+                                  ? 'bg-primary border-primary'
+                                  : 'border-foreground/20'
+                                  }`}>
                                   {formData.selectedSubscribers.includes(subscriber.id) && (
                                     <Check size={12} className="text-white" />
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">{subscriber.email}</p>
+                                  <p className="text-sm font-normal truncate">{subscriber.email}</p>
                                   <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-xs font-bold uppercase tracking-wider opacity-40">
+                                    <span className="text-xs font-semibold uppercase tracking-wider opacity-40">
                                       {subscriber.type}
                                     </span>
                                     <span className="text-xs opacity-30">
@@ -647,40 +645,40 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
               <>
                 {/* Email Field */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black tracking-widest uppercase opacity-30 ml-4">Identity_Core</label>
+                  <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Identity_Core</label>
                   <div className="ios-input-well rounded-2xl flex items-center px-5">
-                     <Mail size={18} className="opacity-20" />
-                     <input 
-                        disabled={isViewMode}
-                        className="w-full bg-transparent border-none py-4 px-4 text-base outline-none font-medium text-foreground placeholder:text-muted-foreground" 
-                        placeholder="auth@ivisit.com"
-                        value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                     />
+                    <Mail size={18} className="opacity-20" />
+                    <input
+                      disabled={isViewMode}
+                      className="w-full bg-transparent border-none py-4 px-4 text-base outline-none font-normal text-foreground placeholder:text-muted-foreground"
+                      placeholder="auth@ivisit.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
                   </div>
                 </div>
 
                 {/* Segmented Control for Subscription Type */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black tracking-widest uppercase opacity-30 ml-4">Access_Level</label>
+                  <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Access_Level</label>
                   <div className="relative flex p-1 bg-foreground/[0.05] rounded-xl border border-foreground/5">
-                    <motion.div 
+                    <motion.div
                       className="absolute inset-y-1 bg-background rounded-[9px] shadow-sm"
                       animate={{ x: formData.type === 'free' ? "0%" : "100%", width: "50%" }}
                     />
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       disabled={isViewMode}
-                      onClick={() => setFormData({...formData, type: 'free'})}
-                      className={`relative z-10 w-1/2 py-2 text-xs font-bold transition-colors ${formData.type === 'free' ? "text-foreground" : "text-muted-foreground"}`}
+                      onClick={() => setFormData({ ...formData, type: 'free' })}
+                      className={`relative z-10 w-1/2 py-2 text-xs font-semibold transition-colors ${formData.type === 'free' ? "text-foreground" : "text-muted-foreground"}`}
                     >
                       Free Tier
                     </button>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       disabled={isViewMode}
-                      onClick={() => setFormData({...formData, type: 'paid'})}
-                      className={`relative z-10 w-1/2 py-2 text-xs font-bold transition-colors ${formData.type === 'paid' ? "text-foreground" : "text-muted-foreground"}`}
+                      onClick={() => setFormData({ ...formData, type: 'paid' })}
+                      className={`relative z-10 w-1/2 py-2 text-xs font-semibold transition-colors ${formData.type === 'paid' ? "text-foreground" : "text-muted-foreground"}`}
                     >
                       <Crown size={12} className="inline mr-1 mb-0.5" /> Premium
                     </button>
@@ -689,52 +687,52 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
 
                 {/* Status and Source Grid */}
                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-1.5">
-                      <label className="text-[10px] font-black tracking-widest uppercase opacity-30 ml-4">Status</label>
-                      <select 
-                        disabled={isViewMode}
-                        className="w-full ios-input-well rounded-2xl py-4 px-5 text-sm font-bold appearance-none outline-none border-none bg-transparent text-foreground"
-                        value={formData.status}
-                        onChange={(e) => setFormData({...formData, status: e.target.value})}
-                      >
-                        <option value="pending" className="bg-background">Pending</option>
-                        <option value="active" className="bg-background">Active</option>
-                        <option value="unsubscribed" className="bg-background">Terminated</option>
-                      </select>
-                   </div>
-                   <div className="space-y-1.5">
-                      <label className="text-[10px] font-black tracking-widest uppercase opacity-30 ml-4">Origin</label>
-                      <select 
-                        disabled={isViewMode}
-                        className="w-full ios-input-well rounded-2xl py-4 px-5 text-sm font-bold appearance-none outline-none border-none bg-transparent text-foreground"
-                        value={formData.source}
-                        onChange={(e) => setFormData({...formData, source: e.target.value})}
-                      >
-                        <option value="website" className="bg-background">Website</option>
-                        <option value="referral" className="bg-background">Referral</option>
-                        <option value="manual" className="bg-background">Manual</option>
-                      </select>
-                   </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Status</label>
+                    <select
+                      disabled={isViewMode}
+                      className="w-full ios-input-well rounded-2xl py-4 px-5 text-sm font-semibold appearance-none outline-none border-none bg-transparent text-foreground"
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    >
+                      <option value="pending" className="bg-background">Pending</option>
+                      <option value="active" className="bg-background">Active</option>
+                      <option value="unsubscribed" className="bg-background">Terminated</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Origin</label>
+                    <select
+                      disabled={isViewMode}
+                      className="w-full ios-input-well rounded-2xl py-4 px-5 text-sm font-semibold appearance-none outline-none border-none bg-transparent text-foreground"
+                      value={formData.source}
+                      onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                    >
+                      <option value="website" className="bg-background">Website</option>
+                      <option value="referral" className="bg-background">Referral</option>
+                      <option value="manual" className="bg-background">Manual</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Welcome Email Toggle: Custom iOS Style */}
                 {mode === 'create' && (
                   <label className="flex items-center justify-between p-5 ios-bubble cursor-pointer active:brightness-95">
                     <div className="flex items-center gap-3">
-                        <Mail size={18} className="text-primary opacity-60" />
-                        <span className="text-sm font-bold tracking-tight">Send Initialization Email</span>
+                      <Mail size={18} className="text-primary opacity-60" />
+                      <span className="text-sm font-semibold tracking-tight">Send Initialization Email</span>
                     </div>
-                    <input 
-                        type="checkbox" 
-                        className="hidden" 
-                        checked={formData.sendWelcomeEmail} 
-                        onChange={(e) => setFormData({...formData, sendWelcomeEmail: e.target.checked})} 
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={formData.sendWelcomeEmail}
+                      onChange={(e) => setFormData({ ...formData, sendWelcomeEmail: e.target.checked })}
                     />
                     <div className={`w-12 h-6 rounded-full transition-colors relative ${formData.sendWelcomeEmail ? 'bg-success' : 'bg-foreground/10'}`}>
-                        <motion.div 
-                            animate={{ x: formData.sendWelcomeEmail ? 26 : 2 }}
-                            className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm" 
-                        />
+                      <motion.div
+                        animate={{ x: formData.sendWelcomeEmail ? 26 : 2 }}
+                        className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+                      />
                     </div>
                   </label>
                 )}
@@ -742,19 +740,19 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                 {/* Additional Info: Native Grouped List look */}
                 {subscriber && mode !== 'create' && (
                   <div className="ios-bubble p-6 space-y-4">
-                    <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest opacity-40">
-                        <span>Registry Info</span>
-                        <Zap size={12} />
+                    <div className="flex justify-between items-center text-xs font-semibold uppercase tracking-widest opacity-40">
+                      <span>Registry Info</span>
+                      <Zap size={12} />
                     </div>
-                    <div className="flex justify-between items-center text-sm font-medium">
-                        <span className="opacity-60">Created</span>
-                        <span>{new Date(subscriber.created_at).toLocaleDateString()}</span>
+                    <div className="flex justify-between items-center text-sm font-normal">
+                      <span className="opacity-60">Created</span>
+                      <span>{new Date(subscriber.created_at).toLocaleDateString()}</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm font-medium">
-                        <span className="opacity-60">Email Status</span>
-                        <span className={subscriber.welcome_email_sent ? 'text-success' : 'text-orange-500'}>
-                            {subscriber.welcome_email_sent ? 'Verified' : 'Pending'}
-                        </span>
+                    <div className="flex justify-between items-center text-sm font-normal">
+                      <span className="opacity-60">Email Status</span>
+                      <span className={subscriber.welcome_email_sent ? 'text-success' : 'text-orange-500'}>
+                        {subscriber.welcome_email_sent ? 'Verified' : 'Pending'}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -763,14 +761,14 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
 
             {/* Footer Actions */}
             <div className="flex flex-col md:flex-row items-center gap-3 pt-4">
-              <Button type="button" onClick={onClose} className="w-full md:w-auto flex-1 bg-foreground/5 text-foreground hover:bg-foreground/10 rounded-2xl font-bold py-6">
+              <Button type="button" onClick={onClose} className="w-full md:w-auto flex-1 bg-foreground/5 text-foreground hover:bg-foreground/10 rounded-2xl font-semibold py-6">
                 Cancel
               </Button>
               {mode === 'bulk' ? (
-                <Button 
-                    type="submit"
-                    disabled={bulkEmailLoading || formData.selectedSubscribers.length === 0 || !formData.bulkEmailSubject?.trim() || !formData.bulkEmailContent?.trim()}
-                    className="w-full md:w-auto flex-[2] bg-primary text-white font-black uppercase text-[10px] tracking-[0.3em] rounded-2xl py-6 shadow-xl shadow-primary/20"
+                <Button
+                  type="submit"
+                  disabled={bulkEmailLoading || formData.selectedSubscribers.length === 0 || !formData.bulkEmailSubject?.trim() || !formData.bulkEmailContent?.trim()}
+                  className="w-full md:w-auto flex-[2] bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] rounded-2xl py-6 shadow-xl shadow-primary/20"
                 >
                   {bulkEmailLoading ? (
                     <div className="flex items-center gap-2">
@@ -782,10 +780,10 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                   )}
                 </Button>
               ) : mode === 'emailActions' ? (
-                <Button 
-                    type="submit"
-                    disabled={loading || (formData.selectedEmailAction === 'sendCustom' && (!formData.selectedSubscriberForEmail || !formData.customEmailSubject?.trim() || !formData.customEmailContent?.trim())) || (formData.selectedEmailAction === 'sendWelcome' && !formData.selectedSubscriberForEmail) || (formData.selectedEmailAction === 'sendBulk' && (formData.selectedSubscribers.length === 0 || !formData.bulkEmailSubject?.trim() || !formData.bulkEmailContent?.trim()))}
-                    className="w-full md:w-auto flex-[2] bg-primary text-white font-black uppercase text-[10px] tracking-[0.3em] rounded-2xl py-6 shadow-xl shadow-primary/20"
+                <Button
+                  type="submit"
+                  disabled={loading || (formData.selectedEmailAction === 'sendCustom' && (!formData.selectedSubscriberForEmail || !formData.customEmailSubject?.trim() || !formData.customEmailContent?.trim())) || (formData.selectedEmailAction === 'sendWelcome' && !formData.selectedSubscriberForEmail) || (formData.selectedEmailAction === 'sendBulk' && (formData.selectedSubscribers.length === 0 || !formData.bulkEmailSubject?.trim() || !formData.bulkEmailContent?.trim()))}
+                  className="w-full md:w-auto flex-[2] bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] rounded-2xl py-6 shadow-xl shadow-primary/20"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
@@ -793,16 +791,16 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                       {formData.selectedEmailAction === 'sendCustom' ? 'Sending...' : formData.selectedEmailAction === 'sendWelcome' ? 'Sending...' : 'Broadcasting...'}
                     </div>
                   ) : (
-                    formData.selectedEmailAction === 'sendCustom' ? 'Send Custom Message' : 
-                    formData.selectedEmailAction === 'sendWelcome' ? 'Send Welcome Email' : 
-                    `Broadcast to ${formData.selectedSubscribers.length} Recipients`
+                    formData.selectedEmailAction === 'sendCustom' ? 'Send Custom Message' :
+                      formData.selectedEmailAction === 'sendWelcome' ? 'Send Welcome Email' :
+                        `Broadcast to ${formData.selectedSubscribers.length} Recipients`
                   )}
                 </Button>
               ) : (
                 !isViewMode && (
-                  <Button 
-                      type="submit"
-                      className="w-full md:w-auto flex-[2] bg-primary text-white font-black uppercase text-[10px] tracking-[0.3em] rounded-2xl py-6 shadow-xl shadow-primary/20"
+                  <Button
+                    type="submit"
+                    className="w-full md:w-auto flex-[2] bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] rounded-2xl py-6 shadow-xl shadow-primary/20"
                   >
                     {isEditMode ? 'Update Registry' : 'Initialize Node'}
                   </Button>

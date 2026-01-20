@@ -5,7 +5,7 @@ import { AlertTriangle, Clock, Activity } from 'lucide-react';
 
 export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 	const [statusFilter, setStatusFilter] = useState('all');
-	
+
 	const filteredRequests = emergencyRequests.filter(req => {
 		if (statusFilter === 'all') return true;
 		return req.status === statusFilter;
@@ -33,7 +33,7 @@ export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 		<Card className="squircle-xl p-4 bg-background/50 backdrop-blur-xs border-0 shadow-premium backdrop-blur-xl bg-background/60">
 			{/* Header */}
 			<div className="flex items-center justify-between mb-3">
-				<h3 className="font-black text-sm flex items-center gap-2">
+				<h3 className="font-bold text-sm flex items-center gap-2">
 					<AlertTriangle className="h-4 w-4 text-warning" />
 					Recent Alerts
 				</h3>
@@ -68,18 +68,17 @@ export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 						{/* Content */}
 						<div className="flex-1 min-w-0">
 							<div className="flex items-center justify-between mb-1">
-								<span className="font-medium text-xs text-muted-foreground truncate">
+								<span className="font-normal text-xs text-muted-foreground truncate">
 									#{req.id?.slice(-6)}
 								</span>
 								<Badge
 									variant="secondary"
-									className={`text-[9px] px-1.5 py-0 h-4 ${
-										req.priority === "critical"
-											? "bg-destructive/10 text-destructive"
-											: req.priority === "high"
-												? "bg-warning/10 text-warning"
-												: "bg-muted/50 text-muted-foreground"
-									}`}
+									className={`text-[9px] px-1.5 py-0 h-4 ${req.priority === "critical"
+										? "bg-destructive/10 text-destructive"
+										: req.priority === "high"
+											? "bg-warning/10 text-warning"
+											: "bg-muted/50 text-muted-foreground"
+										}`}
 								>
 									{req.priority || "medium"}
 								</Badge>

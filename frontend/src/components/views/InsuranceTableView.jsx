@@ -37,11 +37,11 @@ export const InsuranceTableView = ({
                 <Table>
                     <TableHeader className="bg-muted/30">
                         <TableRow className="border-b border-white/10 hover:bg-transparent">
-                            <TableHead className="w-[300px] text-[10px] font-black uppercase tracking-widest text-muted-foreground py-4 pl-6">Policy Details</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Provider</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Coverage</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</TableHead>
-                            <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground pr-6">Actions</TableHead>
+                            <TableHead className="w-[300px] text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 pl-6">Policy Details</TableHead>
+                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Provider</TableHead>
+                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Coverage</TableHead>
+                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</TableHead>
+                            <TableHead className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground pr-6">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -59,21 +59,21 @@ export const InsuranceTableView = ({
                                             <Shield className="w-5 h-5" />
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-sm tracking-tight text-foreground">{policy.policy_holder_name}</span>
+                                            <span className="font-semibold text-sm tracking-tight text-foreground">{policy.policy_holder_name}</span>
                                             <span className="text-xs text-muted-foreground font-mono">{policy.policy_number}</span>
                                         </div>
                                     </div>
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-medium">{policy.provider_name}</span>
+                                        <span className="text-sm font-normal">{policy.provider_name}</span>
                                         <Badge variant="outline" className="w-fit mt-1 text-[10px] border-white/10 text-muted-foreground">
                                             {policy.policy_type}
                                         </Badge>
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <span className="font-mono text-sm font-bold text-foreground">
+                                    <span className="font-mono text-sm font-semibold text-foreground">
                                         ${policy.coverage_amount?.toLocaleString() || '0'}
                                     </span>
                                 </TableCell>
@@ -96,7 +96,7 @@ export const InsuranceTableView = ({
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => onVerify(policy)}
-                                                className="squircle h-8 px-3 text-[10px] font-black uppercase tracking-wider text-success hover:text-success hover:bg-success/10"
+                                                className="squircle h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-success hover:text-success hover:bg-success/10"
                                             >
                                                 Verify
                                             </Button>

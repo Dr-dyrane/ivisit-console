@@ -206,7 +206,7 @@ export const SupportTicketsPage = () => {
   const headerActions = React.useMemo(() => (
     <Button
       onClick={handleCreate}
-      className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-black tracking-widest uppercase"
+      className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
     >
       <Plus className="h-4 w-4 mr-2" />
       NEW TICKET
@@ -222,7 +222,7 @@ export const SupportTicketsPage = () => {
 
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
         <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Tickets</span>
       </div>
     </div>
@@ -254,7 +254,7 @@ export const SupportTicketsPage = () => {
       ) : supportTickets.length === 0 ? (
         <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center col-span-full">
           <Headphones className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="font-black text-xl mb-2">No Support Tickets</h3>
+          <h3 className="font-bold text-xl mb-2">No Support Tickets</h3>
           <p className="text-muted-foreground mb-6">There are currently no active support tickets.</p>
           <Button onClick={handleCreate} className="squircle bg-primary">
             <Plus className="h-4 w-4 mr-2" />
