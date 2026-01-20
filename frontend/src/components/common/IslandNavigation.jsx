@@ -5,12 +5,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Home, MapPin, FileCheck, TrendingUp, Menu,
   Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance,
-  Users, Newspaper, Headphones, Shield, ChevronLeft, ChevronDown,
+  Users, Newspaper, Headphones, Shield, ChevronLeft, ChevronDown, Check,
   FolderKanban, Handshake, Mail, PanelLeftDashed, Laptop, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLayout } from '../../contexts/LayoutContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -45,6 +46,7 @@ const groupIcons = {
 export const IslandNavigation = () => {
   const { sidebarMode, setSidebarMode, sidebarWidth, isScrolledDown } = useLayout();
   const { profile, user, hasMinRole } = useAuth();
+  const { toggle, theme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -319,8 +321,40 @@ export const IslandNavigation = () => {
             )}
           </div>
 
-          <div className={`flex ${isBroad ? 'justify-start' : 'justify-center'}`}>
-            <ThemeToggle />
+          <div className="flex w-full">
+            {!isBroad ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={toggle}
+                    className="flex justify-center w-full rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group"
+                  >
+                    <div className="pointer-events-none">
+                      <ThemeToggle size="sm" />
+                    </div>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background border-0 rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
+                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <button
+                onClick={toggle}
+                className="flex items-center gap-3 w-full rounded-xl h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group"
+              >
+                <div className="w-5 h-5 flex items-center justify-center pointer-events-none">
+                  <ThemeToggle size="sm" />
+                </div>
+                <motion.span
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-sm font-medium whitespace-nowrap overflow-hidden"
+                >
+                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                </motion.span>
+              </button>
+            )}
           </div>
 
           <button
@@ -343,53 +377,76 @@ export const IslandNavigation = () => {
         </div>
 
         <Dialog open={configOpen} onOpenChange={setConfigOpen}>
-          <DialogContent className="sm:max-w-[425px] border-0 bg-background/95 backdrop-blur-xl shadow-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-center pb-2">Sidebar Layout</DialogTitle>
+          <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden border-0 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-2xl shadow-2xl rounded-[28px]">
+            <DialogHeader className="pt-6 px-6">
+              <DialogTitle className="text-center text-[17px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                Sidebar Layout
+              </DialogTitle>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-1 gap-3">
-                <button
-                  onClick={() => { setSidebarMode('smart'); setConfigOpen(false); }}
-                  className={`flex items-center gap-4 p-4 rounded-xl transition-all text-left group ${sidebarMode === 'smart' ? 'bg-primary/10 text-primary' : 'bg-muted/40 hover:bg-muted/70'
-                    }`}
-                >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${sidebarMode === 'smart' ? 'bg-background shadow-sm' : 'bg-background/50'}`}>
-                    <Laptop className={`w-5 h-5 ${sidebarMode === 'smart' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm">Smart Hover</h4>
-                    <p className="text-xs text-muted-foreground/80 font-medium">Auto-reveals on hover (Recommended)</p>
-                  </div>
-                </button>
 
-                <button
-                  onClick={() => { setSidebarMode('collapsed'); setConfigOpen(false); }}
-                  className={`flex items-center gap-4 p-4 rounded-xl transition-all text-left group ${sidebarMode === 'collapsed' ? 'bg-primary/10 text-primary' : 'bg-muted/40 hover:bg-muted/70'
-                    }`}
-                >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${sidebarMode === 'collapsed' ? 'bg-background shadow-sm' : 'bg-background/50'}`}>
-                    <PanelLeftClose className={`w-5 h-5 ${sidebarMode === 'collapsed' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm">Always Collapsed</h4>
-                    <p className="text-xs text-muted-foreground/80 font-medium">Minimal distraction, icon only</p>
-                  </div>
-                </button>
+            <div className="px-3 pb-6 pt-2">
+              <div className="flex flex-col gap-1">
+                {[
+                  {
+                    id: 'smart',
+                    title: 'Smart Hover',
+                    desc: 'Auto-reveals on hover',
+                    icon: Laptop,
+                  },
+                  {
+                    id: 'collapsed',
+                    title: 'Always Collapsed',
+                    desc: 'Minimal distraction, icon only',
+                    icon: PanelLeftClose,
+                  },
+                  {
+                    id: 'expanded',
+                    title: 'Always Expanded',
+                    desc: 'Fixed sidebar, pushes content',
+                    icon: PanelLeftOpen,
+                  },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setSidebarMode(item.id);
+                      setTimeout(() => setConfigOpen(false), 200); // Slight delay for visual feedback
+                    }}
+                    className={`
+              relative flex items-center gap-4 p-3 rounded-[14px] transition-all duration-200 group
+              ${sidebarMode === item.id
+                        ? 'bg-white/40 dark:bg-white/10 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
+                        : 'hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.98]'}
+            `}
+                  >
+                    {/* Icon Container */}
+                    <div className={`
+              w-10 h-10 rounded-xl flex items-center justify-center transition-colors
+              ${sidebarMode === item.id
+                        ? 'bg-primary text-white shadow-primary/20 shadow-lg'
+                        : 'bg-zinc-200/50 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100'}
+            `}>
+                      <item.icon className="w-5 h-5" strokeWidth={2.2} />
+                    </div>
 
-                <button
-                  onClick={() => { setSidebarMode('expanded'); setConfigOpen(false); }}
-                  className={`flex items-center gap-4 p-4 rounded-xl transition-all text-left group ${sidebarMode === 'expanded' ? 'bg-primary/10 text-primary' : 'bg-muted/40 hover:bg-muted/70'
-                    }`}
-                >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${sidebarMode === 'expanded' ? 'bg-background shadow-sm' : 'bg-background/50'}`}>
-                    <PanelLeftOpen className={`w-5 h-5 ${sidebarMode === 'expanded' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm">Always Expanded</h4>
-                    <p className="text-xs text-muted-foreground/80 font-medium">Fixed sidebar, pushes content</p>
-                  </div>
-                </button>
+                    {/* Text Labels */}
+                    <div className="flex-1 text-left">
+                      <h4 className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100 leading-tight">
+                        {item.title}
+                      </h4>
+                      <p className="text-[12px] text-zinc-800 dark:text-zinc-400 font-normal">
+                        {item.desc}
+                      </p>
+                    </div>
+
+                    {/* Selection Checkmark */}
+                    {sidebarMode === item.id && (
+                      <div className="mr-2">
+                        <Check className="w-4 h-4 text-primary" strokeWidth={3} />
+                      </div>
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
           </DialogContent>
