@@ -24,7 +24,21 @@ export const useLayout = () => useContext(LayoutContext);
 
 export const LayoutProvider = ({ children }) => {
     const [isScrolledDown, setIsScrolledDown] = useState(false);
-    const [sidebarMode, setSidebarMode] = useState('smart');
+
+    // Initialize from localStorage or default to 'smart'
+    const [sidebarMode, setSidebarMode] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('sidebarMode');
+            return saved && ['smart', 'collapsed', 'expanded'].includes(saved) ? saved : 'smart';
+        }
+        return 'smart';
+    });
+
+    // Persist to localStorage whenever it changes
+    useEffect(() => {
+        localStorage.setItem('sidebarMode', sidebarMode);
+    }, [sidebarMode]);
+
     const [isContextPanelOpen, setIsContextPanelOpen] = useState(false);
     const [contextMode, setContextMode] = useState('overlay');
     const [headerConfig, setHeaderConfig] = useState({ title: '', actions: null, viewToggle: null, filterSheet: null });
