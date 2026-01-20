@@ -434,7 +434,7 @@ export const IslandNavigation = () => {
                       <h4 className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100 leading-tight">
                         {item.title}
                       </h4>
-                      <p className="text-[12px] text-zinc-800 dark:text-zinc-400 font-normal">
+                      <p className="text-[12px] text-muted-foreground font-normal">
                         {item.desc}
                       </p>
                     </div>
