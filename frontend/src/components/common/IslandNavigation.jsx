@@ -6,12 +6,14 @@ import {
   Home, MapPin, FileCheck, TrendingUp, Menu,
   Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance,
   Users, Newspaper, Headphones, Shield, ChevronLeft, ChevronDown,
-  FolderKanban, Handshake, Mail
+  FolderKanban, Handshake, Mail, PanelLeftDashed, Laptop, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import ThemeToggle from '../ui/theme-toggle';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import NoiseOverlay from '../ui/noise-overlay';
@@ -41,17 +43,25 @@ const groupIcons = {
 };
 
 export const IslandNavigation = () => {
-  const { sidebarExpanded, toggleSidebar, isScrolledDown } = useLayout();
+  const { sidebarMode, setSidebarMode, sidebarWidth, isScrolledDown } = useLayout();
   const { profile, user, hasMinRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [isHovered, setIsHovered] = useState(false);
   const [openGroups, setOpenGroups] = useState([]);
+  const [configOpen, setConfigOpen] = useState(false);
 
-  // Determine if sidebar should act "expanded" (Manual toggle OR hover)
-  const isBroad = sidebarExpanded || isHovered;
-  const sidebarWidth = isBroad ? 260 : 72;
+  // Determine effective expansion state
+  const isBroad = useMemo(() => {
+    if (sidebarMode === 'expanded') return true;
+    if (sidebarMode === 'collapsed') return false;
+    return isHovered; // 'smart' mode
+  }, [sidebarMode, isHovered]);
+
+  // Width for the navigation sidebar itself (visual)
+  const navWidth = isBroad ? 260 : 72;
+
   const isNotHome = location.pathname !== '/';
 
   // --- Progressive Reveal & Auto-Cleanup Logic ---
@@ -75,6 +85,31 @@ export const IslandNavigation = () => {
     const canSee = !item.minRole || hasMinRole(item.minRole);
     if (!canSee) return null;
 
+    const buttonContent = (
+      <button
+        onClick={() => navigate(item.path)}
+        className={`flex items-center h-10 rounded-xl transition-all duration-200 ${isCentered ? 'w-10 justify-center' : `w-full ${isSubItem ? 'pl-9' : 'px-3'}`
+          } ${isActive
+            ? 'bg-primary/15 text-primary font-medium'
+            : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+          }`}
+      >
+        <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${isActive ? 'scale-110' : 'opacity-70'}`} />
+        {isBroad && !isCentered && (
+          <AnimatePresence>
+            <motion.span
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0 }}
+              className="ml-3 text-sm truncate"
+            >
+              {item.label}
+            </motion.span>
+          </AnimatePresence>
+        )}
+      </button>
+    );
+
     return (
       <div key={item.id} className={`relative flex items-center ${isCentered ? 'justify-center' : 'w-full'} px-3`}>
         {isActive && !isCentered && (
@@ -84,28 +119,19 @@ export const IslandNavigation = () => {
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           />
         )}
-        <button
-          onClick={() => navigate(item.path)}
-          className={`flex items-center h-10 rounded-xl transition-all duration-200 ${isCentered ? 'w-10 justify-center' : `w-full ${isSubItem ? 'pl-9' : 'px-3'}`
-            } ${isActive
-              ? 'bg-primary/15 text-primary font-medium'
-              : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-            }`}
-        >
-          <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${isActive ? 'scale-110' : 'opacity-70'}`} />
-          {isBroad && !isCentered && (
-            <AnimatePresence>
-              <motion.span
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0 }}
-                className="ml-3 text-sm truncate"
-              >
-                {item.label}
-              </motion.span>
-            </AnimatePresence>
-          )}
-        </button>
+
+        {!isBroad ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {buttonContent}
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background border-0 rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
+              {item.label}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          buttonContent
+        )}
       </div>
     );
   };
@@ -120,13 +146,20 @@ export const IslandNavigation = () => {
       return (
         <div key={id} className="w-full space-y-1">
           <div className="flex justify-center px-3">
-            <button
-              onClick={() => toggleGroup(id)}
-              className={`w-10 h-10 rounded-xl transition-colors flex items-center justify-center ${isAnyChildActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                }`}
-            >
-              <GroupIcon className="w-5 h-5" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => toggleGroup(id)}
+                  className={`w-10 h-10 rounded-xl transition-colors flex items-center justify-center ${isAnyChildActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                    }`}
+                >
+                  <GroupIcon className="w-5 h-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background border-0 rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
+                {label}
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           <AnimatePresence>
@@ -186,93 +219,182 @@ export const IslandNavigation = () => {
   };
 
   return (
-    <motion.nav
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      animate={{ width: sidebarWidth, x: 0 }}
-      transition={{ type: "spring", stiffness: 250, damping: 28 }}
-      className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-xl border-r border-black/10 dark:border-white/10 ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'}`}
-    >
-      <NoiseOverlay />
-      {/* 1. BRANDING & BACK ARROW */}
-      <div className="h-16 flex-shrink-0 flex items-center px-4 border-b border-black/10 dark:border-white/10">
-        <div className="relative flex items-center w-full">
-          <AnimatePresence mode="wait">
-            {isNotHome ? (
-              <motion.button
-                key="back"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => navigate(-1)}
-                className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </motion.button>
-            ) : (
-              <motion.div
-                key="logo"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center gap-3"
-              >
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <img src="/logo.png" alt="logo" className="w-5 h-5 object-contain" />
-                </div>
+    <TooltipProvider delayDuration={0}>
+      <motion.nav
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        animate={{ width: navWidth, x: 0 }}
+        transition={{ type: "spring", stiffness: 250, damping: 28 }}
+        className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-xl border-r border-black/10 dark:border-white/10 ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'}`}
+      >
+        <NoiseOverlay />
+        {/* 1. BRANDING & BACK ARROW */}
+        <div className="h-16 flex-shrink-0 flex items-center px-4 border-b border-black/10 dark:border-white/10">
+          <div className="relative flex items-center w-full">
+            <AnimatePresence mode="wait">
+              {isNotHome ? (
+                <motion.button
+                  key="back"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => navigate(-1)}
+                  className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </motion.button>
+              ) : (
+                <motion.div
+                  key="logo"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center gap-3"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <img src="/logo.png" alt="logo" className="w-5 h-5 object-contain" />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {isBroad && isNotHome && (
+              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-3 text-xs font-semibold text-muted-foreground">Go Back</motion.span>
+            )}
+
+            {isBroad && !isNotHome && (
+              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="ml-3 flex flex-col leading-none">
+                <span className="text-2xl font-bold tracking-tighter">iVisit<span className="text-primary text-base">.</span> <span className="text-primary text-sm font-normal italic  uppercase">Console</span></span>
               </motion.div>
             )}
-          </AnimatePresence>
-
-          {isBroad && isNotHome && (
-            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-3 text-xs font-semibold text-muted-foreground">Go Back</motion.span>
-          )}
-
-          {isBroad && !isNotHome && (
-            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="ml-3 flex flex-col leading-none">
-              <span className="text-2xl font-bold tracking-tighter">iVisit<span className="text-primary text-base">.</span> <span className="text-primary text-sm font-normal italic  uppercase">Console</span></span>
-            </motion.div>
-          )}
-        </div>
-      </div>
-
-      {/* 2. DOCK-STYLE NAVIGATION */}
-      <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar py-4 mt-4">
-        <div className="space-y-1">
-          {renderNavButton({ id: 'home', path: '/', icon: Home, label: 'Dashboard' })}
-          {renderNavButton({ id: 'map', path: '/map', icon: MapPin, label: 'Live Map' })}
-          {renderNavButton({ id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics' })}
+          </div>
         </div>
 
-        <div className="h-px bg-border/40 mx-6" />
+        {/* 2. DOCK-STYLE NAVIGATION */}
+        <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar py-4 mt-4">
+          <div className="space-y-1">
+            {renderNavButton({ id: 'home', path: '/', icon: Home, label: 'Dashboard' })}
+            {renderNavButton({ id: 'map', path: '/map', icon: MapPin, label: 'Live Map' })}
+            {renderNavButton({ id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics' })}
+          </div>
 
-        {renderGroup('ops', 'Operations', operationItems)}
-        {renderGroup('mgmt', 'Management', managementItems)}
-      </div>
+          <div className="h-px bg-border/40 mx-6" />
 
-      {/* 3. PROFILE & THEME */}
-      <div className="p-4 bg-muted/20  border-border/40 space-y-3">
-        <div className={`flex ${isBroad ? 'justify-start' : 'justify-center'}`}>
-          <ThemeToggle />
+          {renderGroup('ops', 'Operations', operationItems)}
+          {renderGroup('mgmt', 'Management', managementItems)}
         </div>
 
-        <button
-          onClick={() => navigate('/settings')}
-          className="w-full flex items-center gap-3 p-1 rounded-xl hover:bg-muted transition-colors group"
-        >
-          <Avatar className="h-9 w-9 rounded-lg border border-border flex-shrink-0">
-            <AvatarImage src={getAvatarUrl(profile, user)} />
-            <AvatarFallback className="bg-primary/5 text-primary text-xs font-semibold">
-              {getAvatarFallback(profile, user)}
-            </AvatarFallback>
-          </Avatar>
-          {isBroad && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-left overflow-hidden">
-              <p className="text-xs font-semibold truncate text-foreground">{profile?.full_name || 'User'}</p>
-              <p className="text-[10px] opacity-50 truncate font-semibold uppercase tracking-tight">Settings</p>
-            </motion.div>
-          )}
-        </button>
-      </div>
-    </motion.nav>
+        {/* 3. PROFILE & THEME */}
+        <div className="p-4 bg-muted/20 border-border/40 space-y-3">
+          {/* Sidebar Control Trigger */}
+          {/* Sidebar Control Trigger */}
+          <div className="flex w-full">
+            {!isBroad ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setConfigOpen(true)}
+                    className={`flex items-center gap-3 w-full rounded-xl h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group ${!isBroad ? 'justify-center px-0' : ''}`}
+                  >
+                    <PanelLeftDashed className="w-5 h-5 flex-shrink-0" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background border-0 rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
+                  Layout
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <button
+                onClick={() => setConfigOpen(true)}
+                className={`flex items-center gap-3 w-full rounded-xl h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group`}
+              >
+                <PanelLeftDashed className="w-5 h-5 flex-shrink-0" />
+                <motion.span
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-sm font-medium whitespace-nowrap overflow-hidden"
+                >
+                  Layout
+                </motion.span>
+              </button>
+            )}
+          </div>
+
+          <div className={`flex ${isBroad ? 'justify-start' : 'justify-center'}`}>
+            <ThemeToggle />
+          </div>
+
+          <button
+            onClick={() => navigate('/settings')}
+            className="w-full flex items-center gap-3 p-1 rounded-xl hover:bg-muted transition-colors group"
+          >
+            <Avatar className="h-9 w-9 rounded-lg border border-border flex-shrink-0">
+              <AvatarImage src={getAvatarUrl(profile, user)} />
+              <AvatarFallback className="bg-primary/5 text-primary text-xs font-semibold">
+                {getAvatarFallback(profile, user)}
+              </AvatarFallback>
+            </Avatar>
+            {isBroad && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-left overflow-hidden">
+                <p className="text-xs font-semibold truncate text-foreground">{profile?.full_name || 'User'}</p>
+                <p className="text-[10px] opacity-50 truncate font-semibold uppercase tracking-tight">Settings</p>
+              </motion.div>
+            )}
+          </button>
+        </div>
+
+        <Dialog open={configOpen} onOpenChange={setConfigOpen}>
+          <DialogContent className="sm:max-w-[425px] border-0 bg-background/95 backdrop-blur-xl shadow-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-center pb-2">Sidebar Layout</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  onClick={() => { setSidebarMode('smart'); setConfigOpen(false); }}
+                  className={`flex items-center gap-4 p-4 rounded-xl transition-all text-left group ${sidebarMode === 'smart' ? 'bg-primary/10 text-primary' : 'bg-muted/40 hover:bg-muted/70'
+                    }`}
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${sidebarMode === 'smart' ? 'bg-background shadow-sm' : 'bg-background/50'}`}>
+                    <Laptop className={`w-5 h-5 ${sidebarMode === 'smart' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm">Smart Hover</h4>
+                    <p className="text-xs text-muted-foreground/80 font-medium">Auto-reveals on hover (Recommended)</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => { setSidebarMode('collapsed'); setConfigOpen(false); }}
+                  className={`flex items-center gap-4 p-4 rounded-xl transition-all text-left group ${sidebarMode === 'collapsed' ? 'bg-primary/10 text-primary' : 'bg-muted/40 hover:bg-muted/70'
+                    }`}
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${sidebarMode === 'collapsed' ? 'bg-background shadow-sm' : 'bg-background/50'}`}>
+                    <PanelLeftClose className={`w-5 h-5 ${sidebarMode === 'collapsed' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm">Always Collapsed</h4>
+                    <p className="text-xs text-muted-foreground/80 font-medium">Minimal distraction, icon only</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => { setSidebarMode('expanded'); setConfigOpen(false); }}
+                  className={`flex items-center gap-4 p-4 rounded-xl transition-all text-left group ${sidebarMode === 'expanded' ? 'bg-primary/10 text-primary' : 'bg-muted/40 hover:bg-muted/70'
+                    }`}
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${sidebarMode === 'expanded' ? 'bg-background shadow-sm' : 'bg-background/50'}`}>
+                    <PanelLeftOpen className={`w-5 h-5 ${sidebarMode === 'expanded' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm">Always Expanded</h4>
+                    <p className="text-xs text-muted-foreground/80 font-medium">Fixed sidebar, pushes content</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </motion.nav>
+    </TooltipProvider>
   );
 };

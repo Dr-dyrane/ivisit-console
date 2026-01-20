@@ -5,9 +5,10 @@ import { useLocation } from 'react-router-dom';
 
 const LayoutContext = createContext({
     isScrolledDown: false,
-    sidebarExpanded: false,
+    sidebarMode: 'smart',
     sidebarWidth: 72,
     toggleSidebar: () => { },
+    setSidebarMode: () => { },
     isContextPanelOpen: false,
     contextMode: 'overlay',
     isFocusMode: false,
@@ -23,7 +24,7 @@ export const useLayout = () => useContext(LayoutContext);
 
 export const LayoutProvider = ({ children }) => {
     const [isScrolledDown, setIsScrolledDown] = useState(false);
-    const [sidebarExpanded, setSidebarExpanded] = useState(false);
+    const [sidebarMode, setSidebarMode] = useState('smart');
     const [isContextPanelOpen, setIsContextPanelOpen] = useState(false);
     const [contextMode, setContextMode] = useState('overlay');
     const [headerConfig, setHeaderConfig] = useState({ title: '', actions: null, viewToggle: null, filterSheet: null });
@@ -33,11 +34,11 @@ export const LayoutProvider = ({ children }) => {
     const EXPANDED_WIDTH = 260;
 
     const sidebarWidth = useMemo(() =>
-        sidebarExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH
-        , [sidebarExpanded]);
+        sidebarMode === 'expanded' ? EXPANDED_WIDTH : COLLAPSED_WIDTH
+        , [sidebarMode]);
 
     const toggleSidebar = useCallback(() => {
-        setSidebarExpanded(prev => !prev);
+        setSidebarMode(prev => prev === 'expanded' ? 'smart' : 'expanded');
     }, []);
 
     const openContextPanel = useCallback(() => {
@@ -100,7 +101,8 @@ export const LayoutProvider = ({ children }) => {
 
     const value = useMemo(() => ({
         isScrolledDown,
-        sidebarExpanded,
+        sidebarMode,
+        setSidebarMode,
         sidebarWidth,
         toggleSidebar,
         isContextPanelOpen,
@@ -112,7 +114,7 @@ export const LayoutProvider = ({ children }) => {
         setHeaderConfig: setHeaderConfigStable,
         footerConfig,
         setFooterConfig: setFooterConfigStable
-    }), [isScrolledDown, sidebarExpanded, sidebarWidth, toggleSidebar, isContextPanelOpen, contextMode, isFocusMode, openContextPanel, closeContextPanel, headerConfig, setHeaderConfigStable, footerConfig, setFooterConfigStable]);
+    }), [isScrolledDown, sidebarMode, setSidebarMode, sidebarWidth, toggleSidebar, isContextPanelOpen, contextMode, isFocusMode, openContextPanel, closeContextPanel, headerConfig, setHeaderConfigStable, footerConfig, setFooterConfigStable]);
 
     return (
         <LayoutContext.Provider value={value}>
