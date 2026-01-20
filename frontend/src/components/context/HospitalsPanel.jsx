@@ -19,6 +19,11 @@ export const HospitalsPanel = ({ hospitalsData }) => {
     window.dispatchEvent(new CustomEvent('openHospitalModal'));
   };
 
+  const handleAnalytics = () => {
+    // Dispatch event to open analytics modal - listener should be in Page or Layout
+    window.dispatchEvent(new CustomEvent('openHospitalAnalyticsModal'));
+  };
+
   return (
     <div className="p-4 space-y-4">
       {/* Capacity Overview */}
@@ -90,11 +95,12 @@ export const HospitalsPanel = ({ hospitalsData }) => {
 
           <motion.button
             whileTap={{ scale: 0.98 }}
+            onClick={handleAnalytics}
             className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            title="View Map"
+            title="View Analytics"
           >
             <MapPin className="h-4 w-4" />
-            <span className="font-normal text-xs">Map</span>
+            <span className="font-normal text-xs">Analytics</span>
           </motion.button>
 
           <motion.button

@@ -338,11 +338,13 @@ export const PageDataProvider = ({ children }) => {
 
         // Calculate hospital stats
         const total = data?.length || 0;
-        // Assuming there might be a status field, though not explicitly in select *
-        const available = total; // Placeholder if no status
+        const available = data?.filter(h => h.status === 'available').length || 0;
+        const full = data?.filter(h => h.status === 'full').length || 0;
+        const busy = data?.filter(h => h.status === 'busy').length || 0;
+        const verified = data?.filter(h => h.verified).length || 0;
 
         setHospitalsData({
-          stats: { total, available },
+          stats: { total, available, full, busy, verified },
           recent: data?.slice(0, 5) || []
         });
       }

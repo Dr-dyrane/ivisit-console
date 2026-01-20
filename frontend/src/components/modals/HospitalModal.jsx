@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 import { X, Hospital, MapPin, Phone, Bed, Ambulance, Star, Clock, Activity } from 'lucide-react';
 import { Badge } from '../ui/badge';
 
+import { uploadImage } from '../../services/storageService';
+import { Loader2, Upload } from 'lucide-react';
+
 export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
@@ -34,6 +37,28 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [showImage, setShowImage] = useState(false);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const publicUrl = await uploadImage(file, 'hospitals');
+      setFormData(prev => ({
+        ...prev,
+        image: publicUrl
+      }));
+      toast.success('Image uploaded successfully');
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -160,6 +185,46 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                       />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="price_range" className="text-xs font-semibold text-muted-foreground uppercase px-1">Price Range</Label>
+                    <Input
+                      id="price_range"
+                      name="price_range"
+                      value={formData.price_range}
+                      onChange={handleChange}
+                      disabled={isView}
+                      className="rounded-2xl bg-white/5 border-white/10 font-normal"
+                      placeholder="e.g. $150"
+                    />
+                  </div>
+
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="specialties" className="text-xs font-semibold text-muted-foreground uppercase px-1">Specialties (comma separated)</Label>
+                      <Input
+                        id="specialties"
+                        name="specialties"
+                        value={Array.isArray(formData.specialties) ? formData.specialties.join(', ') : formData.specialties || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, specialties: e.target.value.split(',').map(s => s.trim()) }))}
+                        disabled={isView}
+                        className="rounded-2xl bg-white/5 border-white/10 font-normal"
+                        placeholder="General Care, Surgery..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="features" className="text-xs font-semibold text-muted-foreground uppercase px-1">Features (comma separated)</Label>
+                      <Input
+                        id="features"
+                        name="features"
+                        value={Array.isArray(formData.features) ? formData.features.join(', ') : formData.features || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, features: e.target.value.split(',').map(s => s.trim()) }))}
+                        disabled={isView}
+                        className="rounded-2xl bg-white/5 border-white/10 font-normal"
+                        placeholder="Lab, Helipad..."
+                      />
+                    </div>
+                  </div>
                 </GlassCard>
 
                 {/* Capacity & Stats */}
@@ -275,6 +340,101 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                   </div>
                 </GlassCard>
 
+                {/* Additional Settings */}
+                <GlassCard icon={<Activity />} title="System & Verification">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
+                      <input
+                        type="checkbox"
+                        id="verified"
+                        name="verified"
+                        checked={formData.verified}
+                        onChange={handleChange}
+                        disabled={isView}
+                        className="w-5 h-5 rounded-md accent-primary"
+                      />
+                      <Label htmlFor="verified" className="text-sm font-medium cursor-pointer">
+                        Verified Partner
+                        <p className="text-[10px] text-muted-foreground font-normal">Mark as a trusted medical facility</p>
+                      </Label>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="image" className="text-xs font-semibold text-muted-foreground uppercase px-1">Hospital Image</Label>
+                        {formData.image && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowImage(!showImage)}
+                            className="h-5 text-[10px] text-primary hover:text-primary/90 hover:bg-primary/10 px-2"
+                          >
+                            {showImage ? 'Hide Preview' : 'View Image'}
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Image Preview */}
+                      <AnimatePresence>
+                        {showImage && formData.image && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                            animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
+                            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                            className="rounded-xl overflow-hidden border border-white/10 relative bg-black/20"
+                          >
+                            <img
+                              src={formData.image}
+                              alt="Hospital Preview"
+                              className="w-full h-48 object-cover"
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Inputs - Hidden in View Mode unless explicit */}
+                      {!isView ? (
+                        <div className="flex gap-2">
+                          <Input
+                            id="image"
+                            name="image"
+                            value={formData.image || ''}
+                            onChange={handleChange}
+                            disabled={uploading}
+                            className="rounded-2xl bg-white/5 border-white/10 font-normal flex-1"
+                            placeholder="https://..."
+                          />
+                          <div className="relative">
+                            <input
+                              type="file"
+                              id="image-upload"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              disabled={uploading}
+                            />
+                            <Label
+                              htmlFor="image-upload"
+                              className={`h-10 px-4 flex items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                            >
+                              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                            </Label>
+                          </div>
+                        </div>
+                      ) : (
+                        // View Mode Fallback if image is missing or just to show url text optionally? 
+                        // User said "in read form we only display image".
+                        // If showImage is false, and we are in View mode, we show nothing? Or a placeholder?
+                        // Let's show the input ONLY if showImage is false, so they can at least see the URL if they want? 
+                        // Or stricly follow "only display image".
+                        // I will hide the input in View mode completely as requested
+                        !formData.image && <p className="text-sm text-muted-foreground italic px-1">No image available</p>
+                      )}
+                    </div>
+                  </div>
+                </GlassCard>
+
                 {/* Footer Actions */}
                 <div className="p-4 sm:p-6 rounded-[24px] bg-white/5 border border-white/10 flex gap-3 justify-end">
                   {!isView ? (
@@ -309,9 +469,9 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
               </form>
             </div>
           </motion.div>
-        </div>
+        </div >
       )}
-    </AnimatePresence>
+    </AnimatePresence >
   );
 };
 

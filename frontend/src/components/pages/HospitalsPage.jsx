@@ -22,16 +22,20 @@ import { FilterSheet } from '../common/FilterSheet';
 import { HospitalListView } from '../views/HospitalListView';
 import { HospitalTableView } from '../views/HospitalTableView';
 
+import { usePageData } from '../../contexts/PageDataContext';
+
 export const HospitalsPage = () => {
   const navigate = useNavigate();
   const { isAdmin, isProvider } = useAuth();
   const { isMobile } = useNavigation();
+  const { hospitalsData, refreshAllData } = usePageData();
   const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedHospital, setSelectedHospital] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({});
+  const [kpiFilter, setKpiFilter] = useState('all');
 
   const { viewMode, setViewMode } = useViewMode('hospitals-page', 'grid');
   const pagination = usePagination(20);
@@ -42,9 +46,22 @@ export const HospitalsPage = () => {
 
       let query = supabase.from('hospitals').select('*', { count: 'exact', head: true });
 
+      // Apply Search Filter (Client-side filtering for search usually, or server side if full text search enabled)
+      // Since supabase standard select doesn't do fuzzy search easily on multiple fields without specific text search config,
+      // we might do client side filtering if the dataset is small, OR use 'ilike' for specific fields.
+      // For now, let's assume we filter after fetching for complex search, or use ilike on name.
+      if (filters.search) {
+        query = query.ilike('name', `%${filters.search}%`);
+      }
+
       if (filters.status && filters.status.length > 0) {
         query = query.in('status', filters.status);
       }
+
+      // Apply KPI Filter to count query
+      if (kpiFilter === 'available') query = query.eq('status', 'available');
+      if (kpiFilter === 'full') query = query.eq('status', 'full');
+      if (kpiFilter === 'verified') query = query.eq('verified', true);
 
       const { count } = await query;
       pagination.setTotalCount(count || 0);
@@ -55,9 +72,18 @@ export const HospitalsPage = () => {
         .range(pagination.paginationRange.start, pagination.paginationRange.end)
         .order('created_at', { ascending: false });
 
+      if (filters.search) {
+        dataQuery = dataQuery.ilike('name', `%${filters.search}%`);
+      }
+
       if (filters.status && filters.status.length > 0) {
         dataQuery = dataQuery.in('status', filters.status);
       }
+
+      // Apply KPI Filter to data query
+      if (kpiFilter === 'available') dataQuery = dataQuery.eq('status', 'available');
+      if (kpiFilter === 'full') dataQuery = dataQuery.eq('status', 'full');
+      if (kpiFilter === 'verified') dataQuery = dataQuery.eq('verified', true);
 
       const { data, error } = await withTimeout(
         dataQuery,
@@ -73,11 +99,24 @@ export const HospitalsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination, filters]);
+  }, [pagination, filters, kpiFilter]);
 
   useEffect(() => {
     fetchHospitals();
-  }, [fetchHospitals, pagination.currentPage]);
+
+    // Real-time updates
+    const channel = supabase
+      .channel('hospitals_page_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'hospitals' }, () => {
+        fetchHospitals();
+        refreshAllData && refreshAllData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchHospitals, pagination.currentPage, refreshAllData]);
 
   const handleCreate = useCallback(() => {
     setSelectedHospital(null);
@@ -150,6 +189,12 @@ export const HospitalsPage = () => {
 
   const filterSchema = React.useMemo(() => [
     {
+      key: 'search',
+      type: 'text',
+      label: 'Search',
+      placeholder: 'Search hospitals...',
+    },
+    {
       key: 'status',
       type: 'multiselect',
       label: 'Status',
@@ -204,7 +249,160 @@ export const HospitalsPage = () => {
 
   return (
     <div className="min-h-screen py-6 md:py-8">
-      <div className="pt-2" />
+
+      {/* Bento Overview Cards - Enhanced with Filtering */}
+      {!loading && hospitalsData?.stats && (
+        <LayoutGroup>
+          <motion.div
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8"
+          >
+            {/* Total Hospitals Card */}
+            <motion.div
+              layout
+              className="col-span-1"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+            >
+              <Card
+                className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+                  }`}
+                onClick={() => setKpiFilter('all')}
+              >
+                <div className="absolute top-0 right-0 p-4 z-20">
+                  <div className="relative">
+                    <div className={`absolute inset-0 ${kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                      <Hospital className={`h-5 w-5 ${kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
+                    </div>
+                  </div>
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Network Size</p>
+                    {kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+                  </div>
+                  <h3 className="text-3xl font-bold tracking-tighter">{hospitalsData.stats.total || 0}</h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
+                      {kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+
+            {/* Available Card */}
+            <motion.div
+              layout
+              className="col-span-1"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.15 }}
+            >
+              <Card
+                className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'available' ? 'ring-2 ring-success shadow-lg' : ''
+                  }`}
+                onClick={() => setKpiFilter('available')}
+              >
+                <div className="absolute top-0 right-0 p-4 z-20">
+                  <div className="relative">
+                    <div className={`absolute inset-0 ${kpiFilter === 'available' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                      <MapPin className={`h-5 w-5 ${kpiFilter === 'available' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
+                    </div>
+                  </div>
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Available</p>
+                    {kpiFilter === 'available' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
+                  </div>
+                  <h3 className="text-3xl font-bold tracking-tighter">{hospitalsData.stats.available || 0}</h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge className="geo-round bg-success/20 text-success border-0 font-bold text-xs">
+                      READY
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+
+            {/* Capacity/Full Card */}
+            <motion.div
+              layout
+              className="col-span-1"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+            >
+              <Card
+                className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'full' ? 'ring-2 ring-destructive shadow-lg' : ''
+                  }`}
+                onClick={() => setKpiFilter('full')}
+              >
+                <div className="absolute top-0 right-0 p-4 z-20">
+                  <div className="relative">
+                    <div className={`absolute inset-0 ${kpiFilter === 'full' ? 'bg-destructive/30' : 'bg-destructive/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                      <Bed className={`h-5 w-5 ${kpiFilter === 'full' ? 'text-destructive' : 'text-muted-foreground'} transition-colors duration-200`} />
+                    </div>
+                  </div>
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">At Capacity</p>
+                    {kpiFilter === 'full' && <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />}
+                  </div>
+                  <h3 className="text-3xl font-bold tracking-tighter">{hospitalsData.stats.full || 0}</h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge className="squircle-3xl bg-destructive/20 text-destructive border-0 font-bold text-xs">
+                      NO BEDS
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+
+            {/* Verified Card */}
+            <motion.div
+              layout
+              className="col-span-1"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.25 }}
+            >
+              <Card
+                className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'verified' ? 'ring-2 ring-info shadow-lg' : ''
+                  }`}
+                onClick={() => setKpiFilter('verified')}
+              >
+                <div className="absolute top-0 right-0 p-4 z-20">
+                  <div className="relative">
+                    <div className={`absolute inset-0 ${kpiFilter === 'verified' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                      <Star className={`h-5 w-5 ${kpiFilter === 'verified' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
+                    </div>
+                  </div>
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Verified</p>
+                    {kpiFilter === 'verified' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
+                  </div>
+                  <h3 className="text-3xl font-bold tracking-tighter">{hospitalsData.stats.verified || 0}</h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge className="geo-wave bg-info/20 text-info border-0 font-bold text-xs">
+                      PARTNERS
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          </motion.div>
+        </LayoutGroup>
+      )}
 
       {loading ? (
         <TableSkeleton rows={8} />
