@@ -48,7 +48,7 @@ export const ContextPanelShell = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-xs"
+            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
             onClick={closeContextPanel}
           />
 
@@ -75,7 +75,16 @@ export const ContextPanelShell = () => {
               </button>
 
               {/* Content area - full height except for close button space */}
-              <div className="flex-1 overflow-y-auto scrollbar-hide pt-16 border-border/20">
+              <div
+                className="flex-1 overflow-y-auto scrollbar-hide pt-16 border-border/20"
+                onClick={(e) => {
+                  // If clicking a button or link inside the panel, close it
+                  if (e.target.closest('button') || e.target.closest('a')) {
+                    // Slight delay to allow the action to fire first
+                    setTimeout(closeContextPanel, 150);
+                  }
+                }}
+              >
                 <ContextPanel />
               </div>
             </div>
