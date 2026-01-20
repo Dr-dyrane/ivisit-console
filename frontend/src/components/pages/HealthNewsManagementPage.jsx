@@ -50,7 +50,14 @@ export const HealthNewsManagementPage = () => {
   const [selectedNews, setSelectedNews] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState({ kpiFilter: 'all' });
+  const [stats, setStats] = useState({
+    total: 0,
+    published: 0,
+    draft: 0,
+    medical: 0,
+    recent: 0
+  });
 
   const { viewMode, setViewMode } = useViewMode('health-news-page', 'table');
   const pagination = usePagination(20);
@@ -59,42 +66,64 @@ export const HealthNewsManagementPage = () => {
     try {
       setLoading(true);
 
-      let query = supabase.from('health_news').select('*', { count: 'exact', head: true });
+      // Fetch stats in parallel - using published boolean
+      const [
+        { count: total },
+        { count: published },
+        { count: draft },
+        { count: medical },
+        { count: recent }
+      ] = await Promise.all([
+        supabase.from('health_news').select('id', { count: 'exact' }).limit(0),
+        supabase.from('health_news').select('id', { count: 'exact' }).eq('published', true).limit(0),
+        supabase.from('health_news').select('id', { count: 'exact' }).eq('published', false).limit(0),
+        supabase.from('health_news').select('id', { count: 'exact' }).eq('category', 'medical').limit(0),
+        supabase.from('health_news').select('id', { count: 'exact' }).gt('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).limit(0)
+      ]);
 
-      if (filters.published !== undefined) {
-        query = query.eq('published', filters.published);
-      }
-      if (filters.category) {
-        query = query.eq('category', filters.category);
-      }
-      if (filters.source) {
-        query = query.eq('source', filters.source);
-      }
-      if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,source.ilike.%${filters.search}%,category.ilike.%${filters.search}%`);
-      }
+      setStats({
+        total: total || 0,
+        published: published || 0,
+        draft: draft || 0,
+        medical: medical || 0,
+        recent: recent || 0
+      });
 
+      // Build data query
+      let query = supabase.from('health_news').select('id', { count: 'exact' });
+
+      // Apply Filters
+      if (filters.kpiFilter === 'published') query = query.eq('published', true);
+      if (filters.kpiFilter === 'draft') query = query.eq('published', false);
+      if (filters.kpiFilter === 'medical') query = query.eq('category', 'medical');
+      if (filters.kpiFilter === 'recent') query = query.gt('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+      if (filters.published !== undefined) query = query.eq('published', filters.published);
+      if (filters.category) query = query.eq('category', filters.category);
+      if (filters.source) query = query.eq('source', filters.source);
+      if (filters.search) query = query.or(`title.ilike.%${filters.search}%,source.ilike.%${filters.search}%,category.ilike.%${filters.search}%`);
+
+      // Execute query to get total count
       const { count } = await query;
       pagination.setTotalCount(count || 0);
 
+      // Data Fetching
       let dataQuery = supabase
         .from('health_news')
         .select('*')
         .range(pagination.paginationRange.start, pagination.paginationRange.end)
         .order('created_at', { ascending: false });
 
-      if (filters.published !== undefined) {
-        dataQuery = dataQuery.eq('published', filters.published);
-      }
-      if (filters.category) {
-        dataQuery = dataQuery.eq('category', filters.category);
-      }
-      if (filters.source) {
-        dataQuery = dataQuery.eq('source', filters.source);
-      }
-      if (filters.search) {
-        dataQuery = dataQuery.or(`title.ilike.%${filters.search}%,source.ilike.%${filters.search}%,category.ilike.%${filters.search}%`);
-      }
+      // Apply same filters to data query
+      if (filters.kpiFilter === 'published') dataQuery = dataQuery.eq('published', true);
+      if (filters.kpiFilter === 'draft') dataQuery = dataQuery.eq('published', false);
+      if (filters.kpiFilter === 'medical') dataQuery = dataQuery.eq('category', 'medical');
+      if (filters.kpiFilter === 'recent') dataQuery = dataQuery.gt('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+      if (filters.published !== undefined) dataQuery = dataQuery.eq('published', filters.published);
+      if (filters.category) dataQuery = dataQuery.eq('category', filters.category);
+      if (filters.source) dataQuery = dataQuery.eq('source', filters.source);
+      if (filters.search) dataQuery = dataQuery.or(`title.ilike.%${filters.search}%,source.ilike.%${filters.search}%,category.ilike.%${filters.search}%`);
 
       const { data, error } = await withTimeout(
         dataQuery,
@@ -178,6 +207,57 @@ export const HealthNewsManagementPage = () => {
       toast.error('Failed to toggle publish status');
     }
   }, [fetchHealthNews]);
+
+  const handleSave = useCallback(async (formData) => {
+    try {
+      const timestamp = new Date().toISOString();
+      const payload = {
+        title: formData.title,
+        source: formData.source,
+        icon: formData.icon || 'medical-outline',
+        url: formData.url,
+        category: formData.category,
+        published: formData.published,
+        description: formData.description,
+        content: formData.content,
+        time: timestamp
+      };
+
+      if (modalMode === 'create') {
+        const { data, error } = await supabase
+          .from('health_news')
+          .insert([payload])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        await createNotification(
+          NotificationTypes.NEWS,
+          NotificationActions.CREATED,
+          data.id,
+          { message: `"${formData.title}" has been created` }
+        );
+      } else if (modalMode === 'edit' && selectedNews) {
+        const { error } = await supabase
+          .from('health_news')
+          .update(payload)
+          .eq('id', selectedNews.id);
+
+        if (error) throw error;
+
+        await createNotification(
+          NotificationTypes.NEWS,
+          NotificationActions.UPDATED,
+          selectedNews.id,
+          { message: `"${formData.title}" has been updated` }
+        );
+      }
+    } catch (error) {
+      console.error('Error saving health news:', error);
+      throw error;
+    }
+  }, [modalMode, selectedNews]);
 
   const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
@@ -292,11 +372,221 @@ export const HealthNewsManagementPage = () => {
   usePageFooter(footerContent, 'pagination', !loading && healthNews.length > 0);
 
   return (
-    <div className="min-h-screen py-6 md:py-8">
-      <div className="pt-2" />
+    <div className="min-h-screen py-6 md:py-8 pt-6">
+
+      {/* Bento Layout KPIs */}
+      <LayoutGroup>
+        <motion.div
+          layout
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6"
+        >
+          {/* Total Articles */}
+          <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.05 }}
+          >
+            <Card
+              className={`h-full min-h-[140px] geo-block bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <Newspaper className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  </div>
+                </div>
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Articles</p>
+                  {filters.kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-bold tracking-tighter">{stats.total}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-block bg-primary/20 text-primary border-0 font-bold text-xs">
+                    {filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Published */}
+          <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+          >
+            <Card
+              className={`h-full min-h-[140px] geo-badge bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'published' ? 'ring-2 ring-success shadow-lg' : ''}`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'published' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'published' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <Eye className={`h-5 w-5 ${filters.kpiFilter === 'published' ? 'text-success' : 'text-muted-foreground'}`} />
+                  </div>
+                </div>
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Published</p>
+                  {filters.kpiFilter === 'published' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-bold tracking-tighter">{stats.published}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-badge bg-success/20 text-success border-0 font-bold text-xs">
+                    LIVE NOW
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Drafts */}
+          <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
+          >
+            <Card
+              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'draft' ? 'ring-2 ring-warning shadow-lg' : ''}`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'draft' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'draft' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <File className={`h-5 w-5 ${filters.kpiFilter === 'draft' ? 'text-warning' : 'text-muted-foreground'}`} />
+                  </div>
+                </div>
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Drafts</p>
+                  {filters.kpiFilter === 'draft' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-bold tracking-tighter">{stats.draft}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-sharp bg-warning/20 text-warning border-0 font-bold text-xs">
+                    WORKING
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Recent */}
+          <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <Card
+              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'recent' ? 'ring-2 ring-info shadow-lg' : ''}`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'recent' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'recent' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <Clock className={`h-5 w-5 ${filters.kpiFilter === 'recent' ? 'text-info' : 'text-muted-foreground'}`} />
+                  </div>
+                </div>
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Recent</p>
+                  {filters.kpiFilter === 'recent' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-bold tracking-tighter">{stats.recent}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-round bg-info/20 text-info border-0 font-bold text-xs">
+                    LAST 7 DAYS
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Medical */}
+          <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.25 }}
+          >
+            <Card
+              className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'medical' ? 'ring-2 ring-primary shadow-lg' : ''}`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'medical' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'medical' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <Tag className={`h-5 w-5 ${filters.kpiFilter === 'medical' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  </div>
+                </div>
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Medical</p>
+                  {filters.kpiFilter === 'medical' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-bold tracking-tighter">{stats.medical}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-ticket bg-primary/20 text-primary border-0 font-bold text-xs">
+                    CLINICAL
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        </motion.div>
+      </LayoutGroup>
 
       {loading ? (
         <TableSkeleton rows={8} />
+      ) : healthNews.length === 0 ? (
+        <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
+          <Newspaper className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="font-bold text-xl mb-2">
+            {filters.search ? 'No News Found' :
+              filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 'No News Articles Yet' :
+                'No Matching Articles'}
+          </h3>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            {filters.search ? `No articles found matching "${filters.search}". Try adjusting your search terms.` :
+              filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ?
+                'Create your first health news article to get started.' :
+                'Try adjusting your filters or search criteria to find the articles you\'re looking for.'}
+          </p>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            {filters.search && (
+              <Button onClick={() => setFilters(prev => ({ ...prev, search: '' }))} variant="outline" className="squircle">
+                <Filter className="h-4 w-4 mr-2" />
+                Clear Search
+              </Button>
+            )}
+            {(filters.kpiFilter !== 'all' || Object.keys(filters).filter(k => k !== 'kpiFilter').some(k => filters[k])) && (
+              <Button onClick={() => setFilters({ kpiFilter: 'all', published: undefined, category: '', source: '', search: '' })} variant="outline" className="squircle">
+                <Filter className="h-4 w-4 mr-2" />
+                Reset Filters
+              </Button>
+            )}
+            <Button onClick={handleCreate} className="squircle bg-primary">
+              <Plus className="h-4 w-4 mr-2" />
+              Add News
+            </Button>
+          </div>
+        </Card>
       ) : (
         <>
           {viewMode === 'grid' && (
@@ -459,6 +749,7 @@ export const HealthNewsManagementPage = () => {
           onClose={handleModalClose}
           news={selectedNews}
           mode={modalMode}
+          onSave={handleSave}
         />
       )}
 
