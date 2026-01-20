@@ -17,7 +17,7 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
     const [formData, setFormData] = useState({
         username: '',
         phone: '',
-        avatar_url: ''
+        image_uri: ''
     });
 
     useEffect(() => {
@@ -25,7 +25,7 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
             setFormData({
                 username: profile.username || '',
                 phone: profile.phone || '',
-                avatar_url: profile.avatar_url || ''
+                image_uri: profile.image_uri || profile.avatar_url || ''
             });
         }
     }, [profile]);
@@ -38,7 +38,7 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
 
             const publicUrl = await uploadAvatar(file);
 
-            setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
+            setFormData(prev => ({ ...prev, image_uri: publicUrl }));
             toast.success('Image uploaded successfully');
         } catch (error) {
             console.error('Error uploading image:', error);
@@ -56,7 +56,7 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
             await updateProfile({
                 username: formData.username,
                 phone: formData.phone,
-                avatar_url: formData.avatar_url,
+                image_uri: formData.image_uri,
                 updated_at: new Date().toISOString(),
             });
             toast.success('Profile updated successfully');
@@ -110,7 +110,7 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                                             </div>
                                         ) : (
                                             <img
-                                                src={formData.avatar_url || getAvatarUrl(profile)}
+                                                src={formData.image_uri || getAvatarUrl(profile)}
                                                 alt="Profile"
                                                 className="h-full w-full object-cover transition-opacity group-hover:opacity-75"
                                             />

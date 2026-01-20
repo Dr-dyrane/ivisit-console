@@ -375,8 +375,8 @@ export function subscribeToProfile(profileId, callback) {
 export async function uploadProfileAvatar(userId, file) {
   try {
     const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}-${Math.random()}.${fileExt}`;
-    const filePath = `${fileName}`;
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `${userId}/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('images')
