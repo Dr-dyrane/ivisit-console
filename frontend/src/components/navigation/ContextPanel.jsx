@@ -37,9 +37,11 @@ export const ContextPanel = () => {
     getInsuranceStats,
     useMockData,
     activityData,
-    refreshAllData
+    refreshAllData,
+    userData,
+    filters
   } = usePageData();
-  
+
   const { subscribers } = useSubscription();
 
   const emergencyStats = getEmergencyStats();
@@ -111,7 +113,7 @@ export const ContextPanel = () => {
   // Render based on current path
   if (currentPath === '/' || currentPath === '') {
     return renderPanelWithHeader(
-      <DashboardPanel 
+      <DashboardPanel
         emergencyStats={emergencyStats}
         analyticsData={analyticsData}
         doctorsData={doctorsData}
@@ -122,14 +124,30 @@ export const ContextPanel = () => {
     );
   } else if (currentPath.includes('/emergencies')) {
     return renderPanelWithHeader(
-      <EmergencyPanel 
+      <EmergencyPanel
         emergencyData={emergencyData}
         emergencyStats={emergencyStats}
         useMockData={useMockData}
       />
     );
   } else if (currentPath.includes('/users')) {
-    return renderPanelWithHeader(<UsersPanel />);
+    return renderPanelWithHeader(<UsersPanel
+      users={userData?.users || []}
+      statistics={userData?.statistics}
+      filters={filters}
+      onViewUser={(user) => {
+        // Navigate to user detail or open modal
+        console.log('View user:', user);
+      }}
+      onCreateUser={() => {
+        // Trigger create user modal
+        window.dispatchEvent(new CustomEvent('openUserModal'));
+      }}
+      onViewAnalytics={() => {
+        // Open analytics modal
+        console.log('Open user analytics');
+      }}
+    />);
   } else if (currentPath.includes('/hospitals')) {
     return renderPanelWithHeader(<HospitalsPanel />);
   } else if (currentPath.includes('/ambulances')) {
@@ -150,7 +168,7 @@ export const ContextPanel = () => {
     return renderPanelWithHeader(<HealthNewsPanel />);
   } else if (currentPath.includes('/support-tickets')) {
     return renderPanelWithHeader(
-      <SupportTicketsPanel 
+      <SupportTicketsPanel
         supportTicketsData={supportTicketsData}
         loading={loading}
         useMockData={useMockData}
@@ -158,7 +176,7 @@ export const ContextPanel = () => {
     );
   } else if (currentPath.includes('/insurance')) {
     return renderPanelWithHeader(
-      <InsurancePanel 
+      <InsurancePanel
         loading={loading}
         getInsuranceStats={getInsuranceStats}
       />

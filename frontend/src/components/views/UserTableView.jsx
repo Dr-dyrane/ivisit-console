@@ -6,7 +6,7 @@ import { Edit, Trash2, Eye } from 'lucide-react';
 import { Card } from '../ui/card';
 import { motion } from 'framer-motion';
 
-export const UserTableView = ({ users, onView, onEdit, onDelete, getRoleBadge, isMobile = false }) => {
+export const UserTableView = ({ users, onView, onEdit, onDelete, isMobile = false }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -36,7 +36,11 @@ export const UserTableView = ({ users, onView, onEdit, onDelete, getRoleBadge, i
                 <TableCell className="font-black">{user.username || 'Unknown'}</TableCell>
                 <TableCell className="text-muted-foreground">{user.email || '-'}</TableCell>
                 <TableCell>
-                  <Badge className={`squircle-sm ${getRoleBadge(user.role)} border-0 font-black`}>
+                  <Badge className={`squircle-sm ${
+                    user.role === 'admin' ? 'bg-warning/20 text-warning' :
+                    user.role === 'provider' ? 'bg-success/20 text-success' :
+                    'bg-info/20 text-info'
+                  } border-0 font-black`}>
                     {user.role}
                   </Badge>
                 </TableCell>

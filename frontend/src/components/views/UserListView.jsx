@@ -5,7 +5,16 @@ import { Button } from '../ui/button';
 import { Edit, Trash2, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const UserListView = ({ users, onView, onEdit, onDelete, getRoleBadge, isMobile = false }) => {
+export const UserListView = ({ users, onView, onEdit, onDelete, isMobile = false }) => {
+  const getRoleBadge = (role) => {
+    switch (role) {
+      case 'admin': return 'bg-warning/20 text-warning';
+      case 'provider': return 'bg-success/20 text-success';
+      case 'patient': return 'bg-info/20 text-info';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}

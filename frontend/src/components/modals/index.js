@@ -1,5 +1,6 @@
 export { EmergencyRequestModal } from './EmergencyRequestModal';
 export { UserModal } from './UserModal';
+export { UserAnalyticsModal } from './UserAnalyticsModal';
 export { HospitalModal } from './HospitalModal';
 export { AmbulanceModal } from './AmbulanceModal';
 export { DoctorModal } from './DoctorModal';

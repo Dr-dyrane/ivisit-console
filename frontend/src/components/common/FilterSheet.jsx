@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
@@ -8,9 +8,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initialValues = {}, viewToggle = null, isMobile = false }) => {
   const [filters, setFilters] = useState(initialValues);
+  const prevInitialValuesRef = useRef();
 
   useEffect(() => {
-    setFilters(initialValues);
+    // Only update filters if initialValues actually changed (deep comparison)
+    if (JSON.stringify(initialValues) !== JSON.stringify(prevInitialValuesRef.current)) {
+      setFilters(initialValues);
+      prevInitialValuesRef.current = initialValues;
+    }
   }, [initialValues]);
 
   const handleFilterChange = (key, value) => {
