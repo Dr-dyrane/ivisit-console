@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { DynamicAuthSkeleton } from '../components/ui/skeleton';
 import { updateProfile as updateProfileService, uploadProfileAvatar } from '../services/profilesService';
@@ -23,6 +24,7 @@ const ROLE_HIERARCHY = {
 };
 
 export const AuthProvider = ({ children, pathname = "/" }) => {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -125,8 +127,14 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+
+      // Automatic redirection for invited users setting a password
+      if (event === 'PASSWORD_RECOVERY') {
+        navigate('/set-password');
+      }
+
       if (session?.user) {
         fetchProfile(session.user.id, session.user.email);
       } else {
@@ -137,7 +145,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   // Show skeleton during initial load
   if (initializing) {
