@@ -32,14 +32,14 @@ export const SmartHeader = () => {
                 className={`fixed z-40 h-16 flex items-center justify-between transition-colors duration-300 ${isMobile
                     ? 'top-2 left-2 right-2 squircle-2xl bg-background/90 backdrop-blur-2xl border border-white/10 shadow-premium'
                     : isScrolledDown
-                        ? 'top-0 left-0 right-0 bg-background/80 backdrop-blur-2xl shadow-lg'
-                        : 'top-0 left-0 right-0 bg-background/40 backdrop-blur-md'
+                        ? 'top-0 left-0 right-0 bg-background/80 backdrop-blur-2xl shadow-lg border-b border-black/10 dark:border-white/10'
+                        : 'top-0 left-0 right-0 bg-background/40 backdrop-blur-md border-b border-black/10 dark:border-white/10'
                     }`}
                 style={{
                     paddingRight: isMobile ? '16px' : '32px'  // 16px (2×8px) mobile, 32px (4×8px) desktop
                 }}
             >
-                <NoiseOverlay  className={`${isMobile && 'squircle-2xl'}`}/>
+                <NoiseOverlay className={`${isMobile && 'squircle-2xl'}`} />
                 <div className="flex items-center gap-2 md:gap-0 overflow-hidden h-full">
                     {/* Logo Zone - This will now slide with the paddingLeft */}
 

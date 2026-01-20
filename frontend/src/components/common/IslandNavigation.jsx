@@ -86,12 +86,11 @@ export const IslandNavigation = () => {
         )}
         <button
           onClick={() => navigate(item.path)}
-          className={`flex items-center h-10 rounded-xl transition-all duration-200 ${
-            isCentered ? 'w-10 justify-center' : `w-full ${isSubItem ? 'pl-9' : 'px-3'}`
-          } ${isActive
-            ? 'bg-primary/15 text-primary font-semibold'
-            : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-          }`}
+          className={`flex items-center h-10 rounded-xl transition-all duration-200 ${isCentered ? 'w-10 justify-center' : `w-full ${isSubItem ? 'pl-9' : 'px-3'}`
+            } ${isActive
+              ? 'bg-primary/15 text-primary font-semibold'
+              : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+            }`}
         >
           <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${isActive ? 'scale-110' : 'opacity-70'}`} />
           {isBroad && !isCentered && (
@@ -123,9 +122,8 @@ export const IslandNavigation = () => {
           <div className="flex justify-center px-3">
             <button
               onClick={() => toggleGroup(id)}
-              className={`w-10 h-10 rounded-xl transition-colors flex items-center justify-center ${
-                isAnyChildActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-              }`}
+              className={`w-10 h-10 rounded-xl transition-colors flex items-center justify-center ${isAnyChildActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                }`}
             >
               <GroupIcon className="w-5 h-5" />
             </button>
@@ -156,9 +154,8 @@ export const IslandNavigation = () => {
         <div className="px-3">
           <button
             onClick={() => toggleGroup(id)}
-            className={`w-full flex items-center h-10 px-3 rounded-xl transition-colors ${
-              isAnyChildActive && !isOpen ? 'bg-primary/8 text-primary' : 'text-muted-foreground/60 hover:text-foreground'
-            }`}
+            className={`w-full flex items-center h-10 px-3 rounded-xl transition-colors ${isAnyChildActive && !isOpen ? 'bg-primary/8 text-primary' : 'text-muted-foreground/60 hover:text-foreground'
+              }`}
           >
             <GroupIcon className="w-5 h-5 flex-shrink-0" />
             <AnimatePresence>
@@ -194,11 +191,11 @@ export const IslandNavigation = () => {
       onMouseLeave={() => setIsHovered(false)}
       animate={{ width: sidebarWidth, x: 0 }}
       transition={{ type: "spring", stiffness: 250, damping: 28 }}
-      className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-xl  border-border/40 ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'}`}
+      className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-xl border-r border-black/10 dark:border-white/10 ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'}`}
     >
       <NoiseOverlay />
       {/* 1. BRANDING & BACK ARROW */}
-      <div className="h-16 flex-shrink-0 flex items-center px-4">
+      <div className="h-16 flex-shrink-0 flex items-center px-4 border-b border-black/10 dark:border-white/10">
         <div className="relative flex items-center w-full">
           <AnimatePresence mode="wait">
             {isNotHome ? (
