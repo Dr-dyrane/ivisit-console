@@ -105,17 +105,7 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
           </Button>
 
           <Button
-            onClick={() => {
-              // Open analytics modal with recent activity data
-              const analyticsEvent = new CustomEvent('openUserAnalytics', {
-                detail: {
-                  recentUsers: recentUsers,
-                  users: users,
-                  statistics: statistics
-                }
-              });
-              window.dispatchEvent(analyticsEvent);
-            }}
+            onClick={onViewAnalytics}
             className="w-full justify-start h-10 bg-primary/10 hover:bg-primary/20 border border-primary/20 text-[10px] font-bold tracking-widest uppercase text-primary"
           >
             <BarChart3 className="h-4 w-4 mr-2" />
@@ -138,9 +128,9 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
             </p>
           ) : (
             recentUsers.map((user) => (
-              <Card
+              <div
                 key={user.id}
-                className="p-3 bg-background/50 backdrop-blur-sm border-0 hover:bg-muted/20 transition-colors cursor-pointer"
+                className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/40 transition-colors cursor-pointer"
                 onClick={() => onViewUser(user)}
               >
                 <div className="flex items-center gap-3">
@@ -149,28 +139,22 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
                       {(user.username || user.profile_username || 'U')?.[0]?.toUpperCase()}
                     </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-normal text-sm truncate">
+                  <div>
+                    <p className="font-normal text-sm">
                       {user.username || user.profile_username || 'Unknown User'}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(user.last_sign_in_at).toLocaleDateString()}
+                      {user.email}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    {user.role === 'admin' && (
-                      <Badge className="bg-warning/20 text-warning border-0 text-xs">
-                        ADMIN
-                      </Badge>
-                    )}
-                    {user.bvn_verified && (
-                      <Badge className="bg-success/20 text-success border-0 text-xs">
-                        ✓
-                      </Badge>
-                    )}
-                  </div>
                 </div>
-              </Card>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Last login</p>
+                  <p className="text-xs font-normal">
+                    {new Date(user.last_sign_in_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
             ))
           )}
         </div>

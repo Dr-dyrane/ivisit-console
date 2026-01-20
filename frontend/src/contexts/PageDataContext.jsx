@@ -92,6 +92,7 @@ export const PageDataProvider = ({ children }) => {
   const [supportTicketsData, setSupportTicketsData] = useState(mockSupportTicketsData);
   const [insurancePolicies, setInsurancePolicies] = useState([]);
   const [activityData, setActivityData] = useState([]);
+  const [userData, setUserData] = useState({ users: [], statistics: null });
   const [loading, setLoading] = useState({
     emergency: false,
     analytics: false,
@@ -374,28 +375,117 @@ export const PageDataProvider = ({ children }) => {
       setLoading(prev => ({ ...prev, users: true }));
 
       if (useMockData) {
-        // Use verification data for users since it's already real
+        setUserData({ users: [], statistics: null });
         return;
       }
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Try to get profiles with auth data (includes last_sign_in_at)
+      const { data: authUsers, error: authError } = await supabase.rpc('get_all_auth_users');
 
-      if (error) {
-        console.warn('Supabase error for users:', error);
-        // Verification data already handles this
-      } else {
-        // Update verification data with real user counts
-        const totalUsers = data?.length || 0;
+      if (authError) {
+        console.warn('Could not fetch auth users, falling back to profiles:', authError);
+
+        // Fallback to regular profiles if RPC fails
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (profilesError) {
+          console.warn('Supabase error for users:', profilesError);
+          setUserData({ users: [], statistics: null });
+          return;
+        }
+
+        const users = profiles || [];
+
+        // Calculate statistics from profiles
+        const totalUsers = users.length;
+        const emailVerifiedUsers = users.filter(u => u.email_confirmed_at).length;
+        const bvnVerifiedUsers = users.filter(u => u.bvn_verified).length;
+
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const recentSignups = users.filter(u => new Date(u.created_at) > thirtyDaysAgo).length;
+
+        const roleDistribution = users.reduce((acc, user) => {
+          const role = user.role || 'patient';
+          acc[role] = (acc[role] || 0) + 1;
+          return acc;
+        }, {});
+
+        const statistics = {
+          totalUsers,
+          emailVerifiedUsers,
+          bvnVerifiedUsers,
+          recentSignups,
+          totalProfiles: totalUsers,
+          roleDistribution
+        };
+
+        setUserData({ users, statistics });
+
         setVerificationData(prev => ({
           ...prev,
-          total: totalUsers
+          total: totalUsers,
+          approved: bvnVerifiedUsers
         }));
+
+        return;
       }
+
+      // Map auth users data to match profile structure
+      const users = (authUsers || []).map(u => ({
+        id: u.user_id,
+        username: u.profile_username,
+        profile_username: u.profile_username,
+        email: u.email,
+        phone: u.profile_phone,
+        role: u.profile_role,
+        provider_type: u.profile_provider_type,
+        bvn_verified: u.profile_bvn_verified,
+        email_confirmed_at: u.email_confirmed_at,
+        last_sign_in_at: u.last_sign_in_at,
+        created_at: u.created_at,
+        image_uri: u.profile_image_uri,
+        avatar_url: u.profile_avatar_url
+      }));
+
+      // Calculate statistics
+      const totalUsers = users.length;
+      const emailVerifiedUsers = users.filter(u => u.email_confirmed_at).length;
+      const bvnVerifiedUsers = users.filter(u => u.bvn_verified).length;
+
+      // Calculate recent signups (last 30 days)
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const recentSignups = users.filter(u => new Date(u.created_at) > thirtyDaysAgo).length;
+
+      // Calculate role distribution
+      const roleDistribution = users.reduce((acc, user) => {
+        const role = user.role || 'patient';
+        acc[role] = (acc[role] || 0) + 1;
+        return acc;
+      }, {});
+
+      const statistics = {
+        totalUsers,
+        emailVerifiedUsers,
+        bvnVerifiedUsers,
+        recentSignups,
+        totalProfiles: totalUsers,
+        roleDistribution
+      };
+
+      setUserData({ users, statistics });
+
+      // Update verification data with real user counts
+      setVerificationData(prev => ({
+        ...prev,
+        total: totalUsers,
+        approved: bvnVerifiedUsers
+      }));
     } catch (error) {
       console.error('Error fetching users data:', error);
+      setUserData({ users: [], statistics: null });
     } finally {
       setLoading(prev => ({ ...prev, users: false }));
     }
@@ -604,22 +694,26 @@ export const PageDataProvider = ({ children }) => {
     }
   }, [useMockData, fetchInsurancePolicies]);
 
-  // Real-time subscription for verification data
+  // Real-time subscription for verification data and user data
   useEffect(() => {
     fetchVerificationData();
+    fetchUsersData();
 
     if (!useMockData) {
       const channel = supabase
         .channel('profile_changes')
         .on('postgres_changes',
           { event: '*', schema: 'public', table: 'profiles' },
-          fetchVerificationData
+          () => {
+            fetchVerificationData();
+            fetchUsersData();
+          }
         )
         .subscribe();
 
       return () => supabase.removeChannel(channel);
     }
-  }, [useMockData, fetchVerificationData]);
+  }, [useMockData, fetchVerificationData, fetchUsersData]);
 
   // Real-time subscription for support tickets data
   useEffect(() => {
@@ -734,6 +828,7 @@ export const PageDataProvider = ({ children }) => {
     verificationData,
     supportTicketsData,
     activityData,
+    userData,
     // Add insurance data directly to value so it's accessible
     insurance: insurancePolicies,
 

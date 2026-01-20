@@ -145,7 +145,12 @@ export const ContextPanel = () => {
       }}
       onViewAnalytics={() => {
         // Open analytics modal
-        console.log('Open user analytics');
+        window.dispatchEvent(new CustomEvent('openUserAnalytics', {
+          detail: {
+            users: userData?.users || [],
+            statistics: userData?.statistics
+          }
+        }));
       }}
     />);
   } else if (currentPath.includes('/hospitals')) {

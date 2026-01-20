@@ -196,9 +196,16 @@ export const UsersPage = () => {
       setModalMode('create');
     };
 
+    const handleOpenAnalytics = () => {
+      setAnalyticsModalOpen(true);
+    };
+
     window.addEventListener('openUserModal', handleOpenModal);
+    window.addEventListener('openUserAnalytics', handleOpenAnalytics);
+
     return () => {
       window.removeEventListener('openUserModal', handleOpenModal);
+      window.removeEventListener('openUserAnalytics', handleOpenAnalytics);
     };
   }, []);
 
