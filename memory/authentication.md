@@ -86,3 +86,18 @@ App: Should open and auto-navigate to "Set Password".
 User: Set password.
 User: Logout.
 User: Login with Email + New Password -> Success.
+
+## Environment Configuration & Troubleshooting
+
+### URL Configuration (Supabase Dashboard)
+**Critical for Google OAuth & Magic Links:**
+Because this project shares a Supabase instance with a Mobile App (using `ivisit://` deep links), you must explicitly allow the Web Dashboard URLs in the Supabase Auth settings to prevent the "Failed to launch scheme" error.
+
+**Go to:** Authentication -> URL Configuration -> Redirect URLs
+**Add:**
+- `http://localhost:3000`
+- `http://localhost:3000/` (optional but safe)
+- `https://your-production-domain.com`
+- `https://your-production-domain.com/`
+
+**Note:** The application code (`LoginPage.jsx`) specifically requests `window.location.origin` as the `redirectTo` param, but this **matches against the Allow List**. If the local URL isn't in the list, Supabase falls back to the default Site URL (which is likely set to `ivisit://auth/callback` for the mobile app).

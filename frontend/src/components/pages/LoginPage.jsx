@@ -333,8 +333,24 @@ export const LoginPage = () => {
 									<div className="mt-8 text-center space-y-4">
 										<button
 											type="button"
-											className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-border hover:bg-muted/50 transition-colors bg-background text-sm font-medium"
-										// Add Google Login Logic Here
+											onClick={async () => {
+												setIsLoading(true);
+												try {
+													const { error } = await supabase.auth.signInWithOAuth({
+														provider: 'google',
+														options: {
+															redirectTo: window.location.origin
+														}
+													});
+													if (error) throw error;
+												} catch (err) {
+													console.error("Google Login Error:", err);
+													toast.error("Failed to initiate Google Login");
+													setIsLoading(false);
+												}
+											}}
+											disabled={isLoading}
+											className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-border hover:bg-muted/50 transition-colors bg-background text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
 										>
 											<img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
 											Continue with Google
