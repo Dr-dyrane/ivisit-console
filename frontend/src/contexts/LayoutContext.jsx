@@ -1,17 +1,18 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const LayoutContext = createContext({
     isScrolledDown: false,
     sidebarExpanded: false,
     sidebarWidth: 72,
-    toggleSidebar: () => {},
+    toggleSidebar: () => { },
     isContextPanelOpen: false,
     contextMode: 'overlay',
     isFocusMode: false,
-    openContextPanel: () => {},
-    closeContextPanel: () => {},
+    openContextPanel: () => { },
+    closeContextPanel: () => { },
     headerConfig: { title: '', actions: null, viewToggle: null, filterSheet: null },
     footerConfig: { visible: false, content: null, type: 'status' },
     setHeaderConfig: () => { },
@@ -31,9 +32,9 @@ export const LayoutProvider = ({ children }) => {
     const COLLAPSED_WIDTH = 72;
     const EXPANDED_WIDTH = 260;
 
-    const sidebarWidth = useMemo(() => 
+    const sidebarWidth = useMemo(() =>
         sidebarExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH
-    , [sidebarExpanded]);
+        , [sidebarExpanded]);
 
     const toggleSidebar = useCallback(() => {
         setSidebarExpanded(prev => !prev);
@@ -48,6 +49,24 @@ export const LayoutProvider = ({ children }) => {
     }, []);
 
     const isFocusMode = useMemo(() => isContextPanelOpen, [isContextPanelOpen]);
+
+    const location = useLocation();
+
+    // Auto-close context panel on route change or Modal open
+    useEffect(() => {
+        setIsContextPanelOpen(false);
+    }, [location.pathname]);
+
+    useEffect(() => {
+        const handleModalOpen = () => setIsContextPanelOpen(false);
+        window.addEventListener('modal-opened', handleModalOpen);
+        window.addEventListener('openUserModal', handleModalOpen); // Also catch the specific user modal trigger
+
+        return () => {
+            window.removeEventListener('modal-opened', handleModalOpen);
+            window.removeEventListener('openUserModal', handleModalOpen);
+        };
+    }, []);
 
     // Scroll Observer
     useEffect(() => {
@@ -66,7 +85,7 @@ export const LayoutProvider = ({ children }) => {
     const setHeaderConfigStable = useCallback((config) => {
         setHeaderConfig(prev => {
             const newConfig = typeof config === 'function' ? config(prev) : config;
-            if (prev.title === newConfig.title) return prev; 
+            if (prev.title === newConfig.title) return prev;
             return newConfig;
         });
     }, []);

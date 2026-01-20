@@ -42,6 +42,7 @@ const AppShell = ({ children }) => {
 	const location = useLocation();
 	const { isScrolledDown, sidebarWidth, isContextPanelOpen } = useLayout();
 	const hideNav = ["/login", "/unauthorized"].includes(location.pathname);
+	const isMobile = window.innerWidth < 768;
 
 	return (
 		<div className="relative h-screen w-full bg-background text-foreground overflow-hidden flex flex-col">
@@ -59,25 +60,25 @@ const AppShell = ({ children }) => {
 					id="main-content"
 					className={`flex-1 relative overflow-y-auto overflow-x-hidden scroll-smooth custom-scrollbar transition-all duration-300 ${!hideNav ? "pt-16" : ""}`}
 				>
-				{!hideNav && (
-					<div className="fixed inset-0 z-0 pointer-events-none">
-						<NoiseOverlay opacity={50} />
-					</div>
-				)}
+					{!hideNav && (
+						<div className="fixed inset-0 z-0 pointer-events-none">
+							<NoiseOverlay opacity={50} />
+						</div>
+					)}
 
-				<motion.div
-					layout
-					initial={false}
-					animate={{
-						// Push content by Sidebar Width + 24px gap (3×8px)
-						paddingLeft: hideNav ? 16 : (window.innerWidth >= 768 ? sidebarWidth + 24 : 16),
-						// Right padding - 24px (3×8px) for consistency
-						paddingRight: 24,
-						// Top padding when scrolled - 16px (2×8px)
-						paddingTop: isScrolledDown ? 16 : 0,
-						// Bottom padding - 96px (12×8px) for footer/FAB clearance
-						paddingBottom: 96
-					}}
+					<motion.div
+						layout
+						initial={false}
+						animate={{
+							// Push content by Sidebar Width + 24px gap (3×8px)
+							paddingLeft: hideNav ? 16 : (window.innerWidth >= 768 ? sidebarWidth + 48 : 16),
+							// Right padding - 24px (3×8px) for consistency
+							paddingRight: isMobile ? 16 : 48,
+							// Top padding when scrolled - 16px (2×8px)
+							paddingTop: isScrolledDown ? 0 : 16,
+							// Bottom padding - 96px (12×8px) for footer/FAB clearance
+							paddingBottom: 96
+						}}
 						transition={{ type: "spring", stiffness: 300, damping: 30 }}
 						className="relative z-10"
 					>

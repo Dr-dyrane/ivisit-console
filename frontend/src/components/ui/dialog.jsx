@@ -4,7 +4,24 @@ import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const Dialog = DialogPrimitive.Root
+const Dialog = ({ open, onOpenChange, ...props }) => {
+  React.useEffect(() => {
+    if (open) {
+      window.dispatchEvent(new Event('modal-opened'));
+    }
+  }, [open]);
+
+  return (
+    <DialogPrimitive.Root
+      open={open}
+      onOpenChange={(val) => {
+        if (val) window.dispatchEvent(new Event('modal-opened'));
+        onOpenChange?.(val);
+      }}
+      {...props}
+    />
+  );
+}
 
 const DialogTrigger = DialogPrimitive.Trigger
 

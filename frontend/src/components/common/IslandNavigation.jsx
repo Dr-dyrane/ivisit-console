@@ -236,7 +236,7 @@ export const IslandNavigation = () => {
       </div>
 
       {/* 2. DOCK-STYLE NAVIGATION */}
-      <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar py-4">
+      <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar py-4 mt-4">
         <div className="space-y-1">
           {renderNavButton({ id: 'home', path: '/', icon: Home, label: 'Dashboard' })}
           {renderNavButton({ id: 'map', path: '/map', icon: MapPin, label: 'Live Map' })}
