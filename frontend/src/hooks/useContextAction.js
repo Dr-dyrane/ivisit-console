@@ -92,13 +92,24 @@ export const useContextAction = (openModal) => {
                 navigate('/verification?quick=true');
             }
         };
-    } else if (currentPath.includes('/settings')) {
+    } else if (currentPath === '/settings') {
         return {
-            icon: Settings,
-            label: 'Quick Setting',
-            color: 'muted',
+            icon: Shield,
+            label: 'Security',
+            color: 'primary',
             action: () => {
-                navigate('/settings?quick=true');
+                // If already on settings page, just open the modal directly
+                window.dispatchEvent(new CustomEvent('openSecurityModal'));
+            }
+        };
+    } else if (currentPath.includes('/settings')) {
+        // Fallback for sub-routes if any, or just use the same logic
+        return {
+            icon: Shield,
+            label: 'Security',
+            color: 'primary',
+            action: () => {
+                window.dispatchEvent(new CustomEvent('openSecurityModal'));
             }
         };
     } else if (currentPath.includes('/health-news')) {
