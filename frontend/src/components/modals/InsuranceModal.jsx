@@ -440,9 +440,12 @@ const GlassCard = ({ children, title, icon }) => (
 const ImageUploadBox = ({ label, image, onUpload, onRemove, disabled }) => (
   <div>
     <Label className="text-xs font-semibold text-muted-foreground uppercase mb-2 block">{label}</Label>
-    <div className={`border-2 border-dashed border-border/50 rounded-2xl p-4 text-center transition-colors ${!disabled && 'hover:bg-muted/30 hover:border-primary/30'}`}>
+    <div
+      className={`border-2 border-dashed border-border/50 rounded-2xl p-4 text-center transition-colors relative ${!disabled ? 'hover:bg-muted/30 hover:border-primary/30 cursor-pointer' : ''}`}
+      onClick={() => !disabled && !image && document.getElementById(`upload-${label.replace(/\s+/g, '-')}`).click()}
+    >
       {image ? (
-        <div className="space-y-3">
+        <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
           <div className="relative aspect-video bg-muted/20 rounded-xl overflow-hidden">
             <img
               src={image || "/placeholder.svg"}
@@ -456,7 +459,7 @@ const ImageUploadBox = ({ label, image, onUpload, onRemove, disabled }) => (
               variant="destructive"
               size="sm"
               onClick={onRemove}
-              className="rounded-xl h-8 text-xs"
+              className="rounded-xl h-8 text-xs z-10 relative"
             >
               <Trash2 className="w-3 h-3 mr-2" />
               Remove
@@ -477,13 +480,13 @@ const ImageUploadBox = ({ label, image, onUpload, onRemove, disabled }) => (
                 onChange={(e) => e.target.files[0] && onUpload(e.target.files[0])}
                 className="hidden"
                 id={`upload-${label.replace(/\s+/g, '-')}`}
+                onClick={(e) => e.stopPropagation()} // Prevent infinite loop
               />
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => document.getElementById(`upload-${label.replace(/\s+/g, '-')}`).click()}
-                className="rounded-xl h-8 text-xs font-semibold bg-transparent"
+                className="rounded-xl h-8 text-xs font-semibold bg-transparent pointer-events-none" // pointer-events-none passes click to parent
               >
                 Choose File
               </Button>
