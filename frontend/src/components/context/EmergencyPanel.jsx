@@ -6,15 +6,15 @@ import {
   AlertTriangle,
   Activity,
   Clock,
-  TrendingUp,
-  Zap
+  Zap,
+  Map,
+  Filter,
+  Radio
 } from 'lucide-react';
 
-export const EmergencyPanel = ({ emergencyData, emergencyStats, useMockData }) => {
+export const EmergencyPanel = ({ emergencyData = [], emergencyStats, useMockData }) => {
   const handleCreateEmergency = () => {
-    // Trigger emergency modal
-    const event = new CustomEvent('openEmergencyModal');
-    window.dispatchEvent(event);
+    window.dispatchEvent(new CustomEvent('openEmergencyModal'));
   };
 
   return (
@@ -33,7 +33,7 @@ export const EmergencyPanel = ({ emergencyData, emergencyStats, useMockData }) =
         </motion.div>
       )}
 
-      {/* Live Stats */}
+      {/* Emergency Overview */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -47,92 +47,36 @@ export const EmergencyPanel = ({ emergencyData, emergencyStats, useMockData }) =
               <div className="w-10 h-10 geo-round bg-destructive/20 flex items-center justify-center">
                 <AlertTriangle className="h-5 w-5 text-destructive" />
               </div>
-              <div>
-                <span className="font-bold tracking-tight">Critical</span>
-                <p className="text-xs text-muted-foreground">Immediate attention</p>
-              </div>
+              <span className="font-bold tracking-tight">Critical</span>
             </div>
             <Badge className="bg-destructive/20 text-destructive border-0">{emergencyStats.critical}</Badge>
           </div>
         </Card>
 
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-warning/20 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-warning" />
+        <div className="grid grid-cols-2 gap-2">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
+                <Clock className="h-4 w-4 text-warning" />
               </div>
               <div>
-                <span className="font-bold tracking-tight">Pending</span>
-                <p className="text-xs text-muted-foreground">Awaiting response</p>
+                <p className="font-bold text-sm">{emergencyStats.pending}</p>
+                <p className="text-xs text-muted-foreground">Pending</p>
               </div>
             </div>
-            <Badge className="bg-warning/20 text-warning border-0">{emergencyStats.pending}</Badge>
-          </div>
-        </Card>
+          </Card>
 
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-info/20 flex items-center justify-center">
-                <Activity className="h-5 w-5 text-info" />
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 geo-round bg-info/20 flex items-center justify-center">
+                <Activity className="h-4 w-4 text-info" />
               </div>
               <div>
-                <span className="font-bold tracking-tight">In Progress</span>
-                <p className="text-xs text-muted-foreground">Being handled</p>
+                <p className="font-bold text-sm">{emergencyStats.inProgress}</p>
+                <p className="text-xs text-muted-foreground">Active</p>
               </div>
             </div>
-            <Badge className="bg-info/20 text-info border-0">{emergencyStats.inProgress}</Badge>
-          </div>
-        </Card>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <span className="font-bold tracking-tight">Total Requests</span>
-                <p className="text-xs text-muted-foreground">All time</p>
-              </div>
-            </div>
-            <Badge className="bg-primary/20 text-primary border-0">{emergencyStats.total}</Badge>
-          </div>
-        </Card>
-      </motion.div>
-
-      {/* Recent Activity */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="space-y-3"
-      >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Recent Activity</h3>
-
-        <div className="space-y-2">
-          {emergencyData.slice(0, 3).map((request) => (
-            <Card key={request.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 geo-round ${request.priority === 'critical' ? 'bg-destructive' :
-                    request.priority === 'high' ? 'bg-warning' :
-                      request.priority === 'medium' ? 'bg-info' : 'bg-success'
-                    }`} />
-                  <div>
-                    <p className="font-normal text-sm">{request.patient_name}</p>
-                    <p className="text-xs text-muted-foreground truncate max-w-[120px]">
-                      {request.location || 'Unknown location'}
-                    </p>
-                  </div>
-                </div>
-                <Badge variant="outline" className="text-xs">
-                  {request.priority}
-                </Badge>
-              </div>
-            </Card>
-          ))}
+          </Card>
         </div>
       </motion.div>
 
@@ -145,13 +89,85 @@ export const EmergencyPanel = ({ emergencyData, emergencyStats, useMockData }) =
       >
         <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
-        <button
-          onClick={handleCreateEmergency}
-          className="w-full p-4 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-destructive/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
-        >
-          <Zap className="h-4 w-4 text-destructive" />
-          <span className="font-bold tracking-tight text-destructive">New Emergency Request</span>
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={handleCreateEmergency}
+            className="bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+            title="New Emergency Request"
+          >
+            <Zap className="h-4 w-4" />
+            <span className="font-normal text-xs">Request</span>
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+            title="View Live Map"
+          >
+            <Map className="h-4 w-4" />
+            <span className="font-normal text-xs">Map</span>
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => window.dispatchEvent(new CustomEvent('openFilters'))}
+            className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+            title="Filter Requests"
+          >
+            <Filter className="h-4 w-4" />
+            <span className="font-normal text-xs">Filter</span>
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+            disabled
+            title="Broadcast Alert (Coming Soon)"
+          >
+            <Radio className="h-4 w-4" />
+            <span className="font-normal text-xs">Alert</span>
+          </motion.button>
+        </div>
+      </motion.div>
+
+      {/* Recent Emergencies */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="space-y-3"
+      >
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Recent Requests</h3>
+
+        <div className="space-y-2">
+          {emergencyData.slice(0, 3).map((request) => (
+            <Card key={request.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 geo-round ${request.priority === 'critical' ? 'bg-destructive' :
+                    request.priority === 'high' ? 'bg-warning' :
+                      request.priority === 'medium' ? 'bg-info' : 'bg-success'
+                    }`} />
+                  <div>
+                    <p className="font-normal text-sm truncate max-w-[120px]">{request.patient_name || 'Unknown Patient'}</p>
+                    <p className="text-xs text-muted-foreground truncate max-w-[120px]">
+                      {request.location || 'Unknown location'}
+                    </p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="text-[10px] capitalize px-1.5 py-0.5 h-5">
+                  {request.priority}
+                </Badge>
+              </div>
+            </Card>
+          ))}
+          {emergencyData.length === 0 && (
+            <div className="text-center py-4 text-sm text-muted-foreground">
+              No recent emergencies
+            </div>
+          )}
+        </div>
       </motion.div>
     </div>
   );

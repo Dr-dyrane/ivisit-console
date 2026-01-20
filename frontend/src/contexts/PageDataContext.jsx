@@ -106,6 +106,8 @@ export const PageDataProvider = ({ children }) => {
     insurance: false,
     activity: false
   });
+  const [hospitalsData, setHospitalsData] = useState({ stats: null, recent: [] });
+  const [ambulancesData, setAmbulancesData] = useState({ stats: null, recent: [] });
   const [useMockData, setUseMockData] = useState(false);
 
   // Fetch emergency data
@@ -206,10 +208,13 @@ export const PageDataProvider = ({ children }) => {
         const busy = data?.filter(d => !d.available && !d.on_call).length || 0;
 
         setDoctorsData({
-          totalDoctors,
-          onCall,
-          available,
-          busy
+          stats: {
+            totalDoctors,
+            onCall,
+            available,
+            busy
+          },
+          recent: data?.slice(0, 5) || []
         });
       }
     } catch (error) {
@@ -248,10 +253,13 @@ export const PageDataProvider = ({ children }) => {
         const upcoming = data?.filter(v => new Date(v.visit_date) > new Date()).length || 0;
 
         setVisitsData({
-          today: todayVisits,
-          pending,
-          completed,
-          upcoming
+          stats: {
+            today: todayVisits,
+            pending,
+            completed,
+            upcoming
+          },
+          recent: data?.slice(0, 5) || []
         });
       }
     } catch (error) {
@@ -327,6 +335,16 @@ export const PageDataProvider = ({ children }) => {
           ...prev,
           activeHospitals: data?.length || 0
         }));
+
+        // Calculate hospital stats
+        const total = data?.length || 0;
+        // Assuming there might be a status field, though not explicitly in select *
+        const available = total; // Placeholder if no status
+
+        setHospitalsData({
+          stats: { total, available },
+          recent: data?.slice(0, 5) || []
+        });
       }
     } catch (error) {
       console.error('Error fetching hospitals data:', error);
@@ -362,6 +380,17 @@ export const PageDataProvider = ({ children }) => {
           availableAmbulances: available,
           onRouteAmbulances: onRoute
         }));
+
+        setAmbulancesData({
+          stats: {
+            total: data?.length || 0,
+            available,
+            onRoute,
+            busy: data?.filter(a => a.status === 'busy').length || 0,
+            maintenance: data?.filter(a => a.status === 'maintenance').length || 0
+          },
+          recent: data?.slice(0, 5) || []
+        });
       }
     } catch (error) {
       console.error('Error fetching ambulances data:', error);
@@ -829,6 +858,8 @@ export const PageDataProvider = ({ children }) => {
     supportTicketsData,
     activityData,
     userData,
+    hospitalsData,
+    ambulancesData,
     // Add insurance data directly to value so it's accessible
     insurance: insurancePolicies,
 

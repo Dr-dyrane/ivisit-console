@@ -40,7 +40,9 @@ export const ContextPanel = () => {
     refreshAllData,
     userData,
     filters,
-    insurance
+    insurance,
+    hospitalsData,
+    ambulancesData
   } = usePageData();
 
   const { subscribers } = useSubscription();
@@ -155,9 +157,9 @@ export const ContextPanel = () => {
       }}
     />);
   } else if (currentPath.includes('/hospitals')) {
-    return renderPanelWithHeader(<HospitalsPanel />);
+    return renderPanelWithHeader(<HospitalsPanel hospitalsData={hospitalsData} />);
   } else if (currentPath.includes('/ambulances')) {
-    return renderPanelWithHeader(<AmbulancesPanel />);
+    return renderPanelWithHeader(<AmbulancesPanel ambulancesData={ambulancesData} />);
   } else if (currentPath.includes('/map')) {
     return renderPanelWithHeader(
       <MapPanel emergencyStats={emergencyStats} />

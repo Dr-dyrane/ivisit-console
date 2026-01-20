@@ -4,16 +4,19 @@ import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import {
   Hospital,
-  Ambulance,
   AlertTriangle,
-  MapPin
+  MapPin,
+  Plus,
+  Filter,
+  Phone
 } from 'lucide-react';
 
-export const HospitalsPanel = () => {
+export const HospitalsPanel = ({ hospitalsData }) => {
+  const stats = hospitalsData?.stats || { total: 0, available: 0, busy: 0, full: 0 };
+  const recent = hospitalsData?.recent || [];
+
   const handleCreateHospital = () => {
-    // Trigger hospital modal
-    const event = new CustomEvent('openHospitalModal');
-    window.dispatchEvent(event);
+    window.dispatchEvent(new CustomEvent('openHospitalModal'));
   };
 
   return (
@@ -24,7 +27,7 @@ export const HospitalsPanel = () => {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-3"
       >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Capacity Status</h3>
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Network Status</h3>
 
         <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
           <div className="flex items-center justify-between">
@@ -32,50 +35,37 @@ export const HospitalsPanel = () => {
               <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
                 <Hospital className="h-5 w-5 text-success" />
               </div>
-              <span className="font-bold tracking-tight">Available</span>
+              <span className="font-bold tracking-tight">Active</span>
             </div>
-            <Badge className="bg-success/20 text-success border-0">5</Badge>
+            <Badge className="bg-success/20 text-success border-0">{stats.total}</Badge>
           </div>
         </Card>
 
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-warning/20 flex items-center justify-center">
-                <Ambulance className="h-5 w-5 text-warning" />
+        <div className="grid grid-cols-2 gap-2">
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 geo-round bg-info/20 flex items-center justify-center">
+                <MapPin className="h-4 w-4 text-info" />
               </div>
-              <span className="font-normal">Busy</span>
-            </div>
-            <Badge className="bg-warning/20 text-warning border-0">3</Badge>
-          </div>
-        </Card>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-destructive/20 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
+              <div>
+                <p className="font-bold text-sm">{stats.available}</p>
+                <p className="text-xs text-muted-foreground">Nearby</p>
               </div>
-              <span className="font-normal">Full</span>
             </div>
-            <Badge className="bg-destructive/20 text-destructive border-0">1</Badge>
-          </div>
-        </Card>
-      </motion.div>
+          </Card>
 
-      {/* Location Filter */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="space-y-3"
-      >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Location Filter</h3>
-
-        <button className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-muted/50 transition-colors flex items-center gap-3">
-          <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span className="font-normal">Near Me</span>
-        </button>
+          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 geo-round bg-destructive/20 flex items-center justify-center">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+              </div>
+              <div>
+                <p className="font-bold text-sm">{stats.full || 0}</p>
+                <p className="text-xs text-muted-foreground">Full</p>
+              </div>
+            </div>
+          </Card>
+        </div>
       </motion.div>
 
       {/* Quick Actions */}
@@ -87,13 +77,87 @@ export const HospitalsPanel = () => {
       >
         <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
-        <button
-          onClick={handleCreateHospital}
-          className="w-full p-4 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-info/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm"
-        >
-          <Hospital className="h-4 w-4 text-info" />
-          <span className="font-bold tracking-tight text-info">Add New Hospital</span>
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={handleCreateHospital}
+            className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+            title="Add New Hospital"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="font-normal text-xs">Add</span>
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+            title="View Map"
+          >
+            <MapPin className="h-4 w-4" />
+            <span className="font-normal text-xs">Map</span>
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => window.dispatchEvent(new CustomEvent('openFilters'))}
+            className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+            title="Filter Hospitals"
+          >
+            <Filter className="h-4 w-4" />
+            <span className="font-normal text-xs">Filter</span>
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+            disabled
+            title="Contact (Coming Soon)"
+          >
+            <Phone className="h-4 w-4" />
+            <span className="font-normal text-xs">Contact</span>
+          </motion.button>
+        </div>
+      </motion.div>
+
+      {/* Recent Hospitals */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="space-y-3"
+      >
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Recent Hospitals</h3>
+
+        <div className="space-y-2">
+          {recent.map((hospital) => (
+            <Card key={hospital.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 geo-round ${hospital.status === 'inactive' ? 'bg-muted' : 'bg-success'
+                    }`} />
+                  <div>
+                    <p className="font-normal text-sm truncate max-w-[120px]">
+                      {hospital.name || 'Hospital #' + hospital.id.substring(0, 4)}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate max-w-[120px]">
+                      {hospital.address || 'No Address'}
+                    </p>
+                  </div>
+                </div>
+                {hospital.type && (
+                  <Badge variant="outline" className="text-[10px] capitalize px-1.5 py-0.5 h-5">
+                    {hospital.type}
+                  </Badge>
+                )}
+              </div>
+            </Card>
+          ))}
+          {recent.length === 0 && (
+            <div className="text-center py-4 text-sm text-muted-foreground">
+              No recent hospitals found
+            </div>
+          )}
+        </div>
       </motion.div>
     </div>
   );
