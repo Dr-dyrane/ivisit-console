@@ -325,23 +325,27 @@ export const IslandNavigation = () => {
             {!isBroad ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button
+                  <div
                     onClick={toggle}
-                    className="flex justify-center w-full rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group"
+                    role="button"
+                    tabIndex={0}
+                    className="flex justify-center w-full rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group cursor-pointer"
                   >
                     <div className="pointer-events-none">
                       <ThemeToggle size="sm" />
                     </div>
-                  </button>
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background border-0 rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
                   {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <button
+              <div
                 onClick={toggle}
-                className="flex items-center gap-3 w-full rounded-xl h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group"
+                role="button"
+                tabIndex={0}
+                className="flex items-center gap-3 w-full rounded-xl h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group cursor-pointer"
               >
                 <div className="w-5 h-5 flex items-center justify-center pointer-events-none">
                   <ThemeToggle size="sm" />
@@ -353,7 +357,7 @@ export const IslandNavigation = () => {
                 >
                   {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                 </motion.span>
-              </button>
+              </div>
             )}
           </div>
 
