@@ -744,7 +744,7 @@ export const UsersPage = () => {
       <UserAnalyticsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        data={statistics}
+        analytics={statistics}
         users={users}
       />
 
