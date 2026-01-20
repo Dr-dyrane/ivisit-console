@@ -1,13 +1,26 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getVerificationQueue, verifyProvider, subscribeToVerificationQueue, canVerifyProviders } from '../../services/verificationService';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
-import { Input } from '../ui/input';
-import { CheckCircle, XCircle, FileText, User, Phone, FileCheck, Search, Filter, Clock, Shield, AlertTriangle, ChevronRight, MoreHorizontal } from 'lucide-react';
+import { VerificationModal } from '../modals/VerificationModal';
+import { 
+  CheckCircle, 
+  FileText, 
+  User, 
+  Phone, 
+  FileCheck, 
+  Search, 
+  Filter as FilterIcon, 
+  Clock, 
+  Shield, 
+  AlertTriangle, 
+  ChevronRight, 
+  MoreHorizontal,
+  Ban
+} from 'lucide-react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
@@ -16,6 +29,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { PaginationControls } from '../ui/PaginationControls';
 import { ViewToggle } from '../common/ViewToggle';
+import { FilterSheet } from '../common/FilterSheet';
 import { VerificationQueueListView } from '../views/VerificationQueueListView';
 import { VerificationQueueTableView } from '../views/VerificationQueueTableView';
 
@@ -23,24 +37,20 @@ import { VerificationQueueTableView } from '../views/VerificationQueueTableView'
  * Verification Queue Page
  * 
  * Status: ✅ READY FOR DATA VIEW SYSTEM
- * - Paginated data fetching (12 per page)
- * - Supabase integration with filter-aware queries
- * - Smart footer with pagination info
- * - Ready for future Grid/List/Table view toggle
- * - Filter logic via stat cards (Pending/Approved/All)
- * 
- * Next: Add ViewToggle, FilterSheet, and view renderer components
  */
 
 export const VerificationQueue = () => {
   const { isMobile } = useNavigation();
   const [providers, setProviders] = useState([]);
-  const [stats, setStats] = useState({ pending: 0, approved: 0, total: 0 });
+  const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 });
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('pending');
+  
+  // Filter state matching Insurance/Subscription pattern
+  const [filters, setFilters] = useState({ search: '', status: 'pending' });
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+
   const [canVerify, setCanVerify] = useState(false);
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -50,42 +60,27 @@ export const VerificationQueue = () => {
   });
   const { viewMode, setViewMode } = useViewMode('verification-queue-page', 'grid');
 
-  const headerActions = React.useMemo(() => (
-    <div className="relative group w-full md:w-auto">
-      <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-        <Search className="h-4 w-4 text-muted-foreground" />
-      </div>
-      <Input
-        placeholder="Lookup applicant..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="pl-10 pr-4 h-9 w-full md:w-[240px] squircle-lg bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all text-xs font-bold"
-      />
-    </div>
-  ), [searchTerm]);
-
-  const viewToggleComponent = React.useMemo(() => (
-    <ViewToggle value={viewMode} onChange={setViewMode} />
-  ), [viewMode, setViewMode]);
-
-  usePageHeader("Identity Vault", headerActions, !isMobile ? viewToggleComponent : null);
+  // Check permissions once on mount
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        const hasPermission = await canVerifyProviders();
+        setCanVerify(hasPermission);
+      } catch (error) {
+        // Permission check failed silently handled
+      }
+    };
+    checkPermissions();
+  }, []);
 
   const fetchVerificationData = useCallback(async () => {
+    if (!canVerify) return;
+    
     setLoading(true);
     try {
-      // Check if user can verify providers
-      const hasPermission = await canVerifyProviders();
-      setCanVerify(hasPermission);
-
-      if (!hasPermission) {
-        toast.error('Admin access required for verification queue');
-        setLoading(false);
-        return;
-      }
-
       const result = await getVerificationQueue({
-        status: filterType,
-        search: searchTerm,
+        status: filters.status,
+        search: filters.search,
         page: pagination.currentPage,
         limit: pagination.itemsPerPage
       });
@@ -98,12 +93,11 @@ export const VerificationQueue = () => {
         totalPages: result.pagination.totalPages
       }));
     } catch (error) {
-      console.error('Error fetching verification queue:', error);
       toast.error(error.message || 'Failed to fetch verification queue');
     } finally {
       setLoading(false);
     }
-  }, [filterType, searchTerm, pagination.currentPage, pagination.itemsPerPage]);
+  }, [filters.status, filters.search, pagination.currentPage, pagination.itemsPerPage, canVerify]);
 
   useEffect(() => {
     fetchVerificationData();
@@ -119,17 +113,39 @@ export const VerificationQueue = () => {
     };
   }, [fetchVerificationData, canVerify]);
 
-  useEffect(() => {
-    fetchVerificationData();
-  }, [pagination.currentPage, filterType, searchTerm, fetchVerificationData]);
+  // Header Configuration
+  const filterButtonComponent = useMemo(() => (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setFilterSheetOpen(true)}
+      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
+    >
+      <FilterIcon className="h-4 w-4" />
+      {(filters.search || filters.status !== 'all') && (
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+      )}
+    </Button>
+  ), [filters]);
 
-  const footerContent = React.useMemo(() => (
+  const handleApplyFilters = useCallback((newFilters) => {
+    setFilters(newFilters);
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
+  }, []);
+
+  const viewToggleComponent = useMemo(() => (
+    <ViewToggle value={viewMode} onChange={setViewMode} />
+  ), [viewMode, setViewMode]);
+
+  usePageHeader("Identity Vault", null, !isMobile ? viewToggleComponent : null, filterButtonComponent);
+
+  const footerContent = useMemo(() => (
     <div className="flex items-center gap-4">
       <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-black">
-        <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} {filterType === 'pending' ? 'Pending' : filterType === 'approved' ? 'Verified' : 'Total'}</span>
+        <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} {filters.status === 'pending' ? 'Pending' : filters.status === 'approved' ? 'Verified' : filters.status === 'rejected' ? 'Rejected' : 'Total'}</span>
       </div>
     </div>
-  ), [pagination.currentPage, pagination.totalPages, pagination.totalCount, filterType]);
+  ), [pagination.currentPage, pagination.totalPages, pagination.totalCount, filters.status]);
 
   usePageFooter(footerContent, 'pagination', !loading && providers.length > 0 && canVerify);
 
@@ -146,89 +162,196 @@ export const VerificationQueue = () => {
       setSelectedProvider(null);
       fetchVerificationData();
     } catch (error) {
-      console.error('Error verifying provider:', error);
       toast.error(error.message || 'Failed to update verification status');
     } finally {
       setActionLoading(false);
     }
   };
 
+  const filterSchema = useMemo(() => [
+    {
+      key: 'search',
+      type: 'text',
+      label: 'Search',
+      placeholder: 'Lookup applicant...',
+    },
+    {
+      key: 'status',
+      type: 'select',
+      label: 'Status',
+      options: [
+        { value: 'all', label: 'All Applications' },
+        { value: 'pending', label: 'Pending Review' },
+        { value: 'approved', label: 'Approved' },
+        { value: 'rejected', label: 'Rejected' }
+      ]
+    }
+  ], []);
+
   return (
-    <div className="min-h-screen py-6 md:py-8">
-      {/* Layout padding adjustment */}
-      <div className="pt-2" />
-
-      {/* Stats Cards - Bento Style */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+    <div className="min-h-screen py-6 md:py-8 pt-6">
+      
+      {/* Bento Overview Cards - Updated with geo styles and responsive filtering */}
+      <LayoutGroup>
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
+          layout
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-10"
         >
-          <Card
-            className={`h-full squircle-lg p-6 bg-background/35 backdrop-blur-xs border-0 cursor-pointer transition-all duration-300 relative overflow-hidden group ${filterType === 'pending' ? 'ring-2 ring-warning shadow-lg' : 'hover-lift opacity-70 hover:opacity-100'}`}
-            onClick={() => setFilterType('pending')}
+          {/* Pending Card - geo-sharp */}
+          <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
           >
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-warning/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 squircle bg-warning/10 flex items-center justify-center">
-                  <Clock className="h-6 w-6 text-warning" />
+            <Card
+              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
+                filters.status === 'pending' ? 'ring-2 ring-warning shadow-lg' : ''
+              }`}
+              onClick={() => setFilters(prev => ({ ...prev, status: 'pending' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className={`absolute inset-0 ${filters.status === 'pending' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <Clock className={`h-5 w-5 ${filters.status === 'pending' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
+                  </div>
                 </div>
-                {filterType === 'pending' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
               </div>
-              <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider mb-1">Pending Review</p>
-              <p className="text-4xl font-black tracking-tighter">{stats.pending}</p>
-            </div>
-          </Card>
-        </motion.div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Pending Review</p>
+                  {filters.status === 'pending' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-black tracking-tighter">{stats.pending}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-sharp bg-warning/20 text-warning border-0 font-black text-xs">
+                    ACTION REQUIRED
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card
-            className={`h-full squircle-lg p-6 bg-background/35 backdrop-blur-xs border-0 cursor-pointer transition-all duration-300 relative overflow-hidden group ${filterType === 'approved' ? 'ring-2 ring-success shadow-lg' : 'hover-lift opacity-70 hover:opacity-100'}`}
-            onClick={() => setFilterType('approved')}
+          {/* Approved Card - geo-round */}
+          <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
           >
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-success/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 squircle bg-success/10 flex items-center justify-center">
-                  <CheckCircle className="h-6 w-6 text-success" />
+            <Card
+              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
+                filters.status === 'approved' ? 'ring-2 ring-success shadow-lg' : ''
+              }`}
+              onClick={() => setFilters(prev => ({ ...prev, status: 'approved' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className={`absolute inset-0 ${filters.status === 'approved' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <CheckCircle className={`h-5 w-5 ${filters.status === 'approved' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
+                  </div>
                 </div>
-                {filterType === 'approved' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
               </div>
-              <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider mb-1">Verified Users</p>
-              <p className="text-4xl font-black tracking-tighter">{stats.approved}</p>
-            </div>
-          </Card>
-        </motion.div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Verified Users</p>
+                  {filters.status === 'approved' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-black tracking-tighter">{stats.approved}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-round bg-success/20 text-success border-0 font-black text-xs">
+                    {Math.round((stats.approved / (stats.total || 1)) * 100)}% TOTAL
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card
-            className={`h-full squircle-lg p-6 bg-background/35 backdrop-blur-xs border-0 cursor-pointer transition-all duration-300 relative overflow-hidden group ${filterType === 'all' ? 'ring-2 ring-primary shadow-lg' : 'hover-lift opacity-70 hover:opacity-100'}`}
-            onClick={() => setFilterType('all')}
+          {/* Rejected Card - geo-sharp */}
+          <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
           >
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 squircle bg-primary/10 flex items-center justify-center">
-                  <Shield className="h-6 w-6 text-primary" />
+            <Card
+              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
+                filters.status === 'rejected' ? 'ring-2 ring-destructive shadow-lg' : ''
+              }`}
+              onClick={() => setFilters(prev => ({ ...prev, status: 'rejected' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className={`absolute inset-0 ${filters.status === 'rejected' ? 'bg-destructive/30' : 'bg-destructive/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <Ban className={`h-5 w-5 ${filters.status === 'rejected' ? 'text-destructive' : 'text-muted-foreground'} transition-colors duration-200`} />
+                  </div>
                 </div>
-                {filterType === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
               </div>
-              <p className="text-sm text-muted-foreground font-bold uppercase tracking-wider mb-1">Total Database</p>
-              <p className="text-4xl font-black tracking-tighter">{stats.total}</p>
-            </div>
-          </Card>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Rejected</p>
+                  {filters.status === 'rejected' && <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-black tracking-tighter">{stats.rejected}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-sharp bg-destructive/20 text-destructive border-0 font-black text-xs">
+                    INACTIVE
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Total Card - geo-round */}
+          <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.25 }}
+          >
+            <Card
+              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${
+                filters.status === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+              }`}
+              onClick={() => setFilters(prev => ({ ...prev, status: 'all' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className={`absolute inset-0 ${filters.status === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <Shield className={`h-5 w-5 ${filters.status === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
+                  </div>
+                </div>
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Total Database</p>
+                  {filters.status === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-black tracking-tighter">{stats.total}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-round bg-primary/20 text-primary border-0 font-black text-xs">
+                    OVERVIEW
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
         </motion.div>
-      </div>
+      </LayoutGroup>
+
+      {/* Filter Sheet - Fixed Props */}
+      <FilterSheet
+        isOpen={filterSheetOpen}
+        onOpenChange={setFilterSheetOpen}
+        initialValues={filters}
+        onApply={handleApplyFilters}
+        filterSchema={filterSchema}
+        isMobile={isMobile}
+      />
 
       {/* Permission Check */}
       {!canVerify && !loading && (
@@ -354,151 +477,25 @@ export const VerificationQueue = () => {
         />
       )}
 
-      {/* Pagination Controls */}
-      <PaginationControls
-        currentPage={pagination.currentPage}
-        totalPages={pagination.totalPages}
-        totalCount={pagination.totalCount}
-        itemsPerPage={pagination.itemsPerPage}
-        onPrevPage={() => setPagination(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))}
-        onNextPage={() => setPagination(prev => ({ ...prev, currentPage: Math.min(prev.totalPages, prev.currentPage + 1) }))}
-        hasPrevPage={pagination.currentPage > 1}
-        hasNextPage={pagination.currentPage < pagination.totalPages}
-        loading={loading}
+      {/* Provider Details Modal - using new VerificationModal */}
+      <VerificationModal
+        isOpen={!!selectedProvider}
+        provider={selectedProvider}
+        mode="view"
+        onClose={() => setSelectedProvider(null)}
+        onVerify={handleVerify}
       />
 
-      {/* Review Modal - Apple Style Sheet */}
-      <Dialog open={!!selectedProvider} onOpenChange={() => setSelectedProvider(null)}>
-        <DialogContent className="squircle-2xl bg-background/35 backdrop-blur-xs border-0 max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 shadow-2xl">
-          {selectedProvider && (
-            <div className="flex flex-col h-full">
-              {/* Hero Header */}
-              <div className="relative h-32 bg-gradient-to-r from-primary/20 to-secondary/20 overflow-hidden">
-                <div className="absolute inset-0 bg-grid-white/10" />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-4 right-4 rounded-full hover:bg-black/10 text-foreground"
-                  onClick={() => setSelectedProvider(null)}
-                >
-                  <XCircle className="w-6 h-6" />
-                </Button>
-              </div>
-
-              <div className="px-8 pb-8 -mt-12 relative z-10">
-                <div className="flex items-end justify-between mb-6">
-                  <Avatar className="h-28 w-28 squircle-2xl shadow-xl">
-                    <AvatarImage src={getAvatarUrl(selectedProvider)} />
-                    <AvatarFallback className="text-4xl font-black bg-muted text-muted-foreground">
-                      {selectedProvider.username?.[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex gap-2 mb-2">
-                    {!selectedProvider.bvn_verified ? (
-                      <>
-                        <Button
-                          variant="ghost"
-                          className="squircle-lg text-destructive hover:bg-destructive/10 font-bold"
-                          onClick={() => handleVerify(selectedProvider.id, false)}
-                          disabled={actionLoading || !canVerify}
-                        >
-                          Reject
-                        </Button>
-                        <Button
-                          className="squircle-lg bg-muted/30 hover:bg-muted/40 border border-border/30 font-bold px-6 shadow-sm"
-                          onClick={() => handleVerify(selectedProvider.id, true)}
-                          disabled={actionLoading || !canVerify}
-                        >
-                          {actionLoading ? 'Verifying...' : 'Approve'}
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        className="squircle-lg text-warning hover:bg-warning/10 font-bold"
-                        onClick={() => handleVerify(selectedProvider.id, false)}
-                        disabled={actionLoading || !canVerify}
-                      >
-                        <AlertTriangle className="w-4 h-4 mr-2" />
-                        Revoke
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-1 mb-8">
-                  <h2 className="text-3xl font-black tracking-tight">{selectedProvider.username}</h2>
-                  <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                    <User className="w-4 h-4" />
-                    <span>{selectedProvider.email}</span>
-                    <span>•</span>
-                    <span className="capitalize">{selectedProvider.role}</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2 md:col-span-1 space-y-4">
-                    <div className="p-4 squircle-lg bg-muted/30">
-                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Personal Info</p>
-                      <div className="space-y-3">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Phone</p>
-                          <p className="font-semibold">{selectedProvider.phone || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Gender</p>
-                          <p className="font-semibold capitalize">{selectedProvider.gender || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Date of Birth</p>
-                          <p className="font-semibold">{selectedProvider.date_of_birth || 'N/A'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="col-span-2 md:col-span-1 space-y-4">
-                    <div className="p-4 squircle-lg bg-muted/30 h-full">
-                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Verification Status</p>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between p-3 squircle bg-background/50">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedProvider.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
-                              {selectedProvider.bvn_verified ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold">BVN Check</p>
-                              <p className="text-xs text-muted-foreground">{selectedProvider.bvn_verified ? 'Passed' : 'Pending Action'}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between p-3 squircle bg-background/50 opacity-60">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-                              <FileText className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold">Documents</p>
-                              <p className="text-xs text-muted-foreground">Not Uploaded</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {selectedProvider.address && (
-                    <div className="col-span-2 p-4 squircle-lg bg-muted/30">
-                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Address</p>
-                      <p className="font-semibold">{selectedProvider.address}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Pagination */}
+      {providers.length > 0 && pagination.totalPages > 1 && (
+        <div className="mt-8 flex justify-center">
+          <PaginationControls
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            onPageChange={(page) => setPagination(prev => ({ ...prev, currentPage: page }))}
+          />
+        </div>
+      )}
     </div>
   );
 };

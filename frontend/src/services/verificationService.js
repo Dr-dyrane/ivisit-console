@@ -41,9 +41,14 @@ export async function getVerificationQueue(filters = {}) {
     if (status === 'pending') {
       query = query.eq('role', 'provider').eq('bvn_verified', false);
     } else if (status === 'approved') {
-      query = query.eq('bvn_verified', true);
+      query = query.eq('role', 'provider').eq('bvn_verified', true);
+    } else if (status === 'rejected') {
+      query = query.eq('role', 'provider').eq('bvn_verified', false); // Rejected providers are also unverified
     }
-    // 'all' status doesn't filter - shows all providers
+    // 'all' status should show all providers only
+    if (status === 'all') {
+      query = query.eq('role', 'provider');
+    }
 
     // Apply search filter
     if (search) {
@@ -60,16 +65,17 @@ export async function getVerificationQueue(filters = {}) {
     const { data, error, count } = await query;
     if (error) throw error;
 
-    // Get global stats for all providers
+    // Get global stats for providers only
     const statsQuery = supabase
       .from(TABLE_NAME)
-      .select('role, bvn_verified');
+      .select('role, bvn_verified')
+      .eq('role', 'provider');
 
     const { data: allData, error: statsError } = await statsQuery;
     if (statsError) throw statsError;
 
     const stats = {
-      pending: allData?.filter(u => !u.bvn_verified && u.role === 'provider').length || 0,
+      pending: allData?.filter(u => !u.bvn_verified).length || 0,
       approved: allData?.filter(u => u.bvn_verified).length || 0,
       total: allData?.length || 0
     };
@@ -172,19 +178,20 @@ export async function getVerificationStats() {
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .select('role, bvn_verified, created_at');
+      .select('role, bvn_verified, created_at')
+      .eq('role', 'provider');
 
     if (error) throw error;
 
     const stats = {
-      pending: data?.filter(u => !u.bvn_verified && u.role === 'provider').length || 0,
+      pending: data?.filter(u => !u.bvn_verified).length || 0,
       approved: data?.filter(u => u.bvn_verified).length || 0,
       total: data?.length || 0,
       recentSignups: data?.filter(u => {
         const signupDate = new Date(u.created_at);
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
-        return signupDate > weekAgo && u.role === 'provider';
+        return signupDate > weekAgo && !u.bvn_verified; // Recent unverified providers
       }).length || 0
     };
 

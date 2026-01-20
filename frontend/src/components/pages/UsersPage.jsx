@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
@@ -25,6 +26,7 @@ import { UserTableView } from '../views/UserTableView';
 export const UsersPage = () => {
   const { isAdmin } = useAuth();
   const { isMobile } = useNavigation();
+  const location = useLocation();
   const [users, setUsers] = useState([]);
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -33,6 +35,16 @@ export const UsersPage = () => {
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({});
   const [showStatistics, setShowStatistics] = useState(false);
+
+  // Handle URL parameters for filtering
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const roleParam = searchParams.get('role');
+    
+    if (roleParam === 'provider') {
+      setFilters({ role: 'provider' });
+    }
+  }, [location.search]);
 
   const { viewMode, setViewMode } = useViewMode('users-page', 'grid');
   const pagination = usePagination(20);

@@ -145,7 +145,7 @@ export const ContextPanel = () => {
   } else if (currentPath.includes('/visits')) {
     return renderPanelWithHeader(<VisitsPanel visitsData={visitsData} />);
   } else if (currentPath.includes('/verification')) {
-    return renderPanelWithHeader(<VerificationPanel verificationData={verificationData} />);
+    return renderPanelWithHeader(<VerificationPanel verificationData={verificationData} loading={loading} />);
   } else if (currentPath.includes('/health-news')) {
     return renderPanelWithHeader(<HealthNewsPanel />);
   } else if (currentPath.includes('/support-tickets')) {

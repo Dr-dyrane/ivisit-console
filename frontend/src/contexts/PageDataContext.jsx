@@ -59,7 +59,7 @@ const mockVisitsData = {
 
 const mockVerificationData = {
   pending: 15,
-  verified: 142,
+  approved: 142,
   rejected: 8,
   total: 165
 };
@@ -160,12 +160,12 @@ export const PageDataProvider = ({ children }) => {
       } else {
         // Calculate real verification stats from profiles
         const pending = data?.filter(u => !u.bvn_verified && u.role === 'provider').length || 0;
-        const verified = data?.filter(u => u.bvn_verified).length || 0;
+        const approved = data?.filter(u => u.bvn_verified).length || 0;
         const rejected = 0; // Would need rejected field
 
         setVerificationData({
           pending,
-          verified,
+          approved,
           rejected,
           total: data?.length || 0
         });
