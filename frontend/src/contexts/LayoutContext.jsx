@@ -29,7 +29,7 @@ export const LayoutProvider = ({ children }) => {
     const [sidebarMode, setSidebarMode] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('sidebarMode');
-            return saved && ['smart', 'collapsed', 'expanded'].includes(saved) ? saved : 'smart';
+            return saved && ['smart', 'collapsed', 'expanded'].includes(saved) ? saved : 'expanded';
         }
         return 'smart';
     });
