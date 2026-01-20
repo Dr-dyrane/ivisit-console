@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -7,6 +7,152 @@ import { Label } from '../ui/label';
 import { X, Lock, ShieldCheck, Key, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
+import { QRCodeCanvas } from 'qrcode.react';
+import { supabase } from '../../lib/supabase';
+
+// Sub-component for 2FA Logic to keep modal clean
+const TwoFactorAuthSection = () => {
+    const [status, setStatus] = useState('initial'); // initial, enrolling, verifying, enabled
+    const [enrollData, setEnrollData] = useState(null);
+    const [auditLoading, setAuditLoading] = useState(true);
+    const [verifyCode, setVerifyCode] = useState('');
+    const [error, setError] = useState('');
+
+    // Check status on mount
+    useEffect(() => {
+        checkMfaStatus();
+    }, []);
+
+    const checkMfaStatus = async () => {
+        setAuditLoading(true);
+        const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (!error && data) {
+            if (data.currentLevel === 'aal2' || data.nextLevel === 'aal2') {
+                setStatus('enabled');
+            }
+        }
+        setAuditLoading(false);
+    };
+
+    const handleStartEnrollment = async () => {
+        setError('');
+        try {
+            const { data, error } = await supabase.auth.mfa.enroll({
+                factorType: 'totp'
+            });
+            if (error) throw error;
+
+            setEnrollData(data);
+            setStatus('enrolling');
+        } catch (err) {
+            setError(err.message);
+            toast.error("Failed to start enrollment");
+        }
+    };
+
+    const handleVerify = async () => {
+        setError('');
+        try {
+            const challenge = await supabase.auth.mfa.challenge({ factorId: enrollData.id });
+            if (challenge.error) throw challenge.error;
+
+            const verify = await supabase.auth.mfa.verify({
+                factorId: enrollData.id,
+                challengeId: challenge.data.id,
+                code: verifyCode
+            });
+
+            if (verify.error) throw verify.error;
+
+            toast.success("Two-Factor Authentication Enabled!");
+            setStatus('enabled');
+            setEnrollData(null);
+        } catch (err) {
+            setError(err.message);
+            toast.error("Invalid Code");
+        }
+    };
+
+    const handleDisable = async () => {
+        // Disabling MFA usually requires deleting the factor.
+        // Requires listing factors then deleting.
+        try {
+            const { data: factors } = await supabase.auth.mfa.listFactors();
+            const totpFactor = factors.find(f => f.factorType === 'totp');
+
+            if (totpFactor) {
+                const { error } = await supabase.auth.mfa.unenroll({ factorId: totpFactor.id });
+                if (error) throw error;
+                setStatus('initial');
+                toast.success("2FA Disabled");
+            }
+        } catch (err) {
+            toast.error("Failed to disable 2FA");
+        }
+    };
+
+    if (auditLoading) return <div className="flex justify-center p-4"><Loader2 className="animate-spin text-muted-foreground" /></div>;
+
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 rounded-2xl border border-border/40 bg-muted/10 transition-all">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                        <ShieldCheck className={`w-4 h-4 ${status === 'enabled' ? 'text-success' : 'text-primary'}`} />
+                        <span className="font-bold text-sm">Two-Factor Auth</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        {status === 'enabled' ? 'Your account is secured with 2FA' : 'Add an extra layer of security'}
+                    </p>
+                </div>
+
+                {status === 'initial' && (
+                    <Button size="sm" onClick={handleStartEnrollment} variant="outline" className="rounded-xl h-8 text-xs font-semibold">
+                        Setup
+                    </Button>
+                )}
+                {status === 'enabled' && (
+                    <Button size="sm" onClick={handleDisable} variant="destructive" className="rounded-xl h-8 text-xs font-semibold bg-destructive/10 text-destructive hover:bg-destructive/20 border-0">
+                        Disable
+                    </Button>
+                )}
+            </div>
+
+            {status === 'enrolling' && enrollData && (
+                <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    className="p-4 rounded-2xl bg-muted/30 space-y-4 border border-border/20"
+                >
+                    <div className="text-center space-y-2">
+                        <p className="text-xs font-semibold uppercase text-muted-foreground">Scan QR Code</p>
+                        <div className="flex justify-center bg-white p-4 rounded-xl w-fit mx-auto shadow-sm">
+                            <QRCodeCanvas value={enrollData.totp.uri} size={140} />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-mono break-all px-4">
+                            Secret: {enrollData.totp.secret}
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-xs font-semibold">Enter 6-digit Code</Label>
+                        <div className="flex gap-2">
+                            <Input
+                                value={verifyCode}
+                                onChange={(e) => setVerifyCode(e.target.value)}
+                                placeholder="000 000"
+                                className="font-mono text-center tracking-widest text-lg h-10 rounded-xl bg-background"
+                                maxLength={6}
+                            />
+                            <Button onClick={handleVerify} disabled={verifyCode.length !== 6} className="h-10 rounded-xl">Verify</Button>
+                        </div>
+                        {error && <p className="text-xs text-destructive font-medium">{error}</p>}
+                    </div>
+                </motion.div>
+            )}
+        </div>
+    );
+};
 
 export const SecurityModal = ({ isOpen, onClose }) => {
     const { updatePassword } = useAuth();
@@ -121,24 +267,8 @@ export const SecurityModal = ({ isOpen, onClose }) => {
 
                             <div className="h-px bg-border/20 my-4" />
 
-                            {/* 2FA Placeholder */}
-                            <div className="opacity-60 grayscale pointer-events-none">
-                                <div className="flex items-center justify-between p-4 rounded-2xl border border-border/40 bg-muted/10">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <ShieldCheck className="w-4 h-4 text-primary" />
-                                            <span className="font-bold text-sm">Two-Factor Auth</span>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground">Add an extra layer of security</p>
-                                    </div>
-                                    <Button size="sm" variant="outline" className="rounded-xl h-8 text-xs">Enable</Button>
-                                </div>
-                                <div className="flex items-center gap-2 mt-2 px-1">
-                                    <AlertCircle className="w-3 h-3 text-muted-foreground" />
-                                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Coming Soon</p>
-                                </div>
-                            </div>
-
+                            {/* 2FA Section */}
+                            <TwoFactorAuthSection />
                         </div>
                     </motion.div>
                 </div>

@@ -26,6 +26,7 @@ import { DoctorsPage } from "./components/pages/DoctorsPage";
 import { VisitsPage } from "./components/pages/VisitsPage";
 import { EmergencyRequestsPage } from "./components/pages/EmergencyRequestsPage";
 import { LoginPage } from "./components/pages/LoginPage";
+import { SetPasswordPage } from "./components/pages/SetPasswordPage";
 import { SettingsPage } from "./components/pages/SettingsPage";
 import { NotFoundPage } from "./components/pages/NotFoundPage";
 import { HealthNewsManagementPage } from "./components/pages/HealthNewsManagementPage";
@@ -41,7 +42,7 @@ import "./App.css";
 const AppShell = ({ children }) => {
 	const location = useLocation();
 	const { isScrolledDown, sidebarWidth, isContextPanelOpen } = useLayout();
-	const hideNav = ["/login", "/unauthorized"].includes(location.pathname);
+	const hideNav = ["/login", "/unauthorized", "/set-password"].includes(location.pathname);
 	const isMobile = window.innerWidth < 768;
 
 	return (
@@ -123,6 +124,7 @@ function AppRoutes() {
 			<AppLayout>
 				<Routes>
 					<Route path="/login" element={<LoginPage />} />
+					<Route path="/set-password" element={<SetPasswordPage />} />
 					<Route path="/unauthorized" element={<UnauthorizedPage />} />
 					<Route path="/" element={<ProtectedRoute><BentoHome allowedRoles={["sponsor", "viewer", "provider", "admin"]} /></ProtectedRoute>} />
 					<Route path="/map" element={<ProtectedRoute minRole="provider"><GodModeMap /></ProtectedRoute>} />

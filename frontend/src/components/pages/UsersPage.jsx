@@ -22,7 +22,9 @@ import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
 import { UserListView } from '../views/UserListView';
 import { UserTableView } from '../views/UserTableView';
+
 import { UserAnalyticsModal } from '../modals/UserAnalyticsModal';
+import { InviteUserModal } from '../modals/InviteUserModal';
 
 export const UsersPage = () => {
   const { isAdmin } = useAuth();
@@ -738,12 +740,26 @@ export const UsersPage = () => {
       />
 
       {
-        modalMode && (
+        modalMode === 'create' && (
+          <InviteUserModal
+            isOpen={true}
+            onClose={handleModalClose}
+            onInviteSuccess={() => {
+              handleModalClose();
+              fetchUsers();
+            }}
+          />
+        )
+      }
+
+      {
+        (modalMode === 'edit' || modalMode === 'view') && (
           <UserModal
             isOpen={!!modalMode}
             onClose={handleModalClose}
             user={selectedUser}
             mode={modalMode}
+            onSave={fetchUsers}
           />
         )
       }
