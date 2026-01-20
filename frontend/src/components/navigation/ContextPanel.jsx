@@ -39,7 +39,8 @@ export const ContextPanel = () => {
     activityData,
     refreshAllData,
     userData,
-    filters
+    filters,
+    insurance
   } = usePageData();
 
   const { subscribers } = useSubscription();
@@ -184,6 +185,7 @@ export const ContextPanel = () => {
       <InsurancePanel
         loading={loading}
         getInsuranceStats={getInsuranceStats}
+        insuranceData={insurance}
       />
     );
   } else if (currentPath.includes('/subscriptions')) {

@@ -8,11 +8,22 @@ import {
   Clock,
   TrendingUp,
   BarChart3,
-  Plus
+  Plus,
+  Download,
+  ExternalLink,
+  Filter
 } from 'lucide-react';
 
-export const InsurancePanel = ({ loading, getInsuranceStats }) => {
+export const InsurancePanel = ({ loading, getInsuranceStats, insuranceData = [] }) => {
   const stats = getInsuranceStats ? getInsuranceStats() : { total: 0, active: 0, expired: 0, pending: 0, verified: 0, verificationRate: 0 };
+
+  const handleCreate = () => {
+    window.dispatchEvent(new CustomEvent('openInsuranceModal'));
+  };
+
+  const handleAnalytics = () => {
+    window.dispatchEvent(new CustomEvent('openInsuranceAnalyticsModal'));
+  };
 
   return (
     <div className="p-4 space-y-4">
@@ -99,31 +110,84 @@ export const InsurancePanel = ({ loading, getInsuranceStats }) => {
           >
             <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
-            <div className="space-y-2">
-              <button
-                onClick={() => {
-                  const event = new CustomEvent('openInsuranceModal');
-                  window.dispatchEvent(event);
-                }}
-                className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm text-left"
+            <div className="grid grid-cols-2 gap-2">
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={handleCreate}
+                className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+                title="Add New Policy"
               >
-                <Plus className="h-4 w-4 text-primary" />
-                <span className="font-bold tracking-tight text-primary">Add New Policy</span>
-              </button>
+                <Plus className="h-4 w-4" />
+                <span className="font-normal text-xs">Add</span>
+              </motion.button>
 
-              <button
-                onClick={() => {
-                  const event = new CustomEvent('openInsuranceAnalyticsModal', {
-                    detail: { button: document.querySelector('[data-analytics-button="true"]') }
-                  });
-                  window.dispatchEvent(event);
-                }}
-                data-analytics-button="true"
-                className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-info/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm text-left"
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={handleAnalytics}
+                className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+                title="View Analytics"
               >
-                <BarChart3 className="h-4 w-4 text-info" />
-                <span className="font-bold tracking-tight text-info">View Analytics</span>
-              </button>
+                <BarChart3 className="h-4 w-4" />
+                <span className="font-normal text-xs">Analytics</span>
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                // onClick={() => window.dispatchEvent(new CustomEvent('openInsuranceFilter'))} // Implementation TBD
+                className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+                title="Filter"
+              >
+                <Filter className="h-4 w-4" />
+                <span className="font-normal text-xs">Filter</span>
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+                disabled
+                title="Export (Coming Soon)"
+              >
+                <Download className="h-4 w-4" />
+                <span className="font-normal text-xs">Export</span>
+              </motion.button>
+            </div>
+          </motion.div>
+
+          {/* Recent Policies */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="space-y-3"
+          >
+            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Recent Policies</h3>
+
+            <div className="space-y-2">
+              {insuranceData.slice(0, 3).map((policy) => (
+                <Card key={policy.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 geo-round ${policy.status === 'active' ? 'bg-success' :
+                          policy.status === 'expired' ? 'bg-destructive' : 'bg-warning'
+                        }`} />
+                      <div>
+                        <p className="font-normal text-sm truncate max-w-[120px]">{policy.policy_number || 'Policy #' + policy.id.substring(0, 8)}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {policy.provider || 'Unknown'} • {policy.created_at ? new Date(policy.created_at).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-xs capitalize">
+                      {policy.status}
+                    </Badge>
+                  </div>
+                </Card>
+              ))}
+              {insuranceData.length === 0 && (
+                <div className="text-center py-4 text-sm text-muted-foreground">
+                  No recent policies found
+                </div>
+              )}
             </div>
           </motion.div>
         </>
