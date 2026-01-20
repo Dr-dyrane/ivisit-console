@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
@@ -17,18 +17,19 @@ import {
   Plus,
   Edit,
   Trash2,
-  User,
   Clock,
   AlertCircle,
   CheckCircle,
-  MessageSquare,
-  UserCheck,
+  Activity,
   BarChart3,
   Filter,
   Search,
   Calendar,
   Tag,
-  Flag
+  TrendingUp,
+  User,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -38,7 +39,6 @@ import { SupportTicketModal } from '../modals/SupportTicketModal';
 import { SupportAnalyticsModal } from '../modals/SupportAnalyticsModal';
 import { SupportTicketListView } from '../views/SupportTicketListView';
 import { SupportTicketTableView } from '../views/SupportTicketTableView';
-import { SupportTicketSimpleListView } from '../views/SupportTicketSimpleListView';
 
 const PRIORITIES = [
   { value: 'low', label: 'Low', color: 'blue' },
@@ -48,10 +48,10 @@ const PRIORITIES = [
 ];
 
 const STATUSES = [
-  { value: 'open', label: 'Open', icon: AlertCircle, color: 'red' },
-  { value: 'in_progress', label: 'In Progress', icon: Clock, color: 'yellow' },
-  { value: 'resolved', label: 'Resolved', icon: CheckCircle, color: 'green' },
-  { value: 'closed', label: 'Closed', icon: CheckCircle, color: 'gray' }
+  { value: 'open', label: 'Open', icon: Clock, color: 'bg-warning/20 text-warning' },
+  { value: 'in_progress', label: 'In Progress', icon: Activity, color: 'bg-info/20 text-info' },
+  { value: 'resolved', label: 'Resolved', icon: CheckCircle, color: 'bg-success/20 text-success' },
+  { value: 'closed', label: 'Closed', icon: CheckCircle, color: 'bg-muted/20 text-muted-foreground' }
 ];
 
 const CATEGORIES = [
@@ -79,66 +79,60 @@ export const SupportTicketsPage = () => {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
-  const [filters, setFilters] = useState({});
-  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({ search: '', status: [], priority: [], category: [], kpiFilter: 'all' });
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   const { viewMode, setViewMode } = useViewMode('support-tickets-page', 'grid');
   const pagination = usePagination(20);
 
-  // Fetch support tickets with filters
+  // Apply filters and fetch logic
   useEffect(() => {
-    fetchSupportTickets(filters);
+    const queryFilters = { ...filters };
+
+    // KPI Filter Override
+    if (filters.kpiFilter && filters.kpiFilter !== 'all') {
+      if (filters.kpiFilter === 'avg') {
+        // No filter for Avg, just show all or maybe recently resolved?
+        // For now treat as 'all' for list, but UI shows selected
+      } else {
+        queryFilters.status = [filters.kpiFilter];
+      }
+    }
+
+    // Remove client-side only filters from API call if needed
+    delete queryFilters.kpiFilter;
+
+    fetchSupportTickets(queryFilters);
   }, [fetchSupportTickets, filters, pagination.currentPage]);
 
-  // Listen for 'openSupportTicketModal' event from ContextPanel
+  // Listen for 'openSupportTicketModal'
   useEffect(() => {
     const handleOpenModal = () => {
       setSelectedTicket(null);
       setModalMode('create');
     };
+
+    const handleOpenFilters = () => {
+      setFilterSheetOpen(true);
+    };
+
     window.addEventListener('openSupportTicketModal', handleOpenModal);
-    return () => window.removeEventListener('openSupportTicketModal', handleOpenModal);
+    window.addEventListener('openFilters', handleOpenFilters);
+
+    return () => {
+      window.removeEventListener('openSupportTicketModal', handleOpenModal);
+      window.removeEventListener('openFilters', handleOpenFilters);
+    };
   }, []);
 
-  // Fetch analytics on mount
+  // Fetch analytics separately
   useEffect(() => {
     if (isAdmin) {
       fetchAnalytics();
     }
   }, [isAdmin, fetchAnalytics]);
 
-  // Filter schema for FilterSheet
-  const filterSchema = React.useMemo(() => [
-    {
-      key: 'status',
-      type: 'multiselect',
-      label: 'Status',
-      options: STATUSES.map(status => ({
-        value: status.value,
-        label: status.label
-      }))
-    },
-    {
-      key: 'priority',
-      type: 'multiselect',
-      label: 'Priority',
-      options: PRIORITIES.map(priority => ({
-        value: priority.value,
-        label: priority.label
-      }))
-    },
-    {
-      key: 'category',
-      type: 'multiselect',
-      label: 'Category',
-      options: CATEGORIES.map(category => ({
-        value: category,
-        label: category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')
-      }))
-    }
-  ], []);
-
+  // Handlers
   const handleCreate = useCallback(() => {
     setSelectedTicket(null);
     setModalMode('create');
@@ -160,15 +154,6 @@ export const SupportTicketsPage = () => {
     }
   }, [deleteTicket]);
 
-  const handleStatusUpdate = useCallback(async (ticket, newStatus) => {
-    try {
-      await updateStatus(ticket.id, newStatus);
-      toast.success(`Ticket status updated to ${newStatus}`);
-    } catch (error) {
-      toast.error('Failed to update ticket status');
-    }
-  }, [updateStatus]);
-
   const handleAssign = useCallback(async (ticket) => {
     try {
       await assignTicketToAgent(ticket.id, profile.id);
@@ -177,6 +162,11 @@ export const SupportTicketsPage = () => {
       toast.error('Failed to assign ticket');
     }
   }, [assignTicketToAgent, profile]);
+
+  const handleView = useCallback((ticket) => {
+    setSelectedTicket(ticket);
+    setModalMode('edit'); // Reuse edit modal for view details
+  }, []);
 
   const getPriorityColor = (priority) => {
     const priorityConfig = PRIORITIES.find(p => p.value === priority);
@@ -187,7 +177,7 @@ export const SupportTicketsPage = () => {
     return STATUSES.find(s => s.value === status) || STATUSES[0];
   };
 
-  // Memoized components for header
+  // Header helpers
   const viewToggleComponent = React.useMemo(() => (
     <ViewToggle value={viewMode} onChange={setViewMode} />
   ), [viewMode, setViewMode]);
@@ -197,11 +187,14 @@ export const SupportTicketsPage = () => {
       variant="ghost"
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
     >
       <Filter className="h-4 w-4" />
+      {(filters.search || (filters.status && filters.status.length > 0) || filters.kpiFilter !== 'all') && (
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+      )}
     </Button>
-  ), []);
+  ), [filters]);
 
   const headerActions = React.useMemo(() => (
     <Button
@@ -230,46 +223,286 @@ export const SupportTicketsPage = () => {
 
   usePageFooter(footerContent, 'pagination', !loading && supportTickets.length > 0);
 
-  if (loading && supportTickets.length === 0) {
+  // Filter Schema
+  const filterSchema = React.useMemo(() => [
+    {
+      key: 'search',
+      type: 'text',
+      label: 'Search',
+      placeholder: 'Search tickets...'
+    },
+    {
+      key: 'status',
+      type: 'multiselect',
+      label: 'Status',
+      options: STATUSES.map(s => ({ value: s.value, label: s.label }))
+    },
+    {
+      key: 'priority',
+      type: 'multiselect',
+      label: 'Priority',
+      options: PRIORITIES.map(p => ({ value: p.value, label: p.label }))
+    },
+    {
+      key: 'category',
+      type: 'multiselect',
+      label: 'Category',
+      options: CATEGORIES.map(c => ({ value: c, label: c.charAt(0).toUpperCase() + c.slice(1).replace('_', ' ') }))
+    }
+  ], []);
+
+  if (loading && supportTickets.length === 0 && !analytics) {
     return <TableSkeleton />;
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
-          <Button onClick={clearError}>Try Again</Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen py-6 md:py-8">
-      <div className="pt-2" />
+    <div className="min-h-screen py-6 md:py-8 pt-6">
 
+      {/* Bento Grid KPI Stats - Matching Insurance Layout */}
+      <LayoutGroup>
+        <motion.div
+          layout
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8"
+        >
+          {/* Total */}
+          <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+            <Card
+              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <Headphones className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'}`} />
+                </div>
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Tickets</p>
+                  {filters.kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-bold tracking-tighter">{analytics?.total || 0}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">{filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}</Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Open */}
+          <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
+            <Card
+              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'open' ? 'ring-2 ring-warning shadow-lg' : ''}`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'open' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className={`absolute inset-0 ${filters.kpiFilter === 'open' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <AlertCircle className={`h-5 w-5 ${filters.kpiFilter === 'open' ? 'text-warning' : 'text-muted-foreground'}`} />
+                </div>
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Open</p>
+                  {filters.kpiFilter === 'open' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-bold tracking-tighter">{analytics?.open || 0}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-round bg-warning/20 text-warning border-0 font-bold text-xs">ATTENTION</Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* In Progress */}
+          <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+            <Card
+              className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'in_progress' ? 'ring-2 ring-info shadow-lg' : ''}`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'in_progress' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className={`absolute inset-0 ${filters.kpiFilter === 'in_progress' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <Activity className={`h-5 w-5 ${filters.kpiFilter === 'in_progress' ? 'text-info' : 'text-muted-foreground'}`} />
+                </div>
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">In Progress</p>
+                  {filters.kpiFilter === 'in_progress' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-bold tracking-tighter">{analytics?.inProgress || 0}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="squircle-3xl bg-info/20 text-info border-0 font-bold text-xs">ACTIVE</Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Resolved */}
+          <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
+            <Card
+              className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'resolved' ? 'ring-2 ring-success shadow-lg' : ''}`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'resolved' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className={`absolute inset-0 ${filters.kpiFilter === 'resolved' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <CheckCircle className={`h-5 w-5 ${filters.kpiFilter === 'resolved' ? 'text-success' : 'text-muted-foreground'}`} />
+                </div>
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Resolved</p>
+                  {filters.kpiFilter === 'resolved' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
+                </div>
+                <h3 className="text-3xl font-bold tracking-tighter">{analytics?.resolved || 0}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-ticket bg-success/20 text-success border-0 font-bold text-xs">COMPLETE</Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Avg Turnaround */}
+          <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+            <Card
+              className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'avg' ? 'ring-2 ring-muted shadow-lg' : ''}`}
+            // onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'avg' }))} // Optional
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className={`absolute inset-0 ${filters.kpiFilter === 'avg' ? 'bg-muted/30' : 'bg-muted/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <TrendingUp className={`h-5 w-5 ${filters.kpiFilter === 'avg' ? 'text-foreground' : 'text-muted-foreground'}`} />
+                </div>
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Avg Time</p>
+                </div>
+                <h3 className="text-3xl font-bold tracking-tighter">{analytics?.averageResolutionTime || 0}h</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-wave bg-muted/20 text-muted-foreground border-0 font-bold text-xs">METRIC</Badge>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        </motion.div>
+      </LayoutGroup>
+
+      {/* Main Content */}
       {loading ? (
         <TableSkeleton rows={8} />
       ) : supportTickets.length === 0 ? (
-        <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center col-span-full">
+        <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
           <Headphones className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="font-bold text-xl mb-2">No Support Tickets</h3>
-          <p className="text-muted-foreground mb-6">There are currently no active support tickets.</p>
-          <Button onClick={handleCreate} className="squircle bg-primary">
-            <Plus className="h-4 w-4 mr-2" />
-            Create New Ticket
-          </Button>
+          <h3 className="font-bold text-xl mb-2">
+            {filters.search || filters.kpiFilter !== 'all' ? 'No Matching Tickets' : 'No Support Tickets'}
+          </h3>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            {filters.search || filters.kpiFilter !== 'all'
+              ? 'Try adjusting your filters or search terms.'
+              : 'There are currently no active support tickets in the system.'}
+          </p>
+          <div className="flex justify-center gap-3">
+            {(filters.search || filters.kpiFilter !== 'all') && (
+              <Button onClick={() => setFilters({ search: '', status: [], priority: [], category: [], kpiFilter: 'all' })} variant="outline" className="squircle">
+                <X className="h-4 w-4 mr-2" />
+                Reset Filters
+              </Button>
+            )}
+            <Button onClick={handleCreate} className="squircle bg-primary">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Ticket
+            </Button>
+          </div>
         </Card>
       ) : (
         <>
-          {viewMode === 'grid' && <SupportTicketListView tickets={supportTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} />}
+          {/* Inline Grid View for perfect match */}
+          {viewMode === 'grid' && (
+            <LayoutGroup>
+              <motion.div layout className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense">
+                {supportTickets.map((ticket, index) => (
+                  <motion.div
+                    layout
+                    key={ticket.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="col-span-1"
+                  >
+                    <Card className="h-full squircle-xl bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
+                      {/* Deco */}
+                      <div className="absolute top-0 right-0 p-5 z-20">
+                        <div className="relative">
+                          <div className={`absolute inset-0 ${ticket.priority === 'urgent' ? 'bg-destructive/20' : ticket.priority === 'high' ? 'bg-orange-500/20' : 'bg-primary/10'} blur-xl rounded-full scale-150`} />
+                          <div className="w-10 h-10 geo-round bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                            {ticket.status === 'open' ? <AlertCircle className="h-5 w-5 text-warning" /> :
+                              ticket.status === 'resolved' ? <CheckCircle className="h-5 w-5 text-success" /> :
+                                <Activity className="h-5 w-5 text-primary" />}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex items-center gap-2 mb-4 relative z-10">
+                        <Badge className={`geo-sharp ${getStatusConfig(ticket.status).color} border-0 font-bold editorial-subtitle px-3 py-1`}>
+                          {getStatusConfig(ticket.status).label.toUpperCase()}
+                        </Badge>
+                        {ticket.priority === 'urgent' && (
+                          <Badge variant="outline" className="geo-sharp border-destructive/20 text-destructive px-2 py-1 font-semibold gap-1">
+                            <AlertTriangle className="w-3 h-3" /> URGENT
+                          </Badge>
+                        )}
+                      </div>
+                      <h3 className="font-bold text-lg mb-2 tracking-tight relative z-10 line-clamp-2">{ticket.subject}</h3>
+                      <p className="text-sm text-muted-foreground mb-6 font-mono tracking-tight">{ticket.id.substring(0, 8)}</p>
+
+                      <div className="space-y-3 mb-6 relative z-10 flex-1">
+                        <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <User className="h-4 w-4 text-primary" />
+                            <span className="font-normal">Customer</span>
+                          </div>
+                          <span className="font-semibold text-foreground truncate max-w-[120px]">{ticket.customer_name || 'Unknown'}</span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="h-4 w-4 text-info" />
+                            <span className="font-normal">Created</span>
+                          </div>
+                          <span className="font-semibold text-foreground">
+                            {new Date(ticket.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
+                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">ACTIONS</div>
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <Button variant="ghost" size="sm" onClick={() => handleView(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </LayoutGroup>
+          )}
+
+          {/* ListView fallback */}
           {viewMode === 'list' && <SupportTicketSimpleListView tickets={supportTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} />}
           {viewMode === 'table' && <SupportTicketTableView tickets={supportTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} />}
         </>
       )}
 
-      {/* Pagination Controls */}
       <PaginationControls
         currentPage={pagination.currentPage}
         totalPages={pagination.totalPages}
@@ -282,37 +515,13 @@ export const SupportTicketsPage = () => {
         loading={loading}
       />
 
-      {/* Modals */}
+      {/* Modals ... */}
       <AnimatePresence>
-        {modalMode && (
-          <SupportTicketModal
-            ticket={selectedTicket}
-            mode={modalMode}
-            onClose={() => setModalMode(null)}
-            onSave={modalMode === 'create' ? createTicket : updateTicket}
-            priorities={PRIORITIES}
-            categories={CATEGORIES}
-          />
-        )}
-
-        {analyticsModalOpen && (
-          <SupportAnalyticsModal
-            open={analyticsModalOpen}
-            onClose={() => setAnalyticsModalOpen(false)}
-            analytics={analytics}
-          />
-        )}
+        {modalMode && <SupportTicketModal ticket={selectedTicket} mode={modalMode} onClose={() => setModalMode(null)} onSave={modalMode === 'create' ? createTicket : updateTicket} priorities={PRIORITIES} categories={CATEGORIES} />}
+        {analyticsModalOpen && <SupportAnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analytics={analytics} />}
       </AnimatePresence>
 
-      <FilterSheet
-        isOpen={filterSheetOpen}
-        onOpenChange={setFilterSheetOpen}
-        filterSchema={filterSchema}
-        onApply={setFilters}
-        initialValues={filters}
-        viewToggle={isMobile ? viewToggleComponent : null}
-        isMobile={isMobile}
-      />
+      <FilterSheet isOpen={filterSheetOpen} onOpenChange={setFilterSheetOpen} filterSchema={filterSchema} onApply={setFilters} initialValues={filters} viewToggle={isMobile ? viewToggleComponent : null} isMobile={isMobile} />
     </div>
-  );
-};
+  )
+}

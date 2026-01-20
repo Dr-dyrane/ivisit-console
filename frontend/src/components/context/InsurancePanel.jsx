@@ -133,7 +133,7 @@ export const InsurancePanel = ({ loading, getInsuranceStats, insuranceData = [] 
 
               <motion.button
                 whileTap={{ scale: 0.98 }}
-                // onClick={() => window.dispatchEvent(new CustomEvent('openInsuranceFilter'))} // Implementation TBD
+                onClick={() => window.dispatchEvent(new CustomEvent('openFilters'))}
                 className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
                 title="Filter"
               >
@@ -168,7 +168,7 @@ export const InsurancePanel = ({ loading, getInsuranceStats, insuranceData = [] 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 geo-round ${policy.status === 'active' ? 'bg-success' :
-                          policy.status === 'expired' ? 'bg-destructive' : 'bg-warning'
+                        policy.status === 'expired' ? 'bg-destructive' : 'bg-warning'
                         }`} />
                       <div>
                         <p className="font-normal text-sm truncate max-w-[120px]">{policy.policy_number || 'Policy #' + policy.id.substring(0, 8)}</p>

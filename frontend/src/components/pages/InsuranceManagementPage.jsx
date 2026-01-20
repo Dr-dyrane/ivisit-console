@@ -65,8 +65,18 @@ export const InsuranceManagementPage = () => {
       setSelectedPolicy(null);
       setModalMode('create');
     };
+
+    const handleOpenFilters = () => {
+      setFilterSheetOpen(true);
+    };
+
     window.addEventListener('openInsuranceModal', handleOpenModal);
-    return () => window.removeEventListener('openInsuranceModal', handleOpenModal);
+    window.addEventListener('openFilters', handleOpenFilters);
+
+    return () => {
+      window.removeEventListener('openInsuranceModal', handleOpenModal);
+      window.removeEventListener('openFilters', handleOpenFilters);
+    };
   }, []);
 
   // Listen for 'openInsuranceAnalyticsModal' event from ContextPanel

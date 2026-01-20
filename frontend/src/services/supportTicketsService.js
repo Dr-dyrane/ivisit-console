@@ -28,13 +28,25 @@ export async function getSupportTickets(filter) {
     }
 
     if (filter?.status) {
-      query = query.eq('status', filter.status);
+      if (Array.isArray(filter.status) && filter.status.length > 0) {
+        query = query.in('status', filter.status);
+      } else if (!Array.isArray(filter.status)) {
+        query = query.eq('status', filter.status);
+      }
     }
     if (filter?.priority) {
-      query = query.eq('priority', filter.priority);
+      if (Array.isArray(filter.priority) && filter.priority.length > 0) {
+        query = query.in('priority', filter.priority);
+      } else if (!Array.isArray(filter.priority)) {
+        query = query.eq('priority', filter.priority);
+      }
     }
     if (filter?.category) {
-      query = query.eq('category', filter.category);
+      if (Array.isArray(filter.category) && filter.category.length > 0) {
+        query = query.in('category', filter.category);
+      } else if (!Array.isArray(filter.category)) {
+        query = query.eq('category', filter.category);
+      }
     }
     if (filter?.assigned_to) {
       query = query.eq('assigned_to', filter.assigned_to);
@@ -225,7 +237,7 @@ export async function assignTicket(ticketId, assignedTo) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .update({ 
+      .update({
         assigned_to: assignedTo,
         status: 'in_progress',
         updated_at: new Date().toISOString()
@@ -286,7 +298,7 @@ export async function getSupportTicketsAnalytics() {
     });
 
     // Calculate average resolution time
-    const resolvedTickets = data?.filter(item => 
+    const resolvedTickets = data?.filter(item =>
       item.status === 'resolved' && item.updated_at && item.created_at
     );
     if (resolvedTickets?.length > 0) {

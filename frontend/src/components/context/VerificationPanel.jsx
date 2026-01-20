@@ -10,13 +10,26 @@ import {
   TrendingUp,
   AlertTriangle,
   Users,
-  Eye
+  Eye,
+  Filter,
+  BarChart3,
+  Download
 } from 'lucide-react';
 
 export const VerificationPanel = ({ verificationData, loading }) => {
   const navigate = useNavigate();
   const stats = verificationData || { pending: 0, approved: 0, rejected: 0, total: 0 };
   const verificationRate = stats.total > 0 ? Math.round((stats.approved / stats.total) * 100) : 0;
+
+  const handleCreate = () => {
+    // Navigate to users panel logic or specific action
+    navigate('/users?role=provider');
+  };
+
+  const handleAnalytics = () => {
+    // Future analytics modal
+    console.log('Open analytics');
+  };
 
   return (
     <div className="p-4 space-y-4">
@@ -103,29 +116,60 @@ export const VerificationPanel = ({ verificationData, loading }) => {
           >
             <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
 
-            <div className="space-y-2">
-              <button
-                onClick={() => {
-                  const event = new CustomEvent('openVerificationModal');
-                  window.dispatchEvent(event);
-                }}
-                className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-primary/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm text-left"
+            <div className="grid grid-cols-2 gap-2">
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={handleCreate}
+                className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+                title="Manage Providers"
               >
-                <Eye className="h-4 w-4 text-primary" />
-                <span className="font-bold tracking-tight text-primary">View Queue</span>
-              </button>
+                <Users className="h-4 w-4" />
+                <span className="font-normal text-xs">Manage</span>
+              </motion.button>
 
-              <button
-                onClick={() => {
-                  // Navigate to users page with provider filter
-                  navigate('/users?role=provider');
-                }}
-                className="w-full p-3 geo-sharp bg-background/50 backdrop-blur-xs hover:bg-info/20 transition-all duration-300 flex items-center gap-3 border-0 shadow-sm text-left"
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={handleAnalytics}
+                className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+                title="View Analytics"
               >
-                <Users className="h-4 w-4 text-info" />
-                <span className="font-bold tracking-tight text-info">Manage Providers</span>
-              </button>
+                <BarChart3 className="h-4 w-4" />
+                <span className="font-normal text-xs">Analytics</span>
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => window.dispatchEvent(new CustomEvent('openFilters'))}
+                className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+                title="Filter Queue"
+              >
+                <Filter className="h-4 w-4" />
+                <span className="font-normal text-xs">Filter</span>
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+                disabled
+                title="Export (Coming Soon)"
+              >
+                <Download className="h-4 w-4" />
+                <span className="font-normal text-xs">Export</span>
+              </motion.button>
             </div>
+          </motion.div>
+
+          {/* Recent Applications Placeholder */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="space-y-3"
+          >
+            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Recent Activity</h3>
+            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm text-center py-6">
+              <p className="text-xs text-muted-foreground">Real-time feed coming soon</p>
+            </Card>
           </motion.div>
 
           {/* Critical Alerts */}
@@ -133,7 +177,7 @@ export const VerificationPanel = ({ verificationData, loading }) => {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.4 }}
               className="space-y-3"
             >
               <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Critical Alerts</h3>
@@ -143,7 +187,7 @@ export const VerificationPanel = ({ verificationData, loading }) => {
                   <div>
                     <p className="font-bold text-sm text-destructive uppercase tracking-tight">High Backlog</p>
                     <p className="text-xs text-destructive/80 font-normal leading-relaxed">
-                      There are currently {stats.pending} applications pending review. Action is required to maintain SLAs.
+                      {stats.pending} applications pending review.
                     </p>
                   </div>
                 </div>
