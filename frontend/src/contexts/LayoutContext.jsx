@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const LayoutContext = createContext({
@@ -25,19 +25,38 @@ export const useLayout = () => useContext(LayoutContext);
 export const LayoutProvider = ({ children }) => {
     const [isScrolledDown, setIsScrolledDown] = useState(false);
 
-    // Initialize from localStorage or default to 'smart'
-    const [sidebarMode, setSidebarMode] = useState(() => {
+    // Breakpoints
+    const XL_BREAKPOINT = 1280;
+    const LG_BREAKPOINT = 1024;
+
+    // Helper to get initial mode
+    const getInitialMode = () => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('sidebarMode');
-            return saved && ['smart', 'collapsed', 'expanded'].includes(saved) ? saved : 'expanded';
+            return saved && ['smart', 'collapsed', 'expanded'].includes(saved) ? saved : 'expanded'; // Default preference
         }
         return 'smart';
-    });
+    };
 
-    // Persist to localStorage whenever it changes
-    useEffect(() => {
-        localStorage.setItem('sidebarMode', sidebarMode);
-    }, [sidebarMode]);
+    const [sidebarMode, setSidebarModeState] = useState(getInitialMode);
+
+    // Track user preference separately from current display mode
+    const userPreferredModeRef = useRef(getInitialMode());
+    const isResizingRef = useRef(false);
+
+    // Wrapper for manual mode changes
+    const setSidebarMode = useCallback((mode) => {
+        if (!isResizingRef.current) {
+            userPreferredModeRef.current = mode;
+            localStorage.setItem('sidebarMode', mode);
+        }
+        setSidebarModeState(mode);
+    }, []);
+
+    // Persist to localStorage whenever it changes (only if it matches preference, to avoid saving auto-collapsed state)
+    // Actually, we handle persistence in the setter now to avoid saving responsive overrides.
+    // So we remove the useEffect that writes to localStorage on sidebarMode change.
+
 
     const [isContextPanelOpen, setIsContextPanelOpen] = useState(false);
     const [contextMode, setContextMode] = useState('overlay');
@@ -52,8 +71,9 @@ export const LayoutProvider = ({ children }) => {
         , [sidebarMode]);
 
     const toggleSidebar = useCallback(() => {
-        setSidebarMode(prev => prev === 'expanded' ? 'smart' : 'expanded');
-    }, []);
+        const nextMode = sidebarMode === 'expanded' ? 'smart' : 'expanded';
+        setSidebarMode(nextMode);
+    }, [sidebarMode, setSidebarMode]);
 
     const openContextPanel = useCallback(() => {
         setIsContextPanelOpen(true);
@@ -83,6 +103,7 @@ export const LayoutProvider = ({ children }) => {
         };
     }, []);
 
+
     // Scroll Observer
     useEffect(() => {
         const mainContent = document.getElementById('main-content');
@@ -95,6 +116,45 @@ export const LayoutProvider = ({ children }) => {
         target.addEventListener('scroll', handleScroll, { passive: true });
         return () => target.removeEventListener('scroll', handleScroll);
     }, []);
+
+    // Responsive Sidebar Logic
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const handleResize = () => {
+            isResizingRef.current = true;
+            const width = window.innerWidth;
+            const preference = userPreferredModeRef.current;
+
+            let newMode = preference;
+
+            // Apply constraints based on breakpoints
+            if (width < LG_BREAKPOINT) {
+                // < 1024px: Force collapsed
+                newMode = 'collapsed';
+            } else if (width < XL_BREAKPOINT) {
+                // 1024px - 1280px: Max 'smart'
+                if (preference === 'expanded') {
+                    newMode = 'smart';
+                }
+            }
+            // >= 1280px: Allow preference (Expanded or Smart)
+
+            setSidebarModeState(prev => {
+                if (prev !== newMode) return newMode;
+                return prev;
+            });
+            isResizingRef.current = false;
+        };
+
+        // Run initially
+        handleResize();
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []); // Removed specific deps to avoid loop, handleResize reads refs
+
+    // Safe setters that don't use JSON.stringify on React Elements
 
     // Safe setters that don't use JSON.stringify on React Elements
     const setHeaderConfigStable = useCallback((config) => {
