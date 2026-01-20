@@ -35,6 +35,14 @@ export const SettingsPage = () => {
         window.addEventListener('openSecurityModal', handleOpenSecurity);
         window.addEventListener('openSupportModal', handleOpenSupport);
 
+        // Check URL params for quick actions (Context Aware FAB)
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('quick') === 'true') {
+            setIsSecurityModalOpen(true);
+            // Clean up URL
+            window.history.replaceState({}, '', '/settings');
+        }
+
         return () => {
             window.removeEventListener('openProfileModal', handleOpenProfile);
             window.removeEventListener('openSecurityModal', handleOpenSecurity);
@@ -255,6 +263,23 @@ export const SettingsPage = () => {
                                         </div>
                                         <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Default</span>
                                     </div>
+
+                                    {/* Sign Out */}
+                                    <button
+                                        onClick={handleSignOut}
+                                        className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-destructive/5 transition-colors group mt-2"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 squircle-lg bg-destructive/10 text-destructive shadow-sm group-hover:bg-destructive/20 transition-colors">
+                                                <LogOut className="h-4 w-4" />
+                                            </div>
+                                            <div className="flex flex-col items-start">
+                                                <span className="font-semibold text-sm text-destructive">Sign Out</span>
+                                                <span className="text-xs text-muted-foreground">End your current session</span>
+                                            </div>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                                    </button>
                                 </div>
                             </Card>
                         </motion.div>
@@ -274,7 +299,7 @@ export const SettingsPage = () => {
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-xl leading-none">Security</h3>
-                                            <p className="text-sm text-muted-foreground mt-1">Status: Good</p>
+                                            <p className="text-sm text-muted-foreground mt-1">Status: {user?.app_metadata?.providers?.includes('phone') || user?.app_metadata?.aad ? 'Strong' : 'Standard'}</p>
                                         </div>
                                     </div>
                                 </div>

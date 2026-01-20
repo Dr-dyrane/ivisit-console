@@ -29,6 +29,8 @@ const TwoFactorAuthSection = () => {
         if (!error && data) {
             if (data.currentLevel === 'aal2' || data.nextLevel === 'aal2') {
                 setStatus('enabled');
+            } else {
+                setStatus('initial');
             }
         }
         setAuditLoading(false);

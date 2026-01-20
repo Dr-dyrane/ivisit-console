@@ -86,7 +86,7 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="relative z-10 w-full max-w-md bg-background/95 backdrop-blur-xl rounded-[32px] shadow-2xl overflow-hidden"
+                        className="relative z-10 w-full max-w-xl bg-background/95 backdrop-blur-xl rounded-[32px] shadow-2xl overflow-hidden"
                     >
                         <div className="p-6 border-b border-border/10 flex justify-between items-center">
                             <h2 className="text-xl font-bold tracking-tight">Edit Profile</h2>
@@ -135,6 +135,42 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                             </div>
 
                             <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2 col-span-2">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground ml-1">Identity</Label>
+                                        <div className="p-4 bg-muted/20 border border-white/5 rounded-2xl flex flex-col gap-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">First Name</span>
+                                                    <div className="text-sm font-semibold">{profile?.first_name || 'Not Set'}</div>
+                                                </div>
+                                                <div>
+                                                    <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Last Name</span>
+                                                    <div className="text-sm font-semibold">{profile?.last_name || 'Not Set'}</div>
+                                                </div>
+                                            </div>
+                                            <div className="h-px bg-border/10 w-full" />
+                                            <div>
+                                                <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Electronic Mail</span>
+                                                <div className="text-sm font-semibold font-mono tracking-tight">{profile?.email || user?.email || 'No email linked'}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2 col-span-2">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground ml-1">Member Since</Label>
+                                        <div className="p-3 bg-muted/20 border border-white/5 rounded-2xl text-sm font-medium text-muted-foreground opacity-80 cursor-not-allowed">
+                                            {profile?.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, {
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric'
+                                            }) : 'N/A'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="h-px bg-border/10 my-1" />
+
                                 <div className="space-y-2">
                                     <Label className="text-xs font-bold uppercase text-muted-foreground ml-1">Username</Label>
                                     <div className="relative">
