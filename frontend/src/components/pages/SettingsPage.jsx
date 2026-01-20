@@ -5,7 +5,8 @@ import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { User, Mail, Shield, LogOut, Moon, Sun, Bell, Lock, Smartphone, Globe, CreditCard, ChevronRight } from 'lucide-react';
+import { User, Mail, Shield, LogOut, Moon, Sun, Bell, Lock, Smartphone, Globe, CreditCard, ChevronRight, Laptop, Key, HelpCircle } from 'lucide-react';
+import { Switch } from '../ui/switch';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
@@ -49,99 +50,109 @@ export const SettingsPage = () => {
 
     const getRoleBadgeColor = (role) => {
         const colors = {
-            admin: 'bg-primary text-primary-foreground',
-            sponsor: 'bg-secondary text-secondary-foreground',
-            provider: 'bg-info text-info-foreground',
-            viewer: 'bg-muted text-muted-foreground',
+            admin: 'bg-primary/10 text-primary border-primary/20',
+            sponsor: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+            provider: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+            viewer: 'bg-muted text-muted-foreground border-border/10',
         };
         return colors[role] || colors.viewer;
     };
 
     return (
-        <div className="min-h-screen py-6 md:py-8">
-            <div className="pt-2" />
+        <div className="min-h-screen py-6 md:py-8 space-y-8 animate-in fade-in duration-500">
+            {/* Background Decorations */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+            </div>
 
             <LayoutGroup>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-min">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                    {/* Main Profile Identity Card - Spans 2 cols */}
+                    {/* Main Profile Identity Card - Spans 2 cols on Large, 1 on Mobile */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
+                        initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="col-span-1 md:col-span-2 row-span-2"
+                        className="col-span-1 lg:col-span-2"
                     >
-                        <Card className="h-full squircle-2xl bg-background/50 backdrop-blur-xs border-0 p-0 overflow-hidden relative group">
+                        <Card className="h-full squircle-3xl bg-background/60 backdrop-blur-md border-white/5 shadow-2xl relative overflow-hidden group">
+                            {/* Dynamic Background Pattern */}
                             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-50" />
+                            <div className="absolute inset-0 opacity-[0.03]"
+                                style={{
+                                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.4' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E")`,
+                                }}
+                            />
 
-                            {/* Header Background */}
-                            <div className="h-32 bg-gradient-to-r from-primary/10 via-background to-background relative overflow-hidden">
-                                <div className="absolute inset-0 opacity-10"
-                                    style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
-                                </div>
+                            {/* Header Banner */}
+                            <div className="h-40 bg-gradient-to-r from-primary/10 via-background/50 to-background/50 relative overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
                             </div>
 
-                            <div className="px-8 pb-8 -mt-16 relative z-10">
-                                <div className="flex items-end gap-6 mb-6">
-                                    <Avatar className="h-32 w-32 squircle-2xl border-4 border-background shadow-2xl">
-                                        <AvatarImage
-                                            src={getAvatarUrl(profile, user)}
-                                            className="object-cover"
-                                        />
-                                        <AvatarFallback className="squircle bg-muted text-muted-foreground font-bold text-4xl">
-                                            {getAvatarFallback(profile, user)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="mb-2">
-                                        <h2 className="text-3xl font-bold tracking-tighter">{profile?.username || 'User'}</h2>
-                                        <p className="text-muted-foreground font-normal flex items-center gap-2">
-                                            <Mail className="h-4 w-4" /> {user?.email || profile?.email}
-                                        </p>
+                            <div className="px-6 md:px-10 pb-10 -mt-20 relative z-10">
+                                <div className="flex flex-col md:flex-row items-center md:items-end gap-6 mb-8">
+                                    <div className="relative group">
+                                        <Avatar className="h-36 w-36 squircle-2xl border-[6px] border-background shadow-2xl ring-1 ring-white/10">
+                                            <AvatarImage
+                                                src={getAvatarUrl(profile, user)}
+                                                className="object-cover"
+                                            />
+                                            <AvatarFallback className="squircle bg-muted text-muted-foreground font-bold text-5xl">
+                                                {getAvatarFallback(profile, user)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="absolute bottom-2 right-2 w-6 h-6 bg-success rounded-full border-4 border-background shadow-sm" title="Online" />
+                                    </div>
+
+                                    <div className="mb-4 text-center md:text-left flex-1 min-w-0">
+                                        <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground truncate">
+                                            {profile?.username || 'User Profile'}
+                                        </h2>
+                                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-2 text-muted-foreground">
+                                            <Badge variant="outline" className={`squircle border px-3 py-1 font-semibold uppercase tracking-wider ${getRoleBadgeColor(profile?.role)}`}>
+                                                {profile?.role || 'VIEWER'}
+                                            </Badge>
+                                            <span className="flex items-center gap-1.5 text-sm font-medium px-3 py-1 bg-muted/30 squircle rounded-lg text-muted-foreground border border-white/5">
+                                                <Mail className="h-3.5 w-3.5" />
+                                                <span className="truncate max-w-[200px]">{user?.email || profile?.email}</span>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex-shrink-0">
+                                        <Button className="squircle-xl shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6">
+                                            Edit Profile
+                                        </Button>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-                                    <div className="p-4 squircle-xl bg-muted/30 hover:bg-muted/50 transition-colors">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="p-2 squircle bg-primary/10 text-primary">
-                                                <Shield className="w-5 h-5" />
-                                            </div>
-                                            <span className="font-semibold text-sm uppercase text-muted-foreground">Account Role</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge className={`squircle font-bold text-sm px-3 py-1 ${getRoleBadgeColor(profile?.role)}`}>
-                                                {profile?.role?.toUpperCase() || 'VIEWER'}
-                                            </Badge>
-                                            {profile?.bvn_verified && (
-                                                <Badge className="squircle bg-success/20 text-success font-semibold border-0">
-                                                    VERIFIED
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4 squircle-xl bg-muted/30 hover:bg-muted/50 transition-colors">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="p-2 squircle bg-info/10 text-info">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {/* Account Details */}
+                                    <div className="p-5 squircle-2xl bg-muted/20 border border-white/5 hover:bg-muted/30 transition-all duration-300 group/item">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="p-2.5 squircle-lg bg-background shadow-sm text-primary group-hover/item:scale-110 transition-transform">
                                                 <Smartphone className="w-5 h-5" />
                                             </div>
-                                            <span className="font-semibold text-sm uppercase text-muted-foreground">Contact</span>
+                                            <span className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Mobile Contact</span>
                                         </div>
-                                        <p className="font-mono font-semibold text-lg">{profile?.phone || 'Not linked'}</p>
+                                        <div className="flex items-center justify-between">
+                                            <p className="font-mono font-bold text-lg tracking-tight">{profile?.phone || 'Not Linked'}</p>
+                                            {profile?.phone && <Badge variant="secondary" className="squircle bg-success/10 text-success text-[10px] uppercase font-bold tracking-wider">Verified</Badge>}
+                                        </div>
                                     </div>
 
-                                    <div className="p-4 squircle-xl bg-muted/30 hover:bg-muted/50 transition-colors col-span-1 md:col-span-2">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 squircle bg-secondary/10 text-secondary">
-                                                    <CreditCard className="w-5 h-5" />
-                                                </div>
-                                                <div>
-                                                    <span className="font-semibold text-sm uppercase text-muted-foreground block">Subscription Plan</span>
-                                                    <span className="font-bold text-lg">Free Tier</span>
-                                                </div>
+                                    {/* Subscription Plan */}
+                                    <div className="p-5 squircle-2xl bg-muted/20 border border-white/5 hover:bg-muted/30 transition-all duration-300 group/item">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="p-2.5 squircle-lg bg-background shadow-sm text-secondary group-hover/item:scale-110 transition-transform">
+                                                <CreditCard className="w-5 h-5" />
                                             </div>
-                                            <Button variant="ghost" className="squircle bg-primary/10 text-primary hover:bg-primary/20 font-semibold">
-                                                Upgrade
+                                            <span className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Current Plan</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <p className="font-bold text-lg tracking-tight">Free Tier</p>
+                                            <Button variant="link" className="h-auto p-0 text-primary font-semibold text-sm hover:no-underline hover:opacity-80">
+                                                Upgrade →
                                             </Button>
                                         </div>
                                     </div>
@@ -150,103 +161,115 @@ export const SettingsPage = () => {
                         </Card>
                     </motion.div>
 
-                    {/* Permissions Tile */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="col-span-1"
-                    >
-                        <Card className="h-full squircle-2xl bg-background/35 backdrop-blur-xs border-0 p-6 flex flex-col">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="p-3 squircle bg-primary/10 text-primary">
-                                    <Lock className="h-6 w-6" />
-                                </div>
-                                <Badge className="squircle bg-primary/10 text-primary border-0">Security</Badge>
-                            </div>
-                            <h3 className="font-bold text-xl mb-4">Access Rights</h3>
+                    {/* Right Column Layout */}
+                    <div className="space-y-6 flex flex-col">
 
-                            <div className="space-y-3 flex-1">
-                                <div className="flex items-center justify-between p-3 squircle-lg bg-muted/30">
-                                    <span className="font-medium text-sm">Dashboard</span>
-                                    <div className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                                </div>
-                                <div className="flex items-center justify-between p-3 squircle-lg bg-muted/30">
-                                    <span className="font-medium text-sm">CRUD Ops</span>
-                                    <div className={`w-2 h-2 rounded-full ${isProvider() ? 'bg-success shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-muted-foreground'}`} />
-                                </div>
-                                <div className="flex items-center justify-between p-3 squircle-lg bg-muted/30">
-                                    <span className="font-medium text-sm">User Mgmt</span>
-                                    <div className={`w-2 h-2 rounded-full ${isAdmin() ? 'bg-success shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-muted-foreground'}`} />
-                                </div>
-                            </div>
-                        </Card>
-                    </motion.div>
-
-                    {/* Preferences Tile */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="col-span-1"
-                    >
-                        <Card className="h-full squircle-2xl bg-background/35 backdrop-blur-xs border-0 p-6 flex flex-col group hover-lift">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="p-3 squircle bg-warning/10 text-warning">
-                                    <Globe className="h-6 w-6" />
-                                </div>
-                            </div>
-                            <h3 className="font-bold text-xl mb-4">App Preferences</h3>
-
-                            <div className="space-y-4 flex-1">
-                                <div className="flex items-center justify-between p-4 squircle-lg bg-muted/30 group-hover:bg-muted/50 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        {darkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-                                        <span className="font-semibold">Dark Mode</span>
+                        {/* App Preferences */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="flex-1"
+                        >
+                            <Card className="h-full squircle-3xl bg-background/60 backdrop-blur-md border-white/5 p-6 shadow-xl flex flex-col">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="p-3 squircle-xl bg-orange-500/10 text-orange-500">
+                                        <Laptop className="h-6 w-6" />
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={toggleDarkMode}
-                                        className="squircle hover:bg-background"
-                                    >
-                                        {darkMode ? 'On' : 'Off'}
+                                    <div>
+                                        <h3 className="font-bold text-xl leading-none">Preferences</h3>
+                                        <p className="text-sm text-muted-foreground mt-1">Customize your experience</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    {/* Dark Mode Toggle */}
+                                    <div className="flex items-center justify-between p-3 rounded-2xl hover:bg-muted/20 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 squircle-lg bg-muted shadow-sm">
+                                                {darkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold text-sm">Dark Mode</span>
+                                                <span className="text-xs text-muted-foreground">Adjust display theme</span>
+                                            </div>
+                                        </div>
+                                        <Switch
+                                            checked={darkMode}
+                                            onCheckedChange={toggleDarkMode}
+                                        />
+                                    </div>
+
+                                    {/* Notifications Toggle */}
+                                    <div className="flex items-center justify-between p-3 rounded-2xl hover:bg-muted/20 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 squircle-lg bg-muted shadow-sm">
+                                                <Bell className="h-4 w-4" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold text-sm">Notifications</span>
+                                                <span className="text-xs text-muted-foreground">Push & Email alerts</span>
+                                            </div>
+                                        </div>
+                                        <Switch checked={true} />
+                                    </div>
+
+                                    {/* Language */}
+                                    <div className="flex items-center justify-between p-3 rounded-2xl hover:bg-muted/20 transition-colors opacity-60 cursor-not-allowed">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 squircle-lg bg-muted shadow-sm">
+                                                <Globe className="h-4 w-4" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold text-sm">Language</span>
+                                                <span className="text-xs text-muted-foreground">English (US)</span>
+                                            </div>
+                                        </div>
+                                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Default</span>
+                                    </div>
+                                </div>
+                            </Card>
+                        </motion.div>
+
+                        {/* Security Snapshot */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="flex-1"
+                        >
+                            <Card className="h-full squircle-3xl bg-background/60 backdrop-blur-md border-white/5 p-6 shadow-xl relative overflow-hidden">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 squircle-xl bg-blue-500/10 text-blue-500">
+                                            <Shield className="h-6 w-6" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-xl leading-none">Security</h3>
+                                            <p className="text-sm text-muted-foreground mt-1">Status: Good</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <Button variant="outline" className="w-full justify-between h-auto py-3 px-4 squircle-xl border-white/10 hover:bg-muted/30 font-medium">
+                                        <span className="flex items-center gap-2">
+                                            <Key className="w-4 h-4 text-muted-foreground" />
+                                            Change Password
+                                        </span>
+                                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                    </Button>
+                                    <Button variant="outline" className="w-full justify-between h-auto py-3 px-4 squircle-xl border-white/10 hover:bg-muted/30 font-medium">
+                                        <span className="flex items-center gap-2">
+                                            <HelpCircle className="w-4 h-4 text-muted-foreground" />
+                                            Support Center
+                                        </span>
+                                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
                                     </Button>
                                 </div>
-                                <div className="flex items-center justify-between p-4 squircle-lg bg-muted/30 group-hover:bg-muted/50 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <Bell className="h-5 w-5" />
-                                        <span className="font-semibold">Notifications</span>
-                                    </div>
-                                    <Badge className="squircle bg-primary/20 text-primary hover:bg-primary/30 cursor-pointer">
-                                        Enabled
-                                    </Badge>
-                                </div>
-                            </div>
-                        </Card>
-                    </motion.div>
-
-                    {/* Session / Logout Tile */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="col-span-1"
-                    >
-                        <Card className="h-full squircle-2xl bg-background/35 backdrop-blur-xs border-0 p-6 flex flex-col justify-between bg-destructive/5 hover:bg-destructive/10 transition-colors cursor-pointer group" onClick={handleSignOut}>
-                            <div className="flex items-center justify-between">
-                                <div className="p-3 squircle bg-destructive/10 text-destructive group-hover:bg-destructive group-hover:text-white transition-colors">
-                                    <LogOut className="h-6 w-6" />
-                                </div>
-                                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-destructive transition-colors" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-xl text-destructive mb-1">Sign Out</h3>
-                                <p className="text-sm font-normal text-muted-foreground">End your current session securely</p>
-                            </div>
-                        </Card>
-                    </motion.div>
-
+                            </Card>
+                        </motion.div>
+                    </div>
                 </div>
             </LayoutGroup>
         </div>
