@@ -113,6 +113,13 @@ export async function createSubscriber(input) {
 
     if (error) throw error;
 
+    // Trigger welcome email automatically (Fire and forget to not block UI)
+    if (data && data.email) {
+      sendWelcomeEmail(data.email).catch(err =>
+        console.error('Failed to auto-send welcome email:', err)
+      );
+    }
+
     return data;
   } catch (error) {
     console.error('Error creating subscriber:', error);
@@ -172,7 +179,7 @@ export async function updateSubscriberStatus(subscriberId, status) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .update({ 
+      .update({
         status,
         updated_at: new Date().toISOString()
       })
@@ -196,7 +203,7 @@ export async function updateSubscriberType(subscriberId, type) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .update({ 
+      .update({
         type,
         updated_at: new Date().toISOString()
       })
@@ -220,7 +227,7 @@ export async function markWelcomeEmailSent(subscriberId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .update({ 
+      .update({
         welcome_email_sent: true,
         welcome_email_sent_at: new Date().toISOString(),
         new_user: false,
@@ -356,7 +363,7 @@ export async function sendCustomEmail(subscriber, subject, content) {
     }
 
     const { data, error } = await supabase.functions.invoke('sendCustomEmail', {
-      body: { 
+      body: {
         email: subscriber.email,
         subject,
         content
@@ -378,13 +385,13 @@ export async function sendCustomEmail(subscriber, subject, content) {
 export async function sendBulkEmail(subscribers, subject, content) {
   try {
     const emails = subscribers.map(sub => sub.email).filter(email => email);
-    
+
     if (emails.length === 0) {
       throw new Error('No valid email addresses found');
     }
 
     const { data, error } = await supabase.functions.invoke('sendBulkEmail', {
-      body: { 
+      body: {
         emails,
         subject,
         content
