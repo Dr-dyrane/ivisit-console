@@ -357,7 +357,7 @@ export const LoginPage = () => {
 										</button>
 
 										<div className="pt-2">
-											<a href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+											<a href="https://www.ivisit.ng/support" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
 												Trouble signing in? Contact Support
 											</a>
 										</div>
