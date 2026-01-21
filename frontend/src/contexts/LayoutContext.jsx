@@ -33,7 +33,7 @@ export const LayoutProvider = ({ children }) => {
     const getInitialMode = () => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('sidebarMode');
-            return saved && ['smart', 'collapsed', 'expanded'].includes(saved) ? saved : 'expanded'; // Default preference
+            return saved && ['smart', 'collapsed', 'expanded'].includes(saved) ? saved : 'smart'; // Default preference
         }
         return 'smart';
     };
