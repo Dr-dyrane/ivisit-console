@@ -101,7 +101,7 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
             className="w-full justify-start h-10 bg-muted/20 hover:bg-muted/30 border border-border/20 text-[10px] font-bold tracking-widest uppercase text-foreground"
           >
             <Plus className="h-4 w-4 mr-2" />
-            ADD NEW USER
+            INVITE USER
           </Button>
 
           <Button
