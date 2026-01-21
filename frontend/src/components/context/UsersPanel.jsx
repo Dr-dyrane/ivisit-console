@@ -31,7 +31,7 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
           <Card className="p-4 bg-background/50 backdrop-blur-sm border-0">
             <div className="flex items-center gap-2 mb-2">
               <Users className="h-4 w-4 text-primary" />
-              <span className="text-sm font-normal">Total Users</span>
+              <span className="text-sm font-normal">Total</span>
             </div>
             <div className="text-2xl font-semibold">{users.length}</div>
           </Card>
@@ -130,27 +130,33 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
             recentUsers.map((user) => (
               <div
                 key={user.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/40 transition-colors cursor-pointer"
                 onClick={() => onViewUser(user)}
+                className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-center p-3 rounded-lg
+             bg-muted/30 hover:bg-muted/40 transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                {/* LEFT: Avatar + Name + Email */}
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 border border-border/20
+                    flex items-center justify-center shrink-0">
                     <span className="text-xs font-semibold text-primary">
                       {(user.username || user.profile_username || 'U')?.[0]?.toUpperCase()}
                     </span>
                   </div>
-                  <div>
-                    <p className="font-normal text-sm">
+
+                  <div className="flex flex-col min-w-0">
+                    <p className="text-sm font-normal truncate">
                       {user.username || user.profile_username || 'Unknown User'}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground truncate">
                       {user.email}
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+
+                {/* RIGHT: Last login (fixed, never pushed) */}
+                <div className="flex flex-col items-end text-right shrink-0">
                   <p className="text-xs text-muted-foreground">Last login</p>
-                  <p className="text-xs font-normal">
+                  <p className="text-xs font-normal whitespace-nowrap">
                     {new Date(user.last_sign_in_at).toLocaleDateString()}
                   </p>
                 </div>
