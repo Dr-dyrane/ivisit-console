@@ -393,6 +393,9 @@ export const HealthNewsManagementPage = () => {
             <Card
               className={`h-full min-h-[140px] geo-block bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
+              role="button"
+              tabIndex={0}
+              aria-label="Show all news articles"
             >
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
@@ -427,6 +430,9 @@ export const HealthNewsManagementPage = () => {
             <Card
               className={`h-full min-h-[140px] geo-badge bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'published' ? 'ring-2 ring-success shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'published' }))}
+              role="button"
+              tabIndex={0}
+              aria-label="Filter by published articles"
             >
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
@@ -461,6 +467,9 @@ export const HealthNewsManagementPage = () => {
             <Card
               className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'draft' ? 'ring-2 ring-warning shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'draft' }))}
+              role="button"
+              tabIndex={0}
+              aria-label="Filter by draft articles"
             >
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
@@ -495,6 +504,9 @@ export const HealthNewsManagementPage = () => {
             <Card
               className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'recent' ? 'ring-2 ring-info shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'recent' }))}
+              role="button"
+              tabIndex={0}
+              aria-label="Filter by recent articles"
             >
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
@@ -529,6 +541,9 @@ export const HealthNewsManagementPage = () => {
             <Card
               className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'medical' ? 'ring-2 ring-primary shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'medical' }))}
+              role="button"
+              tabIndex={0}
+              aria-label="Filter by medical articles"
             >
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
@@ -573,18 +588,18 @@ export const HealthNewsManagementPage = () => {
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             {filters.search && (
-              <Button onClick={() => setFilters(prev => ({ ...prev, search: '' }))} variant="outline" className="squircle">
+              <Button onClick={() => setFilters(prev => ({ ...prev, search: '' }))} variant="outline" className="squircle" aria-label="Clear search">
                 <Filter className="h-4 w-4 mr-2" />
                 Clear Search
               </Button>
             )}
             {(filters.kpiFilter !== 'all' || Object.keys(filters).filter(k => k !== 'kpiFilter').some(k => filters[k])) && (
-              <Button onClick={() => setFilters({ kpiFilter: 'all', published: undefined, category: '', source: '', search: '' })} variant="outline" className="squircle">
+              <Button onClick={() => setFilters({ kpiFilter: 'all', published: undefined, category: '', source: '', search: '' })} variant="outline" className="squircle" aria-label="Reset all filters">
                 <Filter className="h-4 w-4 mr-2" />
                 Reset Filters
               </Button>
             )}
-            <Button onClick={handleCreate} className="squircle bg-primary">
+            <Button onClick={handleCreate} className="squircle bg-primary" aria-label="Add new article">
               <Plus className="h-4 w-4 mr-2" />
               Add News
             </Button>

@@ -214,6 +214,7 @@ export const InsuranceManagementPage = () => {
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
       className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
+      aria-label="Filter policies"
     >
       <FilterIcon className="h-4 w-4" />
       {(filters.search || (filters.status && filters.status.length > 0) || (filters.type && filters.type.length > 0)) && (
@@ -610,6 +611,7 @@ export const InsuranceManagementPage = () => {
                             size="sm"
                             onClick={() => handleView(policy)}
                             className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                            aria-label={`View details for ${policy.policy_holder_name}`}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -618,6 +620,7 @@ export const InsuranceManagementPage = () => {
                             size="sm"
                             onClick={() => handleEdit(policy)}
                             className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                            aria-label={`Edit ${policy.policy_holder_name}`}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -626,6 +629,7 @@ export const InsuranceManagementPage = () => {
                             size="sm"
                             onClick={() => handleDelete(policy)}
                             className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                            aria-label={`Delete ${policy.policy_holder_name}`}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

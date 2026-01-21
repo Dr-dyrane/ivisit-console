@@ -233,6 +233,7 @@ export const SettingsPage = () => {
                                         <Switch
                                             checked={darkMode}
                                             onCheckedChange={toggleDarkMode}
+                                            aria-label="Toggle dark mode"
                                         />
                                     </div>
 
@@ -247,7 +248,7 @@ export const SettingsPage = () => {
                                                 <span className="text-xs text-muted-foreground">Push & Email alerts</span>
                                             </div>
                                         </div>
-                                        <Switch checked={true} />
+                                        <Switch checked={true} aria-label="Toggle notifications" />
                                     </div>
 
                                     {/* Language */}

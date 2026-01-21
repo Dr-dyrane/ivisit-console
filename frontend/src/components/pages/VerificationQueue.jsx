@@ -124,6 +124,7 @@ export const VerificationQueue = () => {
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
       className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
+      aria-label="Filter verification queue"
     >
       <FilterIcon className="h-4 w-4" />
       {(filters.search || filters.status !== 'all') && (
@@ -420,6 +421,9 @@ export const VerificationQueue = () => {
                   <Card
                     className="h-full squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-6 flex flex-col justify-between hover-lift group border-0 relative overflow-hidden cursor-pointer"
                     onClick={() => setSelectedProvider(provider)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View verification details for ${provider.username || 'applicant'}`}
                   >
                     {/* Card Hover Gradient */}
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

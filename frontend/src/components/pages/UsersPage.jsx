@@ -697,6 +697,7 @@ export const UsersPage = () => {
                               variant="ghost"
                               onClick={() => handleView(user)}
                               className="flex-1 h-8 bg-muted/20 hover:bg-muted/30 border border-border/20 text-[10px] font-bold tracking-widest uppercase text-foreground"
+                              aria-label={`View details for ${user.username || user.profile_username || 'user'}`}
                             >
                               <Eye className="h-3 w-3 mr-1" />
                               VIEW
@@ -708,6 +709,7 @@ export const UsersPage = () => {
                                   variant="ghost"
                                   onClick={() => handleEdit(user)}
                                   className="flex-1 h-8 bg-muted/20 hover:bg-muted/30 border border-border/20 text-[10px] font-bold tracking-widest uppercase text-foreground"
+                                  aria-label={`Edit ${user.username || user.profile_username || 'user'}`}
                                 >
                                   <Edit className="h-3 w-3 mr-1" />
                                   EDIT
@@ -717,6 +719,7 @@ export const UsersPage = () => {
                                   variant="ghost"
                                   onClick={() => handleDelete(user)}
                                   className="flex-1 h-8 bg-destructive/20 hover:bg-destructive/30 border border-destructive/20 text-[10px] font-bold tracking-widest uppercase text-destructive"
+                                  aria-label={`Delete ${user.username || user.profile_username || 'user'}`}
                                 >
                                   <Trash2 className="h-3 w-3 mr-1" />
                                   DELETE

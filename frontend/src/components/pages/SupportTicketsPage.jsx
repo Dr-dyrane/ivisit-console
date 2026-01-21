@@ -272,6 +272,9 @@ export const SupportTicketsPage = () => {
             <Card
               className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
+              role="button"
+              tabIndex={0}
+              aria-label="Show all tickets"
             >
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
@@ -297,6 +300,9 @@ export const SupportTicketsPage = () => {
             <Card
               className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'open' ? 'ring-2 ring-warning shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'open' }))}
+              role="button"
+              tabIndex={0}
+              aria-label="Filter by open tickets"
             >
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className={`absolute inset-0 ${filters.kpiFilter === 'open' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
@@ -322,6 +328,9 @@ export const SupportTicketsPage = () => {
             <Card
               className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'in_progress' ? 'ring-2 ring-info shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'in_progress' }))}
+              role="button"
+              tabIndex={0}
+              aria-label="Filter by in-progress tickets"
             >
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className={`absolute inset-0 ${filters.kpiFilter === 'in_progress' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
@@ -347,6 +356,9 @@ export const SupportTicketsPage = () => {
             <Card
               className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'resolved' ? 'ring-2 ring-success shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'resolved' }))}
+              role="button"
+              tabIndex={0}
+              aria-label="Filter by resolved tickets"
             >
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className={`absolute inset-0 ${filters.kpiFilter === 'resolved' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
@@ -409,12 +421,12 @@ export const SupportTicketsPage = () => {
           </p>
           <div className="flex justify-center gap-3">
             {(filters.search || filters.kpiFilter !== 'all') && (
-              <Button onClick={() => setFilters({ search: '', status: [], priority: [], category: [], kpiFilter: 'all' })} variant="outline" className="squircle">
+              <Button onClick={() => setFilters({ search: '', status: [], priority: [], category: [], kpiFilter: 'all' })} variant="outline" className="squircle" aria-label="Reset all filters">
                 <X className="h-4 w-4 mr-2" />
                 Reset Filters
               </Button>
             )}
-            <Button onClick={handleCreate} className="squircle bg-primary">
+            <Button onClick={handleCreate} className="squircle bg-primary" aria-label="Create your first support ticket">
               <Plus className="h-4 w-4 mr-2" />
               Create Ticket
             </Button>

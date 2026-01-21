@@ -292,6 +292,9 @@ export const DoctorsPage = () => {
                 className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('all')}
+                role="button"
+                tabIndex={0}
+                aria-label="Show all doctors"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
@@ -328,6 +331,9 @@ export const DoctorsPage = () => {
                 className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'available' ? 'ring-2 ring-success shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('available')}
+                role="button"
+                tabIndex={0}
+                aria-label="Filter by available doctors"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
@@ -366,6 +372,9 @@ export const DoctorsPage = () => {
                 className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'on_call' ? 'ring-2 ring-purple-500 shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('on_call')}
+                role="button"
+                tabIndex={0}
+                aria-label="Filter by on-call doctors"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
@@ -402,6 +411,9 @@ export const DoctorsPage = () => {
                 className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'busy' ? 'ring-2 ring-warning shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('busy')}
+                role="button"
+                tabIndex={0}
+                aria-label="Filter by busy doctors"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
@@ -438,6 +450,9 @@ export const DoctorsPage = () => {
                 className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'off_duty' ? 'ring-2 ring-muted shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('off_duty')}
+                role="button"
+                tabIndex={0}
+                aria-label="Filter by off-duty doctors"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
@@ -475,7 +490,7 @@ export const DoctorsPage = () => {
                 <Stethoscope className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="font-bold text-xl mb-2">No Doctors Yet</h3>
                 <p className="text-muted-foreground mb-6">Get started by adding your first doctor</p>
-                <Button onClick={handleCreate} className="squircle bg-primary" data-testid="add-first-doctor-btn">
+                <Button onClick={handleCreate} className="squircle bg-primary" data-testid="add-first-doctor-btn" aria-label="Add your first doctor">
                   <Plus className="h-4 w-4 mr-2" />
                   Add First Doctor
                 </Button>

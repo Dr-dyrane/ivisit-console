@@ -289,6 +289,9 @@ export const VisitsPage = () => {
                 className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('all')}
+                role="button"
+                tabIndex={0}
+                aria-label="Show all visits"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
@@ -325,6 +328,9 @@ export const VisitsPage = () => {
                 className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'scheduled' ? 'ring-2 ring-info shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('scheduled')}
+                role="button"
+                tabIndex={0}
+                aria-label="Filter by scheduled visits"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
@@ -361,6 +367,9 @@ export const VisitsPage = () => {
                 className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'in_progress' ? 'ring-2 ring-warning shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('in_progress')}
+                role="button"
+                tabIndex={0}
+                aria-label="Filter by in-progress visits"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
@@ -397,6 +406,9 @@ export const VisitsPage = () => {
                 className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'completed' ? 'ring-2 ring-success shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('completed')}
+                role="button"
+                tabIndex={0}
+                aria-label="Filter by completed visits"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
@@ -433,6 +445,9 @@ export const VisitsPage = () => {
                 className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'cancelled' ? 'ring-2 ring-destructive shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('cancelled')}
+                role="button"
+                tabIndex={0}
+                aria-label="Filter by cancelled visits"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
@@ -470,7 +485,7 @@ export const VisitsPage = () => {
                 <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="font-bold text-xl mb-2">No Visits Yet</h3>
                 <p className="text-muted-foreground mb-6">Get started by scheduling the first visit</p>
-                <Button onClick={handleCreate} className="squircle bg-primary" data-testid="add-first-visit-btn">
+                <Button onClick={handleCreate} className="squircle bg-primary" data-testid="add-first-visit-btn" aria-label="Schedule your first visit">
                   <Plus className="h-4 w-4 mr-2" />
                   Schedule First Visit
                 </Button>

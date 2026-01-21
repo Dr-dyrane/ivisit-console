@@ -343,6 +343,9 @@ export const EmergencyRequestsPage = () => {
                     className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
                       }`}
                     onClick={() => setKpiFilter('all')}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Show all emergency requests"
                   >
                     <div className="absolute top-0 right-0 p-4 z-20">
                       <div className="relative">
@@ -379,6 +382,9 @@ export const EmergencyRequestsPage = () => {
                     className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'critical' ? 'ring-2 ring-destructive shadow-lg' : ''
                       }`}
                     onClick={() => setKpiFilter('critical')}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Filter by critical requests"
                   >
                     <div className="absolute top-0 right-0 p-4 z-20">
                       <div className="relative">
@@ -415,6 +421,9 @@ export const EmergencyRequestsPage = () => {
                     className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'high' ? 'ring-2 ring-warning shadow-lg' : ''
                       }`}
                     onClick={() => setKpiFilter('high')}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Filter by high priority requests"
                   >
                     <div className="absolute top-0 right-0 p-4 z-20">
                       <div className="relative">
@@ -451,6 +460,9 @@ export const EmergencyRequestsPage = () => {
                     className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'pending' ? 'ring-2 ring-info shadow-lg' : ''
                       }`}
                     onClick={() => setKpiFilter('pending')}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Filter by pending requests"
                   >
                     <div className="absolute top-0 right-0 p-4 z-20">
                       <div className="relative">
@@ -487,6 +499,9 @@ export const EmergencyRequestsPage = () => {
                     className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'active' ? 'ring-2 ring-success shadow-lg' : ''
                       }`}
                     onClick={() => setKpiFilter('active')}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Filter by active requests"
                   >
                     <div className="absolute top-0 right-0 p-4 z-20">
                       <div className="relative">

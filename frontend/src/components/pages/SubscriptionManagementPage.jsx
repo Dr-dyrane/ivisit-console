@@ -268,6 +268,7 @@ export const SubscriptionManagementPage = () => {
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
       className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
+      aria-label="Filter subscribers"
     >
       <FilterIcon className="h-4 w-4" />
       {(filters.search ||
@@ -694,6 +695,7 @@ export const SubscriptionManagementPage = () => {
                             size="sm"
                             onClick={() => handleView(subscriber)}
                             className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                            aria-label={`View details for ${subscriber.email}`}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -702,6 +704,7 @@ export const SubscriptionManagementPage = () => {
                             size="sm"
                             onClick={() => handleEdit(subscriber)}
                             className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                            aria-label={`Edit ${subscriber.email}`}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -710,6 +713,7 @@ export const SubscriptionManagementPage = () => {
                             size="sm"
                             onClick={() => handleDelete(subscriber)}
                             className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                            aria-label={`Delete ${subscriber.email}`}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
