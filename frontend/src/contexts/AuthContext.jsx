@@ -206,8 +206,33 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
 
   const isAdmin = () => hasRole('admin');
   const isSponsor = () => hasMinRole('sponsor');
-  const isProvider = () => hasMinRole('provider');
+  const isOrgAdmin = () => hasRole('org_admin');
+  const isProvider = () => hasMinRole('provider') || isOrgAdmin();
   const isViewer = () => hasMinRole('viewer');
+
+  /**
+   * Universal Permission Checker
+   * @param {string} action - 'view', 'create', 'edit', 'delete'
+   * @param {string} resource - 'doctors', 'visits', 'ambulances', etc.
+   * @returns {boolean}
+   */
+  const can = (action, resource) => {
+    if (isAdmin()) return true;
+
+    // Org Admins can manage their own resources
+    if (isOrgAdmin()) {
+      const manageable = ['doctors', 'ambulances', 'visits', 'users', 'emergency_requests'];
+      if (manageable.includes(resource)) return true;
+    }
+
+    // Providers can view and sometimes edit their own stuff
+    if (isProvider()) {
+      const viewable = ['doctors', 'ambulances', 'visits', 'hospitals'];
+      if (action === 'view' && viewable.includes(resource)) return true;
+    }
+
+    return false;
+  };
 
   const updateProfile = async (updates) => {
     try {
@@ -238,6 +263,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   const value = {
     user,
     profile,
+    orgId: profile?.organization_id || null,
     loading,
     signIn,
     signUp,
@@ -249,8 +275,10 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     hasMinRole,
     isAdmin,
     isSponsor,
+    isOrgAdmin,
     isProvider,
     isViewer,
+    can,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -4,35 +4,45 @@ import { toast } from 'sonner';
 import { getSupportTickets } from '../services/supportTicketsService';
 
 // Mock data as fallback
-const mockEmergencyData = [
-  {
-    id: 'mock-1',
-    patient_name: 'John Doe',
-    priority: 'critical',
-    status: 'pending',
-    location: 'Downtown Hospital',
-    created_at: new Date().toISOString(),
-    description: 'Chest pain and difficulty breathing'
+const mockEmergencyData = {
+  stats: {
+    total: 3,
+    critical: 1,
+    high: 1,
+    pending: 1,
+    active: 1,
+    completed: 1
   },
-  {
-    id: 'mock-2',
-    patient_name: 'Jane Smith',
-    priority: 'high',
-    status: 'in_progress',
-    location: 'Westside Medical Center',
-    created_at: new Date(Date.now() - 3600000).toISOString(),
-    description: 'Fractured arm from fall'
-  },
-  {
-    id: 'mock-3',
-    patient_name: 'Mike Johnson',
-    priority: 'medium',
-    status: 'completed',
-    location: 'North General Hospital',
-    created_at: new Date(Date.now() - 7200000).toISOString(),
-    description: 'Minor burns on hand'
-  }
-];
+  recent: [
+    {
+      id: 'mock-1',
+      patient_name: 'John Doe',
+      priority: 'critical',
+      status: 'pending',
+      location: 'Downtown Hospital',
+      created_at: new Date().toISOString(),
+      description: 'Chest pain and difficulty breathing'
+    },
+    {
+      id: 'mock-2',
+      patient_name: 'Jane Smith',
+      priority: 'high',
+      status: 'in_progress',
+      location: 'Westside Medical Center',
+      created_at: new Date(Date.now() - 3600000).toISOString(),
+      description: 'Fractured arm from fall'
+    },
+    {
+      id: 'mock-3',
+      patient_name: 'Mike Johnson',
+      priority: 'medium',
+      status: 'completed',
+      location: 'North General Hospital',
+      created_at: new Date(Date.now() - 7200000).toISOString(),
+      description: 'Minor burns on hand'
+    }
+  ]
+};
 
 const mockAnalyticsData = {
   totalRequests: 156,
@@ -44,17 +54,29 @@ const mockAnalyticsData = {
 };
 
 const mockDoctorsData = {
-  totalDoctors: 48,
-  onCall: 12,
-  available: 28,
-  busy: 8
+  stats: {
+    total: 48,
+    totalDoctors: 48,
+    onCall: 12,
+    available: 28,
+    busy: 8,
+    off_duty: 0
+  },
+  recent: []
 };
 
 const mockVisitsData = {
-  today: 24,
-  pending: 8,
-  completed: 16,
-  upcoming: 32
+  stats: {
+    total: 24,
+    today: 24,
+    pending: 8,
+    completed: 16,
+    upcoming: 32,
+    scheduled: 8,
+    inProgress: 0,
+    cancelled: 0
+  },
+  recent: []
 };
 
 const mockVerificationData = {
@@ -84,7 +106,7 @@ export const usePageData = () => {
 };
 
 export const PageDataProvider = ({ children }) => {
-  const [emergencyData, setEmergencyData] = useState([]);
+  const [emergencyData, setEmergencyData] = useState(mockEmergencyData);
   const [analyticsData, setAnalyticsData] = useState(mockAnalyticsData);
   const [doctorsData, setDoctorsData] = useState(mockDoctorsData);
   const [visitsData, setVisitsData] = useState(mockVisitsData);
@@ -883,9 +905,12 @@ export const PageDataProvider = ({ children }) => {
   const value = {
     // Data
     emergencyData,
+    emergencyStats: getEmergencyStats(),
     analyticsData,
     doctorsData,
+    doctorsStats: doctorsData.stats,
     visitsData,
+    visitsStats: visitsData.stats,
     verificationData,
     supportTicketsData,
     activityData,

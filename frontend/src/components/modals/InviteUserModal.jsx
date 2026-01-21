@@ -8,9 +8,10 @@ import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
 import { X, Mail, Shield, Send, Loader2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
+    const { isAdmin, isOrgAdmin, orgId } = useAuth();
     const [email, setEmail] = useState('');
     const [role, setRole] = useState('viewer');
     const [loading, setLoading] = useState(false);
@@ -20,9 +21,15 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
         setLoading(true);
 
         try {
+            // Prepare payload with organization scoping
+            const metadata = {};
+            if (isOrgAdmin() && orgId) {
+                metadata.organization_id = orgId;
+            }
+
             // Call Edge Function
             const { data, error } = await supabase.functions.invoke('invite-user', {
-                body: { email, role }
+                body: { email, role, metadata }
             });
 
             if (error) throw error;
@@ -105,12 +112,18 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
                                         <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
                                         <Select value={role} onValueChange={setRole}>
                                             <SelectTrigger className="pl-10 h-11 bg-muted/30 border-0 focus:ring-1 focus:ring-primary/50 rounded-xl">
-                                                <SelectValue />
+                                                <SelectValue placeholder="Select role" />
                                             </SelectTrigger>
-                                            <SelectContent className='rounded-xl border-border/50 shadow-lg'>
-                                                <SelectItem value="viewer">Viewer (Read Only)</SelectItem>
-                                                <SelectItem value="provider">Provider (Healthcare)</SelectItem>
-                                                <SelectItem value="admin">Admin (Full Access)</SelectItem>
+                                            <SelectContent className="rounded-2xl border-white/10 bg-background/95 backdrop-blur-xl">
+                                                <SelectItem value="viewer">Viewer</SelectItem>
+                                                <SelectItem value="provider">Provider</SelectItem>
+                                                {isAdmin() && (
+                                                    <>
+                                                        <SelectItem value="sponsor">Sponsor</SelectItem>
+                                                        <SelectItem value="org_admin">Organization Admin</SelectItem>
+                                                        <SelectItem value="admin">Platform Admin</SelectItem>
+                                                    </>
+                                                )}
                                             </SelectContent>
                                         </Select>
                                     </div>

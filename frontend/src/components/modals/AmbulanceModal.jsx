@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -12,18 +12,20 @@ import { createNotification, NotificationTypes, NotificationActions } from '../.
 
 import { uploadImage } from '../../services/storageService';
 import { Loader2, Upload } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
   const isCreate = mode === 'create';
 
-  const [formData, setFormData] = useState(ambulance || {
+  const { isAdmin, isOrgAdmin, orgId } = useAuth();
+  const [formData, setFormData] = useState({
     call_sign: '',
     type: 'basic',
     status: 'available',
     vehicle_number: '',
-    hospital: '',
+    hospital_id: '',
     eta: 'N/A',
     rating: 4.5,
     last_maintenance: '',
@@ -32,6 +34,23 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showImage, setShowImage] = useState(false);
+  const [hospitals, setHospitals] = useState([]);
+
+  useEffect(() => {
+    if (ambulance) {
+      setFormData(ambulance);
+    } else if (isCreate && isOrgAdmin() && orgId) {
+      setFormData(prev => ({ ...prev, hospital_id: orgId }));
+    }
+  }, [ambulance, isCreate, isOrgAdmin, orgId]);
+
+  useEffect(() => {
+    const fetchHospitals = async () => {
+      const { data } = await supabase.from('hospitals').select('id, name');
+      setHospitals(data || []);
+    };
+    fetchHospitals();
+  }, []);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -318,17 +337,26 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                   <div className="space-y-6">
                     <GlassCard icon={<Hospital className="text-purple-500" />} title="Deployment">
                       <div className="space-y-4">
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Base Station / Hospital</Label>
-                          <Input
-                            name="hospital"
-                            value={formData.hospital}
-                            onChange={handleChange}
-                            disabled={isView}
-                            placeholder="Central General"
-                            className="rounded-xl bg-white/5 border-white/10 h-11"
-                          />
-                        </div>
+                        {/* Hospital Selection - Scoped for Org Admin */}
+                        {(isAdmin() || (isOrgAdmin() && isView)) && (
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Base Station / Hospital</Label>
+                            <Select
+                              value={formData.hospital_id}
+                              onValueChange={(value) => setFormData(prev => ({ ...prev, hospital_id: value }))}
+                              disabled={isView}
+                            >
+                              <SelectTrigger className="rounded-xl bg-white/5 border-white/10 h-11">
+                                <SelectValue placeholder="Select hospital" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
+                                {hospitals.map(h => (
+                                  <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
                         <div className="space-y-1.5">
                           <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Last Maintenance Date</Label>
                           <div className="relative">

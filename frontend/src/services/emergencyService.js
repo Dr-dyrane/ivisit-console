@@ -29,7 +29,12 @@ export async function getEmergencyRequests(filter) {
     let query = supabase.from(TABLE_NAME).select('*');
 
     // Apply authorization - admins get full access, others get filtered
-    if (user?.role !== 'admin') {
+    if (user?.role === 'admin') {
+      // Full access
+    } else if (user?.role === 'org_admin' && user?.organization_id) {
+      // Org admins see all emergency requests in their organization
+      query = query.eq('hospital_id', user.organization_id);
+    } else {
       // Non-admin users can only see their own requests
       query = query.eq('user_id', user?.id);
     }
@@ -442,17 +447,17 @@ export async function getEmergencyStats() {
 
     let avgResponseTime = 0;
     if (responseTimeData && responseTimeData.length > 0) {
-        // Implementation here if needed
+      // Implementation here if needed
     }
-    
+
     return {
-        total_requests: totalCount || 0,
-        active_requests: activeData?.length || 0,
-        pending_requests: pendingData?.length || 0,
-        completed_today: completedToday?.length || 0,
-        cancelled_today: cancelledToday?.length || 0,
-        avg_response_time_seconds: avgResponseTime,
-        success_rate: totalCount ? (completedToday?.length / totalCount) * 100 : 0
+      total_requests: totalCount || 0,
+      active_requests: activeData?.length || 0,
+      pending_requests: pendingData?.length || 0,
+      completed_today: completedToday?.length || 0,
+      cancelled_today: cancelledToday?.length || 0,
+      avg_response_time_seconds: avgResponseTime,
+      success_rate: totalCount ? (completedToday?.length / totalCount) * 100 : 0
     };
   } catch (error) {
     console.error('Error fetching emergency stats:', error);

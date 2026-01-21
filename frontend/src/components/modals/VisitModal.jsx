@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { X, Calendar, User, Hospital, Clock, FileText } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], hospitals = [] }) => {
   const isView = mode === 'view';
@@ -31,14 +32,17 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
 
   const [loading, setLoading] = useState(false);
 
+  const { isAdmin, isOrgAdmin, orgId } = useAuth();
   useEffect(() => {
     if (visit) {
       setFormData({
         ...visit,
         scheduled_at: visit.scheduled_at ? new Date(visit.scheduled_at).toISOString().slice(0, 16) : ''
       });
+    } else if (isCreate && isOrgAdmin() && orgId) {
+      setFormData(prev => ({ ...prev, hospital_id: orgId }));
     }
-  }, [visit]);
+  }, [visit, isCreate, isOrgAdmin, orgId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -164,28 +168,54 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="hospital_id" className="text-xs font-semibold text-muted-foreground uppercase">Facility</Label>
-                      <Select
-                        value={formData.hospital_id}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, hospital_id: value }))}
-                        disabled={isView}
-                      >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-14 font-normal">
-                          <SelectValue placeholder="Select facility" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                          {hospitals.map(h => (
-                            <SelectItem key={h.id} value={h.id}>
-                              <div className="flex items-center gap-2">
-                                <Hospital className="w-4 h-4 text-muted-foreground" />
-                                <span>{h.name}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {/* Hospital Selection - Scoped for Org Admin */}
+                    {(isAdmin() || (isOrgAdmin() && isView)) && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70">
+                          Hospital
+                        </Label>
+                        <Select
+                          disabled={isView}
+                          value={formData.hospital_id || ""}
+                          onValueChange={(value) => setFormData({ ...formData, hospital_id: value })}
+                        >
+                          <SelectTrigger className="squircle bg-muted/30 border-0 h-11">
+                            <SelectValue placeholder="Select Hospital" />
+                          </SelectTrigger>
+                          <SelectContent className="geo-sharp border-white/10 bg-background/95 backdrop-blur-xl">
+                            {hospitals.map((h) => (
+                              <SelectItem key={h.id} value={h.id}>
+                                {h.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    {!(isAdmin() || (isOrgAdmin() && isView)) && (
+                      <div className="space-y-2">
+                        <Label htmlFor="hospital_id" className="text-xs font-semibold text-muted-foreground uppercase">Facility</Label>
+                        <Select
+                          value={formData.hospital_id}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, hospital_id: value }))}
+                          disabled={isView}
+                        >
+                          <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-14 font-normal">
+                            <SelectValue placeholder="Select facility" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                            {hospitals.map(h => (
+                              <SelectItem key={h.id} value={h.id}>
+                                <div className="flex items-center gap-2">
+                                  <Hospital className="w-4 h-4 text-muted-foreground" />
+                                  <span>{h.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                 </GlassCard>
 

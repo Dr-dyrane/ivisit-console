@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { useNavigation } from '../../contexts/NavigationContext';
@@ -24,8 +25,9 @@ import { AmbulanceTableView } from '../views/AmbulanceTableView';
 import { usePageData } from '../../contexts/PageDataContext';
 
 export const AmbulancesPage = () => {
-  const { isAdmin, isProvider } = useAuth();
+  const { isAdmin, isOrgAdmin, isProvider, orgId, profile, can } = useAuth();
   const { isMobile } = useNavigation();
+  const location = useLocation();
   const { ambulancesData, refreshAllData } = usePageData();
   const [ambulances, setAmbulances] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +45,13 @@ export const AmbulancesPage = () => {
       setLoading(true);
 
       let query = supabase.from('ambulances').select('*', { count: 'exact', head: true });
+
+      // RBAC: Platform Admin sees all. Org Admin sees scoped.
+      if (isAdmin()) {
+        // Platform admin sees everything
+      } else if (isOrgAdmin() && orgId) {
+        query = query.eq('hospital_id', orgId);
+      }
 
       if (filters.search) {
         query = query.or(`call_sign.ilike.%${filters.search}%,vehicle_number.ilike.%${filters.search}%`);
@@ -66,6 +75,13 @@ export const AmbulancesPage = () => {
         .select('*')
         .range(pagination.paginationRange.start, pagination.paginationRange.end)
         .order('created_at', { ascending: false });
+
+      // RBAC Scoping for Data
+      if (isAdmin()) {
+        // No filter
+      } else if (isOrgAdmin() && orgId) {
+        dataQuery = dataQuery.eq('hospital_id', orgId);
+      }
 
       if (filters.search) {
         dataQuery = dataQuery.or(`call_sign.ilike.%${filters.search}%,vehicle_number.ilike.%${filters.search}%`);
@@ -91,7 +107,7 @@ export const AmbulancesPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination, filters, kpiFilter]);
+  }, [pagination.currentPage, pagination.itemsPerPage, filters, kpiFilter, orgId, isOrgAdmin, isAdmin]);
 
   useEffect(() => {
     fetchAmbulances();
@@ -102,16 +118,25 @@ export const AmbulancesPage = () => {
     setModalMode('create');
   }, []);
 
+  // Open "Add" modal on page load if requested via URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('add') === 'true') {
+      handleCreate();
+    }
+  }, [handleCreate, location.search]);
+
   // Handle custom events from context panel
   useEffect(() => {
-    const handleOpenModal = () => {
-      handleCreate();
-    };
+    const handleOpenModal = () => handleCreate();
+    const handleOpenFilters = () => setFilterSheetOpen(true);
 
     window.addEventListener('openAmbulanceModal', handleOpenModal);
+    window.addEventListener('openFilters', handleOpenFilters);
 
     return () => {
       window.removeEventListener('openAmbulanceModal', handleOpenModal);
+      window.removeEventListener('openFilters', handleOpenFilters);
     };
   }, [handleCreate]);
 

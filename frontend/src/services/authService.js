@@ -13,16 +13,17 @@ export async function getCurrentUser() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return null;
 
-    // Get user profile with role
+    // Get user profile with role and organization
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, organization_id')
       .eq('id', session.user.id)
       .single();
 
     return {
       ...session.user,
-      role: profile?.role || 'viewer'
+      role: profile?.role || 'viewer',
+      organization_id: profile?.organization_id || null
     };
   } catch (error) {
     console.error('Error getting current user:', error);

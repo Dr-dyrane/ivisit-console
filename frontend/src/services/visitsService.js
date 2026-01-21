@@ -19,7 +19,12 @@ export async function getVisits(filter) {
     let query = supabase.from(TABLE_NAME).select('*');
 
     // Apply authorization - admins get full access, others get filtered
-    if (user?.role !== 'admin') {
+    if (user?.role === 'admin') {
+      // Full access
+    } else if (user?.role === 'org_admin' && user?.organization_id) {
+      // Org admins see all visits in their organization
+      query = query.eq('hospital_id', user.organization_id);
+    } else {
       // Non-admin users can only see their own visits
       query = query.eq('user_id', user?.id);
     }

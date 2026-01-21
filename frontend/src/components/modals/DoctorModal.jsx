@@ -12,14 +12,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import { uploadImage } from '../../services/storageService';
 import { Loader2, Upload } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
   const isCreate = mode === 'create';
 
+  const { isAdmin, isOrgAdmin, orgId } = useAuth();
   const [hospitals, setHospitals] = useState([]);
-  const [formData, setFormData] = useState(doctor || {
+  const [formData, setFormData] = useState({
     name: '',
     specialization: '',
     phone: '',
@@ -30,6 +32,14 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
     experience: 5,
     license_number: '',
   });
+
+  useEffect(() => {
+    if (doctor) {
+      setFormData(doctor);
+    } else if (isCreate && isOrgAdmin() && orgId) {
+      setFormData(prev => ({ ...prev, hospital_id: orgId }));
+    }
+  }, [doctor, isCreate, isOrgAdmin, orgId]);
 
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -198,83 +208,90 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
                   <div className="flex justify-center mb-1">
                     <Shield className="w-5 h-5 text-blue-500 opacity-60" />
                   </div>
-                  <p className="text-xl font-semibold truncate px-1">{formData.license_number?.slice(0, 8) || 'MD-...'}</p>
-                  <p className="text-[10px] uppercase tracking-widest opacity-50">License</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isView ? 'Viewing doctor credentials' : 'Enter professional details below'}
+                  </p>
                 </div>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onClose(false)}
+                className="rounded-full h-10 w-10 hover:bg-white/5"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Personal Info */}
-                  <GlassCard icon={<User className="text-primary" />} title="Personal Details">
-                    <div className="space-y-4">
-                      <div className="flex flex-col items-center mb-6">
-                        <div className="relative group">
-                          <Avatar className="h-32 w-32 rounded-[32px] border-4 border-white/5 shadow-2xl">
-                            <AvatarImage src={formData.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.name}`} className="object-cover" />
-                            <AvatarFallback className="text-4xl font-semibold">{formData.name?.[0]}</AvatarFallback>
-                          </Avatar>
-
-                          {!isView && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-[32px] opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm cursor-pointer" onClick={() => document.getElementById('doctor-image-upload').click()}>
-                              {uploading ? (
-                                <Loader2 className="h-8 w-8 text-white animate-spin" />
-                              ) : (
-                                <Upload className="h-8 w-8 text-white" />
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        {!isView && (
-                          <div className="mt-4 w-full max-w-[200px]">
-                            <input
-                              type="file"
-                              id="doctor-image-upload"
-                              className="hidden"
-                              accept="image/*"
-                              onChange={handleImageUpload}
-                              disabled={uploading}
-                            />
-                            <div className="text-center">
-                              <p className="text-xs text-muted-foreground mb-2">Click to upload photo</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="space-y-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Full Name</Label>
-                          <Input
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                            disabled={isView}
-                            required
-                            placeholder="Dr. John Smith"
-                            className="rounded-xl bg-white/5 border-white/10 h-11"
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Profile Section */}
+                <GlassCard icon={<User className="text-blue-500" />} title="Profile Picture">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="relative group">
+                      <Avatar className="h-32 w-32 border-4 border-white/10 shadow-xl">
+                        <AvatarImage src={formData.image} />
+                        <AvatarFallback className="bg-primary/5 text-primary text-2xl font-bold">
+                          {formData.name?.charAt(0) || 'D'}
+                        </AvatarFallback>
+                      </Avatar>
+                      {!isView && (
+                        <Label
+                          htmlFor="image-upload"
+                          className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer"
+                        >
+                          <Upload className="h-8 w-8 text-white" />
+                          <input
+                            id="image-upload"
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            disabled={uploading}
                           />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Specialty</Label>
-                          <Input
-                            name="specialization"
-                            value={formData.specialization}
-                            onChange={handleChange}
-                            disabled={isView}
-                            required
-                            placeholder="Cardiology"
-                            className="rounded-xl bg-white/5 border-white/10 h-11"
-                          />
-                        </div>
-                      </div>
+                        </Label>
+                      )}
                     </div>
-                  </GlassCard>
+                    {!isView && (
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground mb-2">Click to upload photo</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-3 mt-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Full Name</Label>
+                      <Input
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        disabled={isView}
+                        required
+                        placeholder="Dr. John Smith"
+                        className="rounded-xl bg-white/5 border-white/10 h-11"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Specialty</Label>
+                      <Input
+                        name="specialization"
+                        value={formData.specialization}
+                        onChange={handleChange}
+                        disabled={isView}
+                        required
+                        placeholder="Cardiology"
+                        className="rounded-xl bg-white/5 border-white/10 h-11"
+                      />
+                    </div>
+                  </div>
+                </GlassCard>
 
-                  {/* Professional & Contact */}
-                  <div className="space-y-6">
-                    <GlassCard icon={<Building className="text-purple-500" />} title="Professional">
-                      <div className="space-y-3">
+                {/* Professional & Contact */}
+                <div className="space-y-6">
+                  <GlassCard icon={<Building className="text-purple-500" />} title="Professional">
+                    <div className="space-y-3">
+                      {/* Hospital Selection - Scoped for Org Admin */}
+                      {(isAdmin() || (isOrgAdmin() && isView)) && (
                         <div className="space-y-1.5">
                           <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Primary Hospital</Label>
                           <Select
@@ -292,88 +309,88 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">License Number</Label>
-                          <Input
-                            name="license_number"
-                            value={formData.license_number}
-                            onChange={handleChange}
-                            disabled={isView}
-                            placeholder="MD-123456"
-                            className="rounded-xl bg-white/5 border-white/10 h-11 font-mono"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Status</Label>
-                          <Select
-                            value={formData.status}
-                            onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
-                            disabled={isView}
-                          >
-                            <SelectTrigger className="rounded-xl bg-white/5 border-white/10 h-11">
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
-                              <SelectItem value="available">Available</SelectItem>
-                              <SelectItem value="busy">Busy</SelectItem>
-                              <SelectItem value="off_duty">Off Duty</SelectItem>
-                              <SelectItem value="on_call">On Call</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      )}
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">License Number</Label>
+                        <Input
+                          name="license_number"
+                          value={formData.license_number}
+                          onChange={handleChange}
+                          disabled={isView}
+                          placeholder="MD-123456"
+                          className="rounded-xl bg-white/5 border-white/10 h-11 font-mono"
+                        />
                       </div>
-                    </GlassCard>
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Status</Label>
+                        <Select
+                          value={formData.status}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                          disabled={isView}
+                        >
+                          <SelectTrigger className="rounded-xl bg-white/5 border-white/10 h-11">
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
+                            <SelectItem value="available">Available</SelectItem>
+                            <SelectItem value="busy">Busy</SelectItem>
+                            <SelectItem value="off_duty">Off Duty</SelectItem>
+                            <SelectItem value="on_call">On Call</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </GlassCard>
 
-                    <GlassCard icon={<Phone className="text-green-500" />} title="Contact Info">
-                      <div className="space-y-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Email Address</Label>
-                          <Input
-                            name="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            disabled={isView}
-                            className="rounded-xl bg-white/5 border-white/10 h-11"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Phone Number</Label>
-                          <Input
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            disabled={isView}
-                            className="rounded-xl bg-white/5 border-white/10 h-11 font-mono"
-                          />
-                        </div>
+                  <GlassCard icon={<Phone className="text-green-500" />} title="Contact Info">
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Email Address</Label>
+                        <Input
+                          name="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          disabled={isView}
+                          className="rounded-xl bg-white/5 border-white/10 h-11"
+                        />
                       </div>
-                    </GlassCard>
-                  </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Phone Number</Label>
+                        <Input
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          disabled={isView}
+                          className="rounded-xl bg-white/5 border-white/10 h-11 font-mono"
+                        />
+                      </div>
+                    </div>
+                  </GlassCard>
                 </div>
+              </div>
 
-                {/* Footer Actions */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
+              {/* Footer Actions */}
+              <div className="flex items-center justify-end gap-3 pt-6 border-t border-white/5 mt-8">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => onClose(false)}
+                  className="rounded-full px-8 h-12 font-semibold"
+                >
+                  {isView ? 'Dismiss' : 'Cancel'}
+                </Button>
+                {!isView && (
                   <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => onClose(false)}
-                    className="rounded-full px-8 h-12 font-semibold"
+                    type="submit"
+                    disabled={loading}
+                    className="rounded-full px-12 h-12 bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg shadow-primary/20"
                   >
-                    {isView ? 'Dismiss' : 'Cancel'}
+                    {loading ? 'Saving...' : (isCreate ? 'Add Professional' : 'Save Changes')}
                   </Button>
-                  {!isView && (
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                      className="rounded-full px-12 h-12 bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg shadow-primary/20"
-                    >
-                      {loading ? 'Saving...' : (isCreate ? 'Add Professional' : 'Save Changes')}
-                    </Button>
-                  )}
-                </div>
-              </form>
-            </div>
+                )}
+              </div>
+            </form>
           </motion.div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
@@ -26,7 +26,8 @@ import { usePageData } from '../../contexts/PageDataContext';
 
 export const HospitalsPage = () => {
   const navigate = useNavigate();
-  const { isAdmin, isProvider } = useAuth();
+  const { isAdmin, isOrgAdmin, isProvider, orgId, profile, can } = useAuth();
+  const location = useLocation();
   const { isMobile } = useNavigation();
   const { hospitalsData, refreshAllData } = usePageData();
   const [hospitals, setHospitals] = useState([]);
@@ -45,6 +46,13 @@ export const HospitalsPage = () => {
       setLoading(true);
 
       let query = supabase.from('hospitals').select('*', { count: 'exact', head: true });
+
+      // RBAC: Platform Admin sees all. Org Admin sees scoped.
+      if (isAdmin()) {
+        // Platform admin sees everything
+      } else if (isOrgAdmin() && orgId) {
+        query = query.eq('id', orgId);
+      }
 
       // Apply Search Filter (Client-side filtering for search usually, or server side if full text search enabled)
       // Since supabase standard select doesn't do fuzzy search easily on multiple fields without specific text search config,
@@ -71,6 +79,13 @@ export const HospitalsPage = () => {
         .select('*')
         .range(pagination.paginationRange.start, pagination.paginationRange.end)
         .order('created_at', { ascending: false });
+
+      // RBAC Scoping for Data
+      if (isAdmin()) {
+        // No filter
+      } else if (isOrgAdmin() && orgId) {
+        dataQuery = dataQuery.eq('id', orgId);
+      }
 
       if (filters.search) {
         dataQuery = dataQuery.ilike('name', `%${filters.search}%`);
@@ -109,30 +124,38 @@ export const HospitalsPage = () => {
       .channel('hospitals_page_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'hospitals' }, () => {
         fetchHospitals();
-        refreshAllData && refreshAllData();
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchHospitals, pagination.currentPage, refreshAllData]);
+  }, [fetchHospitals, pagination.currentPage]);
 
   const handleCreate = useCallback(() => {
     setSelectedHospital(null);
     setModalMode('create');
   }, []);
 
+  // Open "Add" modal on page load if requested via URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('add') === 'true') {
+      handleCreate();
+    }
+  }, [handleCreate, location.search]);
+
   // Handle custom events from context panel
   useEffect(() => {
-    const handleOpenModal = () => {
-      handleCreate();
-    };
+    const handleOpenModal = () => handleCreate();
+    const handleOpenFilters = () => setFilterSheetOpen(true);
 
     window.addEventListener('openHospitalModal', handleOpenModal);
+    window.addEventListener('openFilters', handleOpenFilters);
 
     return () => {
       window.removeEventListener('openHospitalModal', handleOpenModal);
+      window.removeEventListener('openFilters', handleOpenFilters);
     };
   }, [handleCreate]);
 

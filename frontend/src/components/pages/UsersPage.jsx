@@ -27,7 +27,7 @@ import { UserAnalyticsModal } from '../modals/UserAnalyticsModal';
 import { InviteUserModal } from '../modals/InviteUserModal';
 
 export const UsersPage = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isOrgAdmin, orgId, profile, can } = useAuth();
   const { isMobile } = useNavigation();
   const location = useLocation();
   const [users, setUsers] = useState([]);
@@ -114,7 +114,7 @@ export const UsersPage = () => {
       // Use the enhanced service
       const data = await getProfiles(filterOptions);
 
-      if (isAdmin()) {
+      if (isAdmin() || isOrgAdmin()) {
         // Calculate total count and apply pagination for admins
         const totalCount = data.length;
         pagination.setTotalCount(totalCount);
@@ -126,9 +126,11 @@ export const UsersPage = () => {
         );
         setUsers(paginatedData);
 
-        // Fetch statistics for admins
-        const stats = await getUserStatistics();
-        setStatistics(stats);
+        // Fetch statistics for admins (only platform admin for now, but org admin could have scoped stats too if implemented)
+        if (isAdmin()) {
+          const stats = await getUserStatistics();
+          setStatistics(stats);
+        }
       } else {
         // Non-admin users get their own profile
         pagination.setTotalCount(data.length);
@@ -150,6 +152,28 @@ export const UsersPage = () => {
     setSelectedUser(null);
     setModalMode('create');
   }, []);
+
+  // Open "Add" modal on page load if requested via URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('add') === 'true') {
+      handleCreate();
+    }
+  }, [handleCreate, location.search]);
+
+  // Handle custom events from context panel
+  useEffect(() => {
+    const handleOpenModal = () => handleCreate();
+    const handleOpenFilters = () => setFilterSheetOpen(true);
+
+    window.addEventListener('openUserModal', handleOpenModal);
+    window.addEventListener('openFilters', handleOpenFilters);
+
+    return () => {
+      window.removeEventListener('openUserModal', handleOpenModal);
+      window.removeEventListener('openFilters', handleOpenFilters);
+    };
+  }, [handleCreate]);
 
   const handleView = useCallback((user) => {
     setSelectedUser(user);

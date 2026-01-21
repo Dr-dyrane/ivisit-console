@@ -118,7 +118,12 @@ export async function getProfiles(filter) {
     let query = supabase.from(TABLE_NAME).select('*');
 
     // Apply authorization - admins get full access, others get filtered
-    if (user?.role !== 'admin') {
+    if (user?.role === 'admin') {
+      // Full access
+    } else if (user?.role === 'org_admin' && user?.organization_id) {
+      // Org admins see everyone in their organization
+      query = query.eq('organization_id', user.organization_id);
+    } else {
       // Non-admin users can only see their own profile
       query = query.eq('id', user?.id);
     }
@@ -188,6 +193,7 @@ export async function createProfile(input) {
       full_name: input.full_name,
       image_uri: input.image_uri,
       role: input.role,
+      organization_id: input.organization_id || null,
       provider_type: input.provider_type,
       bvn_verified: input.bvn_verified || false,
       created_at: new Date().toISOString(),

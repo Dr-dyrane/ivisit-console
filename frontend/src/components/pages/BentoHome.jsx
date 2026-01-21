@@ -44,8 +44,8 @@ export const BentoHome = () => {
   const {
     emergencyStats,
     analyticsData,
-    doctorsData,
-    visitsData,
+    doctorsStats,
+    visitsStats,
     verificationData,
     activityData,
     fetchActivityData,
@@ -72,7 +72,7 @@ export const BentoHome = () => {
   const appStats = {
     liveEmergencies: emergencyStats?.critical || 0,
     responseTime: Math.round((analyticsData?.avgResponseTime || 4.2) * 10) / 10, // Round to 1 decimal place
-    activeProviders: doctorsData?.totalDoctors || 48,
+    activeProviders: doctorsStats?.totalDoctors || 48,
     todayRequests: emergencyStats?.total || 0,
     totalUsers: verificationData?.total || 16, // Real user count from profiles table
     completionRate: analyticsData?.completionRate || 94,
@@ -421,9 +421,9 @@ export const BentoHome = () => {
           {[
             { id: 'hospitals', icon: Hospital, label: 'Hospitals', sub: `${analyticsData?.activeHospitals || 8} active`, color: 'primary', path: '/hospitals', minRole: 'provider' },
             { id: 'ambulances', icon: Ambulance, label: 'Fleet', sub: `${appStats.availableAmbulances} units`, color: 'success', path: '/ambulances', minRole: 'provider' },
-            { id: 'doctors', icon: Stethoscope, label: 'Doctors', sub: `${doctorsData?.totalDoctors || 48} medical staff`, color: 'info', path: '/doctors', minRole: 'provider' },
+            { id: 'doctors', icon: Stethoscope, label: 'Doctors', sub: `${doctorsStats?.totalDoctors || 48} medical staff`, color: 'info', path: '/doctors', minRole: 'provider' },
             { id: 'users', icon: Users, label: 'Users', sub: `${appStats.totalUsers} total`, color: 'secondary', path: '/users', minRole: 'admin' },
-            { id: 'visits', icon: Calendar, label: 'Visits', sub: `${visitsData?.today || 24} today`, color: 'warning', path: '/visits', minRole: 'provider' },
+            { id: 'visits', icon: Calendar, label: 'Visits', sub: `${visitsStats?.today || 24} today`, color: 'warning', path: '/visits', minRole: 'provider' },
             { id: 'emergencies', icon: AlertTriangle, label: 'Emergencies', sub: `${emergencyStats?.total || 0} requests`, color: 'destructive', path: '/emergencies', minRole: 'provider' },
           ].filter(item => !item.minRole || hasMinRole(item.minRole)).map((item, idx) => (
             <motion.div
