@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://console.ivisit.ng/sitemap.xml
