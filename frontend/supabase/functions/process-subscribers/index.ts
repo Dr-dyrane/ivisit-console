@@ -211,8 +211,8 @@ function getWelcomeEmailTemplate(email: string): string {
       font-size: 21px; 
       font-weight: 700; 
       letter-spacing: 0.011em; 
-      feature-title::after { content: '.'; color: #86100E; }
     }
+    .feature-title::after { content: '.'; color: #86100E; }
     
     .feature-text { 
       color: #86868b; 
@@ -287,7 +287,7 @@ function getWelcomeEmailTemplate(email: string): string {
       </div>
       
       <div class="footer">
-        <p class="footer-text"> 2026 iVisit Global. All rights reserved.</p>
+        <p class="footer-text">© 2026 iVisit Global. All rights reserved.</p>
         <p class="footer-text">You are receiving this because you subscribed to early access updates for iVisit. Healthcare access, redesigned for speed and clarity.</p>
         <div class="footer-links">
           <a href="https://dlwtcmhdzoklveihuhjf.supabase.co/functions/v1/unsubscribe?email=${email}">Unsubscribe</a>

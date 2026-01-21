@@ -19,7 +19,7 @@ export const handler = async (req: Request) => {
 
   try {
     const { email }: WelcomeEmailPayload = await req.json()
-    
+
     if (!email) {
       return new Response(
         JSON.stringify({ error: 'Email is required' }),
@@ -38,7 +38,7 @@ export const handler = async (req: Request) => {
 
     // @ts-ignore - Deno global is available in runtime
     const brevoApiKey = Deno.env.get('BREVO_API_KEY')
-    
+
     if (!brevoApiKey) {
       throw new Error('BREVO_API_KEY environment variable is required')
     }
@@ -80,7 +80,7 @@ export const handler = async (req: Request) => {
 
     const { error: updateError } = await supabaseClient
       .from('subscribers')
-      .update({ 
+      .update({
         new_user: false
       })
       .eq('email', email)
@@ -278,7 +278,7 @@ function getWelcomeEmailTemplate(email: string): string {
       </div>
       
       <div class="footer">
-        <p class="footer-text"> 2026 iVisit Global. All rights reserved.</p>
+        <p class="footer-text">© 2026 iVisit Global. All rights reserved.</p>
         <p class="footer-text">You are receiving this because you subscribed to early access updates for iVisit. Healthcare access, redesigned for speed and clarity.</p>
         <div class="footer-links">
           <a href="https://dlwtcmhdzoklveihuhjf.supabase.co/functions/v1/unsubscribe?email=${email}">Unsubscribe</a>
