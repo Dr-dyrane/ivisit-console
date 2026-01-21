@@ -92,12 +92,12 @@ export const IslandNavigation = () => {
         onClick={() => navigate(item.path)}
         className={`flex items-center h-10 rounded-xl transition-all duration-200 ${isCentered ? 'w-10 justify-center' : `w-full ${isSubItem ? 'pl-9' : 'px-3'}`
           } ${isActive
-            ? 'bg-primary/15 text-primary font-medium'
-            : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+            ? 'bg-primary/10 text-primary font-medium'
+            : 'text-muted-foreground/60 hover:bg-muted/50 hover:text-foreground'
           }`}
         aria-label={item.label}
       >
-        <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${isActive ? 'scale-110' : 'opacity-70'}`} />
+        <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${isActive ? 'scale-110' : 'opacity-50'}`} />
         {isBroad && !isCentered && (
           <AnimatePresence>
             <motion.span
@@ -116,10 +116,10 @@ export const IslandNavigation = () => {
     return (
       <div key={item.id} className={`relative flex items-center ${isCentered ? 'justify-center' : 'w-full'} px-3`}>
         {isActive && !isCentered && (
+          // Active rail removed in favor of high-contrast button pulsing/bg using 'bg-primary'
           <motion.div
             layoutId="activeRail"
-            className="absolute left-0 w-1.5 h-7 bg-primary rounded-r-lg z-10"
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="hidden"
           />
         )}
 
@@ -153,7 +153,7 @@ export const IslandNavigation = () => {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => toggleGroup(id)}
-                  className={`w-10 h-10 rounded-xl transition-colors flex items-center justify-center ${isAnyChildActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                  className={`w-10 h-10 rounded-xl transition-colors flex items-center justify-center ${isAnyChildActive ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground/60 hover:bg-muted/50 hover:text-foreground'
                     }`}
                   aria-label={`Toggle ${label} group`}
                 >
@@ -191,7 +191,7 @@ export const IslandNavigation = () => {
         <div className="px-3">
           <button
             onClick={() => toggleGroup(id)}
-            className={`w-full flex items-center h-10 px-3 rounded-xl transition-colors ${isAnyChildActive && !isOpen ? 'bg-primary/8 text-primary' : 'text-muted-foreground/60 hover:text-foreground'
+            className={`w-full flex items-center h-10 px-3 rounded-xl transition-colors ${isAnyChildActive && !isOpen ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground/60 hover:text-foreground'
               }`}
           >
             <GroupIcon className="w-5 h-5 flex-shrink-0" />
@@ -229,11 +229,11 @@ export const IslandNavigation = () => {
         onMouseLeave={() => setIsHovered(false)}
         animate={{ width: navWidth, x: 0 }}
         transition={{ type: "spring", stiffness: 250, damping: 28 }}
-        className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-xl border-r border-black/10 dark:border-white/10 ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'}`}
+        className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-xl shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] dark:shadow-[20px_0_40px_-20px_rgba(255,255,255,0.02)] ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'}`}
       >
         <NoiseOverlay />
         {/* 1. BRANDING & BACK ARROW */}
-        <div className="h-16 flex-shrink-0 flex items-center px-4 border-b border-black/10 dark:border-white/10">
+        <div className="h-16 flex-shrink-0 flex items-center px-4 border-black/10 dark:border-white/10">
           <div className="relative flex items-center w-full">
             <AnimatePresence mode="wait">
               {isNotHome ? (
