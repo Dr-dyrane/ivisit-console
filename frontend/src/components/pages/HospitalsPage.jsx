@@ -21,6 +21,7 @@ import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
 import { HospitalListView } from '../views/HospitalListView';
 import { HospitalTableView } from '../views/HospitalTableView';
+import { SEOHead } from '../common/SEOHead';
 
 import { usePageData } from '../../contexts/PageDataContext';
 
@@ -238,6 +239,7 @@ export const HospitalsPage = () => {
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
       className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+      aria-label="Filter hospitals"
     >
       <Filter className="h-4 w-4" />
     </Button>
@@ -247,6 +249,7 @@ export const HospitalsPage = () => {
     <Button
       onClick={handleCreate}
       className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+      aria-label="Add new hospital"
     >
       <Plus className="h-4 w-4 mr-2" />
       ADD HOSPITAL
@@ -272,7 +275,8 @@ export const HospitalsPage = () => {
 
   return (
     <div className="min-h-screen py-6 md:py-8">
-
+      <SEOHead title="Medical Facilities" description="Manage network hospitals, bed capacity, and facility status." />
+      <div className="pt-2" />
       {/* Bento Overview Cards - Enhanced with Filtering */}
       {!loading && hospitalsData?.stats && (
         <LayoutGroup>
@@ -510,6 +514,7 @@ export const HospitalsPage = () => {
                             size="sm"
                             onClick={() => handleView(hospital)}
                             className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                            aria-label={`View details for ${hospital.name}`}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -521,6 +526,7 @@ export const HospitalsPage = () => {
                                 size="sm"
                                 onClick={() => handleEdit(hospital)}
                                 className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                aria-label={`Edit ${hospital.name}`}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -529,6 +535,7 @@ export const HospitalsPage = () => {
                                 size="sm"
                                 onClick={() => handleDelete(hospital)}
                                 className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                aria-label={`Delete ${hospital.name}`}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>

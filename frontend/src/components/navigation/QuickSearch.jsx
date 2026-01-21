@@ -96,10 +96,11 @@ export const QuickSearch = ({ isOpen, onClose }) => {
               placeholder="Search doctors, hospitals, visits, emergencies..."
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
+              aria-label="Search query"
             />
             {loading && <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />}
             {query && (
-              <button onClick={() => handleSearch('')} className="p-1 hover:bg-white/5 rounded-lg">
+              <button onClick={() => handleSearch('')} className="p-1 hover:bg-white/5 rounded-lg" aria-label="Clear search">
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
             )}

@@ -83,6 +83,7 @@ export const ContextAwareFAB = () => {
             boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)'
           }}
           title={actionConfig.label}
+          aria-label={actionConfig.label}
         >
           {/* Icon */}
           <actionConfig.icon className={`w-6 h-6 ${actionConfig.color === 'destructive' ? 'text-destructive' : 'text-foreground'}`} />

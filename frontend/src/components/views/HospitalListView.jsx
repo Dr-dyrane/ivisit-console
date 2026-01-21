@@ -48,6 +48,7 @@ export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, getStatu
                     size="sm"
                     onClick={() => onView(hospital)}
                     className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                    aria-label={`View details for ${hospital.name}`}
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -56,6 +57,7 @@ export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, getStatu
                     size="sm"
                     onClick={() => onEdit(hospital)}
                     className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                    aria-label={`Edit ${hospital.name}`}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -64,6 +66,7 @@ export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, getStatu
                     size="sm"
                     onClick={() => onDelete(hospital)}
                     className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                    aria-label={`Delete ${hospital.name}`}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

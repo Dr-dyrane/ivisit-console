@@ -21,6 +21,7 @@ import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
 import { HealthNewsListView } from '../views/HealthNewsListView';
 import { HealthNewsTableView } from '../views/HealthNewsTableView';
+import { SEOHead } from '../common/SEOHead';
 
 const HEALTH_ICONS = [
   { value: 'medical-outline', label: 'Medical', icon: '🏥' },
@@ -339,6 +340,7 @@ export const HealthNewsManagementPage = () => {
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
       className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+      aria-label="Filter news"
     >
       <Filter className="h-4 w-4" />
     </Button>
@@ -348,6 +350,7 @@ export const HealthNewsManagementPage = () => {
     <Button
       onClick={handleCreate}
       className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+      aria-label="Add new article"
     >
       <Plus className="h-4 w-4 mr-2" />
       ADD NEWS
@@ -373,7 +376,7 @@ export const HealthNewsManagementPage = () => {
 
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
-
+      <SEOHead title="Health News" description="Manage health news, updates, and announcements." />
       {/* Bento Layout KPIs */}
       <LayoutGroup>
         <motion.div
@@ -663,6 +666,7 @@ export const HealthNewsManagementPage = () => {
                             size="sm"
                             onClick={() => handleView(news)}
                             className="geo-round h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                            aria-label={`View details for ${news.title}`}
                           >
                             <Eye className="h-3 w-3 md:h-4 md:w-4" />
                           </Button>
@@ -674,6 +678,7 @@ export const HealthNewsManagementPage = () => {
                                 size="sm"
                                 onClick={() => handleTogglePublish(news)}
                                 className="geo-round h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-warning/10 hover:text-warning"
+                                aria-label={`${news.published ? 'Unpublish' : 'Publish'} ${news.title}`}
                               >
                                 {news.published ? <FileCheck className="h-3 w-3 md:h-4 md:w-4" /> : <File className="h-3 w-3 md:h-4 md:w-4" />}
                               </Button>
@@ -682,6 +687,7 @@ export const HealthNewsManagementPage = () => {
                                 size="sm"
                                 onClick={() => handleEdit(news)}
                                 className="geo-round h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                aria-label={`Edit ${news.title}`}
                               >
                                 <Edit className="h-3 w-3 md:h-4 md:w-4" />
                               </Button>
@@ -690,6 +696,7 @@ export const HealthNewsManagementPage = () => {
                                 size="sm"
                                 onClick={() => handleDelete(news)}
                                 className="geo-round h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                aria-label={`Delete ${news.title}`}
                               >
                                 <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
                               </Button>

@@ -20,6 +20,7 @@ import { FilterSheet } from '../common/FilterSheet';
 import { DoctorListView } from '../views/DoctorListView';
 import { DoctorTableView } from '../views/DoctorTableView';
 import { withTimeout } from '../../lib/utils';
+import { SEOHead } from '../common/SEOHead';
 
 import { usePageData } from '../../contexts/PageDataContext';
 
@@ -233,6 +234,7 @@ export const DoctorsPage = () => {
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
       className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+      aria-label="Filter doctors"
     >
       <Filter className="h-4 w-4" />
     </Button>
@@ -242,6 +244,7 @@ export const DoctorsPage = () => {
     <Button
       onClick={handleCreate}
       className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+      aria-label="Add new doctor"
     >
       <Plus className="h-4 w-4 mr-2" />
       ADD DOCTOR
@@ -267,6 +270,7 @@ export const DoctorsPage = () => {
 
   return (
     <div className="min-h-screen py-6 md:py-8">
+      <SEOHead title="Medical Staff" description="Manage doctors, specialists, and medical personnel." />
       <div className="pt-2" />
 
       {/* Bento Overview Cards - Show in all view modes */}
@@ -557,6 +561,7 @@ export const DoctorsPage = () => {
                               onClick={() => handleView(doctor)}
                               className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
                               data-testid={`view - doctor - ${doctor.id} `}
+                              aria-label={`View details for Dr. ${doctor.name}`}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -566,6 +571,7 @@ export const DoctorsPage = () => {
                               onClick={() => handleEdit(doctor)}
                               className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
                               data-testid={`edit - doctor - ${doctor.id} `}
+                              aria-label={`Edit Dr. ${doctor.name}`}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -575,6 +581,7 @@ export const DoctorsPage = () => {
                               onClick={() => handleDelete(doctor)}
                               className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                               data-testid={`delete -doctor - ${doctor.id} `}
+                              aria-label={`Delete Dr. ${doctor.name}`}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

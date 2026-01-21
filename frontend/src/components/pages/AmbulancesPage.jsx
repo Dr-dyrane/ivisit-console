@@ -21,6 +21,7 @@ import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
 import { AmbulanceListView } from '../views/AmbulanceListView';
 import { AmbulanceTableView } from '../views/AmbulanceTableView';
+import { SEOHead } from '../common/SEOHead';
 
 import { usePageData } from '../../contexts/PageDataContext';
 
@@ -224,6 +225,7 @@ export const AmbulancesPage = () => {
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
       className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+      aria-label="Filter ambulances"
     >
       <Filter className="h-4 w-4" />
     </Button>
@@ -233,6 +235,7 @@ export const AmbulancesPage = () => {
     <Button
       onClick={handleCreate}
       className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] text-foreground font-bold tracking-widest uppercase"
+      aria-label="Add new ambulance"
     >
       <Plus className="h-4 w-4 mr-2" />
       ADD AMBULANCE
@@ -340,6 +343,7 @@ export const AmbulancesPage = () => {
                     size="sm"
                     onClick={() => handleView(ambulance)}
                     className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                    aria-label={`View details for ${ambulance.call_sign}`}
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -348,6 +352,7 @@ export const AmbulancesPage = () => {
                     size="sm"
                     onClick={() => handleEdit(ambulance)}
                     className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                    aria-label={`Edit ${ambulance.call_sign}`}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -356,6 +361,7 @@ export const AmbulancesPage = () => {
                     size="sm"
                     onClick={() => handleDelete(ambulance)}
                     className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                    aria-label={`Delete ${ambulance.call_sign}`}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -370,7 +376,8 @@ export const AmbulancesPage = () => {
 
   return (
     <div className="min-h-screen py-6 md:py-8">
-
+      <SEOHead title="Fleet Management" description="Manage ambulance fleet, status, and live tracking." />
+      <div className="pt-2" />
       {/* Bento Overview Cards - Enhanced with Filtering */}
       {!loading && ambulancesData?.stats && (
         <LayoutGroup>

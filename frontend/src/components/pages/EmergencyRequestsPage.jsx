@@ -41,6 +41,7 @@ import { FilterSheet } from '../common/FilterSheet';
 import { EmergencyRequestListView } from '../views/EmergencyRequestListView';
 import { EmergencyRequestTableView } from '../views/EmergencyRequestTableView';
 import { usePageData } from '../../contexts/PageDataContext';
+import { SEOHead } from '../common/SEOHead';
 
 export const EmergencyRequestsPage = () => {
   const { isAdmin, isOrgAdmin, isProvider, orgId, profile, can } = useAuth();
@@ -205,6 +206,7 @@ export const EmergencyRequestsPage = () => {
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
       className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+      aria-label="Filter emergency requests"
     >
       <FilterIcon className="h-4 w-4" />
     </Button>
@@ -215,6 +217,7 @@ export const EmergencyRequestsPage = () => {
       <Button
         onClick={handleCreateEmergency}
         className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+        aria-label="Create new emergency request"
       >
         <Zap className="h-4 w-4 mr-2" />
         NEW REQUEST
@@ -224,6 +227,7 @@ export const EmergencyRequestsPage = () => {
         size="sm"
         onClick={fetchRequests}
         className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+        aria-label="Refresh requests"
       >
         <RefreshCw className="h-4 w-4" />
       </Button>
@@ -314,6 +318,7 @@ export const EmergencyRequestsPage = () => {
 
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
+      <SEOHead title="Emergency Requests" description="Monitor and respond to critical emergency requests in real-time." />
 
       {loading ? (
         <TableSkeleton rows={8} />
@@ -566,11 +571,11 @@ export const EmergencyRequestsPage = () => {
                           <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
                             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">ACTIONS</div>
                             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mr-12">
-                              <Button variant="ghost" size="sm" onClick={() => handleViewDetails(req)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary">
+                              <Button variant="ghost" size="sm" onClick={() => handleViewDetails(req)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary" aria-label={`View details for emergency at ${req.location}`}>
                                 <Eye className="h-4 w-4" />
                               </Button>
                               {(isAdmin || isProvider) && (
-                                <Button variant="ghost" size="sm" onClick={() => handleDelete(req)} className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive">
+                                <Button variant="ghost" size="sm" onClick={() => handleDelete(req)} className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete emergency request at ${req.location}`}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               )}

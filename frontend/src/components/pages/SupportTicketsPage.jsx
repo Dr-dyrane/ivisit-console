@@ -39,6 +39,7 @@ import { SupportTicketModal } from '../modals/SupportTicketModal';
 import { SupportAnalyticsModal } from '../modals/SupportAnalyticsModal';
 import { SupportTicketListView } from '../views/SupportTicketListView';
 import { SupportTicketTableView } from '../views/SupportTicketTableView';
+import { SEOHead } from '../common/SEOHead';
 
 const PRIORITIES = [
   { value: 'low', label: 'Low', color: 'blue' },
@@ -188,6 +189,7 @@ export const SupportTicketsPage = () => {
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
       className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
+      aria-label="Filter tickets"
     >
       <Filter className="h-4 w-4" />
       {(filters.search || (filters.status && filters.status.length > 0) || filters.kpiFilter !== 'all') && (
@@ -200,6 +202,7 @@ export const SupportTicketsPage = () => {
     <Button
       onClick={handleCreate}
       className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+      aria-label="Create new ticket"
     >
       <Plus className="h-4 w-4 mr-2" />
       NEW TICKET
@@ -257,7 +260,7 @@ export const SupportTicketsPage = () => {
 
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
-
+      <SEOHead title="Support Tickets" description="Track and resolve customer support inquiries." />
       {/* Bento Grid KPI Stats - Matching Insurance Layout */}
       <LayoutGroup>
         <motion.div
@@ -482,10 +485,10 @@ export const SupportTicketsPage = () => {
                       <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
                         <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">ACTIONS</div>
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <Button variant="ghost" size="sm" onClick={() => handleView(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary">
+                          <Button variant="ghost" size="sm" onClick={() => handleView(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary" aria-label={`View ticket ${ticket.id}`}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDelete(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive">
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ticket ${ticket.id}`}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>

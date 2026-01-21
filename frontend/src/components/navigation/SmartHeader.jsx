@@ -93,6 +93,7 @@ export const SmartHeader = () => {
                             <button
                                 onClick={() => setSearchOpen(true)}
                                 className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all group lg:min-w-[180px]"
+                                aria-label="Search"
                             >
                                 <Search className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
                                 <span className="text-xs text-muted-foreground group-hover:text-foreground hidden lg:inline-block">Search...</span>
@@ -104,6 +105,7 @@ export const SmartHeader = () => {
                                 onClick={isContextPanelOpen ? closeContextPanel : openContextPanel}
                                 className="w-10 h-10 geo-round bg-muted/20 hover:bg-muted/30 transition-all duration-300 flex items-center justify-center group shadow-sm"
                                 title={isContextPanelOpen ? "Close Panel" : "Open Panel"}
+                                aria-label={isContextPanelOpen ? "Close context panel" : "Open context panel"}
                             >
                                 {isContextPanelOpen ? (
                                     <PanelRightClose className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />

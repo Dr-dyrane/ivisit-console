@@ -95,6 +95,7 @@ export const IslandNavigation = () => {
             ? 'bg-primary/15 text-primary font-medium'
             : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
           }`}
+        aria-label={item.label}
       >
         <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${isActive ? 'scale-110' : 'opacity-70'}`} />
         {isBroad && !isCentered && (
@@ -154,6 +155,7 @@ export const IslandNavigation = () => {
                   onClick={() => toggleGroup(id)}
                   className={`w-10 h-10 rounded-xl transition-colors flex items-center justify-center ${isAnyChildActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                     }`}
+                  aria-label={`Toggle ${label} group`}
                 >
                   <GroupIcon className="w-5 h-5" />
                 </button>
@@ -242,6 +244,7 @@ export const IslandNavigation = () => {
                   exit={{ opacity: 0 }}
                   onClick={() => navigate(-1)}
                   className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
+                  aria-label="Go back"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </motion.button>
@@ -296,6 +299,7 @@ export const IslandNavigation = () => {
                   <button
                     onClick={() => setConfigOpen(true)}
                     className={`flex items-center gap-3 w-full rounded-xl h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group ${!isBroad ? 'justify-center px-0' : ''}`}
+                    aria-label="Sidebar Layout Settings"
                   >
                     <PanelLeftDashed className="w-5 h-5 flex-shrink-0" />
                   </button>
@@ -308,6 +312,7 @@ export const IslandNavigation = () => {
               <button
                 onClick={() => setConfigOpen(true)}
                 className={`flex items-center gap-3 w-full rounded-xl h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group`}
+                aria-label="Sidebar Layout Settings"
               >
                 <PanelLeftDashed className="w-5 h-5 flex-shrink-0" />
                 <motion.span
@@ -330,6 +335,7 @@ export const IslandNavigation = () => {
                     role="button"
                     tabIndex={0}
                     className="flex justify-center w-full rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group cursor-pointer"
+                    aria-label="Toggle Theme"
                   >
                     <div className="pointer-events-none">
                       <ThemeToggle size="sm" />
@@ -364,6 +370,7 @@ export const IslandNavigation = () => {
           <button
             onClick={() => navigate('/settings')}
             className="w-full flex items-center gap-3 p-1 rounded-xl hover:bg-muted transition-colors group"
+            aria-label="User Settings"
           >
             <Avatar className="h-9 w-9 rounded-lg border border-border flex-shrink-0">
               <AvatarImage src={getAvatarUrl(profile, user)} />
@@ -456,6 +463,6 @@ export const IslandNavigation = () => {
           </DialogContent>
         </Dialog>
       </motion.nav>
-    </TooltipProvider>
+    </TooltipProvider >
   );
 };

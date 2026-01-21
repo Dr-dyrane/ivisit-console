@@ -22,6 +22,7 @@ import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
 import { UserListView } from '../views/UserListView';
 import { UserTableView } from '../views/UserTableView';
+import { SEOHead } from '../common/SEOHead';
 
 import { UserAnalyticsModal } from '../modals/UserAnalyticsModal';
 import { InviteUserModal } from '../modals/InviteUserModal';
@@ -287,6 +288,7 @@ export const UsersPage = () => {
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
       className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
+      aria-label="Filter users"
     >
       <Filter className="h-4 w-4" />
       {(filters.search || (filters.role && filters.role.length > 0) || (filters.bvn_verified && filters.bvn_verified.length > 0)) && (
@@ -301,6 +303,7 @@ export const UsersPage = () => {
       <Button
         onClick={handleCreate}
         className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase text-foreground"
+        aria-label="Add new user"
       >
         <Plus className="h-4 w-4 mr-2" />
         <span className="hidden md:inline">ADD USER</span>
@@ -331,6 +334,7 @@ export const UsersPage = () => {
         variant="ghost"
         size="icon"
         className={`squircle h-9 w-9 ${showStatistics ? 'bg-primary/10 text-primary' : 'hover:bg-primary/10 hover:text-primary'}`}
+        aria-label="Toggle statistics"
       >
         <BarChart3 className="h-4 w-4" />
       </Button>
@@ -339,6 +343,7 @@ export const UsersPage = () => {
 
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
+      <SEOHead title="User Management" description="Manage user profiles, roles, and verifications." />
       {/* KPI Filter Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
         {/* Total Users Card */}

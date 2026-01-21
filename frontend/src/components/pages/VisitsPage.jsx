@@ -21,6 +21,7 @@ import { usePageData } from '../../contexts/PageDataContext';
 import { FilterSheet } from '../common/FilterSheet';
 import { VisitListView } from '../views/VisitListView';
 import { VisitTableView } from '../views/VisitTableView';
+import { SEOHead } from '../common/SEOHead';
 
 export const VisitsPage = () => {
   const { isAdmin, isProvider } = useAuth();
@@ -230,6 +231,7 @@ export const VisitsPage = () => {
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
       className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+      aria-label="Filter visits"
     >
       <Filter className="h-4 w-4" />
     </Button>
@@ -239,6 +241,7 @@ export const VisitsPage = () => {
     <Button
       onClick={handleCreate}
       className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+      aria-label="Schedule new visit"
     >
       <Plus className="h-4 w-4 mr-2" />
       SCHEDULE VISIT
@@ -264,6 +267,7 @@ export const VisitsPage = () => {
 
   return (
     <div className="min-h-screen py-6 md:py-8">
+      <SEOHead title="Patient Visits" description="Schedule and manage patient visits across the network." />
       <div className="pt-2" />
 
       {/* Bento Overview Cards - Show in all view modes */}
@@ -548,6 +552,7 @@ export const VisitsPage = () => {
                               onClick={() => handleView(visit)}
                               className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
                               data-testid={`view-visit-${visit.id}`}
+                              aria-label={`View details for visit ${visit.id}`}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -557,6 +562,7 @@ export const VisitsPage = () => {
                               onClick={() => handleEdit(visit)}
                               className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
                               data-testid={`edit-visit-${visit.id}`}
+                              aria-label={`Edit visit ${visit.id}`}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -566,6 +572,7 @@ export const VisitsPage = () => {
                               onClick={() => handleDelete(visit)}
                               className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                               data-testid={`delete-visit-${visit.id}`}
+                              aria-label={`Delete visit ${visit.id}`}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

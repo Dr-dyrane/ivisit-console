@@ -51,6 +51,7 @@ export const DoctorTableView = ({ doctors, onView, onEdit, onDelete, getStatusBa
                       size="sm"
                       onClick={() => onView(doctor)}
                       className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                      aria-label={`View details for ${doctor.name}`}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -59,6 +60,7 @@ export const DoctorTableView = ({ doctors, onView, onEdit, onDelete, getStatusBa
                       size="sm"
                       onClick={() => onEdit(doctor)}
                       className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                      aria-label={`Edit ${doctor.name}`}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -67,6 +69,7 @@ export const DoctorTableView = ({ doctors, onView, onEdit, onDelete, getStatusBa
                       size="sm"
                       onClick={() => onDelete(doctor)}
                       className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                      aria-label={`Delete ${doctor.name}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

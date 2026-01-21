@@ -46,6 +46,7 @@ export const AmbulanceListView = ({ ambulances, onView, onEdit, onDelete, getSta
                     size="sm"
                     onClick={() => onView(ambulance)}
                     className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                    aria-label={`View details for ${ambulance.call_sign}`}
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -54,6 +55,7 @@ export const AmbulanceListView = ({ ambulances, onView, onEdit, onDelete, getSta
                     size="sm"
                     onClick={() => onEdit(ambulance)}
                     className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                    aria-label={`Edit ${ambulance.call_sign}`}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -62,6 +64,7 @@ export const AmbulanceListView = ({ ambulances, onView, onEdit, onDelete, getSta
                     size="sm"
                     onClick={() => onDelete(ambulance)}
                     className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                    aria-label={`Delete ${ambulance.call_sign}`}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
