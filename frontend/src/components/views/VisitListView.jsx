@@ -3,7 +3,7 @@ import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
-import { Edit, Trash2, Eye, Clock, User, Stethoscope, MoreHorizontal } from 'lucide-react';
+import { Edit, Trash2, Eye, Clock, User, Stethoscope, Hospital, MoreHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
   DropdownMenu,
