@@ -19,7 +19,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
   const isCreate = mode === 'create';
 
   const [users, setUsers] = useState([]);
-  const [formData, setFormData] = useState(request || {
+  const [formData, setFormData] = useState({
     user_id: '',
     emergency_type: '',
     priority: 'medium',
@@ -28,6 +28,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
     latitude: null,
     longitude: null,
     description: '',
+    ...request // ✅ Pattern B: Merge initial props
   });
 
   const [loading, setLoading] = useState(false);
@@ -38,7 +39,15 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
 
   useEffect(() => {
     if (request) {
-      setFormData(request);
+      setFormData(prev => ({
+        ...prev, // ✅ Keep existing
+        ...request, // ✅ Merge new
+        // Explicit fallbacks for Selects
+        priority: request.priority || prev.priority || 'medium',
+        status: request.status || prev.status || 'pending',
+        user_id: request.user_id || prev.user_id || '',
+        emergency_type: request.emergency_type || prev.emergency_type || ''
+      }));
     }
   }, [request]);
 
@@ -195,7 +204,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                         type="button"
                         onClick={!isView ? () => setFormData(prev => ({ ...prev, status: step })) : undefined}
                         className={`flex-1 py-2 px-3 rounded-xl transition-all text-[10px] font-semibold uppercase tracking-wider ${isCurrent ? 'bg-primary text-white shadow-lg shadow-primary/20' :
-                            isPast ? 'text-primary/70 bg-primary/5' : 'text-muted-foreground/40'
+                          isPast ? 'text-primary/70 bg-primary/5' : 'text-muted-foreground/40'
                           }`}
                       >
                         {step.replace('_', ' ')}

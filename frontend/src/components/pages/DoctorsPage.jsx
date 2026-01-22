@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { DoctorModal } from '../modals/DoctorModal';
 import { ViewToggle } from '../common/ViewToggle';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { FilterSheet } from '../common/FilterSheet';
 import { DoctorListView } from '../views/DoctorListView';
 import { DoctorTableView } from '../views/DoctorTableView';
@@ -382,47 +383,7 @@ export const DoctorsPage = () => {
 
   usePageFooter(footerContent, 'pagination', !loading && doctors.length > 0);
 
-  // Bulk Action Bar Component
-  const BulkActionBar = useMemo(() => (
-    <LayoutGroup>
-      {selectedIds.length > 0 && (
-        <motion.div
-          initial={{ x: 50, opacity: 0, scale: 0.9 }}
-          animate={{ x: 0, opacity: 1, scale: 1 }}
-          exit={{ x: 50, opacity: 0, scale: 0.9 }}
-          className="fixed top-1/2 -translate-y-1/2 right-6 z-50 flex flex-col items-center gap-3 p-2 bg-background/15 backdrop-blur-sm border-0 shadow-none rounded-full"
-        >
-          <div className="bg-primary text-primary-foreground text-[10px] font-bold h-6 min-w-[24px] px-1.5 rounded-full flex items-center justify-center shadow-sm mb-1">
-            {selectedIds.length}
-          </div>
 
-          {(isAdmin() || isOrgAdmin()) && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBulkDelete}
-              className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
-              title="Delete Selected"
-            >
-              <Trash2 className="h-5 w-5" />
-            </Button>
-          )}
-
-          <div className="w-8 h-[1px] bg-white/10 my-0.5" />
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSelectedIds([])}
-            className="h-8 w-8 rounded-full hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all"
-            title="Clear Selection"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </motion.div>
-      )}
-    </LayoutGroup>
-  ), [selectedIds, isAdmin, isOrgAdmin, handleBulkDelete]);
 
   return (
     <div className="min-h-screen py-6 md:py-8">
@@ -837,7 +798,22 @@ export const DoctorsPage = () => {
         confirmLabel={confirmationModal.confirmLabel}
       />
 
-      {BulkActionBar}
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onClear={() => setSelectedIds([])}
+      >
+        {(isAdmin() || isOrgAdmin()) && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBulkDelete}
+            className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+            title="Delete Selected"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        )}
+      </BulkActionBar>
     </div >
   );
 };

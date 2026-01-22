@@ -18,16 +18,22 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
   const isEdit = mode === 'edit';
   const isCreate = mode === 'create';
 
-  const [formData, setFormData] = useState(visit || {
+  const [formData, setFormData] = useState({
     user_id: '',
     hospital_id: '',
     visit_type: 'checkup',
     status: 'scheduled',
-    scheduled_at: '',
+    date: '', // Replaced scheduled_at
     notes: '',
     reason: '',
+    room_number: '',
+    cost: '',
+    estimated_duration: '',
+    insurance_covered: true,
+    preparation: '',
     hospitals: null,
-    profiles: null
+    profiles: null,
+    ...visit // ✅ Spread visit for initial prefill
   });
 
   const [loading, setLoading] = useState(false);
@@ -35,10 +41,21 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
   const { isAdmin, isOrgAdmin, orgId } = useAuth();
   useEffect(() => {
     if (visit) {
-      setFormData({
-        ...visit,
-        scheduled_at: visit.scheduled_at ? new Date(visit.scheduled_at).toISOString().slice(0, 16) : ''
-      });
+      setFormData(prev => ({
+        ...prev, // ✅ Keep existing state
+        ...visit, // ✅ Merge with existing
+        // Explicitly handle fields to ensure they don't break
+        user_id: visit.user_id || prev.user_id,
+        hospital_id: visit.hospital_id || prev.hospital_id,
+        visit_type: visit.visit_type || 'checkup',
+        status: visit.status || 'scheduled',
+        date: visit.date ? new Date(visit.date).toISOString().slice(0, 16) : '',
+        room_number: visit.room_number || prev.room_number || '',
+        cost: visit.cost || prev.cost || '',
+        estimated_duration: visit.estimated_duration || prev.estimated_duration || '',
+        insurance_covered: visit.insurance_covered ?? prev.insurance_covered ?? true,
+        preparation: Array.isArray(visit.preparation) ? visit.preparation.join('\n') : (visit.preparation || prev.preparation || '')
+      }));
     } else if (isCreate && isOrgAdmin() && orgId) {
       setFormData(prev => ({ ...prev, hospital_id: orgId }));
     }
@@ -61,7 +78,13 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
       delete submitData.profiles;
       delete submitData.hospitals;
       delete submitData.user_email;
+      delete submitData.user_email;
       delete submitData.hospital_name;
+
+      // Convert preparation back to array if string
+      if (typeof submitData.preparation === 'string') {
+        submitData.preparation = submitData.preparation.split('\n').filter(line => line.trim() !== '');
+      }
 
       if (onSave) {
         await onSave(submitData);
@@ -122,7 +145,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     </Badge>
                     <span className="text-sm text-muted-foreground flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {formData.scheduled_at ? new Date(formData.scheduled_at).toLocaleString() : 'Date not set'}
+                      {formData.date ? new Date(formData.date).toLocaleString() : 'Date not set'}
                     </span>
                   </div>
                 </div>
@@ -169,34 +192,31 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     </div>
 
                     {/* Hospital Selection - Scoped for Org Admin */}
-                    {(isAdmin() || (isOrgAdmin() && isView)) && (
+                    {/* Doctor Display (Read Only if available) */}
+                    {(isView || formData.doctor) && (
                       <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70">
-                          Hospital
-                        </Label>
-                        <Select
-                          disabled={isView}
-                          value={formData.hospital_id || ""}
-                          onValueChange={(value) => setFormData({ ...formData, hospital_id: value })}
-                        >
-                          <SelectTrigger className="squircle bg-muted/30 border-0 h-11">
-                            <SelectValue placeholder="Select Hospital" />
-                          </SelectTrigger>
-                          <SelectContent className="geo-sharp border-white/10 bg-background/95 backdrop-blur-xl">
-                            {hospitals.map((h) => (
-                              <SelectItem key={h.id} value={h.id}>
-                                {h.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Label className="text-xs font-semibold text-muted-foreground uppercase">Doctor</Label>
+                        <Input
+                          value={formData.doctor || 'Unassigned'}
+                          disabled
+                          className="rounded-2xl bg-muted/30 border-0 h-14 font-normal"
+                        />
                       </div>
                     )}
-                    {!(isAdmin() || (isOrgAdmin() && isView)) && (
-                      <div className="space-y-2">
-                        <Label htmlFor="hospital_id" className="text-xs font-semibold text-muted-foreground uppercase">Facility</Label>
+
+                    {/* Hospital Selection */}
+                    <div className="space-y-2">
+                      <Label htmlFor="hospital_id" className="text-xs font-semibold text-muted-foreground uppercase">Facility</Label>
+                      {isView && !formData.hospital_id && formData.hospital ? (
+                        <div className="flex items-center h-14 w-full rounded-2xl border border-input bg-muted/30 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50">
+                          <span className="flex items-center gap-2">
+                            <Hospital className="w-4 h-4 text-muted-foreground" />
+                            <span>{formData.hospital}</span>
+                          </span>
+                        </div>
+                      ) : (
                         <Select
-                          value={formData.hospital_id}
+                          value={formData.hospital_id || ''}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, hospital_id: value }))}
                           disabled={isView}
                         >
@@ -214,8 +234,8 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                             ))}
                           </SelectContent>
                         </Select>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </GlassCard>
 
@@ -234,10 +254,15 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
                           <SelectItem value="checkup">Checkup</SelectItem>
+                          <SelectItem value="Regular Checkup">Regular Checkup</SelectItem>
                           <SelectItem value="emergency">Emergency</SelectItem>
                           <SelectItem value="follow_up">Follow Up</SelectItem>
                           <SelectItem value="consultation">Consultation</SelectItem>
+                          <SelectItem value="Consultation">Consultation (Full)</SelectItem>
                           <SelectItem value="surgery">Surgery</SelectItem>
+                          <SelectItem value="Telehealth">Telehealth</SelectItem>
+                          <SelectItem value="Bed Booking">Bed Booking</SelectItem>
+                          <SelectItem value="Ambulance Ride">Ambulance Ride</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -254,6 +279,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
                           <SelectItem value="scheduled">Scheduled</SelectItem>
+                          <SelectItem value="upcoming">Upcoming</SelectItem>
                           <SelectItem value="in_progress">In Progress</SelectItem>
                           <SelectItem value="completed">Completed</SelectItem>
                           <SelectItem value="cancelled">Cancelled</SelectItem>
@@ -262,12 +288,12 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     </div>
 
                     <div className="col-span-1 md:col-span-2 space-y-2">
-                      <Label htmlFor="scheduled_at" className="text-xs font-semibold text-muted-foreground uppercase">Date & Time</Label>
+                      <Label htmlFor="date" className="text-xs font-semibold text-muted-foreground uppercase">Date & Time</Label>
                       <Input
-                        id="scheduled_at"
-                        name="scheduled_at"
+                        id="date"
+                        name="date"
                         type="datetime-local"
-                        value={formData.scheduled_at}
+                        value={formData.date}
                         onChange={handleChange}
                         disabled={isView}
                         className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-mono"
@@ -286,8 +312,81 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                         placeholder="e.g., Annual checkup"
                       />
                     </div>
+                  </div>
+                </GlassCard>
 
-                    <div className="col-span-1 md:col-span-2 space-y-2">
+                {/* Logistics & Billing */}
+                <GlassCard icon={<Clock className="text-primary" />} title="Logistics & Billing">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="room_number" className="text-xs font-semibold text-muted-foreground uppercase">Room Number</Label>
+                      <Input
+                        id="room_number"
+                        name="room_number"
+                        value={formData.room_number || ''}
+                        onChange={handleChange}
+                        disabled={isView}
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-mono"
+                        placeholder="e.g. 405-B"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="estimated_duration" className="text-xs font-semibold text-muted-foreground uppercase">Duration</Label>
+                      <Input
+                        id="estimated_duration"
+                        name="estimated_duration"
+                        value={formData.estimated_duration || ''}
+                        onChange={handleChange}
+                        disabled={isView}
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12"
+                        placeholder="e.g. 30 mins"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cost" className="text-xs font-semibold text-muted-foreground uppercase">Cost</Label>
+                      <Input
+                        id="cost"
+                        name="cost"
+                        value={formData.cost || ''}
+                        onChange={handleChange}
+                        disabled={isView}
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-mono"
+                        placeholder="e.g. $150"
+                      />
+                    </div>
+                    <div className="space-y-2 flex flex-col justify-center">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase mb-2">Insurance</Label>
+                      <div className="flex items-center gap-2 p-3 rounded-2xl bg-muted/30 border border-transparent hover:border-primary/20 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={formData.insurance_covered}
+                          onChange={(e) => setFormData(prev => ({ ...prev, insurance_covered: e.target.checked }))}
+                          disabled={isView}
+                          className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <span className="text-sm font-medium">Covered by Insurance</span>
+                      </div>
+                    </div>
+                  </div>
+                </GlassCard>
+
+                {/* Preparation & Notes */}
+                <GlassCard icon={<FileText className="text-primary" />} title="Preparation & Notes">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="preparation" className="text-xs font-semibold text-muted-foreground uppercase">Preparation Instructions</Label>
+                      <Textarea
+                        id="preparation"
+                        name="preparation"
+                        value={formData.preparation}
+                        onChange={handleChange}
+                        disabled={isView}
+                        placeholder="One instruction per line..."
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px]"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
                       <Label htmlFor="notes" className="text-xs font-semibold text-muted-foreground uppercase">Clinical Notes</Label>
                       <Textarea
                         id="notes"

@@ -50,7 +50,8 @@ export const InsuranceModal = ({
     front_image_url: '',
     back_image_url: '',
     status: 'active',
-    verified: false
+    verified: false,
+    ...policy // ✅ Pattern B: Initial spread
   });
   const [loading, setLoading] = useState(false);
   const [frontImageFile, setFrontImageFile] = useState(null);
@@ -58,20 +59,21 @@ export const InsuranceModal = ({
 
   useEffect(() => {
     if (policy && (mode === 'edit' || mode === 'view')) {
-      setFormData({
-        user_id: policy.user_id || '',
-        provider_name: policy.provider_name || '',
-        policy_number: policy.policy_number || '',
-        group_number: policy.group_number || '',
-        policy_holder_name: policy.policy_holder_name || '',
+      setFormData(prev => ({
+        ...prev, // ✅ Keep existing
+        ...policy, // ✅ Merge
+        // Explicit Select fallbacks
+        provider_name: policy.provider_name || prev.provider_name,
         coverage_type: policy.coverage_type || 'health_maintenance',
-        start_date: policy.start_date || '',
-        end_date: policy.end_date || '',
-        front_image_url: policy.front_image_url || '',
-        back_image_url: policy.back_image_url || '',
         status: policy.status || 'active',
-        verified: policy.verified || false
-      });
+        // Ensure other fields are mapped if null
+        user_id: policy.user_id || prev.user_id,
+        policy_number: policy.policy_number || prev.policy_number || '',
+        group_number: policy.group_number || prev.group_number || '',
+        front_image_url: policy.front_image_url || prev.front_image_url || '',
+        back_image_url: policy.back_image_url || prev.back_image_url || '',
+        verified: policy.verified ?? prev.verified ?? false
+      }));
     } else if (mode === 'create') {
       setFormData({
         user_id: '',

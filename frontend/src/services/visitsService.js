@@ -46,13 +46,13 @@ export async function getVisits(filter) {
     }
 
     if (filter?.date_from) {
-      query = query.gte('visit_date', filter.date_from);
+      query = query.gte('date', filter.date_from);
     }
     if (filter?.date_to) {
-      query = query.lte('visit_date', filter.date_to);
+      query = query.lte('date', filter.date_to);
     }
 
-    query = query.order('visit_date', { ascending: false });
+    query = query.order('date', { ascending: false });
 
     if (filter?.limit) {
       query = query.limit(filter.limit);
@@ -100,7 +100,7 @@ export async function createVisit(input) {
       user_id: input.user_id,
       doctor_id: input.doctor_id,
       hospital_id: input.hospital_id,
-      visit_date: input.visit_date,
+      date: input.visit_date || input.date,
       visit_type: input.visit_type,
       notes: input.notes,
       status: input.status || 'scheduled',
@@ -260,7 +260,7 @@ export async function getUserVisits(userId) {
       .from(TABLE_NAME)
       .select('*')
       .eq('user_id', userId)
-      .order('visit_date', { ascending: false });
+      .order('date', { ascending: false });
 
     if (error) throw error;
 
@@ -282,8 +282,8 @@ export async function getUserUpcomingVisits(userId) {
       .select('*')
       .eq('user_id', userId)
       .eq('status', 'scheduled')
-      .gte('visit_date', today)
-      .order('visit_date', { ascending: true });
+      .gte('date', today)
+      .order('date', { ascending: true });
 
     if (error) throw error;
 
@@ -304,7 +304,7 @@ export async function getUserCompletedVisits(userId) {
       .select('*')
       .eq('user_id', userId)
       .eq('status', 'completed')
-      .order('visit_date', { ascending: false });
+      .order('date', { ascending: false });
 
     if (error) throw error;
 
@@ -324,7 +324,7 @@ export async function getDoctorVisits(doctorId) {
       .from(TABLE_NAME)
       .select('*')
       .eq('doctor_id', doctorId)
-      .order('visit_date', { ascending: false });
+      .order('date', { ascending: false });
 
     if (error) throw error;
 
@@ -344,7 +344,7 @@ export async function getHospitalVisits(hospitalId) {
       .from(TABLE_NAME)
       .select('*')
       .eq('hospital_id', hospitalId)
-      .order('visit_date', { ascending: false });
+      .order('date', { ascending: false });
 
     if (error) throw error;
 
@@ -389,14 +389,14 @@ export async function getVisitStats() {
       .from(TABLE_NAME)
       .select('*')
       .eq('status', 'completed')
-      .gte('visit_date', `${today}T00:00:00`)
-      .lte('visit_date', `${today}T23:59:59`);
+      .gte('date', `${today}T00:00:00`)
+      .lte('date', `${today}T23:59:59`);
 
     const { data: scheduledUpcoming } = await supabase
       .from(TABLE_NAME)
       .select('*')
       .eq('status', 'scheduled')
-      .gte('visit_date', today);
+      .gte('date', today);
 
     return {
       total_visits: totalCount || 0,

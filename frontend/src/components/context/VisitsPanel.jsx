@@ -91,9 +91,9 @@ export const VisitsPanel = ({ visitsData }) => {
           </motion.button>
 
           <motion.button
-            whileTap={{ scale: 0.98 }}
+            onClick={() => window.dispatchEvent(new CustomEvent('openVisitAnalytics'))}
             className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            title="View Analytics (Coming Soon)"
+            title="View Analytics"
           >
             <BarChart3 className="h-4 w-4" />
             <span className="font-normal text-xs">Analytics</span>
@@ -136,8 +136,8 @@ export const VisitsPanel = ({ visitsData }) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 geo-round ${visit.status === 'completed' ? 'bg-success' :
-                      visit.status === 'cancelled' ? 'bg-destructive' :
-                        visit.status === 'in_progress' ? 'bg-warning' : 'bg-info'
+                    visit.status === 'cancelled' ? 'bg-destructive' :
+                      visit.status === 'in_progress' ? 'bg-warning' : 'bg-info'
                     }`} />
                   <div>
                     <p className="font-normal text-sm truncate max-w-[120px]">

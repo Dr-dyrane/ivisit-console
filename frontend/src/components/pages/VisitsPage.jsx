@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getDoctorByProfileId } from '../../services/doctorsService';
+import { createVisit, updateVisit } from '../../services/visitsService';
+import { getHospitals } from '../../services/hospitalsService';
+import { getProfiles } from '../../services/profilesService';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
@@ -23,6 +26,9 @@ import { FilterSheet } from '../common/FilterSheet';
 import { VisitListView } from '../views/VisitListView';
 import { VisitTableView } from '../views/VisitTableView';
 import { SEOHead } from '../common/SEOHead';
+import { BulkActionBar } from '../common/BulkActionBar';
+import { ConfirmationModal } from '../modals/ConfirmationModal';
+import { VisitAnalyticsModal } from '../modals/VisitAnalyticsModal';
 
 export const VisitsPage = () => {
   const { user, isAdmin, isOrgAdmin, isProvider, orgId } = useAuth();
@@ -33,8 +39,21 @@ export const VisitsPage = () => {
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [filters, setFilters] = useState({});
   const [kpiFilter, setKpiFilter] = useState('all');
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [hospitals, setHospitals] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: null,
+    variant: 'destructive',
+    confirmLabel: 'Delete'
+  });
 
   const { viewMode, setViewMode } = useViewMode('visits-page', 'grid');
   const pagination = usePagination(20);
@@ -65,11 +84,16 @@ export const VisitsPage = () => {
       if (filters.status && filters.status.length > 0) {
         query = query.in('status', filters.status);
       }
+      if (filters.visit_type && filters.visit_type.length > 0) {
+        query = query.in('visit_type', filters.visit_type);
+      }
+      if (filters.date) {
+        if (filters.date.start) query = query.gte('date', filters.date.start);
+        if (filters.date.end) query = query.lte('date', filters.date.end);
+      }
       if (filters.search) {
-        // Search by patient name or doctor name (requires joins or simpler logic if denormalized)
-        // Since we can't easily ILIKE joined tables in one go without raw SQL or embedded resources which allow filtering
-        // We will assume patient_name is a field on visits (often denormalized) or just search by ID if string
-        query = query.or(`patient_name.ilike.%${filters.search}%`);
+        // TODO: Enable search when backend supports joined filtering
+        // query = query.or(`patient_name.ilike.%${filters.search}%`);
       }
 
       // Apply KPI Filter to count query
@@ -85,7 +109,7 @@ export const VisitsPage = () => {
         .from('visits')
         .select('*')
         .range(pagination.paginationRange.start, pagination.paginationRange.end)
-        .order('created_at', { ascending: false });
+        .order(sortConfig.key || 'date', { ascending: sortConfig.direction === 'asc' });
 
       // RBAC Scoping for Data
       // RBAC Scoping for Data
@@ -107,8 +131,16 @@ export const VisitsPage = () => {
       if (filters.status && filters.status.length > 0) {
         dataQuery = dataQuery.in('status', filters.status);
       }
+      if (filters.visit_type && filters.visit_type.length > 0) {
+        dataQuery = dataQuery.in('visit_type', filters.visit_type);
+      }
+      if (filters.date) {
+        if (filters.date.start) dataQuery = dataQuery.gte('date', filters.date.start);
+        if (filters.date.end) dataQuery = dataQuery.lte('date', filters.date.end);
+      }
       if (filters.search) {
-        dataQuery = dataQuery.or(`patient_name.ilike.%${filters.search}%`);
+        // TODO: Implement search across joined tables (patient name) or verify patient_name column exists
+        // dataQuery = dataQuery.or(`patient_name.ilike.%${filters.search}%`);
       }
 
       // Apply KPI Filter to data query
@@ -117,17 +149,43 @@ export const VisitsPage = () => {
       if (kpiFilter === 'completed') dataQuery = dataQuery.eq('status', 'completed');
       if (kpiFilter === 'cancelled') dataQuery = dataQuery.eq('status', 'cancelled');
 
-      const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load visits - timeout');
+      let { data: visitsData, error } = await withTimeout(dataQuery, 8000, 'Failed to load visits - timeout');
 
       if (error) throw error;
-      setVisits(data || []);
+
+      if (visitsData && visitsData.length > 0) {
+        const userIds = [...new Set(visitsData.map(v => v.user_id).filter(Boolean))];
+        const doctorIds = [...new Set(visitsData.map(v => v.doctor_id).filter(Boolean))];
+
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username, email')
+          .in('id', userIds);
+
+        const profilesMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
+
+        const { data: doctors } = await supabase
+          .from('doctors')
+          .select('id, name')
+          .in('id', doctorIds);
+
+        const doctorsMap = (doctors || []).reduce((acc, d) => ({ ...acc, [d.id]: d }), {});
+
+        visitsData = visitsData.map(visit => ({
+          ...visit,
+          patient: profilesMap[visit.user_id] || null,
+          doctor: doctorsMap[visit.doctor_id] || null
+        }));
+      }
+
+      setVisits(visitsData || []);
     } catch (error) {
       console.error('Error fetching visits:', error);
       toast.error(error.message || 'Failed to load visits');
     } finally {
       setLoading(false);
     }
-  }, [pagination, filters, kpiFilter]);
+  }, [pagination, filters, kpiFilter, sortConfig]);
 
   useEffect(() => {
     fetchVisits();
@@ -146,6 +204,25 @@ export const VisitsPage = () => {
     return () => supabase.removeChannel(channel);
   }, [fetchVisits]);
 
+  // Fetch Dropdown Data
+  useEffect(() => {
+    const fetchDropdowns = async () => {
+      try {
+        const [patientsData, hospitalsData] = await Promise.all([
+          getProfiles({ role: 'patient' }),
+          getHospitals()
+        ]);
+        setPatients(patientsData || []);
+        setHospitals(hospitalsData || []);
+      } catch (error) {
+        console.error('Failed to load form data:', error);
+      }
+    };
+    if (modalMode === 'create' || modalMode === 'edit') {
+      fetchDropdowns();
+    }
+  }, [modalMode]);
+
   const handleCreate = useCallback(() => {
     setSelectedVisit(null);
     setModalMode('create');
@@ -159,13 +236,18 @@ export const VisitsPage = () => {
     const handleOpenFilters = () => {
       setFilterSheetOpen(true);
     };
+    const handleOpenAnalytics = () => {
+      setAnalyticsModalOpen(true);
+    };
 
     window.addEventListener('openVisitModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
+    window.addEventListener('openVisitAnalytics', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openVisitModal', handleOpenModal);
       window.removeEventListener('openFilters', handleOpenFilters);
+      window.removeEventListener('openVisitAnalytics', handleOpenAnalytics);
     };
   }, [handleCreate]);
 
@@ -179,30 +261,96 @@ export const VisitsPage = () => {
     setModalMode('edit');
   }, []);
 
-  const handleDelete = useCallback(async (visit) => {
-    if (!window.confirm('Are you sure you want to delete this visit?')) return;
+  const handleSelect = useCallback((id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  }, []);
 
-    try {
-      const { error } = await supabase
-        .from('visits')
-        .delete()
-        .eq('id', visit.id);
-
-      if (error) throw error;
-
-      await createNotification(
-        NotificationTypes.VISIT,
-        NotificationActions.CANCELLED,
-        visit.id,
-        { message: `Visit has been cancelled` }
-      );
-      toast.success('Visit deleted successfully');
-      fetchVisits();
-    } catch (error) {
-      console.error('Error deleting visit:', error);
-      toast.error('Failed to delete visit');
+  const handleSelectAll = useCallback((checked) => {
+    if (checked) {
+      setSelectedIds(visits.map(v => v.id));
+    } else {
+      setSelectedIds([]);
     }
+  }, [visits]);
+
+  const handleSort = useCallback((key) => {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  }, []);
+
+  const handleBulkDelete = useCallback(() => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Selected Visits',
+      description: `Are you sure you want to delete ${selectedIds.length} visits?`,
+      confirmLabel: 'Delete All',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase.from('visits').delete().in('id', selectedIds);
+          if (error) throw error;
+          toast.success(`${selectedIds.length} visits deleted`);
+          setSelectedIds([]);
+          fetchVisits();
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        } catch (e) {
+          toast.error('Failed to delete visits');
+        }
+      }
+    });
+  }, [selectedIds, fetchVisits]);
+
+  const handleDelete = useCallback((visit) => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Visit',
+      description: `Are you sure you want to delete visit #${visit.id?.slice(0, 8)}?`,
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase.from('visits').delete().eq('id', visit.id);
+          if (error) throw error;
+
+          await createNotification(
+            NotificationTypes.VISIT,
+            NotificationActions.CANCELLED,
+            visit.id,
+            { message: `Visit has been cancelled` }
+          );
+
+          toast.success('Visit deleted');
+          fetchVisits();
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        } catch (e) {
+          toast.error('Failed to delete visit');
+        }
+      }
+    });
   }, [fetchVisits]);
+
+  const handleSaveVisit = useCallback(async (formData) => {
+    try {
+      if (modalMode === 'create') {
+        await createVisit({
+          ...formData,
+          user_id: formData.user_id || user.id, // Fallback if not selected
+        });
+        toast.success('Visit scheduled successfully');
+      } else if (modalMode === 'edit' && selectedVisit) {
+        await updateVisit(selectedVisit.id, formData);
+        toast.success('Visit updated successfully');
+      }
+      fetchVisits();
+      setModalMode(null);
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Failed to save visit');
+      throw error; // Re-throw for modal to handle loading state
+    }
+  }, [modalMode, selectedVisit, fetchVisits, user.id]);
 
   const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
@@ -238,6 +386,31 @@ export const VisitsPage = () => {
         { value: 'in_progress', label: 'In Progress' },
         { value: 'completed', label: 'Completed' },
         { value: 'cancelled', label: 'Cancelled' },
+      ]
+    },
+    {
+      key: 'visit_type',
+      type: 'multiselect',
+      label: 'Visit Type',
+      options: [
+        { value: 'Regular Checkup', label: 'Regular Checkup' },
+        { value: 'Consultation', label: 'Consultation' },
+        { value: 'Follow-up', label: 'Follow-up' },
+        { value: 'Emergency', label: 'Emergency' },
+        { value: 'Telehealth', label: 'Telehealth' },
+        { value: 'Bed Booking', label: 'Bed Booking' },
+        { value: 'Ambulance Ride', label: 'Ambulance Ride' }
+      ]
+    },
+    {
+      key: 'date',
+      type: 'date',
+      label: 'Date Range',
+      placeholder: 'Select dates',
+      shortcuts: [
+        { label: 'Today', value: 'today' },
+        { label: 'Next 7 Days', value: '7days' },
+        { label: 'This Month', value: 'month' }
       ]
     }
   ], []);
@@ -539,7 +712,7 @@ export const VisitsPage = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 mb-4 relative z-10">
+                        <div className="flex items-center gap-2 mb-4 relative z-10 flex-wrap mr-12">
                           <Badge className={`squircle-sm ${getStatusBadge(visit.status)} border-0 font-bold editorial-subtitle px-3 py-1`}>
                             {visit.status || 'scheduled'}
                           </Badge>
@@ -548,47 +721,75 @@ export const VisitsPage = () => {
                               {visit.visit_type}
                             </Badge>
                           )}
+                          {visit.cost && (
+                            <Badge variant="outline" className="squircle-sm border-white/10 font-mono text-xs bg-emerald-500/10 text-emerald-500 border-0">
+                              {visit.cost}
+                            </Badge>
+                          )}
                         </div>
 
-                        <h3 className="font-bold text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
-                          Visit #{visit.id?.slice(-6) || 'N/A'}
+                        <h3 className="font-bold text-lg mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10 pr-12">
+                          {visit.visit_type || `Visit #${visit.id?.slice(-6) || 'N/A'}`}
                         </h3>
 
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 relative z-10">
-                          <Clock className="h-4 w-4 text-info" />
-                          <span className="font-normal">{formatDate(visit.scheduled_at || visit.created_at)}</span>
+                        <div className="flex flex-col gap-1 mb-6 relative z-10">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Clock className="h-4 w-4 text-info" />
+                            <span className="font-normal">{formatDate(visit.date || visit.created_at)}</span>
+                          </div>
+                          {visit.room_number && (
+                            <div className="flex items-center gap-2 text-xs font-medium text-foreground/70 ml-6">
+                              <div className="w-1.5 h-1.5 rounded-full bg-primary/50" />
+                              <span>Room {visit.room_number}</span>
+                            </div>
+                          )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 mb-6 relative z-10">
+                        <div className="grid grid-cols-2 gap-3 mb-6 relative z-10 text-xs">
+                          {/* Patient */}
                           <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
                             <div className="flex items-center gap-2 mb-1">
                               <User className="h-4 w-4 text-primary" />
-                              <p className="text-xs text-muted-foreground font-medium">Patient</p>
+                              <p className="text-muted-foreground font-medium uppercase tracking-wider text-[10px]">Patient</p>
                             </div>
-                            <p className="font-semibold truncate">{visit.user_id ? 'Linked' : 'Unknown'}</p>
+                            <p className="font-semibold truncate">{visit.patient?.username || visit.user_id ? 'Linked' : 'Unknown'}</p>
                           </div>
+
+                          {/* Doctor */}
                           <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
                             <div className="flex items-center gap-2 mb-1">
-                              <Hospital className="h-4 w-4 text-success" />
-                              <p className="text-xs text-muted-foreground font-medium">Hospital</p>
+                              <User className="h-4 w-4 text-purple-500" />
+                              <p className="text-muted-foreground font-medium uppercase tracking-wider text-[10px]">Doctor</p>
                             </div>
-                            <p className="font-semibold truncate">{visit.hospital_id ? 'Linked' : 'None'}</p>
+                            <p className="font-semibold truncate">
+                              {visit.doctor?.name || visit.doctor || (visit.doctor_id ? 'Linked' : 'Unassigned')}
+                            </p>
+                          </div>
+
+                          {/* Hospital (Full Width) */}
+                          <div className="col-span-2 p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Hospital className="h-4 w-4 text-success" />
+                              <p className="text-muted-foreground font-medium uppercase tracking-wider text-[10px]">Facility</p>
+                            </div>
+                            <p className="font-semibold truncate">
+                              {visit.hospital?.name || visit.hospital || (visit.hospital_id ? 'Linked Facility' : 'None')}
+                            </p>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
                           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                            ACTIONS
+                            #{visit.id?.slice(0, 8)}
                           </div>
 
-                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="flex gap-2">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleView(visit)}
                               className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                              data-testid={`view-visit-${visit.id}`}
-                              aria-label={`View details for visit ${visit.id}`}
+                              title="View Details"
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -597,8 +798,7 @@ export const VisitsPage = () => {
                               size="sm"
                               onClick={() => handleEdit(visit)}
                               className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                              data-testid={`edit-visit-${visit.id}`}
-                              aria-label={`Edit visit ${visit.id}`}
+                              title="Edit"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -607,8 +807,7 @@ export const VisitsPage = () => {
                               size="sm"
                               onClick={() => handleDelete(visit)}
                               className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                              data-testid={`delete-visit-${visit.id}`}
-                              aria-label={`Delete visit ${visit.id}`}
+                              title="Delete"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -630,6 +829,8 @@ export const VisitsPage = () => {
               onDelete={handleDelete}
               getStatusBadge={getStatusBadge}
               isMobile={isMobile}
+              selectedIds={selectedIds}
+              onSelect={handleSelect}
             />
           )}
           {viewMode === 'table' && (
@@ -640,6 +841,11 @@ export const VisitsPage = () => {
               onDelete={handleDelete}
               getStatusBadge={getStatusBadge}
               isMobile={isMobile}
+              selectedIds={selectedIds}
+              onSelect={handleSelect}
+              onSelectAll={handleSelectAll}
+              sortConfig={sortConfig}
+              onSort={handleSort}
             />
           )}
         </>
@@ -663,9 +869,45 @@ export const VisitsPage = () => {
             onClose={handleModalClose}
             visit={selectedVisit}
             mode={modalMode}
+            onSave={handleSaveVisit}
+            users={patients}
+            hospitals={hospitals}
           />
         )
       }
+
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        title={confirmationModal.title}
+        description={confirmationModal.description}
+        onConfirm={confirmationModal.onConfirm}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        variant={confirmationModal.variant}
+        confirmLabel={confirmationModal.confirmLabel}
+      />
+
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onClear={() => setSelectedIds([])}
+      >
+        {(isAdmin() || isOrgAdmin() || isProvider()) && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBulkDelete}
+            className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+            title="Delete Selected"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        )}
+      </BulkActionBar>
+
+      <VisitAnalyticsModal
+        open={analyticsModalOpen}
+        onClose={() => setAnalyticsModalOpen(false)}
+        stats={visitsData?.stats}
+      />
 
       <FilterSheet
         isOpen={filterSheetOpen}
