@@ -22,21 +22,21 @@ export const handler = async (req: Request) => {
 
   try {
     const { email, subject, content }: CustomEmailPayload = await req.json()
-    
+
     if (!email) {
       return new Response(
         JSON.stringify({ error: 'Email is required' }),
         { status: 400, headers: corsHeaders }
       )
     }
-    
+
     if (!subject) {
       return new Response(
         JSON.stringify({ error: 'Subject is required' }),
         { status: 400, headers: corsHeaders }
       )
     }
-    
+
     if (!content) {
       return new Response(
         JSON.stringify({ error: 'Content is required' }),
@@ -55,7 +55,7 @@ export const handler = async (req: Request) => {
 
     // @ts-ignore - Deno global is available in runtime
     const brevoApiKey = Deno.env.get('BREVO_API_KEY')
-    
+
     if (!brevoApiKey) {
       throw new Error('BREVO_API_KEY environment variable is required')
     }
@@ -88,8 +88,8 @@ export const handler = async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: `Custom email sent to ${email}`,
         processed_at: new Date().toISOString()
       }),
@@ -134,7 +134,7 @@ function getDefaultEmailTemplate(email: string, subject: string, content: string
     
     /* The Reveal Header */
     .header { padding: 90px 0 60px 0; text-align: center; }
-    .logo-container { margin-bottom: 50px; }
+    .logo-container { margin-bottom: 12px; }
     .logo-text { font-size: 26px; font-weight: 700; letter-spacing: -1.4px; color: #1d1d1f; }
     .logo-text .dot { color: #86100E; }
     .logo-img { height: 32px; width: auto; }

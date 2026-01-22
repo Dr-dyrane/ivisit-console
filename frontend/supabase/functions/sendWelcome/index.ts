@@ -131,7 +131,7 @@ function getWelcomeEmailTemplate(email: string): string {
     
     /* The Reveal Header */
     .header { padding: 90px 0 60px 0; text-align: center; }
-    .logo-container { margin-bottom: 50px; }
+    .logo-container { margin-bottom: 12px; }
     .logo-text { font-size: 26px; font-weight: 700; letter-spacing: -1.4px; color: #1d1d1f; }
     .logo-text .dot { color: #86100E; }
     .logo-img { height: 32px; width: auto; }

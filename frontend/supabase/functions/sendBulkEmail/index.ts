@@ -22,21 +22,21 @@ export const handler = async (req: Request) => {
 
   try {
     const { emails, subject, content }: BulkEmailPayload = await req.json()
-    
+
     if (!emails || !Array.isArray(emails) || emails.length === 0) {
       return new Response(
         JSON.stringify({ error: 'Emails array is required' }),
         { status: 400, headers: corsHeaders }
       )
     }
-    
+
     if (!subject) {
       return new Response(
         JSON.stringify({ error: 'Subject is required' }),
         { status: 400, headers: corsHeaders }
       )
     }
-    
+
     if (!content) {
       return new Response(
         JSON.stringify({ error: 'Content is required' }),
@@ -56,7 +56,7 @@ export const handler = async (req: Request) => {
 
     // @ts-ignore - Deno global is available in runtime
     const brevoApiKey = Deno.env.get('BREVO_API_KEY')
-    
+
     if (!brevoApiKey) {
       throw new Error('BREVO_API_KEY environment variable is required')
     }
@@ -67,7 +67,7 @@ export const handler = async (req: Request) => {
       try {
         // Use provided content if it exists and contains HTML, otherwise use default template
         const htmlContent = content.includes('<') && content.includes('>') ? content : getDefaultBulkEmailTemplate(email, subject, content)
-        
+
         const emailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
           headers: {
@@ -102,8 +102,8 @@ export const handler = async (req: Request) => {
     const failureCount = results.length - successCount
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: `Bulk email processed: ${successCount} sent, ${failureCount} failed`,
         total_emails: emails.length,
         successful: successCount,
@@ -152,7 +152,7 @@ function getDefaultBulkEmailTemplate(email: string, subject: string, content: st
     
     /* The Reveal Header */
     .header { padding: 90px 0 60px 0; text-align: center; }
-    .logo-container { margin-bottom: 50px; }
+    .logo-container { margin-bottom: 12px; }
     .logo-text { font-size: 26px; font-weight: 700; letter-spacing: -1.4px; color: #1d1d1f; }
     .logo-text .dot { color: #86100E; }
     .logo-img { height: 32px; width: auto; }
