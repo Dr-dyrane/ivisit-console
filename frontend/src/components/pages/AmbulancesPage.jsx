@@ -100,9 +100,12 @@ export const AmbulancesPage = () => {
 
       // RBAC Scoping for Data
       if (isAdmin()) {
-        // No filter
-      } else if (isOrgAdmin() && orgId) {
+        // Platform admin sees everything
+      } else if ((isOrgAdmin() || isProvider()) && orgId) {
         dataQuery = dataQuery.eq('hospital_id', orgId);
+      } else {
+        // Safety Fallback: Block access if not Admin and no Org context
+        dataQuery = dataQuery.eq('id', '00000000-0000-0000-0000-000000000000');
       }
 
       if (filters.search) {

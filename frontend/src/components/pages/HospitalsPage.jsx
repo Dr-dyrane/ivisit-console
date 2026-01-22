@@ -84,8 +84,11 @@ export const HospitalsPage = () => {
       // RBAC Scoping for Data
       if (isAdmin()) {
         // No filter
-      } else if (isOrgAdmin() && orgId) {
+      } else if ((isOrgAdmin() || isProvider()) && orgId) {
         dataQuery = dataQuery.eq('id', orgId);
+      } else {
+        // Fallback
+        dataQuery = dataQuery.eq('id', '00000000-0000-0000-0000-000000000000');
       }
 
       if (filters.search) {
