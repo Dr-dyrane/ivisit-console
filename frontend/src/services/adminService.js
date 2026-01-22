@@ -39,7 +39,7 @@ export const AUDIT_ACTIONS = {
  */
 const getCachedOrFetch = async (key, fetchFunction, duration = CACHE_DURATION) => {
   const cached = cache.get(key);
-  
+
   if (cached && (Date.now() - cached.timestamp) < duration) {
     return cached.data;
   }
@@ -59,7 +59,7 @@ const getCachedOrFetch = async (key, fetchFunction, duration = CACHE_DURATION) =
 const logAdminAction = async (action, details = {}) => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     await supabase.from('admin_audit_log').insert({
       admin_id: user?.id,
       action,
@@ -113,7 +113,7 @@ export const hasPermission = async (requiredLevel) => {
     [PERMISSION_LEVELS.FULL_ADMIN]: 2,
     [PERMISSION_LEVELS.SUPER_ADMIN]: 3
   };
-  
+
   return levelHierarchy[userLevel] >= levelHierarchy[requiredLevel];
 };
 
@@ -138,7 +138,7 @@ export const getAdminUserData = async (options = {}) => {
     } = options;
 
     const cacheKey = `admin_users_${JSON.stringify(options)}`;
-    
+
     return await getCachedOrFetch(cacheKey, async () => {
       const result = {};
 
@@ -165,7 +165,7 @@ export const getAdminUserData = async (options = {}) => {
           .select('*')
           .order('created_at', { ascending: false })
           .limit(50);
-        
+
         result.recentActivity = activity || [];
       }
 
@@ -173,14 +173,14 @@ export const getAdminUserData = async (options = {}) => {
       const { count } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true });
-      
+
       result.totalCount = count || 0;
 
       // Log admin action
-      await logAdminAction(AUDIT_ACTIONS.USER_VIEW, { 
+      await logAdminAction(AUDIT_ACTIONS.USER_VIEW, {
         filters,
         pagination,
-        resultCount: result.totalCount 
+        resultCount: result.totalCount
       });
 
       return result;
@@ -207,7 +207,7 @@ export const bulkUserOperation = async (userIds, operation, operationData = {}) 
     for (const userId of userIds) {
       try {
         let result;
-        
+
         switch (operation) {
           case 'suspend':
             result = await suspendUser(userId, operationData.reason);
@@ -224,7 +224,7 @@ export const bulkUserOperation = async (userIds, operation, operationData = {}) 
           default:
             throw new Error(`Unknown bulk operation: ${operation}`);
         }
-        
+
         results.push({ userId, success: true, result });
       } catch (error) {
         errors.push({ userId, error: error.message });
@@ -268,7 +268,7 @@ export const suspendUser = async (userId, reason = '') => {
 
     const { data, error } = await supabase
       .from('profiles')
-      .update({ 
+      .update({
         status: 'suspended',
         suspension_reason: reason,
         suspended_at: new Date().toISOString()
@@ -304,7 +304,7 @@ export const activateUser = async (userId) => {
 
     const { data, error } = await supabase
       .from('profiles')
-      .update({ 
+      .update({
         status: 'active',
         suspension_reason: null,
         suspended_at: null
@@ -340,7 +340,7 @@ export const deleteUser = async (userId) => {
     // Soft delete - mark as deleted but keep data for audit
     const { data, error } = await supabase
       .from('profiles')
-      .update({ 
+      .update({
         status: 'deleted',
         deleted_at: new Date().toISOString()
       })
@@ -414,7 +414,7 @@ export const getVerificationQueueData = async (options = {}) => {
     } = options;
 
     const cacheKey = `verification_queue_${JSON.stringify(options)}`;
-    
+
     return await getCachedOrFetch(cacheKey, async () => {
       let query = supabase
         .from('profiles')
@@ -431,7 +431,7 @@ export const getVerificationQueueData = async (options = {}) => {
       }
       if (filters.dateRange) {
         query = query.gte('created_at', filters.dateRange.start)
-                  .lte('created_at', filters.dateRange.end);
+          .lte('created_at', filters.dateRange.end);
       }
 
       const { data, error, count } = await query;
@@ -485,7 +485,7 @@ export const approveVerification = async (userId) => {
 
     const { data, error } = await supabase
       .from('profiles')
-      .update({ 
+      .update({
         verification_status: 'approved',
         verified_at: new Date().toISOString(),
         verified_by: (await supabase.auth.getUser()).data.user?.id
@@ -520,7 +520,7 @@ export const rejectVerification = async (userId, reason = '') => {
 
     const { data, error } = await supabase
       .from('profiles')
-      .update({ 
+      .update({
         verification_status: 'rejected',
         rejection_reason: reason,
         rejected_at: new Date().toISOString(),
@@ -561,11 +561,11 @@ export const getAdminAnalyticsData = async (options = {}) => {
     } = options;
 
     const cacheKey = `admin_analytics_${JSON.stringify(options)}`;
-    
+
     return await getCachedOrFetch(cacheKey, async () => {
       // Get user statistics
       const userStats = await getUserStatistics();
-      
+
       // Get admin activity metrics
       let activityMetrics = {};
       if (includeActivity) {
@@ -655,9 +655,9 @@ export const getUserOptions = async (options = {}) => {
     }
 
     const { data, error } = await query;
-    
+
     if (error) throw error;
-    
+
     return data || [];
   } catch (error) {
     console.error('User options fetch failed:', error);
@@ -700,11 +700,11 @@ export const getAuditLog = async (options = {}) => {
     }
     if (dateRange) {
       query = query.gte('timestamp', dateRange.start)
-                .lte('timestamp', dateRange.end);
+        .lte('timestamp', dateRange.end);
     }
 
     const { data, error, count } = await query;
-    
+
     if (error) throw error;
 
     return {
@@ -781,7 +781,7 @@ export const clearCache = () => {
 export const getRealTimeStats = async () => {
   try {
     const cacheKey = 'realtime_admin_stats';
-    
+
     return await getCachedOrFetch(cacheKey, async () => {
       const [
         totalUsers,
@@ -798,12 +798,48 @@ export const getRealTimeStats = async () => {
       return {
         totalUsers: totalUsers.count || 0,
         pendingVerifications: pendingVerifications.count || 0,
+
         activeSessions: activeSessions.count || 0,
         recentAdminActivity: recentActivity.count || 0
       };
     }, 30 * 1000); // 30 second cache for real-time data
   } catch (error) {
     console.error('Real-time stats fetch failed:', error);
+    throw error;
+  }
+};
+
+/**
+ * Invite user via Edge Function
+ */
+export const inviteUser = async (email, role, metadata = {}) => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) throw new Error('Not authenticated');
+
+    // Call Edge Function
+    // Fallback to locally defined URL if env var missing (unlikely in prod)
+    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+    if (!supabaseUrl) throw new Error('REACT_APP_SUPABASE_URL not defined');
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/invite-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ email, role, metadata })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to invite user');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Invite user failed:', error);
     throw error;
   }
 };

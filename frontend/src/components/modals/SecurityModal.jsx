@@ -212,7 +212,7 @@ export const SecurityModal = ({ isOpen, onClose }) => {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="relative z-10 w-full max-w-md bg-background/95 backdrop-blur-xl rounded-[32px] shadow-2xl overflow-hidden"
+                        className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto no-scrollbar bg-background/95 backdrop-blur-xl rounded-[32px] shadow-2xl"
                     >
                         <div className="p-6 border-b border-border/10 flex justify-between items-center bg-muted/20">
                             <div className="flex items-center gap-3">

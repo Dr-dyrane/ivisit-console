@@ -29,6 +29,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
     eta: 'N/A',
     rating: 4.5,
     last_maintenance: '',
+    ...ambulance // Spread ambulance data into initial state for proper Select prefilling
   });
 
   const [loading, setLoading] = useState(false);
@@ -36,9 +37,18 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
   const [showImage, setShowImage] = useState(false);
   const [hospitals, setHospitals] = useState([]);
 
+  // Sync formData when ambulance prop changes
   useEffect(() => {
     if (ambulance) {
-      setFormData(ambulance);
+      setFormData(prev => ({
+        ...prev,
+        ...ambulance,
+        // Ensure proper fallbacks for select fields
+        type: ambulance.type || 'basic',
+        status: ambulance.status || 'available',
+        hospital_id: ambulance.hospital_id || '',
+        rating: ambulance.rating || 4.5
+      }));
     } else if (isCreate && isOrgAdmin() && orgId) {
       setFormData(prev => ({ ...prev, hospital_id: orgId }));
     }

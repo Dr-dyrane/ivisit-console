@@ -8,36 +8,56 @@ import { supabase } from '../lib/supabase';
 
 const TABLE_NAME = 'doctors';
 
+// Helper to clean empty strings to null (Fixes UUID "" error)
+const sanitizeInput = (input) => {
+  const cleaned = { ...input };
+  Object.keys(cleaned).forEach(key => {
+    if (cleaned[key] === '') {
+      cleaned[key] = null;
+    }
+  });
+  return cleaned;
+};
+
 /**
  * Get all doctors with optional filters
  */
-export async function getDoctors(filter) {
+export async function getDoctors(filter = {}) {
   try {
-    let query = supabase.from(TABLE_NAME).select('*');
+    let query = supabase.from(TABLE_NAME).select('*, hospitals(name)', { count: 'exact' });
 
-    if (filter?.hospital_id) {
+    if (filter.hospital_id) {
       query = query.eq('hospital_id', filter.hospital_id);
     }
-    if (filter?.specialty) {
-      query = query.eq('specialty', filter.specialty);
+    if (filter.specialization) {
+      if (Array.isArray(filter.specialization)) {
+        query = query.in('specialization', filter.specialization);
+      } else {
+        query = query.eq('specialization', filter.specialization);
+      }
     }
-    if (filter?.is_available !== undefined) {
-      query = query.eq('is_available', filter.is_available);
+    if (filter.status) {
+      if (Array.isArray(filter.status)) {
+        query = query.in('status', filter.status);
+      } else {
+        query = query.eq('status', filter.status);
+      }
+    }
+    if (filter.search) {
+      query = query.ilike('name', `%${filter.search}%`);
     }
 
-    query = query.order('rating', { ascending: false });
+    query = query.order('created_at', { ascending: false });
 
-    if (filter?.limit) {
-      query = query.limit(filter.limit);
-    }
-    if (filter?.offset) {
-      query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
+    if (filter.limit) {
+      const from = filter.offset || 0;
+      query = query.range(from, from + filter.limit - 1);
     }
 
-    const { data, error } = await query;
+    const { data, error, count } = await query;
     if (error) throw error;
 
-    return data || [];
+    return { data: data || [], count: count || 0 };
   } catch (error) {
     console.error('Error fetching doctors:', error);
     throw error;
@@ -51,7 +71,7 @@ export async function getDoctor(doctorId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .select('*')
+      .select('*, hospitals(name)')
       .eq('id', doctorId)
       .single();
 
@@ -69,20 +89,23 @@ export async function getDoctor(doctorId) {
  */
 export async function createDoctor(input) {
   try {
-    const payload = {
+    const payload = sanitizeInput({
       name: input.name,
-      specialty: input.specialty,
+      specialization: input.specialization,
       hospital_id: input.hospital_id,
       image: input.image,
-      rating: input.rating || 0,
+      rating: input.rating || 4.5, // Default start
       reviews_count: input.reviews_count || 0,
-      years_experience: input.years_experience,
+      experience: input.experience,
       about: input.about,
       consultation_fee: input.consultation_fee,
-      is_available: input.is_available !== undefined ? input.is_available : true,
+      license_number: input.license_number, // Added
+      status: input.status || 'available',
+      phone: input.phone, // Added
+      email: input.email, // Added
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    };
+    });
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -104,10 +127,13 @@ export async function createDoctor(input) {
  */
 export async function updateDoctor(doctorId, input) {
   try {
-    const payload = {
+    const payload = sanitizeInput({
       ...input,
       updated_at: new Date().toISOString(),
-    };
+    });
+
+    // Remove join fields if present to avoid error
+    delete payload.hospitals;
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -140,138 +166,4 @@ export async function deleteDoctor(doctorId) {
     console.error(`Error deleting doctor ${doctorId}:`, error);
     throw error;
   }
-}
-
-/**
- * Get available doctors
- */
-export async function getAvailableDoctors() {
-  try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('is_available', true)
-      .order('rating', { ascending: false });
-
-    if (error) throw error;
-
-    return data || [];
-  } catch (error) {
-    console.error('Error fetching available doctors:', error);
-    throw error;
-  }
-}
-
-/**
- * Get doctors by specialty
- */
-export async function getDoctorsBySpecialty(specialty) {
-  try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('specialty', specialty)
-      .order('rating', { ascending: false });
-
-    if (error) throw error;
-
-    return data || [];
-  } catch (error) {
-    console.error(`Error fetching doctors by specialty ${specialty}:`, error);
-    throw error;
-  }
-}
-
-/**
- * Get doctors by hospital
- */
-export async function getHospitalDoctors(hospitalId) {
-  try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('hospital_id', hospitalId)
-      .order('rating', { ascending: false });
-
-    if (error) throw error;
-
-    return data || [];
-  } catch (error) {
-    console.error(`Error fetching doctors for hospital ${hospitalId}:`, error);
-    throw error;
-  }
-}
-
-/**
- * Update doctor availability
- */
-export async function updateDoctorAvailability(doctorId, isAvailable) {
-  try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        is_available: isAvailable,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', doctorId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return data;
-  } catch (error) {
-    console.error(`Error updating doctor availability ${doctorId}:`, error);
-    throw error;
-  }
-}
-
-/**
- * Update doctor rating
- */
-export async function updateDoctorRating(doctorId, newRating, reviewCount) {
-  try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        rating: newRating,
-        reviews_count: reviewCount,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', doctorId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return data;
-  } catch (error) {
-    console.error(`Error updating doctor rating ${doctorId}:`, error);
-    throw error;
-  }
-}
-
-/**
- * Subscribe to doctor updates
- */
-export function subscribeToDoctor(doctorId, callback) {
-  const channel = supabase
-    .channel(`doctor_${doctorId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: TABLE_NAME,
-        filter: `id=eq.${doctorId}`,
-      },
-      (payload) => {
-        if (payload.new) {
-          callback(payload.new);
-        }
-      }
-    )
-    .subscribe();
-
-  return () => supabase.removeChannel(channel);
 }

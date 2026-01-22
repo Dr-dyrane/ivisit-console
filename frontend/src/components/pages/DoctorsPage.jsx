@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
+import { getDoctors, deleteDoctor } from '../../services/doctorsService';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
@@ -25,7 +26,7 @@ import { SEOHead } from '../common/SEOHead';
 import { usePageData } from '../../contexts/PageDataContext';
 
 export const DoctorsPage = () => {
-  const { isAdmin, isProvider } = useAuth();
+  const { isAdmin, isOrgAdmin, isProvider, orgId, profile, can } = useAuth();
   const { isMobile } = useNavigation();
   const { doctorsData, refreshAllData } = usePageData();
   const [doctors, setDoctors] = useState([]);
@@ -43,77 +44,50 @@ export const DoctorsPage = () => {
     try {
       setLoading(true);
 
-      let query = supabase.from('doctors').select('*', { count: 'exact', head: true });
+      const filter = {
+        limit: pagination.itemsPerPage,
+        offset: pagination.paginationRange.start,
+        search: filters.search
+      };
 
-      // RBAC: Platform Admin sees all. Org Admin sees scoped.
-      if (isAdmin()) {
-        // Platform admin sees everything
-      } else if (isOrgAdmin() && orgId) {
-        query = query.eq('hospital_id', orgId);
+      // RBAC
+      if (!isAdmin() && isOrgAdmin() && orgId) {
+        filter.hospital_id = orgId;
       }
 
-      if (filters.status && filters.status.length > 0) {
-        query = query.in('status', filters.status);
+      // Merge KPI and Sheet filters for Status
+      let statusFilter = filters.status;
+      if (kpiFilter !== 'all') {
+        if (statusFilter && statusFilter.length > 0) {
+          // Intersection
+          const intersection = statusFilter.filter(s => s === kpiFilter);
+          statusFilter = intersection.length > 0 ? intersection : ['__none__'];
+        } else {
+          statusFilter = kpiFilter;
+        }
       }
+      if (statusFilter && (typeof statusFilter === 'string' || statusFilter.length > 0)) {
+        filter.status = statusFilter;
+      }
+
+      // Specialization
       if (filters.specialization && filters.specialization.length > 0) {
-        query = query.in('specialization', filters.specialization);
-      }
-      if (filters.search) {
-        query = query.ilike('name', `%${filters.search}%`);
+        filter.specialization = filters.specialization;
       }
 
-      // Apply KPI Filter to count query
-      if (kpiFilter === 'available') query = query.eq('status', 'available');
-      if (kpiFilter === 'busy') query = query.eq('status', 'busy');
-      if (kpiFilter === 'off_duty') query = query.eq('status', 'off_duty');
-      if (kpiFilter === 'on_call') query = query.eq('status', 'on_call');
+      // Call Service
+      const { data, count } = await withTimeout(getDoctors(filter), 8000, 'Failed to load doctors - timeout');
 
-      const { count } = await query;
       pagination.setTotalCount(count || 0);
-
-      let dataQuery = supabase
-        .from('doctors')
-        .select(`
-          *,
-          hospital:hospitals(name)
-        `)
-        .range(pagination.paginationRange.start, pagination.paginationRange.end)
-        .order('created_at', { ascending: false });
-
-      // RBAC Scoping for Data
-      if (isAdmin()) {
-        // No filter
-      } else if (isOrgAdmin() && orgId) {
-        dataQuery = dataQuery.eq('hospital_id', orgId);
-      }
-
-      if (filters.status && filters.status.length > 0) {
-        dataQuery = dataQuery.in('status', filters.status);
-      }
-      if (filters.specialization && filters.specialization.length > 0) {
-        dataQuery = dataQuery.in('specialization', filters.specialization);
-      }
-      if (filters.search) {
-        dataQuery = dataQuery.ilike('name', `%${filters.search}%`);
-      }
-
-      // Apply KPI Filter to data query
-      if (kpiFilter === 'available') dataQuery = dataQuery.eq('status', 'available');
-      if (kpiFilter === 'busy') dataQuery = dataQuery.eq('status', 'busy');
-      if (kpiFilter === 'off_duty') dataQuery = dataQuery.eq('status', 'off_duty');
-      if (kpiFilter === 'on_call') dataQuery = dataQuery.eq('status', 'on_call');
-
-      const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load doctors - timeout');
-
-      if (error) throw error;
       setDoctors(data || []);
+
     } catch (error) {
       console.error('Error fetching doctors:', error);
       toast.error(error.message || 'Failed to load doctors');
     } finally {
       setLoading(false);
     }
-  }, [pagination, filters, kpiFilter]);
+  }, [isAdmin, isOrgAdmin, orgId, filters, kpiFilter, pagination.itemsPerPage, pagination.paginationRange.start]);
 
   useEffect(() => {
     fetchDoctors();
@@ -156,12 +130,7 @@ export const DoctorsPage = () => {
     if (!window.confirm(`Are you sure you want to delete Dr.${doctor.name}?`)) return;
 
     try {
-      const { error } = await supabase
-        .from('doctors')
-        .delete()
-        .eq('id', doctor.id);
-
-      if (error) throw error;
+      await deleteDoctor(doctor.id);
 
       await createNotification(
         NotificationTypes.DOCTOR,
@@ -190,6 +159,7 @@ export const DoctorsPage = () => {
       available: 'bg-success/20 text-success',
       busy: 'bg-warning/20 text-warning',
       off_duty: 'bg-muted text-muted-foreground',
+      on_call: 'bg-purple-500/20 text-purple-500',
     };
     return badges[status] || badges.available;
   };
@@ -209,6 +179,7 @@ export const DoctorsPage = () => {
         { value: 'available', label: 'Available' },
         { value: 'busy', label: 'Busy' },
         { value: 'off_duty', label: 'Off Duty' },
+        { value: 'on_call', label: 'On Call' },
       ]
     },
     {

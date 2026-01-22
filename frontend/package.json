@@ -39,6 +39,7 @@
     "cmdk": "^1.1.1",
     "cra-template": "1.2.0",
     "date-fns": "2.30.0",
+    "dotenv": "^17.2.3",
     "framer-motion": "^12.26.2",
     "geojson": "^0.5.0",
     "leaflet": "^1.9.4",
