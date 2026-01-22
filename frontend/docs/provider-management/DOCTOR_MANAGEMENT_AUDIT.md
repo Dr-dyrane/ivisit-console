@@ -723,32 +723,34 @@ ALTER TABLE public.doctors ADD CONSTRAINT doctors_status_check
 
 ## Findings Summary Table
 
-| # | Severity | Issue | Component | Impact |
+| # | Severity | Issue | Component | Status |
 |---|----------|-------|-----------|--------|
-| 1 | 🔴 Critical | Broken doctor-profile linkage on create | CRUD | Orphaned records |
-| 2 | 🟠 High | Missing profile_id in create payload | CRUD | Cannot link manually |
-| 3 | 🟠 High | Update doesn't sync profile | CRUD/Sync | Data drift |
-| 4 | 🟡 Medium | No cascade delete warning | CRUD | Data loss risk |
-| 5 | 🔴 Critical | Email trigger doesn't link existing | Sync | Manual linking required |
-| 6 | 🟠 High | Image sync is one-way | Sync | Asymmetric data |
-| 7 | 🟠 High | Stats include orphaned doctors | Sync/UI | Misleading KPIs |
-| 8 | 🟡 Medium | Real-time doesn't listen to profiles | Sync | Stale data |
-| 9 | 🔴 Critical | RBAC policy uses wrong org check | RBAC | Cross-org access or 403s |
-| 10 | 🟠 High | Missing profile-hospital link path | RBAC | Ambiguous scope |
-| 11 | 🟡 Medium | No provider self-update policy | RBAC | Poor provider UX |
-| 12 | 🟠 High | Modal doesn't handle existing profiles | Profile Mgmt | Cannot link existing users |
-| 13 | 🟠 High | Role downgrade doesn't update doctor | Profile Mgmt | Security risk |
-| 14 | 🟡 Medium | Invite metadata ambiguous | Profile Mgmt | Wrong org assignment |
-| 15 | 🟠 High | Hospital field hidden for org admin | UI | Blind creation |
-| 16 | 🟡 Medium | Cannot re-invite in edit mode | UI | Stuck invites |
-| 17 | 🟡 Medium | No profile link status indicator | UI | Unclear onboarding state |
-| 18 | 🟠 High | Specialization filter is static | Filtering | Incomplete filtering |
-| 19 | 🟡 Medium | Search only by name | Filtering | Poor search UX |
-| 20 | 🟡 Medium | KPI + sheet filter intersection broken | Filtering | Confusing empty state |
-| 21 | 🟡 Medium | No filter for unlinked doctors | Filtering | Cannot track onboarding |
-| 22 | 🟡 Low | Duplicate migration logic | Schema | Migration clutter |
-| 23 | 🔴 Critical | No unique constraint on email | Schema | Duplicate emails allowed |
-| 24 | 🟠 High | Missing 'invited' status in constraint | Schema | Plan mismatch |
+| 1 | 🔴 Critical | Broken doctor-profile linkage on create | CRUD | ✅ Resolved |
+| 2 | 🟠 High | Missing profile_id in create payload | CRUD | ✅ Resolved |
+| 3 | 🟠 High | Update doesn't sync profile | CRUD/Sync | ✅ Resolved |
+| 4 | 🟡 Medium | No cascade delete warning | CRUD | ✅ Resolved |
+| 5 | 🔴 Critical | Email trigger doesn't link existing | Sync | ✅ Resolved |
+| 6 | 🟠 High | Image sync is one-way | Sync | ✅ Resolved |
+| 7 | 🟠 High | Stats include orphaned doctors | Sync/UI | ✅ Resolved |
+| 8 | 🟡 Medium | Real-time doesn't listen to profiles | Sync | ✅ Resolved |
+| 9 | 🔴 Critical | RBAC policy uses wrong org check | RBAC | ✅ Resolved |
+| 10 | 🟠 High | Missing profile-hospital link path | RBAC | ✅ Resolved |
+| 11 | 🟡 Medium | No provider self-update policy | RBAC | ✅ Resolved |
+| 12 | 🟠 High | Modal doesn't handle existing profiles | Profile Mgmt | ✅ Resolved |
+| 13 | 🟠 High | Role downgrade doesn't update doctor | Profile Mgmt | ✅ Resolved |
+| 14 | 🟡 Medium | Invite metadata ambiguous | Profile Mgmt | ✅ Resolved |
+| 15 | 🟠 High | Hospital field hidden for org admin | UI | ✅ Resolved |
+| 16 | 🟡 Medium | Cannot re-invite in edit mode | UI | ✅ Resolved |
+| 17 | 🟡 Medium | No profile link status indicator | UI | ✅ Resolved |
+| 18 | 🟠 High | Specialization filter is static | Filtering | ✅ Resolved |
+| 19 | 🟡 Medium | Search only by name | Filtering | ✅ Resolved |
+| 20 | 🟡 Medium | KPI + sheet filter intersection broken | Filtering | ✅ Resolved |
+| 21 | 🟡 Medium | No filter for unlinked doctors | Filtering | ✅ Resolved |
+| 22 | 🟡 Low | Duplicate migration logic | Schema | ✅ Resolved |
+| 23 | 🔴 Critical | No unique constraint on email | Schema | ✅ Resolved |
+| 24 | 🟠 High | Missing 'invited' status in constraint | Schema | ✅ Resolved |
+
+**Note**: All patterns (Bulk Actions, Advanced Filtering, RBAC Scoping, Confirmation Modals) have been standardized across **Users**, **Doctors**, **Visits**, and **Ambulances** management pages.
 
 **Total**: 24 Flaws
 - 🔴 Critical: 4

@@ -57,31 +57,56 @@ export const DoctorProfileCard = () => {
 
             {/* Header */}
             <div className="p-6 border-b border-border/10 flex justify-between items-center bg-muted/10 relative z-10">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-xl text-primary">
-                        <Stethoscope className="w-5 h-5" />
+                <div className="flex items-center gap-4">
+                    <div className="relative">
+                        <div className="h-12 w-12 rounded-xl overflow-hidden border border-white/10 bg-muted/20">
+                            {doctorProfile.image ? (
+                                <img
+                                    src={doctorProfile.image}
+                                    alt="Professional"
+                                    className="h-full w-full object-cover"
+                                />
+                            ) : (
+                                <div className="flex items-center justify-center h-full">
+                                    <Stethoscope className="w-6 h-6 text-muted-foreground opacity-50" />
+                                </div>
+                            )}
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 p-1 bg-background rounded-lg border border-white/5 shadow-sm">
+                            <Shield className="w-2.5 h-2.5 text-primary" />
+                        </div>
                     </div>
                     <div>
-                        <h3 className="font-bold text-lg">Professional Profile</h3>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Doctor Settings</p>
+                        <h3 className="font-bold text-lg leading-none">Professional Profile</h3>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-1">Provider ID: #{doctorProfile.id?.slice(-8)}</p>
                     </div>
                 </div>
-                {!isEditing ? (
-                    <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="rounded-xl hover:bg-background/80">
-                        <Edit2 className="w-4 h-4 mr-2" />
-                        Edit Details
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.dispatchEvent(new CustomEvent('openDoctorModal'))}
+                        className="rounded-xl hover:bg-background/80 text-xs font-semibold px-3 hidden sm:flex"
+                    >
+                        View Card
                     </Button>
-                ) : (
-                    <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} className="rounded-xl">
-                            <X className="w-4 h-4" />
+                    {!isEditing ? (
+                        <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="rounded-xl hover:bg-background/80">
+                            <Edit2 className="w-4 h-4 mr-2" />
+                            Edit Details
                         </Button>
-                        <Button size="sm" onClick={handleSave} className="rounded-xl font-bold bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-                            <Save className="w-4 h-4 mr-2" />
-                            Save
-                        </Button>
-                    </div>
-                )}
+                    ) : (
+                        <div className="flex gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} className="rounded-xl">
+                                <X className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" onClick={handleSave} className="rounded-xl font-bold bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+                                <Save className="w-4 h-4 mr-2" />
+                                Save
+                            </Button>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="p-6 grid gap-8 relative z-10">

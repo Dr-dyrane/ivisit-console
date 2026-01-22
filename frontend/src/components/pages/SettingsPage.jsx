@@ -15,10 +15,13 @@ import { usePageHeader } from '../../contexts/LayoutContext';
 import { ProfileEditModal } from '../modals/ProfileEditModal';
 import { SecurityModal } from '../modals/SecurityModal';
 import { SupportModal } from '../modals/SupportModal';
+import { DoctorModal } from '../modals/DoctorModal';
 import { DoctorProfileCard } from '../views/DoctorProfileCard';
+import { useDoctorProfile } from '../../hooks/useDoctorProfile';
 
 export const SettingsPage = () => {
     const { user, profile, signOut, isAdmin, isSponsor, isProvider } = useAuth();
+    const { doctorProfile } = useDoctorProfile();
     const [darkMode, setDarkMode] = useState(document.documentElement.classList.contains('dark'));
     const navigate = useNavigate();
 
@@ -26,15 +29,18 @@ export const SettingsPage = () => {
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
     const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+    const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
 
     useEffect(() => {
         const handleOpenProfile = () => setIsProfileModalOpen(true);
         const handleOpenSecurity = () => setIsSecurityModalOpen(true);
         const handleOpenSupport = () => setIsSupportModalOpen(true);
+        const handleOpenDoctor = () => setIsDoctorModalOpen(true);
 
         window.addEventListener('openProfileModal', handleOpenProfile);
         window.addEventListener('openSecurityModal', handleOpenSecurity);
         window.addEventListener('openSupportModal', handleOpenSupport);
+        window.addEventListener('openDoctorModal', handleOpenDoctor);
 
         // Check URL params for quick actions (Context Aware FAB)
         const params = new URLSearchParams(window.location.search);
@@ -48,6 +54,7 @@ export const SettingsPage = () => {
             window.removeEventListener('openProfileModal', handleOpenProfile);
             window.removeEventListener('openSecurityModal', handleOpenSecurity);
             window.removeEventListener('openSupportModal', handleOpenSupport);
+            window.removeEventListener('openDoctorModal', handleOpenDoctor);
         };
     }, []);
 
@@ -369,6 +376,14 @@ export const SettingsPage = () => {
                 isOpen={isSupportModalOpen}
                 onClose={() => setIsSupportModalOpen(false)}
             />
+            {isProvider && doctorProfile && (
+                <DoctorModal
+                    isOpen={isDoctorModalOpen}
+                    onClose={() => setIsDoctorModalOpen(false)}
+                    doctor={doctorProfile}
+                    mode="view"
+                />
+            )}
         </div>
     );
 };
