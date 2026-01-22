@@ -167,3 +167,24 @@ export async function deleteDoctor(doctorId) {
     throw error;
   }
 }
+
+/**
+ * Get doctor by user profile ID
+ */
+export async function getDoctorByProfileId(profileId) {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*, hospitals(name)')
+      .eq('profile_id', profileId)
+      .single();
+
+    if (error && error.code === 'PGRST116') return null;
+    if (error) throw error;
+
+    return data || null;
+  } catch (error) {
+    console.error(`Error fetching doctor profile ${profileId}:`, error);
+    throw error;
+  }
+}

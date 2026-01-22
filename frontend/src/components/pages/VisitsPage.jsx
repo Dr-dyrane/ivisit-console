@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
+import { getDoctorByProfileId } from '../../services/doctorsService';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
@@ -24,7 +25,7 @@ import { VisitTableView } from '../views/VisitTableView';
 import { SEOHead } from '../common/SEOHead';
 
 export const VisitsPage = () => {
-  const { isAdmin, isProvider } = useAuth();
+  const { user, isAdmin, isOrgAdmin, isProvider, orgId } = useAuth();
   const { isMobile } = useNavigation();
   const { visitsData, refreshAllData } = usePageData();
   const [visits, setVisits] = useState([]);
@@ -45,10 +46,20 @@ export const VisitsPage = () => {
       let query = supabase.from('visits').select('*', { count: 'exact', head: true });
 
       // RBAC: Platform Admin sees all. Org Admin sees scoped.
+      // RBAC: Platform Admin sees all. Org Admin sees scoped.
       if (isAdmin()) {
         // Platform admin sees everything
       } else if (isOrgAdmin() && orgId) {
         query = query.eq('hospital_id', orgId);
+      } else if (isProvider()) {
+        const doctor = await getDoctorByProfileId(user.id);
+        if (doctor) {
+          query = query.eq('doctor_id', doctor.id);
+        } else {
+          query = query.eq('user_id', user.id);
+        }
+      } else {
+        query = query.eq('user_id', user.id);
       }
 
       if (filters.status && filters.status.length > 0) {
@@ -77,10 +88,20 @@ export const VisitsPage = () => {
         .order('created_at', { ascending: false });
 
       // RBAC Scoping for Data
+      // RBAC Scoping for Data
       if (isAdmin()) {
         // No filter
       } else if (isOrgAdmin() && orgId) {
         dataQuery = dataQuery.eq('hospital_id', orgId);
+      } else if (isProvider()) {
+        const doctor = await getDoctorByProfileId(user.id);
+        if (doctor) {
+          dataQuery = dataQuery.eq('doctor_id', doctor.id);
+        } else {
+          dataQuery = dataQuery.eq('user_id', user.id);
+        }
+      } else {
+        dataQuery = dataQuery.eq('user_id', user.id);
       }
 
       if (filters.status && filters.status.length > 0) {

@@ -15,6 +15,7 @@ import { usePageHeader } from '../../contexts/LayoutContext';
 import { ProfileEditModal } from '../modals/ProfileEditModal';
 import { SecurityModal } from '../modals/SecurityModal';
 import { SupportModal } from '../modals/SupportModal';
+import { DoctorProfileCard } from '../views/DoctorProfileCard';
 
 export const SettingsPage = () => {
     const { user, profile, signOut, isAdmin, isSponsor, isProvider } = useAuth();
@@ -100,7 +101,7 @@ export const SettingsPage = () => {
             </div>
 
             <LayoutGroup>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 grid-flow-row-dense">
 
                     {/* Main Profile Identity Card - Spans 2 cols on Large, 1 on Mobile */}
                     <motion.div
@@ -204,6 +205,18 @@ export const SettingsPage = () => {
                             </div>
                         </Card>
                     </motion.div>
+
+                    {/* Doctor Professional Profile */}
+                    {isProvider && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="col-span-1 lg:col-span-2"
+                        >
+                            <DoctorProfileCard />
+                        </motion.div>
+                    )}
 
                     {/* Right Column Layout */}
                     <div className="space-y-6 flex flex-col">
