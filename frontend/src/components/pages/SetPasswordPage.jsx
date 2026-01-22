@@ -14,6 +14,7 @@ export const SetPasswordPage = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [sessionVerified, setSessionVerified] = useState(false);
 
@@ -122,13 +123,20 @@ export const SetPasswordPage = () => {
                                 <div className="relative group rounded-2xl bg-muted/40 border-0 focus-within:bg-background focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                                     <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                     <input
-                                        type={showPassword ? "text" : "password"}
+                                        type={showConfirmPassword ? "text" : "password"}
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         placeholder="Confirm Password"
-                                        className="w-full bg-transparent border-none h-14 pl-12 pr-4 text-base placeholder:text-muted-foreground/50 focus:outline-none"
+                                        className="w-full bg-transparent border-none h-14 pl-12 pr-12 text-base placeholder:text-muted-foreground/50 focus:outline-none"
                                         required
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
                                 </div>
                             </div>
 

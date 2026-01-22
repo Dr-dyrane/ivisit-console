@@ -14,7 +14,9 @@ import {
 	Server,
 	CheckCircle2,
 	AlertCircle,
-	Loader2
+	Loader2,
+	Eye,
+	EyeOff
 } from "lucide-react";
 import ThemeToggle from "../ui/theme-toggle";
 import { toast } from "sonner";
@@ -35,6 +37,7 @@ export const LoginPage = () => {
 	// Form State
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
+	const [showPassword, setShowPassword] = useState(false);
 	const [error, setError] = useState("");
 
 	// Greeting Logic
@@ -104,7 +107,7 @@ export const LoginPage = () => {
 			// We check if the user has enrolled factors to determine if we need AAL2.
 			const { data: factors } = await supabase.auth.mfa.listFactors();
 
-			const enrolledFactors = factors?.filter(f => f.status === 'verified') || [];
+			const enrolledFactors = (factors?.all || []).filter(f => f.status === 'verified');
 
 			if (enrolledFactors.length > 0) {
 				// User has MFA enabled. Initiate Challenge.
@@ -407,14 +410,21 @@ export const LoginPage = () => {
 													<Lock size={20} />
 												</div>
 												<input
-													type="password"
+													type={showPassword ? "text" : "password"}
 													autoFocus
 													value={password}
 													onChange={(e) => setPassword(e.target.value)}
-													className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-base placeholder:text-muted-foreground/50 focus:outline-none"
+													className="w-full bg-transparent border-none py-4 pl-12 pr-12 text-base placeholder:text-muted-foreground/50 focus:outline-none"
 													placeholder="••••••••"
 													disabled={isLoading}
 												/>
+												<button
+													type="button"
+													onClick={() => setShowPassword(!showPassword)}
+													className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+												>
+													{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+												</button>
 											</div>
 											{error && (
 												<motion.div

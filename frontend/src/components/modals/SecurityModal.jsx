@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { X, Lock, ShieldCheck, Key, Loader2, AlertCircle } from 'lucide-react';
+import { X, Lock, ShieldCheck, Key, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -163,6 +163,8 @@ export const SecurityModal = ({ isOpen, onClose }) => {
         password: '',
         confirmPassword: ''
     });
+    const [showNewPass, setShowNewPass] = useState(false);
+    const [showConfirmPass, setShowConfirmPass] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -239,12 +241,19 @@ export const SecurityModal = ({ isOpen, onClose }) => {
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                                         <Input
-                                            type="password"
+                                            type={showNewPass ? "text" : "password"}
                                             value={passwords.password}
                                             onChange={(e) => setPasswords(p => ({ ...p, password: e.target.value }))}
-                                            className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary"
+                                            className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary pr-10"
                                             placeholder="••••••••"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowNewPass(!showNewPass)}
+                                            className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                            {showNewPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </button>
                                     </div>
                                 </div>
 
@@ -253,12 +262,19 @@ export const SecurityModal = ({ isOpen, onClose }) => {
                                     <div className="relative">
                                         <Key className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                                         <Input
-                                            type="password"
+                                            type={showConfirmPass ? "text" : "password"}
                                             value={passwords.confirmPassword}
                                             onChange={(e) => setPasswords(p => ({ ...p, confirmPassword: e.target.value }))}
-                                            className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary"
+                                            className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary pr-10"
                                             placeholder="••••••••"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPass(!showConfirmPass)}
+                                            className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                            {showConfirmPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </button>
                                     </div>
                                 </div>
 
