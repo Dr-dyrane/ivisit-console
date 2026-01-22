@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { getHospitals } from '../../services/hospitalsService';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { usePagination } from '../../hooks/usePagination';
@@ -22,6 +23,8 @@ import { FilterSheet } from '../common/FilterSheet';
 import { AmbulanceListView } from '../views/AmbulanceListView';
 import { AmbulanceTableView } from '../views/AmbulanceTableView';
 import { SEOHead } from '../common/SEOHead';
+import { ConfirmationModal } from '../modals/ConfirmationModal';
+import { BulkActionBar } from '../common/BulkActionBar';
 
 import { usePageData } from '../../contexts/PageDataContext';
 
@@ -36,10 +39,29 @@ export const AmbulancesPage = () => {
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({});
+  const [hospitals, setHospitals] = useState([]);
   const [kpiFilter, setKpiFilter] = useState('all');
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: () => { },
+    variant: 'default'
+  });
 
   const { viewMode, setViewMode } = useViewMode('ambulances-page', 'grid');
   const pagination = usePagination(20);
+
+  // Fetch hospitals for filter dropdown (Admin only)
+  useEffect(() => {
+    if (isAdmin()) {
+      getHospitals().then(({ data }) => {
+        if (data) setHospitals(data);
+      });
+    }
+  }, [isAdmin]);
 
   const fetchAmbulances = useCallback(async () => {
     try {
@@ -74,7 +96,6 @@ export const AmbulancesPage = () => {
       let dataQuery = supabase
         .from('ambulances')
         .select('*')
-        .range(pagination.paginationRange.start, pagination.paginationRange.end)
         .order('created_at', { ascending: false });
 
       // RBAC Scoping for Data
@@ -92,27 +113,130 @@ export const AmbulancesPage = () => {
         dataQuery = dataQuery.in('status', filters.status);
       }
 
+      if (filters.type && filters.type.length > 0) {
+        dataQuery = dataQuery.in('type', filters.type);
+      }
+
+      if (filters.hospital) {
+        dataQuery = dataQuery.eq('hospital_id', filters.hospital);
+      }
+
+      if (filters.created_at) {
+        const { start, end } = filters.created_at;
+        if (start) dataQuery = dataQuery.gte('created_at', start);
+        if (end) {
+          const endDate = new Date(end);
+          endDate.setHours(23, 59, 59, 999);
+          dataQuery = dataQuery.lte('created_at', endDate.toISOString());
+        }
+      }
+
       // Apply KPI Filter to data query
       if (kpiFilter === 'available') dataQuery = dataQuery.eq('status', 'available');
       if (kpiFilter === 'on_route') dataQuery = dataQuery.eq('status', 'on_route');
       if (kpiFilter === 'busy') dataQuery = dataQuery.eq('status', 'busy');
       if (kpiFilter === 'maintenance') dataQuery = dataQuery.eq('status', 'maintenance');
 
+      // Fetch ALL (limit 1000) for Client Side Sort/Pagination capabilities
+      dataQuery = dataQuery.limit(1000);
+
       const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load ambulances - timeout');
 
       if (error) throw error;
       setAmbulances(data || []);
+      // Update pagination based on actual fetched data length for client-side pagination
+      pagination.setTotalCount(data ? data.length : 0);
     } catch (error) {
       console.error('Error fetching ambulances:', error);
       toast.error(error.message || 'Failed to load ambulances');
     } finally {
       setLoading(false);
     }
-  }, [pagination.currentPage, pagination.itemsPerPage, filters, kpiFilter, orgId, isOrgAdmin, isAdmin]);
+  }, [filters, kpiFilter, orgId, isOrgAdmin, isAdmin]);
 
   useEffect(() => {
     fetchAmbulances();
   }, [fetchAmbulances, pagination.currentPage]);
+
+  // Scoped Stats Logic for Org Admins
+  const [scopedStats, setScopedStats] = useState(null);
+
+  useEffect(() => {
+    const fetchScopedStats = async () => {
+      if (!isOrgAdmin() || !orgId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('ambulances')
+          .select('status')
+          .eq('hospital_id', orgId);
+
+        if (error) throw error;
+
+        const stats = {
+          total: data.length,
+          available: data.filter(a => a.status === 'available').length,
+          onRoute: data.filter(a => a.status === 'on_route').length,
+          busy: data.filter(a => a.status === 'busy').length,
+          maintenance: data.filter(a => a.status === 'maintenance').length,
+        };
+        setScopedStats(stats);
+      } catch (err) {
+        console.error('Error fetching scoped stats:', err);
+      }
+    };
+
+    fetchScopedStats();
+  }, [isOrgAdmin, orgId, ambulances]); // Re-fetch if ambulances list changes (e.g. create/edit)
+
+  const displayStats = (isOrgAdmin() && orgId && scopedStats) ? scopedStats : ambulancesData?.stats;
+
+  // Processed Data (Sorting & Pagination)
+  const processedAmbulances = useMemo(() => {
+    let result = [...ambulances];
+    if (sortConfig.key) {
+      result.sort((a, b) => {
+        const aVal = a[sortConfig.key] || '';
+        const bVal = b[sortConfig.key] || '';
+        if (typeof aVal === 'string' && typeof bVal === 'string') {
+          return sortConfig.direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return result;
+  }, [ambulances, sortConfig]);
+
+  const paginatedAmbulances = useMemo(() => {
+    const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
+    return processedAmbulances.slice(startIndex, startIndex + pagination.itemsPerPage);
+  }, [processedAmbulances, pagination.currentPage, pagination.itemsPerPage]);
+
+  const handleSort = useCallback((key) => {
+    setSortConfig(prev => {
+      if (prev.key === key && prev.direction === 'desc') {
+        return { key: '', direction: 'asc' }; // Reset
+      }
+      return {
+        key,
+        direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+      };
+    });
+  }, []);
+
+  const handleSelect = useCallback((id, checked) => {
+    setSelectedIds(prev => checked ? [...prev, id] : prev.filter(mid => mid !== id));
+  }, []);
+
+  const handleSelectAll = useCallback((checked) => {
+    if (checked) {
+      setSelectedIds(paginatedAmbulances.map(m => m.id));
+    } else {
+      setSelectedIds([]);
+    }
+  }, [paginatedAmbulances]);
 
   const handleCreate = useCallback(() => {
     setSelectedAmbulance(null);
@@ -152,8 +276,7 @@ export const AmbulancesPage = () => {
   }, []);
 
   const handleDelete = useCallback(async (ambulance) => {
-    if (!confirm(`Are you sure you want to delete ${ambulance.call_sign}?`)) return;
-
+    // Legacy confirm removal - now using Modal via confirmDelete logic below
     try {
       const { error } = await supabase
         .from('ambulances')
@@ -175,6 +298,40 @@ export const AmbulancesPage = () => {
       toast.error('Failed to delete ambulance');
     }
   }, [fetchAmbulances]);
+
+  const confirmDelete = useCallback((ambulance) => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Ambulance',
+      description: `Are you sure you want to delete ${ambulance.call_sign}? This action cannot be undone.`,
+      variant: 'destructive',
+      confirmLabel: 'Delete',
+      onConfirm: () => handleDelete(ambulance)
+    });
+  }, [handleDelete]);
+
+  const handleBulkDelete = useCallback(() => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Selected Ambulances',
+      description: `Are you sure you want to delete ${selectedIds.length} ambulances? This action cannot be undone.`,
+      variant: 'destructive',
+      confirmLabel: 'Delete All',
+      onConfirm: async () => {
+        try {
+          await Promise.all(selectedIds.map(id =>
+            supabase.from('ambulances').delete().eq('id', id)
+          ));
+          toast.success(`${selectedIds.length} ambulances deleted`);
+          setSelectedIds([]);
+          fetchAmbulances();
+        } catch (err) {
+          toast.error("Failed to delete selected ambulances");
+        }
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  }, [selectedIds, fetchAmbulances]);
 
   const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
@@ -212,8 +369,32 @@ export const AmbulancesPage = () => {
         { value: 'busy', label: 'Busy' },
         { value: 'maintenance', label: 'Maintenance' },
       ]
+    },
+    {
+      key: 'type',
+      type: 'multiselect',
+      label: 'Type',
+      options: [
+        { value: 'Standard', label: 'Standard' },
+        { value: 'Advanced', label: 'Advanced' },
+        { value: 'ICU', label: 'ICU' },
+        { value: 'Transport', label: 'Transport' }
+      ]
+    },
+    {
+      key: 'hospital',
+      type: 'select',
+      label: 'Station/Hospital',
+      options: hospitals.map(h => ({ value: h.id, label: h.name })),
+      hidden: !isAdmin()
+    },
+    {
+      key: 'created_at',
+      type: 'date',
+      label: 'Commission Date',
+      placeholder: 'Select dates'
     }
-  ], []);
+  ], [hospitals, isAdmin]);
 
   const viewToggleComponent = React.useMemo(() => (
     <ViewToggle value={viewMode} onChange={setViewMode} />
@@ -378,8 +559,9 @@ export const AmbulancesPage = () => {
     <div className="min-h-screen py-6 md:py-8">
       <SEOHead title="Fleet Management" description="Manage ambulance fleet, status, and live tracking." />
       <div className="pt-2" />
+      <div className="pt-2" />
       {/* Bento Overview Cards - Enhanced with Filtering */}
-      {!loading && ambulancesData?.stats && (
+      {!loading && displayStats && (
         <LayoutGroup>
           <motion.div
             layout
@@ -414,7 +596,7 @@ export const AmbulancesPage = () => {
                     <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Fleet Size</p>
                     {kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
                   </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{ambulancesData.stats.total || 0}</h3>
+                  <h3 className="text-3xl font-bold tracking-tighter">{displayStats.total || 0}</h3>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
                       {kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
@@ -453,7 +635,7 @@ export const AmbulancesPage = () => {
                     <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Available</p>
                     {kpiFilter === 'available' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
                   </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{ambulancesData.stats.available || 0}</h3>
+                  <h3 className="text-3xl font-bold tracking-tighter">{displayStats.available || 0}</h3>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge className="geo-round bg-success/20 text-success border-0 font-bold text-xs">
                       READY
@@ -492,7 +674,7 @@ export const AmbulancesPage = () => {
                     <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">En Route</p>
                     {kpiFilter === 'on_route' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
                   </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{ambulancesData.stats.onRoute || 0}</h3>
+                  <h3 className="text-3xl font-bold tracking-tighter">{displayStats.onRoute || 0}</h3>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge className="squircle-3xl bg-warning/20 text-warning border-0 font-bold text-xs">
                       ACTIVE
@@ -531,7 +713,7 @@ export const AmbulancesPage = () => {
                     <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Busy</p>
                     {kpiFilter === 'busy' && <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />}
                   </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{ambulancesData.stats.busy || 0}</h3>
+                  <h3 className="text-3xl font-bold tracking-tighter">{displayStats.busy || 0}</h3>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge className="geo-ticket bg-destructive/20 text-destructive border-0 font-bold text-xs">
                       ENGAGED
@@ -570,7 +752,7 @@ export const AmbulancesPage = () => {
                     <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Maintenance</p>
                     {kpiFilter === 'maintenance' && <div className="h-2 w-2 rounded-full bg-muted animate-pulse" />}
                   </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{ambulancesData.stats.maintenance || 0}</h3>
+                  <h3 className="text-3xl font-bold tracking-tighter">{displayStats.maintenance || 0}</h3>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge className="geo-wave bg-muted/20 text-muted-foreground border-0 font-bold text-xs">
                       OFFLINE
@@ -588,10 +770,49 @@ export const AmbulancesPage = () => {
       ) : (
         <>
           {viewMode === 'grid' && renderGridView()}
-          {viewMode === 'list' && <AmbulanceListView ambulances={ambulances} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} getStatusBadge={getStatusBadge} isMobile={isMobile} />}
-          {viewMode === 'table' && <AmbulanceTableView ambulances={ambulances} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} getStatusBadge={getStatusBadge} isMobile={isMobile} />}
+          {viewMode === 'list' && <AmbulanceListView ambulances={paginatedAmbulances} onView={handleView} onEdit={handleEdit} onDelete={confirmDelete} getStatusBadge={getStatusBadge} isMobile={isMobile} />}
+          {viewMode === 'table' &&
+            <AmbulanceTableView
+              ambulances={paginatedAmbulances}
+              onView={handleView}
+              onEdit={handleEdit}
+              onDelete={confirmDelete}
+              getStatusBadge={getStatusBadge}
+              isMobile={isMobile}
+              selectedIds={selectedIds}
+              onSelect={handleSelect}
+              onSelectAll={handleSelectAll}
+              sortConfig={sortConfig}
+              onSort={handleSort}
+            />
+          }
         </>
       )}
+
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        title={confirmationModal.title}
+        description={confirmationModal.description}
+        onConfirm={confirmationModal.onConfirm}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        variant={confirmationModal.variant}
+        confirmLabel={confirmationModal.confirmLabel}
+      />
+
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onClear={() => setSelectedIds([])}
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleBulkDelete}
+          className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+          title="Delete Selected"
+        >
+          <Trash2 className="h-5 w-5" />
+        </Button>
+      </BulkActionBar>
 
       {/* Pagination Controls */}
       <PaginationControls

@@ -235,7 +235,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                         <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Call Sign</Label>
                         <Input
                           name="call_sign"
-                          value={formData.call_sign}
+                          value={formData.call_sign || ''}
                           onChange={handleChange}
                           disabled={isView}
                           placeholder="MEDIC-1"
@@ -247,7 +247,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                           <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Plate Number</Label>
                           <Input
                             name="vehicle_number"
-                            value={formData.vehicle_number}
+                            value={formData.vehicle_number || ''}
                             onChange={handleChange}
                             disabled={isView}
                             placeholder="ABC-123"
@@ -257,7 +257,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                         <div className="space-y-1.5">
                           <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Status</Label>
                           <Select
-                            value={formData.status}
+                            value={formData.status || 'available'}
                             onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
                             disabled={isView}
                           >
@@ -276,7 +276,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                       <div className="space-y-1.5">
                         <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Vehicle Type</Label>
                         <Select
-                          value={formData.type}
+                          value={formData.type || 'basic'}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
                           disabled={isView}
                         >
@@ -365,23 +365,30 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                     <GlassCard icon={<Hospital className="text-purple-500" />} title="Deployment">
                       <div className="space-y-4">
                         {/* Hospital Selection - Scoped for Org Admin */}
+                        {/* Hospital Selection - Scoped for Org Admin */}
                         {(isAdmin() || (isOrgAdmin() && isView)) && (
                           <div className="space-y-1.5">
                             <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Base Station / Hospital</Label>
-                            <Select
-                              value={formData.hospital_id}
-                              onValueChange={(value) => setFormData(prev => ({ ...prev, hospital_id: value }))}
-                              disabled={isView}
-                            >
-                              <SelectTrigger className="rounded-xl bg-white/5 border-white/10 h-11">
-                                <SelectValue placeholder="Select hospital" />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
-                                {hospitals.map(h => (
-                                  <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            {isView && !formData.hospital_id && formData.hospital ? (
+                              <div className="flex items-center h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">
+                                <span>{formData.hospital}</span>
+                              </div>
+                            ) : (
+                              <Select
+                                value={formData.hospital_id || ''}
+                                onValueChange={(value) => setFormData(prev => ({ ...prev, hospital_id: value }))}
+                                disabled={isView}
+                              >
+                                <SelectTrigger className="rounded-xl bg-white/5 border-white/10 h-11">
+                                  <SelectValue placeholder="Select hospital" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
+                                  {hospitals.map(h => (
+                                    <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
                           </div>
                         )}
                         <div className="space-y-1.5">
@@ -391,7 +398,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                             <Input
                               type="date"
                               name="last_maintenance"
-                              value={formData.last_maintenance}
+                              value={formData.last_maintenance || ''}
                               onChange={handleChange}
                               disabled={isView}
                               className="rounded-xl bg-white/5 border-white/10 h-11 pl-10"
@@ -409,7 +416,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                             type="number"
                             step="0.1"
                             name="rating"
-                            value={formData.rating}
+                            value={formData.rating || ''}
                             onChange={handleChange}
                             disabled={isView}
                             className="rounded-xl bg-white/5 border-white/10 h-11 font-semibold"
