@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getDoctors, deleteDoctor } from '../../services/doctorsService';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
@@ -11,7 +11,7 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
-import { Stethoscope, Plus, Edit, Trash2, Eye, Hospital, Star, Phone, ChevronRight, Filter } from 'lucide-react';
+import { Stethoscope, Plus, Edit, Trash2, Eye, Hospital, Star, Phone, ChevronRight, Filter, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
@@ -22,6 +22,7 @@ import { DoctorListView } from '../views/DoctorListView';
 import { DoctorTableView } from '../views/DoctorTableView';
 import { withTimeout } from '../../lib/utils';
 import { SEOHead } from '../common/SEOHead';
+import { ConfirmationModal } from '../modals/ConfirmationModal';
 
 import { usePageData } from '../../contexts/PageDataContext';
 
@@ -34,52 +35,124 @@ export const DoctorsPage = () => {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
-  const [filters, setFilters] = useState({});
-  const [kpiFilter, setKpiFilter] = useState('all');
+  const [filters, setFilters] = useState({ kpiFilter: 'all' });
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: () => { },
+    variant: 'default'
+  });
 
   const { viewMode, setViewMode } = useViewMode('doctors-page', 'grid');
   const pagination = usePagination(20);
+
+  // Filter doctors based on KPI filter and other filters
+  const filteredDoctors = useMemo(() => {
+    let filtered = [...doctors];
+
+    // Apply KPI filter
+    if (filters.kpiFilter && filters.kpiFilter !== 'all') {
+      filtered = filtered.filter(d => d.status === filters.kpiFilter);
+    }
+
+    // Apply search filter
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      filtered = filtered.filter(d =>
+        (d.name || '').toLowerCase().includes(searchTerm) ||
+        (d.first_name ? `${d.first_name} ${d.last_name}`.toLowerCase().includes(searchTerm) : false) ||
+        (d.specialization || '').toLowerCase().includes(searchTerm) ||
+        (d.phone || '').toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Apply status filter (from FilterSheet, can intersect with KPI)
+    if (filters.status && filters.status.length > 0) {
+      filtered = filtered.filter(d => filters.status.includes(d.status));
+    }
+
+    // Apply specialization filter
+    if (filters.specialization && filters.specialization.length > 0) {
+      filtered = filtered.filter(d => filters.specialization.includes(d.specialization));
+    }
+
+    // Apply Date Range filter
+    if (filters.created_at) {
+      const { start, end } = filters.created_at;
+      if (start) {
+        filtered = filtered.filter(d => new Date(d.created_at) >= new Date(start));
+      }
+      if (end) {
+        const endDate = new Date(end);
+        endDate.setHours(23, 59, 59, 999);
+        filtered = filtered.filter(d => new Date(d.created_at) <= endDate);
+      }
+    }
+
+    return filtered;
+  }, [doctors, filters]);
+
+  // Apply Client-Side Sorting
+  const processedDoctors = useMemo(() => {
+    let result = [...filteredDoctors];
+    if (sortConfig.key) {
+      result.sort((a, b) => {
+        const aVal = a[sortConfig.key] || '';
+        const bVal = b[sortConfig.key] || '';
+        if (typeof aVal === 'string' && typeof bVal === 'string') {
+          return sortConfig.direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return result;
+  }, [filteredDoctors, sortConfig]);
+
+  const paginatedDoctors = useMemo(() => {
+    if (isAdmin() || isOrgAdmin()) {
+      const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
+      return processedDoctors.slice(startIndex, startIndex + pagination.itemsPerPage);
+    }
+    return processedDoctors;
+  }, [processedDoctors, pagination.currentPage, pagination.itemsPerPage, isAdmin, isOrgAdmin]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    pagination.resetPagination();
+  }, [filters, pagination.resetPagination]);
 
   const fetchDoctors = useCallback(async () => {
     try {
       setLoading(true);
 
-      const filter = {
-        limit: pagination.itemsPerPage,
-        offset: pagination.paginationRange.start,
-        search: filters.search
-      };
+      // For admins and org admins, fetch all doctors for client-side filtering/sorting
+      const isPrivileged = isAdmin() || isOrgAdmin();
+      const limit = isPrivileged ? 1000 : pagination.itemsPerPage;
+      const offset = isPrivileged ? 0 : pagination.paginationRange.start;
 
-      // RBAC
+      const filter = { limit, offset };
+
+      // RBAC: Org admins see only their organization's doctors
       if (!isAdmin() && isOrgAdmin() && orgId) {
         filter.hospital_id = orgId;
-      }
-
-      // Merge KPI and Sheet filters for Status
-      let statusFilter = filters.status;
-      if (kpiFilter !== 'all') {
-        if (statusFilter && statusFilter.length > 0) {
-          // Intersection
-          const intersection = statusFilter.filter(s => s === kpiFilter);
-          statusFilter = intersection.length > 0 ? intersection : ['__none__'];
-        } else {
-          statusFilter = kpiFilter;
-        }
-      }
-      if (statusFilter && (typeof statusFilter === 'string' || statusFilter.length > 0)) {
-        filter.status = statusFilter;
-      }
-
-      // Specialization
-      if (filters.specialization && filters.specialization.length > 0) {
-        filter.specialization = filters.specialization;
       }
 
       // Call Service
       const { data, count } = await withTimeout(getDoctors(filter), 8000, 'Failed to load doctors - timeout');
 
-      pagination.setTotalCount(count || 0);
-      setDoctors(data || []);
+      if (isPrivileged) {
+        // For privileged users, manage pagination client-side
+        pagination.setTotalCount(data?.length || 0);
+        setDoctors(data || []); // Store all for client-side filtering
+      } else {
+        pagination.setTotalCount(count || 0);
+        setDoctors(data || []);
+      }
 
     } catch (error) {
       console.error('Error fetching doctors:', error);
@@ -87,7 +160,7 @@ export const DoctorsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, isOrgAdmin, orgId, filters, kpiFilter, pagination.itemsPerPage, pagination.paginationRange.start]);
+  }, [isAdmin, isOrgAdmin, orgId, pagination.itemsPerPage, pagination.paginationRange.start]);
 
   useEffect(() => {
     fetchDoctors();
@@ -127,8 +200,6 @@ export const DoctorsPage = () => {
   }, []);
 
   const handleDelete = useCallback(async (doctor) => {
-    if (!window.confirm(`Are you sure you want to delete Dr.${doctor.name}?`)) return;
-
     try {
       await deleteDoctor(doctor.id);
 
@@ -145,6 +216,67 @@ export const DoctorsPage = () => {
       toast.error('Failed to delete doctor');
     }
   }, [fetchDoctors]);
+
+  // Confirmation modal for delete
+  const confirmDelete = useCallback((doctor) => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Doctor',
+      description: `Are you sure you want to delete Dr. ${doctor.name}? This action cannot be undone.`,
+      variant: 'destructive',
+      confirmLabel: 'Delete',
+      onConfirm: () => handleDelete(doctor)
+    });
+  }, [handleDelete]);
+
+  // Selection Handlers
+  const handleSelect = useCallback((id, checked) => {
+    setSelectedIds(prev => checked ? [...prev, id] : prev.filter(did => did !== id));
+  }, []);
+
+  const handleSelectAll = useCallback((checked) => {
+    if (checked) {
+      setSelectedIds(paginatedDoctors.map(d => d.id));
+    } else {
+      setSelectedIds([]);
+    }
+  }, [paginatedDoctors]);
+
+  const handleSort = useCallback((key) => {
+    setSortConfig(prev => {
+      if (prev.key === key && prev.direction === 'desc') {
+        return { key: '', direction: 'asc' }; // Reset
+      }
+      return {
+        key,
+        direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+      };
+    });
+  }, []);
+
+  // Bulk delete handler
+  const handleBulkDelete = useCallback(() => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Selected Doctors',
+      description: `Are you sure you want to delete ${selectedIds.length} doctors? This action cannot be undone.`,
+      variant: 'destructive',
+      confirmLabel: 'Delete All',
+      onConfirm: async () => {
+        try {
+          // Delete all selected doctors
+          await Promise.all(selectedIds.map(id => deleteDoctor(id)));
+          toast.success(`${selectedIds.length} doctors deleted successfully`);
+          setSelectedIds([]);
+          fetchDoctors();
+        } catch (err) {
+          console.error("Bulk delete failed", err);
+          toast.error("Failed to delete selected doctors");
+        }
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  }, [selectedIds, fetchDoctors]);
 
   const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
@@ -168,8 +300,8 @@ export const DoctorsPage = () => {
     {
       key: 'search',
       type: 'text',
-      label: 'Search Doctors',
-      placeholder: 'Search by name...'
+      label: 'Search',
+      placeholder: 'Search doctors...'
     },
     {
       key: 'status',
@@ -191,7 +323,15 @@ export const DoctorsPage = () => {
         { value: 'neurology', label: 'Neurology' },
         { value: 'pediatrics', label: 'Pediatrics' },
         { value: 'general', label: 'General Practitioner' },
+        { value: 'orthopedics', label: 'Orthopedics' },
+        { value: 'dermatology', label: 'Dermatology' },
       ]
+    },
+    {
+      key: 'created_at',
+      type: 'date',
+      label: 'Added Date',
+      placeholder: 'Select dates'
     }
   ], []);
 
@@ -204,12 +344,15 @@ export const DoctorsPage = () => {
       variant="ghost"
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
       aria-label="Filter doctors"
     >
       <Filter className="h-4 w-4" />
+      {(filters.search || (filters.status && filters.status.length > 0) || (filters.specialization && filters.specialization.length > 0)) && (
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+      )}
     </Button>
-  ), []);
+  ), [filters]);
 
   const headerActions = React.useMemo(() => (
     <Button
@@ -239,6 +382,48 @@ export const DoctorsPage = () => {
 
   usePageFooter(footerContent, 'pagination', !loading && doctors.length > 0);
 
+  // Bulk Action Bar Component
+  const BulkActionBar = useMemo(() => (
+    <LayoutGroup>
+      {selectedIds.length > 0 && (
+        <motion.div
+          initial={{ x: 50, opacity: 0, scale: 0.9 }}
+          animate={{ x: 0, opacity: 1, scale: 1 }}
+          exit={{ x: 50, opacity: 0, scale: 0.9 }}
+          className="fixed top-1/2 -translate-y-1/2 right-6 z-50 flex flex-col items-center gap-3 p-2 bg-background/15 backdrop-blur-sm border-0 shadow-none rounded-full"
+        >
+          <div className="bg-primary text-primary-foreground text-[10px] font-bold h-6 min-w-[24px] px-1.5 rounded-full flex items-center justify-center shadow-sm mb-1">
+            {selectedIds.length}
+          </div>
+
+          {(isAdmin() || isOrgAdmin()) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBulkDelete}
+              className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+              title="Delete Selected"
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
+          )}
+
+          <div className="w-8 h-[1px] bg-white/10 my-0.5" />
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSelectedIds([])}
+            className="h-8 w-8 rounded-full hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all"
+            title="Clear Selection"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </motion.div>
+      )}
+    </LayoutGroup>
+  ), [selectedIds, isAdmin, isOrgAdmin, handleBulkDelete]);
+
   return (
     <div className="min-h-screen py-6 md:py-8">
       <SEOHead title="Medical Staff" description="Manage doctors, specialists, and medical personnel." />
@@ -260,30 +445,30 @@ export const DoctorsPage = () => {
               transition={{ duration: 0.4, delay: 0.1 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
                   }`}
-                onClick={() => setKpiFilter('all')}
+                onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
                 role="button"
                 tabIndex={0}
                 aria-label="Show all doctors"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
-                    <div className={`absolute inset-0 ${kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
                     <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
-                      <Stethoscope className={`h-5 w-5 ${kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
+                      <Stethoscope className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
                     <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Staff</p>
-                    {kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+                    {filters.kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
                   </div>
                   <h3 className="text-3xl font-bold tracking-tighter">{doctorsData.stats.total || 0}</h3>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
-                      {kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
+                      {filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
                     </Badge>
                   </div>
                 </div>
@@ -299,18 +484,18 @@ export const DoctorsPage = () => {
               transition={{ duration: 0.4, delay: 0.15 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'available' ? 'ring-2 ring-success shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'available' ? 'ring-2 ring-success shadow-lg' : ''
                   }`}
-                onClick={() => setKpiFilter('available')}
+                onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'available' }))}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by available doctors"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
-                    <div className={`absolute inset-0 ${kpiFilter === 'available' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className={`absolute inset-0 ${filters.kpiFilter === 'available' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
                     <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
-                      <Badge className={`h-5 w-5 ${kpiFilter === 'available' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200 p-0 border-0 bg-transparent flex items-center justify-center`}>
+                      <Badge className={`h-5 w-5 ${filters.kpiFilter === 'available' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200 p-0 border-0 bg-transparent flex items-center justify-center`}>
                         ✓
                       </Badge>
                     </div>
@@ -319,7 +504,7 @@ export const DoctorsPage = () => {
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
                     <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Available</p>
-                    {kpiFilter === 'available' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
+                    {filters.kpiFilter === 'available' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
                   </div>
                   <h3 className="text-3xl font-bold tracking-tighter">{doctorsData.stats.available || 0}</h3>
                   <div className="flex items-center gap-2 mt-2">
@@ -340,25 +525,25 @@ export const DoctorsPage = () => {
               transition={{ duration: 0.4, delay: 0.2 }}
             >
               <Card
-                className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'on_call' ? 'ring-2 ring-purple-500 shadow-lg' : ''
+                className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'on_call' ? 'ring-2 ring-purple-500 shadow-lg' : ''
                   }`}
-                onClick={() => setKpiFilter('on_call')}
+                onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'on_call' }))}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by on-call doctors"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
-                    <div className={`absolute inset-0 ${kpiFilter === 'on_call' ? 'bg-purple-500/30' : 'bg-purple-500/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className={`absolute inset-0 ${filters.kpiFilter === 'on_call' ? 'bg-purple-500/30' : 'bg-purple-500/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
                     <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
-                      <Phone className={`h-5 w-5 ${kpiFilter === 'on_call' ? 'text-purple-500' : 'text-muted-foreground'} transition-colors duration-200`} />
+                      <Phone className={`h-5 w-5 ${filters.kpiFilter === 'on_call' ? 'text-purple-500' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
                     <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">On Call</p>
-                    {kpiFilter === 'on_call' && <div className="h-2 w-2 rounded-full bg-purple-500 animate-pulse" />}
+                    {filters.kpiFilter === 'on_call' && <div className="h-2 w-2 rounded-full bg-purple-500 animate-pulse" />}
                   </div>
                   <h3 className="text-3xl font-bold tracking-tighter">{doctorsData.stats.onCall || 0}</h3>
                   <div className="flex items-center gap-2 mt-2">
@@ -379,25 +564,25 @@ export const DoctorsPage = () => {
               transition={{ duration: 0.4, delay: 0.25 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'busy' ? 'ring-2 ring-warning shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'busy' ? 'ring-2 ring-warning shadow-lg' : ''
                   }`}
-                onClick={() => setKpiFilter('busy')}
+                onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'busy' }))}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by busy doctors"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
-                    <div className={`absolute inset-0 ${kpiFilter === 'busy' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className={`absolute inset-0 ${filters.kpiFilter === 'busy' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
                     <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
-                      <Stethoscope className={`h-5 w-5 ${kpiFilter === 'busy' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
+                      <Stethoscope className={`h-5 w-5 ${filters.kpiFilter === 'busy' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
                     <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Busy</p>
-                    {kpiFilter === 'busy' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
+                    {filters.kpiFilter === 'busy' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
                   </div>
                   <h3 className="text-3xl font-bold tracking-tighter">{doctorsData.stats.busy || 0}</h3>
                   <div className="flex items-center gap-2 mt-2">
@@ -418,25 +603,25 @@ export const DoctorsPage = () => {
               transition={{ duration: 0.4, delay: 0.3 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'off_duty' ? 'ring-2 ring-muted shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'off_duty' ? 'ring-2 ring-muted shadow-lg' : ''
                   }`}
-                onClick={() => setKpiFilter('off_duty')}
+                onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'off_duty' }))}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by off-duty doctors"
               >
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
-                    <div className={`absolute inset-0 ${kpiFilter === 'off_duty' ? 'bg-muted/30' : 'bg-muted/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className={`absolute inset-0 ${filters.kpiFilter === 'off_duty' ? 'bg-muted/30' : 'bg-muted/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
                     <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
-                      <Star className={`h-5 w-5 ${kpiFilter === 'off_duty' ? 'text-muted-foreground' : 'text-muted-foreground'} transition-colors duration-200`} />
+                      <Star className={`h-5 w-5 ${filters.kpiFilter === 'off_duty' ? 'text-muted-foreground' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
                     <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Off Duty</p>
-                    {kpiFilter === 'off_duty' && <div className="h-2 w-2 rounded-full bg-muted animate-pulse" />}
+                    {filters.kpiFilter === 'off_duty' && <div className="h-2 w-2 rounded-full bg-muted animate-pulse" />}
                   </div>
                   <h3 className="text-3xl font-bold tracking-tighter">{doctorsData.stats.off_duty || 0}</h3>
                   <div className="flex items-center gap-2 mt-2">
@@ -473,7 +658,7 @@ export const DoctorsPage = () => {
                   className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
                   data-testid="doctors-grid"
                 >
-                  {doctors.map((doctor, index) => (
+                  {paginatedDoctors.map((doctor, index) => (
                     <motion.div
                       layout
                       key={doctor.id}
@@ -583,10 +768,10 @@ export const DoctorsPage = () => {
 
           {viewMode === 'list' && (
             <DoctorListView
-              doctors={doctors}
+              doctors={paginatedDoctors}
               onView={handleView}
               onEdit={handleEdit}
-              onDelete={handleDelete}
+              onDelete={confirmDelete}
               getStatusBadge={getStatusBadge}
               isMobile={isMobile}
             />
@@ -594,12 +779,17 @@ export const DoctorsPage = () => {
 
           {viewMode === 'table' && (
             <DoctorTableView
-              doctors={doctors}
+              doctors={paginatedDoctors}
               onView={handleView}
               onEdit={handleEdit}
-              onDelete={handleDelete}
+              onDelete={confirmDelete}
               getStatusBadge={getStatusBadge}
               isMobile={isMobile}
+              selectedIds={selectedIds}
+              onSelect={handleSelect}
+              onSelectAll={handleSelectAll}
+              sortConfig={sortConfig}
+              onSort={handleSort}
             />
           )}
         </>
@@ -636,6 +826,18 @@ export const DoctorsPage = () => {
         viewToggle={isMobile ? viewToggleComponent : null}
         isMobile={isMobile}
       />
+
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        title={confirmationModal.title}
+        description={confirmationModal.description}
+        onConfirm={confirmationModal.onConfirm}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        variant={confirmationModal.variant}
+        confirmLabel={confirmationModal.confirmLabel}
+      />
+
+      {BulkActionBar}
     </div >
   );
 };
