@@ -42,6 +42,7 @@ async function getProfilesWithAuthData(filter) {
       full_name: u.profile_full_name,
       provider_type: u.profile_provider_type,
       bvn_verified: u.profile_bvn_verified,
+      organization_id: u.profile_organization_id || u.organization_id,
       // Handle image_uri/avatar if present in RPC, otherwise rely on fallbacks
       image_uri: u.profile_image_uri || u.image_uri,
       avatar_url: u.profile_avatar_url || u.avatar_url

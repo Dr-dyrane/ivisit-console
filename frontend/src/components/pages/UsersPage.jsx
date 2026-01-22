@@ -26,6 +26,8 @@ import { SEOHead } from '../common/SEOHead';
 
 import { UserAnalyticsModal } from '../modals/UserAnalyticsModal';
 import { InviteUserModal } from '../modals/InviteUserModal';
+import { ConfirmationModal } from '../modals/ConfirmationModal';
+import { CheckSquare, Archive } from 'lucide-react'; // Additional icons
 
 export const UsersPage = () => {
   const { isAdmin, isOrgAdmin, orgId, profile, can } = useAuth();
@@ -40,6 +42,15 @@ export const UsersPage = () => {
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
   const [showStatistics, setShowStatistics] = useState(false);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: () => { },
+    variant: 'default'
+  });
 
   // Handle URL parameters for filtering
   useEffect(() => {
@@ -94,8 +105,40 @@ export const UsersPage = () => {
       filtered = filtered.filter(u => filters.provider_type.includes(u.provider_type));
     }
 
+    // Apply Date Range filter
+    if (filters.created_at) {
+      const { start, end } = filters.created_at;
+      if (start) {
+        filtered = filtered.filter(u => new Date(u.created_at) >= new Date(start));
+      }
+      if (end) {
+        // Add 1 day to include end date fully or set time to end of day
+        const endDate = new Date(end);
+        endDate.setHours(23, 59, 59, 999);
+        filtered = filtered.filter(u => new Date(u.created_at) <= endDate);
+      }
+    }
+
     return filtered;
   }, [users, filters]);
+
+  // Apply Client-Side Sorting
+  const processedUsers = useMemo(() => {
+    let result = [...filteredUsers];
+    if (sortConfig.key) {
+      result.sort((a, b) => {
+        const aVal = a[sortConfig.key] || '';
+        const bVal = b[sortConfig.key] || '';
+        if (typeof aVal === 'string' && typeof bVal === 'string') {
+          return sortConfig.direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return result;
+  }, [filteredUsers, sortConfig]);
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -275,17 +318,19 @@ export const UsersPage = () => {
 
   const handleDelete = useCallback(async (user) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', user.id);
+      const targetId = user.id || user.user_id; // Check for alternate keys
+      if (!targetId) {
+        throw new Error("Could not determine user ID for deletion");
+      }
+
+      const { error } = await supabase.rpc('delete_user_by_admin', { target_user_id: targetId });
 
       if (error) throw error;
 
       await createNotification(
         NotificationTypes.USER,
         NotificationActions.DELETED,
-        user.id,
+        targetId,
         { message: `User ${user.username} has been removed from the system` }
       );
       toast.success('User deleted successfully');
@@ -299,6 +344,69 @@ export const UsersPage = () => {
   const handleViewAnalytics = useCallback(() => {
     setAnalyticsModalOpen(true);
   }, []);
+
+  // Selection Handlers
+  const handleSelect = useCallback((id, checked) => {
+    setSelectedIds(prev => checked ? [...prev, id] : prev.filter(uid => uid !== id));
+  }, []);
+
+  const handleSelectAll = useCallback((checked) => {
+    if (checked) {
+      setSelectedIds(processedUsers.map(u => u.id));
+    } else {
+      setSelectedIds([]);
+    }
+  }, [processedUsers]);
+
+  const handleSort = useCallback((key) => {
+    setSortConfig(prev => {
+      if (prev.key === key && prev.direction === 'desc') {
+        return { key: '', direction: 'asc' }; // Reset
+      }
+      return {
+        key,
+        direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+      };
+    });
+  }, []);
+
+  // Delete handlers with Confirmation
+  const confirmDelete = useCallback((user) => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete User',
+      description: `Are you sure you want to delete ${user.full_name || user.username}? This action cannot be undone.`,
+      variant: 'destructive',
+      confirmLabel: 'Delete',
+      onConfirm: () => handleDelete(user)
+    });
+  }, [handleDelete]);
+
+  const handleBulkDelete = useCallback(() => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Selected Users',
+      description: `Are you sure you want to delete ${selectedIds.length} users? This action cannot be undone.`,
+      variant: 'destructive',
+      confirmLabel: 'Delete All',
+      onConfirm: async () => {
+        // Logic to delete multiple
+        try {
+          // In a real app, use a bulk delete API. Here we assume one by one or loop.
+          // Supabase 'in' query is better.
+          const { error } = await supabase.from('profiles').delete().in('id', selectedIds);
+          if (error) throw error;
+          toast.success(`${selectedIds.length} users deleted successfully`);
+          setSelectedIds([]);
+          fetchUsers();
+        } catch (err) {
+          console.error("Bulk delete failed", err);
+          toast.error("Failed to delete selected users");
+        }
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  }, [selectedIds, fetchUsers]);
 
   const handleModalClose = useCallback(() => {
     setSelectedUser(null);
@@ -354,12 +462,19 @@ export const UsersPage = () => {
       key: 'provider_type',
       type: 'multiselect',
       label: 'Provider Type',
+      dependsOn: { key: 'role', value: 'provider' },
       options: [
         { value: 'Doctor', label: 'Doctor' },
         { value: 'Nurse', label: 'Nurse' },
         { value: 'Specialist', label: 'Specialist' },
         { value: 'Pharmacist', label: 'Pharmacist' }
       ]
+    },
+    {
+      key: 'created_at',
+      type: 'date',
+      label: 'Joined Date',
+      placeholder: 'Select dates'
     }
   ], []);
 
@@ -428,6 +543,48 @@ export const UsersPage = () => {
     ) : null
   );
 
+  // Bulk Action Bar Component
+  const BulkActionBar = useMemo(() => (
+    <LayoutGroup>
+      {selectedIds.length > 0 && (
+        <motion.div
+          initial={{ x: 50, opacity: 0, scale: 0.9 }}
+          animate={{ x: 0, opacity: 1, scale: 1 }}
+          exit={{ x: 50, opacity: 0, scale: 0.9 }}
+          className="fixed top-1/2 -translate-y-1/2 right-6 z-50 flex flex-col items-center gap-3 p-2 bg-background/15 backdrop-blur-sm border-0 shadow-none rounded-full"
+        >
+          <div className="bg-primary text-primary-foreground text-[10px] font-bold h-6 min-w-[24px] px-1.5 rounded-full flex items-center justify-center shadow-sm mb-1">
+            {selectedIds.length}
+          </div>
+
+          {isAdmin() && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBulkDelete}
+              className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+              title="Delete Selected"
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
+          )}
+
+          <div className="w-8 h-[1px] bg-white/10 my-0.5" />
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSelectedIds([])}
+            className="h-8 w-8 rounded-full hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all"
+            title="Clear Selection"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </motion.div>
+      )}
+    </LayoutGroup>
+  ), [selectedIds, isAdmin, handleBulkDelete]);
+
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
       <SEOHead title="User Management" description="Manage user profiles, roles, and verifications." />
@@ -456,7 +613,7 @@ export const UsersPage = () => {
             </div>
             <div className="relative z-10">
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Total Users</p>
-              <h3 className="text-3xl font-bold tracking-tighter">{statistics?.totalUsers || pagination.totalCount || users.length}</h3>
+              <h3 className="text-3xl font-bold tracking-tighter">{statistics?.totalUsers || pagination.totalCount || processedUsers.length}</h3>
               <div className="flex items-center gap-2 mt-2">
                 <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
                   {filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
@@ -490,7 +647,7 @@ export const UsersPage = () => {
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Verified</p>
               {/* Prioritize statistics.bvnVerifiedUsers (Server Truth) */}
               <h3 className="text-3xl font-bold tracking-tighter">
-                {statistics?.bvnVerifiedUsers !== undefined ? statistics.bvnVerifiedUsers : users.filter(u => u.bvn_verified).length}
+                {statistics?.bvnVerifiedUsers !== undefined ? statistics.bvnVerifiedUsers : processedUsers.filter(u => u.bvn_verified).length}
               </h3>
               <div className="flex items-center gap-2 mt-2">
                 <Badge className="geo-round bg-success/20 text-success border-0 font-bold text-xs">VERIFIED</Badge>
@@ -524,7 +681,7 @@ export const UsersPage = () => {
               <div className="relative z-10">
                 <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Admins & Managers</p>
                 <h3 className="text-3xl font-bold tracking-tighter">
-                  {(statistics?.roleDistribution?.admin || 0) + (statistics?.roleDistribution?.org_admin || 0) || users.filter(u => ['admin', 'org_admin'].includes(u.role)).length}
+                  {(statistics?.roleDistribution?.admin || 0) + (statistics?.roleDistribution?.org_admin || 0) || processedUsers.filter(u => ['admin', 'org_admin'].includes(u.role)).length}
                 </h3>
                 <div className="flex items-center gap-2 mt-2">
                   <Badge className="geo-ticket bg-warning/20 text-warning border-0 font-bold text-xs">MANAGEMENT</Badge>
@@ -548,7 +705,7 @@ export const UsersPage = () => {
               <div className="relative z-10">
                 <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Providers</p>
                 <h3 className="text-3xl font-bold tracking-tighter">
-                  {statistics?.roleDistribution?.provider || users.filter(u => u.role === 'provider').length}
+                  {statistics?.roleDistribution?.provider || processedUsers.filter(u => u.role === 'provider').length}
                 </h3>
                 <div className="flex items-center gap-2 mt-2">
                   <Badge className="geo-round bg-info/20 text-info border-0 font-bold text-xs">MEDICAL STAFF</Badge>
@@ -582,7 +739,7 @@ export const UsersPage = () => {
               </div>
               <div className="relative z-10">
                 <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Providers</p>
-                <h3 className="text-3xl font-bold tracking-tighter">{statistics?.roleDistribution?.provider || users.filter(u => u.role === 'provider').length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{statistics?.roleDistribution?.provider || processedUsers.filter(u => u.role === 'provider').length}</h3>
                 <div className="flex items-center gap-2 mt-2">
                   <Badge className="geo-round bg-info/20 text-info border-0 font-bold text-xs">HEALTHCARE</Badge>
                 </div>
@@ -605,7 +762,7 @@ export const UsersPage = () => {
               <div className="relative z-10">
                 <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Patients</p>
                 <h3 className="text-3xl font-bold tracking-tighter">
-                  {statistics?.roleDistribution?.patient || users.filter(u => u.role === 'patient').length}
+                  {statistics?.roleDistribution?.patient || processedUsers.filter(u => u.role === 'patient').length}
                 </h3>
                 <div className="flex items-center gap-2 mt-2">
                   <Badge className="geo-round bg-secondary/20 text-secondary border-0 font-bold text-xs">CONSUMERS</Badge>
@@ -730,7 +887,7 @@ export const UsersPage = () => {
                     layout
                     className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
                   >
-                    {filteredUsers.map((user, index) => (
+                    {processedUsers.map((user, index) => (
                       <motion.div
                         layout
                         key={user.id}
@@ -838,7 +995,7 @@ export const UsersPage = () => {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => handleDelete(user)}
+                                  onClick={() => confirmDelete(user)}
                                   className="flex-1 h-8 bg-destructive/20 hover:bg-destructive/30 border border-destructive/20 text-[10px] font-bold tracking-widest uppercase text-destructive"
                                   aria-label={`Delete ${user.username || user.profile_username || 'user'}`}
                                 >
@@ -858,10 +1015,10 @@ export const UsersPage = () => {
               {/* List View */}
               {viewMode === 'list' && (
                 <UserListView
-                  users={filteredUsers}
+                  users={processedUsers}
                   onView={handleView}
                   onEdit={handleEdit}
-                  onDelete={handleDelete}
+                  onDelete={confirmDelete}
                   isAdmin={isAdmin()}
                 />
               )}
@@ -869,10 +1026,15 @@ export const UsersPage = () => {
               {/* Table View */}
               {viewMode === 'table' && (
                 <UserTableView
-                  users={filteredUsers}
+                  users={processedUsers}
                   onView={handleView}
                   onEdit={handleEdit}
-                  onDelete={handleDelete}
+                  onDelete={confirmDelete}
+                  selectedIds={selectedIds}
+                  onSelect={handleSelect}
+                  onSelectAll={handleSelectAll}
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
                   isAdmin={isAdmin()}
                 />
               )}
@@ -890,6 +1052,22 @@ export const UsersPage = () => {
         hasPrevPage={pagination.hasPrevPage}
         hasNextPage={pagination.hasNextPage}
         loading={loading}
+      />
+
+      {/* Modals & Overlays */}
+      {BulkActionBar}
+
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={() => {
+          confirmationModal.onConfirm();
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        }}
+        title={confirmationModal.title}
+        description={confirmationModal.description}
+        variant={confirmationModal.variant}
+        confirmLabel={confirmationModal.confirmLabel}
       />
 
       {

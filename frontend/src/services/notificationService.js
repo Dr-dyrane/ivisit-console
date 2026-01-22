@@ -88,7 +88,6 @@ export const createNotification = async (type, action, targetId, metadata = {}) 
         {
           user_id: user.id,
           type,
-          action,
           target_id: targetId,
           title: config.label,
           message: metadata.message || `${config.label} - ${targetId}`,
