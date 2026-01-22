@@ -33,12 +33,12 @@ export const UserTableView = ({ users, onView, onEdit, onDelete, isMobile = fals
                 transition={{ delay: index * 0.02 }}
                 className="border-b border-white/10 hover:bg-white/5 transition-colors group"
               >
-                <TableCell className="font-bold">{user.username || 'Unknown'}</TableCell>
+                <TableCell className="font-bold">{user.full_name || user.username || 'Unknown'}</TableCell>
                 <TableCell className="text-muted-foreground">{user.email || '-'}</TableCell>
                 <TableCell>
                   <Badge className={`squircle-sm ${user.role === 'admin' ? 'bg-warning/20 text-warning' :
-                      user.role === 'provider' ? 'bg-success/20 text-success' :
-                        'bg-info/20 text-info'
+                    user.role === 'provider' ? 'bg-success/20 text-success' :
+                      'bg-info/20 text-info'
                     } border-0 font-bold`}>
                     {user.role}
                   </Badge>

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { getSupportTickets } from '../services/supportTicketsService';
+import { getUserStatistics } from '../services/profilesService';
 
 // Mock data as fallback
 const mockEmergencyData = {
@@ -457,6 +458,14 @@ export const PageDataProvider = ({ children }) => {
       // Try to get profiles with auth data (includes last_sign_in_at)
       const { data: authUsers, error: authError } = await supabase.rpc('get_all_auth_users');
 
+      // Fetch robust statistics from the server (Source of Truth)
+      let serverStatistics = null;
+      try {
+        serverStatistics = await getUserStatistics();
+      } catch (err) {
+        // Ignore error, will fallback to manual calc
+      }
+
       if (authError) {
         console.warn('Could not fetch auth users, falling back to profiles:', authError);
 
@@ -474,7 +483,7 @@ export const PageDataProvider = ({ children }) => {
 
         const users = profiles || [];
 
-        // Calculate statistics from profiles
+        // Calculate statistics from profiles (Fallback)
         const totalUsers = users.length;
         const emailVerifiedUsers = users.filter(u => u.email_confirmed_at).length;
         const bvnVerifiedUsers = users.filter(u => u.bvn_verified).length;
@@ -488,7 +497,7 @@ export const PageDataProvider = ({ children }) => {
           return acc;
         }, {});
 
-        const statistics = {
+        const statistics = (serverStatistics && Object.keys(serverStatistics).length > 0) ? serverStatistics : {
           totalUsers,
           emailVerifiedUsers,
           bvnVerifiedUsers,
@@ -501,8 +510,8 @@ export const PageDataProvider = ({ children }) => {
 
         setVerificationData(prev => ({
           ...prev,
-          total: totalUsers,
-          approved: bvnVerifiedUsers
+          total: statistics.totalUsers,
+          approved: statistics.bvnVerifiedUsers
         }));
 
         return;
@@ -525,7 +534,7 @@ export const PageDataProvider = ({ children }) => {
         avatar_url: u.profile_avatar_url
       }));
 
-      // Calculate statistics
+      // Calculate statistics (Fallback)
       const totalUsers = users.length;
       const emailVerifiedUsers = users.filter(u => u.email_confirmed_at).length;
       const bvnVerifiedUsers = users.filter(u => u.bvn_verified).length;
@@ -541,7 +550,7 @@ export const PageDataProvider = ({ children }) => {
         return acc;
       }, {});
 
-      const statistics = {
+      const statistics = (serverStatistics && Object.keys(serverStatistics).length > 0) ? serverStatistics : {
         totalUsers,
         emailVerifiedUsers,
         bvnVerifiedUsers,
@@ -555,8 +564,8 @@ export const PageDataProvider = ({ children }) => {
       // Update verification data with real user counts
       setVerificationData(prev => ({
         ...prev,
-        total: totalUsers,
-        approved: bvnVerifiedUsers
+        total: statistics.totalUsers,
+        approved: statistics.bvnVerifiedUsers
       }));
     } catch (error) {
       console.error('Error fetching users data:', error);

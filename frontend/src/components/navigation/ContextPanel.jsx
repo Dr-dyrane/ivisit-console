@@ -146,6 +146,10 @@ export const ContextPanel = () => {
         // Trigger create user modal
         window.dispatchEvent(new CustomEvent('openUserModal'));
       }}
+      onInviteUser={() => {
+        // Trigger invite user modal
+        window.dispatchEvent(new CustomEvent('openInviteUserModal'));
+      }}
       onViewAnalytics={() => {
         // Open analytics modal
         window.dispatchEvent(new CustomEvent('openUserAnalytics', {

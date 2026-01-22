@@ -15,9 +15,10 @@ export const useAuth = () => {
   return context;
 };
 
-// Role hierarchy: admin > sponsor > provider > viewer
+// Role hierarchy: admin > org_admin > sponsor > provider > viewer
 const ROLE_HIERARCHY = {
-  admin: 4,
+  admin: 5,
+  org_admin: 4,
   sponsor: 3,
   provider: 2,
   viewer: 1,

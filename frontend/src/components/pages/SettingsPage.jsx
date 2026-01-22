@@ -138,9 +138,17 @@ export const SettingsPage = () => {
                                     </div>
 
                                     <div className="mb-4 text-center md:text-left flex-1 min-w-0">
-                                        <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground truncate">
-                                            {profile?.username || 'User Profile'}
-                                        </h2>
+                                        <div className="flex items-center gap-2 justify-center md:justify-start">
+                                            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground truncate">
+                                                {profile?.username || 'User Profile'}
+                                            </h2>
+                                            {profile?.bvn_verified && (
+                                                <Badge className="squircle bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 p-1 px-2" title="Verified User">
+                                                    <Shield className="w-4 h-4 mr-1" />
+                                                    Verified
+                                                </Badge>
+                                            )}
+                                        </div>
                                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-2 text-muted-foreground">
                                             <Badge variant="outline" className={`squircle border px-3 py-1 font-semibold uppercase tracking-wider ${getRoleBadgeColor(profile?.role)}`}>
                                                 {profile?.role || 'VIEWER'}

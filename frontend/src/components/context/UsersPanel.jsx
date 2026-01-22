@@ -1,16 +1,33 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Users, Plus, BarChart3, Shield, UserCheck, Activity, TrendingUp, Eye, Stethoscope } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { getProfiles } from '../../services/profilesService';
 
-export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUser, onViewAnalytics }) => {
-  const recentUsers = users
-    .filter(user => user.last_sign_in_at)
-    .sort((a, b) => new Date(b.last_sign_in_at) - new Date(a.last_sign_in_at))
-    .slice(0, 5);
+export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUser, onInviteUser, onViewAnalytics }) => {
+  const { isAdmin, isOrgAdmin } = useAuth();
+  const [recentUsers, setRecentUsers] = useState([]);
 
-  const adminCount = users.filter(u => u.role === 'admin').length;
+  useEffect(() => {
+    // Fetch recent activity globally
+    const fetchRecent = async () => {
+      try {
+        const data = await getProfiles({
+          sortBy: 'last_sign_in_at',
+          limit: 5,
+          includeAuthData: true
+        });
+        setRecentUsers(data);
+      } catch (error) {
+        console.error("Failed to fetch recent activity", error);
+      }
+    };
+    fetchRecent();
+  }, []); // Run once on mount
+
+  const adminCount = users.filter(u => ['admin', 'org_admin'].includes(u.role)).length;
   const providerCount = users.filter(u => u.role === 'provider').length;
   const patientCount = users.filter(u => u.role === 'patient').length;
   const verifiedCount = users.filter(u => u.bvn_verified).length;
@@ -33,7 +50,7 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
               <Users className="h-4 w-4 text-primary" />
               <span className="text-sm font-normal">Total</span>
             </div>
-            <div className="text-2xl font-semibold">{users.length}</div>
+            <div className="text-2xl font-semibold">{statistics?.totalUsers || users.length}</div>
           </Card>
 
           <Card className="p-4 bg-background/50 backdrop-blur-sm border-0">
@@ -42,7 +59,7 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
               <span className="text-sm font-normal">Verified</span>
             </div>
             <div className="text-2xl font-semibold text-success">
-              {verifiedCount}
+              {statistics?.bvnVerifiedUsers || verifiedCount}
             </div>
           </Card>
         </div>
@@ -62,7 +79,7 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
               <span className="text-sm font-normal">Admins</span>
             </div>
             <Badge className="bg-warning/20 text-warning border-0 text-sm font-semibold">
-              {adminCount}
+              {(statistics ? ((statistics.roleDistribution?.admin || 0) + (statistics.roleDistribution?.org_admin || 0)) : adminCount)}
             </Badge>
           </div>
 
@@ -72,7 +89,7 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
               <span className="text-sm font-normal">Providers</span>
             </div>
             <Badge className="bg-success/20 text-success border-0 text-sm font-semibold">
-              {providerCount}
+              {statistics?.roleDistribution?.provider || providerCount}
             </Badge>
           </div>
 
@@ -82,7 +99,7 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
               <span className="text-sm font-normal">Patients</span>
             </div>
             <Badge className="bg-info/20 text-info border-0 text-sm font-semibold">
-              {patientCount}
+              {statistics?.roleDistribution?.patient || patientCount}
             </Badge>
           </div>
         </div>
@@ -96,13 +113,15 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
         </h3>
 
         <div className="space-y-2">
-          <Button
-            onClick={onCreateUser}
-            className="w-full justify-start h-10 bg-muted/20 hover:bg-muted/30 border border-border/20 text-[10px] font-bold tracking-widest uppercase text-foreground"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            INVITE USER
-          </Button>
+          {(isAdmin() || isOrgAdmin()) && (
+            <Button
+              onClick={onInviteUser}
+              className="w-full justify-start h-10 bg-muted/20 hover:bg-muted/30 border border-border/20 text-[10px] font-bold tracking-widest uppercase text-foreground"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              INVITE USER
+            </Button>
+          )}
 
           <Button
             onClick={onViewAnalytics}

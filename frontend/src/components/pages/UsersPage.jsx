@@ -7,7 +7,7 @@ import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
-import { getProfiles, getUserStatistics, searchUsers } from '../../services/profilesService';
+import { getProfiles, getUserStatistics, searchUsers, createProfile, updateProfile } from '../../services/profilesService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -62,7 +62,7 @@ export const UsersPage = () => {
     if (filters.kpiFilter === 'verified') {
       filtered = filtered.filter(u => u.bvn_verified);
     } else if (filters.kpiFilter === 'admin') {
-      filtered = filtered.filter(u => u.role === 'admin');
+      filtered = filtered.filter(u => ['admin', 'org_admin'].includes(u.role));
     } else if (filters.kpiFilter === 'provider') {
       filtered = filtered.filter(u => u.role === 'provider');
     }
@@ -97,15 +97,24 @@ export const UsersPage = () => {
     return filtered;
   }, [users, filters]);
 
+  // Reset pagination when filters change
+  useEffect(() => {
+    pagination.resetPagination();
+  }, [filters, pagination.resetPagination]);
+
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
 
-      // For admins, include auth data
+      // For admins and org admins, we fetch all users (up to limit) to calculate accurate client-side stats/counts if server stats are limited
+      const isPrivileged = isAdmin() || isOrgAdmin();
+      const limit = isPrivileged ? 1000 : pagination.itemsPerPage;
+      const offset = isPrivileged ? 0 : pagination.paginationRange.start;
+
       const filterOptions = {
-        includeAuthData: isAdmin(),
-        limit: isAdmin() ? 1000 : pagination.itemsPerPage, // Get all for admins to calculate count
-        offset: isAdmin() ? 0 : pagination.paginationRange.start,
+        includeAuthData: isAdmin(), // Only platform admins get full access to auth data (emails/phones of all users)
+        limit,
+        offset,
         // Only pass service-compatible filters
         role: filters.role,
         provider_type: filters.provider_type,
@@ -115,21 +124,65 @@ export const UsersPage = () => {
       // Use the enhanced service
       const data = await getProfiles(filterOptions);
 
-      if (isAdmin() || isOrgAdmin()) {
-        // Calculate total count and apply pagination for admins
+      if (isPrivileged) {
+        // Calculate total count and apply pagination for admins/org admins locally
         const totalCount = data.length;
         pagination.setTotalCount(totalCount);
 
         // Apply pagination manually
-        const paginatedData = data.slice(
-          pagination.paginationRange.start,
-          pagination.paginationRange.start + pagination.itemsPerPage
-        );
+        const startIndex = pagination.itemsPerPage * (pagination.currentPage - 1);
+        const paginatedData = data.slice(startIndex, startIndex + pagination.itemsPerPage);
+
         setUsers(paginatedData);
 
-        // Fetch statistics for admins (only platform admin for now, but org admin could have scoped stats too if implemented)
+        // Fetch statistics for admins, or derive for Org Admins
         if (isAdmin()) {
-          const stats = await getUserStatistics();
+          // Fetch robust validation stats separately to ensure accuracy
+          const [stats, verifiedRes] = await Promise.all([
+            getUserStatistics(),
+            supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('bvn_verified', true)
+          ]);
+
+          // Ensure 'patient' count covers any users without explicit roles (default users)
+          if (stats && stats.roleDistribution) {
+            const dist = stats.roleDistribution;
+            const knownRolesCount = (dist.admin || 0) + (dist.provider || 0) + (dist.sponsor || 0) + (dist.viewer || 0) + (dist.org_admin || 0);
+            const impliedPatients = stats.totalUsers - knownRolesCount;
+
+            // If implicit count > explicit count, update it (assumes diff is generic users)
+            if (impliedPatients > (dist.patient || 0)) {
+              dist.patient = impliedPatients;
+            }
+          }
+
+          setStatistics({
+            ...stats,
+            bvnVerifiedUsers: verifiedRes.count || 0
+          });
+        } else {
+          // Derive statistics client-side for Org Admins (since they have the full list loaded)
+          const totalUsers = data.length;
+          const bvnVerifiedUsers = data.filter(u => u.bvn_verified).length;
+
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          const recentSignups = data.filter(u => new Date(u.created_at) > thirtyDaysAgo).length;
+
+          const stats = {
+            totalUsers,
+            totalProfiles: totalUsers,
+            recentSignups,
+            emailVerifiedUsers: totalUsers, // Fallback as auth data isn't fully available
+            bvnVerifiedUsers,
+            roleDistribution: {
+              admin: data.filter(u => u.role === 'admin').length,
+              provider: data.filter(u => u.role === 'provider').length,
+              patient: data.filter(u => u.role === 'patient' || !u.role).length,
+              org_admin: data.filter(u => u.role === 'org_admin').length,
+              sponsor: data.filter(u => u.role === 'sponsor').length,
+              viewer: data.filter(u => u.role === 'viewer').length,
+            }
+          };
           setStatistics(stats);
         }
       } else {
@@ -149,6 +202,37 @@ export const UsersPage = () => {
     fetchUsers();
   }, [fetchUsers, pagination.currentPage]);
 
+  const handleSaveUser = useCallback(async (formData) => {
+    try {
+      if (modalMode === 'edit' && selectedUser?.id) {
+        await updateProfile(selectedUser.id, formData);
+        fetchUsers();
+      } else if (modalMode === 'create') {
+        // Manual creation is limited without backend admin API for auth
+        // We will try to create a profile but it might fail if ID is missing or constraint fails
+        // Providing a helpful error if it's the constraint
+        try {
+          if (!formData.id) {
+            throw new Error("Cannot create user manually without 'Invite' flow. Please use 'Invite User' to create new users with secure access.");
+          }
+          await createProfile(formData);
+          fetchUsers();
+        } catch (err) {
+          console.error("Manual create failed", err);
+          throw err; // Re-throw to be caught by outer catch and displayed by Modal
+        }
+      }
+    } catch (error) {
+      console.error("Save User Error:", error);
+      throw error;
+    }
+  }, [modalMode, selectedUser, fetchUsers]);
+
+  const handleInvite = useCallback(() => {
+    setSelectedUser(null);
+    setModalMode('invite');
+  }, []);
+
   const handleCreate = useCallback(() => {
     setSelectedUser(null);
     setModalMode('create');
@@ -165,16 +249,19 @@ export const UsersPage = () => {
   // Handle custom events from context panel
   useEffect(() => {
     const handleOpenModal = () => handleCreate();
+    const handleOpenInviteModal = () => handleInvite();
     const handleOpenFilters = () => setFilterSheetOpen(true);
 
     window.addEventListener('openUserModal', handleOpenModal);
+    window.addEventListener('openInviteUserModal', handleOpenInviteModal);
     window.addEventListener('openFilters', handleOpenFilters);
 
     return () => {
       window.removeEventListener('openUserModal', handleOpenModal);
+      window.removeEventListener('openInviteUserModal', handleOpenInviteModal);
       window.removeEventListener('openFilters', handleOpenFilters);
     };
-  }, [handleCreate]);
+  }, [handleCreate, handleInvite]);
 
   const handleView = useCallback((user) => {
     setSelectedUser(user);
@@ -299,18 +386,18 @@ export const UsersPage = () => {
 
   // Primary Action (Add User)
   const headerActions = React.useMemo(() => (
-    isAdmin() && (
+    (isAdmin() || isOrgAdmin()) && (
       <Button
-        onClick={handleCreate}
+        onClick={handleInvite}
         className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase text-foreground"
-        aria-label="Add new user"
+        aria-label="Invite new user"
       >
         <Plus className="h-4 w-4 mr-2" />
-        <span className="hidden md:inline">ADD USER</span>
-        <span className="md:hidden">ADD</span>
+        <span className="hidden md:inline">INVITE USER</span>
+        <span className="md:hidden">INVITE</span>
       </Button>
     )
-  ), [isAdmin, handleCreate]);
+  ), [isAdmin, isOrgAdmin, handleInvite]);
 
   // Footer Configuration
   const footerContent = React.useMemo(() => (
@@ -345,18 +432,18 @@ export const UsersPage = () => {
     <div className="min-h-screen py-6 md:py-8 pt-6">
       <SEOHead title="User Management" description="Manage user profiles, roles, and verifications." />
       {/* KPI Filter Cards */}
+      {/* KPI Filter Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
-        {/* Total Users Card */}
+        {/* Total Users Card - Visible to Everyone */}
         <motion.div
           layout
-          className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+          className="col-span-1"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.05 }}
+          transition={{ duration: 0.4 }}
         >
           <Card
-            className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
-              }`}
+            className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
             onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
           >
             <div className="absolute top-0 right-0 p-4 z-20">
@@ -368,11 +455,8 @@ export const UsersPage = () => {
               </div>
             </div>
             <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-2">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Users</p>
-                {filters.kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
-              </div>
-              <h3 className="text-3xl font-bold tracking-tighter">{users.length}</h3>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Total Users</p>
+              <h3 className="text-3xl font-bold tracking-tighter">{statistics?.totalUsers || pagination.totalCount || users.length}</h3>
               <div className="flex items-center gap-2 mt-2">
                 <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
                   {filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
@@ -382,17 +466,16 @@ export const UsersPage = () => {
           </Card>
         </motion.div>
 
-        {/* Verified Users Card */}
+        {/* Verified Users Card - Visible to Everyone */}
         <motion.div
           layout
-          className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+          className="col-span-1"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.15 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
         >
           <Card
-            className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'verified' ? 'ring-2 ring-success shadow-lg' : ''
-              }`}
+            className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'verified' ? 'ring-2 ring-success shadow-lg' : ''}`}
             onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'verified' }))}
           >
             <div className="absolute top-0 right-0 p-4 z-20">
@@ -404,99 +487,141 @@ export const UsersPage = () => {
               </div>
             </div>
             <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-2">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Verified</p>
-                {filters.kpiFilter === 'verified' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
-              </div>
-              <h3 className="text-3xl font-bold tracking-tighter">{users.filter(u => u.bvn_verified).length}</h3>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Verified</p>
+              {/* Prioritize statistics.bvnVerifiedUsers (Server Truth) */}
+              <h3 className="text-3xl font-bold tracking-tighter">
+                {statistics?.bvnVerifiedUsers !== undefined ? statistics.bvnVerifiedUsers : users.filter(u => u.bvn_verified).length}
+              </h3>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className="geo-round bg-success/20 text-success border-0 font-bold text-xs">
-                  VERIFIED
-                </Badge>
+                <Badge className="geo-round bg-success/20 text-success border-0 font-bold text-xs">VERIFIED</Badge>
               </div>
             </div>
           </Card>
         </motion.div>
 
-        {/* Admin Users Card */}
+        {/* Role Based Card 1: Admins (Platform) or Providers (Org) */}
         <motion.div
           layout
-          className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+          className="col-span-1"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.25 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
         >
-          <Card
-            className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'admin' ? 'ring-2 ring-warning shadow-lg' : ''
-              }`}
-            onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'admin' }))}
-          >
-            <div className="absolute top-0 right-0 p-4 z-20">
-              <div className="relative">
-                <div className={`absolute inset-0 ${filters.kpiFilter === 'admin' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
-                  <Shield className={`h-5 w-5 ${filters.kpiFilter === 'admin' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
+          {isAdmin() ? (
+            /* Admin View: Admins & Org Admins */
+            <Card
+              className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'admin' ? 'ring-2 ring-warning shadow-lg' : ''}`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'admin' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'admin' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <Shield className={`h-5 w-5 ${filters.kpiFilter === 'admin' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-2">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Admins</p>
-                {filters.kpiFilter === 'admin' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
+              <div className="relative z-10">
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Admins & Managers</p>
+                <h3 className="text-3xl font-bold tracking-tighter">
+                  {(statistics?.roleDistribution?.admin || 0) + (statistics?.roleDistribution?.org_admin || 0) || users.filter(u => ['admin', 'org_admin'].includes(u.role)).length}
+                </h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-ticket bg-warning/20 text-warning border-0 font-bold text-xs">MANAGEMENT</Badge>
+                </div>
               </div>
-              <h3 className="text-3xl font-bold tracking-tighter">{users.filter(u => u.role === 'admin').length}</h3>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge className="geo-ticket bg-warning/20 text-warning border-0 font-bold text-xs">
-                  ADMIN ACCESS
-                </Badge>
+            </Card>
+          ) : (
+            /* Org Admin View: Providers */
+            <Card
+              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'provider' ? 'ring-2 ring-info shadow-lg' : ''}`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'provider' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'provider' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <Users className={`h-5 w-5 ${filters.kpiFilter === 'provider' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
+                  </div>
+                </div>
               </div>
-            </div>
-          </Card>
+              <div className="relative z-10">
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Providers</p>
+                <h3 className="text-3xl font-bold tracking-tighter">
+                  {statistics?.roleDistribution?.provider || users.filter(u => u.role === 'provider').length}
+                </h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-round bg-info/20 text-info border-0 font-bold text-xs">MEDICAL STAFF</Badge>
+                </div>
+              </div>
+            </Card>
+          )}
         </motion.div>
 
-        {/* Providers Card */}
+        {/* Role Based Card 2: Providers (Platform) or Patients (Org) */}
         <motion.div
           layout
-          className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+          className="col-span-1"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card
-            className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'provider' ? 'ring-2 ring-info shadow-lg' : ''
-              }`}
-            onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'provider' }))}
-          >
-            <div className="absolute top-0 right-0 p-4 z-20">
-              <div className="relative">
-                <div className={`absolute inset-0 ${filters.kpiFilter === 'provider' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
-                  <Users className={`h-5 w-5 ${filters.kpiFilter === 'provider' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
+          {isAdmin() ? (
+            /* Admin View: Providers */
+            <Card
+              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'provider' ? 'ring-2 ring-info shadow-lg' : ''}`}
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'provider' }))}
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'provider' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <Users className={`h-5 w-5 ${filters.kpiFilter === 'provider' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-2">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Providers</p>
-                {filters.kpiFilter === 'provider' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
+              <div className="relative z-10">
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Providers</p>
+                <h3 className="text-3xl font-bold tracking-tighter">{statistics?.roleDistribution?.provider || users.filter(u => u.role === 'provider').length}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-round bg-info/20 text-info border-0 font-bold text-xs">HEALTHCARE</Badge>
+                </div>
               </div>
-              <h3 className="text-3xl font-bold tracking-tighter">{users.filter(u => u.role === 'provider').length}</h3>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge className="geo-round bg-info/20 text-info border-0 font-bold text-xs">
-                  HEALTHCARE
-                </Badge>
+            </Card>
+          ) : (
+            /* Org Admin View: Patients */
+            <Card
+              className="h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
+              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'patient' }))} // Note: need to handle patient filter
+            >
+              <div className="absolute top-0 right-0 p-4 z-20">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-secondary/10 blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200" />
+                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <Users className="h-5 w-5 text-secondary" />
+                  </div>
+                </div>
               </div>
-            </div>
-          </Card>
+              <div className="relative z-10">
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Patients</p>
+                <h3 className="text-3xl font-bold tracking-tighter">
+                  {statistics?.roleDistribution?.patient || users.filter(u => u.role === 'patient').length}
+                </h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="geo-round bg-secondary/20 text-secondary border-0 font-bold text-xs">CONSUMERS</Badge>
+                </div>
+              </div>
+            </Card>
+          )}
         </motion.div>
 
-        {/* Analytics Card */}
+        {/* Analytics Card - Visible to Everyone */}
         <motion.div
           layout
-          className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+          className="col-span-1"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.35 }}
+          transition={{ duration: 0.4, delay: 0.4 }}
         >
           <Card
             className="h-full min-h-[140px] geo-ticket bg-gradient-to-br from-primary/20 to-primary/5 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
@@ -511,14 +636,10 @@ export const UsersPage = () => {
               </div>
             </div>
             <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-2">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Analytics</p>
-              </div>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Analytics</p>
               <h3 className="text-3xl font-bold tracking-tighter">View All</h3>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
-                  DEEP DIVE
-                </Badge>
+                <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">DEEP DIVE</Badge>
               </div>
             </div>
           </Card>
@@ -594,9 +715,9 @@ export const UsersPage = () => {
                     Reset Filters
                   </Button>
                 )}
-                <Button onClick={handleCreate} className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase text-foreground">
+                <Button onClick={handleInvite} className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase text-foreground">
                   <Plus className="h-4 w-4 mr-2" />
-                  ADD USER
+                  INVITE USER
                 </Button>
               </div>
             </Card>
@@ -660,7 +781,7 @@ export const UsersPage = () => {
                             </div>
                             <div>
                               <h3 className="font-bold text-xl tracking-tight truncate w-40">
-                                {user.username || user.profile_username || 'Unknown User'}
+                                {user.full_name || user.username || user.profile_username || 'Unknown User'}
                               </h3>
                               {user.provider_type && (
                                 <p className="text-sm font-medium text-primary">{user.provider_type}</p>
@@ -772,7 +893,7 @@ export const UsersPage = () => {
       />
 
       {
-        modalMode === 'create' && (
+        modalMode === 'invite' && (
           <InviteUserModal
             isOpen={true}
             onClose={handleModalClose}
@@ -785,13 +906,13 @@ export const UsersPage = () => {
       }
 
       {
-        (modalMode === 'edit' || modalMode === 'view') && (
+        (modalMode === 'create' || modalMode === 'edit' || modalMode === 'view') && (
           <UserModal
             isOpen={!!modalMode}
             onClose={handleModalClose}
             user={selectedUser}
             mode={modalMode}
-            onSave={fetchUsers}
+            onSave={handleSaveUser}
           />
         )
       }

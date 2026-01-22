@@ -32,24 +32,43 @@ async function getProfilesWithAuthData(filter) {
     const { data, error } = await supabase.rpc('get_all_auth_users');
     if (error) throw error;
 
-    let profiles = data || [];
+    let profiles = (data || []).map(u => ({
+      ...u,
+      // Map RPC specific fields to standard profile fields
+      role: u.profile_role,
+      username: u.profile_username,
+      first_name: u.profile_first_name,
+      last_name: u.profile_last_name,
+      full_name: u.profile_full_name,
+      provider_type: u.profile_provider_type,
+      bvn_verified: u.profile_bvn_verified,
+      // Handle image_uri/avatar if present in RPC, otherwise rely on fallbacks
+      image_uri: u.profile_image_uri || u.image_uri,
+      avatar_url: u.profile_avatar_url || u.avatar_url
+    }));
 
     // Apply filters
     if (filter?.role) {
-      profiles = profiles.filter(p => p.profile_role === filter.role);
+      const roles = Array.isArray(filter.role) ? filter.role : [filter.role];
+      if (roles.length > 0) {
+        profiles = profiles.filter(p => roles.includes(p.role));
+      }
     }
     if (filter?.provider_type) {
-      profiles = profiles.filter(p => p.profile_provider_type === filter.provider_type);
+      const types = Array.isArray(filter.provider_type) ? filter.provider_type : [filter.provider_type];
+      if (types.length > 0) {
+        profiles = profiles.filter(p => types.includes(p.provider_type));
+      }
     }
     if (filter?.verified !== undefined) {
-      profiles = profiles.filter(p => p.profile_bvn_verified === filter.verified);
+      profiles = profiles.filter(p => p.bvn_verified === filter.verified);
     }
 
     // Apply pagination
     if (filter?.offset || filter?.limit) {
       const start = filter?.offset || 0;
-      const end = start + (filter?.limit || 10) - 1;
-      profiles = profiles.slice(start, end + 1);
+      const end = start + (filter?.limit || 10);
+      profiles = profiles.slice(start, end);
     }
 
     return profiles;
@@ -130,16 +149,26 @@ export async function getProfiles(filter) {
 
     // Apply additional filters
     if (filter?.role) {
-      query = query.eq('role', filter.role);
+      if (Array.isArray(filter.role)) {
+        if (filter.role.length > 0) query = query.in('role', filter.role);
+      } else {
+        query = query.eq('role', filter.role);
+      }
     }
     if (filter?.provider_type) {
-      query = query.eq('provider_type', filter.provider_type);
+      if (Array.isArray(filter.provider_type)) {
+        if (filter.provider_type.length > 0) query = query.in('provider_type', filter.provider_type);
+      } else {
+        query = query.eq('provider_type', filter.provider_type);
+      }
     }
     if (filter?.verified !== undefined) {
       query = query.eq('bvn_verified', filter.verified);
     }
 
-    query = query.order('created_at', { ascending: false });
+    const sortBy = filter?.sortBy || 'created_at';
+    const ascending = filter?.ascending !== undefined ? filter.ascending : false;
+    query = query.order(sortBy, { ascending });
 
     if (filter?.limit) {
       query = query.limit(filter.limit);
@@ -181,6 +210,9 @@ export async function getProfile(profileId) {
 /**
  * Create new profile
  */
+/**
+ * Create new profile
+ */
 export async function createProfile(input) {
   try {
     const payload = {
@@ -191,14 +223,20 @@ export async function createProfile(input) {
       first_name: input.first_name,
       last_name: input.last_name,
       full_name: input.full_name,
-      image_uri: input.image_uri,
+      image_uri: input.image_uri || input.avatar_url,
       role: input.role,
       organization_id: input.organization_id || null,
       provider_type: input.provider_type,
       bvn_verified: input.bvn_verified || false,
+      address: input.address,
+      gender: input.gender,
+      date_of_birth: input.date_of_birth,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
+
+    // Remove undefined keys
+    Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -220,10 +258,25 @@ export async function createProfile(input) {
  */
 export async function updateProfile(profileId, input) {
   try {
-    const payload = {
-      ...input,
-      updated_at: new Date().toISOString(),
-    };
+    // Whitelist allowed fields to prevent contaminating the DB with join fields
+    const allowedFields = [
+      'email', 'phone', 'username', 'first_name', 'last_name', 'full_name',
+      'image_uri', 'avatar_url', 'role', 'organization_id', 'provider_type',
+      'bvn_verified', 'address', 'gender', 'date_of_birth'
+    ];
+
+    const payload = {};
+    allowedFields.forEach(field => {
+      if (input[field] !== undefined) {
+        if (field === 'avatar_url' && !payload.image_uri) {
+          payload.image_uri = input[field];
+        } else {
+          payload[field] = input[field];
+        }
+      }
+    });
+
+    payload.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
       .from(TABLE_NAME)

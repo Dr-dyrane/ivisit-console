@@ -5,15 +5,36 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { X, BarChart3, TrendingUp, Users, UserCheck, Shield, AlertTriangle, Mail, Phone, Calendar, Activity } from 'lucide-react';
 
+import { getProfiles } from '../../services/profilesService';
+import { supabase } from '../../lib/supabase';
+
 export const UserAnalyticsModal = ({ open, onClose, analytics, users }) => {
+  const [recentActivity, setRecentActivity] = React.useState([]);
+  const [bvnCount, setBvnCount] = React.useState(0);
+
+  React.useEffect(() => {
+    if (open) {
+      // Fetch latest activity
+      getProfiles({
+        sortBy: 'last_sign_in_at',
+        limit: 5,
+        includeAuthData: true
+      })
+        .then(data => setRecentActivity(data))
+        .catch(console.error);
+
+      // Fetch accurate verified count
+      supabase.from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('bvn_verified', true)
+        .then(({ count }) => setBvnCount(count || 0))
+        .catch(console.error);
+    }
+  }, [open]);
+
   if (!analytics) return null;
 
   const getPercentage = (value, total) => (total > 0 ? ((value / total) * 100).toFixed(0) : 0);
-
-  const recentActivity = users
-    .filter(user => user.last_sign_in_at)
-    .sort((a, b) => new Date(b.last_sign_in_at) - new Date(a.last_sign_in_at))
-    .slice(0, 5);
 
   return (
     <AnimatePresence>
@@ -82,12 +103,12 @@ export const UserAnalyticsModal = ({ open, onClose, analytics, users }) => {
                     <div className="text-right">
                       <p className="text-xs text-muted-foreground">Verification Rate</p>
                       <p className="text-lg font-semibold text-success">
-                        {getPercentage(analytics.emailVerifiedUsers, analytics.totalUsers)}%
+                        {getPercentage(bvnCount, analytics.totalUsers)}%
                       </p>
                     </div>
                   </div>
-                  <h3 className="text-3xl font-semibold">{analytics.emailVerifiedUsers}</h3>
-                  <p className="text-sm text-muted-foreground">Verified Users</p>
+                  <h3 className="text-3xl font-semibold">{bvnCount}</h3>
+                  <p className="text-sm text-muted-foreground">Identity Verified</p>
                 </Card>
 
                 <Card className="p-6 bg-background/50 backdrop-blur-sm border-0">

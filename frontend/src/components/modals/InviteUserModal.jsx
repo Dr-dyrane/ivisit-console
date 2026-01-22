@@ -1,20 +1,37 @@
-"use client";
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
-import { X, Mail, Shield, Send, Loader2 } from 'lucide-react';
+import { X, Mail, Shield, Send, Loader2, Building2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { getHospitals } from '../../services/hospitalsService';
+import { supabase } from '../../lib/supabase';
 
 export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
     const { isAdmin, isOrgAdmin, orgId } = useAuth();
     const [email, setEmail] = useState('');
     const [role, setRole] = useState('viewer');
+    const [organizationId, setOrganizationId] = useState('');
+    const [hospitals, setHospitals] = useState([]);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (isAdmin() && isOpen) {
+            const fetchHospitals = async () => {
+                try {
+                    const data = await getHospitals({ limit: 100 });
+                    setHospitals(data);
+                } catch (error) {
+                    console.error('Failed to fetch hospitals:', error);
+                    toast.error('Failed to load organizations');
+                }
+            };
+            fetchHospitals();
+        }
+    }, [isAdmin, isOpen]);
 
     const handleInvite = async (e) => {
         e.preventDefault();
@@ -23,8 +40,14 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
         try {
             // Prepare payload with organization scoping
             const metadata = {};
+
+            // If Org Admin, force their org ID
             if (isOrgAdmin() && orgId) {
                 metadata.organization_id = orgId;
+            }
+            // If Platform Admin and selecting org-scoped role, use selected org
+            else if (isAdmin() && (role === 'org_admin' || role === 'provider') && organizationId) {
+                metadata.organization_id = organizationId;
             }
 
             // Call Edge Function
@@ -40,11 +63,19 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
             onClose();
         } catch (error) {
             console.error('Invite Error:', error);
-            toast.error(error.message || 'Failed to send invitation');
+
+            // Fallback for development if Edge Function is not deployed
+            if (error.message.includes('FunctionsFetchError') || error.message.includes('Failed to fetch')) {
+                toast.error('Invite service unavailable. Please check backend deployment.');
+            } else {
+                toast.error(error.message || 'Failed to send invitation');
+            }
         } finally {
             setLoading(false);
         }
     };
+
+    const showOrgSelect = isAdmin() && (role === 'org_admin' || role === 'provider');
 
     return (
         <AnimatePresence>
@@ -131,6 +162,31 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
                                         *Admins have full access to all system resources.
                                     </p>
                                 </div>
+
+                                {showOrgSelect && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        className="space-y-2"
+                                    >
+                                        <Label className="text-xs font-semibold uppercase text-muted-foreground">Organization Assignment</Label>
+                                        <div className="relative">
+                                            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+                                            <Select value={organizationId} onValueChange={setOrganizationId} required={showOrgSelect}>
+                                                <SelectTrigger className="pl-10 h-11 bg-muted/30 border-0 focus:ring-1 focus:ring-primary/50 rounded-xl">
+                                                    <SelectValue placeholder="Select organization" />
+                                                </SelectTrigger>
+                                                <SelectContent className="rounded-2xl border-white/10 bg-background/95 backdrop-blur-xl">
+                                                    {hospitals.map(hospital => (
+                                                        <SelectItem key={hospital.id} value={hospital.id}>
+                                                            {hospital.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </motion.div>
+                                )}
 
                                 <div className="pt-2">
                                     <Button

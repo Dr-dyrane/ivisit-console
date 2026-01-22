@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -8,17 +8,23 @@ import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
-import { X, User, Phone, Mail, MapPin, Calendar, Shield, CreditCard, BadgeCheck } from 'lucide-react';
+import { X, User, Phone, Mail, MapPin, Calendar, Shield, CreditCard, BadgeCheck, Building2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
+import { useAuth } from '../../contexts/AuthContext';
+import { getHospitals } from '../../services/hospitalsService';
 
 export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
   const isCreate = mode === 'create';
 
-  const [formData, setFormData] = useState(user || {
+  const { isAdmin, isOrgAdmin, orgId } = useAuth();
+  const [hospitals, setHospitals] = useState([]);
+
+  const [formData, setFormData] = useState({
     username: '',
+    full_name: '',
     email: '',
     phone: '',
     role: 'patient',
@@ -27,7 +33,51 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
     date_of_birth: '',
     address: '',
     bvn_verified: false,
+    organization_id: isOrgAdmin() ? orgId : '', // Auto-set for OrgAdmin
+    ...user
   });
+
+  // Sync user prop to state when it changes
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        ...user,
+        username: user.username || user.profile_username || '', // Handle varied naming
+        full_name: user.full_name || '',
+        organization_id: user.organization_id || (isOrgAdmin() ? orgId : ''),
+      }));
+    } else if (isCreate) {
+      // Reset for create mode
+      setFormData({
+        username: '',
+        full_name: '',
+        email: '',
+        phone: '',
+        role: 'patient',
+        provider_type: '',
+        gender: '',
+        date_of_birth: '',
+        address: '',
+        bvn_verified: false,
+        organization_id: isOrgAdmin() ? orgId : '',
+      })
+    }
+  }, [user, isCreate, isOrgAdmin, orgId]);
+
+  useEffect(() => {
+    if (isAdmin()) {
+      const fetchHospitals = async () => {
+        try {
+          const data = await getHospitals({ limit: 100 });
+          setHospitals(data);
+        } catch (error) {
+          console.error("Failed to load hospitals", error);
+        }
+      };
+      fetchHospitals();
+    }
+  }, [isAdmin]);
 
   const [loading, setLoading] = useState(false);
 
@@ -82,16 +132,16 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16 rounded-2xl border-4 border-background shadow-xl">
                   <AvatarImage
-                    src={formData.imageuri || formData.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.username}`}
+                    src={formData.imageuri || formData.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.username || formData.profile_username}`}
                     className="object-cover"
                   />
                   <AvatarFallback className="text-2xl font-bold bg-muted text-muted-foreground rounded-2xl">
-                    {formData.username?.[0]?.toUpperCase() || 'U'}
+                    {(formData.username || formData.profile_username)?.[0]?.toUpperCase() || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
-                    {formData.username || 'New User'}
+                    {formData.username || formData.profile_username || 'New User'}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge className="rounded-full bg-primary/10 text-primary border-0 font-semibold px-3 py-0.5 text-xs">
@@ -121,7 +171,19 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                 <GlassCard icon={<User className="text-primary" />} title="Personal Information">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="username" className="text-xs font-semibold text-muted-foreground uppercase">Full Name</Label>
+                      <Label htmlFor="full_name" className="text-xs font-semibold text-muted-foreground uppercase">Full Name</Label>
+                      <Input
+                        id="full_name"
+                        name="full_name"
+                        value={formData.full_name}
+                        onChange={handleChange}
+                        disabled={isView}
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
+                        placeholder="John Doe"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="username" className="text-xs font-semibold text-muted-foreground uppercase">Username</Label>
                       <Input
                         id="username"
                         name="username"
@@ -129,7 +191,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                         onChange={handleChange}
                         disabled={isView}
                         className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
-                        placeholder="John Doe"
+                        placeholder="johndoe123"
                       />
                     </div>
                     <div className="space-y-2">
@@ -195,12 +257,44 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="provider">Provider</SelectItem>
                           <SelectItem value="patient">Patient</SelectItem>
+                          <SelectItem value="viewer">Viewer</SelectItem>
+                          <SelectItem value="provider">Provider</SelectItem>
+                          {isAdmin() && (
+                            <>
+                              <SelectItem value="sponsor">Sponsor</SelectItem>
+                              <SelectItem value="org_admin">Organization Admin</SelectItem>
+                              <SelectItem value="admin">Platform Admin</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {(formData.role === 'org_admin' || formData.role === 'provider') && isAdmin() && (
+                      <div className="space-y-2">
+                        <Label htmlFor="organization_id" className="text-xs font-semibold text-muted-foreground uppercase">Organization</Label>
+                        <div className="relative">
+                          <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+                          <Select
+                            value={formData.organization_id}
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, organization_id: value }))}
+                            disabled={isView}
+                          >
+                            <SelectTrigger className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 font-medium">
+                              <SelectValue placeholder="Select Organization" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                              {hospitals?.map(hospital => (
+                                <SelectItem key={hospital.id} value={hospital.id}>
+                                  {hospital.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
 
                     {formData.role === 'provider' && (
                       <div className="space-y-2">
@@ -226,7 +320,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                     <div className="col-span-1 md:col-span-2 p-4 rounded-2xl bg-primary/5 flex items-center justify-between border border-primary/10">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                          <CreditCard className="w-5 h-5" />
+                          <BadgeCheck className="w-5 h-5" />
                         </div>
                         <div>
                           <p className="font-semibold text-sm">Identity Verification</p>
