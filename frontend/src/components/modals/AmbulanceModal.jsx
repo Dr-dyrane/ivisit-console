@@ -54,6 +54,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
     }
   }, [ambulance, isCreate, isOrgAdmin, orgId]);
 
+
   useEffect(() => {
     const fetchHospitals = async () => {
       const { data } = await supabase.from('hospitals').select('id, name');
@@ -61,6 +62,22 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
     };
     fetchHospitals();
   }, []);
+
+  // Handle legacy hospital text field → hospital_id lookup
+  useEffect(() => {
+    if (ambulance && !ambulance.hospital_id && ambulance.hospital && hospitals.length > 0) {
+      // Find hospital ID by matching name (case-insensitive)
+      const matchingHospital = hospitals.find(
+        h => h.name.toLowerCase() === ambulance.hospital.toLowerCase()
+      );
+      if (matchingHospital) {
+        setFormData(prev => ({
+          ...prev,
+          hospital_id: matchingHospital.id
+        }));
+      }
+    }
+  }, [ambulance, hospitals]);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];

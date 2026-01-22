@@ -33,12 +33,16 @@ useEffect(() => {
 
 ---
 
-## ✅ Already Fixed (2 modals)
+## ✅ Already Fixed (3 modals)
 
-| Modal | Fixed | Pattern Used |
-|-------|-------|--------------|
-| DoctorModal.jsx | ✅ | Pattern B: Spread Initial + Merge |
-| AmbulanceModal.jsx | ✅ | Pattern B: Spread Initial + Merge |
+| Modal | Fixed | Pattern Used | Files Affected |
+|-------|-------|--------------|----------------|
+| DoctorModal.jsx | ✅ | Pattern B: Spread Initial + Merge | hospital_id, status |
+| AmbulanceModal.jsx | ✅ | Pattern B: Spread Initial + Merge | type, hospital_id, status |
+| UserModal.jsx | ✅ | Pattern B (Reference) | role, organization, provider_type |
+| HospitalModal.jsx | ✅ | Pattern A: Simple Fallback | (no selects with issue) |
+
+**Note**: AmbulanceModal was fixed in the same session as DoctorModal using the identical pattern.
 
 ---
 
