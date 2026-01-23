@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import ThemeToggle from '../ui/theme-toggle';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
-import NoiseOverlay from '../ui/noise-overlay';
+
 
 import { NAV_CONFIG, getAccessibleNav } from '../../config/navigation';
 
@@ -213,7 +213,6 @@ export const IslandNavigation = () => {
         transition={{ type: "spring", stiffness: 250, damping: 28 }}
         className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-xl shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] dark:shadow-[20px_0_40px_-20px_rgba(255,255,255,0.02)] ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'}`}
       >
-        <NoiseOverlay />
         {/* 1. BRANDING & BACK ARROW */}
         <div className="h-16 flex-shrink-0 flex items-center px-4 border-black/10 dark:border-white/10">
           <div className="relative flex items-center w-full">

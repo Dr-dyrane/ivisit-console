@@ -34,7 +34,6 @@ import { SupportTicketsPage } from "./components/pages/SupportTicketsPage";
 import { InsuranceManagementPage } from "./components/pages/InsuranceManagementPage";
 import { SubscriptionManagementPage } from "./components/pages/SubscriptionManagementPage";
 import { Toaster } from "./components/ui/sonner";
-import NoiseOverlay from "./components/ui/noise-overlay";
 import { motion } from "framer-motion";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import "./App.css";
@@ -46,7 +45,7 @@ const AppShell = ({ children }) => {
 	const isMobile = window.innerWidth < 768;
 
 	return (
-		<div className="relative h-screen w-full bg-background text-foreground overflow-hidden flex flex-col">
+		<div className="relative h-screen w-full text-foreground overflow-hidden flex flex-col">
 			{!hideNav && <SmartHeader />}
 
 			<div className="flex-1 flex relative overflow-hidden">
@@ -61,11 +60,6 @@ const AppShell = ({ children }) => {
 					id="main-content"
 					className={`flex-1 relative overflow-y-auto overflow-x-hidden scroll-smooth custom-scrollbar transition-all duration-300 ${!hideNav ? "pt-16" : ""}`}
 				>
-					{!hideNav && (
-						<div className="fixed inset-0 z-0 pointer-events-none">
-							<NoiseOverlay opacity={50} />
-						</div>
-					)}
 
 					<motion.div
 						layout

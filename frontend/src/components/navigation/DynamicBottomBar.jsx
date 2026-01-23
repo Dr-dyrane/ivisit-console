@@ -25,7 +25,6 @@ import { NotificationCenter } from '../common/NotificationCenter';
 import { QuickSearch } from './QuickSearch';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSubscription } from '../../hooks/useSubscription';
-import NoiseOverlay from '../ui/noise-overlay';
 
 export const DynamicBottomBar = () => {
     const { isMobile } = useNavigation();
@@ -156,7 +155,6 @@ export const DynamicBottomBar = () => {
                         boxShadow: '0 -10px 40px rgba(0,0,0,0.2)'
                     }}
                 >
-                    <NoiseOverlay />
                     <div className="h-1.5 w-12 bg-white/20 rounded-full mx-auto mt-4 mb-6" />
 
                     {/* View Toggle (Apple-style Segmented Control) */}

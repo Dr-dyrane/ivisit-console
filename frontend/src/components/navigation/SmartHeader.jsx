@@ -5,7 +5,6 @@ import { QuickSearch } from './QuickSearch';
 import { NotificationCenter } from '../common/NotificationCenter';
 import { Search, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import NoiseOverlay from '../ui/noise-overlay';
 
 export const SmartHeader = () => {
     const { isMobile } = useNavigation();
@@ -39,7 +38,6 @@ export const SmartHeader = () => {
                     paddingRight: isMobile ? '16px' : '32px'  // 16px (2×8px) mobile, 32px (4×8px) desktop
                 }}
             >
-                <NoiseOverlay className={`${isMobile && 'squircle-2xl'}`} />
                 <div className="flex items-center gap-2 md:gap-0 overflow-hidden h-full">
                     {/* Logo Zone - This will now slide with the paddingLeft */}
 

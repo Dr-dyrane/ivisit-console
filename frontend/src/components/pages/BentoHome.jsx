@@ -9,7 +9,6 @@ import { Button } from '../ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
-import NoiseOverlay from '../ui/noise-overlay'; // Add NoiseOverlay
 import { transformActivityData } from '../../utils/activityUtils';
 import {
   Activity,

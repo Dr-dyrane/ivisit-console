@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { Activity, Database, CheckCircle2 } from 'lucide-react';
-import NoiseOverlay from '../ui/noise-overlay';
+
 
 export const SmartFooter = () => {
     const { isMobile, isTablet, isDesktop, sidebarOpen } = useNavigation();
@@ -43,8 +43,7 @@ export const SmartFooter = () => {
                                 boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
                             }}
                         >
-                            <NoiseOverlay className='rounded-full' />
-
+                            =
                             {/* Left Section: Status/Context */}
                             <div className="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground whitespace-nowrap">
                                 {footerConfig.type === 'pagination' ? (

@@ -5,7 +5,7 @@ import { ContextPanel } from './ContextPanel';
 import { X } from 'lucide-react';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import NoiseOverlay from '../ui/noise-overlay';
+
 
 export const ContextPanelShell = () => {
   const { isMobile, isTablet, isDesktop } = useNavigation();
@@ -64,7 +64,6 @@ export const ContextPanelShell = () => {
               boxShadow: '-4px 0 24px rgba(0,0,0,0.1)'
             }}
           >
-            <NoiseOverlay />
             <div className="h-full flex flex-col relative">
               {/* Close button positioned at top-right */}
               <button
