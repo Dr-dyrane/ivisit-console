@@ -314,12 +314,15 @@ export const HospitalsPage = () => {
       variant="ghost"
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
       aria-label="Filter hospitals"
     >
       <Filter className="h-4 w-4" />
+      {(filters.search || (filters.status && filters.status.length > 0)) && (
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+      )}
     </Button>
-  ), []);
+  ), [filters]);
 
   const headerActions = React.useMemo(() => (isAdmin() || isProvider()) && (
     <Button
