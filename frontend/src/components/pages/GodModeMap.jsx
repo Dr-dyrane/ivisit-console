@@ -56,24 +56,24 @@ const GodModeMapContent = () => {
 	const [mapProvider, setMapProvider] = useState("google"); // 'google' | 'leaflet'
 	const [isSwitchingMap, setIsSwitchingMap] = useState(false);
 
-	// Color utilities
+	// Apple semantic colors
 	const getPriorityColor = (priority) => {
 		switch (priority) {
-			case "critical": return "#ef4444";
-			case "high": return "#f59e0b";
-			case "medium": return "#3b82f6";
-			case "low": return "#10b981";
-			default: return "#6b7280";
+			case "critical": return "hsl(var(--destructive))";
+			case "high": return "hsl(var(--warning))";
+			case "medium": return "hsl(var(--primary))";
+			case "low": return "hsl(var(--success))";
+			default: return "hsl(var(--muted-foreground))";
 		}
 	};
 
 	const getStatusColor = (status) => {
 		switch (status) {
-			case "available": return "#10b981";
-			case "busy": return "#f59e0b";
-			case "on_route": return "#3b82f6";
-			case "maintenance": return "#ef4444";
-			default: return "#6b7280";
+			case "available": return "hsl(var(--success))";
+			case "busy": return "hsl(var(--warning))";
+			case "on_route": return "hsl(var(--primary))";
+			case "maintenance": return "hsl(var(--destructive))";
+			default: return "hsl(var(--muted-foreground))";
 		}
 	};
 
@@ -190,7 +190,7 @@ const GodModeMapContent = () => {
 					routes.push({
 						id: `route-amb-${emergency.id}`,
 						positions: [[ambulance.lat, ambulance.lng], patientLoc],
-						color: '#3b82f6', // Blue
+						color: 'hsl(var(--primary))', // Apple primary
 						dashed: true
 					});
 				}
@@ -204,7 +204,7 @@ const GodModeMapContent = () => {
 					routes.push({
 						id: `route-hosp-${emergency.id}`,
 						positions: [patientLoc, [hospital.lat, hospital.lng]],
-						color: '#ef4444', // Red
+						color: 'hsl(var(--destructive))', // Apple destructive
 						dashed: false
 					});
 				}

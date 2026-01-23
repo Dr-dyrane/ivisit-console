@@ -33,7 +33,7 @@ export const LeafletMapRenderer = ({
 			style={{
 				height: "100%",
 				width: "100%",
-				background: theme === "dark" ? "#121212" : "#f0f0f0",
+				background: theme === "dark" ? "hsl(var(--background))" : "hsl(var(--background))",
 			}}
 		>
 			<TileLayer
@@ -58,7 +58,7 @@ export const LeafletMapRenderer = ({
 						key={`route-${idx}`}
 						positions={route.positions}
 						pathOptions={{
-							color: route.color || "#3b82f6",
+							color: route.color || "hsl(var(--primary))",
 							weight: 10,
 							opacity: 0.8,
 							dashArray: "12, 12", // Dashed line for effect

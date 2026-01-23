@@ -58,7 +58,7 @@ const AppShell = ({ children }) => {
 
 				<main
 					id="main-content"
-					className={`flex-1 relative overflow-y-auto overflow-x-hidden scroll-smooth custom-scrollbar transition-all duration-300 ${!hideNav ? "pt-16" : ""}`}
+					className={`flex-1 bg-background dark:bg-background relative overflow-y-auto overflow-x-hidden scroll-smooth custom-scrollbar transition-all duration-300 ${!hideNav ? "pt-16" : ""}`}
 				>
 
 					<motion.div

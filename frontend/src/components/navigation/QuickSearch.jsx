@@ -6,12 +6,12 @@ import { Dialog, DialogContent } from '../ui/dialog';
 import { searchService } from '../../services/searchService';
 
 const categoryColors = {
-  'Doctors': '#8B5CF6',
-  'Hospitals': '#3B82F6',
-  'Ambulances': '#EF4444',
-  'Visits': '#10B981',
-  'Emergency Requests': '#F59E0B',
-  'Users': '#06B6D4',
+  'Doctors': 'hsl(var(--primary))',
+  'Hospitals': 'hsl(var(--info))',
+  'Ambulances': 'hsl(var(--destructive))',
+  'Visits': 'hsl(var(--success))',
+  'Emergency Requests': 'hsl(var(--warning))',
+  'Users': 'hsl(var(--secondary))',
 };
 
 export const QuickSearch = ({ isOpen, onClose }) => {

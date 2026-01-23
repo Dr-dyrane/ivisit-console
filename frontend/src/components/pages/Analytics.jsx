@@ -47,12 +47,12 @@ import { ReportsModal } from '../modals/ReportsModal';
 import { useSubscription } from '../../hooks/useSubscription';
 
 const CHART_COLORS = {
-  primary: '#7a1a1a',
-  success: '#22c55e',
-  warning: '#f59e0b',
-  info: '#3b82f6',
-  secondary: '#8b5cf6',
-  destructive: '#ef4444',
+  primary: 'hsl(var(--primary))',
+  success: 'hsl(var(--success))',
+  warning: 'hsl(var(--warning))',
+  info: 'hsl(var(--info))',
+  secondary: 'hsl(var(--secondary))',
+  destructive: 'hsl(var(--destructive))',
   muted: 'hsl(var(--muted))',
   mutedForeground: 'hsl(var(--muted-foreground))'
 };

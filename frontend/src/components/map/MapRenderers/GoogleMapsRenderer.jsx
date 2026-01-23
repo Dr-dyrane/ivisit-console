@@ -40,7 +40,7 @@ export const GoogleMapsRenderer = ({
 				styles={mapStyles}
 				options={{
 					disableDefaultUI: true,
-					backgroundColor: theme === "dark" ? "#121212" : "#f0f0f0",
+					backgroundColor: theme === "dark" ? "hsl(var(--background))" : "hsl(var(--background))",
 					tilt: 45,
 				}}
 			>
@@ -214,7 +214,7 @@ export const GoogleMapsRenderer = ({
 										width: "40px",
 										height: "40px",
 										borderRadius: "12px",
-										backgroundColor: "#3b82f6",
+										backgroundColor: "hsl(var(--primary))",
 										boxShadow: "0 0 0 3px rgba(255,255,255,0.3), 0 4px 12px rgba(0,0,0,0.3)",
 										display: "flex",
 										alignItems: "center",

@@ -59,6 +59,19 @@ const webpackConfig = {
       if (config.enableHealthCheck && healthPluginInstance) {
         webpackConfig.plugins.push(healthPluginInstance);
       }
+
+      // Add Workbox plugin for PWA support (only in production)
+      if (!isDevServer) {
+        const { GenerateSW } = require('workbox-webpack-plugin');
+        webpackConfig.plugins.push(
+          new GenerateSW({
+            clientsClaim: true,
+            skipWaiting: true,
+            maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB limit
+          })
+        );
+      }
+
       return webpackConfig;
     },
   },

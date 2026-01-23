@@ -94,17 +94,44 @@ code {
 
 @layer base {
 	:root {
-		/* iVisit Brand Colors - Enhanced for Premium Feel */
+		/* Core Glass Tokens */
+		--glow-blur: 48px;
+		--glow-scale: 1.1;
+		--glow-opacity: 0.2;
+		--glow-duration: 500ms;
+		
+		/* Glass Border System */
+		--glass-border-light: hsl(var(--primary) / 0.2);
+		--glass-border-dark: hsl(var(--primary) / 0.4);
+		
+		/* Surface Tokens */
+		--glass-bg-light: hsl(var(--background) / 0.92);
+		--glass-bg-dark: hsl(var(--glass-bg));
+		--glass-blur: 20px;
+		--glass-saturation: 140%;
+		/* Apple-inspired background hierarchy */
 		--background: 0 0% 100%;
-		/* Pure white with slight warmth */
-		--foreground: 0 0% 8%;
-		/* Soft black, less harsh */
+		/* Pure white - no warmth */
+		--foreground: 0 0% 3.9%;
+		/* Apple's exact black */
 		--card: 0 0% 100%;
 		/* Pure white cards */
-		--card-foreground: 0 0% 8%;
-		/* Soft black text */
+		--card-foreground: 0 0% 3.9%;
+		/* Apple's exact black */
 		--popover: 0 0% 100%;
-		--popover-foreground: 0 0% 8%;
+		--popover-foreground: 0 0% 3.9%;
+
+		/* Light mode surface hierarchy */
+		--surface-1: 0 0% 100%;
+		/* Base level - pure white */
+		--surface-2: 0 0% 99.5%;
+		/* Level 2 - barely visible raise */
+		--surface-3: 0 0% 99%;
+		/* Level 3 - subtle elevation */
+		--surface-raised: 0 0% 98.5%;
+		/* Cards/panels - gentle lift */
+		--surface-border: 0 0% 96%;
+		/* Subtle divider */
 		--primary: 357 74% 26%;
 		/* brandPrimary #86100E */
 		--primary-foreground: 0 0% 100%;
@@ -138,8 +165,8 @@ code {
 		--squircle: 1.75rem;
 
 		/* Enhanced Premium Effects */
-		--glass-bg: 0 0% 100% / 0.8;
-		--glass-border: 0 0% 92% / 0.3;
+		--glass-bg: 0 0% 100% / 0.92;
+		--glass-border: 357 74% 26% / 0.2;
 		--shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.04);
 		--shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.06);
 		--shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.08);
@@ -148,27 +175,32 @@ code {
 		--shadow-premium: 0 25px 50px -12px rgb(134 16 14 / 0.15);
 		--transition-smooth: 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
-		/* Apple-inspired depth */
+		/* Apple-inspired depth hierarchy */
 		--surface-1: 0 0% 100%;
-		--surface-2: 0 0% 99%;
-		--surface-3: 0 0% 97%;
-		--surface-raised: 0 0% 100%;
-		--surface-border: 0 0% 90%;
+		/* Base level - pure white */
+		--surface-2: 0 0% 99.5%;
+		/* Level 2 - barely visible raise */
+		--surface-3: 0 0% 99%;
+		/* Level 3 - subtle elevation */
+		--surface-raised: 0 0% 98.5%;
+		/* Cards/panels - gentle lift */
+		--surface-border: 0 0% 96%;
+		/* Subtle divider */
 	}
 
 	.dark {
-		--background: 224 41% 7%;
-		/* bgDark #0B0F1A */
+		--background: 0 0% 0%;
+		/* True black, not dark blue */
 		--foreground: 0 0% 100%;
-		/* textLight */
-		--card: 217 38% 7%;
-		/* bgDarkAlt #121826 */
+		/* Pure white text */
+		--card: 0 0% 3%;
+		/* Subtle raised surface */
 		--card-foreground: 0 0% 100%;
-		/* textLight */
-		--popover: 217 38% 7%;
-		/* bgDarkAlt */
+		/* Pure white text */
+		--popover: 0 0% 3%;
+		/* Subtle raised surface */
 		--popover-foreground: 0 0% 100%;
-		/* textLight */
+		/* Pure white text */
 		--primary: 357 74% 26%;
 		/* brandPrimary #86100E */
 		--primary-foreground: 0 0% 100%;
@@ -212,13 +244,25 @@ code {
 		--chart-3: 0 70% 55%;
 		--chart-4: 0 84% 65%;
 		--chart-5: 15 80% 60%;
-		--glass-bg: 217 30% 9% / 0.5;
-		--glass-border: 0 0% 25% / 0;
+		--glass-bg: 217 30% 9% / 0.35;
+		--glass-border: 357 74% 26% / 0.4;
 		--shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3);
 		--shadow-md: 0 6px 16px -3px rgb(0 0 0 / 0.2);
 		--shadow-lg: 0 12px 32px -6px rgb(0 0 0 / 0.15);
 		--shadow-xl: 0 20px 48px -8px rgb(0 0 0 / 0.12);
 		--shadow-glow: 0 0 36px hsl(var(--primary) / 0.25);
+
+		/* Dark mode surface hierarchy */
+		--surface-1: 0 0% 0%;
+		/* Base level - true black */
+		--surface-2: 0 0% 4%;
+		/* Level 2 - subtle raise */
+		--surface-3: 0 0% 8%;
+		/* Level 3 - visible elevation */
+		--surface-raised: 0 0% 10%;
+		/* Cards/panels - clear lift */
+		--surface-border: 0 0% 16%;
+		/* Subtle divider */
 	}
 }
 
@@ -228,18 +272,49 @@ code {
 	}
 
 	body {
-		@apply bg-background text-foreground;
+		@apply text-foreground;
 	}
 }
 
 @layer utilities {
 	.glass {
 		background: hsl(var(--glass-bg));
-		backdrop-filter: blur(24px) saturate(180%);
-		-webkit-backdrop-filter: blur(24px) saturate(180%);
-		border: 1px solid hsl(var(--glass-border));
+		backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+		-webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+		border: 1px solid var(--glass-border-light);
 		/* iOS fallback */
-		background-color: hsl(var(--background) / 0.95);
+		background-color: var(--glass-bg-light);
+	}
+
+	/* Gold Standard Glow Utilities */
+	.hover-glow {
+		position: absolute;
+		inset: 0;
+		background: currentColor;
+		opacity: 0;
+		filter: blur(var(--glow-blur)) brightness(1.2);
+		transform: scale(var(--glow-scale));
+		transition: opacity var(--glow-duration) ease;
+		z-index: -1;
+	}
+
+	.group:hover .hover-glow {
+		opacity: var(--glow-opacity);
+	}
+
+	.hover-glow-primary { color: hsl(var(--primary)); }
+	.hover-glow-success { color: hsl(var(--success)); }
+	.hover-glow-warning { color: hsl(var(--warning)); }
+	.hover-glow-info { color: hsl(var(--info)); }
+	.hover-glow-secondary { color: hsl(var(--secondary)); }
+
+	/* Glass Card Variants */
+	.glass-card {
+		@apply glass shadow-2xl;
+	}
+
+	.glass-card-premium {
+		@apply glass shadow-premium;
 	}
 
 	.glass-strong {
@@ -412,7 +487,18 @@ code {
 		background-clip: text;
 	}
 
-	/* Overflow handling */
+	/* Apple surface utilities - Pure white hierarchy */
+	.surface-1 { background: hsl(var(--surface-1)); }
+	.surface-2 { background: hsl(var(--surface-2)); }
+	.surface-3 { background: hsl(var(--surface-3)); }
+	.surface-raised { 
+		background: hsl(var(--surface-raised));
+		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04);
+	}
+	.surface-border {
+		background: hsl(var(--surface-border));
+		height: 1px;
+	}
 	.truncate-2 {
 		display: -webkit-box;
 		-webkit-line-clamp: 2;

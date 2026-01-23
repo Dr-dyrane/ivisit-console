@@ -52,7 +52,7 @@ export const ThemeToggle = ({ className = '', size = 'lg' }) => {
           width: isDark ? shapeSize.dark.w : shapeSize.light.w,
           height: isDark ? shapeSize.dark.h : shapeSize.light.h,
           borderRadius: isDark ? "50%" : "18px",
-          backgroundColor: isDark ? "#f472b6" : "#ffffff",
+          backgroundColor: isDark ? "hsl(var(--primary))" : "hsl(var(--background))",
           rotate: isDark ? 180 : 0
         }}
         transition={{
