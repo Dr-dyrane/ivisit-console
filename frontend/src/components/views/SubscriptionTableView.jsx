@@ -1,6 +1,14 @@
 import React from 'react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { Checkbox } from '../ui/checkbox';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator
+} from '../ui/dropdown-menu';
 import {
     Users,
     Mail,
@@ -10,7 +18,8 @@ import {
     Eye,
     Trash2,
     Calendar,
-    Edit
+    Edit,
+    MoreHorizontal
 } from 'lucide-react';
 
 export const SubscriptionTableView = ({
@@ -19,7 +28,10 @@ export const SubscriptionTableView = ({
     onDelete,
     onEdit,
     getStatusBadge,
-    getTypeBadge
+    getTypeBadge,
+    selectedIds = [],
+    onSelect,
+    onSelectAll
 }) => {
     if (!subscribers || subscribers.length === 0) return null;
 
@@ -29,6 +41,13 @@ export const SubscriptionTableView = ({
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-border/20">
+                            <th className="w-12 p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
+                                <Checkbox
+                                    checked={selectedIds.length === subscribers.length && subscribers.length > 0}
+                                    onCheckedChange={(checked) => onSelectAll(checked)}
+                                    aria-label="Select all"
+                                />
+                            </th>
                             <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
                                 Subscriber
                             </th>
@@ -59,6 +78,13 @@ export const SubscriptionTableView = ({
                                 className={`border-b border-border/10 hover:bg-muted/20 transition-colors ${index % 2 === 0 ? 'bg-background/20' : 'bg-transparent'
                                     }`}
                             >
+                                <td className="p-4">
+                                    <Checkbox
+                                        checked={selectedIds.includes(subscriber.id)}
+                                        onCheckedChange={(checked) => onSelect(subscriber.id, checked)}
+                                        aria-label={`Select subscriber ${subscriber.email}`}
+                                    />
+                                </td>
                                 <td className="p-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 geo-round bg-primary/10 flex items-center justify-center shrink-0">
@@ -119,35 +145,36 @@ export const SubscriptionTableView = ({
                                     </span>
                                 </td>
                                 <td className="p-4">
-                                    <div className="flex items-center justify-end gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => onView(subscriber)}
-                                            className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                                        >
-                                            <Eye className="h-4 w-4" />
-                                        </Button>
-                                        {onEdit && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => onEdit(subscriber)}
-                                                className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                                            >
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                        )}
-                                        {onDelete && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => onDelete(subscriber)}
-                                                className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        )}
+                                    <div className="flex justify-end">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10 dark:hover:bg-white/10">
+                                                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                                    <span className="sr-only">Open menu</span>
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-[160px] rounded-xl bg-background/70 backdrop-blur-xl border-white/10 shadow-premium">
+                                                <DropdownMenuItem onClick={() => onView(subscriber)} className="cursor-pointer font-medium text-xs py-2">
+                                                    <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                                    View Details
+                                                </DropdownMenuItem>
+                                                {onEdit && (
+                                                    <DropdownMenuItem onClick={() => onEdit(subscriber)} className="cursor-pointer font-medium text-xs py-2">
+                                                        <Edit className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                                        Edit
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {onDelete && (
+                                                    <>
+                                                        <DropdownMenuSeparator className="bg-white/5" />
+                                                        <DropdownMenuItem onClick={() => onDelete(subscriber)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                                                            <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                                            Delete
+                                                        </DropdownMenuItem>
+                                                    </>
+                                                )}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
                                 </td>
                             </tr>

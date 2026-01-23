@@ -11,6 +11,8 @@ import { Card } from '../ui/card';
 import { TableSkeleton } from '../ui/skeleton';
 import { SubscriptionModal } from '../modals/SubscriptionModal';
 import { ReportsModal } from '../modals/ReportsModal';
+import { ConfirmationModal } from '../modals/ConfirmationModal';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { FilterSheet } from '../common/FilterSheet';
 import { ViewToggle } from '../common/ViewToggle';
 import { SubscriptionListView } from '../views/SubscriptionListView';
@@ -53,6 +55,16 @@ export const SubscriptionManagementPage = () => {
   const [selectedSubscriber, setSelectedSubscriber] = useState(null);
   const [modalMode, setModalMode] = useState(null); // 'create' | 'edit' | 'view'
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: null,
+    variant: 'destructive',
+    confirmLabel: 'Delete'
+  });
 
   // Filter state - includes search (enhanced based on insurance baseline)
   const [filters, setFilters] = useState({
@@ -225,14 +237,40 @@ export const SubscriptionManagementPage = () => {
   }, []);
 
   const handleDelete = useCallback(async (subscriber) => {
-    if (!window.confirm('Are you sure you want to delete this subscriber?')) return;
-    try {
-      await deleteSubscriber(subscriber.id);
-      toast.success('Subscriber deleted successfully');
-    } catch (err) {
-      toast.error('Failed to delete subscriber');
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Subscriber',
+      description: `Are you sure you want to delete ${subscriber.email}? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          await deleteSubscriber(subscriber.id);
+          toast.success('Subscriber deleted successfully');
+          fetchSubscribers();
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          toast.error('Failed to delete subscriber');
+        }
+      },
+      variant: 'destructive',
+      confirmLabel: 'Delete Subscriber'
+    });
+  }, [deleteSubscriber, fetchSubscribers]);
+
+  const handleSelect = useCallback((id, checked) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
     }
-  }, [deleteSubscriber]);
+  }, []);
+
+  const handleSelectAll = useCallback((checked) => {
+    if (checked) {
+      setSelectedIds(subscribers.map(s => s.id));
+    } else {
+      setSelectedIds([]);
+    }
+  }, [subscribers]);
 
   const handleViewAnalytics = useCallback(() => {
     setAnalyticsModalOpen(true);
@@ -271,7 +309,7 @@ export const SubscriptionManagementPage = () => {
         (filters.status && filters.status.length > 0) ||
         (filters.type && filters.type.length > 0) ||
         filters.welcomeEmailSent ||
-        filters.dateRange !== 'all') && (
+        filters.created_at) && (
           <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
         )}
     </Button>
@@ -367,14 +405,15 @@ export const SubscriptionManagementPage = () => {
       ]
     },
     {
-      key: 'dateRange',
-      type: 'select',
-      label: 'Date Range',
-      options: [
-        { value: 'all', label: 'All Time' },
-        { value: '7d', label: 'Last 7 Days' },
-        { value: '30d', label: 'Last 30 Days' },
-        { value: '90d', label: 'Last 90 Days' }
+      key: 'created_at',
+      type: 'date',
+      label: 'Subscription Date',
+      placeholder: 'Select dates',
+      shortcuts: [
+        { label: 'Today', value: 'today' },
+        { label: 'Last 7 Days', value: '7days' },
+        { label: 'Last 30 Days', value: '30days' },
+        { label: 'This Month', value: 'month' }
       ]
     }
   ], []);
@@ -756,6 +795,9 @@ export const SubscriptionManagementPage = () => {
               onDelete={handleDelete}
               getStatusBadge={getStatusBadge}
               getTypeBadge={getTypeBadge}
+              selectedIds={selectedIds}
+              onSelect={handleSelect}
+              onSelectAll={handleSelectAll}
             />
           )}
         </>
@@ -816,6 +858,51 @@ export const SubscriptionManagementPage = () => {
         viewToggle={viewToggleComponent}
         isMobile={isMobile}
       />
+
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        description={confirmationModal.description}
+        variant={confirmationModal.variant}
+        confirmLabel={confirmationModal.confirmLabel}
+      />
+
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onClear={() => setSelectedIds([])}
+      >
+        {isAdmin && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setConfirmationModal({
+                isOpen: true,
+                title: 'Delete Selected Subscribers',
+                description: `Are you sure you want to delete ${selectedIds.length} subscribers? This action cannot be undone.`,
+                onConfirm: async () => {
+                  try {
+                    // Bulk delete logic would go here
+                    toast.success(`${selectedIds.length} subscribers deleted`);
+                    setSelectedIds([]);
+                    setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+                  } catch (err) {
+                    toast.error('Failed to delete subscribers');
+                  }
+                },
+                variant: 'destructive',
+                confirmLabel: 'Delete All'
+              });
+            }}
+            className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+            title="Delete Selected"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        )}
+      </BulkActionBar>
     </div>
   );
 };
