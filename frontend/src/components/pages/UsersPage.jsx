@@ -557,7 +557,7 @@ export const UsersPage = () => {
     (isAdmin() || isOrgAdmin()) && (
       <Button
         onClick={handleInvite}
-        className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase text-foreground"
+        className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
         aria-label="Invite new user"
       >
         <Plus className="h-4 w-4 mr-2" />
@@ -653,13 +653,15 @@ export const UsersPage = () => {
           transition={{ duration: 0.4 }}
         >
           <Card
-            className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
+            className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
             onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
           >
+            {/* Apple hover glow effect */}
+            <div className="hover-glow hover-glow-primary" />
             <div className="absolute top-0 right-0 p-4 z-20">
               <div className="relative">
                 <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                   <Users className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
                 </div>
               </div>
@@ -685,13 +687,15 @@ export const UsersPage = () => {
           transition={{ duration: 0.4, delay: 0.1 }}
         >
           <Card
-            className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'verified' ? 'ring-2 ring-success shadow-lg' : ''}`}
+            className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'verified' ? 'ring-2 ring-success shadow-lg' : ''}`}
             onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'verified' }))}
           >
+            {/* Apple hover glow effect */}
+            <div className="hover-glow hover-glow-success" />
             <div className="absolute top-0 right-0 p-4 z-20">
               <div className="relative">
                 <div className={`absolute inset-0 ${filters.kpiFilter === 'verified' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                   <UserCheck className={`h-5 w-5 ${filters.kpiFilter === 'verified' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
                 </div>
               </div>
@@ -720,13 +724,15 @@ export const UsersPage = () => {
           {isAdmin() ? (
             /* Admin View: Admins & Org Admins */
             <Card
-              className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'admin' ? 'ring-2 ring-warning shadow-lg' : ''}`}
+              className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'admin' ? 'ring-2 ring-warning shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'admin' }))}
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-warning" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className={`absolute inset-0 ${filters.kpiFilter === 'admin' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Shield className={`h-5 w-5 ${filters.kpiFilter === 'admin' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -744,13 +750,15 @@ export const UsersPage = () => {
           ) : (
             /* Org Admin View: Providers */
             <Card
-              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'provider' ? 'ring-2 ring-info shadow-lg' : ''}`}
+              className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'provider' ? 'ring-2 ring-info shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'provider' }))}
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-info" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className={`absolute inset-0 ${filters.kpiFilter === 'provider' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Users className={`h-5 w-5 ${filters.kpiFilter === 'provider' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -779,13 +787,15 @@ export const UsersPage = () => {
           {isAdmin() ? (
             /* Admin View: Providers */
             <Card
-              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'provider' ? 'ring-2 ring-info shadow-lg' : ''}`}
+              className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'provider' ? 'ring-2 ring-info shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'provider' }))}
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-info" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className={`absolute inset-0 ${filters.kpiFilter === 'provider' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Users className={`h-5 w-5 ${filters.kpiFilter === 'provider' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -801,13 +811,15 @@ export const UsersPage = () => {
           ) : (
             /* Org Admin View: Patients */
             <Card
-              className="h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
+              className="h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'patient' }))} // Note: need to handle patient filter
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-secondary" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className="absolute inset-0 bg-secondary/10 blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200" />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Users className="h-5 w-5 text-secondary" />
                   </div>
                 </div>
@@ -834,13 +846,15 @@ export const UsersPage = () => {
           transition={{ duration: 0.4, delay: 0.4 }}
         >
           <Card
-            className="h-full min-h-[140px] geo-ticket bg-gradient-to-br from-primary/20 to-primary/5 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
+            className="h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
             onClick={handleViewAnalytics}
           >
+            {/* Apple hover glow effect */}
+            <div className="hover-glow hover-glow-primary" />
             <div className="absolute top-0 right-0 p-4 z-20">
               <div className="relative">
                 <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200" />
-                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                   <BarChart3 className="h-5 w-5 text-primary" />
                 </div>
               </div>
@@ -899,7 +913,7 @@ export const UsersPage = () => {
       ) : (
         <>
           {users.length === 0 ? (
-            <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
+            <Card className="squircle-lg glass-card-premium p-12 text-center">
               <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="font-bold text-xl mb-2">
                 {filters.search ? 'No Users Found' :
@@ -925,7 +939,7 @@ export const UsersPage = () => {
                     Reset Filters
                   </Button>
                 )}
-                <Button onClick={handleInvite} className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase text-foreground">
+                <Button onClick={handleInvite} className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase">
                   <Plus className="h-4 w-4 mr-2" />
                   INVITE USER
                 </Button>
@@ -949,12 +963,14 @@ export const UsersPage = () => {
                         transition={{ delay: index * 0.05 }}
                         className="col-span-1"
                       >
-                        <Card className="h-full geo-ticket bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
+                        <Card className="h-full geo-ticket glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col">
+                          {/* Apple hover glow effect */}
+                          <div className="hover-glow hover-glow-primary" />
                           {/* Top Right Icon */}
                           <div className="absolute top-0 right-0 p-5 z-20">
                             <div className="relative">
                               <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full scale-150" />
-                              <div className="w-10 h-10 geo-round bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                              <div className="w-10 h-10 geo-round surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
                                 {user.role === 'admin' ? <Shield className="h-5 w-5 text-primary" /> : <Users className="h-5 w-5 text-primary" />}
                               </div>
                             </div>
