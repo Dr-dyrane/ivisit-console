@@ -201,7 +201,7 @@ export const SupportTicketsPage = () => {
   const headerActions = React.useMemo(() => (
     <Button
       onClick={handleCreate}
-      className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+      className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
       aria-label="Create new ticket"
     >
       <Plus className="h-4 w-4 mr-2" />
@@ -270,15 +270,17 @@ export const SupportTicketsPage = () => {
           {/* Total */}
           <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
             <Card
-              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
+              className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
               role="button"
               tabIndex={0}
               aria-label="Show all tickets"
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-primary" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                   <Headphones className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'}`} />
                 </div>
               </div>
@@ -298,15 +300,17 @@ export const SupportTicketsPage = () => {
           {/* Open */}
           <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
             <Card
-              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'open' ? 'ring-2 ring-warning shadow-lg' : ''}`}
+              className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'open' ? 'ring-2 ring-warning shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'open' }))}
               role="button"
               tabIndex={0}
               aria-label="Filter by open tickets"
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-warning" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className={`absolute inset-0 ${filters.kpiFilter === 'open' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                   <AlertCircle className={`h-5 w-5 ${filters.kpiFilter === 'open' ? 'text-warning' : 'text-muted-foreground'}`} />
                 </div>
               </div>
@@ -326,15 +330,17 @@ export const SupportTicketsPage = () => {
           {/* In Progress */}
           <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
             <Card
-              className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'in_progress' ? 'ring-2 ring-info shadow-lg' : ''}`}
+              className={`h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'in_progress' ? 'ring-2 ring-info shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'in_progress' }))}
               role="button"
               tabIndex={0}
               aria-label="Filter by in-progress tickets"
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-info" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className={`absolute inset-0 ${filters.kpiFilter === 'in_progress' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                   <Activity className={`h-5 w-5 ${filters.kpiFilter === 'in_progress' ? 'text-info' : 'text-muted-foreground'}`} />
                 </div>
               </div>
@@ -354,15 +360,17 @@ export const SupportTicketsPage = () => {
           {/* Resolved */}
           <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
             <Card
-              className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'resolved' ? 'ring-2 ring-success shadow-lg' : ''}`}
+              className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'resolved' ? 'ring-2 ring-success shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'resolved' }))}
               role="button"
               tabIndex={0}
               aria-label="Filter by resolved tickets"
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-success" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className={`absolute inset-0 ${filters.kpiFilter === 'resolved' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                   <CheckCircle className={`h-5 w-5 ${filters.kpiFilter === 'resolved' ? 'text-success' : 'text-muted-foreground'}`} />
                 </div>
               </div>
@@ -382,12 +390,14 @@ export const SupportTicketsPage = () => {
           {/* Avg Turnaround */}
           <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
             <Card
-              className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'avg' ? 'ring-2 ring-muted shadow-lg' : ''}`}
+              className={`h-full min-h-[140px] geo-wave glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'avg' ? 'ring-2 ring-muted shadow-lg' : ''}`}
             // onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'avg' }))} // Optional
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-secondary" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className={`absolute inset-0 ${filters.kpiFilter === 'avg' ? 'bg-muted/30' : 'bg-muted/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                   <TrendingUp className={`h-5 w-5 ${filters.kpiFilter === 'avg' ? 'text-foreground' : 'text-muted-foreground'}`} />
                 </div>
               </div>
@@ -409,7 +419,7 @@ export const SupportTicketsPage = () => {
       {loading ? (
         <TableSkeleton rows={8} />
       ) : supportTickets.length === 0 ? (
-        <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
+        <Card className="squircle-lg glass-card-premium p-12 text-center">
           <Headphones className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
           <h3 className="font-bold text-xl mb-2">
             {filters.search || filters.kpiFilter !== 'all' ? 'No Matching Tickets' : 'No Support Tickets'}
@@ -426,7 +436,7 @@ export const SupportTicketsPage = () => {
                 Reset Filters
               </Button>
             )}
-            <Button onClick={handleCreate} className="squircle bg-primary" aria-label="Create your first support ticket">
+            <Button onClick={handleCreate} className="glass-card-premium" aria-label="Create your first support ticket">
               <Plus className="h-4 w-4 mr-2" />
               Create Ticket
             </Button>
@@ -447,12 +457,14 @@ export const SupportTicketsPage = () => {
                     transition={{ delay: index * 0.05 }}
                     className="col-span-1"
                   >
-                    <Card className="h-full squircle-xl bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
+                    <Card className="h-full squircle-xl glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col">
+                      {/* Apple hover glow effect */}
+                      <div className={`hover-glow ${ticket.priority === 'urgent' ? 'hover-glow-destructive' : ticket.priority === 'high' ? 'hover-glow-warning' : 'hover-glow-primary'}`} />
                       {/* Deco */}
                       <div className="absolute top-0 right-0 p-5 z-20">
                         <div className="relative">
                           <div className={`absolute inset-0 ${ticket.priority === 'urgent' ? 'bg-destructive/20' : ticket.priority === 'high' ? 'bg-orange-500/20' : 'bg-primary/10'} blur-xl rounded-full scale-150`} />
-                          <div className="w-10 h-10 geo-round bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                          <div className="w-10 h-10 geo-round surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
                             {ticket.status === 'open' ? <AlertCircle className="h-5 w-5 text-warning" /> :
                               ticket.status === 'resolved' ? <CheckCircle className="h-5 w-5 text-success" /> :
                                 <Activity className="h-5 w-5 text-primary" />}
