@@ -316,7 +316,12 @@ const GodModeMapContent = () => {
 					)}
 				</Card>
 
-				{/* Selected Marker Details Panel */}
+				{/* Selected Marker Details Panel with Dispatch Actions */}
+				<MarkerDetailPanel
+					selectedMarker={selectedMarker}
+					setSelectedMarker={setSelectedMarker}
+					onRefresh={refresh}
+				/>
 
 			</div>
 		</div>

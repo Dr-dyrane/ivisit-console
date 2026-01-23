@@ -3,9 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { AlertTriangle, Ambulance, Hospital, MapPin, Phone } from 'lucide-react';
+import { AlertTriangle, Ambulance, Hospital, MapPin, Phone, Send, CheckCheck } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { dispatchEmergency, completeEmergency } from '../../services/emergencyResponseService';
+import { toast } from 'sonner';
 
-export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker }) => {
+export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh }) => {
+	const { isAdmin, isOrgAdmin } = useAuth();
 	if (!selectedMarker) return null;
 
 	return (
@@ -91,12 +95,56 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker }) => {
 									</div>
 								</div>
 
-								<Button
-									className="w-full squircle bg-primary shadow-glow font-semibold"
-									size="lg"
-								>
-									Dispatch Unit
-								</Button>
+								<div className="flex gap-2">
+									{/* Dispatch button for unassigned emergencies */}
+									{(isAdmin() || isOrgAdmin()) &&
+										(selectedMarker.data.status === 'pending' || selectedMarker.data.status === 'in_progress') &&
+										!selectedMarker.data.ambulance_id && (
+											<Button
+												className="flex-1 squircle bg-success hover:bg-success/90 shadow-glow font-semibold"
+												size="lg"
+												onClick={async () => {
+													try {
+														toast.loading('Dispatching...', { id: 'map-dispatch' });
+														const result = await dispatchEmergency(selectedMarker.data.id, selectedMarker.data);
+														toast.success('Emergency dispatched!', { id: 'map-dispatch' });
+														toast.info(`Ambulance: ${result.assignments.ambulance?.type || 'Assigned'}`);
+														setSelectedMarker(null);
+														if (onRefresh) onRefresh();
+													} catch (error) {
+														toast.error('Dispatch failed', { id: 'map-dispatch' });
+													}
+												}}
+											>
+												<Send className="h-4 w-4 mr-2" />
+												Dispatch Unit
+											</Button>
+										)}
+
+									{/* Complete button for dispatched emergencies */}
+									{(isAdmin() || isOrgAdmin()) &&
+										(selectedMarker.data.status === 'accepted' || selectedMarker.data.ambulance_id) &&
+										selectedMarker.data.status !== 'completed' && (
+											<Button
+												className="flex-1 squircle bg-info hover:bg-info/90 shadow-glow font-semibold"
+												size="lg"
+												onClick={async () => {
+													if (!confirm('Mark as completed?')) return;
+													try {
+														await completeEmergency(selectedMarker.data.id);
+														toast.success('Emergency completed!');
+														setSelectedMarker(null);
+														if (onRefresh) onRefresh();
+													} catch (error) {
+														toast.error('Failed to complete');
+													}
+												}}
+											>
+												<CheckCheck className="h-4 w-4 mr-2" />
+												Mark Complete
+											</Button>
+										)}
+								</div>
 							</div>
 						)}
 

@@ -7,6 +7,7 @@ import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import { getEmergencyRequests } from '../../services/emergencyService';
+import { dispatchEmergency, completeEmergency } from '../../services/emergencyResponseService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -35,7 +36,9 @@ import {
   Zap,
   CheckCircle,
   FileText,
-  BarChart3
+  BarChart3,
+  Send,
+  CheckCheck
 } from 'lucide-react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { ViewToggle } from '../common/ViewToggle';
@@ -342,6 +345,35 @@ export const EmergencyRequestsPage = () => {
     }
   }, [selectedIds, fetchRequests]);
 
+  const handleDispatch = useCallback(async (request) => {
+    try {
+      toast.loading('Dispatching emergency response...', { id: 'dispatch' });
+
+      const result = await dispatchEmergency(request.id, request);
+
+      toast.success('Emergency dispatched! Resources assigned.', { id: 'dispatch' });
+      toast.info(`Ambulance: ${result.assignments.ambulance?.type || 'Assigned'}`, { duration: 3000 });
+
+      fetchRequests();
+    } catch (error) {
+      console.error('Dispatch failed:', error);
+      toast.error('Failed to dispatch emergency', { id: 'dispatch' });
+    }
+  }, [fetchRequests]);
+
+  const handleComplete = useCallback(async (request) => {
+    if (!confirm('Mark this emergency as completed?')) return;
+
+    try {
+      await completeEmergency(request.id);
+      toast.success('Emergency completed. Resources freed.');
+      fetchRequests();
+    } catch (error) {
+      console.error('Complete failed:', error);
+      toast.error('Failed to complete emergency');
+    }
+  }, [fetchRequests]);
+
   // Handle custom events from context panel
   useEffect(() => {
     const handleOpenModal = () => {
@@ -638,6 +670,33 @@ export const EmergencyRequestsPage = () => {
                               <Button variant="ghost" size="sm" onClick={() => handleViewDetails(req)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary" aria-label={`View details for emergency at ${req.location}`}>
                                 <Eye className="h-4 w-4" />
                               </Button>
+
+                              {/* Dispatch button for pending emergencies */}
+                              {(isAdmin() || isOrgAdmin()) && (req.status === 'pending' || req.status === 'in_progress') && !req.ambulance_id && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDispatch(req)}
+                                  className="geo-round h-8 w-8 p-0 hover:bg-success/10 hover:text-success"
+                                  title="Dispatch Emergency Response"
+                                >
+                                  <Send className="h-4 w-4" />
+                                </Button>
+                              )}
+
+                              {/* Complete button for accepted emergencies */}
+                              {(isAdmin() || isOrgAdmin()) && (req.status === 'accepted' || req.ambulance_id) && req.status !== 'completed' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleComplete(req)}
+                                  className="geo-round h-8 w-8 p-0 hover:bg-info/10 hover:text-info"
+                                  title="Mark as Completed"
+                                >
+                                  <CheckCheck className="h-4 w-4" />
+                                </Button>
+                              )}
+
                               {(isAdmin || isProvider) && (
                                 <Button variant="ghost" size="sm" onClick={() => handleDelete(req)} className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete emergency request at ${req.location}`}>
                                   <Trash2 className="h-4 w-4" />
