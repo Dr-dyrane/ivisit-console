@@ -92,21 +92,24 @@ export const LoginPage = () => {
 				// If we specifically detect NO password (hasPassword === false),
 				// we guide them to set it up instead of asking for one.
 				if (checkData.hasPassword === false) {
-					toast.info("Please set your password to continue");
+					// User exists but system thinks they have no password.
+					// 1. We warn them non-intrusively.
+					toast.info("It looks like you might not have a password set.", {
+						duration: 4000,
+					});
 
-					// Trigger password reset email automatically
+					// 2. We proactively send the link "Just in case" they really don't have one.
+					// This ensures the "True No Password" user gets the help they need.
 					try {
 						await supabase.auth.resetPasswordForEmail(email, {
 							redirectTo: `${window.location.origin}/set-password`,
 						});
-						toast.success("Setup link sent to your email!");
+						toast.success("We sent a setup link to your email, just in case.");
 					} catch (resetErr) {
-						console.error("Auto-reset failed", resetErr);
+						console.error("Auto-reset warning", resetErr);
 					}
 
-					setError("Please check your email to set your password");
-					setIsLoading(false);
-					return;
+					// 3. We DO NOT BLOCK. We proceed to the password screen below.
 				}
 			}
 

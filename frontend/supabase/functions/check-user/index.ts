@@ -13,7 +13,7 @@ serve(async (req) => {
 
     try {
         const { email } = await req.json()
-        console.log(`[Check User] Request for: ${email}`);
+        console.log(`[Check User v2] Request for: ${email}`);
 
         const supabaseAdmin = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
@@ -30,7 +30,7 @@ serve(async (req) => {
         let role = null;
         let source = null;
 
-        // 1. Try finding in Profiles
+        // 1. Find User ID
         const { data: profiles, error: profileError } = await supabaseAdmin
             .from('profiles')
             .select('id, role, email')
@@ -40,16 +40,12 @@ serve(async (req) => {
             userId = profiles[0].id;
             role = profiles[0].role;
             source = 'profile';
-            console.log(`[Check User] Found Profile: ${userId}`);
         } else {
-            // 2. Fallback to Auth Users
-            console.log(`[Check User] Profile not found, searching Auth...`);
             const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 100 });
             const authUser = users?.find(u => u.email?.toLowerCase() === email.trim().toLowerCase());
             if (authUser) {
                 userId = authUser.id;
                 source = 'auth';
-                console.log(`[Check User] Found Auth User: ${userId}`);
             }
         }
 
@@ -60,47 +56,54 @@ serve(async (req) => {
             )
         }
 
-        // 3. Check for Password Existence
-        // We fetch the full user object from Auth Admin API to inspect identities/metadata
+        // 2. Fetch Fresh User Data
+        // We explicitly call getUserById to get the latest state.
+        // There shouldn't be caching on the admin API unless internal.
         const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
 
         let hasPassword = false;
 
         if (user) {
-            // Method A: Check if 'encrypted_password' is exposed (Rare in API, but requested by user)
-            // Accessing via 'any' to bypass TS check if property exists on runtime object
+            // Method A: Check Encrypted Password (if exposed)
             const rawUser = user as any;
+
+            // Log keys to debug explicitly
+            console.log(`[Check User] Debug User Keys for ${userId}: ${Object.keys(rawUser)}`);
+
+            // In newer Supabase versions, 'encrypted_password' might be hidden even from admin API
+            // Checking for it specifically:
             if (rawUser.encrypted_password && rawUser.encrypted_password.length > 0) {
+                console.log(`[Check User] Found encrypted_password field`);
                 hasPassword = true;
             }
+
             // Method B: Check Identities
-            // If they have an identity with provider 'email', they usually have a password (unless invited & pending)
-            // Invited users technically have an email identity but it might strictly be checked via 'invited_at'
-            else if (user.identities && user.identities.some((i: any) => i.provider === 'email')) {
-                // Refinement: meaningful password?
-                // If confirmed_at is null, they might be invited-only.
-                // But let's assume if email identity exists, they 'can' have a password or are expected to.
-                // However, for the specific "No Password" flow (Invites), often they are created with a random password or none.
-                // Let's rely on the user instructions: "check encrypted_password field".
+            // If they JUST set a password, they should have an 'email' identity.
+            // We log the identities to see what's happening.
+            if (user.identities) {
+                console.log(`[Check User] Identities found: ${user.identities.map((i: any) => i.provider).join(', ')}`);
 
-                // Since standard API strips encrypted_password, we might assume NO password if we can't see it?
-                // Or we rely on 'identities'.
-
-                // Let's assume hasPassword = true if provider is email (fallback)
-                hasPassword = true;
+                const emailIdentity = user.identities.find((i: any) => i.provider === 'email');
+                if (emailIdentity) {
+                    // They have an email identity.
+                    // This usually means they have a password.
+                    // UNLESS: They are invited and haven't accepted? 
+                    // If they just used "Reset Password", their account is confirmed and has a password.
+                    hasPassword = true;
+                    console.log(`[Check User] Email identity present -> hasPassword = true`);
+                }
             }
-
-            // DEBUG: Log Keys to see if encrypted_password is visible
-            console.log(`[Check User] User Keys: ${Object.keys(user)}`);
-            // Note: We won't see encrypted_password in logs usually which validates why we need 'Method B' or SQL.
         }
+
+        // DEBUG: Force false if we suspect logic error in reading the object, but here we trust the logic.
+        // If hasPassword is still false, then Supabase isn't reporting the password change yet or Method B is flawed.
 
         return new Response(
             JSON.stringify({
                 exists: true,
                 source,
                 role,
-                hasPassword // This will be the key flag 
+                hasPassword
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
