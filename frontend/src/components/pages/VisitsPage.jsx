@@ -436,7 +436,7 @@ export const VisitsPage = () => {
   const headerActions = React.useMemo(() => (
     <Button
       onClick={handleCreate}
-      className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+      className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
       aria-label="Schedule new visit"
     >
       <Plus className="h-4 w-4 mr-2" />
@@ -482,17 +482,19 @@ export const VisitsPage = () => {
               transition={{ duration: 0.4, delay: 0.1 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('all')}
                 role="button"
                 tabIndex={0}
                 aria-label="Show all visits"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-primary" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <Calendar className={`h-5 w-5 ${kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
@@ -521,17 +523,19 @@ export const VisitsPage = () => {
               transition={{ duration: 0.4, delay: 0.15 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'scheduled' ? 'ring-2 ring-info shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'scheduled' ? 'ring-2 ring-info shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('scheduled')}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by scheduled visits"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-info" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${kpiFilter === 'scheduled' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <Clock className={`h-5 w-5 ${kpiFilter === 'scheduled' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
@@ -560,17 +564,19 @@ export const VisitsPage = () => {
               transition={{ duration: 0.4, delay: 0.2 }}
             >
               <Card
-                className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'in_progress' ? 'ring-2 ring-warning shadow-lg' : ''
+                className={`h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'in_progress' ? 'ring-2 ring-warning shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('in_progress')}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by in-progress visits"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-warning" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${kpiFilter === 'in_progress' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <PlayCircle className={`h-5 w-5 ${kpiFilter === 'in_progress' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
@@ -599,17 +605,19 @@ export const VisitsPage = () => {
               transition={{ duration: 0.4, delay: 0.25 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'completed' ? 'ring-2 ring-success shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'completed' ? 'ring-2 ring-success shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('completed')}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by completed visits"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-success" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${kpiFilter === 'completed' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <CheckCircle className={`h-5 w-5 ${kpiFilter === 'completed' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
@@ -638,17 +646,19 @@ export const VisitsPage = () => {
               transition={{ duration: 0.4, delay: 0.3 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'cancelled' ? 'ring-2 ring-destructive shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-wave glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'cancelled' ? 'ring-2 ring-destructive shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('cancelled')}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by cancelled visits"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-destructive" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${kpiFilter === 'cancelled' ? 'bg-destructive/30' : 'bg-destructive/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <AlertCircle className={`h-5 w-5 ${kpiFilter === 'cancelled' ? 'text-destructive' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
@@ -677,11 +687,11 @@ export const VisitsPage = () => {
         <>
           {viewMode === 'grid' && (
             visits.length === 0 ? (
-              <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
+              <Card className="squircle-lg glass-card-premium p-12 text-center">
                 <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="font-bold text-xl mb-2">No Visits Yet</h3>
                 <p className="text-muted-foreground mb-6">Get started by scheduling the first visit</p>
-                <Button onClick={handleCreate} className="squircle bg-primary" data-testid="add-first-visit-btn" aria-label="Schedule your first visit">
+                <Button onClick={handleCreate} className="glass-card-premium" data-testid="add-first-visit-btn" aria-label="Schedule your first visit">
                   <Plus className="h-4 w-4 mr-2" />
                   Schedule First Visit
                 </Button>
@@ -702,13 +712,15 @@ export const VisitsPage = () => {
                       transition={{ delay: index * 0.03 }}
                       className="col-span-1"
                     >
-                      <Card className="h-full squircle-xl bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col" data-testid={`visit-card-${visit.id}`}>
+                      <Card className="h-full squircle-xl glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col" data-testid={`visit-card-${visit.id}`}>
+                        {/* Apple hover glow effect */}
+                        <div className="hover-glow hover-glow-primary" />
 
                         {/* Top Right Icon */}
                         <div className="absolute top-0 right-0 p-5 z-20">
                           <div className="relative">
                             <div className="absolute inset-0 bg-info/10 blur-xl rounded-full scale-150" />
-                            <div className="w-10 h-10 squircle-sm bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                            <div className="w-10 h-10 squircle-sm surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
                               <Calendar className="h-5 w-5 text-info" />
                             </div>
                           </div>
