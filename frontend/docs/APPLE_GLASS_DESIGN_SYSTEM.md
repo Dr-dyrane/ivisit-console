@@ -225,6 +225,7 @@ This document establishes the gold standard for Apple-inspired glass morphism de
 - **AmbulancesPage** - KPI cards, ambulance cards, and header controls with glass implementation
 - **DoctorsPage** - KPI cards, doctor cards, empty state, and header controls with glass implementation
 - **VisitsPage** - KPI cards, visit cards, empty state, and header controls with glass implementation
+- **EmergencyRequestsPage** - KPI cards, emergency cards, empty state, and priority-based hover glows
 
 ### 🔄 In Progress
 - Next target pages for implementation (based on priority and usage)
