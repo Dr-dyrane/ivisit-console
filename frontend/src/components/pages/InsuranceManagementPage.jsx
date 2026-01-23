@@ -201,6 +201,22 @@ export const InsuranceManagementPage = () => {
     }
   }, [verifyPolicy]);
 
+  const handleSelect = useCallback((id, checked) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
+    }
+  }, []);
+
+  const handleSelectAll = useCallback((checked) => {
+    if (checked) {
+      setSelectedIds(policies.map(p => p.id));
+    } else {
+      setSelectedIds([]);
+    }
+  }, [policies]);
+
   const handleViewAnalytics = useCallback(() => {
     setAnalyticsModalOpen(true);
   }, []);
@@ -706,6 +722,9 @@ export const InsuranceManagementPage = () => {
               onDelete={handleDelete}
               onVerify={handleVerify}
               getStatusBadge={getStatusBadge}
+              selectedIds={selectedIds}
+              onSelect={handleSelect}
+              onSelectAll={handleSelectAll}
             />
           )}
         </>
