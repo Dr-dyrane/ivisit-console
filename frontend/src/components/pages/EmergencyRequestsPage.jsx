@@ -16,6 +16,7 @@ import { PaginationControls } from '../ui/PaginationControls';
 import { useAuth } from '../../contexts/AuthContext';
 import { EmergencyDetailsModal } from '../modals/EmergencyDetailsModal';
 import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
+import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { withTimeout } from '../../lib/utils';
 import { toast } from 'sonner';
 import { ReportsModal } from '../modals/ReportsModal';
@@ -65,6 +66,14 @@ export const EmergencyRequestsPage = () => {
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: null,
+    variant: 'destructive',
+    confirmLabel: 'Delete'
+  });
 
   const { viewMode, setViewMode } = useViewMode('emergency-requests-page', 'grid');
   const pagination = usePagination(20);
@@ -229,12 +238,15 @@ export const EmergencyRequestsPage = () => {
       variant="ghost"
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
       aria-label="Filter emergency requests"
     >
       <FilterIcon className="h-4 w-4" />
+      {(filters.search || (filters.priority && filters.priority.length > 0) || (filters.status && filters.status.length > 0)) && (
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+      )}
     </Button>
-  ), []);
+  ), [filters]);
 
   const headerActions = React.useMemo(() => (
     <Button
@@ -266,30 +278,41 @@ export const EmergencyRequestsPage = () => {
         <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Requests</span>
       </div>
     </div>
-  ), [pendingCount, pagination.currentPage, pagination.totalPages, pagination.totalCount]);
+  ), [pendingCount, pagination]);
 
   usePageFooter(footerContent, 'status', !loading && requests.length > 0);
 
   const handleDelete = async (request) => {
-    if (!confirm('Are you sure you want to delete this request?')) return;
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Emergency Request',
+      description: `Are you sure you want to delete this emergency request at ${request.location}? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase
+            .from('emergency_requests')
+            .delete()
+            .eq('id', request.id);
 
-    try {
-      const { error } = await supabase
-        .from('emergency_requests')
-        .delete()
-        .eq('id', request.id);
+          if (error) throw error;
 
-      if (error) throw error;
-      await createNotification(
-        NotificationTypes.EMERGENCY,
-        NotificationActions.CANCELLED,
-        request.id,
-        { message: `Emergency request has been cancelled` }
-      );
-      toast.success('Request deleted');
-      fetchRequests();
-    } catch (error) {
-      console.error('Error deleting request:', error);
+          await createNotification(
+            NotificationTypes.EMERGENCY,
+            NotificationActions.CANCELLED,
+            request.id,
+            { message: `Emergency request has been cancelled` }
+          );
+          toast.success('Emergency request deleted successfully');
+          fetchRequests();
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          console.error('Error deleting emergency request:', error);
+          toast.error(error.message || 'Failed to delete emergency request');
+        }
+      },
+      variant: 'destructive',
+      confirmLabel: 'Delete Request'
+    });
       toast.error('Failed to delete request');
     }
   };
@@ -872,6 +895,15 @@ export const EmergencyRequestsPage = () => {
         initialType="emergency"
       />
 
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        description={confirmationModal.description}
+        variant={confirmationModal.variant}
+        confirmLabel={confirmationModal.confirmLabel}
+      />
 
     </div>
   );
