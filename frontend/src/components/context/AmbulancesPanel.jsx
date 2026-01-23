@@ -9,7 +9,8 @@ import {
   Plus,
   MapPin,
   List,
-  Filter
+  Filter,
+  BarChart3
 } from 'lucide-react';
 
 export const AmbulancesPanel = ({ ambulancesData }) => {
@@ -18,6 +19,10 @@ export const AmbulancesPanel = ({ ambulancesData }) => {
 
   const handleCreateAmbulance = () => {
     window.dispatchEvent(new CustomEvent('openAmbulanceModal'));
+  };
+
+  const handleAnalytics = () => {
+    window.dispatchEvent(new CustomEvent('openReportsModal'));
   };
 
   return (
@@ -91,11 +96,12 @@ export const AmbulancesPanel = ({ ambulancesData }) => {
 
           <motion.button
             whileTap={{ scale: 0.98 }}
+            onClick={handleAnalytics}
             className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            title="View Fleet Map"
+            title="View Analytics"
           >
-            <MapPin className="h-4 w-4" />
-            <span className="font-normal text-xs">Map</span>
+            <BarChart3 className="h-4 w-4" />
+            <span className="font-normal text-xs">Analytics</span>
           </motion.button>
 
           <motion.button

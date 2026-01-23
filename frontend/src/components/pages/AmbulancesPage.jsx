@@ -17,6 +17,7 @@ import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { AmbulanceModal } from '../modals/AmbulanceModal';
+import { ReportsModal } from '../modals/ReportsModal';
 import { withTimeout } from '../../lib/utils';
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
@@ -43,6 +44,7 @@ export const AmbulancesPage = () => {
   const [kpiFilter, setKpiFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     title: '',
@@ -258,13 +260,16 @@ export const AmbulancesPage = () => {
   useEffect(() => {
     const handleOpenModal = () => handleCreate();
     const handleOpenFilters = () => setFilterSheetOpen(true);
+    const handleOpenAnalytics = () => setAnalyticsModalOpen(true);
 
     window.addEventListener('openAmbulanceModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
+    window.addEventListener('openReportsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openAmbulanceModal', handleOpenModal);
       window.removeEventListener('openFilters', handleOpenFilters);
+      window.removeEventListener('openReportsModal', handleOpenAnalytics);
     };
   }, [handleCreate]);
 
@@ -396,7 +401,13 @@ export const AmbulancesPage = () => {
       key: 'created_at',
       type: 'date',
       label: 'Commission Date',
-      placeholder: 'Select dates'
+      placeholder: 'Select dates',
+      shortcuts: [
+        { label: 'Today', value: 'today' },
+        { label: 'Last 7 Days', value: '7days' },
+        { label: 'Last 30 Days', value: '30days' },
+        { label: 'This Month', value: 'month' }
+      ]
     }
   ], [hospitals, isAdmin]);
 
@@ -409,12 +420,15 @@ export const AmbulancesPage = () => {
       variant="ghost"
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
       aria-label="Filter ambulances"
     >
       <Filter className="h-4 w-4" />
+      {(filters.search || (filters.status && filters.status.length > 0) || (filters.type && filters.type.length > 0) || filters.hospital) && (
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+      )}
     </Button>
-  ), []);
+  ), [filters]);
 
   const headerActions = React.useMemo(() => (
     <Button
@@ -860,6 +874,13 @@ export const AmbulancesPage = () => {
         initialValues={filters}
         viewToggle={isMobile ? viewToggleComponent : null}
         isMobile={isMobile}
+      />
+
+      <ReportsModal
+        open={analyticsModalOpen}
+        onClose={() => setAnalyticsModalOpen(false)}
+        analyticsData={ambulancesData?.stats}
+        initialType="ambulance"
       />
     </div>
   );

@@ -313,8 +313,6 @@ export const EmergencyRequestsPage = () => {
       variant: 'destructive',
       confirmLabel: 'Delete Request'
     });
-      toast.error('Failed to delete request');
-    }
   };
 
   const handleViewDetails = (request) => {
@@ -408,8 +406,6 @@ export const EmergencyRequestsPage = () => {
     };
     return badges[priority] || badges.medium;
   };
-
-
 
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
