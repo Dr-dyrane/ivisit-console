@@ -340,7 +340,13 @@ export const DoctorsPage = () => {
       key: 'created_at',
       type: 'date',
       label: 'Added Date',
-      placeholder: 'Select dates'
+      placeholder: 'Select dates',
+      shortcuts: [
+        { label: 'Today', value: 'today' },
+        { label: 'Last 7 Days', value: '7days' },
+        { label: 'Last 30 Days', value: '30days' },
+        { label: 'This Month', value: 'month' }
+      ]
     }
   ], []);
 
