@@ -2,6 +2,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { Checkbox } from '../ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +14,7 @@ import { Edit, Trash2, Eye, EyeOff, Clock, Globe, Tag, Calendar, FileCheck, File
 import { Card } from '../ui/card';
 import { motion } from 'framer-motion';
 
-export const HealthNewsTableView = ({ healthNews, onView, onEdit, onDelete, onTogglePublish, getStatusBadge, isMobile = false, isAdmin = false }) => {
+export const HealthNewsTableView = ({ healthNews, onView, onEdit, onDelete, onTogglePublish, getStatusBadge, isMobile = false, isAdmin = false, selectedIds = [], onSelect, onSelectAll }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -24,6 +25,13 @@ export const HealthNewsTableView = ({ healthNews, onView, onEdit, onDelete, onTo
           <Table>
             <TableHeader>
               <TableRow className="border-b border-white/10 hover:bg-transparent">
+                <TableHead className="w-12 text-[10px] font-bold uppercase tracking-wider text-xs md:text-sm py-4">
+                  <Checkbox
+                    checked={selectedIds.length === healthNews.length && healthNews.length > 0}
+                    onCheckedChange={(checked) => onSelectAll(checked)}
+                    aria-label="Select all"
+                  />
+                </TableHead>
                 <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Title</TableHead>
                 <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Source</TableHead>
                 <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Category</TableHead>
@@ -42,6 +50,13 @@ export const HealthNewsTableView = ({ healthNews, onView, onEdit, onDelete, onTo
                   transition={{ delay: index * 0.02 }}
                   className="border-b border-white/10 hover:bg-primary/5 transition-colors group cursor-default"
                 >
+                  <TableCell className="py-4">
+                    <Checkbox
+                      checked={selectedIds.includes(news.id)}
+                      onCheckedChange={(checked) => onSelect(news.id, checked)}
+                      aria-label={`Select news ${news.title}`}
+                    />
+                  </TableCell>
                   <TableCell className="font-bold truncate max-w-[150px] md:max-w-[200px] text-xs md:text-sm">
                     <div className="truncate" title={news.title}>
                       {news.title || 'Untitled'}

@@ -221,6 +221,22 @@ export const HealthNewsManagementPage = () => {
     }
   }, [fetchHealthNews]);
 
+  const handleSelect = useCallback((id, checked) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
+    }
+  }, []);
+
+  const handleSelectAll = useCallback((checked) => {
+    if (checked) {
+      setSelectedIds(healthNews.map(n => n.id));
+    } else {
+      setSelectedIds([]);
+    }
+  }, [healthNews]);
+
   const handleSave = useCallback(async (formData) => {
     try {
       const timestamp = new Date().toISOString();
@@ -793,6 +809,9 @@ export const HealthNewsManagementPage = () => {
                 getStatusBadge={getStatusBadge}
                 isMobile={isMobile}
                 isAdmin={isAdmin}
+                selectedIds={selectedIds}
+                onSelect={handleSelect}
+                onSelectAll={handleSelectAll}
               />
             </div>
           )}
