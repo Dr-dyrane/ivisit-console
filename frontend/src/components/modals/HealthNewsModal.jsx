@@ -29,8 +29,10 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (news && (isEdit || isView)) {
-      setFormData({
+    if (news) {
+      setFormData(prev => ({
+        ...prev,
+        ...news,
         title: news.title || '',
         source: news.source || '',
         category: news.category || 'general',
@@ -39,8 +41,8 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
         published: news.published !== undefined ? news.published : true,
         description: news.description || '',
         content: news.content || ''
-      });
-    } else {
+      }));
+    } else if (isCreate) {
       setFormData({
         title: '',
         source: '',
@@ -52,7 +54,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
         content: ''
       });
     }
-  }, [news, isEdit, isView]);
+  }, [news, isCreate]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

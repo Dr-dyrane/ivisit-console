@@ -16,7 +16,8 @@ import { uploadImage } from '../../services/storageService';
 import { Loader2, Upload } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { inviteUser } from '../../services/adminService';
-import { createDoctor, updateDoctor } from '../../services/doctorsService';
+import { createDoctor, updateDoctor, getDoctors } from '../../services/doctorsService';
+import { getProfilesByRole } from '../../services/profilesService';
 
 export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
   const isView = mode === 'view';
@@ -35,6 +36,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
     rating: 4.5,
     experience: 5,
     license_number: '',
+    profile_id: '',
     ...doctor // Spread doctor data into initial state for proper Select prefilling
   });
 
@@ -58,6 +60,9 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [sendInvite, setSendInvite] = useState(true);
+  const [availableProfiles, setAvailableProfiles] = useState([]);
+  const [isManualEntry, setIsManualEntry] = useState(false);
+  const [fetchingProfiles, setFetchingProfiles] = useState(false);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -81,7 +86,35 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
 
   useEffect(() => {
     fetchHospitals();
-  }, []);
+    if (isCreate) {
+      fetchAvailableProfiles();
+    }
+  }, [isCreate]);
+
+  const fetchAvailableProfiles = async () => {
+    try {
+      setFetchingProfiles(true);
+      // Get only provider profiles
+      const profiles = await getProfilesByRole('provider');
+
+      // Also get existing doctors to avoid duplicates
+      const { data: existingDoctors } = await getDoctors();
+      const existingProfileIds = new Set(existingDoctors.map(d => d.profile_id).filter(Boolean));
+
+      // Filter: Only show those not already linked AND who are compatible (Doctor type or unset)
+      const available = profiles.filter(p => {
+        const isAlreadyLinked = existingProfileIds.has(p.id);
+        const isCompatibleProvider = p.provider_type === 'doctor' || !p.provider_type;
+        return !isAlreadyLinked && isCompatibleProvider;
+      });
+
+      setAvailableProfiles(available);
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+    } finally {
+      setFetchingProfiles(false);
+    }
+  };
 
   const fetchHospitals = async () => {
     try {
@@ -89,6 +122,22 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
       setHospitals(data || []);
     } catch (error) {
       console.error('Error fetching hospitals:', error);
+    }
+  };
+
+  const handleProfileSelect = (profileId) => {
+    const profile = availableProfiles.find(p => p.id === profileId);
+    if (profile) {
+      setFormData(prev => ({
+        ...prev,
+        profile_id: profile.id,
+        name: profile.full_name || profile.username,
+        email: profile.email,
+        phone: profile.phone || '',
+        image: profile.image_uri || profile.avatar_url || prev.image,
+        hospital_id: profile.organization_id || prev.hospital_id
+      }));
+      setSendInvite(false); // No need to invite if they already exist
     }
   };
 
@@ -230,15 +279,67 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
                     <p className="text-xl font-semibold">{formData.rating}</p>
                     <p className="text-[10px] uppercase tracking-widest opacity-50">Rating</p>
                   </div>
-                  <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
-                    <div className="flex justify-center mb-1">
-                      <Shield className="w-5 h-5 text-blue-500 opacity-60" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {isView ? 'Viewing doctor credentials' : 'Enter professional details below'}
-                    </p>
-                  </div>
                 </div>
+
+                {/* Profile Link Selection (Create Only) */}
+                {isCreate && !isManualEntry && (
+                  <GlassCard icon={<Shield className="text-primary" />} title="Link Existing Account">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold uppercase text-muted-foreground ml-1">Select Provider Account</Label>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={() => {
+                            setIsManualEntry(true);
+                            setFormData(prev => ({ ...prev, profile_id: '' }));
+                          }}
+                          className="text-xs h-auto p-0 opacity-70 hover:opacity-100"
+                        >
+                          Manual Entry / Invite
+                        </Button>
+                      </div>
+                      <Select
+                        value={formData.profile_id}
+                        onValueChange={handleProfileSelect}
+                        disabled={fetchingProfiles}
+                      >
+                        <SelectTrigger className="rounded-xl bg-white/5 border-white/10 h-11">
+                          <SelectValue placeholder={fetchingProfiles ? "Loading accounts..." : "Choose an available provider..."} />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
+                          {availableProfiles.length > 0 ? (
+                            availableProfiles.map(p => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.full_name || p.username} ({p.email})
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <div className="p-4 text-center text-xs text-muted-foreground">
+                              No unlinked provider accounts found.
+                            </div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-muted-foreground px-1">
+                        Linking to an existing account will sync credentials and bypass email invitations.
+                      </p>
+                    </div>
+                  </GlassCard>
+                )}
+
+                {isCreate && isManualEntry && (
+                  <div className="flex justify-end -mb-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsManualEntry(false)}
+                      className="text-xs h-auto p-0 opacity-70 hover:opacity-100"
+                    >
+                      ← Back to Profile Selection
+                    </Button>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
                   {/* Profile Section */}

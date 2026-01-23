@@ -9,10 +9,12 @@ import { toast } from 'sonner';
 import { X, Ambulance, MapPin, Activity, Star, Calendar, Hospital, Shield, Zap } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
+import { createAmbulance, updateAmbulance } from '../../services/ambulancesService';
 
 import { uploadImage } from '../../services/storageService';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Upload, UserPlus, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { getProfilesByRole } from '../../services/profilesService';
 
 export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
   const isView = mode === 'view';
@@ -29,8 +31,13 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
     eta: 'N/A',
     rating: 4.5,
     last_maintenance: '',
-    ...ambulance // Spread ambulance data into initial state for proper Select prefilling
+    profile_id: '',
+    ...ambulance
   });
+
+  const [availableProfiles, setAvailableProfiles] = useState([]);
+  const [fetchingProfiles, setFetchingProfiles] = useState(false);
+  const [linkingExisting, setLinkingExisting] = useState(true);
 
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -56,12 +63,58 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
 
 
   useEffect(() => {
-    const fetchHospitals = async () => {
+    fetchHospitals();
+    if (isCreate) {
+      fetchAvailableProfiles();
+    }
+  }, [isCreate]);
+
+  const fetchHospitals = async () => {
+    try {
       const { data } = await supabase.from('hospitals').select('id, name');
       setHospitals(data || []);
-    };
-    fetchHospitals();
-  }, []);
+    } catch (error) {
+      console.error('Error fetching hospitals:', error);
+    }
+  };
+
+  const fetchAvailableProfiles = async () => {
+    try {
+      setFetchingProfiles(true);
+      // Get only provider profiles
+      const profiles = await getProfilesByRole('provider');
+
+      // Get existing ambulances to avoid duplicates
+      const { data: existingAmbulances } = await supabase.from('ambulances').select('profile_id');
+      const existingProfileIds = new Set(existingAmbulances?.map(a => a.profile_id).filter(Boolean) || []);
+
+      // Filter: Only show those not already linked AND who are compatible (Ambulance type or unset)
+      const available = profiles.filter(p => {
+        const isAlreadyLinked = existingProfileIds.has(p.id);
+        const isCompatibleProvider = p.provider_type === 'ambulance' || !p.provider_type;
+        return !isAlreadyLinked && isCompatibleProvider;
+      });
+
+      setAvailableProfiles(available);
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+    } finally {
+      setFetchingProfiles(false);
+    }
+  };
+
+  const handleProfileSelect = (profileId) => {
+    const profile = availableProfiles.find(p => p.id === profileId);
+    if (profile) {
+      setFormData(prev => ({
+        ...prev,
+        profile_id: profile.id,
+        call_sign: profile.username || prev.call_sign,
+        hospital_id: profile.organization_id || prev.hospital_id,
+        image: profile.image_uri || profile.avatar_url || prev.image
+      }));
+    }
+  };
 
   // Handle legacy hospital text field → hospital_id lookup
   useEffect(() => {
@@ -113,26 +166,18 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
 
     try {
       if (isCreate) {
-        const { data, error } = await supabase
-          .from('ambulances')
-          .insert([formData])
-          .select();
+        const data = await createAmbulance(formData);
 
-        if (error) throw error;
         await createNotification(
           NotificationTypes.AMBULANCE,
           NotificationActions.CREATED,
-          data?.[0]?.id || 'unknown',
+          data.id,
           { message: `${formData.call_sign} has been added to the fleet` }
         );
         toast.success('Ambulance created successfully');
       } else if (isEdit) {
-        const { error } = await supabase
-          .from('ambulances')
-          .update(formData)
-          .eq('id', ambulance.id);
+        await updateAmbulance(ambulance.id, formData);
 
-        if (error) throw error;
         await createNotification(
           NotificationTypes.AMBULANCE,
           NotificationActions.UPDATED,
@@ -227,6 +272,70 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
+                {isCreate && (
+                  <GlassCard
+                    icon={linkingExisting ? <Users className="text-primary" /> : <UserPlus className="text-primary" />}
+                    title="Account Linkage"
+                    className="border-primary/20 bg-primary/5"
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label className="text-sm font-semibold">Link Existing Provider</Label>
+                          <p className="text-xs text-muted-foreground">Select an existing account to link this vehicle</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setLinkingExisting(!linkingExisting);
+                            if (linkingExisting) {
+                              setFormData(prev => ({ ...prev, profile_id: '' }));
+                            }
+                          }}
+                          className="rounded-xl border-dashed"
+                        >
+                          {linkingExisting ? 'Switch to Manual' : 'Link Existing'}
+                        </Button>
+                      </div>
+
+                      {linkingExisting && (
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Select Provider Account</Label>
+                          <Select
+                            value={formData.profile_id}
+                            onValueChange={handleProfileSelect}
+                          >
+                            <SelectTrigger className="rounded-xl bg-background/50 border-white/10 h-12 shadow-inner">
+                              <SelectValue placeholder={fetchingProfiles ? "Loading profiles..." : "Choose a provider..."} />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl max-h-64">
+                              {availableProfiles.length === 0 ? (
+                                <div className="p-4 text-center text-sm text-muted-foreground italic">
+                                  {fetchingProfiles ? 'Finding available providers...' : 'No unlinked providers found'}
+                                </div>
+                              ) : (
+                                availableProfiles.map(p => (
+                                  <SelectItem key={p.id} value={p.id} className="py-2">
+                                    <div className="flex flex-col">
+                                      <span className="font-semibold">{p.full_name || p.username}</span>
+                                      <span className="text-[10px] opacity-70 truncate max-w-[200px]">{p.email}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                          {availableProfiles.length > 0 && (
+                            <p className="text-[10px] text-primary/70 ml-1 italic font-medium">Auto-populates call sign and organization</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </GlassCard>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Unit Specifications */}
                   <GlassCard icon={<Activity className="text-primary" />} title="Unit Specifications">

@@ -9,7 +9,7 @@ export const useDoctorProfile = () => {
     const [loading, setLoading] = useState(false);
 
     const fetchProfile = useCallback(async () => {
-        if (!isProvider || !user) return;
+        if (!isProvider() || !user) return;
         try {
             setLoading(true);
             const data = await getDoctorByProfileId(user.id);

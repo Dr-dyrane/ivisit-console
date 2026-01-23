@@ -79,13 +79,14 @@ export async function getAmbulance(ambulanceId) {
 export async function createAmbulance(input) {
   try {
     const payload = {
+      profile_id: input.profile_id,
       type: input.type,
       call_sign: input.call_sign,
       status: input.status || 'available',
       location: input.location,
       eta: input.eta,
       crew: input.crew,
-      hospital: input.hospital,
+      hospital: input.hospital || input.hospital_id,
       vehicle_number: input.vehicle_number,
       last_maintenance: input.last_maintenance,
       rating: input.rating,

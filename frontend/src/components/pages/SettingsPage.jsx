@@ -214,7 +214,7 @@ export const SettingsPage = () => {
                     </motion.div>
 
                     {/* Doctor Professional Profile */}
-                    {isProvider && (
+                    {isProvider() && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -376,7 +376,7 @@ export const SettingsPage = () => {
                 isOpen={isSupportModalOpen}
                 onClose={() => setIsSupportModalOpen(false)}
             />
-            {isProvider && doctorProfile && (
+            {isProvider() && doctorProfile && (
                 <DoctorModal
                     isOpen={isDoctorModalOpen}
                     onClose={() => setIsDoctorModalOpen(false)}

@@ -31,8 +31,10 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
   const [selectAll, setSelectAll] = useState(false);
 
   useEffect(() => {
-    if (subscriber && mode !== 'create') {
-      setFormData({
+    if (subscriber) {
+      setFormData(prev => ({
+        ...prev,
+        ...subscriber,
         email: subscriber.email || '',
         type: subscriber.type || 'free',
         status: subscriber.status || 'pending',
@@ -40,20 +42,10 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
         subscription_date: subscriber.subscription_date ?
           new Date(subscriber.subscription_date).toISOString().split('T')[0] :
           new Date().toISOString().split('T')[0],
-        sendWelcomeEmail: false,
-        selectedSubscribers: [],
-        bulkEmailMode: false,
-        bulkEmailContent: '',
-        bulkEmailSubject: '',
-        bulkEmailRecipients: '',
-        customEmailSubject: '',
-        customEmailContent: '',
-        selectedSubscriberForEmail: null,
-        emailAction: 'custom',
-        selectedEmailAction: 'sendCustom'
-      });
-    } else if (mode === 'emailActions') {
-      setFormData({
+      }));
+    } else if (mode === 'create' || mode === 'emailActions' || mode === 'bulk') {
+      setFormData(prev => ({
+        ...prev,
         email: '',
         type: 'free',
         status: 'pending',
@@ -70,26 +62,7 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
         selectedSubscriberForEmail: null,
         emailAction: 'custom',
         selectedEmailAction: 'sendCustom'
-      });
-    } else {
-      setFormData({
-        email: '',
-        type: 'free',
-        status: 'pending',
-        source: 'website',
-        subscription_date: new Date().toISOString().split('T')[0],
-        sendWelcomeEmail: true,
-        selectedSubscribers: [],
-        bulkEmailMode: false,
-        bulkEmailContent: '',
-        bulkEmailSubject: '',
-        bulkEmailRecipients: '',
-        customEmailSubject: '',
-        customEmailContent: '',
-        selectedSubscriberForEmail: null,
-        emailAction: 'custom',
-        selectedEmailAction: 'sendCustom'
-      });
+      }));
     }
   }, [subscriber, mode]);
 

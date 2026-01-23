@@ -295,6 +295,7 @@ export const AmbulancesPage = () => {
         { message: `${ambulance.call_sign} has been removed from the fleet` }
       );
       toast.success('Ambulance deleted successfully');
+      setConfirmationModal(prev => ({ ...prev, isOpen: false }));
       fetchAmbulances();
     } catch (error) {
       console.error('Error deleting ambulance:', error);
@@ -543,7 +544,7 @@ export const AmbulancesPage = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDelete(ambulance)}
+                    onClick={() => confirmDelete(ambulance)}
                     className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                     aria-label={`Delete ${ambulance.call_sign}`}
                   >

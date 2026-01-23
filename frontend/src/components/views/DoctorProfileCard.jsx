@@ -6,7 +6,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Switch } from '../ui/switch';
 import { useDoctorProfile } from '../../hooks/useDoctorProfile';
-import { Loader2, Save, X, Edit2, Stethoscope, Building2, Star, Award, CreditCard, Clock, Activity } from 'lucide-react';
+import { Loader2, Save, X, Edit2, Stethoscope, Building2, Star, Award, CreditCard, Clock, Activity, Shield } from 'lucide-react';
 
 export const DoctorProfileCard = () => {
     const { doctorProfile, loading, updateProfile } = useDoctorProfile();
@@ -43,7 +43,29 @@ export const DoctorProfileCard = () => {
         );
     }
 
-    if (!doctorProfile) return null;
+    if (!doctorProfile) {
+        return (
+            <Card className="squircle-3xl bg-background/60 backdrop-blur-md border-white/5 shadow-xl relative overflow-hidden p-8 text-center space-y-4">
+                <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                    <Stethoscope className="w-8 h-8 text-muted-foreground opacity-50" />
+                </div>
+                <h3 className="text-xl font-bold">Professional Profile Inactive</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                    Your account has the Provider role, but your professional credentials haven't been configured yet.
+                    Please contact an administrator to complete your onboarding.
+                </p>
+                <div className="pt-4">
+                    <Button
+                        variant="outline"
+                        onClick={() => window.dispatchEvent(new CustomEvent('openSupportModal'))}
+                        className="squircle-xl border-white/10"
+                    >
+                        Contact Support
+                    </Button>
+                </div>
+            </Card>
+        );
+    }
 
     return (
         <Card className="squircle-3xl bg-background/60 backdrop-blur-md border-white/5 shadow-xl relative overflow-hidden">

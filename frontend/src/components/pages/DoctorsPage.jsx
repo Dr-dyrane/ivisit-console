@@ -211,6 +211,7 @@ export const DoctorsPage = () => {
         { message: `Dr. ${doctor.name} has been removed from the system` }
       );
       toast.success('Doctor deleted successfully');
+      setConfirmationModal(prev => ({ ...prev, isOpen: false }));
       fetchDoctors();
     } catch (error) {
       console.error('Error deleting doctor:', error);
@@ -710,7 +711,7 @@ export const DoctorsPage = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(doctor)}
+                              onClick={() => confirmDelete(doctor)}
                               className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                               data-testid={`delete -doctor - ${doctor.id} `}
                               aria-label={`Delete Dr. ${doctor.name}`}

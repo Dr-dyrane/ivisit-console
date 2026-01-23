@@ -34,16 +34,18 @@ export const SupportTicketModal = ({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (ticket && mode === 'edit') {
-      setFormData({
+    if (ticket) {
+      setFormData(prev => ({
+        ...prev,
+        ...ticket,
         subject: ticket.subject || '',
         message: ticket.message || '',
         category: ticket.category || 'general',
         priority: ticket.priority || 'normal',
         assigned_to: ticket.assigned_to || null,
         status: ticket.status || 'open'
-      });
-    } else {
+      }));
+    } else if (isCreate) {
       setFormData({
         subject: '',
         message: '',
@@ -53,7 +55,7 @@ export const SupportTicketModal = ({
         status: 'open'
       });
     }
-  }, [ticket, mode]);
+  }, [ticket, isCreate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

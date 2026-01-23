@@ -90,19 +90,20 @@ export async function getDoctor(doctorId) {
 export async function createDoctor(input) {
   try {
     const payload = sanitizeInput({
+      profile_id: input.profile_id, // Added
       name: input.name,
       specialization: input.specialization,
       hospital_id: input.hospital_id,
       image: input.image,
-      rating: input.rating || 4.5, // Default start
+      rating: input.rating || 4.5,
       reviews_count: input.reviews_count || 0,
       experience: input.experience,
       about: input.about,
       consultation_fee: input.consultation_fee,
-      license_number: input.license_number, // Added
+      license_number: input.license_number,
       status: input.status || 'available',
-      phone: input.phone, // Added
-      email: input.email, // Added
+      phone: input.phone,
+      email: input.email,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
