@@ -43,7 +43,7 @@ import {
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
-import { BulkActionBar } from '../common/BulkActionBar';
+
 import { EmergencyRequestListView } from '../views/EmergencyRequestListView';
 import { EmergencyRequestTableView } from '../views/EmergencyRequestTableView';
 import { usePageData } from '../../contexts/PageDataContext';
@@ -106,7 +106,7 @@ export const EmergencyRequestsPage = () => {
         .from('emergency_requests')
         .select('*')
         .range(pagination.paginationRange.start, pagination.paginationRange.end)
-        .order('created_at', { ascending: false });
+        .order(sortConfig.key || 'created_at', { ascending: sortConfig.direction === 'asc' });
 
       // RBAC Scoping for Data
       if (isAdmin()) {
@@ -141,7 +141,7 @@ export const EmergencyRequestsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination.currentPage, pagination.itemsPerPage, filters, kpiFilter, orgId, isOrgAdmin, isAdmin]);
+  }, [pagination.currentPage, pagination.itemsPerPage, filters, kpiFilter, orgId, isOrgAdmin, isAdmin, sortConfig]);
 
   useEffect(() => {
     fetchRequests();
@@ -237,26 +237,15 @@ export const EmergencyRequestsPage = () => {
   ), []);
 
   const headerActions = React.useMemo(() => (
-    <div className="flex gap-2">
-      <Button
-        onClick={handleCreateEmergency}
-        className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-        aria-label="Create new emergency request"
-      >
-        <Zap className="h-4 w-4 mr-2" />
-        NEW REQUEST
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={fetchRequests}
-        className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-        aria-label="Refresh requests"
-      >
-        <RefreshCw className="h-4 w-4" />
-      </Button>
-    </div>
-  ), [fetchRequests, handleCreateEmergency]);
+    <Button
+      onClick={handleCreateEmergency}
+      className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+      aria-label="Create new emergency request"
+    >
+      <Zap className="h-4 w-4 mr-2" />
+      NEW REQUEST
+    </Button>
+  ), [handleCreateEmergency]);
 
   usePageHeader(
     'Emergency Logs',
@@ -397,6 +386,8 @@ export const EmergencyRequestsPage = () => {
     return badges[priority] || badges.medium;
   };
 
+
+
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
       <SEOHead title="Emergency Requests" description="Monitor and respond to critical emergency requests in real-time." />
@@ -406,6 +397,58 @@ export const EmergencyRequestsPage = () => {
       ) : (
         <>
           {/* Bento Overview Cards - Always visible */}
+          <AnimatePresence>
+            {selectedIds.length > 0 && (
+              <motion.div
+                initial={{ x: 50, opacity: 0, scale: 0.9 }}
+                animate={{ x: 0, opacity: 1, scale: 1 }}
+                exit={{ x: 50, opacity: 0, scale: 0.9 }}
+                className="fixed top-1/2 -translate-y-1/2 right-6 z-50 flex flex-col items-center gap-3 p-2 bg-background/15 backdrop-blur-sm border-0 shadow-none rounded-full"
+              >
+                <div className="bg-primary text-primary-foreground text-[10px] font-bold h-6 min-w-[24px] px-1.5 rounded-full flex items-center justify-center shadow-sm mb-1">
+                  {selectedIds.length}
+                </div>
+
+                {(isAdmin() || (typeof isProvider === 'function' && isProvider())) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleBulkDelete}
+                    className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+                    title="Delete Selected"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </Button>
+                )}
+
+                <div className="w-8 h-[1px] bg-white/10 my-0.5" />
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSelectedIds([])}
+                  className="h-8 w-8 rounded-full hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all"
+                  title="Clear Selection"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4"
+                  >
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
           {!loading && emergencyData?.stats && (
             <LayoutGroup>
               <motion.div
@@ -667,38 +710,57 @@ export const EmergencyRequestsPage = () => {
                           <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
                             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">ACTIONS</div>
                             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mr-12">
-                              <Button variant="ghost" size="sm" onClick={() => handleViewDetails(req)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary" aria-label={`View details for emergency at ${req.location}`}>
+                              {/* View Details - Always First */}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewDetails(req)}
+                                className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-colors"
+                                aria-label={`View details for emergency at ${req.location}`}
+                              >
                                 <Eye className="h-4 w-4" />
                               </Button>
 
-                              {/* Dispatch button for pending emergencies */}
-                              {(isAdmin() || isOrgAdmin()) && (req.status === 'pending' || req.status === 'in_progress') && !req.ambulance_id && (
+                              {/* Primary Action: Dispatch OR Complete */}
+                              {(isAdmin() || isOrgAdmin()) && (
+                                <>
+                                  {/* Dispatch Case: Pending/In-Progress & No Ambulance */}
+                                  {(req.status === 'pending' || (req.status === 'in_progress' && !req.ambulance_id)) && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDispatch(req)}
+                                      className="geo-round h-8 w-8 p-0 hover:bg-success/10 hover:text-success transition-colors"
+                                      title="Dispatch Emergency Response"
+                                    >
+                                      <Send className="h-4 w-4" />
+                                    </Button>
+                                  )}
+
+                                  {/* Complete Case: Accepted/Has Ambulance & Not Completed */}
+                                  {(req.status === 'accepted' || req.ambulance_id) && req.status !== 'completed' && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleComplete(req)}
+                                      className="geo-round h-8 w-8 p-0 hover:bg-info/10 hover:text-info transition-colors"
+                                      title="Mark as Completed"
+                                    >
+                                      <CheckCheck className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </>
+                              )}
+
+                              {/* Delete Action - Always Last */}
+                              {(isAdmin() || (typeof isProvider === 'function' && isProvider())) && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleDispatch(req)}
-                                  className="geo-round h-8 w-8 p-0 hover:bg-success/10 hover:text-success"
-                                  title="Dispatch Emergency Response"
+                                  onClick={() => handleDelete(req)}
+                                  className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                                  aria-label={`Delete emergency request at ${req.location}`}
                                 >
-                                  <Send className="h-4 w-4" />
-                                </Button>
-                              )}
-
-                              {/* Complete button for accepted emergencies */}
-                              {(isAdmin() || isOrgAdmin()) && (req.status === 'accepted' || req.ambulance_id) && req.status !== 'completed' && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleComplete(req)}
-                                  className="geo-round h-8 w-8 p-0 hover:bg-info/10 hover:text-info"
-                                  title="Mark as Completed"
-                                >
-                                  <CheckCheck className="h-4 w-4" />
-                                </Button>
-                              )}
-
-                              {(isAdmin || isProvider) && (
-                                <Button variant="ghost" size="sm" onClick={() => handleDelete(req)} className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete emergency request at ${req.location}`}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               )}
@@ -719,10 +781,13 @@ export const EmergencyRequestsPage = () => {
               requests={requests}
               onView={handleViewDetails}
               onDelete={handleDelete}
+              onDispatch={handleDispatch}
+              onComplete={handleComplete}
               getPriorityBadge={getPriorityBadge}
               isMobile={isMobile}
               selectedIds={selectedIds}
               onSelect={handleSelect}
+              currentUser={{ isAdmin, isOrgAdmin, isProvider }}
             />
           )}
 
@@ -732,6 +797,8 @@ export const EmergencyRequestsPage = () => {
               requests={requests}
               onView={handleViewDetails}
               onDelete={handleDelete}
+              onDispatch={handleDispatch}
+              onComplete={handleComplete}
               getPriorityBadge={getPriorityBadge}
               isMobile={isMobile}
               selectedIds={selectedIds}
@@ -739,6 +806,7 @@ export const EmergencyRequestsPage = () => {
               onSelectAll={handleSelectAll}
               sortConfig={sortConfig}
               onSort={handleSort}
+              currentUser={{ isAdmin, isOrgAdmin, isProvider }}
             />
           )}
         </>
@@ -791,6 +859,8 @@ export const EmergencyRequestsPage = () => {
         analyticsData={emergencyData?.stats}
         initialType="emergency"
       />
+
+
     </div>
   );
 };

@@ -12,7 +12,7 @@ import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
 import { Hospital, MapPin, Star, Bed, Ambulance, Plus, Edit, Trash2, Eye, ChevronRight, Filter, BarChart3 } from 'lucide-react';
-import { motion, LayoutGroup } from 'framer-motion';
+import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { HospitalModal } from '../modals/HospitalModal';
@@ -20,10 +20,10 @@ import { ReportsModal } from '../modals/ReportsModal';
 import { withTimeout } from '../../lib/utils';
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
-import { BulkActionBar } from '../common/BulkActionBar';
 import { HospitalListView } from '../views/HospitalListView';
 import { HospitalTableView } from '../views/HospitalTableView';
 import { SEOHead } from '../common/SEOHead';
+import { ConfirmationModal } from '../modals/ConfirmationModal';
 
 import { usePageData } from '../../contexts/PageDataContext';
 
@@ -43,6 +43,14 @@ export const HospitalsPage = () => {
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: null,
+    variant: 'destructive',
+    confirmLabel: 'Delete'
+  });
 
   const { viewMode, setViewMode } = useViewMode('hospitals-page', 'grid');
   const pagination = usePagination(20);
@@ -84,7 +92,7 @@ export const HospitalsPage = () => {
         .from('hospitals')
         .select('*')
         .range(pagination.paginationRange.start, pagination.paginationRange.end)
-        .order('created_at', { ascending: false });
+        .order(sortConfig.key || 'created_at', { ascending: sortConfig.direction === 'asc' });
 
       // RBAC Scoping for Data
       if (isAdmin()) {
@@ -181,29 +189,37 @@ export const HospitalsPage = () => {
     setModalMode('edit');
   }, []);
 
-  const handleDelete = useCallback(async (hospital) => {
-    if (!confirm(`Are you sure you want to delete ${hospital.name}?`)) return;
+  const handleDelete = useCallback((hospital) => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Hospital',
+      description: `Are you sure you want to delete ${hospital.name}? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase
+            .from('hospitals')
+            .delete()
+            .eq('id', hospital.id);
 
-    try {
-      const { error } = await supabase
-        .from('hospitals')
-        .delete()
-        .eq('id', hospital.id);
+          if (error) throw error;
 
-      if (error) throw error;
-
-      await createNotification(
-        NotificationTypes.HOSPITAL,
-        NotificationActions.DELETED,
-        hospital.id,
-        { message: `${hospital.name} has been removed from the network` }
-      );
-      toast.success('Hospital deleted successfully');
-      fetchHospitals();
-    } catch (error) {
-      console.error('Error deleting hospital:', error);
-      toast.error('Failed to delete hospital');
-    }
+          await createNotification(
+            NotificationTypes.HOSPITAL,
+            NotificationActions.DELETED,
+            hospital.id,
+            { message: `${hospital.name} has been removed from the network` }
+          );
+          toast.success('Hospital deleted successfully');
+          fetchHospitals();
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          console.error('Error deleting hospital:', error);
+          toast.error('Failed to delete hospital');
+        }
+      }
+    });
   }, [fetchHospitals]);
 
   const handleModalClose = useCallback((shouldRefresh) => {
@@ -237,17 +253,26 @@ export const HospitalsPage = () => {
     }));
   }, []);
 
-  const handleBulkDelete = useCallback(async () => {
-    if (!confirm(`Delete ${selectedIds.length} hospitals?`)) return;
-    try {
-      const { error } = await supabase.from('hospitals').delete().in('id', selectedIds);
-      if (error) throw error;
-      toast.success(`${selectedIds.length} hospitals deleted`);
-      setSelectedIds([]);
-      fetchHospitals();
-    } catch (error) {
-      toast.error('Failed to delete hospitals');
-    }
+  const handleBulkDelete = useCallback(() => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Selected Hospitals',
+      description: `Are you sure you want to delete ${selectedIds.length} hospitals? This action cannot be undone.`,
+      confirmLabel: 'Delete All',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase.from('hospitals').delete().in('id', selectedIds);
+          if (error) throw error;
+          toast.success(`${selectedIds.length} hospitals deleted`);
+          setSelectedIds([]);
+          fetchHospitals();
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          toast.error('Failed to delete hospitals');
+        }
+      }
+    });
   }, [selectedIds, fetchHospitals]);
 
   const filterSchema = React.useMemo(() => [
@@ -653,6 +678,16 @@ export const HospitalsPage = () => {
         loading={loading}
       />
 
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        title={confirmationModal.title}
+        description={confirmationModal.description}
+        onConfirm={confirmationModal.onConfirm}
+        variant={confirmationModal.variant}
+        confirmLabel={confirmationModal.confirmLabel}
+      />
+
       {modalMode && (
         <HospitalModal
           isOpen={!!modalMode}
@@ -662,22 +697,58 @@ export const HospitalsPage = () => {
         />
       )}
 
-      <BulkActionBar
-        selectedCount={selectedIds.length}
-        onClear={() => setSelectedIds([])}
-      >
-        {(isAdmin() || isProvider()) && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleBulkDelete}
-            className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
-            title="Delete Selected"
+      <AnimatePresence>
+        {selectedIds.length > 0 && (
+          <motion.div
+            initial={{ x: 50, opacity: 0, scale: 0.9 }}
+            animate={{ x: 0, opacity: 1, scale: 1 }}
+            exit={{ x: 50, opacity: 0, scale: 0.9 }}
+            className="fixed top-1/2 -translate-y-1/2 right-6 z-50 flex flex-col items-center gap-3 p-2 bg-background/15 backdrop-blur-sm border-0 shadow-none rounded-full"
           >
-            <Trash2 className="h-5 w-5" />
-          </Button>
+            <div className="bg-primary text-primary-foreground text-[10px] font-bold h-6 min-w-[24px] px-1.5 rounded-full flex items-center justify-center shadow-sm mb-1">
+              {selectedIds.length}
+            </div>
+
+            {(isAdmin() || isProvider()) && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleBulkDelete}
+                className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+                title="Delete Selected"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+            )}
+
+            <div className="w-8 h-[1px] bg-white/10 my-0.5" />
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSelectedIds([])}
+              className="h-8 w-8 rounded-full hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all"
+              title="Clear Selection"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+              >
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </Button>
+          </motion.div>
         )}
-      </BulkActionBar>
+      </AnimatePresence>
 
       <FilterSheet
         isOpen={filterSheetOpen}

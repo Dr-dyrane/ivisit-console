@@ -7,7 +7,8 @@ import { Badge } from '../ui/badge';
 import {
   X, FileText, Download, BarChart3, Activity, Users,
   Clock, AlertTriangle, CheckCircle, Headphones, TrendingUp,
-  Tag, Flag, Shield, Building, UserCheck, Mail, Calendar, Stethoscope
+  Tag, Flag, Shield, Building, UserCheck, Mail, Calendar, Stethoscope,
+  Siren, Hospital, Bed, Ambulance
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -33,6 +34,15 @@ const REPORT_TYPES = [
     color: 'text-green-500',
     bg: 'bg-green-500/10',
     dataKeys: ['totalUsers', 'totalHospitals', 'totalAmbulances', 'completionRate']
+  },
+  {
+    id: 'hospital',
+    name: 'Hospital Network',
+    description: 'Facility capacity and resource availability',
+    icon: Hospital,
+    color: 'text-primary',
+    bg: 'bg-primary/10',
+    dataKeys: ['total', 'available', 'full', 'totalBeds']
   },
   {
     id: 'usage',
@@ -409,6 +419,10 @@ const AnalyticsContent = ({ type, data, getPercentage }) => {
       return <VisitOverview analytics={data} getPercentage={getPercentage} />;
     case 'doctor':
       return <DoctorOverview analytics={data} getPercentage={getPercentage} />;
+    case 'emergency':
+      return <EmergencyOverview analytics={data} getPercentage={getPercentage} />;
+    case 'hospital':
+      return <HospitalOverview analytics={data} getPercentage={getPercentage} />;
     default:
       return <SystemOverview analytics={data} getPercentage={getPercentage} />;
   }
@@ -436,6 +450,112 @@ const GlassCard = ({ children, title, icon }) => (
       <h3 className="font-semibold tracking-tight">{title}</h3>
     </div>
     {children}
+  </div>
+);
+
+const EmergencyOverview = ({ analytics, getPercentage }) => (
+  <div className="space-y-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <StatBubble label="Total Requests" value={analytics.total || 0} icon={<AlertTriangle />} color="text-red-500" bg="bg-red-500/10" />
+      <StatBubble label="Critical" value={analytics.critical || 0} subText={`${getPercentage(analytics.critical, analytics.total)}% of total`} icon={<Siren className="h-5 w-5" />} color="text-destructive" bg="bg-destructive/10" />
+      <StatBubble label="Avg Response" value={`${(analytics.avgResponseTime || 12).toFixed(1)}m`} icon={<Clock />} color="text-blue-500" bg="bg-blue-500/10" />
+      <StatBubble label="Active" value={analytics.active || 0} icon={<Activity />} color="text-green-500" bg="bg-green-500/10" />
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <GlassCard title="Priority Breakdown" icon={<Flag className="text-orange-500" />}>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center p-3 rounded-xl bg-destructive/10 border border-destructive/20">
+            <span className="text-sm font-medium text-destructive">Critical</span>
+            <span className="font-bold text-destructive">{analytics.critical || 0}</span>
+          </div>
+          <div className="flex justify-between items-center p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
+            <span className="text-sm font-medium text-orange-500">High Priority</span>
+            <span className="font-bold text-orange-500">{analytics.high || 0}</span>
+          </div>
+          <div className="flex justify-between items-center p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+            <span className="text-sm font-medium text-blue-500">Medium Priority</span>
+            <span className="font-bold text-blue-500">{analytics.medium || 0}</span>
+          </div>
+          <div className="flex justify-between items-center p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+            <span className="text-sm font-medium text-green-500">Low Priority</span>
+            <span className="font-bold text-green-500">{analytics.low || 0}</span>
+          </div>
+        </div>
+      </GlassCard>
+      <GlassCard title="Status Distribution" icon={<Activity className="text-primary" />}>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Pending</span>
+            <div className="flex items-center gap-3 flex-1 px-4">
+              <div className="h-1.5 flex-1 bg-muted/50 rounded-full overflow-hidden">
+                <motion.div initial={{ width: 0 }} animate={{ width: `${getPercentage(analytics.pending, analytics.total)}%` }} className="h-full bg-info" />
+              </div>
+            </div>
+            <span className="text-sm font-semibold w-8 text-right">{analytics.pending || 0}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm">In Progress</span>
+            <div className="flex items-center gap-3 flex-1 px-4">
+              <div className="h-1.5 flex-1 bg-muted/50 rounded-full overflow-hidden">
+                <motion.div initial={{ width: 0 }} animate={{ width: `${getPercentage(analytics.active - (analytics.pending || 0), analytics.total)}%` }} className="h-full bg-warning" />
+              </div>
+            </div>
+            <span className="text-sm font-semibold w-8 text-right">{analytics.active - (analytics.pending || 0) || 0}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Completed</span>
+            <div className="flex items-center gap-3 flex-1 px-4">
+              <div className="h-1.5 flex-1 bg-muted/50 rounded-full overflow-hidden">
+                <motion.div initial={{ width: 0 }} animate={{ width: `${getPercentage(analytics.completed, analytics.total)}%` }} className="h-full bg-success" />
+              </div>
+            </div>
+            <span className="text-sm font-semibold w-8 text-right">{analytics.completed || 0}</span>
+          </div>
+        </div>
+      </GlassCard>
+    </div>
+  </div>
+);
+
+const HospitalOverview = ({ analytics, getPercentage }) => (
+  <div className="space-y-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <StatBubble label="Total Hospitals" value={analytics.total || 0} icon={<Hospital />} color="text-primary" bg="bg-primary/10" />
+      <StatBubble label="Available" value={analytics.available || 0} subText={`${getPercentage(analytics.available, analytics.total)}% ready`} icon={<CheckCircle />} color="text-green-500" bg="bg-green-500/10" />
+      <StatBubble label="Capacity Full" value={analytics.full || 0} icon={<AlertTriangle />} color="text-destructive" bg="bg-destructive/10" />
+      <StatBubble label="Total Beds" value={analytics.totalBeds || 0} icon={<Bed />} color="text-blue-500" bg="bg-blue-500/10" />
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <GlassCard title="Network Status" icon={<Activity className="text-primary" />}>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30">
+            <span className="text-sm">Verified Partners</span>
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-green-500" />
+              <span className="font-semibold">{analytics.verified || 0}</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30">
+            <span className="text-sm">Verification Rate</span>
+            <span className="font-semibold text-primary">{getPercentage(analytics.verified, analytics.total)}%</span>
+          </div>
+        </div>
+      </GlassCard>
+      <GlassCard title="Fleet Resources" icon={<Ambulance className="text-orange-500" />}>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 rounded-2xl bg-muted/50 text-center">
+            <p className="text-xs opacity-60 uppercase mb-1">Total Ambulances</p>
+            <p className="text-2xl font-bold">{analytics.totalAmbulances || 0}</p>
+          </div>
+          <div className="p-4 rounded-2xl bg-muted/50 text-center">
+            <p className="text-xs opacity-60 uppercase mb-1">Avg Fleet Size</p>
+            <p className="text-2xl font-bold text-orange-500">
+              {analytics.total ? Math.round((analytics.totalAmbulances || 0) / analytics.total) : 0}
+            </p>
+          </div>
+        </div>
+      </GlassCard>
+    </div>
   </div>
 );
 
