@@ -366,7 +366,7 @@ export const DoctorsPage = () => {
   const headerActions = React.useMemo(() => (
     <Button
       onClick={handleCreate}
-      className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+      className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
       aria-label="Add new doctor"
     >
       <Plus className="h-4 w-4 mr-2" />
@@ -414,17 +414,19 @@ export const DoctorsPage = () => {
               transition={{ duration: 0.4, delay: 0.1 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
                   }`}
                 onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
                 role="button"
                 tabIndex={0}
                 aria-label="Show all doctors"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-primary" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <Stethoscope className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
@@ -453,17 +455,19 @@ export const DoctorsPage = () => {
               transition={{ duration: 0.4, delay: 0.15 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'available' ? 'ring-2 ring-success shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'available' ? 'ring-2 ring-success shadow-lg' : ''
                   }`}
                 onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'available' }))}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by available doctors"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-success" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${filters.kpiFilter === 'available' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <Badge className={`h-5 w-5 ${filters.kpiFilter === 'available' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200 p-0 border-0 bg-transparent flex items-center justify-center`}>
                         ✓
                       </Badge>
@@ -494,17 +498,19 @@ export const DoctorsPage = () => {
               transition={{ duration: 0.4, delay: 0.2 }}
             >
               <Card
-                className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'on_call' ? 'ring-2 ring-purple-500 shadow-lg' : ''
+                className={`h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'on_call' ? 'ring-2 ring-purple-500 shadow-lg' : ''
                   }`}
                 onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'on_call' }))}
                 role="button"
                 tabIndex={0}
-                aria-label="Filter by on-call doctors"
+                aria-label="Filter by on call doctors"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-info" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${filters.kpiFilter === 'on_call' ? 'bg-purple-500/30' : 'bg-purple-500/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <Phone className={`h-5 w-5 ${filters.kpiFilter === 'on_call' ? 'text-purple-500' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
@@ -533,17 +539,19 @@ export const DoctorsPage = () => {
               transition={{ duration: 0.4, delay: 0.25 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'busy' ? 'ring-2 ring-warning shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'busy' ? 'ring-2 ring-warning shadow-lg' : ''
                   }`}
                 onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'busy' }))}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by busy doctors"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-warning" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${filters.kpiFilter === 'busy' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <Stethoscope className={`h-5 w-5 ${filters.kpiFilter === 'busy' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
@@ -572,17 +580,19 @@ export const DoctorsPage = () => {
               transition={{ duration: 0.4, delay: 0.3 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'off_duty' ? 'ring-2 ring-muted shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-wave glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'off_duty' ? 'ring-2 ring-muted shadow-lg' : ''
                   }`}
                 onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'off_duty' }))}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by off-duty doctors"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-secondary" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${filters.kpiFilter === 'off_duty' ? 'bg-muted/30' : 'bg-muted/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <Star className={`h-5 w-5 ${filters.kpiFilter === 'off_duty' ? 'text-muted-foreground' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
@@ -611,11 +621,11 @@ export const DoctorsPage = () => {
         <>
           {viewMode === 'grid' && (
             doctors.length === 0 ? (
-              <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
+              <Card className="squircle-lg glass-card-premium p-12 text-center">
                 <Stethoscope className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="font-bold text-xl mb-2">No Doctors Yet</h3>
                 <p className="text-muted-foreground mb-6">Get started by adding your first doctor</p>
-                <Button onClick={handleCreate} className="squircle bg-primary" data-testid="add-first-doctor-btn" aria-label="Add your first doctor">
+                <Button onClick={handleCreate} className="glass-card-premium" data-testid="add-first-doctor-btn" aria-label="Add your first doctor">
                   <Plus className="h-4 w-4 mr-2" />
                   Add First Doctor
                 </Button>
@@ -636,13 +646,15 @@ export const DoctorsPage = () => {
                       transition={{ delay: index * 0.05 }}
                       className="col-span-1"
                     >
-                      <Card className="h-full geo-chamfer bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col" data-testid={`doctor - card - ${doctor.id} `}>
+                      <Card className="h-full geo-chamfer glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col" data-testid={`doctor - card - ${doctor.id} `}>
+                        {/* Apple hover glow effect */}
+                        <div className="hover-glow hover-glow-primary" />
 
                         {/* Top Right Icon */}
                         <div className="absolute top-0 right-0 p-5 z-20">
                           <div className="relative">
                             <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full scale-150" />
-                            <div className="w-10 h-10 geo-round bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                            <div className="w-10 h-10 geo-round surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
                               <Stethoscope className="h-5 w-5 text-primary" />
                             </div>
                           </div>
