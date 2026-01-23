@@ -85,6 +85,10 @@ export const HealthNewsPanel = () => {
     window.dispatchEvent(new CustomEvent('openFilters'));
   };
 
+  const handleAnalytics = () => {
+    window.dispatchEvent(new CustomEvent('openReportsModal'));
+  };
+
   return (
     <div className="p-4 space-y-4">
       {loading ? (
@@ -167,10 +171,20 @@ export const HealthNewsPanel = () => {
                 whileTap={{ scale: 0.98 }}
                 onClick={handleFilters}
                 className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-                title="Filter & Search"
+                title="Filter Articles"
               >
                 <Filter className="h-4 w-4" />
                 <span className="font-normal text-xs">Filter</span>
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={handleAnalytics}
+                className="bg-success/10 hover:bg-success/20 text-success border border-success/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+                title="View Analytics"
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span className="font-normal text-xs">Analytics</span>
               </motion.button>
 
               <motion.button

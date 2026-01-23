@@ -2,7 +2,14 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Edit, Trash2, Eye, EyeOff, Clock, Globe, Tag, Calendar, FileCheck, File } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '../ui/dropdown-menu';
+import { Edit, Trash2, Eye, EyeOff, Clock, Globe, Tag, Calendar, FileCheck, File, MoreHorizontal } from 'lucide-react';
 import { Card } from '../ui/card';
 import { motion } from 'framer-motion';
 
@@ -69,43 +76,38 @@ export const HealthNewsTableView = ({ healthNews, onView, onEdit, onDelete, onTo
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex gap-1 justify-end">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onView(news)}
-                        className="squircle h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                      >
-                        <Eye className="h-3 w-3 md:h-4 md:w-4" />
-                      </Button>
-                      {isAdmin && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onTogglePublish(news)}
-                            className="squircle h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-warning/10 hover:text-warning"
-                          >
-                            {news.published ? <FileCheck className="h-3 w-3 md:h-4 md:w-4" /> : <File className="h-3 w-3 md:h-4 md:w-4" />}
+                    <div className="flex justify-end">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10 dark:hover:bg-white/10">
+                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                            <span className="sr-only">Open menu</span>
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onEdit(news)}
-                            className="squircle h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                          >
-                            <Edit className="h-3 w-3 md:h-4 md:w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onDelete(news)}
-                            className="squircle h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                          >
-                            <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
-                          </Button>
-                        </>
-                      )}
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[160px] rounded-xl bg-background/70 backdrop-blur-xl border-white/10 shadow-premium">
+                          <DropdownMenuItem onClick={() => onView(news)} className="cursor-pointer font-medium text-xs py-2">
+                            <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                            View Details
+                          </DropdownMenuItem>
+                          {isAdmin && (
+                            <>
+                              <DropdownMenuItem onClick={() => onTogglePublish(news)} className="cursor-pointer font-medium text-xs py-2 text-warning focus:text-warning focus:bg-warning/10">
+                                {news.published ? <FileCheck className="mr-2 h-3.5 w-3.5" /> : <File className="mr-2 h-3.5 w-3.5" />}
+                                {news.published ? 'Unpublish' : 'Publish'}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => onEdit(news)} className="cursor-pointer font-medium text-xs py-2">
+                                <Edit className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="bg-white/5" />
+                              <DropdownMenuItem onClick={() => onDelete(news)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </TableCell>
                 </motion.tr>

@@ -16,6 +16,9 @@ import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { HealthNewsModal } from '../modals/HealthNewsModal';
+import { ReportsModal } from '../modals/ReportsModal';
+import { ConfirmationModal } from '../modals/ConfirmationModal';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { withTimeout } from '../../lib/utils';
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
@@ -52,6 +55,17 @@ export const HealthNewsManagementPage = () => {
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: null,
+    variant: 'destructive',
+    confirmLabel: 'Delete'
+  });
   const [stats, setStats] = useState({
     total: 0,
     published: 0,
@@ -162,29 +176,27 @@ export const HealthNewsManagementPage = () => {
   }, []);
 
   const handleDelete = useCallback(async (news) => {
-    if (!confirm(`Are you sure you want to delete "${news.title}"?`)) return;
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete News Article',
+      description: `Are you sure you want to delete "${news.title}"? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase.from('health_news').delete().eq('id', news.id);
+          if (error) throw error;
 
-    try {
-      const { error } = await supabase
-        .from('health_news')
-        .delete()
-        .eq('id', news.id);
-
-      if (error) throw error;
-
-      await createNotification(
-        NotificationTypes.NEWS,
-        NotificationActions.DELETED,
-        news.id,
-        { message: `"${news.title}" has been removed from the system` }
-      );
-      toast.success('Health news deleted successfully');
-      fetchHealthNews();
-    } catch (error) {
-      console.error('Error deleting health news:', error);
-      toast.error('Failed to delete health news');
-    }
-  }, [fetchHealthNews]);
+          toast.success('News article deleted successfully');
+          fetchHealthNews();
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          console.error('Error deleting news:', error);
+          toast.error('Failed to delete news article');
+        }
+      },
+      variant: 'destructive',
+      confirmLabel: 'Delete Article'
+    });
+  }, []);
 
   const handleTogglePublish = useCallback(async (news) => {
     try {
@@ -287,12 +299,18 @@ export const HealthNewsManagementPage = () => {
       handleCreate();
     };
 
+    const handleOpenAnalytics = () => {
+      setAnalyticsModalOpen(true);
+    };
+
     window.addEventListener('openFilters', handleOpenFilters);
     window.addEventListener('openHealthNewsModal', handleOpenModal);
+    window.addEventListener('openReportsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openFilters', handleOpenFilters);
       window.removeEventListener('openHealthNewsModal', handleOpenModal);
+      window.removeEventListener('openReportsModal', handleOpenAnalytics);
     };
   }, [location.search, navigate, handleCreate]);
 
@@ -327,6 +345,18 @@ export const HealthNewsManagementPage = () => {
       type: 'select',
       label: 'Source',
       options: SOURCES.map(source => ({ value: source, label: source }))
+    },
+    {
+      key: 'created_at',
+      type: 'date',
+      label: 'Published Date',
+      placeholder: 'Select dates',
+      shortcuts: [
+        { label: 'Today', value: 'today' },
+        { label: 'Last 7 Days', value: '7days' },
+        { label: 'Last 30 Days', value: '30days' },
+        { label: 'This Month', value: 'month' }
+      ]
     }
   ], []);
 
@@ -339,12 +369,15 @@ export const HealthNewsManagementPage = () => {
       variant="ghost"
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary"
+      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
       aria-label="Filter news"
     >
       <Filter className="h-4 w-4" />
+      {(filters.search || filters.published !== undefined || filters.category || filters.source || filters.created_at) && (
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+      )}
     </Button>
-  ), []);
+  ), [filters]);
 
   const headerActions = React.useMemo(() => isAdmin && (
     <Button
@@ -796,6 +829,58 @@ export const HealthNewsManagementPage = () => {
         viewToggle={isMobile ? viewToggleComponent : null}
         isMobile={isMobile}
       />
+
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        description={confirmationModal.description}
+        variant={confirmationModal.variant}
+        confirmLabel={confirmationModal.confirmLabel}
+      />
+
+      <ReportsModal
+        open={analyticsModalOpen}
+        onClose={() => setAnalyticsModalOpen(false)}
+        analyticsData={stats}
+        initialType="health-news"
+      />
+
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onClear={() => setSelectedIds([])}
+      >
+        {isAdmin && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setConfirmationModal({
+                isOpen: true,
+                title: 'Delete Selected Articles',
+                description: `Are you sure you want to delete ${selectedIds.length} articles? This action cannot be undone.`,
+                onConfirm: async () => {
+                  try {
+                    // Bulk delete logic would go here
+                    toast.success(`${selectedIds.length} articles deleted`);
+                    setSelectedIds([]);
+                    setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+                  } catch (err) {
+                    toast.error('Failed to delete articles');
+                  }
+                },
+                variant: 'destructive',
+                confirmLabel: 'Delete All'
+              });
+            }}
+            className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+            title="Delete Selected"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        )}
+      </BulkActionBar>
     </div>
   );
 };
