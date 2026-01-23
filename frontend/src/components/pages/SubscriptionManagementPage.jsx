@@ -282,7 +282,7 @@ export const SubscriptionManagementPage = () => {
     isAdmin && (
       <Button
         onClick={handleCreate}
-        className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] text-foreground font-bold tracking-widest uppercase"
+        className="glass-card-premium h-9 px-4 text-[10px] text-foreground font-bold tracking-widest uppercase"
       >
         <Plus className="h-4 w-4 mr-2" />
         <span className="hidden md:inline">ADD SUBSCRIBER</span>
@@ -397,14 +397,16 @@ export const SubscriptionManagementPage = () => {
             transition={{ duration: 0.4, delay: 0.1 }}
           >
             <Card
-              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+              className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
                 }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-primary" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Users className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -433,14 +435,16 @@ export const SubscriptionManagementPage = () => {
             transition={{ duration: 0.4, delay: 0.15 }}
           >
             <Card
-              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'active' ? 'ring-2 ring-success shadow-lg' : ''
+              className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'active' ? 'ring-2 ring-success shadow-lg' : ''
                 }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'active' }))}
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-success" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className={`absolute inset-0 ${filters.kpiFilter === 'active' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <CheckCircle className={`h-5 w-5 ${filters.kpiFilter === 'active' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -469,14 +473,16 @@ export const SubscriptionManagementPage = () => {
             transition={{ duration: 0.4, delay: 0.2 }}
           >
             <Card
-              className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'new' ? 'ring-2 ring-warning shadow-lg' : ''
+              className={`h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'new' ? 'ring-2 ring-warning shadow-lg' : ''
                 }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'new' }))}
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-warning" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className={`absolute inset-0 ${filters.kpiFilter === 'new' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Clock className={`h-5 w-5 ${filters.kpiFilter === 'new' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -505,14 +511,16 @@ export const SubscriptionManagementPage = () => {
             transition={{ duration: 0.4, delay: 0.25 }}
           >
             <Card
-              className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'paid' ? 'ring-2 ring-primary shadow-lg' : ''
+              className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'paid' ? 'ring-2 ring-primary shadow-lg' : ''
                 }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'paid' }))}
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-primary" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className={`absolute inset-0 ${filters.kpiFilter === 'paid' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Crown className={`h-5 w-5 ${filters.kpiFilter === 'paid' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -541,14 +549,16 @@ export const SubscriptionManagementPage = () => {
             transition={{ duration: 0.4, delay: 0.3 }}
           >
             <Card
-              className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'free' ? 'ring-2 ring-info shadow-lg' : ''
+              className={`h-full min-h-[140px] geo-wave glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'free' ? 'ring-2 ring-info shadow-lg' : ''
                 }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'free' }))}
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-info" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className={`absolute inset-0 ${filters.kpiFilter === 'free' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Users className={`h-5 w-5 ${filters.kpiFilter === 'free' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -573,7 +583,7 @@ export const SubscriptionManagementPage = () => {
       {loading ? (
         <TableSkeleton rows={8} />
       ) : filteredSubscribers.length === 0 ? (
-        <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
+        <Card className="squircle-lg glass-card-premium p-12 text-center">
           <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
           <h3 className="font-bold text-xl mb-2">
             {filters.search ? 'No Subscribers Found' :
@@ -603,7 +613,7 @@ export const SubscriptionManagementPage = () => {
                   Reset Filters
                 </Button>
               )}
-            <Button onClick={handleCreate} className="squircle bg-primary">
+            <Button onClick={handleCreate} className="glass-card-premium">
               <Plus className="h-4 w-4 mr-2" />
               Add Subscriber
             </Button>
@@ -627,12 +637,14 @@ export const SubscriptionManagementPage = () => {
                     transition={{ delay: index * 0.05 }}
                     className="col-span-1"
                   >
-                    <Card className="h-full squircle-xl bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
+                    <Card className="h-full squircle-xl glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col">
+                      {/* Apple hover glow effect */}
+                      <div className={`hover-glow ${subscriber.status === 'unsubscribed' ? 'hover-glow-destructive' : 'hover-glow-primary'}`} />
                       {/* Decorative Elements */}
                       <div className="absolute top-0 right-0 p-5 z-20">
                         <div className="relative">
                           <div className={`absolute inset-0 ${subscriber.status === 'unsubscribed' ? 'bg-destructive/20' : 'bg-primary/10'} blur-xl rounded-full scale-150`} />
-                          <div className="w-10 h-10 geo-round bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                          <div className="w-10 h-10 geo-round surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
                             <Mail className={`h-5 w-5 ${subscriber.status === 'unsubscribed' ? 'text-destructive' : 'text-primary'}`} />
                           </div>
                         </div>
