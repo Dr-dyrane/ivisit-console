@@ -211,11 +211,11 @@ export const InsuranceManagementPage = () => {
 
   const handleSelectAll = useCallback((checked) => {
     if (checked) {
-      setSelectedIds(policies.map(p => p.id));
+      setSelectedIds(insurancePolicies.map(p => p.id));
     } else {
       setSelectedIds([]);
     }
-  }, [policies]);
+  }, [insurancePolicies]);
 
   const handleViewAnalytics = useCallback(() => {
     setAnalyticsModalOpen(true);
