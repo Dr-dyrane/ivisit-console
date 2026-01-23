@@ -419,7 +419,7 @@ export const AmbulancesPage = () => {
   const headerActions = React.useMemo(() => (
     <Button
       onClick={handleCreate}
-      className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] text-foreground font-bold tracking-widest uppercase"
+      className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
       aria-label="Add new ambulance"
     >
       <Plus className="h-4 w-4 mr-2" />
@@ -459,13 +459,15 @@ export const AmbulancesPage = () => {
             transition={{ delay: index * 0.05 }}
             className="col-span-1"
           >
-            <Card className="h-full squircle-xl bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col">
+            <Card className="h-full squircle-xl glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col">
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-primary" />
 
               {/* Top Right Icon */}
               <div className="absolute top-0 right-0 p-5 z-20">
                 <div className="relative">
                   <div className="absolute inset-0 bg-success/10 blur-xl rounded-full scale-150" />
-                  <div className="w-10 h-10 squircle-sm bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                  <div className="w-10 h-10 squircle-sm surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
                     <Ambulance className="h-5 w-5 text-success" />
                   </div>
                 </div>
@@ -580,17 +582,19 @@ export const AmbulancesPage = () => {
               transition={{ duration: 0.4, delay: 0.1 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('all')}
                 role="button"
                 tabIndex={0}
                 aria-label="Show all ambulances"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-primary" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <Ambulance className={`h-5 w-5 ${kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
@@ -619,17 +623,19 @@ export const AmbulancesPage = () => {
               transition={{ duration: 0.4, delay: 0.15 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'available' ? 'ring-2 ring-success shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'available' ? 'ring-2 ring-success shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('available')}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by available ambulances"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-success" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${kpiFilter === 'available' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <MapPin className={`h-5 w-5 ${kpiFilter === 'available' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
@@ -658,17 +664,19 @@ export const AmbulancesPage = () => {
               transition={{ duration: 0.4, delay: 0.2 }}
             >
               <Card
-                className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'on_route' ? 'ring-2 ring-warning shadow-lg' : ''
+                className={`h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'on_route' ? 'ring-2 ring-warning shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('on_route')}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by ambulances en route"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-warning" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${kpiFilter === 'on_route' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <Activity className={`h-5 w-5 ${kpiFilter === 'on_route' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
@@ -697,17 +705,19 @@ export const AmbulancesPage = () => {
               transition={{ duration: 0.4, delay: 0.22 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'busy' ? 'ring-2 ring-destructive shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'busy' ? 'ring-2 ring-destructive shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('busy')}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by busy ambulances"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-destructive" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${kpiFilter === 'busy' ? 'bg-destructive/30' : 'bg-destructive/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <Ambulance className={`h-5 w-5 ${kpiFilter === 'busy' ? 'text-destructive' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
@@ -736,17 +746,19 @@ export const AmbulancesPage = () => {
               transition={{ duration: 0.4, delay: 0.25 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'maintenance' ? 'ring-2 ring-muted shadow-lg' : ''
+                className={`h-full min-h-[140px] geo-wave glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'maintenance' ? 'ring-2 ring-muted shadow-lg' : ''
                   }`}
                 onClick={() => setKpiFilter('maintenance')}
                 role="button"
                 tabIndex={0}
                 aria-label="Filter by ambulances in maintenance"
               >
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-secondary" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
                     <div className={`absolute inset-0 ${kpiFilter === 'maintenance' ? 'bg-muted/30' : 'bg-muted/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                       <Filter className={`h-5 w-5 ${kpiFilter === 'maintenance' ? 'text-muted-foreground' : 'text-muted-foreground'} transition-colors duration-200`} />
                     </div>
                   </div>
