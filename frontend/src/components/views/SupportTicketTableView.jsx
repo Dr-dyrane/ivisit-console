@@ -3,6 +3,14 @@ import { motion } from 'framer-motion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { Checkbox } from '../ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '../ui/dropdown-menu';
 import { Card } from '../ui/card';
 import {
   Edit,
@@ -10,7 +18,8 @@ import {
   UserCheck,
   Calendar,
   MessageSquare,
-  Clock
+  Clock,
+  MoreHorizontal
 } from 'lucide-react';
 
 export const SupportTicketTableView = ({
@@ -22,7 +31,10 @@ export const SupportTicketTableView = ({
   getStatusConfig,
   getPriorityColor,
   isAdmin,
-  isMobile
+  isMobile,
+  selectedIds = [],
+  onSelect,
+  onSelectAll
 }) => {
   return (
     <motion.div
@@ -34,6 +46,13 @@ export const SupportTicketTableView = ({
           <Table>
             <TableHeader>
               <TableRow className="border-b border-white/10 hover:bg-transparent">
+                <TableHead className="w-12 font-bold uppercase tracking-wider text-xs md:text-sm py-4">
+                  <Checkbox
+                    checked={selectedIds.length === tickets.length && tickets.length > 0}
+                    onCheckedChange={(checked) => onSelectAll(checked)}
+                    aria-label="Select all"
+                  />
+                </TableHead>
                 <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Subject</TableHead>
                 <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Category</TableHead>
                 <TableHead className="font-bold uppercase tracking-wider text-xs md:text-sm">Priority</TableHead>
@@ -52,6 +71,13 @@ export const SupportTicketTableView = ({
                   transition={{ delay: index * 0.02 }}
                   className="border-b border-white/10 hover:bg-white/5 transition-colors group"
                 >
+                  <TableCell className="py-4">
+                    <Checkbox
+                      checked={selectedIds.includes(ticket.id)}
+                      onCheckedChange={(checked) => onSelect(ticket.id, checked)}
+                      aria-label={`Select ticket ${ticket.subject}`}
+                    />
+                  </TableCell>
                   <TableCell className="font-bold truncate max-w-[150px] md:max-w-[200px] text-xs md:text-sm">
                     <div className="truncate" title={ticket.subject}>
                       {ticket.subject || 'No Subject'}
@@ -85,35 +111,34 @@ export const SupportTicketTableView = ({
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1 md:gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onView(ticket)}
-                        className="h-8 w-8 p-0 hover:bg-primary/20"
-                      >
-                        <MessageSquare className="h-3 w-3" />
-                      </Button>
-                      {isAdmin && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => onEdit(ticket)}
-                            className="h-8 w-8 p-0 hover:bg-primary/20"
-                          >
-                            <Edit className="h-3 w-3" />
+                    <div className="flex justify-end">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10 dark:hover:bg-white/10">
+                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                            <span className="sr-only">Open menu</span>
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => onDelete(ticket.id)}
-                            className="h-8 w-8 p-0 hover:bg-destructive/20"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </>
-                      )}
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[160px] rounded-xl bg-background/70 backdrop-blur-xl border-white/10 shadow-premium">
+                          <DropdownMenuItem onClick={() => onView(ticket)} className="cursor-pointer font-medium text-xs py-2">
+                            <MessageSquare className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                            View Details
+                          </DropdownMenuItem>
+                          {isAdmin && (
+                            <>
+                              <DropdownMenuItem onClick={() => onEdit(ticket)} className="cursor-pointer font-medium text-xs py-2">
+                                <Edit className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="bg-white/5" />
+                              <DropdownMenuItem onClick={() => onDelete(ticket.id)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </TableCell>
                 </motion.tr>

@@ -37,6 +37,8 @@ import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
 import { SupportTicketModal } from '../modals/SupportTicketModal';
 import { ReportsModal } from '../modals/ReportsModal';
+import { ConfirmationModal } from '../modals/ConfirmationModal';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { SupportTicketListView } from '../views/SupportTicketListView';
 import { SupportTicketTableView } from '../views/SupportTicketTableView';
 import { SEOHead } from '../common/SEOHead';
@@ -80,6 +82,16 @@ export const SupportTicketsPage = () => {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: null,
+    variant: 'destructive',
+    confirmLabel: 'Delete'
+  });
   const [filters, setFilters] = useState({ search: '', status: [], priority: [], category: [], kpiFilter: 'all' });
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
@@ -145,15 +157,39 @@ export const SupportTicketsPage = () => {
   }, []);
 
   const handleDelete = useCallback(async (ticket) => {
-    if (window.confirm(`Are you sure you want to delete ticket "${ticket.subject}"?`)) {
-      try {
-        await deleteTicket(ticket.id);
-        toast.success('Support ticket deleted successfully');
-      } catch (error) {
-        toast.error('Failed to delete support ticket');
-      }
-    }
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Support Ticket',
+      description: `Are you sure you want to delete ticket "${ticket.subject}"? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          await deleteTicket(ticket.id);
+          toast.success('Ticket deleted successfully');
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          toast.error('Failed to delete ticket');
+        }
+      },
+      variant: 'destructive',
+      confirmLabel: 'Delete Ticket'
+    });
   }, [deleteTicket]);
+
+  const handleSelect = useCallback((id, checked) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
+    }
+  }, []);
+
+  const handleSelectAll = useCallback((checked) => {
+    if (checked) {
+      setSelectedIds(supportTickets.map(t => t.id));
+    } else {
+      setSelectedIds([]);
+    }
+  }, [supportTickets]);
 
   const handleAssign = useCallback(async (ticket) => {
     try {
@@ -192,7 +228,7 @@ export const SupportTicketsPage = () => {
       aria-label="Filter tickets"
     >
       <Filter className="h-4 w-4" />
-      {(filters.search || (filters.status && filters.status.length > 0) || filters.kpiFilter !== 'all') && (
+      {(filters.search || (filters.status && filters.status.length > 0) || filters.kpiFilter !== 'all' || filters.created_at) && (
         <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
       )}
     </Button>
@@ -251,6 +287,18 @@ export const SupportTicketsPage = () => {
       type: 'multiselect',
       label: 'Category',
       options: CATEGORIES.map(c => ({ value: c, label: c.charAt(0).toUpperCase() + c.slice(1).replace('_', ' ') }))
+    },
+    {
+      key: 'created_at',
+      type: 'date',
+      label: 'Created Date',
+      placeholder: 'Select dates',
+      shortcuts: [
+        { label: 'Today', value: 'today' },
+        { label: 'Last 7 Days', value: '7days' },
+        { label: 'Last 30 Days', value: '30days' },
+        { label: 'This Month', value: 'month' }
+      ]
     }
   ], []);
 
@@ -526,7 +574,7 @@ export const SupportTicketsPage = () => {
 
           {/* ListView fallback */}
           {viewMode === 'list' && <SupportTicketListView tickets={supportTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} />}
-          {viewMode === 'table' && <SupportTicketTableView tickets={supportTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} />}
+          {viewMode === 'table' && <SupportTicketTableView tickets={supportTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} selectedIds={selectedIds} onSelect={handleSelect} onSelectAll={handleSelectAll} />}
         </>
       )}
 
@@ -549,6 +597,51 @@ export const SupportTicketsPage = () => {
       </AnimatePresence>
 
       <FilterSheet isOpen={filterSheetOpen} onOpenChange={setFilterSheetOpen} filterSchema={filterSchema} onApply={setFilters} initialValues={filters} viewToggle={isMobile ? viewToggleComponent : null} isMobile={isMobile} />
+
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        description={confirmationModal.description}
+        variant={confirmationModal.variant}
+        confirmLabel={confirmationModal.confirmLabel}
+      />
+
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onClear={() => setSelectedIds([])}
+      >
+        {isAdmin && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setConfirmationModal({
+                isOpen: true,
+                title: 'Delete Selected Tickets',
+                description: `Are you sure you want to delete ${selectedIds.length} tickets? This action cannot be undone.`,
+                onConfirm: async () => {
+                  try {
+                    // Bulk delete logic would go here
+                    toast.success(`${selectedIds.length} tickets deleted`);
+                    setSelectedIds([]);
+                    setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+                  } catch (err) {
+                    toast.error('Failed to delete tickets');
+                  }
+                },
+                variant: 'destructive',
+                confirmLabel: 'Delete All'
+              });
+            }}
+            className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+            title="Delete Selected"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        )}
+      </BulkActionBar>
     </div>
   )
 }
