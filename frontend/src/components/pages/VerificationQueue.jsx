@@ -7,6 +7,7 @@ import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { VerificationModal } from '../modals/VerificationModal';
 import { ReportsModal } from '../modals/ReportsModal';
+import { BulkActionBar } from '../common/BulkActionBar';
 import {
   CheckCircle,
   FileText,
@@ -178,6 +179,34 @@ export const VerificationQueue = () => {
       toast.error(error.message || 'Failed to update verification status');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleSelect = useCallback((id, checked) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
+    }
+  }, []);
+
+  const handleSelectAll = useCallback((checked) => {
+    if (checked) {
+      setSelectedIds(providers.map(p => p.id));
+    } else {
+      setSelectedIds([]);
+    }
+  }, [providers]);
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'approved':
+        return 'bg-success/20 text-success';
+      case 'rejected':
+        return 'bg-destructive/20 text-destructive';
+      case 'pending':
+      default:
+        return 'bg-warning/20 text-warning';
     }
   };
 
@@ -548,6 +577,10 @@ export const VerificationQueue = () => {
           onView={setSelectedProvider}
           onVerify={handleVerify}
           onDelete={() => { }}
+          getStatusBadge={getStatusBadge}
+          selectedIds={selectedIds}
+          onSelect={handleSelect}
+          onSelectAll={handleSelectAll}
           isMobile={isMobile}
         />
       )}
@@ -571,6 +604,42 @@ export const VerificationQueue = () => {
           />
         </div>
       )}
+
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onClear={() => setSelectedIds([])}
+      >
+        {canVerify && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                // Bulk approve logic would go here
+                toast.success(`${selectedIds.length} providers approved`);
+                setSelectedIds([]);
+              }}
+              className="h-10 w-10 rounded-full bg-success/20 text-success hover:bg-success hover:text-white transition-all"
+              title="Approve Selected"
+            >
+              <CheckCircle className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                // Bulk reject logic would go here
+                toast.success(`${selectedIds.length} providers rejected`);
+                setSelectedIds([]);
+              }}
+              className="h-10 w-10 rounded-full bg-warning/20 text-warning hover:bg-warning hover:text-white transition-all"
+              title="Reject Selected"
+            >
+              <AlertTriangle className="h-5 w-5" />
+            </Button>
+          </>
+        )}
+      </BulkActionBar>
     </div>
   );
 };

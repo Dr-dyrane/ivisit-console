@@ -10,6 +10,7 @@ import {
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
+import { Checkbox } from '../ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import {
     DropdownMenu,
@@ -37,7 +38,10 @@ export const VerificationQueueTableView = ({
     onView,
     onVerify,
     onDelete,
-    getStatusBadge
+    getStatusBadge,
+    selectedIds = [],
+    onSelect,
+    onSelectAll
 }) => {
     if (!providers || providers.length === 0) return null;
 
@@ -50,6 +54,13 @@ export const VerificationQueueTableView = ({
                 <Table>
                     <TableHeader className="bg-muted/30">
                         <TableRow className="border-b border-white/10 hover:bg-transparent">
+                            <TableHead className="w-12 text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4">
+                                <Checkbox
+                                    checked={selectedIds.length === providers.length && providers.length > 0}
+                                    onCheckedChange={(checked) => onSelectAll(checked)}
+                                    aria-label="Select all"
+                                />
+                            </TableHead>
                             <TableHead className="w-[300px] text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 pl-6">Applicant</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Role</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Joined</TableHead>
@@ -69,6 +80,13 @@ export const VerificationQueueTableView = ({
                                     transition={{ delay: index * 0.03 }}
                                     className="group border-b border-white/5 transition-colors hover:bg-white/5"
                                 >
+                                    <TableCell className="py-4">
+                                        <Checkbox
+                                            checked={selectedIds.includes(provider.id)}
+                                            onCheckedChange={(checked) => onSelect(provider.id, checked)}
+                                            aria-label={`Select ${provider.full_name || provider.name}`}
+                                        />
+                                    </TableCell>
                                     <TableCell className="py-4 pl-6">
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-10 w-10 squircle border-2 border-white/5 shadow-inner shrink-0">
