@@ -25,9 +25,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
   };
 
   const handleOpenAnalytics = () => {
-    const event = new CustomEvent('openSubscriptionAnalyticsModal', {
-      detail: { button: document.querySelector('[data-subscription-analytics="true"]') }
-    });
+    const event = new CustomEvent('openReportsModal');
     window.dispatchEvent(event);
   };
 

@@ -1,0 +1,106 @@
+import {
+    Home, MapPin, FileCheck, TrendingUp,
+    Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance,
+    Users, Newspaper, Headphones, Shield, Mail, FolderKanban, Handshake
+} from 'lucide-react';
+
+/**
+ * Role-based access levels for comparison
+ */
+export const ROLE_LEVELS = {
+    admin: 100,
+    org_admin: 80,
+    sponsor: 60,
+    provider: 40,
+    viewer: 20,
+};
+
+/**
+ * Navigation items configuration
+ * permissions:
+ * - minRole: Minimum role level required (from ROLE_LEVELS)
+ * - resource: The resource name for fine-grained permission checks (can(action, resource))
+ * - scopes: ['global', 'org'] - whether this item is visible globally or only for org/admin users
+ */
+export const NAV_CONFIG = {
+    main: [
+        { id: 'home', path: '/', icon: Home, label: 'Dashboard', resource: 'dashboard' },
+        { id: 'map', path: '/map', icon: MapPin, label: 'Live Map', resource: 'map', minRole: 'provider' },
+        { id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics', resource: 'analytics', minRole: 'org_admin' },
+    ],
+    ops: {
+        id: 'ops',
+        label: 'Operations',
+        icon: Handshake,
+        items: [
+            // Provider-accessible items (scoped to their own records)
+            { id: 'visits', path: '/visits', icon: Calendar, label: 'Visits', resource: 'visits', minRole: 'provider' },
+            { id: 'emergencies', path: '/emergencies', icon: AlertTriangle, label: 'Emergencies', resource: 'emergencies', minRole: 'provider' },
+
+            // Org Admin+ items (fleet/network management)
+            { id: 'hospitals', path: '/hospitals', icon: Hospital, label: 'Hospitals', resource: 'hospitals', minRole: 'org_admin' },
+            { id: 'ambulances', path: '/ambulances', icon: Ambulance, label: 'Ambulances', resource: 'ambulances', minRole: 'org_admin' },
+            { id: 'doctors', path: '/doctors', icon: Stethoscope, label: 'Doctors', resource: 'doctors', minRole: 'org_admin' },
+        ]
+    },
+    mgmt: {
+        id: 'mgmt',
+        label: 'Management',
+        icon: FolderKanban,
+        items: [
+            // Provider-accessible (submit support, read news)
+            { id: 'support', path: '/support-tickets', icon: Headphones, label: 'Support', resource: 'support', minRole: 'provider' },
+            { id: 'news', path: '/health-news', icon: Newspaper, label: 'Health News', resource: 'news', minRole: 'provider' },
+
+            // Org Admin+ items
+            { id: 'verification', path: '/verification', icon: FileCheck, label: 'Queue', resource: 'verification', minRole: 'org_admin' },
+            { id: 'users', path: '/users', icon: Users, label: 'Users', resource: 'users', minRole: 'org_admin' },
+
+            // Platform Admin only
+            { id: 'insurance', path: '/insurance', icon: Shield, label: 'Insurance', resource: 'insurance', minRole: 'admin' },
+            { id: 'subscriptions', path: '/subscriptions', icon: Mail, label: 'Subscriptions', resource: 'subscriptions', minRole: 'admin' },
+        ]
+    }
+};
+
+/**
+ * Filters navigation items based on user's role and permissions
+ */
+export const getAccessibleNav = (userProfile, canHelper) => {
+    const role = userProfile?.role || 'viewer';
+    const userLevel = ROLE_LEVELS[role] || 0;
+
+    const isItemAccessible = (item) => {
+        // 1. Check minimum role level
+        if (item.minRole) {
+            const minLevel = ROLE_LEVELS[item.minRole] || 0;
+            if (userLevel < minLevel) return false;
+        }
+
+        // 2. Check fine-grained permissions if available
+        if (canHelper && item.resource) {
+            // Default to 'view' check for navigation
+            return canHelper('view', item.resource);
+        }
+
+        return true;
+    };
+
+    const filteredMain = NAV_CONFIG.main.filter(isItemAccessible);
+
+    const filteredOps = {
+        ...NAV_CONFIG.ops,
+        items: NAV_CONFIG.ops.items.filter(isItemAccessible)
+    };
+
+    const filteredMgmt = {
+        ...NAV_CONFIG.mgmt,
+        items: NAV_CONFIG.mgmt.items.filter(isItemAccessible)
+    };
+
+    return {
+        main: filteredMain,
+        ops: filteredOps.items.length > 0 ? filteredOps : null,
+        mgmt: filteredMgmt.items.length > 0 ? filteredMgmt : null,
+    };
+};

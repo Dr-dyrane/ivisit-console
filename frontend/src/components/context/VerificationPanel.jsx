@@ -27,8 +27,10 @@ export const VerificationPanel = ({ verificationData, loading }) => {
   };
 
   const handleAnalytics = () => {
-    // Future analytics modal
-    console.log('Open analytics');
+    const event = new CustomEvent('openReportsModal', {
+      detail: { type: 'user' }
+    });
+    window.dispatchEvent(event);
   };
 
   return (

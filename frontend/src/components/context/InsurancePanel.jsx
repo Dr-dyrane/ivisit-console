@@ -22,7 +22,7 @@ export const InsurancePanel = ({ loading, getInsuranceStats, insuranceData = [] 
   };
 
   const handleAnalytics = () => {
-    window.dispatchEvent(new CustomEvent('openInsuranceAnalyticsModal'));
+    window.dispatchEvent(new CustomEvent('openReportsModal'));
   };
 
   return (

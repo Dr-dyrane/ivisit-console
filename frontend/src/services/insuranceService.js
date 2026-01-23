@@ -5,7 +5,7 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { getCurrentUser } from './authService';
+import { getCurrentUser, applyAuthFilter } from './authService';
 
 const TABLE_NAME = 'insurance_policies';
 
@@ -13,50 +13,44 @@ const TABLE_NAME = 'insurance_policies';
  * Get all insurance policies with optional filters
  * Admin users can see all policies, others see only their own
  */
-export async function getInsurancePolicies(filter) {
+export async function getInsurancePolicies(filter = {}) {
   try {
     const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
 
-    // Apply authorization - admins get full access, others get filtered
-    if (user?.role !== 'admin') {
-      // Non-admin users can only see their own policies
-      query = query.eq('user_id', user?.id);
-    } else if (filter?.user_id) {
-      // Admin can filter by specific user if needed
-      query = query.eq('user_id', filter.user_id);
-    }
+    // 1. Apply RBAC Scoping
+    query = applyAuthFilter(query, user, {
+      userIdField: 'user_id',
+      orgIdField: 'organization_id'
+    });
 
-    if (filter?.provider_name) {
+    // 2. Apply Custom Filters
+    if (filter.provider_name) {
       query = query.eq('provider_name', filter.provider_name);
     }
-    if (filter?.coverage_type) {
+    if (filter.coverage_type) {
       query = query.eq('coverage_type', filter.coverage_type);
     }
-    if (filter?.status) {
+    if (filter.status) {
       query = query.eq('status', filter.status);
     }
 
     query = query.order('created_at', { ascending: false });
 
-    if (filter?.limit) {
+    if (filter.limit) {
       query = query.limit(filter.limit);
     }
-    if (filter?.offset) {
+    if (filter.offset) {
       query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
     }
 
     const { data, error } = await query;
-
-    if (error) {
-      console.error('Insurance policies query error:', error);
-      return []; // Return empty array on error instead of throwing
-    }
+    if (error) throw error;
 
     return data || [];
   } catch (error) {
     console.error('Error fetching insurance policies:', error);
-    return []; // Return empty array on error
+    return [];
   }
 }
 

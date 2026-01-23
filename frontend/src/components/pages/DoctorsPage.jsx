@@ -24,6 +24,7 @@ import { DoctorTableView } from '../views/DoctorTableView';
 import { withTimeout } from '../../lib/utils';
 import { SEOHead } from '../common/SEOHead';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
+import { ReportsModal } from '../modals/ReportsModal';
 
 import { usePageData } from '../../contexts/PageDataContext';
 
@@ -35,6 +36,7 @@ export const DoctorsPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [modalMode, setModalMode] = useState(null);
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
   const [selectedIds, setSelectedIds] = useState([]);
@@ -180,13 +182,18 @@ export const DoctorsPage = () => {
     const handleOpenFilters = () => {
       setFilterSheetOpen(true);
     };
+    const handleOpenAnalytics = () => {
+      setAnalyticsModalOpen(true);
+    };
 
     window.addEventListener('openDoctorModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
+    window.addEventListener('openReportsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openDoctorModal', handleOpenModal);
       window.removeEventListener('openFilters', handleOpenFilters);
+      window.removeEventListener('openReportsModal', handleOpenAnalytics);
     };
   }, [handleCreate]);
 
@@ -797,6 +804,13 @@ export const DoctorsPage = () => {
         onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
         variant={confirmationModal.variant}
         confirmLabel={confirmationModal.confirmLabel}
+      />
+
+      <ReportsModal
+        open={analyticsModalOpen}
+        onClose={() => setAnalyticsModalOpen(false)}
+        analyticsData={doctorsData?.stats}
+        initialType="doctor"
       />
 
       <BulkActionBar

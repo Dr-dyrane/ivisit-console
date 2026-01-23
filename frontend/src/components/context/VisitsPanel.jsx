@@ -91,7 +91,7 @@ export const VisitsPanel = ({ visitsData }) => {
           </motion.button>
 
           <motion.button
-            onClick={() => window.dispatchEvent(new CustomEvent('openVisitAnalytics'))}
+            onClick={() => window.dispatchEvent(new CustomEvent('openReportsModal'))}
             className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
             title="View Analytics"
           >

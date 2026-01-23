@@ -15,64 +15,39 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 
+import { NAV_CONFIG, getAccessibleNav } from '../../config/navigation';
+
 export const MobileNavMenu = ({ onClose }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { signOut, hasMinRole, profile, user } = useAuth();
+    const { signOut, can, profile, user } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const isNotHome = location.pathname !== '/';
+
+    // Get accessible navigation items based on current user permissions
+    const accessibleNav = useMemo(() => {
+        return getAccessibleNav(profile, can);
+    }, [profile, can]);
 
     // State to track which section is currently focused
     const [activeGroup, setActiveGroup] = useState(null);
 
     // Auto-focus the group based on current URL
     useEffect(() => {
-        const opsPaths = ['/hospitals', '/ambulances', '/doctors', '/visits', '/emergencies'];
-        const mgmtPaths = ['/verification', '/insurance', '/support-tickets', '/users', '/health-news'];
+        const isOps = accessibleNav.ops?.items.some(item => item.path === location.pathname);
+        const isMgmt = accessibleNav.mgmt?.items.some(item => item.path === location.pathname);
 
-        if (opsPaths.includes(location.pathname)) setActiveGroup('ops');
-        else if (mgmtPaths.includes(location.pathname)) setActiveGroup('mgmt');
-    }, [location.pathname]);
+        if (isOps) setActiveGroup('ops');
+        else if (isMgmt) setActiveGroup('mgmt');
+    }, [location.pathname, accessibleNav]);
 
     const handleNavigate = (path) => {
         navigate(path);
         onClose();
     };
 
-    const navGroups = {
-        main: [
-            { path: '/', icon: Home, label: 'Dashboard' },
-            { path: '/map', icon: MapPin, label: 'Live Map' },
-            { path: '/analytics', icon: TrendingUp, label: 'Statistics' },
-        ],
-        ops: {
-            label: 'Operations',
-            icon: Handshake,
-            items: [
-                { path: '/hospitals', icon: Hospital, label: 'Hospitals' },
-                { path: '/ambulances', icon: Ambulance, label: 'Ambulances' },
-                { path: '/doctors', icon: Stethoscope, label: 'Doctors' },
-                { path: '/visits', icon: Calendar, label: 'Visits' },
-                { path: '/emergencies', icon: AlertTriangle, label: 'Emergencies' },
-            ]
-        },
-        mgmt: {
-            label: 'Management',
-            icon: FolderKanban,
-            items: [
-                { path: '/verification', icon: FileCheck, label: 'Queue', minRole: 'admin' },
-                { path: '/insurance', icon: Shield, label: 'Insurance', minRole: 'admin' },
-                { path: '/subscriptions', icon: Mail, label: 'Subscriptions', minRole: 'admin' },
-                { path: '/support-tickets', icon: Headphones, label: 'Support' },
-                { path: '/users', icon: Users, label: 'Users', minRole: 'admin' },
-                { path: '/health-news', icon: Newspaper, label: 'Health News', minRole: 'admin' },
-            ]
-        }
-    };
-
     const renderLink = (item, isSub = false) => {
         const active = location.pathname === item.path;
-        if (item.minRole && !hasMinRole(item.minRole)) return null;
 
         return (
             <motion.button
@@ -139,18 +114,17 @@ export const MobileNavMenu = ({ onClose }) => {
 
                 {/* Always show Top-Level */}
                 <div className="space-y-1">
-                    {navGroups.main.map(link => renderLink(link))}
+                    {accessibleNav.main.map(link => renderLink(link))}
                 </div>
 
                 <div className="h-px bg-border/40 mx-4 my-4" />
 
                 {/* Groups with Accordion logic */}
                 {['ops', 'mgmt'].map(groupId => {
-                    const group = navGroups[groupId];
-                    const isOpen = activeGroup === groupId;
-                    const canSeeGroup = group.items.some(i => !i.minRole || hasMinRole(i.minRole));
+                    const group = accessibleNav[groupId];
+                    if (!group) return null;
 
-                    if (!canSeeGroup) return null;
+                    const isOpen = activeGroup === groupId;
 
                     return (
                         <div key={groupId} className="space-y-1">

@@ -56,28 +56,42 @@ export function buildAuthQuery(query, user, userIdField = 'user_id') {
 
 /**
  * Apply authorization filters to service queries
+ * Supports Admin (all), Org Admin (scoped to org), and User (scoped to own record)
  */
 export function applyAuthFilter(baseQuery, user, options = {}) {
   const {
     userIdField = 'user_id',
+    orgIdField = 'organization_id',
     bypassForAdmin = true,
     additionalFilters = {}
   } = options;
 
   let query = baseQuery;
+  const role = user?.role || 'viewer';
+  const orgId = user?.organization_id;
 
-  // Apply admin bypass
-  if (bypassForAdmin && user?.role === 'admin') {
-    // Admin gets full access - skip user filtering
+  // 1. Apply Role-Based Scoping
+  if (role === 'admin' && bypassForAdmin) {
+    // Admin gets full access - skip scoping
+  } else if (role === 'org_admin' && orgId) {
+    // Org Admin sees everything in their organization
+    query = query.eq(orgIdField, orgId);
   } else {
-    // Non-admin users get filtered data
-    query = query.eq(userIdField, user?.id);
+    // Everyone else only sees their own data
+    // (Or records assigned to them)
+    if (user?.id) {
+      query = query.eq(userIdField, user.id);
+    }
   }
 
-  // Apply any additional filters
+  // 2. Apply any additional filters provided
   Object.entries(additionalFilters).forEach(([field, value]) => {
     if (value !== undefined && value !== null) {
-      query = query.eq(field, value);
+      if (Array.isArray(value)) {
+        query = query.in(field, value);
+      } else {
+        query = query.eq(field, value);
+      }
     }
   });
 

@@ -5,7 +5,7 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { getCurrentUser } from './authService';
+import { getCurrentUser, applyAuthFilter } from './authService';
 
 const TABLE_NAME = 'visits';
 
@@ -13,23 +13,19 @@ const TABLE_NAME = 'visits';
  * Get all visits with optional filters
  * Admin users can see all visits, others see only their own
  */
-export async function getVisits(filter) {
+export async function getVisits(filter = {}) {
   try {
     const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
 
-    // Apply authorization - admins get full access, others get filtered
-    if (user?.role === 'admin') {
-      // Full access
-    } else if (user?.role === 'org_admin' && user?.organization_id) {
-      // Org admins see all visits in their organization
-      query = query.eq('hospital_id', user.organization_id);
-    } else {
-      // Non-admin users can only see their own visits
-      query = query.eq('user_id', user?.id);
-    }
+    // 1. Apply RBAC Scoping
+    query = applyAuthFilter(query, user, {
+      userIdField: 'user_id',
+      orgIdField: 'hospital_id' // Explicitly mapping hospital_id as the org field for visits
+    });
 
-    if (filter?.user_id) {
+    // 2. Apply Custom Filters
+    if (filter.user_id) {
       query = query.eq('user_id', filter.user_id);
     }
     if (filter?.doctor_id) {

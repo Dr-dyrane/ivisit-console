@@ -19,33 +19,11 @@ import ThemeToggle from '../ui/theme-toggle';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import NoiseOverlay from '../ui/noise-overlay';
 
-// Static navigation configuration
-const operationItems = [
-  { id: 'hospitals', path: '/hospitals', icon: Hospital, label: 'Hospitals' },
-  { id: 'ambulances', path: '/ambulances', icon: Ambulance, label: 'Ambulances' },
-  { id: 'doctors', path: '/doctors', icon: Stethoscope, label: 'Doctors' },
-  { id: 'visits', path: '/visits', icon: Calendar, label: 'Visits' },
-  { id: 'emergencies', path: '/emergencies', icon: AlertTriangle, label: 'Emergencies' },
-];
-
-const managementItems = [
-  { id: 'verification', path: '/verification', icon: FileCheck, label: 'Queue', minRole: 'admin' },
-  { id: 'insurance', path: '/insurance', icon: Shield, label: 'Insurance', minRole: 'admin' },
-  { id: 'subscriptions', path: '/subscriptions', icon: Mail, label: 'Subscriptions', minRole: 'admin' },
-  { id: 'support', path: '/support-tickets', icon: Headphones, label: 'Support' },
-  { id: 'users', path: '/users', icon: Users, label: 'Users', minRole: 'admin' },
-  { id: 'news', path: '/health-news', icon: Newspaper, label: 'Health News', minRole: 'admin' },
-];
-
-// Group icons for collapsed mode
-const groupIcons = {
-  ops: Handshake,
-  mgmt: FolderKanban
-};
+import { NAV_CONFIG, getAccessibleNav } from '../../config/navigation';
 
 export const IslandNavigation = () => {
   const { sidebarMode, setSidebarMode, sidebarWidth, isScrolledDown } = useLayout();
-  const { profile, user, hasMinRole } = useAuth();
+  const { profile, user, can } = useAuth();
   const { toggle, theme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -53,6 +31,11 @@ export const IslandNavigation = () => {
   const [isHovered, setIsHovered] = useState(false);
   const [openGroups, setOpenGroups] = useState([]);
   const [configOpen, setConfigOpen] = useState(false);
+
+  // Get accessible navigation items based on current user permissions
+  const accessibleNav = useMemo(() => {
+    return getAccessibleNav(profile, can);
+  }, [profile, can]);
 
   // Determine effective expansion state
   const isBroad = useMemo(() => {
@@ -70,13 +53,13 @@ export const IslandNavigation = () => {
 
   // Auto-expand the group containing the active route and close others
   useEffect(() => {
-    const isOps = operationItems.some(item => item.path === location.pathname);
-    const isMgmt = managementItems.some(item => item.path === location.pathname);
+    const isOps = accessibleNav.ops?.items.some(item => item.path === location.pathname);
+    const isMgmt = accessibleNav.mgmt?.items.some(item => item.path === location.pathname);
 
     if (isOps) setOpenGroups(['ops']);
     else if (isMgmt) setOpenGroups(['mgmt']);
     else setOpenGroups([]);
-  }, [location.pathname]);
+  }, [location.pathname, accessibleNav]);
 
   const toggleGroup = (groupId) => {
     setOpenGroups(prev => prev.includes(groupId) ? [] : [groupId]);
@@ -84,8 +67,6 @@ export const IslandNavigation = () => {
 
   const renderNavButton = (item, isSubItem = false, isCentered = false) => {
     const isActive = location.pathname === item.path;
-    const canSee = !item.minRole || hasMinRole(item.minRole);
-    if (!canSee) return null;
 
     const buttonContent = (
       <button
@@ -139,10 +120,11 @@ export const IslandNavigation = () => {
     );
   };
 
-  const renderGroup = (id, label, items) => {
+  const renderGroup = (groupConfig) => {
+    if (!groupConfig) return null;
+    const { id, label, icon: GroupIcon, items } = groupConfig;
     const isOpen = openGroups.includes(id);
     const isAnyChildActive = items.some(i => i.path === location.pathname);
-    const GroupIcon = groupIcons[id];
 
     // In collapsed mode, show centered group icon
     if (!isBroad) {
@@ -277,15 +259,13 @@ export const IslandNavigation = () => {
         {/* 2. DOCK-STYLE NAVIGATION */}
         <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar py-4 mt-4">
           <div className="space-y-1">
-            {renderNavButton({ id: 'home', path: '/', icon: Home, label: 'Dashboard' })}
-            {renderNavButton({ id: 'map', path: '/map', icon: MapPin, label: 'Live Map' })}
-            {renderNavButton({ id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics' })}
+            {accessibleNav.main.map(item => renderNavButton(item))}
           </div>
 
           <div className="h-px bg-border/40 mx-6" />
 
-          {renderGroup('ops', 'Operations', operationItems)}
-          {renderGroup('mgmt', 'Management', managementItems)}
+          {renderGroup(accessibleNav.ops)}
+          {renderGroup(accessibleNav.mgmt)}
         </div>
 
         {/* 3. PROFILE & THEME */}

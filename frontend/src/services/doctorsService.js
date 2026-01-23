@@ -4,6 +4,7 @@
  * Doctor directory and credentials management
  */
 
+import { getCurrentUser, applyAuthFilter } from './authService';
 import { supabase } from '../lib/supabase';
 
 const TABLE_NAME = 'doctors';
@@ -24,8 +25,16 @@ const sanitizeInput = (input) => {
  */
 export async function getDoctors(filter = {}) {
   try {
+    const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*, hospitals(name)', { count: 'exact' });
 
+    // 1. Apply RBAC Scoping
+    query = applyAuthFilter(query, user, {
+      userIdField: 'profile_id',
+      orgIdField: 'hospital_id'
+    });
+
+    // 2. Apply Custom Filters
     if (filter.hospital_id) {
       query = query.eq('hospital_id', filter.hospital_id);
     }

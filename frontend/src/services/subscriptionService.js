@@ -5,7 +5,7 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { getCurrentUser } from './authService';
+import { getCurrentUser, applyAuthFilter } from './authService';
 
 const TABLE_NAME = 'subscribers';
 
@@ -13,16 +13,18 @@ const TABLE_NAME = 'subscribers';
  * Get all subscribers with optional filters
  * Admin users can see all subscribers, others see only their own
  */
-export async function getSubscribers(filter) {
+export async function getSubscribers(filter = {}) {
   try {
     const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
 
-    // Apply authorization - admins get full access
-    if (user?.role !== 'admin') {
-      // Non-admin users can only see their own subscriptions (if applicable)
-      // For now, assume public access for subscription management
-    }
+    // 1. Apply RBAC Scoping
+    query = applyAuthFilter(query, user, {
+      userIdField: 'user_id', // Assuming user_id exists for subscriber owner
+      orgIdField: 'organization_id'
+    });
+
+    // 2. Apply Custom Filters
 
     if (filter?.email) {
       query = query.ilike('email', `%${filter.email}%`);

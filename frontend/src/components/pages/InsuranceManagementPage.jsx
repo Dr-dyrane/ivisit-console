@@ -10,7 +10,7 @@ import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { TableSkeleton } from '../ui/skeleton';
 import { InsuranceModal } from '../modals/InsuranceModal';
-import { InsuranceAnalyticsModal } from '../modals/InsuranceAnalyticsModal';
+import { ReportsModal } from '../modals/ReportsModal';
 import { FilterSheet } from '../common/FilterSheet';
 import { ViewToggle } from '../common/ViewToggle';
 import { InsuranceListView } from '../views/InsuranceListView';
@@ -79,17 +79,12 @@ export const InsuranceManagementPage = () => {
     };
   }, []);
 
-  // Listen for 'openInsuranceAnalyticsModal' event from ContextPanel
   useEffect(() => {
-    const handleOpenAnalytics = (event) => {
+    const handleOpenAnalytics = () => {
       setAnalyticsModalOpen(true);
-      // Store the button reference if passed
-      if (event.detail?.button) {
-        console.log('Analytics button reference:', event.detail.button);
-      }
     };
-    window.addEventListener('openInsuranceAnalyticsModal', handleOpenAnalytics);
-    return () => window.removeEventListener('openInsuranceAnalyticsModal', handleOpenAnalytics);
+    window.addEventListener('openReportsModal', handleOpenAnalytics);
+    return () => window.removeEventListener('openReportsModal', handleOpenAnalytics);
   }, []);
 
   // Filter Logic
@@ -691,10 +686,11 @@ export const InsuranceManagementPage = () => {
       />
 
       {/* Analytics Modal */}
-      <InsuranceAnalyticsModal
+      <ReportsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        analytics={{
+        initialType="insurance"
+        analyticsData={{
           total: insurancePolicies.length,
           active: insurancePolicies.filter(p => p.status === 'active').length,
           verified: insurancePolicies.filter(p => p.verified).length,

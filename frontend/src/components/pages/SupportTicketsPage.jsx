@@ -36,7 +36,7 @@ import { toast } from 'sonner';
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
 import { SupportTicketModal } from '../modals/SupportTicketModal';
-import { SupportAnalyticsModal } from '../modals/SupportAnalyticsModal';
+import { ReportsModal } from '../modals/ReportsModal';
 import { SupportTicketListView } from '../views/SupportTicketListView';
 import { SupportTicketTableView } from '../views/SupportTicketTableView';
 import { SEOHead } from '../common/SEOHead';
@@ -533,7 +533,7 @@ export const SupportTicketsPage = () => {
       {/* Modals ... */}
       <AnimatePresence>
         {modalMode && <SupportTicketModal ticket={selectedTicket} mode={modalMode} onClose={() => setModalMode(null)} onSave={modalMode === 'create' ? createTicket : updateTicket} priorities={PRIORITIES} categories={CATEGORIES} />}
-        {analyticsModalOpen && <SupportAnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analytics={analytics} />}
+        <ReportsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analyticsData={analytics} initialType="support" />
       </AnimatePresence>
 
       <FilterSheet isOpen={filterSheetOpen} onOpenChange={setFilterSheetOpen} filterSchema={filterSchema} onApply={setFilters} initialValues={filters} viewToggle={isMobile ? viewToggleComponent : null} isMobile={isMobile} />

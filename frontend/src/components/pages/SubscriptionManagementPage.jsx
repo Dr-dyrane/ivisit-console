@@ -10,7 +10,7 @@ import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { TableSkeleton } from '../ui/skeleton';
 import { SubscriptionModal } from '../modals/SubscriptionModal';
-import { SubscriptionAnalyticsModal } from '../modals/SubscriptionAnalyticsModal';
+import { ReportsModal } from '../modals/ReportsModal';
 import { FilterSheet } from '../common/FilterSheet';
 import { ViewToggle } from '../common/ViewToggle';
 import { SubscriptionListView } from '../views/SubscriptionListView';
@@ -78,16 +78,12 @@ export const SubscriptionManagementPage = () => {
     return () => window.removeEventListener('openSubscriptionModal', handleOpenModal);
   }, []);
 
-  // Listen for 'openSubscriptionAnalyticsModal' event from ContextPanel
   useEffect(() => {
-    const handleOpenAnalytics = (event) => {
+    const handleOpenAnalytics = () => {
       setAnalyticsModalOpen(true);
-      if (event.detail?.button) {
-        console.log('Analytics button reference:', event.detail.button);
-      }
     };
-    window.addEventListener('openSubscriptionAnalyticsModal', handleOpenAnalytics);
-    return () => window.removeEventListener('openSubscriptionAnalyticsModal', handleOpenAnalytics);
+    window.addEventListener('openReportsModal', handleOpenAnalytics);
+    return () => window.removeEventListener('openReportsModal', handleOpenAnalytics);
   }, []);
 
   // Real-time listener for new subscribers
@@ -774,10 +770,11 @@ export const SubscriptionManagementPage = () => {
       />
 
       {/* Analytics Modal */}
-      <SubscriptionAnalyticsModal
+      <ReportsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        analytics={{
+        initialType="subscription"
+        analyticsData={{
           total: subscribers.length,
           active: subscribers.filter(s => s.status === 'active').length,
           paid: subscribers.filter(s => s.type === 'paid').length,
@@ -785,10 +782,15 @@ export const SubscriptionManagementPage = () => {
           newUsers: subscribers.filter(s => s.new_user).length,
           welcomeEmailsSent: subscribers.filter(s => s.welcome_email_sent).length,
           paidConversionRate: subscribers.length > 0 ? Math.round((subscribers.filter(s => s.type === 'paid').length / subscribers.length) * 100) : 0,
-          // Add missing fields expected by modal
-          verified: subscribers.filter(s => s.status === 'active').length, // Using active as verified proxy
-          premium: subscribers.filter(s => s.type === 'paid').length, // Same as paid
+          verified: subscribers.filter(s => s.status === 'active').length,
+          premium: subscribers.filter(s => s.type === 'paid').length,
           pending: subscribers.filter(s => s.status === 'pending').length,
+          recentSubscriptions: subscribers.filter(s => {
+            const signupDate = new Date(s.created_at);
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            return signupDate >= thirtyDaysAgo;
+          }).length
         }}
       />
 

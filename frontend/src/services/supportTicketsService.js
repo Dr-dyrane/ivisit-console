@@ -5,7 +5,7 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { getCurrentUser } from './authService';
+import { getCurrentUser, applyAuthFilter } from './authService';
 
 const TABLE_NAME = 'support_tickets';
 
@@ -13,65 +13,59 @@ const TABLE_NAME = 'support_tickets';
  * Get support tickets with optional filters
  * Admin users can see all tickets, others see only their own
  */
-export async function getSupportTickets(filter) {
+export async function getSupportTickets(filter = {}) {
   try {
     const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
 
-    // Apply authorization - admins get full access, others get filtered
-    if (user?.role !== 'admin') {
-      // Non-admin users can only see their own tickets
-      query = query.eq('user_id', user?.id);
-    } else if (filter?.user_id) {
-      // Admin can filter by specific user if needed
-      query = query.eq('user_id', filter.user_id);
-    }
+    // 1. Apply RBAC Scoping
+    query = applyAuthFilter(query, user, {
+      userIdField: 'user_id',
+      orgIdField: 'organization_id' // Assuming organization_id exists
+    });
 
-    if (filter?.status) {
+    // 2. Apply Custom Filters
+    if (filter.status) {
       if (Array.isArray(filter.status) && filter.status.length > 0) {
         query = query.in('status', filter.status);
       } else if (!Array.isArray(filter.status)) {
         query = query.eq('status', filter.status);
       }
     }
-    if (filter?.priority) {
+    if (filter.priority) {
       if (Array.isArray(filter.priority) && filter.priority.length > 0) {
         query = query.in('priority', filter.priority);
       } else if (!Array.isArray(filter.priority)) {
         query = query.eq('priority', filter.priority);
       }
     }
-    if (filter?.category) {
+    if (filter.category) {
       if (Array.isArray(filter.category) && filter.category.length > 0) {
         query = query.in('category', filter.category);
       } else if (!Array.isArray(filter.category)) {
         query = query.eq('category', filter.category);
       }
     }
-    if (filter?.assigned_to) {
+    if (filter.assigned_to) {
       query = query.eq('assigned_to', filter.assigned_to);
     }
 
     query = query.order('created_at', { ascending: false });
 
-    if (filter?.limit) {
+    if (filter.limit) {
       query = query.limit(filter.limit);
     }
-    if (filter?.offset) {
+    if (filter.offset) {
       query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
     }
 
     const { data, error } = await query;
-
-    if (error) {
-      console.error('Support tickets query error:', error);
-      return []; // Return empty array on error instead of throwing
-    }
+    if (error) throw error;
 
     return data || [];
   } catch (error) {
     console.error('Error fetching support tickets:', error);
-    return []; // Return empty array on error
+    return [];
   }
 }
 

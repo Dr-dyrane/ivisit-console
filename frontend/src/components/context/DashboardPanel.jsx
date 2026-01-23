@@ -69,25 +69,11 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
   };
 
   const handleExportReport = () => {
-    // Generate and download system report
-    const reportData = {
-      timestamp: new Date().toISOString(),
-      emergencyStats,
-      analyticsData,
-      doctorsData,
-      verificationData,
-      recentActivities
-    };
-
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `dashboard-report-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Open the new unified reports modal
+    const event = new CustomEvent('openReportsModal', {
+      detail: { type: 'performance' }
+    });
+    window.dispatchEvent(event);
   };
 
   const handleSystemBackup = async () => {

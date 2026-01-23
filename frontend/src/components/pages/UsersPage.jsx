@@ -26,9 +26,9 @@ import { UserListView } from '../views/UserListView';
 import { UserTableView } from '../views/UserTableView';
 import { SEOHead } from '../common/SEOHead';
 
-import { UserAnalyticsModal } from '../modals/UserAnalyticsModal';
 import { InviteUserModal } from '../modals/InviteUserModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
+import { ReportsModal } from '../modals/ReportsModal';
 import { CheckSquare, Archive } from 'lucide-react'; // Additional icons
 
 export const UsersPage = () => {
@@ -1148,11 +1148,11 @@ export const UsersPage = () => {
         )
       }
 
-      <UserAnalyticsModal
+      <ReportsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        analytics={statistics}
-        users={users}
+        analyticsData={statistics}
+        initialType="user"
       />
 
       <FilterSheet

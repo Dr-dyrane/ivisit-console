@@ -28,7 +28,7 @@ import { VisitTableView } from '../views/VisitTableView';
 import { SEOHead } from '../common/SEOHead';
 import { BulkActionBar } from '../common/BulkActionBar';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
-import { VisitAnalyticsModal } from '../modals/VisitAnalyticsModal';
+import { ReportsModal } from '../modals/ReportsModal';
 
 export const VisitsPage = () => {
   const { user, isAdmin, isOrgAdmin, isProvider, orgId } = useAuth();
@@ -243,11 +243,13 @@ export const VisitsPage = () => {
     window.addEventListener('openVisitModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
     window.addEventListener('openVisitAnalytics', handleOpenAnalytics);
+    window.addEventListener('openReportsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openVisitModal', handleOpenModal);
       window.removeEventListener('openFilters', handleOpenFilters);
       window.removeEventListener('openVisitAnalytics', handleOpenAnalytics);
+      window.removeEventListener('openReportsModal', handleOpenAnalytics);
     };
   }, [handleCreate]);
 
@@ -903,10 +905,11 @@ export const VisitsPage = () => {
         )}
       </BulkActionBar>
 
-      <VisitAnalyticsModal
+      <ReportsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        stats={visitsData?.stats}
+        analyticsData={visitsData?.stats}
+        initialType="visit"
       />
 
       <FilterSheet

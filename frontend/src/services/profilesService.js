@@ -126,7 +126,7 @@ export async function searchUsers(searchTerm) {
  * Get all profiles with optional filters
  * Admin users can see all profiles + auth data, others see only their own
  */
-export async function getProfiles(filter) {
+export async function getProfiles(filter = {}) {
   try {
     const user = await getCurrentUser();
 
@@ -137,16 +137,13 @@ export async function getProfiles(filter) {
 
     let query = supabase.from(TABLE_NAME).select('*');
 
-    // Apply authorization - admins get full access, others get filtered
-    if (user?.role === 'admin') {
-      // Full access
-    } else if (user?.role === 'org_admin' && user?.organization_id) {
-      // Org admins see everyone in their organization
-      query = query.eq('organization_id', user.organization_id);
-    } else {
-      // Non-admin users can only see their own profile
-      query = query.eq('id', user?.id);
-    }
+    // 1. Apply RBAC Scoping
+    query = applyAuthFilter(query, user, {
+      userIdField: 'id',
+      orgIdField: 'organization_id'
+    });
+
+    // 2. Apply Custom Filters
 
     // Apply additional filters
     if (filter?.role) {
