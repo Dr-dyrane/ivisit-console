@@ -211,14 +211,16 @@ export const VerificationQueue = () => {
             transition={{ duration: 0.4, delay: 0.1 }}
           >
             <Card
-              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'pending' ? 'ring-2 ring-warning shadow-lg' : ''
+              className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'pending' ? 'ring-2 ring-warning shadow-lg' : ''
                 }`}
               onClick={() => setFilters(prev => ({ ...prev, status: 'pending' }))}
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-warning" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className={`absolute inset-0 ${filters.status === 'pending' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Clock className={`h-5 w-5 ${filters.status === 'pending' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -247,14 +249,16 @@ export const VerificationQueue = () => {
             transition={{ duration: 0.4, delay: 0.15 }}
           >
             <Card
-              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'approved' ? 'ring-2 ring-success shadow-lg' : ''
+              className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'approved' ? 'ring-2 ring-success shadow-lg' : ''
                 }`}
               onClick={() => setFilters(prev => ({ ...prev, status: 'approved' }))}
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-success" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className={`absolute inset-0 ${filters.status === 'approved' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <CheckCircle className={`h-5 w-5 ${filters.status === 'approved' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -283,14 +287,16 @@ export const VerificationQueue = () => {
             transition={{ duration: 0.4, delay: 0.2 }}
           >
             <Card
-              className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'rejected' ? 'ring-2 ring-destructive shadow-lg' : ''
+              className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'rejected' ? 'ring-2 ring-destructive shadow-lg' : ''
                 }`}
               onClick={() => setFilters(prev => ({ ...prev, status: 'rejected' }))}
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-destructive" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className={`absolute inset-0 ${filters.status === 'rejected' ? 'bg-destructive/30' : 'bg-destructive/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Ban className={`h-5 w-5 ${filters.status === 'rejected' ? 'text-destructive' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -319,14 +325,16 @@ export const VerificationQueue = () => {
             transition={{ duration: 0.4, delay: 0.25 }}
           >
             <Card
-              className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+              className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.status === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
                 }`}
               onClick={() => setFilters(prev => ({ ...prev, status: 'all' }))}
             >
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-primary" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className={`absolute inset-0 ${filters.status === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Shield className={`h-5 w-5 ${filters.status === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -419,12 +427,14 @@ export const VerificationQueue = () => {
                   transition={{ duration: 0.3 }}
                 >
                   <Card
-                    className="h-full squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-6 flex flex-col justify-between hover-lift group border-0 relative overflow-hidden cursor-pointer"
+                    className="h-full squircle-lg glass-card-premium p-6 flex flex-col justify-between hover-lift group relative overflow-hidden cursor-pointer"
                     onClick={() => setSelectedProvider(provider)}
                     role="button"
                     tabIndex={0}
                     aria-label={`View verification details for ${provider.username || 'applicant'}`}
                   >
+                    {/* Apple hover glow effect */}
+                    <div className="hover-glow hover-glow-primary" />
                     {/* Card Hover Gradient */}
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -457,11 +467,39 @@ export const VerificationQueue = () => {
                       </div>
                     </div>
 
-                    <div className="relative z-10 mt-6 pt-4 flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">VIEW DETAILS</span>
-                      <div className="w-8 h-8 rounded-full bg-muted/20 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                        <ChevronRight className="w-4 h-4" />
-                      </div>
+                    <div className="relative z-10 mt-6 pt-4 flex items-center justify-between gap-2">
+                      {!provider.bvn_verified ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-8 flex-1 rounded-full text-xs font-bold"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleVerify(provider.id, false);
+                            }}
+                          >
+                            REJECT
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-8 flex-1 rounded-full bg-success hover:bg-success/90 text-success-foreground text-xs font-bold"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleVerify(provider.id, true);
+                            }}
+                          >
+                            APPROVE
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-xs font-semibold text-muted-foreground">VIEW DETAILS</span>
+                          <div className="w-8 h-8 rounded-full surface-raised flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                            <ChevronRight className="w-4 h-4" />
+                          </div>
+                        </>
+                      )}
                     </div>
                   </Card>
                 </motion.div>
@@ -473,6 +511,7 @@ export const VerificationQueue = () => {
         <VerificationQueueListView
           providers={providers}
           onView={setSelectedProvider}
+          onVerify={handleVerify}
           onDelete={() => { }}
           isMobile={isMobile}
         />
@@ -480,6 +519,7 @@ export const VerificationQueue = () => {
         <VerificationQueueTableView
           providers={providers}
           onView={setSelectedProvider}
+          onVerify={handleVerify}
           onDelete={() => { }}
           isMobile={isMobile}
         />

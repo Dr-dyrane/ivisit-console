@@ -19,13 +19,15 @@ import {
     Clock,
     UserCheck,
     Mail,
-    Calendar
+    Calendar,
+    X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const VerificationQueueTableView = ({
     providers,
     onView,
+    onVerify,
     onDelete,
     getStatusBadge
 }) => {
@@ -98,6 +100,30 @@ export const VerificationQueueTableView = ({
                                     </TableCell>
                                     <TableCell className="text-right pr-6">
                                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                            {/* Approve/Reject Buttons */}
+                                            {onVerify && !provider.bvn_verified && (
+                                                <>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => onVerify(provider.id, true)}
+                                                        className="squircle h-8 w-8 p-0 hover:bg-success/20 text-success hover:text-success transition-colors"
+                                                        title="Approve"
+                                                    >
+                                                        <CheckCircle className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => onVerify(provider.id, false)}
+                                                        className="squircle h-8 w-8 p-0 hover:bg-destructive/20 text-destructive hover:text-destructive transition-colors"
+                                                        title="Reject"
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </>
+                                            )}
+
                                             <Button
                                                 variant="ghost"
                                                 size="sm"

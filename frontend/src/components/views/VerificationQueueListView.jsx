@@ -12,7 +12,8 @@ import {
   Calendar,
   Shield,
   Mail,
-  UserCheck
+  UserCheck,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -115,6 +116,29 @@ export const VerificationQueueListView = ({
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
+
+                  {onVerify && !provider.bvn_verified && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onVerify(provider.id, true)}
+                        className="squircle h-8 w-8 p-0 hover:bg-success/20 text-success hover:text-success transition-all duration-200"
+                        title="Approve"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onVerify(provider.id, false)}
+                        className="squircle h-8 w-8 p-0 hover:bg-destructive/20 text-destructive hover:text-destructive transition-all duration-200"
+                        title="Reject"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
 
                   {onDelete && (
                     <Button

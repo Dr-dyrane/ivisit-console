@@ -272,7 +272,7 @@ export const VerificationModal = ({
                       >
                         Close
                       </Button>
-                      {!formData.bvn_verified && formData.role === 'provider' && (
+                      {!formData.bvn_verified && onVerify && (
                         <>
                           <Button
                             type="button"
