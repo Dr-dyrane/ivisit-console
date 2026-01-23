@@ -177,10 +177,10 @@ export const Analytics = () => {
   const headerActions = useMemo(() => (
     <div className="flex items-center gap-3">
       <Select value={timeRange} onValueChange={setTimeRange}>
-        <SelectTrigger className="w-[140px] h-9 squircle-lg bg-background/35 backdrop-blur-xs border-0 shadow-sm text-xs font-semibold uppercase tracking-wider">
+        <SelectTrigger className="w-[140px] h-9 squircle-lg glass shadow-sm text-xs font-semibold uppercase tracking-wider">
           <SelectValue placeholder="Range" />
         </SelectTrigger>
-        <SelectContent className="squircle border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+        <SelectContent className="squircle shadow-xl glass">
           <SelectItem value="7d">Last 7 days</SelectItem>
           <SelectItem value="30d">Last 30 days</SelectItem>
           <SelectItem value="90d">Last 90 days</SelectItem>
@@ -190,7 +190,7 @@ export const Analytics = () => {
       <Button
         variant="outline"
         size="sm"
-        className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+        className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
         onClick={handleExport}
       >
         <Download className="h-3 w-3 mr-2" />
@@ -317,7 +317,7 @@ export const Analytics = () => {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-background/35 backdrop-blur-xs squircle p-3 shadow-lg border-0 bg-background/80 backdrop-blur-md">
+        <div className="bg-background/35 backdrop-blur-xs squircle p-3 shadow-lg glass">
           <p className="font-semibold text-sm mb-1">{label}</p>
           {payload.map((entry, index) => (
             <div key={index} className="flex items-center gap-2 text-sm">
@@ -360,7 +360,9 @@ export const Analytics = () => {
                 transition={{ delay: idx * 0.1 }}
                 className={`${stat.colSpan}`}
               >
-                <Card className={`h-full min-h-[160px] ${stat.shape} bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift relative overflow-hidden group`}>
+                <Card className={`h-full min-h-[160px] ${stat.shape} glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group`}>
+                  {/* Apple hover glow effect */}
+                  <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.destructive ? 'destructive' : stat.color === CHART_COLORS.success ? 'success' : stat.color === CHART_COLORS.info ? 'info' : 'primary'}`} />
                   <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
                   <div className="relative z-10 flex flex-col justify-between h-full">
                     <div className="flex items-center justify-between mb-4">
@@ -391,7 +393,7 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <Card className="h-full min-h-[400px] geo-shard bg-background/50 backdrop-blur-xs shadow-2xl p-8 border-0 flex flex-col justify-between group relative overflow-hidden">
+              <Card className="h-full min-h-[400px] geo-shard glass-card shadow-2xl p-8 flex flex-col justify-between group relative overflow-hidden">
                 {/* Subtle Grid for Context */}
                 <div className="absolute inset-0 opacity-5"
                   style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%', color: 'hsl(var(--primary))' }}>
@@ -459,12 +461,14 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <Card className="h-full min-h-[400px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-8 border-0 flex flex-col relative overflow-hidden group">
+              <Card className="h-full min-h-[400px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-primary" />
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
                     <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
-                    <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <Activity className="h-6 w-6 text-primary" />
                     </div>
                   </div>
@@ -522,12 +526,14 @@ export const Analytics = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.45 }}
             >
-              <Card className="h-full min-h-[350px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-8 border-0 flex flex-col relative overflow-hidden group">
+              <Card className="h-full min-h-[350px] geo-round glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-info" />
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
                     <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
-                    <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <Mail className="h-6 w-6 text-info" />
                     </div>
                   </div>
@@ -598,7 +604,9 @@ export const Analytics = () => {
                 transition={{ delay: 0.5 + (idx * 0.1) }}
                 className="col-span-1 lg:col-span-2"
               >
-                <Card className="h-full min-h-[140px] squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift relative overflow-hidden group flex items-center justify-between">
+                <Card className="h-full min-h-[140px] squircle-lg glass-card-premium p-6 hover-lift relative overflow-hidden group flex items-center justify-between">
+                  {/* Apple hover glow effect */}
+                  <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.secondary ? 'secondary' : stat.color === CHART_COLORS.info ? 'info' : 'success'}`} />
                   {/* Top Right Icon Style Applied Here Too */}
                   <div className="absolute -top-3 -right-3 z-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
                     <div className="w-24 h-24 rounded-full" style={{ backgroundColor: stat.color }} />
@@ -606,7 +614,7 @@ export const Analytics = () => {
 
                   <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/5">
+                      <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-sm relative z-10">
                         <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
                       </div>
                       <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{stat.title}</p>
@@ -625,12 +633,14 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
             >
-              <Card className="h-full min-h-[350px] squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-8 border-0 flex flex-col relative group">
+              <Card className="h-full min-h-[350px] squircle-lg glass-card shadow-premium p-8 flex flex-col relative group">
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-primary" />
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
                     <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
-                    <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <Calendar className="h-6 w-6 text-primary" />
                     </div>
                   </div>
@@ -683,12 +693,14 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.65 }}
             >
-              <Card className="h-full min-h-[350px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-8 border-0 flex flex-col relative overflow-hidden">
+              <Card className="h-full min-h-[350px] geo-round glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-destructive" />
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
                     <div className="absolute inset-0 bg-destructive/20 blur-xl rounded-full scale-150" />
-                    <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <AlertTriangle className="h-6 w-6 text-destructive" />
                     </div>
                   </div>
@@ -749,7 +761,9 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
             >
-              <Card className="h-full min-h-[350px] geo-shard bg-background/50 backdrop-blur-xs shadow-2xl p-8 border-0 flex flex-col relative overflow-hidden">
+              <Card className="h-full min-h-[350px] geo-shard glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-info" />
                 {/* Search Pattern */}
                 <div className="absolute inset-0 opacity-5"
                   style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--info))' }}>
@@ -759,7 +773,7 @@ export const Analytics = () => {
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
                     <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
-                    <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <TrendingUp className="h-6 w-6 text-info" />
                     </div>
                   </div>
@@ -799,7 +813,9 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.75 }}
             >
-              <Card className="h-full min-h-[350px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-8 border-0 flex flex-col relative overflow-hidden">
+              <Card className="h-full min-h-[350px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-success" />
                 {/* Performance Pattern */}
                 <div className="absolute inset-0 opacity-5"
                   style={{ backgroundImage: 'repeating-linear-gradient(45deg, currentColor 0, currentColor 1px, transparent 0, transparent 50%)', backgroundSize: '10px 10px', color: 'hsl(var(--success))' }}>
@@ -809,7 +825,7 @@ export const Analytics = () => {
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
                     <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
-                    <div className="w-12 h-12 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10">
+                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
                       <Activity className="h-6 w-6 text-success" />
                     </div>
                   </div>
