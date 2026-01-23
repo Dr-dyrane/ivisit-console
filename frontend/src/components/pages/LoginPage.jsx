@@ -68,11 +68,50 @@ export const LoginPage = () => {
 			// 1. Validate Email Format
 			emailSchema.parse(email);
 
-			// 2. Simulate User Check (Real check would go here via Edge Function)
-			// For now, we assume user exists and move to password
-			// In production, we would call: await checkUserExists(email)
+			// 2. Check User Existence via Edge Function
+			const { data: checkData, error: checkError } = await supabase.functions.invoke('check-user', {
+				body: { email }
+			});
 
-			await new Promise(resolve => setTimeout(resolve, 600)); // Smooth UX pause
+			if (checkError) {
+				console.error("Check user error:", checkError);
+				// Fallback to password prompt if check fails (connectivity/server error)
+				// so we don't lock users out.
+			}
+
+			if (checkData) {
+				if (!checkData.exists) {
+					// User does not exist
+					setError("No account found with this email");
+					toast.error("Account Not Found");
+					setIsLoading(false);
+					return;
+				}
+
+				// User exists. Do they have a password?
+				// If we specifically detect NO password (hasPassword === false),
+				// we guide them to set it up instead of asking for one.
+				if (checkData.hasPassword === false) {
+					toast.info("Please set your password to continue");
+
+					// Trigger password reset email automatically
+					try {
+						await supabase.auth.resetPasswordForEmail(email, {
+							redirectTo: `${window.location.origin}/set-password`,
+						});
+						toast.success("Setup link sent to your email!");
+					} catch (resetErr) {
+						console.error("Auto-reset failed", resetErr);
+					}
+
+					setError("Please check your email to set your password");
+					setIsLoading(false);
+					return;
+				}
+			}
+
+			// Smooth UX pause if the check was too fast
+			await new Promise(resolve => setTimeout(resolve, 300));
 
 			setDirection(1);
 			setStep("password");
@@ -80,10 +119,14 @@ export const LoginPage = () => {
 			if (err instanceof z.ZodError) {
 				setError(err.errors[0].message);
 			} else {
+				console.error(err);
 				setError("Unable to verify identity");
 			}
 			toast.error("Invalid Email Format");
 		} finally {
+			// Only unset loading if we stopped (error case), 
+			// otherwise we keep it loading while transitioning? 
+			// Actually we need to unset it so the transition happens cleanly.
 			setIsLoading(false);
 		}
 	};
@@ -203,7 +246,7 @@ export const LoginPage = () => {
 			<div className="fixed inset-0 z-0 pointer-events-none">
 				<div className="absolute top-[-10%] right-[-10%] w-[70%] h-[50%] opacity-20 bg-orb" />
 				<div className="absolute bottom-[-5%] left-[-10%] w-[60%] h-[40%] opacity-10 bg-orb" />
-				<div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-soft-light"></div>
+				<div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-50 brightness-100 contrast-150 mix-blend-soft-light"></div>
 			</div>
 
 			<div className="relative z-10 w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 min-h-[100dvh]">
