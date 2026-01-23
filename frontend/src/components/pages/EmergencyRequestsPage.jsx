@@ -464,17 +464,19 @@ export const EmergencyRequestsPage = () => {
                   transition={{ duration: 0.4, delay: 0.1 }}
                 >
                   <Card
-                    className={`h-full min-h-[140px] geo-sharp bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+                    className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
                       }`}
                     onClick={() => setKpiFilter('all')}
                     role="button"
                     tabIndex={0}
                     aria-label="Show all emergency requests"
                   >
+                    {/* Apple hover glow effect */}
+                    <div className="hover-glow hover-glow-primary" />
                     <div className="absolute top-0 right-0 p-4 z-20">
                       <div className="relative">
                         <div className={`absolute inset-0 ${kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                        <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                        <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                           <FileText className={`h-5 w-5 ${kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
                         </div>
                       </div>
@@ -503,17 +505,19 @@ export const EmergencyRequestsPage = () => {
                   transition={{ duration: 0.4, delay: 0.15 }}
                 >
                   <Card
-                    className={`h-full min-h-[140px] geo-round bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'critical' ? 'ring-2 ring-destructive shadow-lg' : ''
+                    className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'critical' ? 'ring-2 ring-destructive shadow-lg' : ''
                       }`}
                     onClick={() => setKpiFilter('critical')}
                     role="button"
                     tabIndex={0}
                     aria-label="Filter by critical requests"
                   >
+                    {/* Apple hover glow effect */}
+                    <div className="hover-glow hover-glow-destructive" />
                     <div className="absolute top-0 right-0 p-4 z-20">
                       <div className="relative">
                         <div className={`absolute inset-0 ${kpiFilter === 'critical' ? 'bg-destructive/30' : 'bg-destructive/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                        <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                        <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                           <Siren className={`h-5 w-5 ${kpiFilter === 'critical' ? 'text-destructive' : 'text-muted-foreground'} transition-colors duration-200`} />
                         </div>
                       </div>
@@ -542,17 +546,19 @@ export const EmergencyRequestsPage = () => {
                   transition={{ duration: 0.4, delay: 0.2 }}
                 >
                   <Card
-                    className={`h-full min-h-[140px] squircle-3xl bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'high' ? 'ring-2 ring-warning shadow-lg' : ''
+                    className={`h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'high' ? 'ring-2 ring-warning shadow-lg' : ''
                       }`}
                     onClick={() => setKpiFilter('high')}
                     role="button"
                     tabIndex={0}
                     aria-label="Filter by high priority requests"
                   >
+                    {/* Apple hover glow effect */}
+                    <div className="hover-glow hover-glow-warning" />
                     <div className="absolute top-0 right-0 p-4 z-20">
                       <div className="relative">
                         <div className={`absolute inset-0 ${kpiFilter === 'high' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                        <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                        <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                           <AlertTriangle className={`h-5 w-5 ${kpiFilter === 'high' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
                         </div>
                       </div>
@@ -581,17 +587,19 @@ export const EmergencyRequestsPage = () => {
                   transition={{ duration: 0.4, delay: 0.25 }}
                 >
                   <Card
-                    className={`h-full min-h-[140px] geo-ticket bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'pending' ? 'ring-2 ring-info shadow-lg' : ''
+                    className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'pending' ? 'ring-2 ring-info shadow-lg' : ''
                       }`}
                     onClick={() => setKpiFilter('pending')}
                     role="button"
                     tabIndex={0}
                     aria-label="Filter by pending requests"
                   >
+                    {/* Apple hover glow effect */}
+                    <div className="hover-glow hover-glow-info" />
                     <div className="absolute top-0 right-0 p-4 z-20">
                       <div className="relative">
                         <div className={`absolute inset-0 ${kpiFilter === 'pending' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                        <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                        <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                           <Clock className={`h-5 w-5 ${kpiFilter === 'pending' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
                         </div>
                       </div>
@@ -620,17 +628,19 @@ export const EmergencyRequestsPage = () => {
                   transition={{ duration: 0.4, delay: 0.3 }}
                 >
                   <Card
-                    className={`h-full min-h-[140px] geo-wave bg-background/50 backdrop-blur-xs shadow-2xl p-6 border-0 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'active' ? 'ring-2 ring-success shadow-lg' : ''
+                    className={`h-full min-h-[140px] geo-wave glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'active' ? 'ring-2 ring-success shadow-lg' : ''
                       }`}
                     onClick={() => setKpiFilter('active')}
                     role="button"
                     tabIndex={0}
                     aria-label="Filter by active requests"
                   >
+                    {/* Apple hover glow effect */}
+                    <div className="hover-glow hover-glow-success" />
                     <div className="absolute top-0 right-0 p-4 z-20">
                       <div className="relative">
                         <div className={`absolute inset-0 ${kpiFilter === 'active' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                        <div className="w-10 h-10 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                        <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                           <Zap className={`h-5 w-5 ${kpiFilter === 'active' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
                         </div>
                       </div>
@@ -657,7 +667,7 @@ export const EmergencyRequestsPage = () => {
           {viewMode === 'grid' && (
             <>
               {requests.length === 0 ? (
-                <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-12 border-0 text-center">
+                <Card className="squircle-lg glass-card-premium p-12 text-center">
                   <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="font-bold text-xl mb-2">No Active Emergencies</h3>
                   <p className="text-muted-foreground">All clear for now</p>
@@ -677,11 +687,13 @@ export const EmergencyRequestsPage = () => {
                         transition={{ delay: index * 0.05 }}
                         className="col-span-1"
                       >
-                        <Card className={`h-full geo-arrow bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 hover-lift group relative overflow-hidden flex flex-col ${req.priority === 'critical' ? 'ring-1 ring-destructive/20' : ''}`}>
+                        <Card className={`h-full geo-arrow glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col ${req.priority === 'critical' ? 'ring-1 ring-destructive/20' : ''}`}>
+                          {/* Apple hover glow effect */}
+                          <div className={`hover-glow ${req.priority === 'critical' ? 'hover-glow-destructive' : 'hover-glow-warning'}`} />
                           <div className="absolute top-0 right-0 p-5 z-20">
                             <div className="relative">
                               <div className={`absolute inset-0 ${req.priority === 'critical' ? 'bg-destructive/20' : 'bg-warning/10'} blur-xl rounded-full scale-150`} />
-                              <div className="w-10 h-10 geo-round bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                              <div className="w-10 h-10 geo-round surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
                                 <Siren className={`h-5 w-5 ${req.priority === 'critical' ? 'text-destructive' : 'text-warning'}`} />
                               </div>
                             </div>
