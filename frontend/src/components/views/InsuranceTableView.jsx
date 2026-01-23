@@ -48,6 +48,13 @@ export const InsuranceTableView = ({
                 <Table>
                     <TableHeader className="bg-muted/30">
                         <TableRow className="border-b border-white/10 hover:bg-transparent">
+                            <TableHead className="w-12 text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4">
+                                <Checkbox
+                                    checked={selectedIds.length === policies.length && policies.length > 0}
+                                    onCheckedChange={(checked) => onSelectAll(checked)}
+                                    aria-label="Select all"
+                                />
+                            </TableHead>
                             <TableHead className="w-[300px] text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 pl-6">Policy Details</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Provider</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Coverage</TableHead>
@@ -64,6 +71,13 @@ export const InsuranceTableView = ({
                                 transition={{ delay: index * 0.05 }}
                                 className="group border-b border-white/5 transition-colors hover:bg-white/5"
                             >
+                                <TableCell className="py-4">
+                                    <Checkbox
+                                        checked={selectedIds.includes(policy.id)}
+                                        onCheckedChange={(checked) => onSelect(policy.id, checked)}
+                                        aria-label={`Select policy ${policy.policy_number}`}
+                                    />
+                                </TableCell>
                                 <TableCell className="py-4 pl-6">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 squircle bg-primary/10 flex items-center justify-center text-primary shrink-0">
