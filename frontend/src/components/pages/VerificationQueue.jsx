@@ -6,6 +6,7 @@ import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { VerificationModal } from '../modals/VerificationModal';
+import { ReportsModal } from '../modals/ReportsModal';
 import {
   CheckCircle,
   FileText,
@@ -50,6 +51,9 @@ export const VerificationQueue = () => {
   // Filter state matching Insurance/Subscription pattern
   const [filters, setFilters] = useState({ search: '', status: 'pending' });
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
 
   const [canVerify, setCanVerify] = useState(false);
   const [pagination, setPagination] = useState({
@@ -109,11 +113,15 @@ export const VerificationQueue = () => {
     }
 
     const handleOpenFilters = () => setFilterSheetOpen(true);
+    const handleOpenAnalytics = () => setAnalyticsModalOpen(true);
+    
     window.addEventListener('openFilters', handleOpenFilters);
+    window.addEventListener('openReportsModal', handleOpenAnalytics);
 
     return () => {
       if (unsubscribe) unsubscribe();
       window.removeEventListener('openFilters', handleOpenFilters);
+      window.removeEventListener('openReportsModal', handleOpenAnalytics);
     };
   }, [fetchVerificationData, canVerify]);
 
@@ -127,7 +135,7 @@ export const VerificationQueue = () => {
       aria-label="Filter verification queue"
     >
       <FilterIcon className="h-4 w-4" />
-      {(filters.search || filters.status !== 'all') && (
+      {(filters.search || filters.status !== 'all' || filters.created_at) && (
         <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
       )}
     </Button>
@@ -189,6 +197,18 @@ export const VerificationQueue = () => {
         { value: 'pending', label: 'Pending Review' },
         { value: 'approved', label: 'Approved' },
         { value: 'rejected', label: 'Rejected' }
+      ]
+    },
+    {
+      key: 'created_at',
+      type: 'date',
+      label: 'Application Date',
+      placeholder: 'Select dates',
+      shortcuts: [
+        { label: 'Today', value: 'today' },
+        { label: 'Last 7 Days', value: '7days' },
+        { label: 'Last 30 Days', value: '30days' },
+        { label: 'This Month', value: 'month' }
       ]
     }
   ], []);
@@ -364,6 +384,13 @@ export const VerificationQueue = () => {
         onApply={handleApplyFilters}
         filterSchema={filterSchema}
         isMobile={isMobile}
+      />
+
+      <ReportsModal
+        open={analyticsModalOpen}
+        onClose={() => setAnalyticsModalOpen(false)}
+        analyticsData={stats}
+        initialType="verification"
       />
 
       {/* Permission Check */}
