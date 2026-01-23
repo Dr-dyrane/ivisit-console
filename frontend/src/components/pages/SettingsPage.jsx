@@ -116,7 +116,9 @@ export const SettingsPage = () => {
                         animate={{ opacity: 1, scale: 1 }}
                         className="col-span-1 lg:col-span-2"
                     >
-                        <Card className="h-full squircle-3xl bg-background/60 backdrop-blur-md border-white/5 shadow-2xl relative overflow-hidden group">
+                        <Card className="h-full squircle-3xl glass-card-premium relative overflow-hidden group">
+                            {/* Apple hover glow effect */}
+                            <div className="hover-glow hover-glow-primary" />
                             {/* Dynamic Background Pattern */}
                             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-50" />
                             <div className="absolute inset-0 opacity-[0.03]"
@@ -235,9 +237,11 @@ export const SettingsPage = () => {
                             transition={{ delay: 0.1 }}
                             className="flex-1"
                         >
-                            <Card className="h-full squircle-3xl bg-background/60 backdrop-blur-md border-white/5 p-6 shadow-xl flex flex-col">
+                            <Card className="h-full squircle-3xl glass-card-premium p-6 shadow-xl flex flex-col">
+                                {/* Apple hover glow effect */}
+                                <div className="hover-glow hover-glow-secondary" />
                                 <div className="flex items-center gap-4 mb-6">
-                                    <div className="p-3 squircle-xl bg-orange-500/10 text-orange-500">
+                                    <div className="p-3 squircle-xl surface-raised text-orange-500">
                                         <Laptop className="h-6 w-6" />
                                     </div>
                                     <div>
@@ -296,10 +300,10 @@ export const SettingsPage = () => {
                                     {/* Sign Out */}
                                     <button
                                         onClick={handleSignOut}
-                                        className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-destructive/5 transition-colors group mt-2"
+                                        className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-destructive/5 transition-colors group mt-2 glass-card-premium"
                                     >
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 squircle-lg bg-destructive/10 text-destructive shadow-sm group-hover:bg-destructive/20 transition-colors">
+                                            <div className="p-2 squircle-lg surface-raised text-destructive shadow-sm group-hover:bg-destructive/20 transition-colors">
                                                 <LogOut className="h-4 w-4" />
                                             </div>
                                             <div className="flex flex-col items-start">
@@ -320,10 +324,12 @@ export const SettingsPage = () => {
                             transition={{ delay: 0.2 }}
                             className="flex-1"
                         >
-                            <Card className="h-full squircle-3xl bg-background/60 backdrop-blur-md border-white/5 p-6 shadow-xl relative overflow-hidden">
+                            <Card className="h-full squircle-3xl glass-card-premium p-6 shadow-xl relative overflow-hidden">
+                                {/* Apple hover glow effect */}
+                                <div className="hover-glow hover-glow-info" />
                                 <div className="flex items-center justify-between mb-6">
                                     <div className="flex items-center gap-4">
-                                        <div className="p-3 squircle-xl bg-blue-500/10 text-blue-500">
+                                        <div className="p-3 squircle-xl surface-raised text-blue-500">
                                             <Shield className="h-6 w-6" />
                                         </div>
                                         <div>
