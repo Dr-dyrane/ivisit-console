@@ -602,7 +602,7 @@ export const LoginPage = () => {
 				</div>
 			</div>
 
-			<div className="fixed bottom-6 right-6 z-50 p-1.5 rounded-full ios-material shadow-lg">
+			<div className="fixed bottom-6 right-6 z-50 p-1.5 rounded-full glass-card shadow-lg">
 				<ThemeToggle />
 			</div>
 		</div>
