@@ -4,7 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { getCurrentUser } from './authService';
+import { getCurrentUser, applyAuthFilter } from './authService';
 import { logEmergencyActivity } from './activityService';
 
 const TABLE_NAME = 'emergency_requests';
@@ -21,23 +21,20 @@ function calculateResponseTime(createdAt) {
 
 /**
  * Get all emergency requests with optional filters
- * Admin users can see all requests, others see only their own
+ * Admin users can see all requests, org admins see their hospital's, providers see assigned
  */
 export async function getEmergencyRequests(filter) {
   try {
     const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
 
-    // Apply authorization - admins get full access, others get filtered
-    if (user?.role === 'admin') {
-      // Full access
-    } else if (user?.role === 'org_admin' && user?.organization_id) {
-      // Org admins see all emergency requests in their organization
-      query = query.eq('hospital_id', user.organization_id);
-    } else {
-      // Non-admin users can only see their own requests
-      query = query.eq('user_id', user?.id);
-    }
+    // Apply RBAC Scoping with enhanced filtering
+    query = applyAuthFilter(query, user, {
+      userIdField: 'user_id',
+      orgIdField: 'hospital_id', // Org admins see emergencies at their hospital
+      providerIdField: 'assigned_doctor_id', // Providers see only assigned emergencies
+      resourceType: 'emergency' // Enables provider-specific logic
+    });
 
     if (filter?.status) {
       query = query.eq('status', filter.status);

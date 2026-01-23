@@ -8,7 +8,8 @@ import {
   MapPin,
   Plus,
   Filter,
-  Phone
+  Phone,
+  BarChart3
 } from 'lucide-react';
 
 export const HospitalsPanel = ({ hospitalsData }) => {
@@ -20,8 +21,7 @@ export const HospitalsPanel = ({ hospitalsData }) => {
   };
 
   const handleAnalytics = () => {
-    // Dispatch event to open analytics modal - listener should be in Page or Layout
-    window.dispatchEvent(new CustomEvent('openHospitalAnalyticsModal'));
+    window.dispatchEvent(new CustomEvent('openReportsModal'));
   };
 
   return (
@@ -99,7 +99,7 @@ export const HospitalsPanel = ({ hospitalsData }) => {
             className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
             title="View Analytics"
           >
-            <MapPin className="h-4 w-4" />
+            <BarChart3 className="h-4 w-4" />
             <span className="font-normal text-xs">Analytics</span>
           </motion.button>
 

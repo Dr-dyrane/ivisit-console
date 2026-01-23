@@ -17,6 +17,7 @@ import { EmergencyDetailsModal } from '../modals/EmergencyDetailsModal';
 import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
 import { withTimeout } from '../../lib/utils';
 import { toast } from 'sonner';
+import { ReportsModal } from '../modals/ReportsModal';
 import {
   AlertTriangle,
   MapPin,
@@ -33,11 +34,13 @@ import {
   Shield,
   Zap,
   CheckCircle,
-  FileText
+  FileText,
+  BarChart3
 } from 'lucide-react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { EmergencyRequestListView } from '../views/EmergencyRequestListView';
 import { EmergencyRequestTableView } from '../views/EmergencyRequestTableView';
 import { usePageData } from '../../contexts/PageDataContext';
@@ -56,6 +59,9 @@ export const EmergencyRequestsPage = () => {
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({});
   const [kpiFilter, setKpiFilter] = useState('all');
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
 
   const { viewMode, setViewMode } = useViewMode('emergency-requests-page', 'grid');
   const pagination = usePagination(20);
@@ -155,13 +161,16 @@ export const EmergencyRequestsPage = () => {
   useEffect(() => {
     const handleOpenModal = () => handleCreateEmergency();
     const handleOpenFilters = () => setFilterSheetOpen(true);
+    const handleOpenAnalytics = () => setAnalyticsModalOpen(true);
 
     window.addEventListener('openEmergencyModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
+    window.addEventListener('openReportsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openEmergencyModal', handleOpenModal);
       window.removeEventListener('openFilters', handleOpenFilters);
+      window.removeEventListener('openReportsModal', handleOpenAnalytics);
     };
   }, [handleCreateEmergency]);
 
@@ -192,6 +201,18 @@ export const EmergencyRequestsPage = () => {
         { value: 'assigned', label: 'Assigned' },
         { value: 'in_progress', label: 'In Progress' },
         { value: 'completed', label: 'Completed' },
+      ]
+    },
+    {
+      key: 'created_at',
+      type: 'date',
+      label: 'Date Range',
+      placeholder: 'Select dates',
+      shortcuts: [
+        { label: 'Today', value: 'today' },
+        { label: 'Last 7 Days', value: '7days' },
+        { label: 'Last 30 Days', value: '30days' },
+        { label: 'This Month', value: 'month' }
       ]
     }
   ], []);
@@ -292,6 +313,34 @@ export const EmergencyRequestsPage = () => {
     setIsEmergencyModalOpen(false);
     fetchRequests(); // Refresh the list
   };
+
+  const handleSelect = useCallback((id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  }, []);
+
+  const handleSelectAll = useCallback((checked) => {
+    setSelectedIds(checked ? requests.map(r => r.id) : []);
+  }, [requests]);
+
+  const handleSort = useCallback((key) => {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  }, []);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (!confirm(`Delete ${selectedIds.length} emergencies?`)) return;
+    try {
+      const { error } = await supabase.from('emergency_requests').delete().in('id', selectedIds);
+      if (error) throw error;
+      toast.success(`${selectedIds.length} emergencies deleted`);
+      setSelectedIds([]);
+      fetchRequests();
+    } catch (error) {
+      toast.error('Failed to delete emergencies');
+    }
+  }, [selectedIds, fetchRequests]);
 
   // Handle custom events from context panel
   useEffect(() => {
@@ -613,6 +662,8 @@ export const EmergencyRequestsPage = () => {
               onDelete={handleDelete}
               getPriorityBadge={getPriorityBadge}
               isMobile={isMobile}
+              selectedIds={selectedIds}
+              onSelect={handleSelect}
             />
           )}
 
@@ -624,6 +675,11 @@ export const EmergencyRequestsPage = () => {
               onDelete={handleDelete}
               getPriorityBadge={getPriorityBadge}
               isMobile={isMobile}
+              selectedIds={selectedIds}
+              onSelect={handleSelect}
+              onSelectAll={handleSelectAll}
+              sortConfig={sortConfig}
+              onSort={handleSort}
             />
           )}
         </>
@@ -668,6 +724,13 @@ export const EmergencyRequestsPage = () => {
         initialValues={filters}
         viewToggle={isMobile ? viewToggleComponent : null}
         isMobile={isMobile}
+      />
+
+      <ReportsModal
+        open={analyticsModalOpen}
+        onClose={() => setAnalyticsModalOpen(false)}
+        analyticsData={emergencyData?.stats}
+        initialType="emergency"
       />
     </div>
   );

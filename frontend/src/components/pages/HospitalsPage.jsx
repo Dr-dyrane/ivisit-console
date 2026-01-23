@@ -11,14 +11,16 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
-import { Hospital, MapPin, Star, Bed, Ambulance, Plus, Edit, Trash2, Eye, ChevronRight, Filter } from 'lucide-react';
+import { Hospital, MapPin, Star, Bed, Ambulance, Plus, Edit, Trash2, Eye, ChevronRight, Filter, BarChart3 } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { HospitalModal } from '../modals/HospitalModal';
+import { ReportsModal } from '../modals/ReportsModal';
 import { withTimeout } from '../../lib/utils';
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { HospitalListView } from '../views/HospitalListView';
 import { HospitalTableView } from '../views/HospitalTableView';
 import { SEOHead } from '../common/SEOHead';
@@ -38,6 +40,9 @@ export const HospitalsPage = () => {
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({});
   const [kpiFilter, setKpiFilter] = useState('all');
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
 
   const { viewMode, setViewMode } = useViewMode('hospitals-page', 'grid');
   const pagination = usePagination(20);
@@ -153,13 +158,16 @@ export const HospitalsPage = () => {
   useEffect(() => {
     const handleOpenModal = () => handleCreate();
     const handleOpenFilters = () => setFilterSheetOpen(true);
+    const handleOpenAnalytics = () => setAnalyticsModalOpen(true);
 
     window.addEventListener('openHospitalModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
+    window.addEventListener('openReportsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openHospitalModal', handleOpenModal);
       window.removeEventListener('openFilters', handleOpenFilters);
+      window.removeEventListener('openReportsModal', handleOpenAnalytics);
     };
   }, [handleCreate]);
 
@@ -214,6 +222,34 @@ export const HospitalsPage = () => {
     return badges[status] || badges.available;
   };
 
+  const handleSelect = useCallback((id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  }, []);
+
+  const handleSelectAll = useCallback((checked) => {
+    setSelectedIds(checked ? hospitals.map(h => h.id) : []);
+  }, [hospitals]);
+
+  const handleSort = useCallback((key) => {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  }, []);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (!confirm(`Delete ${selectedIds.length} hospitals?`)) return;
+    try {
+      const { error } = await supabase.from('hospitals').delete().in('id', selectedIds);
+      if (error) throw error;
+      toast.success(`${selectedIds.length} hospitals deleted`);
+      setSelectedIds([]);
+      fetchHospitals();
+    } catch (error) {
+      toast.error('Failed to delete hospitals');
+    }
+  }, [selectedIds, fetchHospitals]);
+
   const filterSchema = React.useMemo(() => [
     {
       key: 'search',
@@ -228,6 +264,18 @@ export const HospitalsPage = () => {
       options: [
         { value: 'available', label: 'Available' },
         { value: 'full', label: 'Full' },
+      ]
+    },
+    {
+      key: 'created_at',
+      type: 'date',
+      label: 'Registered On',
+      placeholder: 'Select dates',
+      shortcuts: [
+        { label: 'Today', value: 'today' },
+        { label: 'Last 7 Days', value: '7days' },
+        { label: 'Last 30 Days', value: '30days' },
+        { label: 'This Month', value: 'month' }
       ]
     }
   ], []);
@@ -572,6 +620,8 @@ export const HospitalsPage = () => {
               onDelete={handleDelete}
               getStatusBadge={getStatusBadge}
               isMobile={isMobile}
+              selectedIds={selectedIds}
+              onSelect={handleSelect}
             />
           )}
           {viewMode === 'table' && (
@@ -582,6 +632,11 @@ export const HospitalsPage = () => {
               onDelete={handleDelete}
               getStatusBadge={getStatusBadge}
               isMobile={isMobile}
+              selectedIds={selectedIds}
+              onSelect={handleSelect}
+              onSelectAll={handleSelectAll}
+              sortConfig={sortConfig}
+              onSort={handleSort}
             />
           )}
         </>
@@ -607,6 +662,23 @@ export const HospitalsPage = () => {
         />
       )}
 
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onClear={() => setSelectedIds([])}
+      >
+        {(isAdmin() || isProvider()) && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBulkDelete}
+            className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+            title="Delete Selected"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        )}
+      </BulkActionBar>
+
       <FilterSheet
         isOpen={filterSheetOpen}
         onOpenChange={setFilterSheetOpen}
@@ -615,6 +687,13 @@ export const HospitalsPage = () => {
         initialValues={filters}
         viewToggle={isMobile ? viewToggleComponent : null}
         isMobile={isMobile}
+      />
+
+      <ReportsModal
+        open={analyticsModalOpen}
+        onClose={() => setAnalyticsModalOpen(false)}
+        analyticsData={hospitalsData?.stats}
+        initialType="hospital"
       />
     </div>
   );

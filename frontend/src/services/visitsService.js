@@ -19,9 +19,12 @@ export async function getVisits(filter = {}) {
     let query = supabase.from(TABLE_NAME).select('*');
 
     // 1. Apply RBAC Scoping
+    // Providers (doctors) will be filtered by doctor_id automatically
     query = applyAuthFilter(query, user, {
       userIdField: 'user_id',
-      orgIdField: 'hospital_id' // Explicitly mapping hospital_id as the org field for visits
+      orgIdField: 'hospital_id', // Org admins see visits at their hospital
+      providerIdField: 'doctor_id', // Providers see only their assigned visits
+      resourceType: 'visit' // Enables provider-specific logic
     });
 
     // 2. Apply Custom Filters

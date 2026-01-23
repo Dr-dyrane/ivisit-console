@@ -5,22 +5,27 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { getCurrentUser } from './authService';
+import { getCurrentUser, applyAuthFilter } from './authService';
 
 const TABLE_NAME = 'hospitals';
 
 /**
  * Get all hospitals with optional filters
- * Admin users can see all hospitals, others see only verified ones
+ * Admin users can see all hospitals, org admins see only their hospital, others see verified ones
  */
 export async function getHospitals(filter) {
   try {
     const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
 
-    // Apply authorization - admins get full access, others get filtered
-    if (user?.role !== 'admin') {
-      // Non-admin users can only see verified hospitals
+    // Apply RBAC Scoping
+    query = applyAuthFilter(query, user, {
+      orgIdField: 'id', // Org admins can only see THEIR hospital (single record)
+      bypassForAdmin: true
+    });
+
+    // Additional filter: non-org-admin, non-admin users only see verified
+    if (user?.role !== 'admin' && user?.role !== 'org_admin') {
       query = query.eq('verified', true);
     }
 

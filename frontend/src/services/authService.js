@@ -55,32 +55,76 @@ export function buildAuthQuery(query, user, userIdField = 'user_id') {
 }
 
 /**
- * Apply authorization filters to service queries
- * Supports Admin (all), Org Admin (scoped to org), and User (scoped to own record)
+ * Apply authorization filters to service queries with role-based scoping
+ * 
+ * Supports:
+ * - Admin: Full access (all records)
+ * - Org Admin: Organization-scoped (their hospital's records)
+ * - Provider (Doctor): Only records assigned to them
+ * - Other roles: Only their own records
+ * 
+ * @param {object} baseQuery - Supabase query to apply filters to
+ * @param {object} user - Current user object with role, id, organization_id
+ * @param {object} options - Configuration options
+ * @param {string} options.userIdField - Field name for user ownership (default: 'user_id')
+ * @param {string} options.orgIdField - Field name for organization (default: 'organization_id')
+ * @param {string} options.providerIdField - Field name for provider assignment (e.g., 'doctor_id')
+ * @param {boolean} options.bypassForAdmin - Allow admins to see all (default: true)
+ * @param {object} options.additionalFilters - Extra filters to apply
+ * @param {string} options.resourceType - Type of resource ('visit', 'emergency', etc.) for smart scoping
+ * @returns {object} Filtered query
  */
 export function applyAuthFilter(baseQuery, user, options = {}) {
   const {
     userIdField = 'user_id',
     orgIdField = 'organization_id',
+    providerIdField = 'doctor_id',
     bypassForAdmin = true,
-    additionalFilters = {}
+    additionalFilters = {},
+    resourceType = null
   } = options;
 
   let query = baseQuery;
   const role = user?.role || 'viewer';
   const orgId = user?.organization_id;
+  const userId = user?.id;
 
   // 1. Apply Role-Based Scoping
   if (role === 'admin' && bypassForAdmin) {
-    // Admin gets full access - skip scoping
+    // Admin gets full access - no scoping applied
+    console.log('[RBAC] Admin access - no filters applied');
   } else if (role === 'org_admin' && orgId) {
     // Org Admin sees everything in their organization
+    console.log(`[RBAC] Org Admin - filtering by ${orgIdField} = ${orgId}`);
     query = query.eq(orgIdField, orgId);
+  } else if (role === 'provider' || role === 'doctor') {
+    // Provider/Doctor sees only records assigned to them
+    console.log(`[RBAC] Provider - applying specialized filtering for ${resourceType}`);
+
+    // For visits and emergencies, filter by doctor_id
+    if (resourceType === 'visit' || resourceType === 'emergency') {
+      // Filter by provider assignment field
+      if (providerIdField && userId) {
+        console.log(`[RBAC] Provider - filtering by ${providerIdField} = ${userId}`);
+        query = query.eq(providerIdField, userId);
+      }
+    } else if (resourceType === 'support') {
+      // Support tickets: providers see only tickets they created
+      query = query.eq('created_by', userId);
+    } else if (resourceType === 'news') {
+      // News: providers can see all (read-only handled at UI level)
+      // No filtering needed
+    } else {
+      // Default: providers see only their own records
+      if (userId) {
+        query = query.eq(userIdField, userId);
+      }
+    }
   } else {
-    // Everyone else only sees their own data
-    // (Or records assigned to them)
-    if (user?.id) {
-      query = query.eq(userIdField, user.id);
+    // Everyone else (patients, viewers, etc.) only sees their own data
+    if (userId) {
+      console.log(`[RBAC] User ${userId} - filtering by ${userIdField}`);
+      query = query.eq(userIdField, userId);
     }
   }
 
@@ -97,6 +141,7 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
 
   return query;
 }
+
 /**
  * Update user password
  */

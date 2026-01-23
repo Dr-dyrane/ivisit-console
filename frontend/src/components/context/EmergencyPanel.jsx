@@ -9,7 +9,8 @@ import {
   Zap,
   Map,
   Filter,
-  Radio
+  Radio,
+  BarChart3
 } from 'lucide-react';
 
 export const EmergencyPanel = ({ emergencyData = [], emergencyStats, useMockData }) => {
@@ -121,12 +122,12 @@ export const EmergencyPanel = ({ emergencyData = [], emergencyStats, useMockData
 
           <motion.button
             whileTap={{ scale: 0.98 }}
-            className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            disabled
-            title="Broadcast Alert (Coming Soon)"
+            onClick={() => window.dispatchEvent(new CustomEvent('openReportsModal'))}
+            className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+            title="View Analytics"
           >
-            <Radio className="h-4 w-4" />
-            <span className="font-normal text-xs">Alert</span>
+            <BarChart3 className="h-4 w-4" />
+            <span className="font-normal text-xs">Analytics</span>
           </motion.button>
         </div>
       </motion.div>

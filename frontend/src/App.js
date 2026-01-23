@@ -128,17 +128,17 @@ function AppRoutes() {
 					<Route path="/unauthorized" element={<UnauthorizedPage />} />
 					<Route path="/" element={<ProtectedRoute><BentoHome allowedRoles={["sponsor", "viewer", "provider", "admin"]} /></ProtectedRoute>} />
 					<Route path="/map" element={<ProtectedRoute minRole="provider"><GodModeMap /></ProtectedRoute>} />
-					<Route path="/analytics" element={<ProtectedRoute minRole="provider"><Analytics /></ProtectedRoute>} />
-					<Route path="/hospitals" element={<ProtectedRoute minRole="provider"><HospitalsPage /></ProtectedRoute>} />
-					<Route path="/ambulances" element={<ProtectedRoute minRole="provider"><AmbulancesPage /></ProtectedRoute>} />
-					<Route path="/doctors" element={<ProtectedRoute minRole="provider"><DoctorsPage /></ProtectedRoute>} />
+					<Route path="/analytics" element={<ProtectedRoute minRole="org_admin"><Analytics /></ProtectedRoute>} />
+					<Route path="/hospitals" element={<ProtectedRoute minRole="org_admin"><HospitalsPage /></ProtectedRoute>} />
+					<Route path="/ambulances" element={<ProtectedRoute minRole="org_admin"><AmbulancesPage /></ProtectedRoute>} />
+					<Route path="/doctors" element={<ProtectedRoute minRole="org_admin"><DoctorsPage /></ProtectedRoute>} />
 					<Route path="/visits" element={<ProtectedRoute minRole="provider"><VisitsPage /></ProtectedRoute>} />
 					<Route path="/emergencies" element={<ProtectedRoute minRole="provider"><EmergencyRequestsPage /></ProtectedRoute>} />
-					<Route path="/verification" element={<ProtectedRoute minRole="admin"><VerificationQueue /></ProtectedRoute>} />
-					<Route path="/users" element={<ProtectedRoute minRole="admin"><UsersPage /></ProtectedRoute>} />
+					<Route path="/verification" element={<ProtectedRoute minRole="org_admin"><VerificationQueue /></ProtectedRoute>} />
+					<Route path="/users" element={<ProtectedRoute minRole="org_admin"><UsersPage /></ProtectedRoute>} />
 					<Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-					<Route path="/health-news" element={<ProtectedRoute minRole="admin"><HealthNewsManagementPage /></ProtectedRoute>} />
-					<Route path="/support-tickets" element={<ProtectedRoute minRole="viewer"><SupportTicketsPage /></ProtectedRoute>} />
+					<Route path="/health-news" element={<ProtectedRoute minRole="provider"><HealthNewsManagementPage /></ProtectedRoute>} />
+					<Route path="/support-tickets" element={<ProtectedRoute minRole="provider"><SupportTicketsPage /></ProtectedRoute>} />
 					<Route path="/insurance" element={<ProtectedRoute minRole="admin"><InsuranceManagementPage /></ProtectedRoute>} />
 					<Route path="/subscriptions" element={<ProtectedRoute minRole="admin"><SubscriptionManagementPage /></ProtectedRoute>} />
 					<Route path="*" element={<NotFoundPage />} />
