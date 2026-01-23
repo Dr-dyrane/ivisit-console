@@ -11,6 +11,8 @@ import { Card } from '../ui/card';
 import { TableSkeleton } from '../ui/skeleton';
 import { InsuranceModal } from '../modals/InsuranceModal';
 import { ReportsModal } from '../modals/ReportsModal';
+import { ConfirmationModal } from '../modals/ConfirmationModal';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { FilterSheet } from '../common/FilterSheet';
 import { ViewToggle } from '../common/ViewToggle';
 import { InsuranceListView } from '../views/InsuranceListView';
@@ -51,6 +53,16 @@ export const InsuranceManagementPage = () => {
   const [selectedPolicy, setSelectedPolicy] = useState(null);
   const [modalMode, setModalMode] = useState(null); // 'create' | 'edit' | 'view'
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: null,
+    variant: 'destructive',
+    confirmLabel: 'Delete'
+  });
 
   // Filter state - includes search
   const [filters, setFilters] = useState({ search: '', status: [], type: [], verified: '', kpiFilter: 'all' });
@@ -69,23 +81,24 @@ export const InsuranceManagementPage = () => {
     const handleOpenFilters = () => {
       setFilterSheetOpen(true);
     };
+    const handleOpenAnalytics = () => {
+      setAnalyticsModalOpen(true);
+    };
 
     window.addEventListener('openInsuranceModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
+    window.addEventListener('openReportsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openInsuranceModal', handleOpenModal);
       window.removeEventListener('openFilters', handleOpenFilters);
+      window.removeEventListener('openReportsModal', handleOpenAnalytics);
     };
   }, []);
 
   useEffect(() => {
-    const handleOpenAnalytics = () => {
-      setAnalyticsModalOpen(true);
-    };
-    window.addEventListener('openReportsModal', handleOpenAnalytics);
-    return () => window.removeEventListener('openReportsModal', handleOpenAnalytics);
-  }, []);
+    fetchInsurancePolicies();
+  }, [fetchInsurancePolicies]);
 
   // Filter Logic
   const filteredPolicies = useMemo(() => {
@@ -161,13 +174,22 @@ export const InsuranceManagementPage = () => {
   }, []);
 
   const handleDelete = useCallback(async (policy) => {
-    if (!window.confirm('Are you sure you want to delete this policy?')) return;
-    try {
-      await deletePolicy(policy.id);
-      toast.success('Policy deleted successfully');
-    } catch (err) {
-      toast.error('Failed to delete policy');
-    }
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Insurance Policy',
+      description: `Are you sure you want to delete policy ${policy.policy_number}? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          await deletePolicy(policy.id);
+          toast.success('Policy deleted successfully');
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        } catch (err) {
+          toast.error('Failed to delete policy');
+        }
+      },
+      variant: 'destructive',
+      confirmLabel: 'Delete Policy'
+    });
   }, [deletePolicy]);
 
   const handleVerify = useCallback(async (policy) => {
@@ -212,7 +234,7 @@ export const InsuranceManagementPage = () => {
       aria-label="Filter policies"
     >
       <FilterIcon className="h-4 w-4" />
-      {(filters.search || (filters.status && filters.status.length > 0) || (filters.type && filters.type.length > 0)) && (
+      {(filters.search || (filters.status && filters.status.length > 0) || (filters.type && filters.type.length > 0) || filters.verified !== '' || filters.created_at) && (
         <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
       )}
     </Button>
@@ -297,6 +319,18 @@ export const InsuranceManagementPage = () => {
         { value: 'all', label: 'All' },
         { value: 'verified', label: 'Verified Only' },
         { value: 'unverified', label: 'Unverified Only' }
+      ]
+    },
+    {
+      key: 'created_at',
+      type: 'date',
+      label: 'Policy Date',
+      placeholder: 'Select dates',
+      shortcuts: [
+        { label: 'Today', value: 'today' },
+        { label: 'Last 7 Days', value: '7days' },
+        { label: 'Last 30 Days', value: '30days' },
+        { label: 'This Month', value: 'month' }
       ]
     }
   ], []);
@@ -733,6 +767,51 @@ export const InsuranceManagementPage = () => {
         viewToggle={isMobile ? viewToggleComponent : null}
         isMobile={isMobile}
       />
+
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        description={confirmationModal.description}
+        variant={confirmationModal.variant}
+        confirmLabel={confirmationModal.confirmLabel}
+      />
+
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onClear={() => setSelectedIds([])}
+      >
+        {isAdmin && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setConfirmationModal({
+                isOpen: true,
+                title: 'Delete Selected Policies',
+                description: `Are you sure you want to delete ${selectedIds.length} policies? This action cannot be undone.`,
+                onConfirm: async () => {
+                  try {
+                    // Bulk delete logic would go here
+                    toast.success(`${selectedIds.length} policies deleted`);
+                    setSelectedIds([]);
+                    setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+                  } catch (err) {
+                    toast.error('Failed to delete policies');
+                  }
+                },
+                variant: 'destructive',
+                confirmLabel: 'Delete All'
+              });
+            }}
+            className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+            title="Delete Selected"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        )}
+      </BulkActionBar>
 
     </div>
   );

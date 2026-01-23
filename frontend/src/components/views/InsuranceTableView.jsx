@@ -10,11 +10,19 @@ import {
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
+import { Checkbox } from '../ui/checkbox';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator
+} from '../ui/dropdown-menu';
 import {
     Eye,
     Trash2,
     CheckCircle,
-    MoreVertical,
+    MoreHorizontal,
     Shield
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -24,7 +32,10 @@ export const InsuranceTableView = ({
     onView,
     onDelete,
     onVerify,
-    getStatusBadge
+    getStatusBadge,
+    selectedIds = [],
+    onSelect,
+    onSelectAll
 }) => {
     if (!policies || policies.length === 0) return null;
 
@@ -90,35 +101,34 @@ export const InsuranceTableView = ({
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-right pr-6">
-                                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                        {onVerify && !policy.verified && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => onVerify(policy)}
-                                                className="squircle h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-success hover:text-success hover:bg-success/10"
-                                            >
-                                                Verify
-                                            </Button>
-                                        )}
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => onView(policy)}
-                                            className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                                        >
-                                            <Eye className="h-4 w-4" />
-                                        </Button>
-                                        {onDelete && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => onDelete(policy)}
-                                                className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        )}
+                                    <div className="flex justify-end">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10 dark:hover:bg-white/10">
+                                                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                                    <span className="sr-only">Open menu</span>
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-[160px] rounded-xl bg-background/70 backdrop-blur-xl border-white/10 shadow-premium">
+                                                <DropdownMenuItem onClick={() => onView(policy)} className="cursor-pointer font-medium text-xs py-2">
+                                                    <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                                    View Details
+                                                </DropdownMenuItem>
+                                                {onVerify && !policy.verified && (
+                                                    <DropdownMenuItem onClick={() => onVerify(policy)} className="cursor-pointer font-medium text-xs py-2 text-success focus:text-success focus:bg-success/10">
+                                                        <CheckCircle className="mr-2 h-3.5 w-3.5" />
+                                                        Verify Policy
+                                                    </DropdownMenuItem>
+                                                )}
+                                                <DropdownMenuSeparator className="bg-white/5" />
+                                                {onDelete && (
+                                                    <DropdownMenuItem onClick={() => onDelete(policy)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                                                        <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                )}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
                                 </TableCell>
                             </motion.tr>

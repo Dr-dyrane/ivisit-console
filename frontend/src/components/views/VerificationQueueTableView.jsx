@@ -11,6 +11,13 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator
+} from '../ui/dropdown-menu';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import {
     Eye,
@@ -20,7 +27,8 @@ import {
     UserCheck,
     Mail,
     Calendar,
-    X
+    X,
+    MoreHorizontal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -99,8 +107,8 @@ export const VerificationQueueTableView = ({
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right pr-6">
-                                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                            {/* Approve/Reject Buttons */}
+                                        <div className="flex items-center justify-end gap-1">
+                                            {/* Approve/Reject Buttons - Keep inline for verification workflow */}
                                             {onVerify && !provider.bvn_verified && (
                                                 <>
                                                     <Button
@@ -124,24 +132,30 @@ export const VerificationQueueTableView = ({
                                                 </>
                                             )}
 
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => onView(provider)}
-                                                className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-colors"
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                            {onDelete && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => onDelete(provider)}
-                                                    className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            )}
+                                            {/* More Options Dropdown */}
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10 dark:hover:bg-white/10">
+                                                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                                        <span className="sr-only">Open menu</span>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-[160px] rounded-xl bg-background/70 backdrop-blur-xl border-white/10 shadow-premium">
+                                                    <DropdownMenuItem onClick={() => onView(provider)} className="cursor-pointer font-medium text-xs py-2">
+                                                        <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                                        View Details
+                                                    </DropdownMenuItem>
+                                                    {onDelete && (
+                                                        <>
+                                                            <DropdownMenuSeparator className="bg-white/5" />
+                                                            <DropdownMenuItem onClick={() => onDelete(provider)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                                                                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                                                Delete
+                                                            </DropdownMenuItem>
+                                                        </>
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
                                     </TableCell>
                                 </motion.tr>

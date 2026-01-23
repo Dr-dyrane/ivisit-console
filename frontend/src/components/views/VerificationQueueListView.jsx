@@ -21,6 +21,7 @@ export const VerificationQueueListView = ({
   providers,
   onView,
   onDelete,
+  onVerify,
   getStatusBadge,
   isMobile = false
 }) => {
