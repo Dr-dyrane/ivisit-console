@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { usePageData } from '../../contexts/PageDataContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import {
@@ -83,22 +83,38 @@ export const ContextPanel = () => {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-6 pb-4 border-b border-border/20 md:px-6"
+        className="relative"
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-bold text-lg tracking-tight text-foreground">{title}</h2>
-            <p className="text-xs text-muted-foreground font-normal uppercase tracking-wider">{subtitle}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Live indicator */}
-            {!useMockData && (
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="w-2 h-2 bg-success rounded-full"
-              />
-            )}
+        {/* Subtle service bar */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/20 via-success/20 to-primary/20" />
+        
+        <div className="px-6 pt-4 pb-3 border-b border-border/20 md:px-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-bold text-lg tracking-tight text-foreground">{title}</h2>
+              <p className="text-xs text-muted-foreground font-normal uppercase tracking-wider">{subtitle}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Live indicator */}
+              {!useMockData && (
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="w-2 h-2 bg-success rounded-full"
+                />
+              )}
+              {/* Close button - Hidden on mobile */}
+              <button
+                onClick={() => {
+                  // Close context panel
+                  const event = new CustomEvent('closeContextPanel');
+                  window.dispatchEvent(event);
+                }}
+                className="hidden md:block w-8 h-8 rounded-xl bg-muted/20 hover:bg-muted/30 transition-all duration-300 flex items-center justify-center group"
+              >
+                <X className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -107,7 +123,10 @@ export const ContextPanel = () => {
 
   const renderPanelWithHeader = (panelContent) => (
     <div className="h-full flex flex-col glass-card rounded-3xl">
-      {renderPanelHeader()}
+      {/* Header - Hidden on mobile */}
+      <div className="hidden md:block">
+        {renderPanelHeader()}
+      </div>
       <div className="flex-1 overflow-y-auto px-6 pb-6 md:px-6 md:pb-6">
         {panelContent}
       </div>
@@ -203,7 +222,7 @@ export const ContextPanel = () => {
 
   // Default panel
   return (
-    <div className="p-6 md:p-6">
+    <div className="p-2 md:p-6 scrollbar-hide">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

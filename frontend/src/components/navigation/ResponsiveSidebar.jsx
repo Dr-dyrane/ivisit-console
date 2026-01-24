@@ -13,7 +13,7 @@ export const ContextPanelShell = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // Handle escape key to close panel
+  // Handle escape key and custom events to close panel
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape' && isContextPanelOpen) {
@@ -21,14 +21,23 @@ export const ContextPanelShell = () => {
       }
     };
 
+    const handleCloseEvent = (e) => {
+      closeContextPanel();
+    };
+
+    // Prevent body scroll when panel is open
     if (isContextPanelOpen) {
-      document.addEventListener('keydown', handleEscape);
-      // Prevent body scroll when panel is open
       document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
     }
+
+    document.addEventListener('keydown', handleEscape);
+    window.addEventListener('closeContextPanel', handleCloseEvent);
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('closeContextPanel', handleCloseEvent);
       document.body.style.overflow = '';
     };
   }, [isContextPanelOpen, closeContextPanel]);
@@ -48,7 +57,7 @@ export const ContextPanelShell = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
+            className="fixed inset-0 z-35 bg-black/10 backdrop-blur-xs overflow-hidden"
             onClick={closeContextPanel}
           />
 
@@ -58,24 +67,16 @@ export const ContextPanelShell = () => {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-            className={`fixed top-0 bottom-0 right-0 z-50 flex flex-col ${isDesktop ? 'w-[320px]' : 'w-72'} backdrop-blur-xl  border-black/10 dark:border-white/10 ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'
-              }`}
+            className={`fixed top-4 bottom-4 left-auto right-0 z-40 flex flex-col ${isDesktop ? 'w-[320px]' : 'w-72'} glass-card rounded-3xl backdrop-blur-xl border-black/10 dark:border-white/10 ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'
+              } overflow-hidden`}
             style={{
               boxShadow: '-4px 0 24px rgba(0,0,0,0.1)'
             }}
           >
-            <div className="h-full flex flex-col relative">
-              {/* Close button positioned at top-right */}
-              <button
-                onClick={closeContextPanel}
-                className="absolute top-4 right-4 w-10 h-10 geo-round bg-muted/20 hover:bg-muted/30 transition-all duration-300 flex items-center justify-center group shadow-premium z-10"
-              >
-                <X className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-              </button>
-
-              {/* Content area - full height except for close button space */}
+            <div className="h-full flex flex-col">
+              {/* Content area - full height */}
               <div
-                className="flex-1 overflow-y-auto scrollbar-hide pt-16 border-border/20"
+                className="flex-1 overflow-y-auto scrollbar-hide"
                 onClick={(e) => {
                   // If clicking a button or link inside the panel, close it
                   if (e.target.closest('button') || e.target.closest('a')) {

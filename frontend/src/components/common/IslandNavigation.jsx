@@ -71,21 +71,21 @@ export const IslandNavigation = () => {
     const buttonContent = (
       <button
         onClick={() => navigate(item.path)}
-        className={`flex items-center h-10 rounded-xl transition-all duration-200 ${isCentered ? 'w-10 justify-center' : `w-full ${isSubItem ? 'pl-9' : 'px-3'}`
-          } ${isActive
-            ? 'bg-primary/10 text-primary font-medium'
-            : 'text-muted-foreground/60 hover:bg-muted/50 hover:text-foreground'
-          }`}
+        className={`flex items-center h-10 rounded-2xl transition-all duration-300 relative overflow-hidden group ${isCentered ? 'w-10 justify-center' : `w-full ${isSubItem ? 'pl-9' : 'px-3'}`}`}
         aria-label={item.label}
       >
-        <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${isActive ? 'scale-110' : 'opacity-50'}`} />
+        {/* Shared RGB Hive Effect - Subtle */}
+        <div className={`hover-glow ${isActive ? 'hover-glow-primary/50' : 'hover-glow-muted/30'}`} />
+        
+        <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${isActive ? 'text-primary scale-110' : 'text-muted-foreground group-hover:text-foreground group-hover:scale-105'}`} />
         {isBroad && !isCentered && (
           <AnimatePresence>
             <motion.span
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0 }}
-              className="ml-3 text-sm truncate"
+              className="ml-3 text-sm font-normal truncate transition-colors duration-300"
+              style={{ color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}
             >
               {item.label}
             </motion.span>
@@ -97,10 +97,13 @@ export const IslandNavigation = () => {
     return (
       <div key={item.id} className={`relative flex items-center ${isCentered ? 'justify-center' : 'w-full'} px-3`}>
         {isActive && !isCentered && (
-          // Active rail removed in favor of high-contrast button pulsing/bg using 'bg-primary'
+          // Active indicator - Apple-style
           <motion.div
             layoutId="activeRail"
-            className="hidden"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-full"
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
           />
         )}
 
@@ -211,10 +214,10 @@ export const IslandNavigation = () => {
         onMouseLeave={() => setIsHovered(false)}
         animate={{ width: navWidth, x: 0 }}
         transition={{ type: "spring", stiffness: 250, damping: 28 }}
-        className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-xl shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] dark:shadow-[20px_0_40px_-20px_rgba(255,255,255,0.02)] ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'}`}
+        className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col glass-card border-r border-border/10 ${isScrolledDown ? 'bg-background/70' : 'bg-background/30'}`}
       >
         {/* 1. BRANDING & BACK ARROW */}
-        <div className="h-16 flex-shrink-0 flex items-center px-4 border-black/10 dark:border-white/10">
+        <div className="h-[63px] flex-shrink-0 flex items-center px-4 border-b border-primary/20">
           <div className="relative flex items-center w-full">
             <AnimatePresence mode="wait">
               {isNotHome ? (
@@ -261,15 +264,14 @@ export const IslandNavigation = () => {
             {accessibleNav.main.map(item => renderNavButton(item))}
           </div>
 
-          <div className="h-px bg-border/40 mx-6" />
+          <div className="h-px bg-border/10 mx-4" />
 
           {renderGroup(accessibleNav.ops)}
           {renderGroup(accessibleNav.mgmt)}
         </div>
 
         {/* 3. PROFILE & THEME */}
-        <div className="p-4 bg-muted/20 border-border/40 space-y-3">
-          {/* Sidebar Control Trigger */}
+        <div className="p-4 border-t border-border/10 space-y-3">
           {/* Sidebar Control Trigger */}
           <div className="flex w-full">
             {!isBroad ? (

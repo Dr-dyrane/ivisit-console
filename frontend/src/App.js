@@ -82,7 +82,7 @@ const AppShell = ({ children }) => {
 				</main>
 
 				{!hideNav && (
-					<div className="flex-none z-30">
+					<div className="flex-none z-40">
 						<ContextPanelShell />
 					</div>
 				)}
