@@ -78,19 +78,22 @@ export const ContextAwareFAB = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={actionConfig.action}
-          className="relative w-14 h-14 geo-round bg-background/80 backdrop-blur-xl border border-border/40 shadow-premium transition-all duration-300 group flex items-center justify-center"
+          className="relative w-14 h-14 glass-card bg-background/80 backdrop-blur-xl border border-border/20 transition-all duration-300 group flex items-center justify-center overflow-hidden"
           style={{
             boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)'
           }}
           title={actionConfig.label}
           aria-label={actionConfig.label}
         >
+          {/* Shared RGB Hive Effect */}
+          <div className={`hover-glow ${actionConfig.color === 'destructive' ? 'hover-glow-primary' : 'hover-glow-success'}`} />
+          
           {/* Icon */}
-          <actionConfig.icon className={`w-6 h-6 ${actionConfig.color === 'destructive' ? 'text-destructive' : 'text-foreground'}`} />
+          <actionConfig.icon className={`w-6 h-6 ${actionConfig.color === 'destructive' ? 'text-primary' : 'text-success'}`} />
 
           {/* Pulse ring for important actions */}
           {actionConfig.color === 'destructive' && (
-            <div className="absolute inset-0 rounded-full bg-current opacity-20 animate-ping" />
+            <div className="absolute inset-0 bg-current opacity-20 animate-ping" />
           )}
 
           {/* Tooltip */}

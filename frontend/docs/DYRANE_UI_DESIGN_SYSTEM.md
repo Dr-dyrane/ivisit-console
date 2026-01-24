@@ -1,4 +1,4 @@
-# 🎨 Dyrane UI Design System
+# 🎨 Dyrane UI Design System v2.0
 
 ## **Apple-Wordy Design Philosophy**
 
@@ -24,6 +24,8 @@ Our design system combines Apple's premium interaction patterns with our unique 
 6. **Theme Awareness** → CSS variables for perfect light/dark mode
 7. **Unified Effects** → Shared RGB glow system across all cards
 8. **Dark Mode Neon** → Visibility enhanced for pure black backgrounds
+9. **Layout Architecture** → Complete z-index hierarchy and border system
+10. **Content-First Design** → Dashboard hero with supporting navigation
 
 ---
 
@@ -36,6 +38,10 @@ Our design system combines Apple's premium interaction patterns with our unique 
 <h2 className="text-2xl font-semibold text-foreground">                   {/* Card title */}
 <p className="text-lg text-muted-foreground font-medium">              {/* Subtitle */}
 <p className="text-base text-muted-foreground font-medium">            {/* Details */}
+
+/* Navigation Typography */
+<span className="text-sm font-normal truncate">                        {/* Navigation labels */}
+<span className="text-sm font-medium truncate">                        {/* Active navigation */}
 
 /* ❌ Anti-Patterns */
 /* Never use more than 3 sizes per card */
@@ -130,6 +136,109 @@ group-hover:opacity-100 transition-opacity duration-300 /* Reveal */
   background: hsl(var(--primary) / 0.3);
   box-shadow: 0 0 15px hsl(var(--primary) / 0.2);
 }
+```
+
+---
+
+## **🏗️ Layout Architecture System**
+
+### **Z-Index Hierarchy (Bottom → Top)**
+```jsx
+z-10: Main Content Area                    /* Primary focus */
+z-20: Smart Footer                         /* Supporting */
+z-35: Context Panel Backdrop               /* Temporary overlay */
+z-40: Smart Header                         /* Navigation */
+z-40: Context Panel (ResponsiveSidebar)    /* Temporary focus */
+z-50: Left Sidebar (IslandNavigation)      /* Highest z-index */
+z-50+: Modals/Overlays                     /* Temporary */
+```
+
+### **Border Hierarchy System**
+```jsx
+/* ✅ Visual Weight Through Borders */
+border-border/10    /* Supporting elements (sidebar) */
+border-border/20    /* Primary elements (dashboard) */
+border-primary/20   /* Brand accents (strategic placement) */
+```
+
+### **Visual Hierarchy Strategy**
+```jsx
+/* Dashboard Content (HERO) */
+- Full RGB glows: hover-glow-primary (100% intensity)
+- Strong borders: border-border/20
+- Glass cards: Premium materials
+- Hero cards: Larger scale, prominent brand colors
+
+/* Navigation (SUPPORTING) */
+- Subtle RGB glows: hover-glow-primary/50 (50% intensity)
+- Light borders: border-border/10
+- Transparent glass: bg-background/30
+- Supporting role: Navigation, not content
+```
+
+---
+
+## **🎨 Component Architecture**
+
+### **1. Dashboard Cards (Primary Content)**
+```jsx
+<motion.div className="glass-card p-8 hover-lift relative overflow-hidden group">
+  <div className="hover-glow hover-glow-primary" />
+  {/* Content with full brand presence */}
+</motion.div>
+```
+
+### **2. Sidebar Navigation (Supporting)**
+```jsx
+<motion.nav className="glass-card border-r border-border/10">
+  {/* Subtle materials, reduced visual weight */}
+  <div className="hover-glow hover-glow-primary/50" />
+</motion.nav>
+```
+
+### **3. Smart Header (Navigation)**
+```jsx
+<motion.header className="glass-card border-b border-border/20">
+  {/* Premium but secondary to content */}
+  <div className="hover-glow hover-glow-primary" />
+</motion.header>
+```
+
+### **4. Context Panel (Temporary Focus)**
+```jsx
+<motion.div className="glass-card rounded-3xl">
+  {/* Island floating design */}
+  {/* Mobile: No header, content-only */}
+</motion.div>
+```
+
+---
+
+## **📱 Responsive Design System**
+
+### **Mobile Strategy**
+```jsx
+/* Dashboard */
+md:p-6  /* Responsive padding */
+{/* Full RGB effects maintained */}
+
+/* Context Panel */
+hidden md:block  /* Header hidden on mobile */
+{/* Content-only experience */}
+
+/* Sidebar */
+hidden md:block  {/* Desktop only */}
+
+/* Header */
+{/* Responsive positioning and sizing */}
+```
+
+### **Typography Weight Strategy**
+```jsx
+/* Apple-level without San Francisco */
+font-normal (400)  /* Feels like Apple's 500 - Navigation */
+font-medium (500)  /* Feels like Apple's 600 - Card titles */
+font-bold (700)    /* Feels like Apple's 700 - Hero content */
 ```
 
 ---
@@ -238,18 +347,23 @@ hover-glow-warning + bg-warning/20 + text-warning
 
 ## **✅ Quality Checklist**
 
-For every page and component:
-
 ### **Typography ✅**
 - [ ] Max 3 font sizes per card
 - [ ] Semantic color usage only
 - [ ] Clear hierarchy established
+- [ ] Navigation uses font-normal for Apple feel
 
 ### **Cards ✅**
 - [ ] Use glass-card pattern
 - [ ] Fixed icon positioning
 - [ ] Fixed chevron positioning
 - [ ] No overlap conflicts
+
+### **Layout ✅**
+- [ ] Proper z-index hierarchy
+- [ ] Border hierarchy (/10 vs /20)
+- [ ] Content-first visual weight
+- [ ] Responsive padding (md:p-6)
 
 ### **Motion ✅**
 - [ ] Apple easing curves
@@ -275,12 +389,19 @@ For every page and component:
 
 ## **📚 Applied Successfully To:**
 
-- ✅ **BentoHome.jsx** - Dashboard with Apple-Wordy design
-- 🔄 **Analytics.jsx** - Apply template next
-- 🔄 **UsersPage.jsx** - Apply template next  
-- 🔄 **HospitalsPage.jsx** - Apply template next
-- 🔄 **AmbulancesPage.jsx** - Apply template next
-- 🔄 **EmergencyRequestsPage.jsx** - Apply template next
+### **✅ Layout Architecture (Complete)**
+- **BentoHome.jsx** - Dashboard with Apple-Wordy design
+- **IslandNavigation.jsx** - Sidebar with subtle supporting role
+- **SmartHeader.jsx** - Premium header with brand integration
+- **ContextPanel.jsx** - Island floating design, mobile-optimized
+- **ResponsiveSidebar.jsx** - Context panel shell with proper z-index
+
+### **🔄 Content Pages (Next Phase)**
+- **Analytics.jsx** - Apply template next
+- **UsersPage.jsx** - Apply template next  
+- **HospitalsPage.jsx** - Apply template next
+- **AmbulancesPage.jsx** - Apply template next
+- **EmergencyRequestsPage.jsx** - Apply template next
 
 ---
 
@@ -292,6 +413,8 @@ The Apple-Wordy design system gives us:
 - **Perfect theme support** for light/dark modes
 - **Consistent behavior** across all pages
 - **Professional appearance** that builds trust
+- **Content-first hierarchy** with supporting navigation
+- **Border-based visual hierarchy** without competing elements
 
 **This is our signature design language - Apple's precision with our voice!** 🍎✨
 
@@ -299,4 +422,4 @@ The Apple-Wordy design system gives us:
 
 *Created by: Dyrane & Cascade AI*  
 *Date: January 2026*  
-*Version: 1.0*
+*Version: 2.0 - Complete Layout Architecture*

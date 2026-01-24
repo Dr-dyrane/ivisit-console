@@ -38,13 +38,15 @@ export const SmartFooter = () => {
                 >
                     <div className="pointer-events-auto">
                         <div
-                            className={`px-6 h-12 rounded-full backdrop-blur-xl flex items-center gap-6 min-w-[320px] justify-between border-border/40 relative shadow-premium ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'
+                            className={`pointer-events-auto glass-card rounded-full px-6 h-12 flex items-center gap-6 min-w-[320px] justify-between border-border/20 relative overflow-hidden group ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'
                                 }`}
                             style={{
                                 boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
                             }}
                         >
-                            =
+                            {/* Shared RGB Hive Effect */}
+                            <div className="hover-glow hover-glow-success" />
+                            
                             {/* Left Section: Status/Context */}
                             <div className="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground whitespace-nowrap">
                                 {footerConfig.type === 'pagination' ? (
