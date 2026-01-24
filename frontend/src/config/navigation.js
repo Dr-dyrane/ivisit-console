@@ -48,9 +48,9 @@ export const NAV_CONFIG = {
         label: 'Management',
         icon: FolderKanban,
         items: [
-            // Provider-accessible (submit support, read news)
+            // Provider-accessible (submit support, read own tickets)
             { id: 'support', path: '/support-tickets', icon: Headphones, label: 'Support', resource: 'support', minRole: 'provider' },
-            { id: 'news', path: '/health-news', icon: Newspaper, label: 'Health News', resource: 'news', minRole: 'provider' },
+            { id: 'news', path: '/health-news', icon: Newspaper, label: 'Health News', resource: 'news', minRole: 'viewer' },
 
             // Org Admin+ items
             { id: 'verification', path: '/verification', icon: FileCheck, label: 'Queue', resource: 'verification', minRole: 'org_admin' },

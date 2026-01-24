@@ -236,8 +236,8 @@ export const SupportTicketsPage = () => {
   ), [filters]);
 
   const headerActions = React.useMemo(() => {
-    // Only Admins and Org Admins can create new support tickets
-    if (isAdmin() || isOrgAdmin()) {
+    // Admins, Org Admins, and Providers can create new support tickets
+    if (isAdmin() || isOrgAdmin() || isProvider()) {
       return (
         <Button
           onClick={handleCreate}
@@ -250,7 +250,7 @@ export const SupportTicketsPage = () => {
       );
     }
     return null;
-  }, [isAdmin, isOrgAdmin, handleCreate]);
+  }, [isAdmin, isOrgAdmin, isProvider, handleCreate]);
 
   usePageHeader(
     "Support Tickets",
@@ -567,7 +567,7 @@ export const SupportTicketsPage = () => {
                           <Button variant="ghost" size="sm" onClick={() => handleView(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary" aria-label={`View ticket ${ticket.id}`}>
                             <Headphones className="h-4 w-4" />
                           </Button>
-                          {/* RBAC: Only Admins and Org Admins can edit/delete support tickets */}
+                          {/* RBAC: Admins and Org Admins can edit/delete, Providers can edit their own tickets */}
                           {(isAdmin() || isOrgAdmin()) && (
                             <>
                               <Button variant="ghost" size="sm" onClick={() => handleEdit(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary" aria-label={`Edit ticket ${ticket.id}`}>
@@ -577,6 +577,12 @@ export const SupportTicketsPage = () => {
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </>
+                          )}
+                          {/* Providers can edit their own tickets but not delete */}
+                          {isProvider() && ticket.user_id === profile?.id && (
+                            <Button variant="ghost" size="sm" onClick={() => handleEdit(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary" aria-label={`Edit ticket ${ticket.id}`}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
                           )}
                         </div>
                       </div>

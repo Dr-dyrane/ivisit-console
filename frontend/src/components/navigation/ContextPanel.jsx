@@ -59,13 +59,13 @@ export const ContextPanel = () => {
       '/emergencies': !isPatient() && !isViewer(), // Operational roles only
       '/users': isAdmin(), // Admin only
       '/verification': isAdmin(), // Admin only
-      '/analytics': isAdmin() || isOrgAdmin() || isSponsor(), // Management and sponsors
+      '/analytics': isAdmin() || isOrgAdmin() || isSponsor() || isProvider(), // Everyone except patients/viewers
       '/doctors': isAdmin() || isOrgAdmin(), // Management only
       '/visits': isProvider() || isAdmin() || isOrgAdmin(), // Providers and management
       '/hospitals': isAdmin() || isOrgAdmin(), // Management only
       '/ambulances': isAdmin() || isOrgAdmin(), // Management only
       '/health-news': !isPatient(), // Everyone except patients
-      '/support-tickets': isProvider() || isAdmin() || isOrgAdmin(), // Providers and management
+      '/support-tickets': isAdmin() || isOrgAdmin() || isSponsor() || isProvider(), // Everyone except patients/viewers
       '/insurance': isAdmin(), // Admin only
       '/map': !isPatient() && !isViewer(), // Operational roles only
       '/settings': isAdmin(), // Admin only
