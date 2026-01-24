@@ -6,6 +6,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
+import { getCurrentUser, applyAuthFilter } from '../../services/authService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -59,14 +60,16 @@ export const HospitalsPage = () => {
     try {
       setLoading(true);
 
+      // Get current user for RBAC filtering
+      const user = await getCurrentUser();
+
       let query = supabase.from('hospitals').select('*', { count: 'exact', head: true });
 
-      // RBAC: Platform Admin sees all. Org Admin sees scoped.
-      if (isAdmin()) {
-        // Platform admin sees everything
-      } else if (isOrgAdmin() && orgId) {
-        query = query.eq('id', orgId);
-      }
+      // Apply RBAC filter using centralized service
+      query = applyAuthFilter(query, user, {
+        orgIdField: 'organization_id',
+        resourceType: 'hospitals'
+      });
 
       // Apply Search Filter (Client-side filtering for search usually, or server side if full text search enabled)
       // Since supabase standard select doesn't do fuzzy search easily on multiple fields without specific text search config,
@@ -94,15 +97,11 @@ export const HospitalsPage = () => {
         .range(pagination.paginationRange.start, pagination.paginationRange.end)
         .order(sortConfig.key || 'created_at', { ascending: sortConfig.direction === 'asc' });
 
-      // RBAC Scoping for Data
-      if (isAdmin()) {
-        // No filter
-      } else if ((isOrgAdmin() || isProvider()) && orgId) {
-        dataQuery = dataQuery.eq('id', orgId);
-      } else {
-        // Fallback
-        dataQuery = dataQuery.eq('id', '00000000-0000-0000-0000-000000000000');
-      }
+      // Apply RBAC filter to data query using centralized service
+      dataQuery = applyAuthFilter(dataQuery, user, {
+        orgIdField: 'organization_id',
+        resourceType: 'hospitals'
+      });
 
       if (filters.search) {
         dataQuery = dataQuery.ilike('name', `%${filters.search}%`);
@@ -324,16 +323,21 @@ export const HospitalsPage = () => {
     </Button>
   ), [filters]);
 
-  const headerActions = React.useMemo(() => (isAdmin() || isProvider()) && (
-    <Button
-      onClick={handleCreate}
-      className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-      aria-label="Add new hospital"
-    >
-      <Plus className="h-4 w-4 mr-2" />
-      ADD HOSPITAL
-    </Button>
-  ), [isAdmin, isProvider, handleCreate]);
+  const headerActions = React.useMemo(() => {
+    // Only Admins and Org Admins can create new hospitals
+    if (isAdmin() || isOrgAdmin()) {
+      return (
+        <Button
+          onClick={handleCreate}
+          className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          ADD HOSPITAL
+        </Button>
+      );
+    }
+    return null;
+  }, [isAdmin, isOrgAdmin, handleCreate]);
 
   usePageHeader(
     "Medical Facilities",
@@ -619,8 +623,8 @@ export const HospitalsPage = () => {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {/* RBAC: Only providers/admins can edit/delete */}
-                          {(isAdmin() || isProvider()) && (
+                          {/* RBAC: Only Admins and Org Admins can edit/delete hospitals */}
+                          {(isAdmin() || isOrgAdmin()) && (
                             <>
                               <Button
                                 variant="ghost"

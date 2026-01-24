@@ -9,6 +9,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
+import { getCurrentUser, applyAuthFilter } from '../../services/authService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -62,21 +63,18 @@ export const VisitsPage = () => {
     try {
       setLoading(true);
 
+      // Get current user for RBAC filtering
+      const currentUser = await getCurrentUser();
+
       let query = supabase.from('visits').select('*', { count: 'exact', head: true });
 
-      // RBAC: Platform Admin sees all. Org Admin sees scoped.
-      // RBAC: Platform Admin sees all. Org Admin sees scoped.
-      if (isAdmin()) {
-        // Platform admin sees everything
-      } else if (isOrgAdmin() && orgId) {
-        query = query.eq('hospital_id', orgId);
-      } else if (isProvider()) {
-        // Provider filtering is now handled by authService
-        // Just apply the base query, RBAC will handle doctor filtering
-        // No manual filtering needed here
-      } else {
-        query = query.eq('user_id', user.id);
-      }
+      // Apply RBAC filter using centralized service
+      query = applyAuthFilter(query, currentUser, {
+        userIdField: 'user_id',
+        orgIdField: 'hospital_id',
+        providerIdField: 'doctor_id',
+        resourceType: 'visit'
+      });
 
       if (filters.status && filters.status.length > 0) {
         query = query.in('status', filters.status);
@@ -108,19 +106,13 @@ export const VisitsPage = () => {
         .range(pagination.paginationRange.start, pagination.paginationRange.end)
         .order(sortConfig.key || 'date', { ascending: sortConfig.direction === 'asc' });
 
-      // RBAC Scoping for Data
-      // RBAC Scoping for Data
-      if (isAdmin()) {
-        // No filter
-      } else if (isOrgAdmin() && orgId) {
-        dataQuery = dataQuery.eq('hospital_id', orgId);
-      } else if (isProvider()) {
-        // Provider filtering is now handled by authService
-        // Just apply the base query, RBAC will handle doctor filtering
-        // No manual filtering needed here
-      } else {
-        dataQuery = dataQuery.eq('user_id', user.id);
-      }
+      // Apply RBAC filter to data query using centralized service
+      dataQuery = applyAuthFilter(dataQuery, currentUser, {
+        userIdField: 'user_id',
+        orgIdField: 'hospital_id',
+        providerIdField: 'doctor_id',
+        resourceType: 'visit'
+      });
 
       if (filters.status && filters.status.length > 0) {
         dataQuery = dataQuery.in('status', filters.status);
@@ -430,16 +422,21 @@ export const VisitsPage = () => {
     </Button>
   ), [filters]);
 
-  const headerActions = React.useMemo(() => (
-    <Button
-      onClick={handleCreate}
-      className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-      aria-label="Schedule new visit"
-    >
-      <Plus className="h-4 w-4 mr-2" />
-      SCHEDULE VISIT
-    </Button>
-  ), [handleCreate]);
+  const headerActions = React.useMemo(() => {
+    // Only Admins, Org Admins, and Providers can create new visits
+    if (isAdmin() || isOrgAdmin() || isProvider()) {
+      return (
+        <Button
+          onClick={handleCreate}
+          className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          SCHEDULE VISIT
+        </Button>
+      );
+    }
+    return null;
+  }, [isAdmin, isOrgAdmin, isProvider, handleCreate]);
 
   usePageHeader(
     "Patient Visits",
@@ -804,24 +801,29 @@ export const VisitsPage = () => {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(visit)}
-                              className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                              title="Edit"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(visit)}
-                              className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {/* RBAC: Only Admins and Org Admins can edit/delete visits */}
+                            {(isAdmin() || isOrgAdmin()) && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEdit(visit)}
+                                  className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                  title="Edit"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDelete(visit)}
+                                  className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </Card>

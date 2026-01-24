@@ -17,10 +17,12 @@ const TABLE_NAME = 'profiles';
  */
 export async function getVerificationQueue(filters = {}) {
   try {
-    // Admin check - only admins can view verification queue
-    const adminCheck = await isAdmin();
-    if (!adminCheck) {
-      throw new AuthorizationError('Admin access required for verification queue', 'verification', 'getQueue');
+    // Check if user can access verification queue
+    const user = await getCurrentUser();
+    const role = user?.role || 'viewer';
+    
+    if (!['admin', 'org_admin', 'sponsor'].includes(role)) {
+      throw new AuthorizationError('Admin, Org Admin, or Sponsor access required for verification queue', 'verification', 'getQueue');
     }
 
     const {
@@ -241,7 +243,11 @@ export function subscribeToVerificationQueue(callback) {
  */
 export async function canVerifyProviders() {
   try {
-    return await isAdmin();
+    const user = await getCurrentUser();
+    const role = user?.role || 'viewer';
+    
+    // Admins, Org Admins, and Sponsors can verify providers
+    return ['admin', 'org_admin', 'sponsor'].includes(role);
   } catch (error) {
     logAuthorizationEvent('verification', 'canVerify', null, false, error.message);
     return false;

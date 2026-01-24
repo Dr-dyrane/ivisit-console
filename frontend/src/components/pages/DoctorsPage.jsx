@@ -6,6 +6,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
+import { getCurrentUser, applyAuthFilter } from '../../services/authService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -140,12 +141,18 @@ export const DoctorsPage = () => {
 
       const filter = { limit, offset };
 
-      // RBAC: Org admins see only their organization's doctors
-      if (!isAdmin() && isOrgAdmin() && orgId) {
-        filter.hospital_id = orgId;
+      // Apply any additional filters from the UI
+      if (filters.search) {
+        filter.search = filters.search;
+      }
+      if (filters.specialization) {
+        filter.specialization = filters.specialization;
+      }
+      if (filters.status) {
+        filter.status = filters.status;
       }
 
-      // Call Service
+      // Call Service - RBAC is handled in the service layer
       const { data, count } = await withTimeout(getDoctors(filter), 8000, 'Failed to load doctors - timeout');
 
       if (isPrivileged) {
@@ -163,7 +170,7 @@ export const DoctorsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, isOrgAdmin, orgId, pagination.itemsPerPage, pagination.paginationRange.start]);
+  }, [isAdmin, isOrgAdmin, pagination.itemsPerPage, pagination.paginationRange.start, filters]);
 
   useEffect(() => {
     fetchDoctors();
@@ -369,16 +376,21 @@ export const DoctorsPage = () => {
     </Button>
   ), [filters]);
 
-  const headerActions = React.useMemo(() => (
-    <Button
-      onClick={handleCreate}
-      className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-      aria-label="Add new doctor"
-    >
-      <Plus className="h-4 w-4 mr-2" />
-      ADD DOCTOR
-    </Button>
-  ), [handleCreate]);
+  const headerActions = React.useMemo(() => {
+    // Only Admins and Org Admins can create new doctors
+    if (isAdmin() || isOrgAdmin()) {
+      return (
+        <Button
+          onClick={handleCreate}
+          className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          ADD DOCTOR
+        </Button>
+      );
+    }
+    return null;
+  }, [isAdmin, isOrgAdmin, handleCreate]);
 
   usePageHeader(
     "Medical Staff",
@@ -723,26 +735,31 @@ export const DoctorsPage = () => {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(doctor)}
-                              className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                              data-testid={`edit - doctor - ${doctor.id} `}
-                              aria-label={`Edit Dr. ${doctor.name}`}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => confirmDelete(doctor)}
-                              className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                              data-testid={`delete -doctor - ${doctor.id} `}
-                              aria-label={`Delete Dr. ${doctor.name}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {/* RBAC: Only Admins and Org Admins can edit/delete doctors */}
+                            {(isAdmin() || isOrgAdmin()) && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEdit(doctor)}
+                                  className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                  data-testid={`edit - doctor - ${doctor.id} `}
+                                  aria-label={`Edit Dr. ${doctor.name}`}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => confirmDelete(doctor)}
+                                  className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                  data-testid={`delete -doctor - ${doctor.id} `}
+                                  aria-label={`Delete Dr. ${doctor.name}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </Card>

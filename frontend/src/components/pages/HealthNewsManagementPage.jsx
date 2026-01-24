@@ -6,6 +6,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
+import { getCurrentUser, applyAuthFilter } from '../../services/authService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -47,7 +48,7 @@ const SOURCES = [
 export const HealthNewsManagementPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isOrgAdmin, isSponsor } = useAuth();
   const { isMobile } = useNavigation();
   const [healthNews, setHealthNews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +82,9 @@ export const HealthNewsManagementPage = () => {
     try {
       setLoading(true);
 
+      // Get current user for RBAC filtering
+      const user = await getCurrentUser();
+
       // Fetch stats in parallel - using published boolean
       const [
         { count: total },
@@ -106,6 +110,11 @@ export const HealthNewsManagementPage = () => {
 
       // Build data query
       let query = supabase.from('health_news').select('id', { count: 'exact' });
+
+      // Apply RBAC filter using centralized service
+      query = applyAuthFilter(query, user, {
+        resourceType: 'news'
+      });
 
       // Apply Filters
       if (filters.kpiFilter === 'published') query = query.eq('published', true);
@@ -395,16 +404,21 @@ export const HealthNewsManagementPage = () => {
     </Button>
   ), [filters]);
 
-  const headerActions = React.useMemo(() => isAdmin && (
-    <Button
-      onClick={handleCreate}
-      className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-      aria-label="Add new article"
-    >
-      <Plus className="h-4 w-4 mr-2" />
-      ADD NEWS
-    </Button>
-  ), [isAdmin, handleCreate]);
+  const headerActions = React.useMemo(() => {
+    // Only Admins, Org Admins, and Sponsors can create health news
+    if (isAdmin() || isOrgAdmin() || isSponsor()) {
+      return (
+        <Button
+          onClick={handleCreate}
+          className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          NEW ARTICLE
+        </Button>
+      );
+    }
+    return null;
+  }, [isAdmin, isOrgAdmin, isSponsor, handleCreate]);
 
   usePageHeader(
     "Health News Management",
@@ -746,8 +760,8 @@ export const HealthNewsManagementPage = () => {
                           >
                             <Eye className="h-3 w-3 md:h-4 md:w-4" />
                           </Button>
-                          {/* RBAC: Only admins can edit/delete/publish */}
-                          {isAdmin && (
+                          {/* RBAC: Only Admins, Org Admins, and Sponsors can edit/delete/publish */}
+                          {(isAdmin() || isOrgAdmin() || isSponsor()) && (
                             <>
                               <Button
                                 variant="ghost"

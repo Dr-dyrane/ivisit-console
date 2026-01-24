@@ -5,6 +5,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { getCurrentUser, applyAuthFilter } from '../../services/authService';
 import { useSupportTickets } from '../../hooks/useSupportTickets';
 import { withTimeout } from '../../lib/utils';
 import { Card } from '../ui/card';
@@ -62,7 +63,7 @@ const CATEGORIES = [
 ];
 
 export const SupportTicketsPage = () => {
-  const { isAdmin, profile } = useAuth();
+  const { isAdmin, isOrgAdmin, isProvider, profile } = useAuth();
   const { isMobile } = useNavigation();
   const {
     supportTickets,
@@ -234,16 +235,22 @@ export const SupportTicketsPage = () => {
     </Button>
   ), [filters]);
 
-  const headerActions = React.useMemo(() => (
-    <Button
-      onClick={handleCreate}
-      className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-      aria-label="Create new ticket"
-    >
-      <Plus className="h-4 w-4 mr-2" />
-      NEW TICKET
-    </Button>
-  ), [handleCreate]);
+  const headerActions = React.useMemo(() => {
+    // Only Admins and Org Admins can create new support tickets
+    if (isAdmin() || isOrgAdmin()) {
+      return (
+        <Button
+          onClick={handleCreate}
+          className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+          aria-label="Create new ticket"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          NEW TICKET
+        </Button>
+      );
+    }
+    return null;
+  }, [isAdmin, isOrgAdmin, handleCreate]);
 
   usePageHeader(
     "Support Tickets",
@@ -558,11 +565,19 @@ export const SupportTicketsPage = () => {
                         <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">ACTIONS</div>
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                           <Button variant="ghost" size="sm" onClick={() => handleView(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary" aria-label={`View ticket ${ticket.id}`}>
-                            <Edit className="h-4 w-4" />
+                            <Headphones className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDelete(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ticket ${ticket.id}`}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {/* RBAC: Only Admins and Org Admins can edit/delete support tickets */}
+                          {(isAdmin() || isOrgAdmin()) && (
+                            <>
+                              <Button variant="ghost" size="sm" onClick={() => handleEdit(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary" aria-label={`Edit ticket ${ticket.id}`}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleDelete(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ticket ${ticket.id}`}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </Card>

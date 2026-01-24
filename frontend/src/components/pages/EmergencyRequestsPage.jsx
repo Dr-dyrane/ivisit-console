@@ -8,6 +8,7 @@ import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import { getEmergencyRequests } from '../../services/emergencyService';
 import { dispatchEmergency, completeEmergency } from '../../services/emergencyResponseService';
+import { getCurrentUser, applyAuthFilter } from '../../services/authService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -82,14 +83,18 @@ export const EmergencyRequestsPage = () => {
     try {
       setLoading(true);
 
+      // Get current user for RBAC filtering
+      const user = await getCurrentUser();
+
       let query = supabase.from('emergency_requests').select('*', { count: 'exact', head: true });
 
-      // RBAC: Platform Admin sees all. Org Admin sees scoped.
-      if (isAdmin()) {
-        // Platform admin sees everything
-      } else if (isOrgAdmin() && orgId) {
-        query = query.eq('hospital_id', orgId);
-      }
+      // Apply RBAC filter using centralized service
+      query = applyAuthFilter(query, user, {
+        userIdField: 'user_id',
+        orgIdField: 'hospital_id',
+        providerIdField: 'responder_id',
+        resourceType: 'emergency'
+      });
 
       if (filters.status && filters.status.length > 0) {
         query = query.in('status', filters.status);
@@ -117,12 +122,13 @@ export const EmergencyRequestsPage = () => {
         .range(pagination.paginationRange.start, pagination.paginationRange.end)
         .order(sortConfig.key || 'created_at', { ascending: sortConfig.direction === 'asc' });
 
-      // RBAC Scoping for Data
-      if (isAdmin()) {
-        // No filter
-      } else if (isOrgAdmin() && orgId) {
-        dataQuery = dataQuery.eq('hospital_id', orgId);
-      }
+      // Apply RBAC filter to data query using centralized service
+      dataQuery = applyAuthFilter(dataQuery, user, {
+        userIdField: 'user_id',
+        orgIdField: 'hospital_id',
+        providerIdField: 'responder_id',
+        resourceType: 'emergency'
+      });
 
       if (filters.status && filters.status.length > 0) {
         dataQuery = dataQuery.in('status', filters.status);
@@ -248,16 +254,22 @@ export const EmergencyRequestsPage = () => {
     </Button>
   ), [filters]);
 
-  const headerActions = React.useMemo(() => (
-    <Button
-      onClick={handleCreateEmergency}
-      className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-      aria-label="Create new emergency request"
-    >
-      <Zap className="h-4 w-4 mr-2" />
-      NEW REQUEST
-    </Button>
-  ), [handleCreateEmergency]);
+  const headerActions = React.useMemo(() => {
+    // Only Admins and Org Admins can create new emergency requests
+    if (isAdmin() || isOrgAdmin()) {
+      return (
+        <Button
+          onClick={handleCreateEmergency}
+          className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+          aria-label="Create new emergency request"
+        >
+          <Zap className="h-4 w-4 mr-2" />
+          NEW REQUEST
+        </Button>
+      );
+    }
+    return null;
+  }, [handleCreateEmergency, isAdmin, isOrgAdmin]);
 
   usePageHeader(
     'Emergency Logs',
@@ -801,7 +813,7 @@ export const EmergencyRequestsPage = () => {
                               )}
 
                               {/* Delete Action - Always Last */}
-                              {(isAdmin() || (typeof isProvider === 'function' && isProvider())) && (
+                              {isAdmin() && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -810,6 +822,19 @@ export const EmergencyRequestsPage = () => {
                                   aria-label={`Delete emergency request at ${req.location}`}
                                 >
                                   <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+
+                              {/* Provider-specific actions */}
+                              {isProvider() && req.status !== 'completed' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleComplete(req)}
+                                  className="geo-round h-8 w-8 p-0 hover:bg-info/10 hover:text-info transition-colors"
+                                  title="Mark as Completed"
+                                >
+                                  <CheckCheck className="h-4 w-4" />
                                 </Button>
                               )}
                             </div>

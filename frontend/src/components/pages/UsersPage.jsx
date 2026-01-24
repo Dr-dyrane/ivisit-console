@@ -7,6 +7,7 @@ import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
+import { getCurrentUser, applyAuthFilter } from '../../services/authService';
 import { getProfiles, getUserStatistics, searchUsers, createProfile, updateProfile } from '../../services/profilesService';
 import { getDoctorByProfileId, createDoctor } from '../../services/doctorsService';
 import { createAmbulance } from '../../services/ambulancesService';
@@ -1049,7 +1050,7 @@ export const UsersPage = () => {
                               <Eye className="h-3 w-3 mr-1" />
                               VIEW
                             </Button>
-                            {isAdmin() && (
+                            {(isAdmin() || isOrgAdmin()) && (
                               <>
                                 <Button
                                   size="sm"

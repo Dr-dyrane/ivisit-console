@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getVerificationQueue, verifyProvider, subscribeToVerificationQueue, canVerifyProviders } from '../../services/verificationService';
+import { useAuth } from '../../contexts/AuthContext';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
@@ -42,6 +43,7 @@ import { VerificationQueueTableView } from '../views/VerificationQueueTableView'
  */
 
 export const VerificationQueue = () => {
+  const { isAdmin, isOrgAdmin, isSponsor } = useAuth();
   const { isMobile } = useNavigation();
   const [providers, setProviders] = useState([]);
   const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 });
@@ -526,27 +528,32 @@ export const VerificationQueue = () => {
                     <div className="relative z-10 mt-6 pt-4 flex items-center justify-between gap-2">
                       {!provider.bvn_verified ? (
                         <>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="h-8 flex-1 rounded-full text-xs font-bold"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleVerify(provider.id, false);
-                            }}
-                          >
-                            REJECT
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="h-8 flex-1 rounded-full bg-success hover:bg-success/90 text-success-foreground text-xs font-bold"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleVerify(provider.id, true);
-                            }}
-                          >
-                            APPROVE
-                          </Button>
+                          {/* RBAC: Only Admins, Org Admins, and Sponsors can verify providers */}
+                          {(isAdmin() || isOrgAdmin() || isSponsor()) && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="h-8 flex-1 rounded-full text-xs font-bold"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleVerify(provider.id, false);
+                                }}
+                              >
+                                REJECT
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="h-8 flex-1 rounded-full bg-success hover:bg-success/90 text-success-foreground text-xs font-bold"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleVerify(provider.id, true);
+                                }}
+                              >
+                                APPROVE
+                              </Button>
+                            </>
+                          )}
                         </>
                       ) : (
                         <>

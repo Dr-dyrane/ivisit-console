@@ -7,6 +7,7 @@ import { useNavigation } from '../../contexts/NavigationContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
+import { getCurrentUser, applyAuthFilter } from '../../services/authService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -69,14 +70,16 @@ export const AmbulancesPage = () => {
     try {
       setLoading(true);
 
+      // Get current user for RBAC filtering
+      const user = await getCurrentUser();
+
       let query = supabase.from('ambulances').select('*', { count: 'exact', head: true });
 
-      // RBAC: Platform Admin sees all. Org Admin sees scoped.
-      if (isAdmin()) {
-        // Platform admin sees everything
-      } else if (isOrgAdmin() && orgId) {
-        query = query.eq('hospital_id', orgId);
-      }
+      // Apply RBAC filter using centralized service
+      query = applyAuthFilter(query, user, {
+        orgIdField: 'hospital_id',
+        resourceType: 'ambulances'
+      });
 
       if (filters.search) {
         query = query.or(`call_sign.ilike.%${filters.search}%,vehicle_number.ilike.%${filters.search}%`);
@@ -100,15 +103,11 @@ export const AmbulancesPage = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      // RBAC Scoping for Data
-      if (isAdmin()) {
-        // Platform admin sees everything
-      } else if ((isOrgAdmin() || isProvider()) && orgId) {
-        dataQuery = dataQuery.eq('hospital_id', orgId);
-      } else {
-        // Safety Fallback: Block access if not Admin and no Org context
-        dataQuery = dataQuery.eq('id', '00000000-0000-0000-0000-000000000000');
-      }
+      // Apply RBAC filter to data query using centralized service
+      dataQuery = applyAuthFilter(dataQuery, user, {
+        orgIdField: 'hospital_id',
+        resourceType: 'ambulances'
+      });
 
       if (filters.search) {
         dataQuery = dataQuery.or(`call_sign.ilike.%${filters.search}%,vehicle_number.ilike.%${filters.search}%`);
@@ -430,16 +429,21 @@ export const AmbulancesPage = () => {
     </Button>
   ), [filters]);
 
-  const headerActions = React.useMemo(() => (
-    <Button
-      onClick={handleCreate}
-      className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-      aria-label="Add new ambulance"
-    >
-      <Plus className="h-4 w-4 mr-2" />
-      ADD AMBULANCE
-    </Button>
-  ), [handleCreate]);
+  const headerActions = React.useMemo(() => {
+    // Only Admins and Org Admins can create new ambulances
+    if (isAdmin() || isOrgAdmin()) {
+      return (
+        <Button
+          onClick={handleCreate}
+          className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          ADD AMBULANCE
+        </Button>
+      );
+    }
+    return null;
+  }, [isAdmin, isOrgAdmin, handleCreate]);
 
   usePageHeader(
     "Fleet Management",
@@ -548,24 +552,29 @@ export const AmbulancesPage = () => {
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(ambulance)}
-                    className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                    aria-label={`Edit ${ambulance.call_sign}`}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => confirmDelete(ambulance)}
-                    className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                    aria-label={`Delete ${ambulance.call_sign}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {/* RBAC: Only Admins and Org Admins can edit/delete ambulances */}
+                  {(isAdmin() || isOrgAdmin()) && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(ambulance)}
+                        className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                        aria-label={`Edit ${ambulance.call_sign}`}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => confirmDelete(ambulance)}
+                        className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                        aria-label={`Delete ${ambulance.call_sign}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </Card>
