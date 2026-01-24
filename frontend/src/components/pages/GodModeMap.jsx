@@ -252,7 +252,7 @@ const GodModeMapContent = () => {
 		</div>
 	), [showLayers, loading, toggleLayer, refresh]);
 
-	usePageHeader("Command Center", headerActions);
+	usePageHeader("Live Map", headerActions);
 
 	return (
 		<div className="min-h-screen py-6 md:py-8 pt-4">
