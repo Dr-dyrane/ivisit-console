@@ -293,7 +293,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                         id="date"
                         name="date"
                         type="datetime-local"
-                        value={formData.date}
+                        value={formData.date || ''}
                         onChange={handleChange}
                         disabled={isView}
                         className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-mono"
@@ -305,7 +305,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                       <Input
                         id="reason"
                         name="reason"
-                        value={formData.reason}
+                        value={formData.reason || ''}
                         onChange={handleChange}
                         disabled={isView}
                         className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-normal"
@@ -378,11 +378,11 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                       <Textarea
                         id="preparation"
                         name="preparation"
-                        value={formData.preparation}
+                        value={formData.preparation || ''}
                         onChange={handleChange}
                         disabled={isView}
                         placeholder="One instruction per line..."
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px]"
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px] resize-none p-4"
                       />
                     </div>
 
@@ -391,7 +391,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                       <Textarea
                         id="notes"
                         name="notes"
-                        value={formData.notes}
+                        value={formData.notes || ''}
                         onChange={handleChange}
                         disabled={isView}
                         className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[100px] resize-none p-4"

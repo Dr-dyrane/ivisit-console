@@ -177,7 +177,7 @@ export const VerificationModal = ({
                     <div className="space-y-2">
                       <Label className="text-xs font-semibold text-muted-foreground uppercase">Email Address</Label>
                       <Input
-                        value={formData.email}
+                        value={formData.email || ''}
                         onChange={(e) => handleChange('email', e.target.value)}
                         disabled={isView}
                         placeholder="email@example.com"
@@ -188,7 +188,7 @@ export const VerificationModal = ({
                     <div className="space-y-2">
                       <Label className="text-xs font-semibold text-muted-foreground uppercase">Phone Number</Label>
                       <Input
-                        value={formData.phone}
+                        value={formData.phone || ''}
                         onChange={(e) => handleChange('phone', e.target.value)}
                         disabled={isView}
                         placeholder="+1 (555) 123-4567"
@@ -212,6 +212,18 @@ export const VerificationModal = ({
                           <SelectItem value="staff">Staff</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Verification Notes</Label>
+                      <textarea
+                        value={formData.verification_notes || ''}
+                        onChange={(e) => handleChange('verification_notes', e.target.value)}
+                        disabled={isView}
+                        placeholder="Add notes about this verification..."
+                        rows={4}
+                        className="w-full rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 p-4 font-normal resize-none"
+                      />
                     </div>
                   </div>
                 </GlassCard>
@@ -237,7 +249,7 @@ export const VerificationModal = ({
                     <div className="space-y-2">
                       <Label className="text-xs font-semibold text-muted-foreground uppercase">Verification Notes</Label>
                       <textarea
-                        value={formData.verification_notes}
+                        value={formData.verification_notes || ''}
                         onChange={(e) => handleChange('verification_notes', e.target.value)}
                         disabled={isView}
                         placeholder="Add notes about this verification..."

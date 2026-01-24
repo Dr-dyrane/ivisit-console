@@ -95,7 +95,7 @@ export async function createAmbulance(input) {
       eta: input.eta,
       crew: input.crew,
       hospital: input.hospital, // Keep hospital as text field
-      hospital_id: input.hospital_id, // Add hospital_id as UUID field
+      hospital_id: input.hospital_id === '' ? null : input.hospital_id, // Add hospital_id as UUID field
       vehicle_number: input.vehicle_number,
       last_maintenance: input.last_maintenance,
       rating: input.rating,

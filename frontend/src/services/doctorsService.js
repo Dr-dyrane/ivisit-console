@@ -102,7 +102,7 @@ export async function createDoctor(input) {
       profile_id: input.profile_id, // Added
       name: input.name,
       specialization: input.specialization,
-      hospital_id: input.hospital_id,
+      hospital_id: input.hospital_id === '' ? null : input.hospital_id,
       image: input.image,
       rating: input.rating || 4.5,
       reviews_count: input.reviews_count || 0,
