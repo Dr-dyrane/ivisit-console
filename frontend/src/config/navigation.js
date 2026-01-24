@@ -25,8 +25,8 @@ export const ROLE_LEVELS = {
 export const NAV_CONFIG = {
     main: [
         { id: 'home', path: '/', icon: Home, label: 'Dashboard', resource: 'dashboard' },
-        { id: 'map', path: '/map', icon: MapPin, label: 'Live Map', resource: 'map', minRole: 'provider' },
-        { id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics', resource: 'analytics', minRole: 'org_admin' },
+        { id: 'map', path: '/map', icon: MapPin, label: 'Live Map', resource: 'map' },
+        { id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics', resource: 'analytics', minRole: 'viewer' },
     ],
     ops: {
         id: 'ops',
