@@ -77,7 +77,9 @@ const AppShell = ({ children }) => {
 						transition={{ type: "spring", stiffness: 300, damping: 30 }}
 						className="relative z-10"
 					>
-						{children}
+						<div className="md:p-6">
+							{children}
+						</div>
 					</motion.div>
 				</main>
 

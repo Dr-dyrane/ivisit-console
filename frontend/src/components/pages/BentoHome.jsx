@@ -151,7 +151,7 @@ export const BentoHome = () => {
         {/* Apple-style Grid Container */}
         <motion.div
           layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense surface-1 rounded-3xl md:p-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense surface-1 rounded-3xl"
         >
 
           {/* Live Emergency Counter - Brand Hero Card */}
