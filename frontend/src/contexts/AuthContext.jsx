@@ -203,7 +203,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   const isAdmin = () => hasRole('admin');
   const isSponsor = () => hasRole('sponsor');
   const isOrgAdmin = () => hasRole('org_admin');
-  const isProvider = () => hasMinRole('provider') || isOrgAdmin();
+  const isProvider = () => hasRole('provider');
   const isViewer = () => hasRole('viewer');
   const isPatient = () => hasRole('patient');
 
