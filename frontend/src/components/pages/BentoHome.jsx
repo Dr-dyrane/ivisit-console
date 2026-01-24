@@ -52,6 +52,7 @@ export const BentoHome = () => {
     visitsStats,
     verificationData,
     activityData,
+    userData,
     loading,
     fetchActivityData,
     refreshAllData

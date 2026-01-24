@@ -20,6 +20,7 @@ UI/UX design guidelines and Apple-style implementation
 - [👨‍💻 Dyrane UI Design System](./design-system/DYRANE_UI_DESIGN_SYSTEM.md) - Custom design implementation
 - [🔍 UI/UX Audit](./design-system/UI_UX_AUDIT.md) - Comprehensive design audit
 - [📊 UI Alignment & Analytics](./design-system/UI_ALIGNMENT_AND_ANALYTICS_COMPLETE.md) - Design analytics
+- [🎨 Login Design Evolution](./design-system/LOGIN_DESIGN_EVOLUTION.md) - Complete login page redesign
 
 ### 🚑 **[Emergency System](./emergency-system/)**
 Complete emergency request and response system
@@ -37,6 +38,17 @@ System architecture and security
 - [🛡️ Protected Routes System](./architecture/PROTECTED_ROUTES_SYSTEM.md) - Route protection implementation
 - [🔐 RBAC Implementation](./architecture/RBAC_IMPLEMENTATION_STATUS.md) - Role-based access control
 
+### 🔧 **[Implementation](./implementation/)**
+Technical implementation details and completed features
+- [📋 2026 Changelog](./implementation/CHANGELOG_2026.md) - Complete changelog for 2026
+- [🌐 SEO & Accessibility](./implementation/SEO_ACCESSIBILITY_IMPLEMENTATION.md) - SEO and a11y implementation
+- [🎨 Modal System Refactor](./implementation/MODAL_SYSTEM_REFACTOR.md) - Complete modal system redesign
+
+### 🎭 **[RBAC System](./rbac/)**
+Role-Based Access Control documentation
+- [🏗️ RBAC Architecture Core](./rbac/RBAC_ARCHITECTURE_CORE.md) - Complete RBAC model and implementation
+- [📋 RBAC Implementation History](./rbac/RBAC_IMPLEMENTATION_HISTORY.md) - Historical implementation tracking
+
 ### 🔧 **[Fixes Completed](./fixes-completed/)**
 All completed fixes and improvements
 - [🎯 Tooltips Restored](./fixes-completed/TOOLTIPS_RESTORED.md) - UI tooltips restoration
@@ -47,11 +59,14 @@ All completed fixes and improvements
 - [📱 Driver View Pattern](./fixes-completed/DRIVER_VIEW_PATTERN_FIXED.md) - Driver interface
 - [✨ Flickering Skeletons Fixed](./fixes-completed/FLICKERING_SKELETONS_FIXED.md) - Loading animations
 - [🔄 Infinite Loop Fixes](./fixes-completed/INFINITE_LOOP_FIXES_COMPLETE.md) - Performance fixes
+- [🏥 Org Admin RBAC Fixed](./fixes-completed/ORG_ADMIN_RBAC_FIXED.md) - Organization admin access fixes
+- [👨‍⚕️ Visits Doctor Field Fixed](./fixes-completed/VISITS_DOCTOR_ID_FIELD_FIXED.md) - Doctor field corrections
+- [📊 Admin Dashboard & Route Fixes](./fixes-completed/ADMIN_DASHBOARD_AND_ROUTE_FIXES.md) - Dashboard and route issues
+- [🔒 Invite-Only Platform Confirmed](./fixes-completed/INVITE_ONLY_PLATFORM_CONFIRMED.md) - Platform access model
 
 ### 📋 **[Guides](./guides/)**
 Development guides and best practices
-- [📚 Docs Organization](./guides/DOCS_ORGANIZED.md) - Documentation structure
-- [📝 Reorganization Summary](./guides/DOCS_REORGANIZED_SUMMARY.md) - Changes made
+- [📚 Documentation Reorganization](./DOCS_REORGANIZATION_COMPLETE.md) - Latest docs reorganization (Jan 24, 2026)
 - [🔄 Update Reference Guide](./guides/UPDATE_REFERENCE_GUIDE.md) - Keeping docs current
 - [🌟 Gold Standard Upgrade](./guides/GOLD_STANDARD_UPGRADE_PLAN.md) - Upgrade planning
 
