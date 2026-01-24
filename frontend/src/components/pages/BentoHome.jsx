@@ -448,8 +448,8 @@ export const BentoHome = () => {
                   </div>
 
                   {/* Brand-colored chart */}
-                  <div className="relative z-10 h-20">
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div className="relative z-10 h-20 min-w-[100px]">
+                    <ResponsiveContainer width="100%" height={80} minWidth={100}>
                       <AreaChart data={chartData}>
                         <Area
                           type="monotone"
@@ -729,8 +729,8 @@ export const BentoHome = () => {
                       </div>
                     </div>
 
-                    <div className="relative z-10 h-20">
-                      <ResponsiveContainer width="100%" height="100%">
+                    <div className="relative z-10 h-20 min-w-[100px]">
+                      <ResponsiveContainer width="100%" height={80} minWidth={100}>
                         <AreaChart data={chartData}>
                           <Area
                             type="monotone"
@@ -911,8 +911,8 @@ export const BentoHome = () => {
                       </div>
                     </div>
 
-                    <div className="relative z-10 h-20">
-                      <ResponsiveContainer width="100%" height="100%">
+                    <div className="relative z-10 h-20 min-w-[100px]">
+                      <ResponsiveContainer width="100%" height={80} minWidth={100}>
                         <AreaChart data={chartData}>
                           <Area
                             type="monotone"

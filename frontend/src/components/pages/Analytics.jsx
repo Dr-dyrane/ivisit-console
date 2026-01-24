@@ -412,8 +412,8 @@ export const Analytics = () => {
                   </div>
                 </div>
 
-                <div className="flex-1 w-full min-h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="flex-1 w-full min-h-[300px] min-w-[300px]">
+                  <ResponsiveContainer width="100%" height={300} minWidth={300}>
                     <AreaChart data={responseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1">
@@ -477,8 +477,8 @@ export const Analytics = () => {
                 <h3 className="font-bold text-xl mb-1 tracking-tight">Status</h3>
                 <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Live distribution of requests</p>
 
-                <div className="flex-1 relative min-h-[200px] flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height={220}>
+                <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
+                  <ResponsiveContainer width={220} height={220} minWidth={200}>
                     <PieChart>
                       <Pie
                         data={requestsByStatus}
@@ -544,8 +544,8 @@ export const Analytics = () => {
                   <p className="text-sm text-muted-foreground font-medium">Community engagement overview</p>
                 </div>
 
-                <div className="flex-1 relative min-h-[200px] flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height={220}>
+                <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
+                  <ResponsiveContainer width={220} height={220} minWidth={200}>
                     <PieChart>
                       <Pie
                         data={[
@@ -651,8 +651,8 @@ export const Analytics = () => {
                   <p className="text-sm text-muted-foreground font-medium">Requests per day</p>
                 </div>
 
-                <div className="flex-1 w-full min-h-[250px] relative z-10">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="flex-1 w-full min-h-[250px] min-w-[300px] relative z-10">
+                  <ResponsiveContainer width="100%" height={250} minWidth={300}>
                     <BarChart data={requestsByDay} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
                       <XAxis
@@ -718,8 +718,8 @@ export const Analytics = () => {
                   )}
                 </div>
 
-                <div className="flex-1 w-full min-h-[200px] mt-4 relative z-10">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="flex-1 w-full min-h-[200px] min-w-[300px] mt-4 relative z-10">
+                  <ResponsiveContainer width="100%" height={200} minWidth={300}>
                     <BarChart data={emergencyTypes} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
                       <XAxis type="number" hide />
                       <YAxis

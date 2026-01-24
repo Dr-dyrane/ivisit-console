@@ -26,9 +26,18 @@ export async function getSubscribers(filter = {}) {
     let query = supabase.from(TABLE_NAME).select('*');
 
     // 1. Apply RBAC Scoping
-    query = applyAuthFilter(query, user, {
-      userIdField: 'user_id' // Assuming user_id exists for subscriber owner
-    });
+    // Subscribers table doesn't have organization_id, so org_admins get all subscribers
+    if (user?.role === 'admin') {
+      // Admin gets all subscribers
+      console.log('[RBAC] Admin access - all subscribers');
+    } else if (user?.role === 'org_admin') {
+      // Org Admin gets all subscribers (no organization_id field to filter by)
+      console.log('[RBAC] Org Admin access - all subscribers (no org field)');
+    } else {
+      // Other roles get no access to subscriber data
+      console.log('[RBAC] Access denied for subscribers - insufficient permissions');
+      return [];
+    }
 
     // 2. Apply Custom Filters
 

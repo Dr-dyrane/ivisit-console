@@ -19,9 +19,22 @@ export async function getSupportTickets(filter = {}) {
     let query = supabase.from(TABLE_NAME).select('*');
 
     // 1. Apply RBAC Scoping
-    query = applyAuthFilter(query, user, {
-      userIdField: 'user_id'
-    });
+    // Support tickets table doesn't have organization_id, only user_id
+    if (user?.role === 'admin') {
+      // Admin gets all tickets
+      console.log('[RBAC] Admin access - all support tickets');
+    } else if (user?.role === 'org_admin') {
+      // Org Admin gets all tickets (no organization_id field to filter by)
+      console.log('[RBAC] Org Admin access - all support tickets (no org field)');
+    } else if (user?.role === 'provider') {
+      // Providers see only tickets they created
+      query = query.eq('user_id', user?.id);
+      console.log(`[RBAC] Provider access - own support tickets`);
+    } else {
+      // Patients see only their own tickets
+      query = query.eq('user_id', user?.id);
+      console.log(`[RBAC] Patient access - own support tickets`);
+    }
 
     // 2. Apply Custom Filters
     if (filter.status) {
