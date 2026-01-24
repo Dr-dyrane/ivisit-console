@@ -102,34 +102,54 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
   };
 
   return (
-    <div className="p-4 space-y-4 max-h-screen overflow-y-auto pr-2 custom-scrollbar">
-      {/* System Controls */}
-      <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-        <div className="flex items-center gap-2 mb-3">
-          <Shield className="h-5 w-5 text-primary" />
-          <h3 className="font-bold text-sm uppercase tracking-wider">System Controls</h3>
+    <div className="space-y-4">
+      {/* System Controls - Apple-Wordy Card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+        className="glass-card p-4 hover-lift relative overflow-hidden group"
+      >
+        {/* Shared RGB Hive Effect */}
+        <div className="hover-glow hover-glow-primary" />
+        
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 group-hover:scale-110 transition-transform">
+            <Shield className="h-5 w-5 text-primary" />
+          </div>
+          <h3 className="font-bold text-sm uppercase tracking-wider text-foreground">System Controls</h3>
         </div>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Real-time Updates</span>
+            <span className="text-sm text-muted-foreground font-medium">Real-time Updates</span>
             <Switch
               checked={realTimeEnabled}
               onCheckedChange={setRealTimeEnabled}
             />
           </div>
         </div>
-      </Card>
+      </motion.div>
 
-      {/* Quick Actions */}
-      <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-        <div className="flex items-center gap-2 mb-3">
-          <Zap className="h-5 w-5 text-success" />
-          <h3 className="font-bold text-sm uppercase tracking-wider">Quick Actions</h3>
+      {/* Quick Actions - Apple-Wordy Card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
+        className="glass-card p-4 hover-lift relative overflow-hidden group"
+      >
+        {/* Shared RGB Hive Effect */}
+        <div className="hover-glow hover-glow-success" />
+        
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-success/20 rounded-2xl flex items-center justify-center border border-success/30 group-hover:scale-110 transition-transform">
+            <Zap className="h-5 w-5 text-success" />
+          </div>
+          <h3 className="font-bold text-sm uppercase tracking-wider text-foreground">Quick Actions</h3>
         </div>
         <div className="grid grid-cols-1 gap-2">
           <Button
             onClick={handleRefreshAll}
-            className="w-full justify-start"
+            className="w-full justify-start glass-card hover-lift"
             variant="outline"
             size="sm"
           >
@@ -138,7 +158,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
           </Button>
           <Button
             onClick={handleExportReport}
-            className="w-full justify-start"
+            className="w-full justify-start glass-card hover-lift"
             variant="outline"
             size="sm"
           >
@@ -147,7 +167,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
           </Button>
           <Button
             onClick={handleSystemBackup}
-            className="w-full justify-start"
+            className="w-full justify-start glass-card hover-lift"
             variant="outline"
             size="sm"
           >
@@ -155,28 +175,44 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
             Trigger Backup
           </Button>
         </div>
-      </Card>
+      </motion.div>
 
-      {/* Activity Mini-feed */}
-      <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-        <div className="flex items-center gap-2 mb-3">
-          <Activity className="h-5 w-5 text-warning" />
-          <h3 className="font-bold text-sm uppercase tracking-wider">Recent Activity</h3>
+      {/* Activity Mini-feed - Apple-Wordy Card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+        className="glass-card p-4 hover-lift relative overflow-hidden group"
+      >
+        {/* Shared RGB Hive Effect */}
+        <div className="hover-glow hover-glow-warning" />
+        
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-warning/20 rounded-2xl flex items-center justify-center border border-warning/30 group-hover:scale-110 transition-transform">
+            <Activity className="h-5 w-5 text-warning" />
+          </div>
+          <h3 className="font-bold text-sm uppercase tracking-wider text-foreground">Recent Activity</h3>
         </div>
-        <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
           {recentActivities.length > 0 ? (
             recentActivities.map((activity, idx) => (
-              <div key={activity.id || idx} className="p-2 border-b border-border/20 last:border-0">
+              <motion.div
+                key={activity.id || idx}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.1, ease: [0.4, 0, 0.2, 1] }}
+                className="p-2 border-b border-border/20 last:border-0"
+              >
                 <div className="flex items-start gap-2">
-                  <div className={`w-6 h-6 squircle flex items-center justify-center ${activity.bg} flex-shrink-0`}>
+                  <div className={`w-6 h-6 rounded-xl flex items-center justify-center ${activity.bg} flex-shrink-0`}>
                     <activity.icon className={`h-3 w-3 ${activity.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-normal leading-snug truncate-2">{activity.msg}</p>
+                    <p className="text-xs font-normal leading-snug truncate-2 text-foreground">{activity.msg}</p>
                     <p className="text-xs text-muted-foreground">{activity.time}</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))
           ) : (
             <div className="text-center py-4 text-muted-foreground text-sm">
@@ -184,13 +220,23 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
             </div>
           )}
         </div>
-      </Card>
+      </motion.div>
 
-      {/* Alert Configuration */}
-      <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-        <div className="flex items-center gap-2 mb-3">
-          <Bell className="h-5 w-5 text-destructive" />
-          <h3 className="font-bold text-sm uppercase tracking-wider">Alert Thresholds</h3>
+      {/* Alert Configuration - Apple-Wordy Card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+        className="glass-card p-4 hover-lift relative overflow-hidden group"
+      >
+        {/* Shared RGB Hive Effect */}
+        <div className="hover-glow hover-glow-destructive" />
+        
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-destructive/20 rounded-2xl flex items-center justify-center border border-destructive/30 group-hover:scale-110 transition-transform">
+            <Bell className="h-5 w-5 text-destructive" />
+          </div>
+          <h3 className="font-bold text-sm uppercase tracking-wider text-foreground">Alert Thresholds</h3>
         </div>
         <div className="space-y-3">
           <div className="space-y-1">
@@ -200,7 +246,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
               value={alertThresholds.criticalEmergencies}
               onChange={(e) => handleThresholdChange('criticalEmergencies', e.target.value)}
               placeholder="Alert when count exceeds"
-              className="h-8"
+              className="h-8 glass-card"
             />
           </div>
           <div className="space-y-1">
@@ -210,7 +256,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
               value={alertThresholds.responseTimeMinutes}
               onChange={(e) => handleThresholdChange('responseTimeMinutes', e.target.value)}
               placeholder="Alert when exceeds"
-              className="h-8"
+              className="h-8 glass-card"
             />
           </div>
           <div className="space-y-1">
@@ -220,113 +266,10 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
               value={alertThresholds.lowAmbulances}
               onChange={(e) => handleThresholdChange('lowAmbulances', e.target.value)}
               placeholder="Alert when below"
-              className="h-8"
+              className="h-8 glass-card"
             />
           </div>
         </div>
-      </Card>
-
-      {/* Performance Metrics */}
-      <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-        <div className="flex items-center gap-2 mb-3">
-          <BarChart3 className="h-5 w-5 text-info" />
-          <h3 className="font-bold text-sm uppercase tracking-wider">Performance Metrics</h3>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Response Time</p>
-            <p className="text-lg font-bold tracking-tight">{formatTime(analyticsData?.avgResponseTime || 4.2)}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">System Uptime</p>
-            <p className="text-lg font-bold tracking-tight">99.9%</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Completion Rate</p>
-            <p className="text-lg font-bold tracking-tight">{formatPercentage(analyticsData?.completionRate)}%</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Active Users</p>
-            <p className="text-lg font-bold tracking-tight">{doctorsData?.totalDoctors || 0}</p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Legacy Overview Cards */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-3"
-      >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">App Overview</h3>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-destructive/20 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <span className="font-bold tracking-tight">Active Emergencies</span>
-                <p className="text-xs text-muted-foreground">Critical & High</p>
-              </div>
-            </div>
-            <Badge className="bg-destructive/20 text-destructive border-0">
-              {(emergencyStats?.critical || 0) + (emergencyStats?.high || 0)}
-            </Badge>
-          </div>
-        </Card>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <span className="font-bold tracking-tight">Total Users</span>
-                <p className="text-xs text-muted-foreground">All roles</p>
-              </div>
-            </div>
-            <Badge className="bg-primary/20 text-primary border-0">
-              {verificationData?.total || 0}
-            </Badge>
-          </div>
-        </Card>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <span className="font-bold tracking-tight">Response Time</span>
-                <p className="text-xs text-muted-foreground">Average</p>
-              </div>
-            </div>
-            <Badge className="bg-success/20 text-success border-0">
-              {formatTime(analyticsData?.avgResponseTime || 0)}
-            </Badge>
-          </div>
-        </Card>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-info/20 flex items-center justify-center">
-                <BarChart3 className="h-5 w-5 text-info" />
-              </div>
-              <div>
-                <span className="font-bold tracking-tight">Completion Rate</span>
-                <p className="text-xs text-muted-foreground">Success Rate</p>
-              </div>
-            </div>
-            <Badge className="bg-info/20 text-info border-0">
-              {formatPercentage(analyticsData?.completionRate)}%
-            </Badge>
-          </div>
-        </Card>
       </motion.div>
     </div>
   );

@@ -82,11 +82,12 @@ export const ContextPanel = () => {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="px-4 pt-4 pb-2 border-b border-border/20"
+        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+        className="px-6 pt-6 pb-4 border-b border-border/20"
       >
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-lg tracking-tight">{title}</h2>
+            <h2 className="font-bold text-lg tracking-tight text-foreground">{title}</h2>
             <p className="text-xs text-muted-foreground font-normal uppercase tracking-wider">{subtitle}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -95,7 +96,7 @@ export const ContextPanel = () => {
               <motion.div
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="w-2 h-2 geo-round bg-success"
+                className="w-2 h-2 bg-success rounded-full"
               />
             )}
           </div>
@@ -105,9 +106,9 @@ export const ContextPanel = () => {
   };
 
   const renderPanelWithHeader = (panelContent) => (
-    <div className="h-full flex flex-col bg-transparent backdrop-blur-XS border-border/20">
+    <div className="h-full flex flex-col glass-card rounded-3xl">
       {renderPanelHeader()}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
         {panelContent}
       </div>
     </div>
@@ -206,10 +207,13 @@ export const ContextPanel = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         className="text-center py-12"
       >
-        <Sparkles className="h-8 w-8 text-primary mx-auto mb-4" />
-        <h3 className="font-bold text-lg mb-2">Context Panel</h3>
+        <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 mx-auto mb-6">
+          <Sparkles className="h-8 w-8 text-primary" />
+        </div>
+        <h3 className="font-bold text-xl mb-2 text-foreground">Context Panel</h3>
         <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
           Navigate to a page to see relevant information and quick actions
         </p>
@@ -217,7 +221,7 @@ export const ContextPanel = () => {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
           className="flex items-center justify-center gap-2"
         >
           <Sparkles className="h-4 w-4 text-primary" />
