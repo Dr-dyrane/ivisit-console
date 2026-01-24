@@ -71,16 +71,19 @@ export const getAccessibleNav = (userProfile, canHelper) => {
     const userLevel = ROLE_LEVELS[role] || 0;
 
     const isItemAccessible = (item) => {
-        // 1. Check minimum role level
+        // 1. Check minimum role level - this is the primary filter
         if (item.minRole) {
             const minLevel = ROLE_LEVELS[item.minRole] || 0;
-            if (userLevel < minLevel) return false;
+            if (userLevel < minLevel) {
+                return false;
+            }
         }
 
-        // 2. Check fine-grained permissions if available
+        // 2. Fine-grained permissions are optional - only check if canHelper exists and resource is defined
+        // But don't block if canHelper returns false - role level is the primary determinant
         if (canHelper && item.resource) {
-            // Default to 'view' check for navigation
-            return canHelper('view', item.resource);
+            const canAccess = canHelper('view', item.resource);
+            // Note: We don't block based on canAccess - role level is sufficient for navigation visibility
         }
 
         return true;

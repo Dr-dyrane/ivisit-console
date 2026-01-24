@@ -351,12 +351,30 @@ export const IslandNavigation = () => {
             className="w-full flex items-center gap-3 p-1 rounded-xl hover:bg-muted transition-colors group"
             aria-label="User Settings"
           >
-            <Avatar className="h-9 w-9 rounded-lg border border-border flex-shrink-0">
-              <AvatarImage src={getAvatarUrl(profile, user)} />
-              <AvatarFallback className="bg-primary/5 text-primary text-xs font-semibold">
-                {getAvatarFallback(profile, user)}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className={`h-9 w-9 rounded-lg border-2 flex-shrink-0 ${
+                !isBroad ? profile?.role === 'admin' ? 'border-red-500' :
+                profile?.role === 'org_admin' ? 'border-blue-500' :
+                profile?.role === 'provider' ? 'border-green-500' :
+                profile?.role === 'sponsor' ? 'border-purple-500' :
+                'border-gray-500' : 'border-border'
+              }`}>
+                <AvatarImage src={getAvatarUrl(profile, user)} />
+                <AvatarFallback className="bg-primary/5 text-primary text-xs font-semibold">
+                  {getAvatarFallback(profile, user)}
+                </AvatarFallback>
+              </Avatar>
+              {/* Status dot for expanded state - Apple style */}
+              {isBroad && (
+                <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${
+                  profile?.role === 'admin' ? 'bg-red-500' :
+                  profile?.role === 'org_admin' ? 'bg-blue-500' :
+                  profile?.role === 'provider' ? 'bg-green-500' :
+                  profile?.role === 'sponsor' ? 'bg-purple-500' :
+                  'bg-gray-500'
+                }`} />
+              )}
+            </div>
             {isBroad && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-left overflow-hidden">
                 <p className="text-xs font-semibold truncate text-foreground">{profile?.full_name || 'User'}</p>
