@@ -6,15 +6,16 @@ import { Activity, Database, CheckCircle2 } from 'lucide-react';
 
 
 export const SmartFooter = () => {
-    const { isMobile, isTablet, isDesktop, sidebarOpen } = useNavigation();
-    const { isScrolledDown, footerConfig } = useLayout();
+    const { isMobile } = useNavigation();
+    const { isScrolledDown, footerConfig, sidebarWidth } = useLayout();
 
     // Do not show when not configured as visible
     if (!footerConfig.visible) return null;
 
-    // Calculate dynamic offsets to center perfectly between side rails
-    const rightOffset = isDesktop ? 320 : (isTablet ? (sidebarOpen ? 288 : 80) : 8);
-    const leftOffset = isMobile ? 8 : 72;
+    // Calculate dynamic offsets to center perfectly within the content area
+    // Matching App.js padding logic: Left = sidebarWidth + 48, Right = 48
+    const leftOffset = isMobile ? 16 : (sidebarWidth + 48);
+    const rightOffset = isMobile ? 16 : 48;
 
     return (
         <AnimatePresence>
