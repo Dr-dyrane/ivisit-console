@@ -148,215 +148,204 @@ export const BentoHome = () => {
          - 'grid-flow-dense': The magic sauce. It fills gaps automatically.
       */}
       <LayoutGroup>
+        {/* Apple-style Grid Container */}
         <motion.div
           layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6 auto-rows-min grid-flow-dense"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense surface-1 rounded-3xl p-6"
         >
 
-          {/* Live Emergency Counter - Hero Card (Big & Wide) -> SHARP (Brutalist Anchor) */}
+          {/* Live Emergency Counter - Brand Hero Card */}
           <motion.div
             layout
             className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 row-span-2"
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
           >
             <Link to="/map" className="block h-full group">
-              <Card className="h-full min-h-[320px] geo-sharp glass shadow-2xl p-8 flex flex-col justify-between hover-lift cursor-pointer relative overflow-hidden">
-                {/* Grid Lines Overlay */}
-                <div className="absolute inset-0 opacity-10"
-                  style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--primary))' }}>
-                </div>
-
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                
-                {/* Apple hover glow effect */}
+              <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
+                {/* Shared RGB Hive Effect */}
                 <div className="hover-glow hover-glow-primary" />
-
-                {/* Top Right Icon - New Style */}
-                <div className="absolute top-0 right-0 p-6 z-20">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-primary/10 blur-lg rounded-full scale-125" />
-                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <Activity className="h-6 w-6 text-primary" />
-                    </div>
+                
+                {/* Brand gradient background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                {/* Brand icon - fixed positioning */}
+                <div className="absolute top-6 right-6 z-30">
+                  <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 transition-transform duration-300 group-hover:scale-110">
+                    <Activity className="h-6 w-6 text-primary" />
                   </div>
                 </div>
 
                 <div className="relative z-10 flex flex-col flex-1">
-                  <div className="flex items-center justify-between mb-6">
-                    <Badge className="squircle-sm bg-primary text-primary-foreground px-4 py-2 font-bold editorial-subtitle shadow-glow">LIVE</Badge>
-                  </div>
-
-                  <div className="space-y-3 flex-1">
-                    <p className="editorial-subtitle text-primary">ACTIVE EMERGENCIES</p>
-                    {/* Use clamp or dynamic text sizing to prevent overflow */}
-                    <h2 className="text-7xl lg:text-8xl font-bold tracking-tighter text-gradient-primary leading-none break-words">{appStats.liveEmergencies}</h2>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 squircle-sm surface-2 flex items-center justify-center">
-                        <TrendingUp className="h-4 w-4 text-success" />
-                      </div>
-                      <span className="text-sm font-semibold text-success whitespace-nowrap">-15% vs yesterday</span>
-                    </div>
+                  <div className="space-y-2 flex-1">
+                    <h2 className="text-7xl lg:text-8xl font-semibold text-foreground leading-none tracking-tight">
+                      {appStats.liveEmergencies}
+                    </h2>
+                    <p className="text-xl text-muted-foreground font-medium">Active Emergencies</p>
                   </div>
                 </div>
 
-                <div className="relative z-10 mt-6 h-[80px]">
+                {/* Brand-colored chart */}
+                <div className="relative z-10 h-20">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData}>
-                      <defs>
-                        <linearGradient id="liveGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
-                          <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
                       <Area
                         type="monotone"
                         dataKey="value"
                         stroke="hsl(var(--primary))"
-                        fill="url(#liveGradient)"
-                        strokeWidth={3}
+                        fill="hsl(var(--primary) / 0.1)"
+                        strokeWidth={2}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
 
-                {/* Chevron Bottom Right */}
-                <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-y-1 group-hover:translate-y-0 z-20">
-                  <div className="w-10 h-10 rounded-full surface-2 flex items-center justify-center shadow hover:scale-105 transition-transform">
-                    <ChevronRight className="h-5 w-5 text-primary ml-0.5" />
+                {/* Brand chevron - fixed positioning no overlap */}
+                <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                  <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center border border-primary/30">
+                    <ChevronRight className="h-5 w-5 text-primary" />
                   </div>
                 </div>
-              </Card>
+              </div>
             </Link>
           </motion.div>
 
-          {/* Response Time (Tall) -> ROUND (Soft Counterbalance) */}
+          {/* Response Time - Success Card */}
           <motion.div
             layout
             className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: 0.08 }}
+            transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
           >
-            <Card className="h-full min-h-[320px] geo-round glass shadow-2xl p-7 flex flex-col justify-between hover-lift relative overflow-hidden group">
-              {/* Grid Lines Overlay */}
-              <div className="absolute inset-0 opacity-10"
-                style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--success))' }}>
-              </div>
+            <div className="h-full min-h-[320px] glass-card p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden group hover-lift">
+              {/* Shared RGB Hive Effect */}
+              <div className="hover-glow hover-glow-success" />
+              
+              {/* Success gradient background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-success/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-              {/* Apple hover glow effect */}
-              <div className="absolute inset-0 bg-success/20 blur-3xl scale-110 opacity-0 group-hover:opacity-100 transition-all duration-500 -z-10" />
-
-              {/* Top Right Icon */}
-              <div className="absolute top-0 right-0 p-6 z-20">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
-                  <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                    <Clock className="h-6 w-6 text-success" />
-                  </div>
+              {/* Success icon - fixed positioning */}
+              <div className="absolute top-6 right-6 z-30">
+                <div className="w-12 h-12 bg-success/20 rounded-2xl flex items-center justify-center border border-success/30 transition-transform duration-300 group-hover:scale-110">
+                  <Clock className="h-6 w-6 text-success" />
                 </div>
               </div>
 
-              <div className="relative z-10 flex flex-col flex-1 mt-12">
-                <p className="editorial-subtitle text-success mb-3">AVG RESPONSE TIME</p>
-                <h3 className="text-5xl lg:text-6xl font-bold tracking-tighter break-words leading-tight">
-                  {appStats.responseTime}<span className="text-3xl text-muted-foreground font-semibold ml-1">m</span>
-                </h3>
+              <div className="relative z-10 flex flex-col flex-1">
+                <div className="space-y-2 flex-1">
+                  <h3 className="text-6xl lg:text-7xl font-semibold text-foreground leading-none tracking-tight">
+                    {appStats.responseTime}<span className="text-2xl text-muted-foreground ml-2">m</span>
+                  </h3>
+                  <p className="text-xl text-muted-foreground font-medium">Response Time</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-success font-semibold text-sm relative z-10 mt-4">
-                <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+
+              <div className="flex items-center gap-2 text-success font-medium text-sm relative z-10">
+                <CheckCircle2 className="h-5 w-5" />
                 <span>23% faster today</span>
               </div>
-            </Card>
+
+              {/* Success chevron - fixed positioning no overlap */}
+              <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center border border-success/30">
+                  <ChevronRight className="h-5 w-5 text-success" />
+                </div>
+              </div>
+            </div>
           </motion.div>
 
-          {/* Today's Requests (Tall) */}
+          {/* Today's Requests - Info Card */}
           <motion.div
             layout
             className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: 0.12 }}
+            transition={{ duration: 0.4, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
           >
-            <Card className="h-full min-h-[320px] squircle-3xl glass shadow-2xl p-7 flex flex-col justify-between hover-lift relative overflow-hidden group">
-              {/* Grid Lines Overlay */}
-              <div className="absolute inset-0 opacity-10"
-                style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--info))' }}>
-              </div>
+            <div className="h-full min-h-[320px] glass-card p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden group hover-lift">
+              {/* Shared RGB Hive Effect */}
+              <div className="hover-glow hover-glow-info" />
+              
+              {/* Info gradient background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-info/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-              {/* Apple hover glow effect */}
-              <div className="absolute inset-0 bg-info/20 blur-3xl scale-110 opacity-0 group-hover:opacity-100 transition-all duration-500 -z-10" />
-
-              {/* Top Right Icon */}
-              <div className="absolute top-0 right-0 p-6 z-20">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
-                  <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                    <Activity className="h-6 w-6 text-info" />
-                  </div>
+              {/* Info icon - fixed positioning */}
+              <div className="absolute top-6 right-6 z-30">
+                <div className="w-12 h-12 bg-info/20 rounded-2xl flex items-center justify-center border border-info/30 transition-transform duration-300 group-hover:scale-110">
+                  <Activity className="h-6 w-6 text-info" />
                 </div>
               </div>
 
-              <div className="relative z-10 flex flex-col flex-1 mt-12">
-                <p className="editorial-subtitle text-info mb-3">TODAY&apos;S REQUESTS</p>
-                <h3 className="text-5xl lg:text-6xl font-bold tracking-tighter break-words leading-tight">{appStats.todayRequests}</h3>
+              <div className="relative z-10 flex flex-col flex-1">
+                <div className="space-y-2 flex-1">
+                  <h3 className="text-6xl lg:text-7xl font-semibold text-foreground leading-none tracking-tight">
+                    {appStats.todayRequests}
+                  </h3>
+                  <p className="text-xl text-muted-foreground font-medium">Today's Requests</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-primary font-semibold text-sm relative z-10 mt-4">
-                <TrendingUp className="h-5 w-5 flex-shrink-0" />
+
+              <div className="flex items-center gap-2 text-info font-medium text-sm relative z-10">
+                <TrendingUp className="h-5 w-5" />
                 <span>+8% vs yesterday</span>
               </div>
-            </Card>
+
+              {/* Info chevron - fixed positioning no overlap */}
+              <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                <div className="w-10 h-10 bg-info/20 rounded-full flex items-center justify-center border border-info/30">
+                  <ChevronRight className="h-5 w-5 text-info" />
+                </div>
+              </div>
+            </div>
           </motion.div>
 
-          {/* Navigation Cards - God Mode (Medium) */}
+          {/* Map View - Secondary Navigation Card */}
           <motion.div
             layout
             className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: 0.16 }}
+            transition={{ duration: 0.4, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
           >
             <Link to="/map" className="block h-full group">
-              <Card
-                className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer group relative overflow-hidden flex flex-col justify-between"
-              >
-                {/* Apple hover glow effect */}
-                <div className="absolute inset-0 bg-secondary/20 blur-3xl scale-110 opacity-0 group-hover:opacity-100 transition-all duration-500 -z-10" />
-                <div className="absolute inset-0 opacity-5"
-                  style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)', backgroundSize: '40px 40px', color: 'hsl(var(--secondary))' }}>
-                </div>
+              <div className="h-full min-h-[160px] glass-card p-8 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between">
+                {/* Shared RGB Hive Effect */}
+                <div className="hover-glow hover-glow-secondary" />
+                
+                {/* Secondary gradient background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                <div className="absolute inset-0 bg-gradient-to-br from-secondary/8 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                {/* Top Right Icon */}
-                <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <MapPin className="h-5 w-5 text-secondary" />
-                    </div>
+                {/* Secondary icon - fixed positioning */}
+                <div className="absolute top-6 right-6 z-30">
+                  <div className="w-12 h-12 bg-secondary/20 rounded-2xl flex items-center justify-center border border-secondary/30 transition-transform duration-300 group-hover:scale-110">
+                    <MapPin className="h-6 w-6 text-secondary" />
                   </div>
                 </div>
 
                 <div className="relative z-10 flex flex-col h-full justify-between gap-4">
                   <div className="flex justify-between items-start">
-                    {/* Replaced old icon with simple spacing or alternative content if needed */}
-                    <div className="w-12 h-12 squircle bg-secondary/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
+                    <div className="w-12 h-12 bg-secondary/20 rounded-2xl flex items-center justify-center group-hover:opacity-0 transition-opacity">
                       <MapPin className="h-6 w-6 text-secondary" />
                     </div>
-                    <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
-                      <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                        <ChevronRight className="h-5 w-5 text-secondary ml-0.5" />
-                      </div>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <ChevronRight className="h-6 w-6 text-secondary" />
                     </div>
                   </div>
                   <div>
-                    <p className="editorial-subtitle text-secondary mb-1">MAP VIEW</p>
-                    <h4 className="font-bold text-xl tracking-tight">God Mode</h4>
-                    <p className="text-sm text-muted-foreground font-medium">Live tracking</p>
+                    <h4 className="font-semibold text-2xl tracking-tight text-foreground">Live Map</h4>
+                    <p className="text-lg text-muted-foreground font-medium">Real-time tracking</p>
                   </div>
                 </div>
-              </Card>
+
+                {/* Secondary chevron - fixed positioning no overlap */}
+                <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                  <div className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center border border-secondary/30">
+                    <ChevronRight className="h-5 w-5 text-secondary" />
+                  </div>
+                </div>
+              </div>
             </Link>
           </motion.div>
 
@@ -435,97 +424,102 @@ export const BentoHome = () => {
             </Link>
           </motion.div>
 
-          {/* Quick Actions Grid */}
+          {/* Quick Actions - Brand-Aware Grid */}
           {[
-            { id: 'hospitals', icon: Hospital, label: 'Hospitals', sub: `${analyticsData?.activeHospitals || 8} active`, color: 'primary', path: '/hospitals', minRole: 'provider' },
-            { id: 'ambulances', icon: Ambulance, label: 'Fleet', sub: `${appStats.availableAmbulances} units`, color: 'success', path: '/ambulances', minRole: 'provider' },
-            { id: 'doctors', icon: Stethoscope, label: 'Doctors', sub: `${doctorsStats?.totalDoctors || 48} medical staff`, color: 'info', path: '/doctors', minRole: 'provider' },
-            { id: 'users', icon: Users, label: 'Users', sub: `${appStats.totalUsers} total`, color: 'secondary', path: '/users', minRole: 'admin' },
-            { id: 'visits', icon: Calendar, label: 'Visits', sub: `${visitsStats?.today || 24} today`, color: 'warning', path: '/visits', minRole: 'provider' },
-            { id: 'emergencies', icon: AlertTriangle, label: 'Emergencies', sub: `${emergencyStats?.total || 0} requests`, color: 'destructive', path: '/emergencies', minRole: 'provider' },
+            { id: 'hospitals', icon: Hospital, label: 'Hospitals', sub: `${analyticsData?.activeHospitals || 8}`, color: 'primary', path: '/hospitals', minRole: 'provider' },
+            { id: 'ambulances', icon: Ambulance, label: 'Fleet', sub: `${appStats.availableAmbulances}`, color: 'success', path: '/ambulances', minRole: 'provider' },
+            { id: 'doctors', icon: Stethoscope, label: 'Doctors', sub: `${doctorsStats?.totalDoctors || 48}`, color: 'info', path: '/doctors', minRole: 'provider' },
+            { id: 'users', icon: Users, label: 'Users', sub: `${appStats.totalUsers}`, color: 'secondary', path: '/users', minRole: 'admin' },
+            { id: 'visits', icon: Calendar, label: 'Visits', sub: `${visitsStats?.today || 24}`, color: 'warning', path: '/visits', minRole: 'provider' },
+            { id: 'emergencies', icon: AlertTriangle, label: 'Emergencies', sub: `${emergencyStats?.total || 0}`, color: 'destructive', path: '/emergencies', minRole: 'provider' },
           ].filter(item => !item.minRole || hasMinRole(item.minRole)).map((item, idx) => (
             <motion.div
               layout
               key={item.id}
               className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: 0.28 + (idx * 0.03) }}
+              transition={{ duration: 0.4, delay: 0.4 + (idx * 0.05), ease: [0.4, 0, 0.2, 1] }}
             >
               <Link to={item.path} className="block h-full group" data-testid={`quick-${item.id}`}>
-                <Card
-                  className="h-full min-h-[140px] squircle-lg glass shadow-premium p-5 flex flex-col justify-between hover-lift cursor-pointer relative overflow-hidden"
-                >
-                  {/* Apple hover glow effect */}
+                <div className="h-full min-h-[140px] glass-card p-6 hover-lift cursor-pointer relative overflow-hidden">
+                  {/* Shared RGB Hive Effect */}
                   <div className={`hover-glow hover-glow-${item.color}`} />
+                  
+                  {/* Brand-aware gradient */}
+                  <div className={`absolute inset-0 bg-gradient-to-br from-${item.color}/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                  
                   <div className="flex justify-between items-start">
-                    <div className={`w-10 h-10 squircle surface-2 flex items-center justify-center`}>
-                      <item.icon className={`h-5 w-5 text-${item.color}`} />
+                    <div className={`w-12 h-12 bg-${item.color}/20 rounded-2xl flex items-center justify-center border border-${item.color}/30 transition-transform duration-300 group-hover:scale-110`}>
+                      <item.icon className={`h-6 w-6 text-${item.color}`} />
                     </div>
-                    <div className="hover-reveal opacity-0 group-hover:opacity-100 transition-all duration-300">
-                      <div className={`w-8 h-8 rounded-full surface-2 flex items-center justify-center shadow hover:scale-105 transition-transform`}>
-                        <ChevronRight className={`h-4 w-4 text-${item.color} ml-0.5`} />
-                      </div>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <ChevronRight className={`h-5 w-5 text-${item.color}`} />
                     </div>
                   </div>
-                  <div>
-                    <h4 className="font-bold tracking-tight">{item.label}</h4>
-                    <p className="text-xs text-muted-foreground font-medium truncate">{item.sub}</p>
+                  
+                  <div className="mt-4">
+                    <h4 className="font-semibold text-lg tracking-tight text-foreground">{item.label}</h4>
+                    <p className="text-base text-muted-foreground font-medium">{item.sub}</p>
                   </div>
-                </Card>
+
+                  {/* Fixed chevron positioning no overlap */}
+                  <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                    <div className={`w-8 h-8 bg-${item.color}/20 rounded-full flex items-center justify-center border border-${item.color}/30`}>
+                      <ChevronRight className={`h-4 w-4 text-${item.color}`} />
+                    </div>
+                  </div>
+                </div>
               </Link>
             </motion.div>
           ))}
 
 
-          {/* Trending Topics Card */}
+          {/* Trending Topics - Warning Card */}
           <motion.div
             layout
             className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-1"
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.75 }}
+            transition={{ duration: 0.4, delay: 0.8, ease: [0.4, 0, 0.2, 1] }}
           >
             <Link to="/trending" className="block h-full group">
-              <Card
-                className="h-full min-h-[160px] geo-round glass shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between"
-              >
-                {/* Trending Pattern */}
-                <div className="absolute inset-0 opacity-5"
-                  style={{ backgroundImage: 'linear-gradient(45deg, currentColor 25%, transparent 25%), linear-gradient(-45deg, currentColor 25%, transparent 25%), linear-gradient(45deg, transparent 75%, currentColor 75%), linear-gradient(-45deg, transparent 75%, currentColor 75%)', backgroundSize: '20px 20px', backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px', color: 'hsl(var(--warning))' }}>
-                </div>
-
-                {/* Apple hover glow effect */}
+              <div className="h-full min-h-[160px] glass-card p-8 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between">
+                {/* Shared RGB Hive Effect */}
                 <div className="hover-glow hover-glow-warning" />
+                
+                {/* Warning gradient background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-warning/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                {/* Top Right Icon */}
-                <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <TrendingUp className="h-5 w-5 text-warning" />
-                    </div>
+                {/* Warning icon - fixed positioning */}
+                <div className="absolute top-6 right-6 z-30">
+                  <div className="w-12 h-12 bg-warning/20 rounded-2xl flex items-center justify-center border border-warning/30 transition-transform duration-300 group-hover:scale-110">
+                    <TrendingUp className="h-6 w-6 text-warning" />
                   </div>
                 </div>
 
                 <div className="relative z-10 flex flex-col h-full justify-between gap-4">
                   <div className="flex justify-between items-start">
-                    <div className="w-12 h-12 squircle bg-warning/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
+                    <div className="w-12 h-12 bg-warning/20 rounded-2xl flex items-center justify-center group-hover:opacity-0 transition-opacity">
                       <TrendingUp className="h-6 w-6 text-warning" />
                     </div>
-                    <Badge className="squircle-sm bg-warning/20 text-warning border-0 font-bold editorial-subtitle px-2 py-0.5">TRENDING</Badge>
-                  </div>
-                  <div>
-                    <p className="editorial-subtitle text-warning mb-1">INSIGHTS</p>
-                    <h4 className="font-bold text-xl tracking-tight">Trending Topics</h4>
-                    <p className="text-sm text-muted-foreground font-medium">24 hot topics today</p>
-                    <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
-                      <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                        <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
-                      </div>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <ChevronRight className="h-6 w-6 text-warning" />
                     </div>
                   </div>
+                  <div>
+                    <h4 className="font-semibold text-2xl tracking-tight text-foreground">Trending</h4>
+                    <p className="text-lg text-muted-foreground font-medium">24 topics today</p>
+                  </div>
                 </div>
-              </Card>
+
+                {/* Warning chevron - fixed positioning no overlap */}
+                <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                  <div className="w-10 h-10 bg-warning/20 rounded-full flex items-center justify-center border border-warning/30">
+                    <ChevronRight className="h-5 w-5 text-warning" />
+                  </div>
+                </div>
+              </div>
             </Link>
           </motion.div>
 
