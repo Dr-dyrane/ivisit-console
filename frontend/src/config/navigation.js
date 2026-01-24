@@ -26,7 +26,7 @@ export const NAV_CONFIG = {
     main: [
         { id: 'home', path: '/', icon: Home, label: 'Dashboard', resource: 'dashboard' },
         { id: 'map', path: '/map', icon: MapPin, label: 'Live Map', resource: 'map' },
-        { id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics', resource: 'analytics', minRole: 'viewer' },
+        { id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics', resource: 'analytics', minRole: 'provider' },
     ],
     ops: {
         id: 'ops',
