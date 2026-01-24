@@ -118,7 +118,7 @@ export const BentoHome = () => {
     { time: '20:00', value: 12 },
   ];
 
-  usePageHeader("Command Center", headerActions);
+  usePageHeader("Overview", headerActions);
 
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
