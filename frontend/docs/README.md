@@ -33,13 +33,23 @@ All 11 management pages have been successfully upgraded to the gold standard UI/
 
 ```
 docs/
-├── user-management/     # User, profile, and RBAC documentation
-├── provider-management/ # Doctor, ambulance, and provider system docs
-├── modal-fixes/         # Modal state management fixes and patterns
-├── ui-ux/              # Layout, navigation, and design system
-├── database/           # Schema, migrations, and data flow
-├── archived/           # Older or superseded documentation
-├── GOLD_STANDARD_UPGRADE_PLAN.md # ✅ COMPLETED - All management pages upgraded
+├── rbac/                 # Role-Based Access Control
+│   ├── README.md           # RBAC overview & navigation
+│   ├── RBAC_DASHBOARD_IMPLEMENTATION.md
+│   ├── RBAC_IMPLEMENTATION_COMPLETE.md
+│   ├── RBAC_IMPLEMENTATION_SUMMARY.md
+│   ├── SCOPE_BASED_RBAC_GUIDE.md
+│   └── RBAC_NAVIGATION_DESIGN.md
+├── implementation/         # Implementation guides
+│   └── README.md           # Implementation overview
+├── fixes/                # Bug fixes & optimizations
+│   ├── README.md           # Fixes overview
+│   └── INFINITE_LOOP_FIXES.md
+├── user-management/        # User, profile, and RBAC
+├── provider-management/    # Doctor, ambulance, and provider system
+├── ui-ux/                # Layout, navigation, and design system
+├── database/             # Schema, migrations, and data flow
+├── archived/             # Older or superseded documentation
 └── README.md           # This file
 ```
 

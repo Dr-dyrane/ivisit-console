@@ -38,7 +38,7 @@ export const NAV_CONFIG = {
             { id: 'emergencies', path: '/emergencies', icon: AlertTriangle, label: 'Emergencies', resource: 'emergencies', minRole: 'provider' },
 
             // Org Admin+ items (fleet/network management)
-            { id: 'hospitals', path: '/hospitals', icon: Hospital, label: 'Hospitals', resource: 'hospitals', minRole: 'org_admin' },
+            { id: 'hospitals', path: '/hospitals', icon: Hospital, label: 'Hospitals', resource: 'hospitals', minRole: 'admin' },
             { id: 'ambulances', path: '/ambulances', icon: Ambulance, label: 'Ambulances', resource: 'ambulances', minRole: 'org_admin' },
             { id: 'doctors', path: '/doctors', icon: Stethoscope, label: 'Doctors', resource: 'doctors', minRole: 'org_admin' },
         ]

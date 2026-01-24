@@ -1,8 +1,9 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, X } from 'lucide-react';
+import { Sparkles, X, Shield, Lock } from 'lucide-react';
 import { usePageData } from '../../contexts/PageDataContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import {
   EmergencyPanel,
@@ -25,6 +26,7 @@ import {
 export const ContextPanel = () => {
   const location = useLocation();
   const currentPath = location.pathname;
+  const { isAdmin, isOrgAdmin, isProvider, isPatient, isViewer, isSponsor } = useAuth();
   const {
     emergencyData,
     analyticsData,
@@ -48,6 +50,59 @@ export const ContextPanel = () => {
   const { subscribers } = useSubscription();
 
   const emergencyStats = getEmergencyStats();
+
+  // Role-based access control for context panels
+  const canAccessPanel = (panelPath) => {
+    // Define role access rules for each panel
+    const panelAccess = {
+      '/': true, // Dashboard - everyone can access
+      '/emergencies': !isPatient() && !isViewer(), // Operational roles only
+      '/users': isAdmin(), // Admin only
+      '/verification': isAdmin(), // Admin only
+      '/analytics': isAdmin() || isOrgAdmin() || isSponsor(), // Management and sponsors
+      '/doctors': isAdmin() || isOrgAdmin(), // Management only
+      '/visits': isProvider() || isAdmin() || isOrgAdmin(), // Providers and management
+      '/hospitals': isAdmin() || isOrgAdmin(), // Management only
+      '/ambulances': isAdmin() || isOrgAdmin(), // Management only
+      '/health-news': !isPatient(), // Everyone except patients
+      '/support-tickets': isProvider() || isAdmin() || isOrgAdmin(), // Providers and management
+      '/insurance': isAdmin(), // Admin only
+      '/map': !isPatient() && !isViewer(), // Operational roles only
+      '/settings': isAdmin(), // Admin only
+      '/subscriptions': isAdmin(), // Admin only
+    };
+
+    // Check if current path starts with any protected path
+    for (const [path, allowed] of Object.entries(panelAccess)) {
+      if (currentPath === path || currentPath.startsWith(path + '/')) {
+        return allowed;
+      }
+    }
+    
+    return true; // Default to allowed for unknown paths
+  };
+
+  const renderAccessDenied = () => (
+    <div className="p-2 md:p-6 scrollbar-hide">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+        className="text-center py-12"
+      >
+        <div className="w-16 h-16 bg-destructive/20 rounded-2xl flex items-center justify-center border border-destructive/30 mx-auto mb-6">
+          <Lock className="h-8 w-8 text-destructive" />
+        </div>
+        <h3 className="font-bold text-xl mb-2 text-foreground">Access Restricted</h3>
+        <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
+          You don't have permission to view this context panel
+        </p>
+        <div className="text-xs text-muted-foreground font-medium">
+          Contact your administrator if you need access to this feature
+        </div>
+      </motion.div>
+    </div>
+  );
 
   const getPageContextHeader = () => {
     const headers = {
@@ -133,7 +188,11 @@ export const ContextPanel = () => {
     </div>
   );
 
-  // Render based on current path
+  // Render based on current path with RBAC check
+  if (!canAccessPanel(currentPath)) {
+    return renderAccessDenied();
+  }
+
   if (currentPath === '/' || currentPath === '') {
     return renderPanelWithHeader(
       <DashboardPanel

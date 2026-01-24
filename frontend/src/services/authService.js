@@ -16,14 +16,15 @@ export async function getCurrentUser() {
     // Get user profile with role and organization
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, organization_id')
+      .select('role, organization_id, full_name, username')
       .eq('id', session.user.id)
       .single();
 
     return {
       ...session.user,
       role: profile?.role || 'viewer',
-      organization_id: profile?.organization_id || null
+      organization_id: profile?.organization_id || null,
+      full_name: profile?.full_name || profile?.username || null
     };
   } catch (error) {
     console.error('Error getting current user:', error);
@@ -101,12 +102,23 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
     // Provider/Doctor sees only records assigned to them
     console.log(`[RBAC] Provider - applying specialized filtering for ${resourceType}`);
 
-    // For visits and emergencies, filter by doctor_id
+    // For visits and emergencies, prioritizing hospital-based scoping
     if (resourceType === 'visit' || resourceType === 'emergency') {
-      // Filter by provider assignment field
-      if (providerIdField && userId) {
-        console.log(`[RBAC] Provider - filtering by ${providerIdField} = ${userId}`);
-        query = query.eq(providerIdField, userId);
+      // If provider belongs to an organization (hospital), filter by that hospital ID
+      if (orgId && orgIdField) {
+        console.log(`[RBAC] Provider - filtering by ${orgIdField} = ${orgId} (Hospital Scope)`);
+        query = query.eq(orgIdField, orgId);
+      }
+      // Fallback: Filter by provider assignment if no hospital linked (Independent provider?)
+      else if (resourceType === 'visit' && providerIdField && user?.full_name) {
+        console.log(`[RBAC] Provider - filtering by ${providerIdField} = ${user.full_name}`);
+        query = query.eq(providerIdField, user.full_name);
+      } else if (userId) {
+        // Fallback: try UUID if no hospital and no name match possible
+        // For emergencies, this defaults to user_id which is likely the reporter, not the responder
+        // But without hospital_id, this is the safest fallback
+        console.log(`[RBAC] Provider - filtering by ${userIdField} = ${userId}`);
+        query = query.eq(userIdField, userId);
       }
     } else if (resourceType === 'support') {
       // Support tickets: providers see only tickets they created

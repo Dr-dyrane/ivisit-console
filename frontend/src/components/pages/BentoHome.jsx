@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -74,7 +74,7 @@ export const BentoHome = () => {
   });
 
   // Calculate app-wide stats from all data sources
-  const appStats = {
+  const appStats = useMemo(() => ({
     liveEmergencies: emergencyStats?.critical || 0,
     responseTime: Math.round((analyticsData?.avgResponseTime || 4.2) * 10) / 10, // Round to 1 decimal place
     activeProviders: doctorsStats?.totalDoctors || 48,
@@ -83,7 +83,7 @@ export const BentoHome = () => {
     completionRate: analyticsData?.completionRate || 94,
     availableAmbulances: analyticsData?.availableAmbulances || 12,
     pendingVerifications: verificationData?.pending || 15
-  };
+  }), [emergencyStats, analyticsData, doctorsStats, verificationData]);
 
   // Debug: Log real data to console
   useEffect(() => {
@@ -112,12 +112,12 @@ export const BentoHome = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
         <div className="relative z-10 flex flex-col flex-1">
           <div className="space-y-2 flex-1">
-            <div className="h-16 w-32 bg-muted/50 rounded-lg animate-pulse" />
-            <div className="h-6 w-48 bg-muted/30 rounded-lg animate-pulse" />
+            <div className="h-16 w-32 bg-muted/50 rounded-lg shimmer" />
+            <div className="h-6 w-48 bg-muted/30 rounded-lg shimmer" />
           </div>
         </div>
         <div className="relative z-10 h-20">
-          <div className="h-full w-full bg-muted/20 rounded-lg animate-pulse" />
+          <div className="h-full w-full bg-muted/20 rounded-lg shimmer" />
         </div>
       </div>
     </motion.div>
@@ -134,12 +134,12 @@ export const BentoHome = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-muted/10 via-transparent to-transparent" />
         <div className="relative z-10 flex flex-col h-full justify-between gap-4">
           <div className="flex justify-between items-start">
-            <div className="w-12 h-12 bg-muted/30 rounded-2xl animate-pulse" />
-            <div className="w-16 h-6 bg-muted/20 rounded-lg animate-pulse" />
+            <div className="w-12 h-12 bg-muted/30 rounded-2xl shimmer" />
+            <div className="w-16 h-6 bg-muted/20 rounded-lg shimmer" />
           </div>
           <div className="space-y-2">
-            <div className="h-8 w-24 bg-muted/40 rounded-lg animate-pulse" />
-            <div className="h-4 w-32 bg-muted/20 rounded-lg animate-pulse" />
+            <div className="h-8 w-24 bg-muted/40 rounded-lg shimmer" />
+            <div className="h-4 w-32 bg-muted/20 rounded-lg shimmer" />
           </div>
         </div>
       </div>
@@ -157,12 +157,12 @@ export const BentoHome = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-muted/5 via-transparent to-transparent" />
         <div className="relative z-10">
           <div className="flex justify-between items-start mb-4">
-            <div className="w-12 h-12 bg-muted/30 rounded-2xl animate-pulse" />
-            <div className="w-8 h-8 bg-muted/20 rounded-lg animate-pulse" />
+            <div className="w-12 h-12 bg-muted/30 rounded-2xl shimmer" />
+            <div className="w-8 h-8 bg-muted/20 rounded-lg shimmer" />
           </div>
           <div className="space-y-2">
-            <div className="h-6 w-20 bg-muted/40 rounded-lg animate-pulse" />
-            <div className="h-4 w-16 bg-muted/20 rounded-lg animate-pulse" />
+            <div className="h-6 w-20 bg-muted/40 rounded-lg shimmer" />
+            <div className="h-4 w-16 bg-muted/20 rounded-lg shimmer" />
           </div>
         </div>
       </div>
@@ -206,17 +206,106 @@ export const BentoHome = () => {
 
   usePageHeader("Overview", headerActions);
 
-  const footerContent = React.useMemo(() => (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
-        <Activity className="w-3 h-3" />
-        <span>Vitals: Nominal</span>
+  const footerContent = React.useMemo(() => {
+    // Role-based footer content
+    if (isAdmin()) {
+      return (
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
+            <Activity className="w-3 h-3" />
+            <span>System: Nominal</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
+            <span>Nodes: {appStats.totalUsers || 3} Active</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
+            <span>Emergencies: {appStats.liveEmergencies}</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (isOrgAdmin()) {
+      return (
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
+            <Activity className="w-3 h-3" />
+            <span>Hospital: Operational</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
+            <span>Staff: {appStats.activeProviders} Active</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
+            <span>Response: {appStats.responseTime}min</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (isProvider()) {
+      return (
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
+            <Activity className="w-3 h-3" />
+            <span>Available: Ready</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
+            <span>Patients: {appStats.todayRequests}</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-info">
+            <span>Shift: Active</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (isPatient()) {
+      return (
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
+            <Activity className="w-3 h-3" />
+            <span>Care: Available</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
+            <span>Requests: {appStats.todayRequests}</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-info">
+            <span>Support: Online</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (isSponsor()) {
+      return (
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
+            <Activity className="w-3 h-3" />
+            <span>Impact: Active</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
+            <span>Success: {appStats.completionRate}%</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
+            <span>Lives: {appStats.totalUsers}</span>
+          </div>
+        </div>
+      );
+    }
+
+    // Default for viewers
+    return (
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
+          <Activity className="w-3 h-3" />
+          <span>Platform: Online</span>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
+          <span>Services: Available</span>
+        </div>
       </div>
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
-        <span>Nodes: 3 Active</span>
-      </div>
-    </div>
-  ), []);
+    );
+  }, [isAdmin, isOrgAdmin, isProvider, isPatient, isSponsor, appStats]);
 
   usePageFooter(footerContent, 'status');
 
@@ -236,22 +325,22 @@ export const BentoHome = () => {
           >
             {/* Emergency Counter Skeleton */}
             {!isPatient() && !isViewer() && <EmergencyCardSkeleton />}
-            
+
             {/* Response Time Skeleton */}
             {(isAdmin() || isOrgAdmin()) && <MetricCardSkeleton />}
-            
+
             {/* Today's Requests Skeleton */}
             {(isAdmin() || isOrgAdmin() || isProvider()) && <MetricCardSkeleton />}
-            
+
             {/* Map View Skeleton */}
             {(isAdmin() || isOrgAdmin() || isProvider()) && <MetricCardSkeleton />}
-            
+
             {/* Verification Queue Skeleton */}
             {isAdmin() && <MetricCardSkeleton />}
-            
+
             {/* Analytics Skeleton */}
             {(isAdmin() || isOrgAdmin() || isSponsor()) && <MetricCardSkeleton />}
-            
+
             {/* Patient-specific Skeletons */}
             {isPatient() && (
               <>
@@ -261,7 +350,7 @@ export const BentoHome = () => {
                 <QuickActionCardSkeleton />
               </>
             )}
-            
+
             {/* Viewer-specific Skeletons */}
             {isViewer() && (
               <>
@@ -270,7 +359,7 @@ export const BentoHome = () => {
                 <QuickActionCardSkeleton />
               </>
             )}
-            
+
             {/* Sponsor-specific Skeletons */}
             {isSponsor() && (
               <>
@@ -279,7 +368,7 @@ export const BentoHome = () => {
                 <QuickActionCardSkeleton />
               </>
             )}
-            
+
             {/* Quick Actions Skeletons */}
             {(isAdmin() || isOrgAdmin()) && (
               <>
@@ -289,7 +378,7 @@ export const BentoHome = () => {
                 <QuickActionCardSkeleton />
               </>
             )}
-            
+
             {/* Provider-specific Skeletons */}
             {isProvider() && !isAdmin() && !isOrgAdmin() && (
               <>
@@ -624,7 +713,7 @@ export const BentoHome = () => {
                   <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
                     <div className="hover-glow hover-glow-primary" />
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    
+
                     <div className="absolute top-6 right-6 z-30">
                       <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 transition-transform duration-300 group-hover:scale-110">
                         <Calendar className="h-6 w-6 text-primary" />
@@ -722,7 +811,7 @@ export const BentoHome = () => {
                 <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
                   <div className="hover-glow hover-glow-primary" />
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  
+
                   <div className="absolute top-6 right-6 z-30">
                     <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 transition-transform duration-300 group-hover:scale-110">
                       <Activity className="h-6 w-6 text-primary" />
@@ -806,7 +895,7 @@ export const BentoHome = () => {
                   <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
                     <div className="hover-glow hover-glow-success" />
                     <div className="absolute inset-0 bg-gradient-to-br from-success/10 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    
+
                     <div className="absolute top-6 right-6 z-30">
                       <div className="w-12 h-12 bg-success/20 rounded-2xl flex items-center justify-center border border-success/30 transition-transform duration-300 group-hover:scale-110">
                         <TrendingUp className="h-6 w-6 text-success" />

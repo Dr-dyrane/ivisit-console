@@ -32,7 +32,7 @@ export async function getEmergencyRequests(filter) {
     query = applyAuthFilter(query, user, {
       userIdField: 'user_id',
       orgIdField: 'hospital_id', // Org admins see emergencies at their hospital
-      providerIdField: 'assigned_doctor_id', // Providers see only assigned emergencies
+      providerIdField: 'user_id', // Providers see only their own emergencies
       resourceType: 'emergency' // Enables provider-specific logic
     });
 

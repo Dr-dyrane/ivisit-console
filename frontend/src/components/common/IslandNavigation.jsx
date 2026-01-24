@@ -21,6 +21,12 @@ import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 
 import { NAV_CONFIG, getAccessibleNav } from '../../config/navigation';
 
+// Memoize the navigation function to prevent object recreation
+const memoizedGetAccessibleNav = (profile, can) => {
+  if (!profile || !can) return { main: [], ops: null, mgmt: null };
+  return getAccessibleNav(profile, can);
+};
+
 export const IslandNavigation = () => {
   const { sidebarMode, setSidebarMode, sidebarWidth, isScrolledDown } = useLayout();
   const { profile, user, can } = useAuth();
@@ -76,7 +82,7 @@ export const IslandNavigation = () => {
       >
         {/* Shared RGB Hive Effect - Subtle */}
         <div className={`hover-glow ${isActive ? 'hover-glow-primary/50' : 'hover-glow-muted/30'}`} />
-        
+
         <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${isActive ? 'text-primary scale-110' : 'text-muted-foreground group-hover:text-foreground group-hover:scale-105'}`} />
         {isBroad && !isCentered && (
           <AnimatePresence>
@@ -270,7 +276,6 @@ export const IslandNavigation = () => {
           {renderGroup(accessibleNav.mgmt)}
         </div>
 
-        {/* 3. PROFILE & THEME */}
         <div className="p-4 border-t border-border/10 space-y-3">
           {/* Sidebar Control Trigger */}
           <div className="flex w-full">
@@ -354,13 +359,12 @@ export const IslandNavigation = () => {
             aria-label="User Settings"
           >
             <div className="relative">
-              <Avatar className={`h-9 w-9 rounded-lg border-2 flex-shrink-0 ${
-                !isBroad ? profile?.role === 'admin' ? 'border-red-500' :
-                profile?.role === 'org_admin' ? 'border-blue-500' :
-                profile?.role === 'provider' ? 'border-green-500' :
-                profile?.role === 'sponsor' ? 'border-purple-500' :
-                'border-gray-500' : 'border-border'
-              }`}>
+              <Avatar className={`h-9 w-9 rounded-lg border-2 flex-shrink-0 ${!isBroad ? profile?.role === 'admin' ? 'border-red-500' :
+                  profile?.role === 'org_admin' ? 'border-blue-500' :
+                    profile?.role === 'provider' ? 'border-green-500' :
+                      profile?.role === 'sponsor' ? 'border-purple-500' :
+                        'border-gray-500' : 'border-border'
+                }`}>
                 <AvatarImage src={getAvatarUrl(profile, user)} />
                 <AvatarFallback className="bg-primary/5 text-primary text-xs font-semibold">
                   {getAvatarFallback(profile, user)}
@@ -368,13 +372,12 @@ export const IslandNavigation = () => {
               </Avatar>
               {/* Status dot for expanded state - Apple style */}
               {isBroad && (
-                <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${
-                  profile?.role === 'admin' ? 'bg-red-500' :
-                  profile?.role === 'org_admin' ? 'bg-blue-500' :
-                  profile?.role === 'provider' ? 'bg-green-500' :
-                  profile?.role === 'sponsor' ? 'bg-purple-500' :
-                  'bg-gray-500'
-                }`} />
+                <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${profile?.role === 'admin' ? 'bg-red-500' :
+                    profile?.role === 'org_admin' ? 'bg-blue-500' :
+                      profile?.role === 'provider' ? 'bg-green-500' :
+                        profile?.role === 'sponsor' ? 'bg-purple-500' :
+                          'bg-gray-500'
+                  }`} />
               )}
             </div>
             {isBroad && (

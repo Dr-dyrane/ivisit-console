@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { X, Ambulance, MapPin, Activity, Star, Calendar, Hospital, Shield, Zap } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
-import { createAmbulance, updateAmbulance } from '../../services/ambulancesService';
+import { createAmbulance, updateAmbulance, getDrivers, assignDriverToAmbulance } from '../../services/ambulancesService';
 
 import { uploadImage } from '../../services/storageService';
 import { Loader2, Upload, UserPlus, Users } from 'lucide-react';
@@ -38,6 +38,8 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
   const [availableProfiles, setAvailableProfiles] = useState([]);
   const [fetchingProfiles, setFetchingProfiles] = useState(false);
   const [linkingExisting, setLinkingExisting] = useState(true);
+  const [drivers, setDrivers] = useState([]);
+  const [selectedDriver, setSelectedDriver] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);

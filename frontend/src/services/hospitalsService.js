@@ -13,21 +13,24 @@ const TABLE_NAME = 'hospitals';
  * Get all hospitals with optional filters
  * Admin users can see all hospitals, org admins see only their hospital, others see verified ones
  */
-export async function getHospitals(filter) {
+export async function getHospitals(filter = {}) {
   try {
     const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
 
-    // Apply RBAC Scoping
-    query = applyAuthFilter(query, user, {
-      orgIdField: 'id', // Org admins can only see THEIR hospital (single record)
-      bypassForAdmin: true
-    });
-
-    // Additional filter: non-org-admin, non-admin users only see verified
+    // Providers shouldn't filter hospitals by user_id - they see all verified hospitals
     if (user?.role !== 'admin' && user?.role !== 'org_admin') {
+      // For providers and other roles, only show verified hospitals without user_id filtering
       query = query.eq('verified', true);
+    } else {
+      // Apply RBAC Scoping only for admins and org admins
+      query = applyAuthFilter(query, user, {
+        orgIdField: 'id', // Org admins can only see THEIR hospital (single record)
+        bypassForAdmin: true
+      });
     }
+
+    // Remove user_id filter as it doesn't exist in hospitals table
 
     if (filter?.status) {
       query = query.eq('status', filter.status);

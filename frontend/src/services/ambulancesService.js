@@ -18,16 +18,22 @@ export async function getAmbulances(filter = {}) {
     const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
 
-    // 1. Apply RBAC Scoping
-    query = applyAuthFilter(query, user, {
-      userIdField: 'profile_id',
-      orgIdField: 'hospital'
-    });
+    // Providers shouldn't filter ambulances by profile_id - they see all available ambulances
+    if (user?.role === 'provider') {
+      // For providers, only show available ambulances without profile_id filtering
+      query = query.eq('status', 'available');
+    } else {
+      // Apply RBAC Scoping for other roles
+      query = applyAuthFilter(query, user, {
+        userIdField: 'profile_id',
+        orgIdField: 'hospital_id'
+      });
+    }
 
     // 2. Apply Custom Filters
 
     if (filter?.hospital_id) {
-      query = query.eq('hospital', filter.hospital_id);
+      query = query.eq('hospital_id', filter.hospital_id);
     }
     if (filter?.status) {
       query = query.eq('status', filter.status);
@@ -81,14 +87,15 @@ export async function getAmbulance(ambulanceId) {
 export async function createAmbulance(input) {
   try {
     const payload = {
-      profile_id: input.profile_id,
+      id: input.id,
       type: input.type,
       call_sign: input.call_sign,
       status: input.status || 'available',
       location: input.location,
       eta: input.eta,
       crew: input.crew,
-      hospital: input.hospital || input.hospital_id,
+      hospital: input.hospital, // Keep hospital as text field
+      hospital_id: input.hospital_id, // Add hospital_id as UUID field
       vehicle_number: input.vehicle_number,
       last_maintenance: input.last_maintenance,
       rating: input.rating,
@@ -134,6 +141,110 @@ export async function updateAmbulance(ambulanceId, input) {
     return data;
   } catch (error) {
     console.error(`Error updating ambulance ${ambulanceId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Assign driver to ambulance
+ */
+export async function assignDriverToAmbulance(ambulanceId, driverId) {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .update({ 
+        driver_id: driverId,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', ambulanceId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error(`Error assigning driver to ambulance ${ambulanceId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Update ambulance location (for driver app)
+ */
+export async function updateAmbulanceLocation(ambulanceId, location) {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .update({
+        driver_location: location,
+        last_location_update: new Date().toISOString()
+      })
+      .eq('id', ambulanceId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error(`Error updating ambulance location ${ambulanceId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get driver's assigned ambulance
+ */
+export async function getDriverAmbulance(driverId) {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .eq('driver_id', driverId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || null;
+  } catch (error) {
+    console.error(`Error getting driver's ambulance ${driverId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get all drivers (provider type = 'driver')
+ */
+export async function getDrivers() {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('provider_type', 'driver')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching drivers:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get available drivers (not assigned to ambulance)
+ */
+export async function getAvailableDrivers() {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('provider_type', 'driver')
+      .is('driver_id', 'is', null)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching available drivers:', error);
     throw error;
   }
 }
@@ -191,30 +302,6 @@ export async function getHospitalAmbulances(hospitalId) {
     return data || [];
   } catch (error) {
     console.error(`Error fetching ambulances for hospital ${hospitalId}:`, error);
-    throw error;
-  }
-}
-
-/**
- * Update ambulance location
- */
-export async function updateAmbulanceLocation(ambulanceId, location) {
-  try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        location: location,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', ambulanceId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return data;
-  } catch (error) {
-    console.error(`Error updating ambulance location ${ambulanceId}:`, error);
     throw error;
   }
 }

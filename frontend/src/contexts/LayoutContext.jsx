@@ -171,7 +171,7 @@ export const LayoutProvider = ({ children }) => {
             if (prev.instanceId === newConfig.instanceId && prev.visible === newConfig.visible) return prev;
             return newConfig;
         });
-    }, []);
+    }, []); // Remove setFooterConfig dependency
 
     const value = useMemo(() => ({
         isScrolledDown,
@@ -234,5 +234,5 @@ export const usePageFooter = (content, type = 'status', visible = true) => {
                 return prev;
             });
         };
-    }, [content, type, visible, setFooterConfig, instanceId]);
+    }, [content, type, visible, instanceId]); // Remove setFooterConfig from dependencies
 };

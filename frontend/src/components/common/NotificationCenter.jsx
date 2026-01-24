@@ -25,20 +25,20 @@ export const NotificationCenter = () => {
     const data = await getNotifications(user.id, 30);
     setNotifications(data);
     setLoading(false);
-  }, [user]);
+  }, [user?.id]); // Use user.id instead of user object
 
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
     const unsubscribe = subscribeToNotifications(user.id, (newNotification) => {
       setNotifications(prev => [newNotification, ...prev]);
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user?.id]);
 
   const handleDismiss = useCallback((notificationId) => {
     setNotifications(prev => prev.filter(n => n.id !== notificationId));

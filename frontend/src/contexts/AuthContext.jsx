@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { DynamicAuthSkeleton } from '../components/ui/skeleton';
@@ -148,11 +148,6 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Show skeleton during initial load
-  if (initializing) {
-    return <DynamicAuthSkeleton pathname={pathname} />;
-  }
-
   const signIn = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -218,7 +213,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
    * @param {string} resource - 'doctors', 'visits', 'ambulances', etc.
    * @returns {boolean}
    */
-  const can = (action, resource) => {
+  const can = useCallback((action, resource) => {
     if (isAdmin()) return true;
 
     // Org Admins can manage their own resources
@@ -234,7 +229,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     }
 
     return false;
-  };
+  }, [isAdmin, isOrgAdmin, isProvider]);
 
   const updateProfile = async (updates) => {
     try {
@@ -283,6 +278,11 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     isPatient,
     can,
   };
+
+  // Show skeleton during initial load
+  if (initializing) {
+    return <DynamicAuthSkeleton pathname={pathname} />;
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

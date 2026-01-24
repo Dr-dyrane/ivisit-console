@@ -16,6 +16,13 @@ const TABLE_NAME = 'subscribers';
 export async function getSubscribers(filter = {}) {
   try {
     const user = await getCurrentUser();
+    
+    // Providers shouldn't access subscriber data - return empty
+    if (user?.role === 'provider') {
+      console.log('[RBAC] Provider access denied for subscribers - not applicable');
+      return [];
+    }
+
     let query = supabase.from(TABLE_NAME).select('*');
 
     // 1. Apply RBAC Scoping
