@@ -20,8 +20,7 @@ export async function getInsurancePolicies(filter = {}) {
 
     // 1. Apply RBAC Scoping
     query = applyAuthFilter(query, user, {
-      userIdField: 'user_id',
-      orgIdField: 'organization_id'
+      userIdField: 'user_id'
     });
 
     // 2. Apply Custom Filters

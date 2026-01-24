@@ -5,24 +5,40 @@ import { DynamicAuthSkeleton } from "../ui/skeleton";
 import { motion } from "framer-motion";
 import { Button } from "../ui/button";
 import { LogOut } from "lucide-react";
+import { NAV_CONFIG, getAccessibleNav } from "../../config/navigation";
+import { ROLE_LEVELS } from "../../config/navigation";
 
 export const ProtectedRoute = ({
 	children,
 	minRole = "viewer",
 	allowedRoles = null,
+	resource = null,
+	path = null,
 }) => {
-	const { user, profile, loading, hasRole, hasMinRole } = useAuth();
+	const { user, profile, loading, hasRole, hasMinRole, can } = useAuth();
 	const location = useLocation();
+	const currentPath = path || location.pathname;
 
 	if (loading) {
-		return <DynamicAuthSkeleton pathname={location.pathname} />;
+		return <DynamicAuthSkeleton pathname={currentPath} />;
 	}
 
 	if (!user) {
 		return <Navigate to="/login" state={{ from: location }} replace />;
 	}
 
-	// Check role permissions
+	// Get accessible navigation based on user profile
+	const accessibleNav = getAccessibleNav(profile, can);
+
+	// Check if current path is in accessible navigation
+	const isPathAccessible = checkPathAccess(currentPath, accessibleNav);
+
+	if (!isPathAccessible) {
+		console.log(`[ProtectedRoute] Access denied for ${profile?.role} to path: ${currentPath}`);
+		return <Navigate to="/unauthorized" replace />;
+	}
+
+	// Additional role checks if specified
 	if (allowedRoles && !hasRole(allowedRoles)) {
 		return <Navigate to="/unauthorized" replace />;
 	}
@@ -31,8 +47,37 @@ export const ProtectedRoute = ({
 		return <Navigate to="/unauthorized" replace />;
 	}
 
+	// Additional resource-based check if specified
+	if (resource && !can('view', resource)) {
+		console.log(`[ProtectedRoute] Resource access denied for ${profile?.role} to resource: ${resource}`);
+		return <Navigate to="/unauthorized" replace />;
+	}
+
 	return children;
 };
+
+/**
+ * Check if a path is accessible based on user's navigation configuration
+ */
+function checkPathAccess(path, accessibleNav) {
+	// Check main navigation items
+	const mainItem = accessibleNav.main?.find(item => item.path === path);
+	if (mainItem) return true;
+
+	// Check operations items
+	const opsItem = accessibleNav.ops?.items?.find(item => item.path === path);
+	if (opsItem) return true;
+
+	// Check management items
+	const mgmtItem = accessibleNav.mgmt?.items?.find(item => item.path === path);
+	if (mgmtItem) return true;
+
+	// Always allow access to basic pages
+	const allowedPaths = ['/', '/login', '/unauthorized', '/map'];
+	if (allowedPaths.includes(path)) return true;
+
+	return false;
+}
 
 export const UnauthorizedPage = () => {
 	const { profile, signOut } = useAuth();

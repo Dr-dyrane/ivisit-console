@@ -16,7 +16,7 @@ const TABLE_NAME = 'subscribers';
 export async function getSubscribers(filter = {}) {
   try {
     const user = await getCurrentUser();
-    
+
     // Providers shouldn't access subscriber data - return empty
     if (user?.role === 'provider') {
       console.log('[RBAC] Provider access denied for subscribers - not applicable');
@@ -27,8 +27,7 @@ export async function getSubscribers(filter = {}) {
 
     // 1. Apply RBAC Scoping
     query = applyAuthFilter(query, user, {
-      userIdField: 'user_id', // Assuming user_id exists for subscriber owner
-      orgIdField: 'organization_id'
+      userIdField: 'user_id' // Assuming user_id exists for subscriber owner
     });
 
     // 2. Apply Custom Filters

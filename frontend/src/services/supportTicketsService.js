@@ -20,8 +20,7 @@ export async function getSupportTickets(filter = {}) {
 
     // 1. Apply RBAC Scoping
     query = applyAuthFilter(query, user, {
-      userIdField: 'user_id',
-      orgIdField: 'organization_id' // Assuming organization_id exists
+      userIdField: 'user_id'
     });
 
     // 2. Apply Custom Filters

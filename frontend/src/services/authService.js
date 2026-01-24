@@ -103,21 +103,27 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
     console.log(`[RBAC] Provider - applying specialized filtering for ${resourceType}`);
 
     // For visits and emergencies, prioritizing hospital-based scoping
-    if (resourceType === 'visit' || resourceType === 'emergency') {
-      // If provider belongs to an organization (hospital), filter by that hospital ID
+    if (resourceType === 'visit') {
+      // Visits: Filter by hospital organization first, then doctor name as fallback
       if (orgId && orgIdField) {
         console.log(`[RBAC] Provider - filtering by ${orgIdField} = ${orgId} (Hospital Scope)`);
         query = query.eq(orgIdField, orgId);
-      }
-      // Fallback: Filter by provider assignment if no hospital linked (Independent provider?)
-      else if (resourceType === 'visit' && providerIdField && user?.full_name) {
-        console.log(`[RBAC] Provider - filtering by ${providerIdField} = ${user.full_name}`);
+      } else if (providerIdField && user?.full_name) {
+        console.log(`[RBAC] Provider - filtering by ${providerIdField} = ${user.full_name} (Assigned Doctor)`);
         query = query.eq(providerIdField, user.full_name);
+      }
+    } else if (resourceType === 'emergency') {
+      // Emergencies: Filter by hospital org_id first, then responder_id for assigned emergencies
+      if (orgId && orgIdField) {
+        console.log(`[RBAC] Provider - filtering by ${orgIdField} = ${orgId} (Hospital Scope)`);
+        query = query.eq(orgIdField, orgId);
+      } else if (providerIdField && userId) {
+        // For emergencies, providerIdField should be 'responder_id' and userId is the provider's UUID
+        console.log(`[RBAC] Provider - filtering by ${providerIdField} = ${userId} (Assigned Driver)`);
+        query = query.eq(providerIdField, userId);
       } else if (userId) {
-        // Fallback: try UUID if no hospital and no name match possible
-        // For emergencies, this defaults to user_id which is likely the reporter, not the responder
-        // But without hospital_id, this is the safest fallback
-        console.log(`[RBAC] Provider - filtering by ${userIdField} = ${userId}`);
+        // Fallback: see emergencies requested by the provider (as patient)
+        console.log(`[RBAC] Provider - filtering by ${userIdField} = ${userId} (Own Requests)`);
         query = query.eq(userIdField, userId);
       }
     } else if (resourceType === 'support') {

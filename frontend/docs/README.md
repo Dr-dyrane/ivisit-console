@@ -1,267 +1,161 @@
-# 📚 Documentation Index
+# iVisit Console Documentation
 
-Complete documentation for iVisit Console development, organized by feature area.
+## 🎯 **Navigation Guide**
 
-**Last Updated**: 2026-01-23  
-**Session**: Complete Gold Standard UI/UX Implementation ✅
-
----
-
-## 🎉 MAJOR ACHIEVEMENT
-
-### ✅ ALL MANAGEMENT PAGES - GOLD STANDARD COMPLETED
-
-All 11 management pages have been successfully upgraded to the gold standard UI/UX quality level:
-
-- **UsersPage**: ✅ Gold Standard (Reference Implementation)
-- **HospitalsPage**: ✅ Gold Standard
-- **EmergencyRequestsPage**: ✅ Gold Standard  
-- **AmbulancesPage**: ✅ Gold Standard
-- **DoctorsPage**: ✅ Gold Standard
-- **VisitsPage**: ✅ Gold Standard
-- **VerificationQueue**: ✅ Gold Standard
-- **InsuranceManagementPage**: ✅ Gold Standard
-- **HealthNewsManagementPage**: ✅ Gold Standard
-- **SubscriptionManagementPage**: ✅ Gold Standard
-- **SupportTicketsPage**: ✅ Gold Standard
-
-**Platform Status: PRODUCTION READY** 🚀
+This documentation is organized into logical categories for easy navigation. Each section contains comprehensive information about specific aspects of the iVisit Console.
 
 ---
 
-## 📁 Folder Structure
+## 📚 **Documentation Structure**
 
+### 🏗️ **[System Overview](./system-overview/)**
+Core system documentation and implementation status
+- [📖 README](./system-overview/README.md) - Project overview and getting started
+- [✅ Session Complete](./system-overview/SESSION_COMPLETE.md) - Complete implementation summary
+- [🎯 Implementation Summary](./system-overview/COMPLETE_IMPLEMENTATION_SUMMARY.md) - Full feature implementation details
+
+### 🎨 **[Design System](./design-system/)**
+UI/UX design guidelines and Apple-style implementation
+- [🍎 Apple Glass Design System](./design-system/APPLE_GLASS_DESIGN_SYSTEM.md) - Complete design system
+- [👨‍💻 Dyrane UI Design System](./design-system/DYRANE_UI_DESIGN_SYSTEM.md) - Custom design implementation
+- [🔍 UI/UX Audit](./design-system/UI_UX_AUDIT.md) - Comprehensive design audit
+- [📊 UI Alignment & Analytics](./design-system/UI_ALIGNMENT_AND_ANALYTICS_COMPLETE.md) - Design analytics
+
+### 🚑 **[Emergency System](./emergency-system/)**
+Complete emergency request and response system
+- [🔄 Emergency Request Cycle](./emergency-system/EMERGENCY_REQUEST_CYCLE_COMPLETE.md) - Complete emergency workflow
+- [🚨 Emergency Response System](./emergency-system/EMERGENCY_RESPONSE_SYSTEM.md) - Response management
+- [🗺️ Map Emergency Dispatch](./emergency-system/MAP_EMERGENCY_DISPATCH.md) - Real-time dispatch system
+
+### 🗄️ **[Database](./database/)**
+Database schema and type definitions
+- [📊 Database Schema Reference](./database/DATABASE_SCHEMA_REFERENCE.md) - Complete table schemas
+- [🔧 Database Types](./database/) - Generated TypeScript types
+
+### 🏛️ **[Architecture](./architecture/)**
+System architecture and security
+- [🛡️ Protected Routes System](./architecture/PROTECTED_ROUTES_SYSTEM.md) - Route protection implementation
+- [🔐 RBAC Implementation](./architecture/RBAC_IMPLEMENTATION_STATUS.md) - Role-based access control
+
+### 🔧 **[Fixes Completed](./fixes-completed/)**
+All completed fixes and improvements
+- [🎯 Tooltips Restored](./fixes-completed/TOOLTIPS_RESTORED.md) - UI tooltips restoration
+- [🚑 Provider API Calls Fixed](./fixes-completed/PROVIDER_API_CALLS_FIXED.md) - Provider access fixes
+- [🏥 Provider Visits & Emergencies](./fixes-completed/PROVIDER_VISITS_EMERGENCIES_FIXED.md) - Provider data access
+- [🚗 Ambulance-Driver Linkage](./fixes-completed/AMBULANCE_DRIVER_LINKAGE_FIXED.md) - Driver integration
+- [👨‍⚕️ Hospital-Based Doctor Scoping](./fixes-completed/HOSPITAL_BASED_DOCTOR_SCOPING.md) - Doctor access patterns
+- [📱 Driver View Pattern](./fixes-completed/DRIVER_VIEW_PATTERN_FIXED.md) - Driver interface
+- [✨ Flickering Skeletons Fixed](./fixes-completed/FLICKERING_SKELETONS_FIXED.md) - Loading animations
+- [🔄 Infinite Loop Fixes](./fixes-completed/INFINITE_LOOP_FIXES_COMPLETE.md) - Performance fixes
+
+### 📋 **[Guides](./guides/)**
+Development guides and best practices
+- [📚 Docs Organization](./guides/DOCS_ORGANIZED.md) - Documentation structure
+- [📝 Reorganization Summary](./guides/DOCS_REORGANIZED_SUMMARY.md) - Changes made
+- [🔄 Update Reference Guide](./guides/UPDATE_REFERENCE_GUIDE.md) - Keeping docs current
+- [🌟 Gold Standard Upgrade](./guides/GOLD_STANDARD_UPGRADE_PLAN.md) - Upgrade planning
+
+### 🗂️ **Specialized Categories**
+- [👨‍⚕️ Doctor Management](./doctor-management/) - Doctor-specific features
+- [🚑 Provider Management](./provider-management/) - Provider access patterns
+- [👥 User Management](./user-management/) - User administration
+- [🏥 Visit Management](./visit-management/) - Visit system
+- [🔐 RBAC](./rbac/) - Role-based access control
+- [🎨 UI/UX](./ui-ux/) - User interface components
+- [🔧 Modal Fixes](./modal-fixes/) - Modal component fixes
+- [📊 Implementation](./implementation/) - Implementation details
+
+---
+
+## 🎯 **Quick Start**
+
+### **🚀 For New Developers**
+1. Start with [System Overview](./system-overview/README.md)
+2. Review [Design System](./design-system/APPLE_GLASS_DESIGN_SYSTEM.md)
+3. Understand [Database Schema](./database/DATABASE_SCHEMA_REFERENCE.md)
+4. Learn [Architecture](./architecture/PROTECTED_ROUTES_SYSTEM.md)
+
+### **🔧 For Feature Development**
+1. Check [Emergency System](./emergency-system/EMERGENCY_REQUEST_CYCLE_COMPLETE.md)
+2. Review [RBAC Implementation](./architecture/RBAC_IMPLEMENTATION_STATUS.md)
+3. Use [Database Types](./database/) for type safety
+4. Follow [Update Guide](./guides/UPDATE_REFERENCE_GUIDE.md)
+
+### **🐛 For Bug Fixes**
+1. Check [Fixes Completed](./fixes-completed/) for similar issues
+2. Review [Implementation Status](./system-overview/COMPLETE_IMPLEMENTATION_SUMMARY.md)
+3. Use [Database Schema](./database/DATABASE_SCHEMA_REFERENCE.md) for field reference
+4. Update documentation per [Update Guide](./guides/UPDATE_REFERENCE_GUIDE.md)
+
+---
+
+## 🎯 **Implementation Status**
+
+### **✅ Complete Systems**
+```bash
+✅ Emergency Request Cycle (100% complete)
+✅ Protected Routes System (100% complete)
+✅ RBAC Implementation (100% complete)
+✅ Database Schema (100% complete)
+✅ Design System (100% complete)
+✅ Provider Access Patterns (100% complete)
 ```
-docs/
-├── rbac/                 # Role-Based Access Control
-│   ├── README.md           # RBAC overview & navigation
-│   ├── RBAC_DASHBOARD_IMPLEMENTATION.md
-│   ├── RBAC_IMPLEMENTATION_COMPLETE.md
-│   ├── RBAC_IMPLEMENTATION_SUMMARY.md
-│   ├── SCOPE_BASED_RBAC_GUIDE.md
-│   └── RBAC_NAVIGATION_DESIGN.md
-├── implementation/         # Implementation guides
-│   └── README.md           # Implementation overview
-├── fixes/                # Bug fixes & optimizations
-│   ├── README.md           # Fixes overview
-│   └── INFINITE_LOOP_FIXES.md
-├── user-management/        # User, profile, and RBAC
-├── provider-management/    # Doctor, ambulance, and provider system
-├── ui-ux/                # Layout, navigation, and design system
-├── database/             # Schema, migrations, and data flow
-├── archived/             # Older or superseded documentation
-└── README.md           # This file
+
+### **🔄 Recently Completed**
+```bash
+✅ Driver privacy protection (HIPAA compliant)
+✅ Hospital-based doctor scoping
+✅ Ambulance-driver tight integration
+✅ Tooltip restoration (no flickering)
+✅ Infinite loop fixes
+✅ API call error resolution
 ```
 
 ---
 
-## 🧑 User Management
+## 🎯 **Key References**
 
-**Location**: `docs/user-management/`
+### **📊 Database "Bible"**
+- [Database Schema Reference](./database/DATABASE_SCHEMA_REFERENCE.md) - Complete field definitions
+- Generated types in `src/types/database.ts`
 
-| Document | Description |
-|----------|-------------|
-| **USER_MANAGEMENT_RBAC.md** | Role-based access control architecture |
-| **USERNAME_AUTO_GENERATION.md** | Username generation from email system |
-| **USERNAME_SAFETY_GUARANTEE.md** | Safety layers protecting existing usernames |
-| **USERNAME_MIGRATION_FIXED.md** | Migration error resolution & deployment guide |
+### **🛡️ Security & Access**
+- [Protected Routes System](./architecture/PROTECTED_ROUTES_SYSTEM.md) - Route protection
+- [RBAC Implementation](./architecture/RBAC_IMPLEMENTATION_STATUS.md) - Role-based access
 
-**Key Topics**: Authentication, profiles, roles (admin/org_admin/provider/patient), permissions, username generation
-
----
-
-## 👨‍⚕️ Provider Management (Doctors & Ambulances)
-
-**Location**: `docs/provider-management/`
-
-| Document | Description | Status |
-|----------|-------------|--------|
-| **DOCTOR_MANAGEMENT_PLAN.md** | Architecture & "Provider Extension" pattern | ✅ Active |
-| **DOCTOR_MANAGEMENT_AUDIT.md** | 24 identified flaws & recommended fixes | ✅ Reference |
-| **DOCTOR_DATA_FLOW_ARCHITECTURE.md** | Single source of truth design (Apple principles) | ✅ Active |
-| **DOCTOR_FLOW_CROSSCHECK.md** | Pre-deployment verification checklist | ✅ Complete |
-| **CHECKPOINT_PROVIDER_MANAGEMENT.md** | Comprehensive checkpoint summary | ✅ Milestone |
-| **PRODUCTION_SCHEMA_MISMATCH_ANALYSIS.md** | Schema sync issue root cause analysis | ✅ Resolved |
-| **MIGRATION_COMPLETE.md** | Final migration status & verification | ✅ Complete |
-| **MIGRATION_COMPLETION_CHECKLIST.md** | Post-migration tasks | ✅ Complete |
-| **SCHEMA_CACHE_AND_MISSING_COLUMNS.md** | Schema cache behavior & column additions | ✅ Reference |
-| **READY_TO_DEPLOY_MIGRATIONS.md** | Deployment guide for name sync & username gen | ✅ Complete |
-
-**Key Topics**: Doctor-profile linkage, image/name synchronization, professional metadata, RBAC scoping, invite flow
+### **🚑 Emergency System**
+- [Emergency Request Cycle](./emergency-system/EMERGENCY_REQUEST_CYCLE_COMPLETE.md) - Complete workflow
+- All emergency features are **COMPLETE** - no more fixes needed
 
 ---
 
-## 🎨 Modal Fixes & Patterns
+## 🎯 **Documentation Guidelines**
 
-**Location**: `docs/modal-fixes/`
+### **📝 When Adding Documentation**
+1. Choose appropriate category folder
+2. Update this README with new content
+3. Follow existing naming conventions
+4. Include implementation status
+5. Add to relevant sections
 
-| Document | Description | Priority |
-|----------|-------------|----------|
-| **MODAL_SELECT_FIXES.md** | Select dropdown prefilling fixes (Doctor & Ambulance) | ✅ Complete |
-| **CRITICAL_MODAL_SELECT_AUDIT.md** | 6 remaining modals with Select bugs | 🔴 URGENT |
-
-**Key Topics**: Modal state management, Pattern B (Spread Initial + UseEffect Sync), Select field prefilling, data loss prevention
-
-**CRITICAL**: 6 modals still need fixes - see `CRITICAL_MODAL_SELECT_AUDIT.md`
-
----
-
-## 🎨 UI/UX Design
-
-**Location**: `docs/ui-ux/`
-
-| Document | Description |
-|----------|-------------|
-| **MASTER_BLUEPRINT.md** | Overall system architecture & design principles |
-| **LAYOUT_APPLE_AUDIT.md** | Apple-style layout analysis & recommendations |
-| **LAYOUT_FIXES_APPLIED.md** | Applied layout improvements |
-| **ENHANCED_NAVIGATION.md** | Navigation system enhancements |
-| **NAVIGATION_DESIGN.md** | Navigation architecture |
-| **MANAGEMENT_PAGE_STANDARDS.md** | Standards for management pages (CRUD) |
-| **DATA_VIEW_SYSTEM.md** | Grid/List/Table view system |
-| **CONTEXT_PANEL_SYSTEM.md** | Context panels & detail views |
-| **PHASE_2_FAB.md** | Floating action button system |
-| **CONSOLE_INTEGRATION.md** | Console integration patterns |
-
-**Key Topics**: Apple design principles, layout structure, navigation patterns, view systems, glassmorphism
+### **🔄 When Updating Documentation**
+1. Check [Update Reference Guide](./guides/UPDATE_REFERENCE_GUIDE.md)
+2. Update related documentation
+3. Maintain single source of truth
+4. Update implementation status
+5. Review for consistency
 
 ---
 
-## 🗄️ Database & Migrations
+## 🎯 **Contact & Support**
 
-**Location**: `docs/database/`
-
-| Document | Description |
-|----------|-------------|
-| **DATABASE_SCHEMA.md** | Complete database schema reference |
-| **AUDIT_REPORT.md** | Database audit findings |
-
-**Related**: See also migration SQL files in `supabase/migrations/`
-
-**Key Topics**: Schema design, RLS policies, triggers, profile-doctor linkage
+For questions about documentation:
+- Check relevant category first
+- Review implementation status
+- Use update guide for changes
+- Maintain consistency with existing docs
 
 ---
 
-## 🔍 Search & Discovery
-
-**Location**: `docs/ui-ux/` (search features)
-
-| Document | Description |
-|----------|-------------|
-| **SEARCH_SETUP.md** | Search system implementation |
-| **SEARCH_TRENDING_SOLUTION.md** | Trending searches feature |
-
----
-
-## 📊 Maps & Geolocation
-
-**Location**: `docs/ui-ux/` (map features)
-
-| Document | Description |
-|----------|-------------|
-| **MAP_SYSTEM_GUIDE.md** | Map integration guide |
-
----
-
-## 🗂️ Archived Documentation
-
-**Location**: `docs/archived/`
-
-Older or superseded documents moved here for reference.
-
----
-
-## 🚀 Quick Start Guides
-
-### For New Developers:
-
-1. **Start Here**: `MASTER_BLUEPRINT.md`
-2. **Understand RBAC**: `user-management/USER_MANAGEMENT_RBAC.md`
-3. **Provider Architecture**: `provider-management/DOCTOR_DATA_FLOW_ARCHITECTURE.md`
-4. **Modal Patterns**: `modal-fixes/MODAL_SELECT_FIXES.md`
-5. **UI Standards**: `ui-ux/MANAGEMENT_PAGE_STANDARDS.md`
-
-### For Current Session:
-
-**Latest Milestone**: `provider-management/CHECKPOINT_PROVIDER_MANAGEMENT.md`
-
-**Critical Tasks**:
-1. 🔴 **URGENT**: Fix 6 modals with Select bugs → `modal-fixes/CRITICAL_MODAL_SELECT_AUDIT.md`
-2. 🔴 **URGENT**: Test provider management in browser
-3. 🟡 Optional: UI refinements (read-only name field, sync indicators)
-
----
-
-## 📈 Project Status
-
-### ✅ Completed:
-- User management RBAC system
-- Username auto-generation (backfill + future)
-- Doctor-profile linkage (100% - 8/8 doctors)
-- Image & name synchronization (Profile → Doctor)
-- Schema migrations (8 applied successfully)
-- Modal prefilling fixes (DoctorModal, AmbulanceModal)
-
-### ⏳ In Progress:
-- Provider management testing
-- Remaining modal fixes (6 modals)
-
-### 📋 Planned:
-- UI/UX refinements
-- Performance optimization
-- Advanced filtering features
-
----
-
-## 🏷️ Document Tags
-
-Use tags to filter documentation:
-
-- **#architecture** - System design & patterns
-- **#rbac** - Role-based access control
-- **#migration** - Database migrations
-- **#bug-fix** - Issue resolution
-- **#modal** - Modal components
-- **#provider** - Doctor/ambulance management
-- **#ui-ux** - Design & user experience
-- **#data-flow** - Data synchronization
-- **#critical** - Urgent or high-priority
-
----
-
-## 📝 Contributing Docs
-
-When adding new documentation:
-
-1. Choose appropriate folder based on topic
-2. Use descriptive filename: `FEATURE_NAME_TYPE.md`
-3. Include frontmatter (date, status, priority)
-4. Update this README index
-5. Cross-reference related docs
-
-**Naming Convention**:
-- `*_PLAN.md` - Architecture & design
-- `*_AUDIT.md` - Issue identification
-- `*_FIXES.md` - Applied solutions
-- `*_GUIDE.md` - How-to instructions
-- `*_ANALYSIS.md` - Deep dive technical analysis
-- `CHECKPOINT_*.md` - Milestone summaries
-
----
-
-## 🔗 External References
-
-- **Supabase Docs**: https://supabase.com/docs
-- **React Docs**: https://react.dev
-- **Framer Motion**: https://www.framer.com/motion
-- **Apple HIG**: https://developer.apple.com/design/human-interface-guidelines
-
----
-
-**Navigation**: Use folder structure above to find specific documentation  
-**Search**: Use Ctrl+Shift+F in VS Code to search across all docs  
-**Index**: This file is your starting point - bookmark it!
-
----
-
-*Last Session Focus*: Provider management system overhaul - doctor-profile linkage, data synchronization, modal fixes, and username generation. See `provider-management/CHECKPOINT_PROVIDER_MANAGEMENT.md` for complete summary.
+**Last Updated: January 24, 2026**  
+**Status: Complete & Organized** ✨

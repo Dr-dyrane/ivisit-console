@@ -30,10 +30,10 @@ export async function getEmergencyRequests(filter) {
 
     // Apply RBAC Scoping with enhanced filtering
     query = applyAuthFilter(query, user, {
-      userIdField: 'user_id',
-      orgIdField: 'hospital_id', // Org admins see emergencies at their hospital
-      providerIdField: 'user_id', // Providers see only their own emergencies
-      resourceType: 'emergency' // Enables provider-specific logic
+      userIdField: 'user_id',           // Patient who requested emergency
+      orgIdField: 'hospital_id',       // Org admins see emergencies at their hospital
+      providerIdField: 'responder_id', // Providers (drivers) see emergencies assigned to them
+      resourceType: 'emergency'        // Enables provider-specific logic
     });
 
     if (filter?.status) {

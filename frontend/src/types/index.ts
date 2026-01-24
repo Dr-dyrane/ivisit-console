@@ -1,4 +1,13 @@
 import { Point } from 'geojson';
+import { Database } from './database';
+
+// Export database types for global access
+export type { Database };
+export type DatabaseEmergencyRequest = Database['public']['Tables']['emergency_requests']['Row'];
+export type DatabaseVisit = Database['public']['Tables']['visits']['Row'];
+export type DatabaseAmbulance = Database['public']['Tables']['ambulances']['Row'];
+export type DatabaseProfile = Database['public']['Tables']['profiles']['Row'];
+export type DatabaseHospital = Database['public']['Tables']['hospitals']['Row'];
 
 export type UserRole = 'patient' | 'provider' | 'admin';
 export type ProviderType = 'hospital' | 'ambulance_service' | 'doctor' | 'driver' | 'paramedic';
