@@ -223,7 +223,7 @@ export async function createProfile(input) {
       full_name: input.full_name,
       image_uri: input.image_uri || input.avatar_url,
       role: input.role,
-      organization_id: input.organization_id || null,
+      organization_id: input.organization_id === '' ? null : input.organization_id || null,
       provider_type: input.provider_type,
       bvn_verified: input.bvn_verified || false,
       address: input.address,
@@ -268,6 +268,9 @@ export async function updateProfile(profileId, input) {
       if (input[field] !== undefined) {
         if (field === 'avatar_url' && !payload.image_uri) {
           payload.image_uri = input[field];
+        } else if (field === 'organization_id') {
+          // Convert empty string to null for UUID fields
+          payload[field] = input[field] === '' ? null : input[field];
         } else {
           payload[field] = input[field];
         }

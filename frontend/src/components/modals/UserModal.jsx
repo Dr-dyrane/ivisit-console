@@ -175,7 +175,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                       <Input
                         id="full_name"
                         name="full_name"
-                        value={formData.full_name}
+                        value={formData.full_name || ''}
                         onChange={handleChange}
                         disabled={isView}
                         className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
@@ -187,7 +187,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                       <Input
                         id="username"
                         name="username"
-                        value={formData.username}
+                        value={formData.username || ''}
                         onChange={handleChange}
                         disabled={isView}
                         className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
@@ -202,7 +202,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                           id="email"
                           name="email"
                           type="email"
-                          value={formData.email}
+                          value={formData.email || ''}
                           onChange={handleChange}
                           disabled={isView}
                           className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-normal"
@@ -217,7 +217,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                         <Input
                           id="phone"
                           name="phone"
-                          value={formData.phone}
+                          value={formData.phone || ''}
                           onChange={handleChange}
                           disabled={isView}
                           className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-mono"
@@ -233,7 +233,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                           id="date_of_birth"
                           name="date_of_birth"
                           type="date"
-                          value={formData.date_of_birth}
+                          value={formData.date_of_birth || ''}
                           onChange={handleChange}
                           disabled={isView}
                           className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-normal"
@@ -343,7 +343,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                     <Input
                       id="address"
                       name="address"
-                      value={formData.address}
+                      value={formData.address || ''}
                       onChange={handleChange}
                       disabled={isView}
                       className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-normal"
