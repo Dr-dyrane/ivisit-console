@@ -40,7 +40,7 @@ import { SEOHead } from '../common/SEOHead';
 
 export const BentoHome = () => {
   const navigate = useNavigate();
-  const { hasMinRole, isAdmin, isProvider } = useAuth();
+  const { hasMinRole, isAdmin, isProvider, isPatient, isViewer, isSponsor, isOrgAdmin } = useAuth();
   const {
     emergencyStats,
     analyticsData,
@@ -154,152 +154,162 @@ export const BentoHome = () => {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense surface-1 rounded-3xl"
         >
 
-          {/* Live Emergency Counter - Brand Hero Card */}
-          <motion.div
-            layout
-            className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 row-span-2"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-          >
-            <Link to="/map" className="block h-full group">
-              <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
+          {/* Live Emergency Counter - Show based on role */}
+          {(!isPatient() && !isViewer()) && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 row-span-2"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <Link to="/map" className="block h-full group">
+                <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
+                  {/* Shared RGB Hive Effect */}
+                  <div className="hover-glow hover-glow-primary" />
+
+                  {/* Brand gradient background */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                  {/* Brand icon - fixed positioning */}
+                  <div className="absolute top-6 right-6 z-30">
+                    <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 transition-transform duration-300 group-hover:scale-110">
+                      <Activity className="h-6 w-6 text-primary" />
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 flex flex-col flex-1">
+                    <div className="space-y-2 flex-1">
+                      <h2 className="text-7xl lg:text-8xl font-semibold text-foreground leading-none tracking-tight">
+                        {appStats.liveEmergencies}
+                      </h2>
+                      <p className="text-xl text-muted-foreground font-medium">
+                        {isPatient() ? 'Your Active Requests' : 'Active Emergencies'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Brand-colored chart */}
+                  <div className="relative z-10 h-20">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData}>
+                        <Area
+                          type="monotone"
+                          dataKey="value"
+                          stroke="hsl(var(--primary))"
+                          fill="hsl(var(--primary) / 0.1)"
+                          strokeWidth={2}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Brand chevron - fixed positioning no overlap */}
+                  <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                    <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center border border-primary/30">
+                      <ChevronRight className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          )}
+
+          {/* Response Time - Admin/Org Admin Only */}
+          {(isAdmin() || isOrgAdmin()) && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <div className="h-full min-h-[320px] glass-card p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden group hover-lift">
                 {/* Shared RGB Hive Effect */}
-                <div className="hover-glow hover-glow-primary" />
-                
-                {/* Brand gradient background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                
-                {/* Brand icon - fixed positioning */}
+                <div className="hover-glow hover-glow-success" />
+
+                {/* Success gradient background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-success/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                {/* Success icon - fixed positioning */}
                 <div className="absolute top-6 right-6 z-30">
-                  <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 transition-transform duration-300 group-hover:scale-110">
-                    <Activity className="h-6 w-6 text-primary" />
+                  <div className="w-12 h-12 bg-success/20 rounded-2xl flex items-center justify-center border border-success/30 transition-transform duration-300 group-hover:scale-110">
+                    <Clock className="h-6 w-6 text-success" />
                   </div>
                 </div>
 
                 <div className="relative z-10 flex flex-col flex-1">
                   <div className="space-y-2 flex-1">
-                    <h2 className="text-7xl lg:text-8xl font-semibold text-foreground leading-none tracking-tight">
-                      {appStats.liveEmergencies}
-                    </h2>
-                    <p className="text-xl text-muted-foreground font-medium">Active Emergencies</p>
+                    <h3 className="text-6xl lg:text-7xl font-semibold text-foreground leading-none tracking-tight">
+                      {appStats.responseTime}<span className="text-2xl text-muted-foreground ml-2">m</span>
+                    </h3>
+                    <p className="text-xl text-muted-foreground font-medium">Response Time</p>
                   </div>
                 </div>
 
-                {/* Brand-colored chart */}
-                <div className="relative z-10 h-20">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke="hsl(var(--primary))"
-                        fill="hsl(var(--primary) / 0.1)"
-                        strokeWidth={2}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                <div className="flex items-center gap-2 text-success font-medium text-sm relative z-10">
+                  <CheckCircle2 className="h-5 w-5" />
+                  <span>23% faster today</span>
                 </div>
 
-                {/* Brand chevron - fixed positioning no overlap */}
+                {/* Success chevron - fixed positioning no overlap */}
                 <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center border border-primary/30">
-                    <ChevronRight className="h-5 w-5 text-primary" />
+                  <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center border border-success/30">
+                    <ChevronRight className="h-5 w-5 text-success" />
                   </div>
                 </div>
               </div>
-            </Link>
-          </motion.div>
+            </motion.div>
+          )}
 
-          {/* Response Time - Success Card */}
-          <motion.div
-            layout
-            className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
-          >
-            <div className="h-full min-h-[320px] glass-card p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden group hover-lift">
-              {/* Shared RGB Hive Effect */}
-              <div className="hover-glow hover-glow-success" />
-              
-              {/* Success gradient background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-success/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          {/* Today's Requests - Provider+ Only */}
+          {(!isPatient() && !isViewer() && !isSponsor()) && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <div className="h-full min-h-[320px] glass-card p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden group hover-lift">
+                {/* Shared RGB Hive Effect */}
+                <div className="hover-glow hover-glow-info" />
 
-              {/* Success icon - fixed positioning */}
-              <div className="absolute top-6 right-6 z-30">
-                <div className="w-12 h-12 bg-success/20 rounded-2xl flex items-center justify-center border border-success/30 transition-transform duration-300 group-hover:scale-110">
-                  <Clock className="h-6 w-6 text-success" />
+                {/* Info gradient background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-info/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                {/* Info icon - fixed positioning */}
+                <div className="absolute top-6 right-6 z-30">
+                  <div className="w-12 h-12 bg-info/20 rounded-2xl flex items-center justify-center border border-info/30 transition-transform duration-300 group-hover:scale-110">
+                    <Activity className="h-6 w-6 text-info" />
+                  </div>
+                </div>
+
+                <div className="relative z-10 flex flex-col flex-1">
+                  <div className="space-y-2 flex-1">
+                    <h3 className="text-6xl lg:text-7xl font-semibold text-foreground leading-none tracking-tight">
+                      {appStats.todayRequests}
+                    </h3>
+                    <p className="text-xl text-muted-foreground font-medium">
+                      {isPatient() ? "Your Requests" : "Today's Requests"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-info font-medium text-sm relative z-10">
+                  <TrendingUp className="h-5 w-5" />
+                  <span>+8% vs yesterday</span>
+                </div>
+
+                {/* Info chevron - fixed positioning no overlap */}
+                <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                  <div className="w-10 h-10 bg-info/20 rounded-full flex items-center justify-center border border-info/30">
+                    <ChevronRight className="h-5 w-5 text-info" />
+                  </div>
                 </div>
               </div>
-
-              <div className="relative z-10 flex flex-col flex-1">
-                <div className="space-y-2 flex-1">
-                  <h3 className="text-6xl lg:text-7xl font-semibold text-foreground leading-none tracking-tight">
-                    {appStats.responseTime}<span className="text-2xl text-muted-foreground ml-2">m</span>
-                  </h3>
-                  <p className="text-xl text-muted-foreground font-medium">Response Time</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 text-success font-medium text-sm relative z-10">
-                <CheckCircle2 className="h-5 w-5" />
-                <span>23% faster today</span>
-              </div>
-
-              {/* Success chevron - fixed positioning no overlap */}
-              <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center border border-success/30">
-                  <ChevronRight className="h-5 w-5 text-success" />
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Today's Requests - Info Card */}
-          <motion.div
-            layout
-            className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
-          >
-            <div className="h-full min-h-[320px] glass-card p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden group hover-lift">
-              {/* Shared RGB Hive Effect */}
-              <div className="hover-glow hover-glow-info" />
-              
-              {/* Info gradient background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-info/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-              {/* Info icon - fixed positioning */}
-              <div className="absolute top-6 right-6 z-30">
-                <div className="w-12 h-12 bg-info/20 rounded-2xl flex items-center justify-center border border-info/30 transition-transform duration-300 group-hover:scale-110">
-                  <Activity className="h-6 w-6 text-info" />
-                </div>
-              </div>
-
-              <div className="relative z-10 flex flex-col flex-1">
-                <div className="space-y-2 flex-1">
-                  <h3 className="text-6xl lg:text-7xl font-semibold text-foreground leading-none tracking-tight">
-                    {appStats.todayRequests}
-                  </h3>
-                  <p className="text-xl text-muted-foreground font-medium">Today's Requests</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 text-info font-medium text-sm relative z-10">
-                <TrendingUp className="h-5 w-5" />
-                <span>+8% vs yesterday</span>
-              </div>
-
-              {/* Info chevron - fixed positioning no overlap */}
-              <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                <div className="w-10 h-10 bg-info/20 rounded-full flex items-center justify-center border border-info/30">
-                  <ChevronRight className="h-5 w-5 text-info" />
-                </div>
-              </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          )}
 
           {/* Map View - Secondary Navigation Card */}
           <motion.div
@@ -313,7 +323,7 @@ export const BentoHome = () => {
               <div className="h-full min-h-[160px] glass-card p-8 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between">
                 {/* Shared RGB Hive Effect */}
                 <div className="hover-glow hover-glow-secondary" />
-                
+
                 {/* Secondary gradient background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
@@ -349,89 +359,374 @@ export const BentoHome = () => {
             </Link>
           </motion.div>
 
-          {/* Verification Queue (Medium) */}
-          <motion.div
-            layout
-            className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: 0.24 }}
-          >
-            <Link to="/verification" className="block h-full group">
-              <Card
-                className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between"
-              >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-warning" />
-                <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-                  <div className="flex justify-between items-start">
-                    <div className="w-12 h-12 squircle surface-2 flex items-center justify-center">
-                      <FileCheck className="h-6 w-6 text-warning" />
+          {/* Verification Queue (Medium) - Admin Only */}
+          {isAdmin() && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.24 }}
+            >
+              <Link to="/verification" className="block h-full group">
+                <Card
+                  className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between"
+                >
+                  {/* Apple hover glow effect */}
+                  <div className="hover-glow hover-glow-warning" />
+                  <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+                    <div className="flex justify-between items-start">
+                      <div className="w-12 h-12 squircle surface-2 flex items-center justify-center">
+                        <FileCheck className="h-6 w-6 text-warning" />
+                      </div>
+                      <Badge className="squircle-sm surface-2 text-warning font-bold editorial-subtitle px-2 py-0.5">{appStats.pendingVerifications} PENDING</Badge>
                     </div>
-                    <Badge className="squircle-sm surface-2 text-warning font-bold editorial-subtitle px-2 py-0.5">{appStats.pendingVerifications} PENDING</Badge>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-xl tracking-tight">Verification</h4>
-                    <p className="text-sm text-muted-foreground font-medium">Review queue</p>
-                    <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                      <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                        <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
+                    <div>
+                      <h4 className="font-bold text-xl tracking-tight">Verification</h4>
+                      <p className="text-sm text-muted-foreground font-medium">Review queue</p>
+                      <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                        <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                          <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </Card>
-            </Link>
-          </motion.div>
+                </Card>
+              </Link>
+            </motion.div>
+          )}
 
-          {/* Analytics (Medium) */}
-          <motion.div
-            layout
-            className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: 0.20 }}
-          >
-            <Link to="/analytics" className="block h-full group">
-              <Card
-                className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between"
-              >
-                {/* Dot Pattern for Data */}
-                <div className="absolute inset-0 opacity-10"
-                  style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 0)', backgroundSize: '16px 16px', color: 'hsl(var(--success))' }}>
-                </div>
-
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-success" />
-                <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-                  <div className="flex justify-between items-start">
-                    <div className="w-12 h-12 squircle surface-2 flex items-center justify-center">
-                      <TrendingUp className="h-6 w-6 text-success" />
-                    </div>
+          {/* Analytics (Medium) - Admin/Org Admin/Sponsor Only */}
+          {(isAdmin() || isOrgAdmin() || isSponsor()) && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.20 }}
+            >
+              <Link to="/analytics" className="block h-full group">
+                <Card
+                  className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between"
+                >
+                  {/* Dot Pattern for Data */}
+                  <div className="absolute inset-0 opacity-10"
+                    style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 0)', backgroundSize: '16px 16px', color: 'hsl(var(--success))' }}>
                   </div>
-                  <div>
-                    <p className="editorial-subtitle text-success mb-1">INSIGHTS</p>
-                    <h4 className="font-bold text-xl tracking-tight">Analytics</h4>
-                    <p className="text-sm text-muted-foreground font-medium">Impact metrics</p>
-                    <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                      <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                        <ChevronRight className="h-5 w-5 text-success ml-0.5" />
+
+                  {/* Apple hover glow effect */}
+                  <div className="hover-glow hover-glow-success" />
+                  <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+                    <div className="flex justify-between items-start">
+                      <div className="w-12 h-12 squircle surface-2 flex items-center justify-center">
+                        <TrendingUp className="h-6 w-6 text-success" />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="editorial-subtitle text-success mb-1">INSIGHTS</p>
+                      <h4 className="font-bold text-xl tracking-tight">Analytics</h4>
+                      <p className="text-sm text-muted-foreground font-medium">
+                        {isSponsor() ? 'Impact metrics' : isAdmin() ? 'System analytics' : 'Org metrics'}
+                      </p>
+                      <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                        <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                          <ChevronRight className="h-5 w-5 text-success ml-0.5" />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </Card>
-            </Link>
-          </motion.div>
+                </Card>
+              </Link>
+            </motion.div>
+          )}
 
-          {/* Quick Actions - Brand-Aware Grid */}
-          {[
-            { id: 'hospitals', icon: Hospital, label: 'Hospitals', sub: `${analyticsData?.activeHospitals || 8}`, color: 'primary', path: '/hospitals', minRole: 'provider' },
-            { id: 'ambulances', icon: Ambulance, label: 'Fleet', sub: `${appStats.availableAmbulances}`, color: 'success', path: '/ambulances', minRole: 'provider' },
-            { id: 'doctors', icon: Stethoscope, label: 'Doctors', sub: `${doctorsStats?.totalDoctors || 48}`, color: 'info', path: '/doctors', minRole: 'provider' },
+          {/* Patient-Specific Cards */}
+          {isPatient() && (
+            <>
+              {/* My Requests Card */}
+              <motion.div
+                layout
+                className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 row-span-2"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+              >
+                <Link to="/visits" className="block h-full group">
+                  <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
+                    <div className="hover-glow hover-glow-primary" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    
+                    <div className="absolute top-6 right-6 z-30">
+                      <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 transition-transform duration-300 group-hover:scale-110">
+                        <Calendar className="h-6 w-6 text-primary" />
+                      </div>
+                    </div>
+
+                    <div className="relative z-10 flex flex-col flex-1">
+                      <div className="space-y-2 flex-1">
+                        <h2 className="text-7xl lg:text-8xl font-semibold text-foreground leading-none tracking-tight">
+                          {visitsStats?.today || 0}
+                        </h2>
+                        <p className="text-xl text-muted-foreground font-medium">My Active Requests</p>
+                      </div>
+                    </div>
+
+                    <div className="relative z-10 h-20">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData}>
+                          <Area
+                            type="monotone"
+                            dataKey="value"
+                            stroke="hsl(var(--primary))"
+                            fill="hsl(var(--primary) / 0.1)"
+                            strokeWidth={2}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                      <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center border border-primary/30">
+                        <ChevronRight className="h-5 w-5 text-primary" />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+
+              {/* Quick Actions for Patients */}
+              {[
+                { id: 'new-request', icon: AlertTriangle, label: 'New Request', sub: 'Request emergency care', color: 'primary', path: '/emergency-request' },
+                { id: 'my-visits', icon: Calendar, label: 'My Visits', sub: 'View appointments', color: 'success', path: '/visits' },
+                { id: 'profile', icon: Users, label: 'Profile', sub: 'Manage my info', color: 'info', path: '/profile' },
+              ].map((item, idx) => (
+                <motion.div
+                  layout
+                  key={item.id}
+                  className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4, delay: 0.4 + (idx * 0.05), ease: [0.4, 0, 0.2, 1] }}
+                >
+                  <Link to={item.path} className="block h-full group">
+                    <div className="h-full min-h-[140px] glass-card p-6 hover-lift cursor-pointer relative overflow-hidden">
+                      <div className={`hover-glow hover-glow-${item.color}`} />
+                      <div className={`absolute inset-0 bg-gradient-to-br from-${item.color}/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+
+                      <div className="flex justify-between items-start">
+                        <div className={`w-12 h-12 bg-${item.color}/20 rounded-2xl flex items-center justify-center border border-${item.color}/30 transition-transform duration-300 group-hover:scale-110`}>
+                          <item.icon className={`h-6 w-6 text-${item.color}`} />
+                        </div>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <ChevronRight className={`h-5 w-5 text-${item.color}`} />
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <h4 className="font-semibold text-lg tracking-tight text-foreground">{item.label}</h4>
+                        <p className="text-base text-muted-foreground font-medium">{item.sub}</p>
+                      </div>
+
+                      <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        <div className={`w-8 h-8 bg-${item.color}/20 rounded-full flex items-center justify-center border border-${item.color}/30`}>
+                          <ChevronRight className={`h-4 w-4 text-${item.color}`} />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </> // Added closing tag here
+          )}
+
+          {/* Viewer-Specific Cards */}
+          {isViewer() && (
+            <>
+              {/* Public Information Card */}
+              <motion.div
+                layout
+                className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 row-span-2"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+              >
+                <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
+                  <div className="hover-glow hover-glow-primary" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  
+                  <div className="absolute top-6 right-6 z-30">
+                    <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 transition-transform duration-300 group-hover:scale-110">
+                      <Activity className="h-6 w-6 text-primary" />
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 flex flex-col flex-1">
+                    <div className="space-y-2 flex-1">
+                      <h2 className="text-4xl lg:text-5xl font-semibold text-foreground leading-none tracking-tight">
+                        iVisit Platform
+                      </h2>
+                      <p className="text-xl text-muted-foreground font-medium">Emergency Medical Services</p>
+                    </div>
+                  </div>
+
+                  <div className="relative z-10">
+                    <p className="text-sm text-muted-foreground">
+                      Real-time emergency response coordination platform connecting patients with medical providers.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Quick Info for Viewers */}
+              {[
+                { id: 'about', icon: Activity, label: 'About', sub: 'Platform info', color: 'primary', path: '/about' },
+                { id: 'health-news', icon: TrendingUp, label: 'Health News', sub: 'Latest updates', color: 'success', path: '/health-news' },
+                { id: 'contact', icon: Mail, label: 'Contact', sub: 'Get in touch', color: 'info', path: '/contact' },
+              ].map((item, idx) => (
+                <motion.div
+                  layout
+                  key={item.id}
+                  className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4, delay: 0.4 + (idx * 0.05), ease: [0.4, 0, 0.2, 1] }}
+                >
+                  <Link to={item.path} className="block h-full group">
+                    <div className="h-full min-h-[140px] glass-card p-6 hover-lift cursor-pointer relative overflow-hidden">
+                      <div className={`hover-glow hover-glow-${item.color}`} />
+                      <div className={`absolute inset-0 bg-gradient-to-br from-${item.color}/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+
+                      <div className="flex justify-between items-start">
+                        <div className={`w-12 h-12 bg-${item.color}/20 rounded-2xl flex items-center justify-center border border-${item.color}/30 transition-transform duration-300 group-hover:scale-110`}>
+                          <item.icon className={`h-6 w-6 text-${item.color}`} />
+                        </div>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <ChevronRight className={`h-5 w-5 text-${item.color}`} />
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <h4 className="font-semibold text-lg tracking-tight text-foreground">{item.label}</h4>
+                        <p className="text-base text-muted-foreground font-medium">{item.sub}</p>
+                      </div>
+
+                      <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        <div className={`w-8 h-8 bg-${item.color}/20 rounded-full flex items-center justify-center border border-${item.color}/30`}>
+                          <ChevronRight className={`h-4 w-4 text-${item.color}`} />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </>
+          )}
+
+          {/* Sponsor-Specific Cards */}
+          {isSponsor() && (
+            <>
+              {/* Impact Overview Card */}
+              <motion.div
+                layout
+                className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 row-span-2"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+              >
+                <Link to="/analytics" className="block h-full group">
+                  <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
+                    <div className="hover-glow hover-glow-success" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-success/10 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    
+                    <div className="absolute top-6 right-6 z-30">
+                      <div className="w-12 h-12 bg-success/20 rounded-2xl flex items-center justify-center border border-success/30 transition-transform duration-300 group-hover:scale-110">
+                        <TrendingUp className="h-6 w-6 text-success" />
+                      </div>
+                    </div>
+
+                    <div className="relative z-10 flex flex-col flex-1">
+                      <div className="space-y-2 flex-1">
+                        <h2 className="text-6xl lg:text-7xl font-semibold text-foreground leading-none tracking-tight">
+                          {appStats.completionRate}%
+                        </h2>
+                        <p className="text-xl text-muted-foreground font-medium">Success Rate</p>
+                      </div>
+                    </div>
+
+                    <div className="relative z-10 h-20">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData}>
+                          <Area
+                            type="monotone"
+                            dataKey="value"
+                            stroke="hsl(var(--success))"
+                            fill="hsl(var(--success) / 0.1)"
+                            strokeWidth={2}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                      <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center border border-success/30">
+                        <ChevronRight className="h-5 w-5 text-success" />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+
+              {/* Sponsor Quick Actions */}
+              {[
+                { id: 'analytics', icon: BarChart3, label: 'Analytics', sub: 'Impact metrics', color: 'success', path: '/analytics' },
+                { id: 'health-news', icon: TrendingUp, label: 'Health News', sub: 'Community updates', color: 'info', path: '/health-news' },
+                { id: 'reports', icon: FileCheck, label: 'Reports', sub: 'Monthly impact', color: 'primary', path: '/reports' },
+              ].map((item, idx) => (
+                <motion.div
+                  layout
+                  key={item.id}
+                  className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4, delay: 0.4 + (idx * 0.05), ease: [0.4, 0, 0.2, 1] }}
+                >
+                  <Link to={item.path} className="block h-full group">
+                    <div className="h-full min-h-[140px] glass-card p-6 hover-lift cursor-pointer relative overflow-hidden">
+                      <div className={`hover-glow hover-glow-${item.color}`} />
+                      <div className={`absolute inset-0 bg-gradient-to-br from-${item.color}/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+
+                      <div className="flex justify-between items-start">
+                        <div className={`w-12 h-12 bg-${item.color}/20 rounded-2xl flex items-center justify-center border border-${item.color}/30 transition-transform duration-300 group-hover:scale-110`}>
+                          <item.icon className={`h-6 w-6 text-${item.color}`} />
+                        </div>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <ChevronRight className={`h-5 w-5 text-${item.color}`} />
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <h4 className="font-semibold text-lg tracking-tight text-foreground">{item.label}</h4>
+                        <p className="text-base text-muted-foreground font-medium">{item.sub}</p>
+                      </div>
+
+                      <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        <div className={`w-8 h-8 bg-${item.color}/20 rounded-full flex items-center justify-center border border-${item.color}/30`}>
+                          <ChevronRight className={`h-4 w-4 text-${item.color}`} />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </>
+          )}
+
+          {/* Quick Actions - Admin/Org Admin Only */}
+          {(isAdmin() || isOrgAdmin()) && [
+            { id: 'hospitals', icon: Hospital, label: 'Hospitals', sub: `${analyticsData?.activeHospitals || 8}`, color: 'primary', path: '/hospitals' },
+            { id: 'ambulances', icon: Ambulance, label: 'Fleet', sub: `${appStats.availableAmbulances}`, color: 'success', path: '/ambulances' },
+            { id: 'doctors', icon: Stethoscope, label: 'Doctors', sub: `${doctorsStats?.totalDoctors || 48}`, color: 'info', path: '/doctors' },
             { id: 'users', icon: Users, label: 'Users', sub: `${appStats.totalUsers}`, color: 'secondary', path: '/users', minRole: 'admin' },
-            { id: 'visits', icon: Calendar, label: 'Visits', sub: `${visitsStats?.today || 24}`, color: 'warning', path: '/visits', minRole: 'provider' },
-            { id: 'emergencies', icon: AlertTriangle, label: 'Emergencies', sub: `${emergencyStats?.total || 0}`, color: 'destructive', path: '/emergencies', minRole: 'provider' },
           ].filter(item => !item.minRole || hasMinRole(item.minRole)).map((item, idx) => (
             <motion.div
               layout
@@ -445,10 +740,10 @@ export const BentoHome = () => {
                 <div className="h-full min-h-[140px] glass-card p-6 hover-lift cursor-pointer relative overflow-hidden">
                   {/* Shared RGB Hive Effect */}
                   <div className={`hover-glow hover-glow-${item.color}`} />
-                  
+
                   {/* Brand-aware gradient */}
                   <div className={`absolute inset-0 bg-gradient-to-br from-${item.color}/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-                  
+
                   <div className="flex justify-between items-start">
                     <div className={`w-12 h-12 bg-${item.color}/20 rounded-2xl flex items-center justify-center border border-${item.color}/30 transition-transform duration-300 group-hover:scale-110`}>
                       <item.icon className={`h-6 w-6 text-${item.color}`} />
@@ -457,7 +752,53 @@ export const BentoHome = () => {
                       <ChevronRight className={`h-5 w-5 text-${item.color}`} />
                     </div>
                   </div>
-                  
+
+                  <div className="mt-4">
+                    <h4 className="font-semibold text-lg tracking-tight text-foreground">{item.label}</h4>
+                    <p className="text-base text-muted-foreground font-medium">{item.sub}</p>
+                  </div>
+
+                  {/* Fixed chevron positioning no overlap */}
+                  <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                    <div className={`w-8 h-8 bg-${item.color}/20 rounded-full flex items-center justify-center border border-${item.color}/30`}>
+                      <ChevronRight className={`h-4 w-4 text-${item.color}`} />
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+
+          {/* Provider-Specific Quick Actions */}
+          {isProvider() && !isAdmin() && !isOrgAdmin() && [
+            { id: 'visits', icon: Calendar, label: 'My Visits', sub: `${visitsStats?.today || 24}`, color: 'warning', path: '/visits' },
+            { id: 'emergencies', icon: AlertTriangle, label: 'My Emergencies', sub: `${emergencyStats?.total || 0}`, color: 'destructive', path: '/emergencies' },
+          ].map((item, idx) => (
+            <motion.div
+              layout
+              key={item.id}
+              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.4 + (idx * 0.05), ease: [0.4, 0, 0.2, 1] }}
+            >
+              <Link to={item.path} className="block h-full group" data-testid={`quick-${item.id}`}>
+                <div className="h-full min-h-[140px] glass-card p-6 hover-lift cursor-pointer relative overflow-hidden">
+                  {/* Shared RGB Hive Effect */}
+                  <div className={`hover-glow hover-glow-${item.color}`} />
+
+                  {/* Brand-aware gradient */}
+                  <div className={`absolute inset-0 bg-gradient-to-br from-${item.color}/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+
+                  <div className="flex justify-between items-start">
+                    <div className={`w-12 h-12 bg-${item.color}/20 rounded-2xl flex items-center justify-center border border-${item.color}/30 transition-transform duration-300 group-hover:scale-110`}>
+                      <item.icon className={`h-6 w-6 text-${item.color}`} />
+                    </div>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <ChevronRight className={`h-5 w-5 text-${item.color}`} />
+                    </div>
+                  </div>
+
                   <div className="mt-4">
                     <h4 className="font-semibold text-lg tracking-tight text-foreground">{item.label}</h4>
                     <p className="text-base text-muted-foreground font-medium">{item.sub}</p>
@@ -487,7 +828,7 @@ export const BentoHome = () => {
               <div className="h-full min-h-[160px] glass-card p-8 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between">
                 {/* Shared RGB Hive Effect */}
                 <div className="hover-glow hover-glow-warning" />
-                
+
                 {/* Warning gradient background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-warning/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
@@ -523,124 +864,128 @@ export const BentoHome = () => {
             </Link>
           </motion.div>
 
-          {/* Subscription Card */}
-          <motion.div
-            layout
-            className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-1"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.85 }}
-          >
-            <Link to="/subscriptions" className="block h-full group">
-              <Card
-                className="h-full min-h-[160px] geo-bg glass shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between"
-              >
-                {/* Subscription Background Pattern */}
-                <div className="absolute inset-0 opacity-5"
-                  style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, currentColor 0%, transparent 40%), radial-gradient(circle at 75% 75%, currentColor 0%, transparent 40%), radial-gradient(circle at 75% 25%, currentColor 0%, transparent 30%), radial-gradient(circle at 25% 75%, currentColor 0%, transparent 30%)', backgroundSize: '50px 50px, 50px 50px, 40px 40px, 40px 40px', backgroundPosition: '0% 0%, 100% 100%, 100% 0%, 0% 100%', color: 'hsl(var(--info))' }}>
-                </div>
+          {/* Subscription Card - Admin Only */}
+          {isAdmin() && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-1"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.85 }}
+            >
+              <Link to="/subscriptions" className="block h-full group">
+                <Card
+                  className="h-full min-h-[160px] geo-bg glass shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between"
+                >
+                  {/* Subscription Background Pattern */}
+                  <div className="absolute inset-0 opacity-5"
+                    style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, currentColor 0%, transparent 40%), radial-gradient(circle at 75% 75%, currentColor 0%, transparent 40%), radial-gradient(circle at 75% 25%, currentColor 0%, transparent 30%), radial-gradient(circle at 25% 75%, currentColor 0%, transparent 30%)', backgroundSize: '50px 50px, 50px 50px, 40px 40px, 40px 40px', backgroundPosition: '0% 0%, 100% 100%, 100% 0%, 0% 100%', color: 'hsl(var(--info))' }}>
+                  </div>
 
+                  {/* Apple hover glow effect */}
+                  <div className="hover-glow hover-glow-info" />
+
+                  <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="relative">
+                      <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                        <Mail className="h-5 w-5 text-info" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+                    <div className="flex justify-between items-start">
+                      <div className="w-12 h-12 squircle bg-info/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
+                        <Mail className="h-6 w-6 text-info" />
+                      </div>
+                      <Badge className="squircle-sm bg-info/20 text-info border-0 font-bold editorial-subtitle px-2 py-0.5">SUBSCRIPTIONS</Badge>
+                    </div>
+                    <div>
+                      <p className="editorial-subtitle text-info mb-1">COMMUNITY</p>
+                      <h4 className="font-bold text-xl tracking-tight">Subscriptions</h4>
+                      <p className="text-sm text-muted-foreground font-medium">Manage subscribers & engagement</p>
+                      <div className="flex items-center gap-4 mt-2">
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-success" />
+                          <span className="text-xs font-semibold text-success">{subscriptionStats.active} active</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-warning" />
+                          <span className="text-xs font-semibold text-warning">{subscriptionStats.paid} premium</span>
+                        </div>
+                      </div>
+                      <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
+                        <div className="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                          <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            </motion.div>
+          )}
+
+          {/* System Status (Wide) - Admin Only */}
+          {isAdmin() && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.6 }}
+            >
+              <Card className="h-full min-h-[300px] squircle-3xl glass shadow-2xl p-7 flex flex-col w-full relative overflow-hidden group">
+                {/* Tech Grid Background */}
                 {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-info" />
-
-                <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <Mail className="h-5 w-5 text-info" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-                  <div className="flex justify-between items-start">
-                    <div className="w-12 h-12 squircle bg-info/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
-                      <Mail className="h-6 w-6 text-info" />
-                    </div>
-                    <Badge className="squircle-sm bg-info/20 text-info border-0 font-bold editorial-subtitle px-2 py-0.5">SUBSCRIPTIONS</Badge>
-                  </div>
-                  <div>
-                    <p className="editorial-subtitle text-info mb-1">COMMUNITY</p>
-                    <h4 className="font-bold text-xl tracking-tight">Subscriptions</h4>
-                    <p className="text-sm text-muted-foreground font-medium">Manage subscribers & engagement</p>
-                    <div className="flex items-center gap-4 mt-2">
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-success" />
-                        <span className="text-xs font-semibold text-success">{subscriptionStats.active} active</span>
+                <div className="hover-glow hover-glow-primary" />
+                <h4 className="font-bold text-lg mb-6 tracking-tight">System Status</h4>
+                <div className="grid grid-cols-1 gap-6 flex-1">
+                  {[
+                    {
+                      label: 'Success Rate',
+                      value: `${appStats.completionRate}%`,
+                      progress: appStats.completionRate,
+                      color: 'success'
+                    },
+                    {
+                      label: 'Fleet Active',
+                      value: `${Math.round((appStats.availableAmbulances / (appStats.availableAmbulances + 4)) * 100)}%`,
+                      progress: Math.round((appStats.availableAmbulances / (appStats.availableAmbulances + 4)) * 100),
+                      color: 'primary'
+                    },
+                    {
+                      label: 'Beds Available',
+                      value: appStats.availableAmbulances * 13, // Estimate beds per ambulance
+                      progress: Math.min(65, appStats.availableAmbulances * 5),
+                      color: 'info'
+                    },
+                    {
+                      label: 'System Health',
+                      value: '99%',
+                      progress: 99,
+                      color: 'success'
+                    },
+                  ].map((stat, idx) => (
+                    <div key={idx} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground font-medium">{stat.label}</span>
+                        <span className={`text-xl font-bold tracking-tighter text-${stat.color}`}>{stat.value}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-warning" />
-                        <span className="text-xs font-semibold text-warning">{subscriptionStats.paid} premium</span>
+                      <div className="h-2 bg-muted/30 squircle-sm overflow-hidden">
+                        <motion.div
+                          className={`h-full bg-${stat.color} squircle-sm`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${stat.progress}%` }}
+                          transition={{ duration: 1, delay: 0.7 + (idx * 0.1) }}
+                        />
                       </div>
                     </div>
-                    <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
-                      <div className="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                        <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
-                      </div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </Card>
-            </Link>
-          </motion.div>
-
-          {/* System Status (Wide) */}
-          <motion.div
-            layout
-            className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.6 }}
-          >
-            <Card className="h-full min-h-[300px] squircle-3xl glass shadow-2xl p-7 flex flex-col w-full relative overflow-hidden group">
-              {/* Tech Grid Background */}
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-primary" />
-              <h4 className="font-bold text-lg mb-6 tracking-tight">System Status</h4>
-              <div className="grid grid-cols-1 gap-6 flex-1">
-                {[
-                  {
-                    label: 'Success Rate',
-                    value: `${appStats.completionRate}%`,
-                    progress: appStats.completionRate,
-                    color: 'success'
-                  },
-                  {
-                    label: 'Fleet Active',
-                    value: `${Math.round((appStats.availableAmbulances / (appStats.availableAmbulances + 4)) * 100)}%`,
-                    progress: Math.round((appStats.availableAmbulances / (appStats.availableAmbulances + 4)) * 100),
-                    color: 'primary'
-                  },
-                  {
-                    label: 'Beds Available',
-                    value: appStats.availableAmbulances * 13, // Estimate beds per ambulance
-                    progress: Math.min(65, appStats.availableAmbulances * 5),
-                    color: 'info'
-                  },
-                  {
-                    label: 'System Health',
-                    value: '99%',
-                    progress: 99,
-                    color: 'success'
-                  },
-                ].map((stat, idx) => (
-                  <div key={idx} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground font-medium">{stat.label}</span>
-                      <span className={`text-xl font-bold tracking-tighter text-${stat.color}`}>{stat.value}</span>
-                    </div>
-                    <div className="h-2 bg-muted/30 squircle-sm overflow-hidden">
-                      <motion.div
-                        className={`h-full bg-${stat.color} squircle-sm`}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${stat.progress}%` }}
-                        transition={{ duration: 1, delay: 0.7 + (idx * 0.1) }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </motion.div>
+            </motion.div>
+          )}
 
           {/* Recent Activity (Wide) */}
           <motion.div

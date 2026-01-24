@@ -1,8 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import { useAuth } from './AuthContext';
 import { getSupportTickets } from '../services/supportTicketsService';
-import { getUserStatistics } from '../services/profilesService';
+import { getUserStatistics, getProfiles } from '../services/profilesService';
+import { getEmergencyRequests } from '../services/emergencyService';
+import { getDoctors } from '../services/doctorsService';
+import { getVisits } from '../services/visitsService';
+import { getHospitals } from '../services/hospitalsService';
+import { getAmbulances } from '../services/ambulancesService';
+import { getAnalyticsData } from '../services/analyticsService';
+import { getVerificationStats } from '../services/verificationService';
+import { getRecentActivity } from '../services/activityService';
+import { getInsurancePolicies } from '../services/insurancePoliciesService';
 
 // Mock data as fallback
 const mockEmergencyData = {
@@ -107,6 +117,7 @@ export const usePageData = () => {
 };
 
 export const PageDataProvider = ({ children }) => {
+  const { user } = useAuth();
   const [emergencyData, setEmergencyData] = useState(mockEmergencyData);
   const [analyticsData, setAnalyticsData] = useState(mockAnalyticsData);
   const [doctorsData, setDoctorsData] = useState(mockDoctorsData);
@@ -134,48 +145,43 @@ export const PageDataProvider = ({ children }) => {
   const [useMockData, setUseMockData] = useState(false);
 
   // Fetch emergency data
+  // Fetch emergency data
   const fetchEmergencyData = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, emergency: true }));
 
       if (useMockData) {
-        setEmergencyData(mockEmergencyData); // Ensure mock data structure is updated elsewhere if needed, or handle here
+        setEmergencyData(mockEmergencyData);
         return;
       }
 
-      const { data, error } = await supabase
-        .from('emergency_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Use service with RBAC
+      const data = await getEmergencyRequests();
 
-      if (error) {
-        console.warn('Supabase error, using mock data:', error);
-        setEmergencyData({ stats: { total: 0, critical: 0, high: 0, pending: 0, active: 0 }, recent: [] });
-        setUseMockData(true);
-      } else {
-        const total = data?.length || 0;
-        const critical = data?.filter(r => r.priority === 'critical').length || 0;
-        const high = data?.filter(r => r.priority === 'high').length || 0;
-        const pending = data?.filter(r => r.status === 'pending').length || 0;
-        const active = data?.filter(r => ['assigned', 'in_progress'].includes(r.status)).length || 0;
-        const completed = data?.filter(r => r.status === 'completed').length || 0;
+      const total = data?.length || 0;
+      const critical = data?.filter(r => r.priority === 'critical').length || 0;
+      const high = data?.filter(r => r.priority === 'high').length || 0;
+      const pending = data?.filter(r => r.status === 'pending').length || 0;
+      const active = data?.filter(r => ['assigned', 'in_progress', 'accepted'].includes(r.status)).length || 0;
+      const completed = data?.filter(r => r.status === 'completed').length || 0;
 
-        setEmergencyData({
-          stats: {
-            total,
-            critical,
-            high,
-            pending,
-            active,
-            completed
-          },
-          recent: data?.slice(0, 5) || []
-        });
-      }
+      setEmergencyData({
+        stats: {
+          total,
+          critical,
+          high,
+          pending,
+          active,
+          completed
+        },
+        recent: data?.slice(0, 5) || []
+      });
+
     } catch (error) {
       console.error('Error fetching emergency data:', error);
+      // Only fallback to mock if it's not an auth error, or maybe just show empty
+      // setUseMockData(true); 
       setEmergencyData({ stats: { total: 0, critical: 0, high: 0, pending: 0, active: 0 }, recent: [] });
-      setUseMockData(true);
     } finally {
       setLoading(prev => ({ ...prev, emergency: false }));
     }
@@ -190,32 +196,24 @@ export const PageDataProvider = ({ children }) => {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.warn('Supabase error, using mock data:', error);
-        setVerificationData(mockVerificationData);
-        setUseMockData(true);
-      } else {
-        // Calculate real verification stats from profiles
-        const pending = data?.filter(u => !u.bvn_verified && u.role === 'provider').length || 0;
-        const approved = data?.filter(u => u.bvn_verified).length || 0;
-        const rejected = 0; // Would need rejected field
-
+      // Try fetching verified stats via service (admin only)
+      try {
+        const stats = await getVerificationStats();
+        setVerificationData(stats);
+      } catch (authError) {
+        // If not admin, we might just want to show nothing or limited data
+        console.warn('Verification stats access restricted:', authError.message);
         setVerificationData({
-          pending,
-          approved,
-          rejected,
-          total: data?.length || 0
+          pending: 0,
+          approved: 0,
+          rejected: 0,
+          total: 0
         });
       }
     } catch (error) {
       console.error('Error fetching verification data:', error);
       setVerificationData(mockVerificationData);
-      setUseMockData(true);
+      // setUseMockData(true);
     } finally {
       setLoading(prev => ({ ...prev, verification: false }));
     }
@@ -230,39 +228,31 @@ export const PageDataProvider = ({ children }) => {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('doctors')
-        .select('*, hospitals(name)')
-        .order('created_at', { ascending: false });
+      const { data } = await getDoctors(); // RBAC enabled
 
-      if (error) {
-        console.warn('Supabase error, using mock data:', error);
-        setDoctorsData(mockDoctorsData);
-        setUseMockData(true);
-      } else {
-        // Calculate real doctor stats
-        const total = data?.length || 0;
-        const available = data?.filter(d => d.status === 'available').length || 0;
-        const busy = data?.filter(d => d.status === 'busy').length || 0;
-        const off_duty = data?.filter(d => d.status === 'off_duty').length || 0;
-        const onCall = data?.filter(d => d.status === 'on_call').length || 0; // Keeping for compatibility if needed
+      // Calculate real doctor stats based on visible data
+      const total = data?.length || 0;
+      const available = data?.filter(d => d.status === 'available').length || 0;
+      const busy = data?.filter(d => d.status === 'busy').length || 0;
+      const off_duty = data?.filter(d => d.status === 'off_duty').length || 0;
+      const onCall = data?.filter(d => d.status === 'on_call').length || 0;
 
-        setDoctorsData({
-          stats: {
-            total,
-            totalDoctors: total, // Backward compatibility
-            onCall,
-            available,
-            busy,
-            off_duty
-          },
-          recent: data?.slice(0, 5) || []
-        });
-      }
+      setDoctorsData({
+        stats: {
+          total,
+          totalDoctors: total,
+          onCall,
+          available,
+          busy,
+          off_duty
+        },
+        recent: data?.slice(0, 5) || []
+      });
+
     } catch (error) {
       console.error('Error fetching doctors data:', error);
       setDoctorsData(mockDoctorsData);
-      setUseMockData(true);
+      // setUseMockData(true);
     } finally {
       setLoading(prev => ({ ...prev, doctors: false }));
     }
@@ -277,40 +267,30 @@ export const PageDataProvider = ({ children }) => {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('visits')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const data = await getVisits(); // RBAC enabled
 
-      if (error) {
-        console.warn('Supabase error, using mock data:', error);
-        setVisitsData(mockVisitsData);
-        setUseMockData(true);
-      } else {
-        // Calculate real visit stats
-        const today = new Date().toISOString().split('T')[0];
-        const todayVisits = data?.filter(v => v.visit_date === today).length || 0;
-        const scheduled = data?.filter(v => v.status === 'scheduled').length || 0;
-        const inProgress = data?.filter(v => v.status === 'in_progress').length || 0;
-        const completed = data?.filter(v => v.status === 'completed').length || 0;
-        const cancelled = data?.filter(v => v.status === 'cancelled').length || 0;
+      const today = new Date().toISOString().split('T')[0];
+      const todayVisits = data?.filter(v => v.visit_date === today || (v.date && v.date.startsWith(today))).length || 0;
+      const scheduled = data?.filter(v => v.status === 'scheduled').length || 0;
+      const inProgress = data?.filter(v => v.status === 'in_progress').length || 0;
+      const completed = data?.filter(v => v.status === 'completed').length || 0;
+      const cancelled = data?.filter(v => v.status === 'cancelled').length || 0;
 
-        setVisitsData({
-          stats: {
-            total: data?.length || 0,
-            today: todayVisits,
-            scheduled,
-            inProgress,
-            completed,
-            cancelled
-          },
-          recent: data?.slice(0, 5) || []
-        });
-      }
+      setVisitsData({
+        stats: {
+          total: data?.length || 0,
+          today: todayVisits,
+          scheduled,
+          inProgress,
+          completed,
+          cancelled
+        },
+        recent: data?.slice(0, 5) || []
+      });
+
     } catch (error) {
       console.error('Error fetching visits data:', error);
       setVisitsData(mockVisitsData);
-      setUseMockData(true);
     } finally {
       setLoading(prev => ({ ...prev, visits: false }));
     }
@@ -325,33 +305,24 @@ export const PageDataProvider = ({ children }) => {
         return;
       }
 
-      // Fetch all data in parallel like Analytics page
-      const [requestsRes, usersRes, hospitalsRes, ambulancesRes] = await Promise.all([
-        supabase.from('emergency_requests').select('*'),
-        supabase.from('profiles').select('*', { count: 'exact' }),
-        supabase.from('hospitals').select('*', { count: 'exact' }),
-        supabase.from('ambulances').select('*', { count: 'exact' }),
-      ]);
+      // Use the consolidated analytics service which handles parallell fetching and caching with RBAC
+      const fullAnalytics = await getAnalyticsData({ timeRange: 'all', includeRawData: true });
 
-      const requests = requestsRes.data || [];
-      const completed = requests.filter(r => r.status === 'completed');
-      const totalRequests = requests.length;
-
-      // Calculate real analytics stats
-      const realAnalyticsData = {
-        totalRequests: totalRequests,
-        avgResponseTime: 8 + Math.random() * 5, // Same calculation as Analytics page
-        completionRate: totalRequests > 0 ? Math.round((completed.length / totalRequests) * 100) : 95,
-        activeHospitals: hospitalsRes.count || 0,
-        availableAmbulances: ambulancesRes.count || 0,
-        onRouteAmbulances: Math.floor((ambulancesRes.count || 0) * 0.3), // Estimate based on available
+      // Transform for PageData context expected structure
+      const transformedAnalytics = {
+        totalRequests: fullAnalytics.totalEmergencies,
+        avgResponseTime: fullAnalytics.avgResponseTime,
+        completionRate: fullAnalytics.successRate,
+        activeHospitals: fullAnalytics.totalHospitals,
+        availableAmbulances: fullAnalytics.totalAmbulances,
+        // Estimate if not available in summary
+        onRouteAmbulances: Math.floor(fullAnalytics.totalAmbulances * 0.3),
       };
 
-      setAnalyticsData(realAnalyticsData);
+      setAnalyticsData(transformedAnalytics);
     } catch (error) {
       console.error('Error fetching analytics data:', error);
       setAnalyticsData(mockAnalyticsData);
-      setUseMockData(true);
     } finally {
       setLoading(prev => ({ ...prev, analytics: false }));
     }
@@ -361,38 +332,23 @@ export const PageDataProvider = ({ children }) => {
     try {
       setLoading(prev => ({ ...prev, hospitals: true }));
 
-      if (useMockData) {
-        // Use analytics data for hospitals since it's already real
-        return;
-      }
+      if (useMockData) return;
 
-      const { data, error } = await supabase
-        .from('hospitals')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const data = await getHospitals(); // RBAC enabled
 
-      if (error) {
-        console.warn('Supabase error for hospitals:', error);
-        // Analytics data already handles this
-      } else {
-        // Update analytics data with real hospital count
-        setAnalyticsData(prev => ({
-          ...prev,
-          activeHospitals: data?.length || 0
-        }));
+      // Update analytics data with real hospital count (if not already handled by analytics fetch)
+      // Note: We might want to keep analytics disjoint, but this updates component state
 
-        // Calculate hospital stats
-        const total = data?.length || 0;
-        const available = data?.filter(h => h.status === 'available').length || 0;
-        const full = data?.filter(h => h.status === 'full').length || 0;
-        const busy = data?.filter(h => h.status === 'busy').length || 0;
-        const verified = data?.filter(h => h.verified).length || 0;
+      const total = data?.length || 0;
+      const available = data?.filter(h => h.status === 'available').length || 0;
+      const full = data?.filter(h => h.status === 'full').length || 0;
+      const busy = data?.filter(h => h.status === 'busy').length || 0;
+      const verified = data?.filter(h => h.verified).length || 0;
 
-        setHospitalsData({
-          stats: { total, available, full, busy, verified },
-          recent: data?.slice(0, 5) || []
-        });
-      }
+      setHospitalsData({
+        stats: { total, available, full, busy, verified },
+        recent: data?.slice(0, 5) || []
+      });
     } catch (error) {
       console.error('Error fetching hospitals data:', error);
     } finally {
@@ -404,41 +360,25 @@ export const PageDataProvider = ({ children }) => {
     try {
       setLoading(prev => ({ ...prev, ambulances: true }));
 
-      if (useMockData) {
-        // Use analytics data for ambulances since it's already real
-        return;
-      }
+      if (useMockData) return;
 
-      const { data, error } = await supabase
-        .from('ambulances')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const data = await getAmbulances(); // RBAC enabled
 
-      if (error) {
-        console.warn('Supabase error for ambulances:', error);
-        // Analytics data already handles this
-      } else {
-        // Update analytics data with real ambulance counts
-        const available = data?.filter(a => a.status === 'available').length || 0;
-        const onRoute = data?.filter(a => a.status === 'on_route').length || 0;
+      const available = data?.filter(a => a.status === 'available').length || 0;
+      const onRoute = data?.filter(a => a.status === 'on_route').length || 0;
+      const busy = data?.filter(a => a.status === 'busy').length || 0;
+      const maintenance = data?.filter(a => a.status === 'maintenance').length || 0;
 
-        setAnalyticsData(prev => ({
-          ...prev,
-          availableAmbulances: available,
-          onRouteAmbulances: onRoute
-        }));
-
-        setAmbulancesData({
-          stats: {
-            total: data?.length || 0,
-            available,
-            onRoute,
-            busy: data?.filter(a => a.status === 'busy').length || 0,
-            maintenance: data?.filter(a => a.status === 'maintenance').length || 0
-          },
-          recent: data?.slice(0, 5) || []
-        });
-      }
+      setAmbulancesData({
+        stats: {
+          total: data?.length || 0,
+          available,
+          onRoute,
+          busy,
+          maintenance
+        },
+        recent: data?.slice(0, 5) || []
+      });
     } catch (error) {
       console.error('Error fetching ambulances data:', error);
     } finally {
@@ -455,118 +395,37 @@ export const PageDataProvider = ({ children }) => {
         return;
       }
 
-      // Try to get profiles with auth data (includes last_sign_in_at)
-      const { data: authUsers, error: authError } = await supabase.rpc('get_all_auth_users');
-
-      // Fetch robust statistics from the server (Source of Truth)
+      // Try to fetch robust statistics (Server/Admin side)
       let serverStatistics = null;
       try {
         serverStatistics = await getUserStatistics();
       } catch (err) {
-        // Ignore error, will fallback to manual calc
+        // Not admin or generic error, ignore
       }
 
-      if (authError) {
-        console.warn('Could not fetch auth users, falling back to profiles:', authError);
+      // Fetch profiles accessible to this user
+      const users = await getProfiles();
 
-        // Fallback to regular profiles if RPC fails
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('created_at', { ascending: false });
+      // If we got server stats, use them (Admin). 
+      // If not (Provider/User), calculate stats from visible users (e.g. 1 user).
 
-        if (profilesError) {
-          console.warn('Supabase error for users:', profilesError);
-          setUserData({ users: [], statistics: null });
-          return;
-        }
-
-        const users = profiles || [];
-
-        // Calculate statistics from profiles (Fallback)
-        const totalUsers = users.length;
-        const emailVerifiedUsers = users.filter(u => u.email_confirmed_at).length;
-        const bvnVerifiedUsers = users.filter(u => u.bvn_verified).length;
-
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        const recentSignups = users.filter(u => new Date(u.created_at) > thirtyDaysAgo).length;
-
-        const roleDistribution = users.reduce((acc, user) => {
-          const role = user.role || 'patient';
-          acc[role] = (acc[role] || 0) + 1;
-          return acc;
-        }, {});
-
-        const statistics = (serverStatistics && Object.keys(serverStatistics).length > 0) ? serverStatistics : {
-          totalUsers,
-          emailVerifiedUsers,
-          bvnVerifiedUsers,
-          recentSignups,
-          totalProfiles: totalUsers,
-          roleDistribution
-        };
-
-        setUserData({ users, statistics });
-
-        setVerificationData(prev => ({
-          ...prev,
-          total: statistics.totalUsers,
-          approved: statistics.bvnVerifiedUsers
-        }));
-
-        return;
-      }
-
-      // Map auth users data to match profile structure
-      const users = (authUsers || []).map(u => ({
-        id: u.user_id,
-        username: u.profile_username,
-        profile_username: u.profile_username,
-        email: u.email,
-        phone: u.profile_phone,
-        role: u.profile_role,
-        provider_type: u.profile_provider_type,
-        bvn_verified: u.profile_bvn_verified,
-        email_confirmed_at: u.email_confirmed_at,
-        last_sign_in_at: u.last_sign_in_at,
-        created_at: u.created_at,
-        image_uri: u.profile_image_uri,
-        avatar_url: u.profile_avatar_url
-      }));
-
-      // Calculate statistics (Fallback)
-      const totalUsers = users.length;
-      const emailVerifiedUsers = users.filter(u => u.email_confirmed_at).length;
-      const bvnVerifiedUsers = users.filter(u => u.bvn_verified).length;
-
-      // Calculate recent signups (last 30 days)
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const recentSignups = users.filter(u => new Date(u.created_at) > thirtyDaysAgo).length;
-
-      // Calculate role distribution
-      const roleDistribution = users.reduce((acc, user) => {
+      const totalUsers = serverStatistics?.totalUsers || users.length;
+      const roleDistribution = serverStatistics?.roleDistribution || users.reduce((acc, user) => {
         const role = user.role || 'patient';
         acc[role] = (acc[role] || 0) + 1;
         return acc;
       }, {});
 
-      const statistics = (serverStatistics && Object.keys(serverStatistics).length > 0) ? serverStatistics : {
+      const statistics = serverStatistics?.totalUsers ? serverStatistics : {
         totalUsers,
-        emailVerifiedUsers,
-        bvnVerifiedUsers,
-        recentSignups,
-        totalProfiles: totalUsers,
-        roleDistribution
+        roleDistribution,
+        // Other stats might be 0/null for non-admins
+        emailVerifiedUsers: users.filter(u => u.email_confirmed_at || u.bvn_verified).length,
+        bvnVerifiedUsers: users.filter(u => u.bvn_verified).length,
       };
 
       setUserData({ users, statistics });
 
-      // Update verification data with real user counts
-      setVerificationData(prev => ({
-        ...prev,
-        total: statistics.totalUsers,
-        approved: statistics.bvnVerifiedUsers
-      }));
     } catch (error) {
       console.error('Error fetching users data:', error);
       setUserData({ users: [], statistics: null });
@@ -630,21 +489,13 @@ export const PageDataProvider = ({ children }) => {
       setLoading(prev => ({ ...prev, insurance: true }));
 
       if (useMockData) {
-        setInsurancePolicies([]); // Mock empty for now or add mock data
+        setInsurancePolicies([]);
         return;
       }
 
-      const { data, error } = await supabase
-        .from('insurance_policies')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const data = await getInsurancePolicies();
+      setInsurancePolicies(data || []);
 
-      if (error) {
-        console.warn('Supabase error for insurance:', error);
-        setInsurancePolicies([]);
-      } else {
-        setInsurancePolicies(data || []);
-      }
     } catch (error) {
       console.error('Error fetching insurance policies:', error);
       setInsurancePolicies([]);
@@ -670,17 +521,9 @@ export const PageDataProvider = ({ children }) => {
         return;
       }
 
-      const { data, error } = await supabase.rpc('get_recent_activity', {
-        limit_count: 20,
-        offset_count: 0
-      });
+      const data = await getRecentActivity(20, 0);
+      setActivityData(data || []);
 
-      if (error) {
-        console.warn('Supabase error for activity:', error);
-        setActivityData([]);
-      } else {
-        setActivityData(data || []);
-      }
     } catch (error) {
       console.error('Error fetching activity data:', error);
       setActivityData([]);

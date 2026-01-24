@@ -206,10 +206,11 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   };
 
   const isAdmin = () => hasRole('admin');
-  const isSponsor = () => hasMinRole('sponsor');
+  const isSponsor = () => hasRole('sponsor');
   const isOrgAdmin = () => hasRole('org_admin');
   const isProvider = () => hasMinRole('provider') || isOrgAdmin();
-  const isViewer = () => hasMinRole('viewer');
+  const isViewer = () => hasRole('viewer');
+  const isPatient = () => hasRole('patient');
 
   /**
    * Universal Permission Checker
@@ -279,6 +280,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     isOrgAdmin,
     isProvider,
     isViewer,
+    isPatient,
     can,
   };
 
