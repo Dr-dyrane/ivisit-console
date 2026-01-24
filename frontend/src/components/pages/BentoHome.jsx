@@ -10,6 +10,7 @@ import { RefreshCw } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { transformActivityData } from '../../utils/activityUtils';
+import { BentoSkeleton } from '../common/Skeletons';
 import {
   Activity,
   Users,
@@ -42,12 +43,16 @@ export const BentoHome = () => {
   const navigate = useNavigate();
   const { hasMinRole, isAdmin, isProvider, isPatient, isViewer, isSponsor, isOrgAdmin } = useAuth();
   const {
+    emergencyData,
     emergencyStats,
     analyticsData,
+    doctorsData,
     doctorsStats,
+    visitsData,
     visitsStats,
     verificationData,
     activityData,
+    loading,
     fetchActivityData,
     refreshAllData
   } = usePageData();
@@ -80,8 +85,89 @@ export const BentoHome = () => {
     pendingVerifications: verificationData?.pending || 15
   };
 
+  // Debug: Log real data to console
+  useEffect(() => {
+    console.log('🔍 Dashboard Real Data Check:', {
+      emergencyStats,
+      analyticsData,
+      doctorsStats,
+      visitsStats,
+      verificationData,
+      appStats
+    });
+  }, [emergencyStats, analyticsData, doctorsStats, visitsStats, verificationData, appStats]);
+
   // Transform activity data for display
   const recentActivities = transformActivityData(activityData || []);
+
+  // Individual card skeletons for better UX
+  const EmergencyCardSkeleton = () => (
+    <motion.div
+      layout
+      className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 row-span-2"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <div className="h-full min-h-[320px] glass-card-premium p-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
+        <div className="relative z-10 flex flex-col flex-1">
+          <div className="space-y-2 flex-1">
+            <div className="h-16 w-32 bg-muted/50 rounded-lg animate-pulse" />
+            <div className="h-6 w-48 bg-muted/30 rounded-lg animate-pulse" />
+          </div>
+        </div>
+        <div className="relative z-10 h-20">
+          <div className="h-full w-full bg-muted/20 rounded-lg animate-pulse" />
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  const MetricCardSkeleton = () => (
+    <motion.div
+      layout
+      className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <div className="h-full min-h-[320px] glass-card p-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-muted/10 via-transparent to-transparent" />
+        <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+          <div className="flex justify-between items-start">
+            <div className="w-12 h-12 bg-muted/30 rounded-2xl animate-pulse" />
+            <div className="w-16 h-6 bg-muted/20 rounded-lg animate-pulse" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-8 w-24 bg-muted/40 rounded-lg animate-pulse" />
+            <div className="h-4 w-32 bg-muted/20 rounded-lg animate-pulse" />
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  const QuickActionCardSkeleton = () => (
+    <motion.div
+      layout
+      className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <div className="h-full min-h-[140px] glass-card p-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-muted/5 via-transparent to-transparent" />
+        <div className="relative z-10">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-12 h-12 bg-muted/30 rounded-2xl animate-pulse" />
+            <div className="w-8 h-8 bg-muted/20 rounded-lg animate-pulse" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-6 w-20 bg-muted/40 rounded-lg animate-pulse" />
+            <div className="h-4 w-16 bg-muted/20 rounded-lg animate-pulse" />
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
 
   const headerActions = React.useMemo(() => (
     <Button
@@ -133,6 +219,89 @@ export const BentoHome = () => {
   ), []);
 
   usePageFooter(footerContent, 'status');
+
+  // Check if any critical data is still loading (after all hooks)
+  const isLoading = loading?.emergency || loading?.analytics || loading?.doctors || loading?.visits || loading?.verification;
+
+  // Show role-specific skeleton layout while loading (after all hooks)
+  if (isLoading) {
+    return (
+      <div className="min-h-screen py-6 md:py-8">
+        <SEOHead title="Dashboard" description="Loading emergency operations dashboard..." />
+        <div className="pt-2" />
+        <LayoutGroup>
+          <motion.div
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense surface-1 rounded-3xl"
+          >
+            {/* Emergency Counter Skeleton */}
+            {!isPatient() && !isViewer() && <EmergencyCardSkeleton />}
+            
+            {/* Response Time Skeleton */}
+            {(isAdmin() || isOrgAdmin()) && <MetricCardSkeleton />}
+            
+            {/* Today's Requests Skeleton */}
+            {(isAdmin() || isOrgAdmin() || isProvider()) && <MetricCardSkeleton />}
+            
+            {/* Map View Skeleton */}
+            {(isAdmin() || isOrgAdmin() || isProvider()) && <MetricCardSkeleton />}
+            
+            {/* Verification Queue Skeleton */}
+            {isAdmin() && <MetricCardSkeleton />}
+            
+            {/* Analytics Skeleton */}
+            {(isAdmin() || isOrgAdmin() || isSponsor()) && <MetricCardSkeleton />}
+            
+            {/* Patient-specific Skeletons */}
+            {isPatient() && (
+              <>
+                <EmergencyCardSkeleton />
+                <QuickActionCardSkeleton />
+                <QuickActionCardSkeleton />
+                <QuickActionCardSkeleton />
+              </>
+            )}
+            
+            {/* Viewer-specific Skeletons */}
+            {isViewer() && (
+              <>
+                <EmergencyCardSkeleton />
+                <QuickActionCardSkeleton />
+                <QuickActionCardSkeleton />
+              </>
+            )}
+            
+            {/* Sponsor-specific Skeletons */}
+            {isSponsor() && (
+              <>
+                <EmergencyCardSkeleton />
+                <QuickActionCardSkeleton />
+                <QuickActionCardSkeleton />
+              </>
+            )}
+            
+            {/* Quick Actions Skeletons */}
+            {(isAdmin() || isOrgAdmin()) && (
+              <>
+                <QuickActionCardSkeleton />
+                <QuickActionCardSkeleton />
+                <QuickActionCardSkeleton />
+                <QuickActionCardSkeleton />
+              </>
+            )}
+            
+            {/* Provider-specific Skeletons */}
+            {isProvider() && !isAdmin() && !isOrgAdmin() && (
+              <>
+                <QuickActionCardSkeleton />
+                <QuickActionCardSkeleton />
+              </>
+            )}
+          </motion.div>
+        </LayoutGroup>
+      </div>
+    );
+  }
 
 
   return (
