@@ -7,7 +7,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "https://ivisit-admin.preview.emergentagent.com/api/$1"
+      "dest": "https://console.ivisit.com/"
     },
     {
       "handle": "filesystem"
