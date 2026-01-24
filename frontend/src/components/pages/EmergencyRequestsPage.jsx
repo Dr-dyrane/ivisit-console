@@ -407,6 +407,17 @@ export const EmergencyRequestsPage = () => {
     return badges[priority] || badges.medium;
   };
 
+  const getStatusBadge = (status) => {
+    const badges = {
+      pending: 'bg-warning/20 text-warning',
+      in_progress: 'bg-info/20 text-info',
+      accepted: 'bg-blue-500/20 text-blue-500',
+      completed: 'bg-success/20 text-success',
+      cancelled: 'bg-destructive/20 text-destructive',
+    };
+    return badges[status] || 'bg-muted/20 text-muted-foreground';
+  };
+
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
       <SEOHead title="Emergency Requests" description="Monitor and respond to critical emergency requests in real-time." />
@@ -726,7 +737,7 @@ export const EmergencyRequestsPage = () => {
                             </Badge>
                           </div>
                           <h3 className="font-bold text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
-                            {req.emergency_type || 'Unknown Emergency'}
+                            {req.service_type ? req.service_type.replace('_', ' ').toUpperCase() : 'Unknown Emergency'}
                           </h3>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 relative z-10">
                             <Clock className="h-4 w-4 text-info" />
@@ -735,7 +746,13 @@ export const EmergencyRequestsPage = () => {
                           <div className="space-y-3 mb-6 relative z-10">
                             <div className="flex items-start gap-3 text-sm p-3 geo-sharp bg-muted/30">
                               <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                              <span className="font-normal leading-snug truncate-2">{req.location || 'Location shared'}</span>
+                              <span className="font-normal leading-snug truncate-2">
+                              {req.patient_location ? 
+                                typeof req.patient_location === 'string' ? req.patient_location :
+                                'Coordinates available'
+                                : 'Location shared'
+                              }
+                            </span>
                             </div>
                           </div>
                           <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
@@ -815,6 +832,7 @@ export const EmergencyRequestsPage = () => {
               onDispatch={handleDispatch}
               onComplete={handleComplete}
               getPriorityBadge={getPriorityBadge}
+              getStatusBadge={getStatusBadge}
               isMobile={isMobile}
               selectedIds={selectedIds}
               onSelect={handleSelect}
@@ -831,6 +849,7 @@ export const EmergencyRequestsPage = () => {
               onDispatch={handleDispatch}
               onComplete={handleComplete}
               getPriorityBadge={getPriorityBadge}
+              getStatusBadge={getStatusBadge}
               isMobile={isMobile}
               selectedIds={selectedIds}
               onSelect={handleSelect}

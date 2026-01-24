@@ -11,27 +11,27 @@ const TABLE_NAME = 'ambulances';
 
 /**
  * Get all ambulances with optional filters
- * Admin users can see all ambulances, others see only available ones
+ * Admin users can see all ambulances, others see only available ones or their assigned ones
  */
 export async function getAmbulances(filter = {}) {
   try {
     const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
 
-    // Providers shouldn't filter ambulances by profile_id - they see all available ambulances
-    if (user?.role === 'provider') {
-      // For providers, only show available ambulances without profile_id filtering
-      query = query.eq('status', 'available');
+    // Apply RBAC Scoping
+    if (user?.role === 'provider' && user?.provider_type === 'driver') {
+      // Drivers see only their assigned ambulance
+      query = query.eq('driver_id', user.id);
     } else {
-      // Apply RBAC Scoping for other roles
+      // Apply standard RBAC for other roles
       query = applyAuthFilter(query, user, {
         userIdField: 'profile_id',
-        orgIdField: 'hospital_id'
+        orgIdField: 'hospital_id',
+        resourceType: 'ambulance'
       });
     }
 
     // 2. Apply Custom Filters
-
     if (filter?.hospital_id) {
       query = query.eq('hospital_id', filter.hospital_id);
     }

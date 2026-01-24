@@ -2,9 +2,10 @@ import React from 'react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Trash2, Eye, MapPin, Clock, CheckCheck, Send, Navigation } from 'lucide-react';
+import { Trash2, Eye, MapPin, Clock, CheckCheck, Send, Navigation, Hospital } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Checkbox } from '../ui/checkbox';
+import { validateDataSchema } from '../../utils/schemaValidator';
 
 export const EmergencyRequestListView = ({
   requests,
@@ -13,13 +14,32 @@ export const EmergencyRequestListView = ({
   onDispatch,
   onComplete,
   getPriorityBadge,
+  getStatusBadge,
   isMobile = false,
   selectedIds = [],
   onSelect,
   currentUser
 }) => {
+  // Development schema validation
+  if (process.env.NODE_ENV === 'development' && requests.length > 0) {
+    validateDataSchema('emergency_requests', requests[0], 'EmergencyRequestListView');
+  }
   const canManage = currentUser ? (currentUser.isAdmin() || currentUser.isOrgAdmin()) : false;
   const canDelete = currentUser ? (currentUser.isAdmin() || (typeof currentUser.isProvider === 'function' && currentUser.isProvider())) : false;
+
+  // Default status badge function if not provided
+  const defaultGetStatusBadge = (status) => {
+    const badges = {
+      pending: 'bg-warning/20 text-warning',
+      in_progress: 'bg-info/20 text-info',
+      accepted: 'bg-blue-500/20 text-blue-500',
+      completed: 'bg-success/20 text-success',
+      cancelled: 'bg-destructive/20 text-destructive',
+    };
+    return badges[status] || 'bg-muted/20 text-muted-foreground';
+  };
+
+  const statusBadge = getStatusBadge || defaultGetStatusBadge;
 
   return (
     <motion.div
@@ -48,24 +68,41 @@ export const EmergencyRequestListView = ({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
                   <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
-                    {req.emergency_type || 'Unknown Emergency'}
+                    {req.service_type ? req.service_type.replace('_', ' ').toUpperCase() : 'Unknown Emergency'}
                   </h3>
                   <Badge className={`squircle-sm ${getPriorityBadge(req.priority)} border-0 font-bold`}>
-                    {req.priority}
+                    {req.priority || 'Normal'}
                   </Badge>
-                  <Badge className="squircle-sm bg-muted text-muted-foreground border-0">
+                  <Badge className={`geo-sharp border-0 px-2.5 py-1 ${statusBadge(req.status)}`}>
                     {req.status}
                   </Badge>
+                  {req.ambulance_id && (
+                    <Badge className="geo-sharp-xs bg-blue-500/20 text-blue-500 border-0">
+                      Auto
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <MapPin className="h-4 w-4" />
-                    <span className="truncate">{req.location || 'Location shared'}</span>
+                    <span className="truncate">
+                      {req.patient_location ? 
+                        typeof req.patient_location === 'string' ? req.patient_location :
+                        'Coordinates available'
+                        : 'Location shared'
+                      }
+                    </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
                     <span>{req.created_at ? new Date(req.created_at).toLocaleTimeString() : 'Just now'}</span>
                   </div>
+                  {req.hospital_name && (
+                    <div className="flex items-center gap-1">
+                      <Hospital className="h-4 w-4" />
+                      <span className="truncate">{req.hospital_name}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

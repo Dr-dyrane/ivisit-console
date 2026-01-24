@@ -49,6 +49,9 @@ export const NotificationCard = ({ notification, onDismiss, onMarkRead }) => {
     info: 'border-l-4 border-l-info',
   };
 
+  // Use timestamp if available, fallback to created_at
+  const displayTime = notification.timestamp || notification.created_at;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -65,17 +68,29 @@ export const NotificationCard = ({ notification, onDismiss, onMarkRead }) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-bold text-sm">{notification.title}</h3>
+              {notification.priority && (
+                <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                  {notification.priority}
+                </Badge>
+              )}
               {!notification.read && (
                 <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               )}
             </div>
             <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
-            <p className="text-[10px] text-muted-foreground/60 mt-2">
-              {new Date(notification.created_at).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <p className="text-[10px] text-muted-foreground/60">
+                {displayTime ? new Date(displayTime).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }) : 'No time'}
+              </p>
+              {notification.action_type && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                  {notification.action_type}
+                </Badge>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-1 flex-shrink-0">

@@ -94,7 +94,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
           );
         }
 
-        toast.success('Emergency request dispatched');
+        toast.success('Emergency request created successfully');
       } else if (isEdit) {
         const { error } = await supabase
           .from('emergency_requests')

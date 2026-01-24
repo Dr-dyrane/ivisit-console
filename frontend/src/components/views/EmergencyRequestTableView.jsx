@@ -22,6 +22,7 @@ export const EmergencyRequestTableView = ({
   onDispatch,
   onComplete,
   getPriorityBadge,
+  getStatusBadge,
   isMobile = false,
   selectedIds = [],
   onSelect,
@@ -67,10 +68,10 @@ export const EmergencyRequestTableView = ({
                   onCheckedChange={onSelectAll}
                 />
               </TableHead>
-              <SortableHead label="Type" columnKey="emergency_type" />
+              <SortableHead label="Type" columnKey="service_type" />
               <SortableHead label="Priority" columnKey="priority" />
               <SortableHead label="Status" columnKey="status" />
-              <SortableHead label="Location" columnKey="location" />
+              <SortableHead label="Location" columnKey="patient_location" />
               <SortableHead label="Time" columnKey="created_at" />
               <TableHead className="font-bold uppercase tracking-wider text-right pr-6">Actions</TableHead>
             </TableRow>
@@ -92,20 +93,39 @@ export const EmergencyRequestTableView = ({
                     onClick={(e) => e.stopPropagation()}
                   />
                 </TableCell>
-                <TableCell className="font-bold">{req.emergency_type || 'Unknown'}</TableCell>
+                <TableCell className="font-bold">{req.service_type || 'Unknown'}</TableCell>
                 <TableCell>
                   <Badge className={`squircle-sm ${getPriorityBadge(req.priority)} border-0 font-bold`}>
-                    {req.priority}
+                    {req.priority || 'Normal'}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge className="squircle-sm bg-muted text-muted-foreground border-0">
-                    {req.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={`squircle-sm border-0 font-bold ${
+                      req.status === 'pending' ? 'bg-warning/20 text-warning' :
+                      req.status === 'assigned' ? 'bg-info/20 text-info' :
+                      req.status === 'completed' ? 'bg-success/20 text-success' :
+                      req.status === 'cancelled' ? 'bg-destructive/20 text-destructive' :
+                      'bg-muted/20 text-muted-foreground'
+                    }`}>
+                      {req.status}
+                    </Badge>
+                    {req.ambulance_id && (
+                      <Badge className="squircle-xs bg-blue-500/20 text-blue-500 border-0">
+                        Auto
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
-                <TableCell className="text-muted-foreground truncate max-w-[200px]">{req.location || '-'}</TableCell>
-                <TableCell className="text-muted-foreground text-sm">
-                  {req.created_at ? new Date(req.created_at).toLocaleTimeString() : 'Just now'}
+                <TableCell className="text-sm">
+                  {req.patient_location ? 
+                    typeof req.patient_location === 'string' ? req.patient_location :
+                    `${req.patient_location.lat?.toFixed(4) || 'N/A'}, ${req.patient_location.lng?.toFixed(4) || 'N/A'}` 
+                    : 'No location'
+                  }
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {req.created_at ? new Date(req.created_at).toLocaleString() : 'No time'}
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className={`flex justify-end pr-2 opacity-100 transition-opacity`}>

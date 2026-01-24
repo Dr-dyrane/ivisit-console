@@ -1,8 +1,9 @@
 import { supabase } from '../lib/supabase';
+import { getCurrentUser, applyAuthFilter } from './authService';
 
 /**
  * Supabase Map Service
- * Aggregates data streams for the Console Map View (God Mode)
+ * Aggregates data streams for the Console Map View with RBAC
  */
 
 export const supabaseMapService = {
@@ -10,32 +11,67 @@ export const supabaseMapService = {
 
   /**
    * Fetch all initial data required for the map
-   * Bypass standard service filters (like verified-only) to ensure God Mode sees everything.
+   * Applies RBAC filters based on user role and organization
    */
   async fetchInitialMapData() {
     try {
-      // 1. Emergencies (All statuses often relevant for God Mode, or at least active)
-      const { data: emergencies, error: errEmergencies } = await supabase
+      const user = await getCurrentUser();
+      
+      // 1. Emergencies with RBAC
+      let emergenciesQuery = supabase
         .from('emergency_requests')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
-      // 2. Ambulances (All)
-      const { data: ambulances, error: errAmbulances } = await supabase
+      // Apply RBAC for emergencies
+      emergenciesQuery = applyAuthFilter(emergenciesQuery, user, {
+        userIdField: 'user_id',
+        orgIdField: 'hospital_id',
+        providerIdField: 'responder_id',
+        resourceType: 'emergency'
+      });
+
+      // 2. Ambulances with RBAC
+      let ambulancesQuery = supabase
         .from('ambulances')
         .select('*')
         .order('created_at', { ascending: false });
 
-      // 3. Hospitals (All - ignore verified status)
-      const { data: hospitals, error: errHospitals } = await supabase
+      // Apply RBAC for ambulances
+      ambulancesQuery = applyAuthFilter(ambulancesQuery, user, {
+        userIdField: 'profile_id',
+        orgIdField: 'hospital_id',
+        resourceType: 'ambulance'
+      });
+
+      // 3. Hospitals with RBAC
+      let hospitalsQuery = supabase
         .from('hospitals')
         .select('*')
         .order('created_at', { ascending: false });
 
+      // Apply RBAC for hospitals (org admins see their hospital, admins see all)
+      if (user?.role !== 'admin' && user?.organization_id) {
+        hospitalsQuery = hospitalsQuery.eq('id', user.organization_id);
+      } else if (user?.role !== 'admin') {
+        // Non-admin without org see no hospitals
+        hospitalsQuery = hospitalsQuery.eq('id', 'none');
+      }
+
+      const { data: emergencies, error: errEmergencies } = await emergenciesQuery;
+      const { data: ambulances, error: errAmbulances } = await ambulancesQuery;
+      const { data: hospitals, error: errHospitals } = await hospitalsQuery;
+
       if (errEmergencies) console.error("Error fetching map emergencies:", errEmergencies);
       if (errAmbulances) console.error("Error fetching map ambulances:", errAmbulances);
       if (errHospitals) console.error("Error fetching map hospitals:", errHospitals);
+
+      console.log(`[Map RBAC] User ${user?.role} loaded:`, {
+        emergencies: emergencies?.length || 0,
+        ambulances: ambulances?.length || 0,
+        hospitals: hospitals?.length || 0
+      });
 
       return {
         emergencies: emergencies || [],

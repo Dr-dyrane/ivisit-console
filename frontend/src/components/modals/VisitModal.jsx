@@ -167,28 +167,45 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="user_id" className="text-xs font-semibold text-muted-foreground uppercase">Patient</Label>
-                      <Select
-                        value={formData.user_id}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, user_id: value }))}
-                        disabled={isView}
-                      >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-14 font-normal">
-                          <SelectValue placeholder="Select patient" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                          {users.map(u => (
-                            <SelectItem key={u.id} value={u.id}>
-                              <div className="flex items-center gap-2">
-                                <Avatar className="w-6 h-6">
-                                  <AvatarImage src={u.avatar_url || "/placeholder.svg"} />
-                                  <AvatarFallback>{u.username?.[0]}</AvatarFallback>
-                                </Avatar>
-                                <span>{u.username || u.email}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {isView && formData.profiles ? (
+                        <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border-0 h-14">
+                          <Avatar className="w-8 h-8">
+                            <AvatarImage src={formData.profiles.avatar_url} />
+                            <AvatarFallback>{formData.profiles.username?.[0] || formData.profiles.full_name?.[0] || 'U'}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">
+                              {formData.profiles.full_name || formData.profiles.username || 'Unknown'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formData.profiles.email || 'No email'}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <Select
+                          value={formData.user_id}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, user_id: value }))}
+                          disabled={isView}
+                        >
+                          <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-14 font-normal">
+                            <SelectValue placeholder="Select patient" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                            {users.map(u => (
+                              <SelectItem key={u.id} value={u.id}>
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="w-6 h-6">
+                                    <AvatarImage src={u.avatar_url || "/placeholder.svg"} />
+                                    <AvatarFallback>{u.username?.[0]}</AvatarFallback>
+                                  </Avatar>
+                                  <span>{u.username || u.email}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
 
                     {/* Hospital Selection - Scoped for Org Admin */}
@@ -207,11 +224,23 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     {/* Hospital Selection */}
                     <div className="space-y-2">
                       <Label htmlFor="hospital_id" className="text-xs font-semibold text-muted-foreground uppercase">Facility</Label>
-                      {isView && !formData.hospital_id && formData.hospital ? (
+                      {isView && formData.hospitals ? (
+                        <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border-0 h-14">
+                          <Hospital className="w-5 h-5 text-muted-foreground" />
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">
+                              {formData.hospitals.name || 'Unknown Hospital'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formData.hospitals.address || 'No address'}
+                            </p>
+                          </div>
+                        </div>
+                      ) : isView && !formData.hospital_id && formData.hospital ? (
                         <div className="flex items-center h-14 w-full rounded-2xl border border-input bg-muted/30 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50">
                           <span className="flex items-center gap-2">
                             <Hospital className="w-4 h-4 text-muted-foreground" />
-                            <span>{formData.hospital}</span>
+                            {formData.hospital}
                           </span>
                         </div>
                       ) : (

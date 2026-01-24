@@ -88,13 +88,17 @@ export const createNotification = async (type, action, targetId, metadata = {}) 
         {
           user_id: user.id,
           type,
+          action_type: action, // Add action_type field
           target_id: targetId,
           title: config.label,
           message: metadata.message || `${config.label} - ${targetId}`,
           icon: config.icon,
           color: config.color,
+          priority: metadata.priority || 'normal', // Add priority field
+          action_data: metadata.actionData || null, // Add action_data field
           metadata,
           read: false,
+          timestamp: new Date().toISOString(), // Add timestamp field
           created_at: new Date().toISOString(),
         }
       ])

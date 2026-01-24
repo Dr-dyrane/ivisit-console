@@ -16,10 +16,25 @@ const TABLE_NAME = 'visits';
 export async function getVisits(filter = {}) {
   try {
     const user = await getCurrentUser();
-    let query = supabase.from(TABLE_NAME).select('*');
+    let query = supabase.from(TABLE_NAME).select(`
+      *,
+      profiles!visits_user_id_fkey (
+        id,
+        username,
+        email,
+        full_name,
+        phone,
+        avatar_url
+      ),
+      hospitals!visits_hospital_id_fkey (
+        id,
+        name,
+        address,
+        phone
+      )
+    `);
 
-    // 1. Apply RBAC Scoping
-    // Providers (doctors) will be filtered by doctor name automatically
+    // 1. Apply RBAC Scoping with improved hospital/doctor logic
     query = applyAuthFilter(query, user, {
       userIdField: 'user_id',
       orgIdField: 'hospital_id', // Org admins see visits at their hospital
@@ -40,6 +55,9 @@ export async function getVisits(filter = {}) {
     if (filter?.status) {
       query = query.eq('status', filter.status);
     }
+    if (filter?.type) {
+      query = query.eq('type', filter.type);
+    }
     if (filter?.visit_type) {
       query = query.eq('visit_type', filter.visit_type);
     }
@@ -51,6 +69,7 @@ export async function getVisits(filter = {}) {
       query = query.lte('date', filter.date_to);
     }
 
+    // 3. Apply ordering and pagination
     query = query.order('date', { ascending: false });
 
     if (filter?.limit) {
@@ -61,9 +80,17 @@ export async function getVisits(filter = {}) {
     }
 
     const { data, error } = await query;
+
     if (error) throw error;
 
-    return data || [];
+    // Transform data to include nested patient info
+    return (data || []).map(visit => ({
+      ...visit,
+      patient: visit.profiles, // Map profiles to patient for consistency
+      hospital: visit.hospitals,
+      profiles: undefined, // Remove original profiles to avoid confusion
+      hospitals: undefined // Remove original hospitals to avoid confusion
+    }));
   } catch (error) {
     console.error('Error fetching visits:', error);
     throw error;
@@ -77,13 +104,40 @@ export async function getVisit(visitId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .select('*')
+      .select(`
+        *,
+        profiles!visits_user_id_fkey (
+          id,
+          username,
+          email,
+          full_name,
+          phone,
+          avatar_url
+        ),
+        hospitals!visits_hospital_id_fkey (
+          id,
+          name,
+          address,
+          phone
+        )
+      `)
       .eq('id', visitId)
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
 
-    return data || null;
+    // Transform data to include nested patient info
+    if (data) {
+      return {
+        ...data,
+        patient: data.profiles, // Map profiles to patient for consistency
+        hospital: data.hospitals,
+        profiles: undefined, // Remove original profiles to avoid confusion
+        hospitals: undefined // Remove original hospitals to avoid confusion
+      };
+    }
+
+    return null;
   } catch (error) {
     console.error(`Error fetching visit ${visitId}:`, error);
     throw error;

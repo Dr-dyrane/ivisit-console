@@ -114,12 +114,29 @@ export const VisitTableView = ({
                     <div className="flex flex-col">
                       <span className="font-semibold text-sm flex items-center gap-1.5">
                         <User className="w-3 h-3 text-primary/70" />
-                        {visit.patient?.username || visit.user_id?.slice(0, 8) || 'Unknown'}
+                        {visit.patient?.full_name || visit.patient?.username || visit.user_id?.slice(0, 8) || 'Unknown'}
                       </span>
-                      {(visit.doctor?.name || visit.doctor || visit.doctor_id) && (
+                      {visit.patient?.email && (
+                        <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                          {visit.patient.email}
+                        </span>
+                      )}
+                      {(visit.doctor || visit.doctor_name) && (
                         <span className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                           <Stethoscope className="w-3 h-3" />
-                          {visit.doctor?.name || visit.doctor || `Dr. ${visit.doctor_id?.slice(0, 8)}`}
+                          {visit.doctor || visit.doctor_name || 'Unassigned'}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-medium text-sm">
+                        {visit.hospital?.name || visit.hospital || 'N/A'}
+                      </span>
+                      {visit.room_number && (
+                        <span className="text-xs text-muted-foreground">
+                          Room {visit.room_number}
                         </span>
                       )}
                     </div>

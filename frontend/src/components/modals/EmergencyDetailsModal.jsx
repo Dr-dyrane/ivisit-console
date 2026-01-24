@@ -18,7 +18,8 @@ import {
   FileText,
   Heart,
   Zap,
-  ChevronRight
+  ChevronRight,
+  Ambulance
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -51,6 +52,8 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
       case 'accident': return <AlertTriangle className="w-5 h-5" />;
       case 'respiratory': return <Activity className="w-5 h-5" />;
       case 'stroke': return <Zap className="w-5 h-5" />;
+      case 'ambulance': return <Navigation className="w-5 h-5" />;
+      case 'bed_booking': return <Calendar className="w-5 h-5" />;
       default: return <Siren className="w-5 h-5" />;
     }
   };
@@ -78,11 +81,11 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
             <div className="flex items-center justify-between p-8 pb-4">
               <div className="flex items-center gap-4">
                 <div className={`p-2.5 rounded-2xl ${getPriorityBg(request.priority)} ${getPriorityColor(request.priority)}`}>
-                  {getEmergencyIcon(request.emergency_type)}
+                  {getEmergencyIcon(request.service_type)}
                 </div>
                 <div className="hidden sm:block">
                   <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
-                    {request.emergency_type?.replace('_', ' ').toUpperCase() || 'EMERGENCY REQUEST'}
+                    {request.service_type?.replace('_', ' ').toUpperCase() || 'EMERGENCY REQUEST'}
                   </h2>
                   <p className="text-sm text-muted-foreground flex items-center gap-2">
                     Case ID: <span className="font-mono text-xs opacity-70">#{request.id?.slice(0, 8)}</span>
@@ -122,6 +125,14 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                 })}
               </div>
 
+              {/* Dispatch Source Indicator */}
+              {request.ambulance_id && (
+                <div className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20">
+                  <Ambulance className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-medium text-blue-500">Auto-dispatched from mobile app</span>
+                </div>
+              )}
+
               {/* Main Info Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Situation Report */}
@@ -145,7 +156,41 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
 
                 {/* Requester Info */}
                 <GlassCard icon={<User className="text-purple-500" />} title="Requester">
-                  {request.profiles ? (
+                  {request.patient_snapshot ? (
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-4">
+                        <Avatar className="h-16 w-16 rounded-[20px] border-2 border-white/10 shadow-xl">
+                          <AvatarFallback className="text-xl font-semibold">
+                            {request.patient_snapshot.fullName?.[0] || request.patient_snapshot.username?.[0] || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h4 className="text-lg font-semibold">
+                            {request.patient_snapshot.fullName || request.patient_snapshot.username || 'Unknown'}
+                          </h4>
+                          <p className="text-sm text-muted-foreground uppercase tracking-wider">
+                            {request.patient_snapshot.username || 'Patient'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="space-y-3 pt-4 border-t border-white/5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="opacity-50">Phone</span>
+                          <span className="font-normal">{request.patient_snapshot.phone || 'Not provided'}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="opacity-50">Email</span>
+                          <span className="font-normal truncate max-w-[150px]">
+                            {request.patient_snapshot.email || 'Not provided'}
+                          </span>
+                        </div>
+                      </div>
+                      <Button variant="outline" className="w-full rounded-2xl border-white/10 hover:bg-white/5 gap-2">
+                        <Phone className="w-4 h-4" />
+                        Call Patient
+                      </Button>
+                    </div>
+                  ) : request.profiles ? (
                     <div className="space-y-6">
                       <div className="flex items-center gap-4">
                         <Avatar className="h-16 w-16 rounded-[20px] border-2 border-white/10 shadow-xl">
@@ -184,17 +229,23 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div className="space-y-4">
                       <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Address</p>
-                        <p className="text-lg font-semibold">{request.location || 'N/A'}</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Hospital</p>
+                        <p className="text-lg font-semibold">{request.hospital_name || 'N/A'}</p>
                       </div>
+                      {request.patient_location && (
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Patient Location</p>
+                          <p className="font-mono text-sm font-semibold">Coordinates Available</p>
+                        </div>
+                      )}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Latitude</p>
-                          <p className="font-mono text-sm font-semibold">{request.latitude || '0.0000'}</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Request ID</p>
+                          <p className="font-mono text-sm font-semibold">{request.request_id || 'N/A'}</p>
                         </div>
                         <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Longitude</p>
-                          <p className="font-mono text-sm font-semibold">{request.longitude || '0.0000'}</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Service Type</p>
+                          <p className="font-mono text-sm font-semibold">{request.service_type || 'N/A'}</p>
                         </div>
                       </div>
                     </div>
@@ -217,6 +268,78 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                     </div>
                   </div>
                 </GlassCard>
+
+                {/* Service Details */}
+                {request.service_type === 'ambulance' && request.ambulance_type && (
+                  <GlassCard icon={<Ambulance className="text-blue-500" />} title="Ambulance Details" className="lg:col-span-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Type</p>
+                        <p className="font-semibold">
+                          {typeof request.ambulance_type === 'string' 
+                            ? JSON.parse(request.ambulance_type)?.title || 'Standard'
+                            : 'Standard'
+                          }
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">ETA</p>
+                        <p className="font-semibold">{request.estimated_arrival || 'N/A'}</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Status</p>
+                        <p className="font-semibold capitalize">{request.status || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </GlassCard>
+                )}
+
+                {request.service_type === 'bed' && (
+                  <GlassCard icon={<Calendar className="text-green-500" />} title="Bed Details" className="lg:col-span-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Bed Number</p>
+                        <p className="font-semibold">{request.bed_number || 'N/A'}</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Bed Type</p>
+                        <p className="font-semibold capitalize">{request.bed_type || 'N/A'}</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Specialty</p>
+                        <p className="font-semibold">{request.specialty || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </GlassCard>
+                )}
+
+                {/* Responder Info */}
+                {request.responder_name && (
+                  <GlassCard icon={<Shield className="text-orange-500" />} title="Responder Information" className="lg:col-span-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Responder Name</p>
+                        <p className="font-semibold">{request.responder_name || 'N/A'}</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Contact</p>
+                        <p className="font-semibold">{request.responder_phone || 'N/A'}</p>
+                      </div>
+                      {request.responder_vehicle_plate && (
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Vehicle Plate</p>
+                          <p className="font-semibold">{request.responder_vehicle_plate || 'N/A'}</p>
+                        </div>
+                      )}
+                      {request.responder_vehicle_type && (
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Vehicle Type</p>
+                          <p className="font-semibold capitalize">{request.responder_vehicle_type || 'N/A'}</p>
+                        </div>
+                      )}
+                    </div>
+                  </GlassCard>
+                )}
               </div>
 
               {/* Bottom Actions */}
