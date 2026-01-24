@@ -79,11 +79,11 @@ export const BentoHome = () => {
     responseTime: Math.round((analyticsData?.avgResponseTime || 4.2) * 10) / 10, // Round to 1 decimal place
     activeProviders: doctorsStats?.totalDoctors || 48,
     todayRequests: emergencyStats?.total || 0,
-    totalUsers: verificationData?.total || 16, // Real user count from profiles table
+    totalUsers: userData?.statistics?.totalUsers || 23, // Fixed: Use actual user count from profiles table
     completionRate: analyticsData?.completionRate || 94,
     availableAmbulances: analyticsData?.availableAmbulances || 12,
     pendingVerifications: verificationData?.pending || 15
-  }), [emergencyStats, analyticsData, doctorsStats, verificationData]);
+  }), [emergencyStats, analyticsData, doctorsStats, verificationData, userData]);
 
   // Debug: Log real data to console
   useEffect(() => {
