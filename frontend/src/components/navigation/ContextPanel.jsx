@@ -83,7 +83,7 @@ export const ContextPanel = () => {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-6 pb-4 border-b border-border/20"
+        className="px-6 pt-6 pb-4 border-b border-border/20 md:px-6"
       >
         <div className="flex items-center justify-between">
           <div>
@@ -108,7 +108,7 @@ export const ContextPanel = () => {
   const renderPanelWithHeader = (panelContent) => (
     <div className="h-full flex flex-col glass-card rounded-3xl">
       {renderPanelHeader()}
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
+      <div className="flex-1 overflow-y-auto px-6 pb-6 md:px-6 md:pb-6">
         {panelContent}
       </div>
     </div>
@@ -203,7 +203,7 @@ export const ContextPanel = () => {
 
   // Default panel
   return (
-    <div className="p-6">
+    <div className="p-6 md:p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
