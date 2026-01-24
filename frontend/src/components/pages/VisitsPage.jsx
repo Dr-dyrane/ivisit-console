@@ -71,12 +71,9 @@ export const VisitsPage = () => {
       } else if (isOrgAdmin() && orgId) {
         query = query.eq('hospital_id', orgId);
       } else if (isProvider()) {
-        const doctor = await getDoctorByProfileId(user.id);
-        if (doctor) {
-          query = query.eq('doctor_id', doctor.id);
-        } else {
-          query = query.eq('user_id', user.id);
-        }
+        // Provider filtering is now handled by authService
+        // Just apply the base query, RBAC will handle doctor filtering
+        // No manual filtering needed here
       } else {
         query = query.eq('user_id', user.id);
       }
@@ -118,12 +115,9 @@ export const VisitsPage = () => {
       } else if (isOrgAdmin() && orgId) {
         dataQuery = dataQuery.eq('hospital_id', orgId);
       } else if (isProvider()) {
-        const doctor = await getDoctorByProfileId(user.id);
-        if (doctor) {
-          dataQuery = dataQuery.eq('doctor_id', doctor.id);
-        } else {
-          dataQuery = dataQuery.eq('user_id', user.id);
-        }
+        // Provider filtering is now handled by authService
+        // Just apply the base query, RBAC will handle doctor filtering
+        // No manual filtering needed here
       } else {
         dataQuery = dataQuery.eq('user_id', user.id);
       }

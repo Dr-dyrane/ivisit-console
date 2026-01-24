@@ -97,7 +97,7 @@ export async function createVisit(input) {
   try {
     const payload = {
       user_id: input.user_id,
-      doctor_id: input.doctor_id,
+      doctor: input.doctor, // Fixed: use 'doctor' field instead of 'doctor_id'
       hospital_id: input.hospital_id,
       date: input.visit_date || input.date,
       visit_type: input.visit_type,
@@ -322,7 +322,7 @@ export async function getDoctorVisits(doctorId) {
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
-      .eq('doctor_id', doctorId)
+      .eq('doctor', doctorId) // Fixed: use 'doctor' field instead of 'doctor_id'
       .order('date', { ascending: false });
 
     if (error) throw error;
