@@ -53,7 +53,7 @@ export const SettingsPanel = () => {
   ];
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="space-y-6">
       {/* Quick Actions Grid */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

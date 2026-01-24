@@ -35,7 +35,7 @@ export const SubscriptionsPanel = ({ subscribers }) => {
   const paidSubscribers = subscribers.filter(s => s.type === 'paid').length;
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-4">
       {/* Subscriber Stats */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

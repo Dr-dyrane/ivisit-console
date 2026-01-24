@@ -26,7 +26,7 @@ export const InsurancePanel = ({ loading, getInsuranceStats, insuranceData = [] 
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-4">
       {/* Loading State */}
       {loading.insurance && (
         <div className="flex items-center justify-center py-8">

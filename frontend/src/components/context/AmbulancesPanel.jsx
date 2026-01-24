@@ -26,7 +26,7 @@ export const AmbulancesPanel = ({ ambulancesData }) => {
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-4">
       {/* Fleet Status */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

@@ -34,7 +34,7 @@ export const VerificationPanel = ({ verificationData, loading }) => {
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-4">
       {/* Loading State */}
       {loading?.verification && (
         <div className="flex items-center justify-center py-8">

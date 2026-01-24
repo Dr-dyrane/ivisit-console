@@ -83,7 +83,7 @@ export const MapPanel = ({ emergencyStats }) => {
   // --- INSPECTOR VIEW (Selected Marker) ---
   if (selectedMarker) {
     return (
-      <div className="p-4 space-y-6 max-h-screen overflow-y-auto pr-2 custom-scrollbar">
+      <div className="space-y-6 max-h-screen overflow-y-auto pr-2 custom-scrollbar">
         {/* Back Navigation */}
         <Button
           variant="outline"

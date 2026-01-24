@@ -36,7 +36,7 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
   const currentFilters = filters || {};
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Quick Stats */}
       <div className="space-y-4">
         <h3 className="font-bold text-lg flex items-center gap-2">

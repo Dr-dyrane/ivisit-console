@@ -90,7 +90,7 @@ export const HealthNewsPanel = () => {
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-4">
       {loading ? (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

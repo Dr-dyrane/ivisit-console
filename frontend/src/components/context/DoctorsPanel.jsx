@@ -26,7 +26,7 @@ export const DoctorsPanel = ({ doctorsData }) => {
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-4">
       {/* Doctor Statistics */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
