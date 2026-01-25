@@ -155,5 +155,40 @@ export const supabaseMapService = {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
+  },
+
+  /**
+   * Get nearby hospitals using geospatial query
+   * @param {Object} userLocation - User's current location {lat, lng}
+   * @param {number} radiusKm - Search radius in kilometers (default: 50)
+   * @returns {Promise<Array>} Array of nearby hospitals with distance
+   */
+  async getNearbyHospitals(userLocation, radiusKm = 50) {
+    try {
+      const { data, error } = await supabase
+        .rpc('nearby_hospitals', {
+          user_lat: userLocation.lat,
+          user_lng: userLocation.lng,
+          radius_km: radiusKm
+        });
+
+      if (error) {
+        console.error('Error fetching nearby hospitals:', error);
+        // Fallback to basic hospital query if function doesn't exist yet
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('hospitals')
+          .select('*')
+          .eq('status', 'available')
+          .order('name');
+
+        if (fallbackError) throw fallbackError;
+        return fallbackData || [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getNearbyHospitals:', error);
+      return [];
+    }
   }
 };

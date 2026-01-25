@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useTheme } from "../../contexts/ThemeContext";
 import { MAP_STYLES } from "../../constants/mapStyles";
 import { MapProvider, useMapContext } from "../../contexts/MapContext";
+import { supabaseMapService } from "../../services/supabaseMapService";
 
 // Import extracted map components
 import {
@@ -39,6 +40,7 @@ const GodModeMapContent = () => {
 
 	const [activeRoutes, setActiveRoutes] = useState([]); // { id, path: [{lat, lng}], color }
 	const [userLocation, setUserLocation] = useState(null);
+	const [nearbyHospitals, setNearbyHospitals] = useState([]);
 
 	// Simulate ID based on location (optional aesthetic)
 	const simulatedSessionId = useMemo(() => {
@@ -102,46 +104,48 @@ const GodModeMapContent = () => {
 		}
 	}, []);
 
+	// Fetch nearby hospitals when user location is available
+	useEffect(() => {
+		if (!userLocation) return;
+
+		const fetchNearbyHospitals = async () => {
+			try {
+				const nearby = await supabaseMapService.getNearbyHospitals(userLocation, 100); // 100km radius
+				setNearbyHospitals(nearby);
+				console.log(`[GodModeMap] Found ${nearby.length} nearby hospitals`);
+			} catch (error) {
+				console.error('Error fetching nearby hospitals:', error);
+			}
+		};
+
+		fetchNearbyHospitals();
+	}, [userLocation]);
 
 
-	// Helper to resolve & simulate location
+
+	// Helper to resolve location (PRODUCTION READY - No simulation)
 	const resolveLocation = useMemo(() => {
 		return (item, indexSeed, forceSimulate = false) => {
 			if (!item) return null;
-
-			const spread = 0.08;
-
-			// Deterministic random
-			const pseudoRandom = (seed) => {
-				const x = Math.sin(seed) * 10000;
-				return x - Math.floor(x);
-			};
 
 			const valLat = parseFloat(item.lat || item.latitude);
 			const valLng = parseFloat(item.lng || item.longitude);
 			const hasRealLoc = !isNaN(valLat) && !isNaN(valLng) && valLat !== 0;
 
-			if (hasRealLoc && !forceSimulate) {
+			if (hasRealLoc) {
 				return {
 					...item,
 					lat: valLat,
-					lng: valLng
+					lng: valLng,
+					isSimulated: false
 				};
 			}
 
-			// Simulation fallback
-			if (userLocation) {
-				return {
-					...item,
-					lat: userLocation.lat + (pseudoRandom(indexSeed * 1337) - 0.5) * spread,
-					lng: userLocation.lng + (pseudoRandom(indexSeed * 7331) - 0.5) * spread,
-					isSimulated: true
-				};
-			}
-
+			// ❌ REMOVED: Simulation fallback for production
+			// Items without real locations will not be displayed
 			return null;
 		};
-	}, [userLocation]);
+	}, []); // Removed userLocation dependency
 
 	// 1. Process & Normalize All Entities with Location Logic
 	const processedEmergencies = useMemo(() =>
@@ -152,9 +156,11 @@ const GodModeMapContent = () => {
 		ambulances.map((a, i) => resolveLocation(a, i + 1000)).filter(Boolean),
 		[ambulances, resolveLocation]);
 
-	const processedHospitals = useMemo(() =>
-		hospitals.slice(0, 5).map((h, i) => resolveLocation(h, i + 2000, true)).filter(Boolean),
-		[hospitals, resolveLocation]);
+	const processedHospitals = useMemo(() => {
+		// Use nearby hospitals if available, otherwise fall back to all hospitals
+		const hospitalSource = nearbyHospitals.length > 0 ? nearbyHospitals : hospitals;
+		return hospitalSource.map((h, i) => resolveLocation(h, i + 2000, false)).filter(Boolean);
+	}, [hospitals, nearbyHospitals, resolveLocation]);
 
 	// Filter processed requests based on selected filter
 	const filteredRequests = useMemo(() => {
