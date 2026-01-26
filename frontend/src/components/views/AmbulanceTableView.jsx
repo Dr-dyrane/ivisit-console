@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from '../ui/dropdown-menu';
-import { Edit, Trash2, Eye, ArrowUpDown, ChevronUp, ChevronDown, MoreHorizontal, MapPin } from 'lucide-react';
+import { Edit, Trash2, Eye, ArrowUpDown, ChevronUp, ChevronDown, MoreHorizontal, MapPin, CalendarDays } from 'lucide-react';
 import { Card } from '../ui/card';
 import { motion } from 'framer-motion';
 
@@ -20,6 +20,7 @@ export const AmbulanceTableView = ({
   onEdit,
   onDelete,
   getStatusBadge,
+  onSchedule,
   selectedIds = [],
   onSelect,
   onSelectAll,
@@ -132,6 +133,12 @@ export const AmbulanceTableView = ({
                             <Edit className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                             Edit Unit
                           </DropdownMenuItem>
+                          {onSchedule && (
+                            <DropdownMenuItem onClick={() => onSchedule(ambulance)} className="cursor-pointer font-medium text-xs py-2">
+                              <CalendarDays className="mr-2 h-3.5 w-3.5 text-purple-500" />
+                              Schedule Crew
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator className="bg-white/5" />
                           <DropdownMenuItem onClick={() => onDelete(ambulance)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
                             <Trash2 className="mr-2 h-3.5 w-3.5" />

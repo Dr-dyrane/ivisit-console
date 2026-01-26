@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from '../ui/dropdown-menu';
-import { Edit, Trash2, Eye, ArrowUpDown, ChevronUp, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { Edit, Trash2, Eye, ArrowUpDown, ChevronUp, ChevronDown, MoreHorizontal, CalendarDays } from 'lucide-react';
 import { Card } from '../ui/card';
 import { motion } from 'framer-motion';
 
@@ -19,6 +19,7 @@ export const UserTableView = ({
   onView,
   onEdit,
   onDelete,
+  onSchedule,
   selectedIds = [], // Array of selected user IDs
   onSelect,        // (id) => void
   onSelectAll,     // (checked) => void
@@ -146,6 +147,12 @@ export const UserTableView = ({
                             <Edit className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                             Edit User
                           </DropdownMenuItem>
+                          {user.role === 'provider' && onSchedule && (
+                            <DropdownMenuItem onClick={() => onSchedule(user)} className="cursor-pointer font-medium text-xs py-2">
+                              <CalendarDays className="mr-2 h-3.5 w-3.5 text-purple-500" />
+                              Schedule Shift
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator className="bg-white/5" />
                           <DropdownMenuItem onClick={() => onDelete(user)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
                             <Trash2 className="mr-2 h-3.5 w-3.5" />

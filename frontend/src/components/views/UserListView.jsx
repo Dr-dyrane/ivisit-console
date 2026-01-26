@@ -2,10 +2,10 @@ import React from 'react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Edit, Trash2, Eye } from 'lucide-react';
+import { Edit, Trash2, Eye, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const UserListView = ({ users, onView, onEdit, onDelete, isMobile = false }) => {
+export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMobile = false }) => {
   const getRoleBadge = (role) => {
     switch (role) {
       case 'admin': return 'bg-warning/20 text-warning';
@@ -67,6 +67,16 @@ export const UserListView = ({ users, onView, onEdit, onDelete, isMobile = false
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
+                  {user.role === 'provider' && onSchedule && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onSchedule(user)}
+                      className="squircle h-8 w-8 p-0 hover:bg-purple-500/10 hover:text-purple-500"
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
