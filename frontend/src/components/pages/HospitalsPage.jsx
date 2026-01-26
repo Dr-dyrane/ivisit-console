@@ -6,19 +6,19 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
-import { getCurrentUser, applyAuthFilter } from '../../services/authService';
-import { createHospital, updateHospital } from '../../services/hospitalsService';
+import { createHospital, updateHospital, getHospitals, getHospital } from '../../services/hospitalsService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
-import { Hospital, MapPin, Star, Bed, Ambulance, Plus, Edit, Trash2, Eye, ChevronRight, Filter, BarChart3, Globe } from 'lucide-react';
+import { Hospital, MapPin, Star, Bed, Ambulance, Plus, Edit, Trash2, Eye, ChevronRight, Filter, BarChart3, Globe, Calendar } from 'lucide-react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { HospitalModal } from '../modals/HospitalModal';
 import { ReportsModal } from '../modals/ReportsModal';
+import StaffSchedulingModal from '../modals/StaffSchedulingModal';
 import { withTimeout } from '../../lib/utils';
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
@@ -43,6 +43,7 @@ export const HospitalsPage = () => {
   const [filters, setFilters] = useState({});
   const [kpiFilter, setKpiFilter] = useState('all');
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [schedulingModalOpen, setSchedulingModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const [confirmationModal, setConfirmationModal] = useState({
@@ -60,70 +61,36 @@ export const HospitalsPage = () => {
   const fetchHospitals = useCallback(async () => {
     try {
       setLoading(true);
-
-      // Get current user for RBAC filtering
-      const user = await getCurrentUser();
-
-      let query = supabase.from('hospitals').select('*', { count: 'exact', head: true });
-
-      // Apply RBAC filter using centralized service
-      query = applyAuthFilter(query, user, {
-        orgIdField: 'organization_id',
-        resourceType: 'hospitals'
+      
+      // Check if we have a specific hospital ID in URL
+      const params = new URLSearchParams(location.search);
+      const hospitalId = params.get('id');
+      
+      if (hospitalId) {
+        // Use existing getHospital function
+        const specificHospital = await getHospital(hospitalId);
+        
+        setHospitals(specificHospital ? [specificHospital] : []);
+        pagination.setTotalCount(specificHospital ? 1 : 0);
+        
+        // Auto-open the modal for this hospital
+        if (specificHospital) {
+          setSelectedHospital(specificHospital);
+          setModalMode('view');
+        }
+        return;
+      }
+      
+      // Otherwise, fetch all hospitals using the existing service
+      const data = await getHospitals({
+        limit: pagination.pageSize,
+        offset: pagination.paginationRange.start
       });
-
-      // Apply Search Filter (Client-side filtering for search usually, or server side if full text search enabled)
-      // Since supabase standard select doesn't do fuzzy search easily on multiple fields without specific text search config,
-      // we might do client side filtering if the dataset is small, OR use 'ilike' for specific fields.
-      // For now, let's assume we filter after fetching for complex search, or use ilike on name.
-      if (filters.search) {
-        query = query.ilike('name', `%${filters.search}%`);
-      }
-
-      if (filters.status && filters.status.length > 0) {
-        query = query.in('status', filters.status);
-      }
-
-      // Apply KPI Filter to count query
-      if (kpiFilter === 'available') query = query.eq('status', 'available');
-      if (kpiFilter === 'full') query = query.eq('status', 'full');
-      if (kpiFilter === 'verified') query = query.eq('verified', true);
-
-      const { count } = await query;
-      pagination.setTotalCount(count || 0);
-
-      let dataQuery = supabase
-        .from('hospitals')
-        .select('*')
-        .range(pagination.paginationRange.start, pagination.paginationRange.end)
-        .order(sortConfig.key || 'created_at', { ascending: sortConfig.direction === 'asc' });
-
-      // Apply RBAC filter to data query using centralized service
-      dataQuery = applyAuthFilter(dataQuery, user, {
-        orgIdField: 'organization_id',
-        resourceType: 'hospitals'
-      });
-
-      if (filters.search) {
-        dataQuery = dataQuery.ilike('name', `%${filters.search}%`);
-      }
-
-      if (filters.status && filters.status.length > 0) {
-        dataQuery = dataQuery.in('status', filters.status);
-      }
-
-      // Apply KPI Filter to data query
-      if (kpiFilter === 'available') dataQuery = dataQuery.eq('status', 'available');
-      if (kpiFilter === 'full') dataQuery = dataQuery.eq('status', 'full');
-      if (kpiFilter === 'verified') dataQuery = dataQuery.eq('verified', true);
-
-      const { data, error } = await withTimeout(
-        dataQuery,
-        8000,
-        'Failed to load hospitals - timeout'
-      );
-
-      if (error) throw error;
+      
+      // Get total count for pagination
+      const totalCount = await getHospitals();
+      pagination.setTotalCount(totalCount.length);
+      
       setHospitals(data || []);
     } catch (error) {
       console.error('Error fetching hospitals:', error);
@@ -131,7 +98,7 @@ export const HospitalsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination, filters, kpiFilter]);
+  }, [pagination, location.search]);
 
   useEffect(() => {
     fetchHospitals();
@@ -147,7 +114,7 @@ export const HospitalsPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchHospitals, pagination.currentPage]);
+  }, [fetchHospitals, pagination.currentPage, location.search]);
 
   const handleCreate = useCallback(() => {
     setSelectedHospital(null);
@@ -157,9 +124,12 @@ export const HospitalsPage = () => {
   // Open "Add" modal on page load if requested via URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
+    
+    // Handle add=true parameter
     if (params.get('add') === 'true') {
       handleCreate();
     }
+    // Note: id parameter is now handled in fetchHospitals function
   }, [handleCreate, location.search]);
 
   // Handle custom events from context panel
@@ -692,6 +662,18 @@ export const HospitalsPage = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => {
+                                  setSelectedHospital(hospital);
+                                  setSchedulingModalOpen(true);
+                                }}
+                                className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                aria-label={`Manage schedule for ${hospital.name}`}
+                              >
+                                <Calendar className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => handleDelete(hospital)}
                                 className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                                 aria-label={`Delete ${hospital.name}`}
@@ -714,6 +696,10 @@ export const HospitalsPage = () => {
               onView={handleView}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onSchedule={(hospital) => {
+                setSelectedHospital(hospital);
+                setSchedulingModalOpen(true);
+              }}
               getStatusBadge={getStatusBadge}
               isMobile={isMobile}
               selectedIds={selectedIds}
@@ -726,6 +712,10 @@ export const HospitalsPage = () => {
               onView={handleView}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onSchedule={(hospital) => {
+                setSelectedHospital(hospital);
+                setSchedulingModalOpen(true);
+              }}
               getStatusBadge={getStatusBadge}
               isMobile={isMobile}
               selectedIds={selectedIds}
@@ -837,6 +827,13 @@ export const HospitalsPage = () => {
         onClose={() => setAnalyticsModalOpen(false)}
         analyticsData={hospitalsData?.stats}
         initialType="hospital"
+      />
+
+      <StaffSchedulingModal
+        isOpen={schedulingModalOpen}
+        onClose={() => setSchedulingModalOpen(false)}
+        hospitalId={selectedHospital?.id}
+        existingStaff={[]} // Pass existing staff if needed
       />
     </div>
   );

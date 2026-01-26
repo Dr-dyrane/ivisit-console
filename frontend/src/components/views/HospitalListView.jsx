@@ -2,10 +2,10 @@ import React from 'react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Edit, Trash2, Eye, Star, Hospital } from 'lucide-react';
+import { Edit, Trash2, Eye, Star, Hospital, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, isMobile = false }) => {
+export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, onSchedule, isMobile = false }) => {
   // Helper function to get status badge styling
   const getStatusBadge = (status) => {
     switch (status?.toLowerCase()) {
@@ -101,6 +101,16 @@ export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, isMobile
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
+                  {onSchedule && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onSchedule(hospital)}
+                      className="squircle h-8 w-8 p-0 hover:bg-purple-500/10 hover:text-purple-500"
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"

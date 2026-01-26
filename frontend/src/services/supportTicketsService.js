@@ -21,6 +21,7 @@ export async function getSupportTickets(filter = {}) {
     // Apply RBAC filter using centralized service
     query = applyAuthFilter(query, user, {
       userIdField: 'user_id',
+      orgIdField: 'organization_id',
       resourceType: 'support'
     });
 

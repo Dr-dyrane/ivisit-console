@@ -2,10 +2,10 @@ import React from 'react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Edit, Trash2, Eye } from 'lucide-react';
+import { Edit, Trash2, Eye, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const AmbulanceListView = ({ ambulances, onView, onEdit, onDelete, getStatusBadge, isMobile = false }) => {
+export const AmbulanceListView = ({ ambulances, onView, onEdit, onDelete, getStatusBadge, onSchedule, isMobile = false }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -59,6 +59,17 @@ export const AmbulanceListView = ({ ambulances, onView, onEdit, onDelete, getSta
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
+                  {onSchedule && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onSchedule(ambulance)}
+                      className="squircle h-8 w-8 p-0 hover:bg-purple-500/10 hover:text-purple-500"
+                      aria-label={`Schedule crew for ${ambulance.call_sign}`}
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"

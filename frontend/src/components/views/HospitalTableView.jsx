@@ -2,7 +2,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Edit, Trash2, Eye, Star, MoreHorizontal, ArrowUpDown, ChevronUp, ChevronDown, Hospital } from 'lucide-react';
+import { Edit, Trash2, Eye, Star, MoreHorizontal, ArrowUpDown, ChevronUp, ChevronDown, Hospital, CalendarDays } from 'lucide-react';
 import { Card } from '../ui/card';
 import { motion } from 'framer-motion';
 import { Checkbox } from '../ui/checkbox';
@@ -20,6 +20,7 @@ export const HospitalTableView = ({
   onView,
   onEdit,
   onDelete,
+  onSchedule,
   isMobile = false,
   selectedIds = [],
   onSelect,
@@ -169,6 +170,12 @@ export const HospitalTableView = ({
                               <Edit className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                               Edit Hospital
                             </DropdownMenuItem>
+                            {onSchedule && (
+                              <DropdownMenuItem onClick={() => onSchedule(hospital)} className="cursor-pointer font-medium text-xs py-2">
+                                <CalendarDays className="mr-2 h-3.5 w-3.5 text-purple-500" />
+                                Manage Schedule
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator className="bg-white/5" />
                             <DropdownMenuItem onClick={() => onDelete(hospital)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
                               <Trash2 className="mr-2 h-3.5 w-3.5" />
