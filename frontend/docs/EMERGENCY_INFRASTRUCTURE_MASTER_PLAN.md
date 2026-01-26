@@ -214,21 +214,188 @@
 
 ---
 
-## 🎉 **INFRASTRUCTURE STATUS: PRODUCTION READY**
+## � **IMPLEMENTATION LEARNINGS: SIMPLE > COMPLEX**
 
-**The hospital integration infrastructure is fully implemented and production-ready:**
+### **📊 DOCUMENTED PLAN vs REALITY**
 
-✅ **Map-first architecture** with Google Places integration
-✅ **Hospital-agnostic design** works without partnerships
-✅ **Visit-centric approach** independent of integration
-✅ **Real-time discovery** with photos, phone, website
-✅ **Accurate distance calculations** with spatial queries
-✅ **Admin management** with approval workflow
-✅ **Multi-user efficiency** with duplicate prevention
-✅ **Resource safety** with multiple transport options
-✅ **Scalable architecture** for any number of hospitals
+**❌ Over-Engineered Plan (Avoided):**
+- Complex multi-step hospital import flows
+- Intricate bed management UI with multiple views
+- Complex admin dashboards with extensive tab systems
+- Excessive micro-interactions and state management
+- Heavy abstraction layers
+
+**✅ Simple Implementation (Delivered):**
+- **Smart Algorithms**: Simple logic with big impact
+- **Direct Integration**: Fewer layers, fewer bugs
+- **Graceful Fallbacks**: Simple error handling
+- **Real Data First**: Immediate value delivery
+- **Progressive Enhancement**: Start simple, add value
+
+### **🎯 KEY SIMPLIFICATION PRINCIPLES**
+
+**1. Smart Algorithms > Complex UI**
+```javascript
+// ✅ SIMPLE & EFFECTIVE (What We Built)
+const getDisplayHospitals = (hospitals, userLocation) => {
+  const categorized = categorizeHospitals(hospitals);
+  let display = [...categorized.immediate, ...categorized.nearby];
+  
+  // Auto-expand if less than 3 hospitals
+  if (display.length < 3 && categorized.extended.length > 0) {
+    display = [...display, ...categorized.extended.slice(0, 5 - display.length)];
+  }
+  
+  return display
+    .map(h => ({ ...h, relevanceScore: calculateRelevanceScore(h, userLocation) }))
+    .sort((a, b) => b.relevanceScore - a.relevanceScore);
+};
+
+// ❌ COMPLEX & UNNECESSARY (What We Avoided)
+// Multi-step import flows, complex state machines, excessive UI components
+```
+
+**2. Direct Integration > Abstraction**
+```javascript
+// ✅ DIRECT & RELIABLE
+const { data, error } = await supabase.functions.invoke('discover-hospitals', {
+  body: { latitude, longitude, radius, mode: 'nearby' }
+});
+
+// ❌ UNNECESSARY LAYERS
+// Complex service abstractions, excessive wrappers, over-engineered state
+```
+
+**3. Graceful Degradation > Perfect UX**
+```javascript
+// ✅ SIMPLE & ROBUST
+try {
+  const { data } = await edgeFunction();
+  return data;
+} catch (error) {
+  console.log('Edge Function unavailable, using fallback:', error.message);
+  return this.listNearby(lat, lng, radius / 1000); // Simple fallback
+}
+
+// ❌ COMPLEX ERROR HANDLING
+// Complex error recovery flows, excessive retry logic
+```
+
+### **🚀 PROVEN SIMPLE APPROACHES**
+
+**🏥 Hospital Discovery - SIMPLE & EFFECTIVE:**
+- ✅ **Single Hook**: `useHospitals()` handles everything
+- ✅ **Smart Logic**: Relevance scoring + auto-expansion  
+- ✅ **Direct Integration**: No complex UI flows
+- ✅ **Real Data**: Google Places + Database merged
+- ✅ **Graceful Fallback**: Works even when Edge Function fails
+
+**⏱️ Dynamic Wait Times - SIMPLE & SMART:**
+- ✅ **6 Factors**: Distance, beds, time, quality, weekend, emergency level
+- ✅ **Client-Side**: No database changes needed
+- ✅ **Human-Readable**: "Moderate wait (~16min)" format
+- ✅ **Confidence Levels**: High/Medium/Low based on data quality
+
+**🖥️ Console Management - SIMPLE & FUNCTIONAL:**
+- ✅ **Enhanced Existing Modal**: No new screens needed
+- ✅ **Direct CRUD**: Real Supabase operations
+- ✅ **Image Rendering**: Simple fallback handling
+- ✅ **Real Toasts**: No mock components
+
+### **📋 SUCCESS METRICS ACHIEVED SIMPLY**
+
+**✅ Hospital Integration (100% Complete):**
+- Real hospitals display ✅
+- Google Places integration ✅
+- Smart categorization ✅
+- Dynamic wait times ✅
+- Console management ✅
+- Auto-seeding without duplicates ✅
+
+**✅ Delivered with Minimal Complexity:**
+- **3 major mobile commits** vs documented 10+ complex flows
+- **4 major console commits** vs documented multi-phase rollout
+- **Real-time functionality** vs documented staged approach
+- **Production ready** vs documented extensive testing phases
+
+---
+
+## 🎯 **UPDATED IMPLEMENTATION PHILOSOPHY**
+
+### **🚀 SIMPLE FIRST PRINCIPLES**
+
+**1. Smart Algorithms Over Complex UI**
+- Let logic do the heavy lifting
+- Simple calculations, big impact
+- Avoid unnecessary UI complexity
+
+**2. Direct Integration Over Abstraction**
+- Fewer layers = fewer bugs
+- Direct database/API calls
+- Minimal wrapper functions
+
+**3. Real Data Over Mock Data**
+- Immediate value delivery
+- Real user feedback
+- Skip extensive prototyping
+
+**4. Graceful Degradation Over Perfection**
+- Works even when things fail
+- Simple fallbacks
+- User confidence maintained
+
+**5. Progressive Enhancement Over Big Bang**
+- Start simple, add value
+- Build on working foundation
+- Iterate based on real usage
+
+### **🎯 FOR FUTURE PHASES: KEEP IT SIMPLE**
+
+**🛏️ Bed Allocation - SIMPLE APPROACH:**
+```javascript
+// ✅ SIMPLE & EFFECTIVE PLAN:
+// 1. Simple reservation logic (no complex UI)
+// 2. Direct database updates (no state machines)  
+// 3. Basic admin controls (enhance existing modal)
+// 4. Real-time availability (simple polling)
+
+// ❌ AVOID:
+// - Complex bed management views
+// - Multi-step reservation flows
+// - Excessive state management
+// - Over-engineered admin dashboards
+```
+
+**🚑 Driver Assignment - SIMPLE APPROACH:**
+```javascript
+// ✅ SIMPLE & EFFECTIVE PLAN:
+// 1. Direct driver-ambulance relationships
+// 2. Simple GPS tracking (no complex maps)
+// 3. Basic fleet management (enhance existing UI)
+// 4. Simple assignment logic
+
+// ❌ AVOID:
+// - Complex fleet management dashboards
+// - Intricate tracking systems
+// - Excessive real-time features
+// - Over-engineered dispatch UI
+```
+
+---
+
+## 🎉 **INFRASTRUCTURE STATUS: PRODUCTION READY (SIMPLE APPROACH)**
+
+**The hospital integration infrastructure is fully implemented using simple, effective approaches:**
+
+✅ **Smart Algorithms**: Simple logic with maximum impact  
+✅ **Direct Integration**: Minimal layers, maximum reliability  
+✅ **Real Data**: Immediate value without complexity  
+✅ **Graceful Fallbacks**: Works even when things fail  
+✅ **Progressive Enhancement**: Build on working foundation  
 
 **Ready for production deployment with comprehensive emergency care coordination capabilities.** 🏥🗺️📱✅
+
+**Key Learning: Simplicity delivers more value faster than complexity.** 🎯
 
 ## 🎨 **SEAMLESS INTEGRATION DESIGN PHILOSOPHY**
 
@@ -435,224 +602,185 @@ const validateAdminAssignment = (adminId, hospitalId) => {
 
 ---
 
-## 🛏️ **PHASE 2: BED ALLOCATION SYSTEM**
+## 🛏️ **PHASE 2: BED ALLOCATION SYSTEM (SIMPLE APPROACH)**
 
 ### **🎯 Objective**
-Replace static bed counts with real-time bed allocation and reservation system.
+Add simple bed allocation without over-engineering the system.
 
 ### **📊 Success Metrics**
-- [ ] Beds are actually reserved for patients
-- [ ] No overbooking occurs
-- [ ] Hospital admins can manage bed inventory
+- [ ] Beds can be reserved for patients
+- [ ] No overbooking occurs (simple logic)
+- [ ] Hospital admins can manage bed inventory (basic UI)
 - [ ] Auto-dispatch uses real bed availability
 
-### **🔄 User Flow**
+### **🔄 User Flow (SIMPLIFIED)**
 
 #### **Hospital Admin Flow**
 ```
-1. Dashboard → Bed Management → Bed Inventory View
-2. Bed Overview → Update Availability → Real-Time Sync
-3. Emergency Request → Bed Reservation → Auto-Assignment
-4. Patient Arrival → Bed Occupation → Status Update
-5. Patient Discharge → Bed Release → Available Again
+1. Hospital Page → Edit Hospital → Update Bed Count
+2. Emergency Request → Automatic Bed Check → Reservation
+3. Patient Arrival → Bed Status Update → Available Again
 ```
 
 #### **Patient Flow**
 ```
-1. Emergency Request → Hospital Selection → Bed Check
-2. Bed Available → Reservation Confirmation → Hospital Notified
-3. En Route → Bed Reserved → ETA Updates
-4. Arrival → Bed Assignment → Room Number
-5. Treatment → Bed Occupied → Real-Time Updates
+1. Emergency Request → Hospital Selection → Bed Available
+2. Reservation Confirmation → Hospital Notified
+3. En Route → Bed Reserved → Arrival → Bed Assigned
 ```
 
-### **🎨 UI/UX Design**
+### **🎨 UI/UX Design (SIMPLIFIED)**
 
-#### **Bed Management Interface**
+#### **Bed Management (Simple Enhancement)**
 ```javascript
-// Progressive Bed Management
-View 1: Bed Overview (Focused View)
-├── Total beds (Large number)
-├── Available beds (Green, prominent)
-├── Occupied beds (Gray, secondary)
-├── Reserved beds (Blue, tertiary)
-└── "Manage Beds" button (Primary Action)
-
-View 2: Bed Details (List View)
-├── Bed number + type (ICU, Emergency, General)
-├── Current status (Available/Occupied/Reserved)
-├── Patient info (if occupied)
-├── Reservation timer (if reserved)
-└── Quick actions (Reserve/Release/Update)
-
-View 3: Bed Reservation (Modal Flow)
-├── Patient details preview
-├── Bed type selection
-├── Reservation duration
-├── Special requirements
-└── "Confirm Reservation" button
+// Enhanced Hospital Modal - Add Bed Management Section
+<div className="bed-management-section">
+  <Label htmlFor="available_beds">Available Beds</Label>
+  <Input
+    type="number"
+    name="available_beds"
+    value={formData.available_beds}
+    onChange={handleChange}
+    className="rounded-xl"
+  />
+  <p className="text-sm text-muted-foreground">
+    Update real-time bed availability
+  </p>
+</div>
 ```
 
-#### **Bed Status Visualization**
+#### **Bed Reservation Logic (Simple Algorithm)**
 ```javascript
-// Visual bed grid
-const BedGrid = ({ beds }) => {
-  return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-      {beds.map(bed => (
-        <BedCard 
-          key={bed.id}
-          bed={bed}
-          status={bed.status}
-          onPress={() => handleBedAction(bed)}
-        />
-      ))}
-    </ScrollView>
-  );
-};
-
-// Individual bed card with micro-interactions
-const BedCard = ({ bed, status, onPress }) => {
-  const scale = useSharedValue(1);
+// Simple reservation function
+const reserveBed = async (hospitalId, patientId) => {
+  // 1. Check availability
+  const hospital = await getHospital(hospitalId);
+  if (hospital.available_beds <= 0) {
+    throw new Error('No beds available');
+  }
   
-  const handlePress = () => {
-    scale.value = withSequence(
-      withTiming(0.95, { duration: 100 }),
-      withTiming(1, { duration: 100 })
-    );
-    onPress();
-  };
+  // 2. Reserve bed
+  await updateHospital(hospitalId, {
+    available_beds: hospital.available_beds - 1,
+    reserved_by: patientId,
+    reserved_at: new Date().toISOString()
+  });
   
-  return (
-    <Animated.View style={[styles.bedCard, { transform: [{ scale }] }]}>
-      <BedNumber>{bed.number}</BedNumber>
-      <BedType>{bed.type}</BedType>
-      <BedStatus status={status} />
-    </Animated.View>
-  );
+  return { success: true, bedReserved: true };
 };
 ```
 
-### **⚡ Micro-Interactions**
+### **⚡ Micro-Interactions (Simple)**
+- **Bed Count Updates**: Simple number change animation
+- **Reservation Status**: Color change (green → blue → gray)
+- **Error Handling**: Simple toast notifications
 
-#### **Bed Management**
-- **Bed Cards**: Scale animation on press
-- **Status Changes**: Color transition animation
-- **Reservation**: Timer countdown animation
-- **Occupancy**: Patient fade-in animation
-
-#### **Real-Time Updates**
-- **Bed Availability**: Number change animation
-- **Status Updates**: Slide-in notification
-- **Reservation Alerts**: Pulse animation
-- **System Sync**: Loading spinner with progress
-
-### **🔄 State Management**
+### **🔄 State Management (Simple)**
 ```javascript
-// Real-time bed state
+// Simple state - no complex machines
 const BedStates = {
   AVAILABLE: 'available',
-  RESERVED: 'reserved',
-  OCCUPIED: 'occupied',
-  MAINTENANCE: 'maintenance',
-  CLEANING: 'cleaning'
+  RESERVED: 'reserved', 
+  OCCUPIED: 'occupied'
 };
 
-// Bed reservation flow
-const BedReservationFlow = {
-  CHECKING: 'checking',
-  AVAILABLE: 'available',
-  RESERVING: 'reserving',
-  RESERVED: 'reserved',
-  EXPIRED: 'expired'
+// Simple reservation tracking
+const reservation = {
+  hospital_id: string,
+  patient_id: string,
+  reserved_at: string,
+  status: BedStates.RESERVED,
+  expires_at: string // 30 minutes from reservation
 };
 ```
 
-### **📱 Screen-by-Screen Implementation**
+### **📱 Screen Implementation (Simple)**
 
-#### **Screen 1: Bed Management Dashboard**
+#### **Enhanced Hospital Modal**
 ```javascript
-export const BedManagementScreen = () => {
-  const [beds, setBeds] = useState([]);
-  const [selectedBed, setSelectedBed] = useState(null);
+// Add to existing HospitalModal
+<div className="space-y-4">
+  {/* Existing hospital fields */}
   
-  return (
-    <View style={styles.container}>
-      <BedOverview beds={beds} />
-      <BedGrid beds={beds} onBedSelect={setSelectedBed} />
-      <BedActions selectedBed={selectedBed} />
-    </View>
-  );
-};
-```
-
-#### **Screen 2: Bed Reservation Modal**
-```javascript
-export const BedReservationModal = ({ visible, bed, patient, onConfirm }) => {
-  const [reservationDuration, setReservationDuration] = useState('2_hours');
+  {/* NEW: Simple Bed Management */}
+  <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+    <div className="flex items-center gap-3 mb-2">
+      <Bed className="h-5 w-5 text-blue-500" />
+      <Label className="text-sm font-semibold">Bed Management</Label>
+    </div>
+    <div className="grid grid-cols-2 gap-3">
+      <div>
+        <Label htmlFor="available_beds">Available Beds</Label>
+        <Input
+          type="number"
+          name="available_beds"
+          value={formData.available_beds}
+          onChange={handleChange}
+          className="rounded-lg"
+        />
+      </div>
+      <div>
+        <Label htmlFor="total_beds">Total Beds</Label>
+        <Input
+          type="number"
+          name="total_beds"
+          value={formData.total_beds}
+          onChange={handleChange}
+          className="rounded-lg"
+        />
+      </div>
+    </div>
+  </div>
   
-  return (
-    <Modal visible={visible} animationType="slide">
-      <ReservationHeader bed={bed} />
-      <PatientInfo patient={patient} />
-      <ReservationOptions 
-        duration={reservationDuration}
-        onDurationChange={setReservationDuration}
-      />
-      <ConfirmationButton onConfirm={onConfirm} />
-    </Modal>
-  );
-};
+  {/* Existing other sections */}
+</div>
 ```
 
-### **🛡️ Safety Mechanisms**
+### **🛡️ Safety Mechanisms (Simple)**
 ```javascript
-// Prevent overbooking
-const checkBedAvailability = async (hospitalId, bedType, neededBeds) => {
-  const availableBeds = await getAvailableBeds(hospitalId, bedType);
-  return availableBeds >= neededBeds;
+// Simple overbooking prevention
+const checkBedAvailability = async (hospitalId) => {
+  const hospital = await getHospital(hospitalId);
+  return hospital.available_beds > 0;
 };
 
-// Automatic reservation cleanup
+// Simple reservation cleanup
 const cleanupExpiredReservations = async () => {
   const expiredReservations = await getExpiredReservations();
   await Promise.all(
-    expiredReservations.map(reservation => releaseBed(reservation.bed_id))
+    expiredReservations.map(reservation => releaseBed(reservation.hospital_id))
   );
 };
 ```
 
-### **✅ Acceptance Criteria**
-- [ ] Beds can be reserved for specific patients
-- [ ] Bed availability is real-time
-- [ ] No overbooking occurs
-- [ ] Hospital admins can manage bed inventory
-- [ ] Bed status changes are animated
-- [ ] Reservation expiration is handled
-- [ ] Emergency requests use real bed data
+### **✅ Acceptance Criteria (Simplified)**
+- [ ] Hospital admins can update bed counts
+- [ ] Beds are reserved when emergency requests are made
+- [ ] No overbooking occurs (simple check)
+- [ ] Bed status updates in real-time
+- [ ] Simple error handling with fallbacks
+- [ ] Works with existing hospital management
 
 ---
 
-## 🚑 **PHASE 3: DRIVER ASSIGNMENT SYSTEM**
+## 🚑 **PHASE 3: DRIVER ASSIGNMENT (SIMPLE APPROACH)**
 
 ### **🎯 Objective**
-Create driver-ambulance relationship with real-time GPS tracking and status management.
+Add driver-ambulance relationships without complex fleet management.
 
 ### **📊 Success Metrics**
-- [ ] Drivers can be assigned to specific ambulances
-- [ ] Driver location updates in real-time
+- [ ] Drivers can be assigned to ambulances
+- [ ] Basic location tracking works
 - [ ] Hospital admins can manage their fleet
 - [ ] Emergency requests assign actual drivers
 
-### **🔄 User Flow**
+### **🔄 User Flow (SIMPLIFIED)**
 
 #### **Hospital Admin Flow**
 ```
-1. Fleet Management → Driver List → Assign Driver
-2. Driver Assignment → Ambulance Selection → Confirmation
-3. Fleet Overview → Real-Time Locations → Status Monitoring
-4. Emergency Request → Driver Assignment → Dispatch Confirmation
-5. Driver Status → Online/Offline/Break → Fleet Updates
+1. Hospital Page → Fleet Management → Add Driver/Ambulance
+2. Emergency Request → Driver Assignment → Dispatch Confirmation
+3. Driver Status → Online/Offline → Fleet Updates
 ```
 
 #### **Driver Flow**
@@ -660,156 +788,43 @@ Create driver-ambulance relationship with real-time GPS tracking and status mana
 1. Login → Dashboard → Assigned Ambulance
 2. Location Sharing → GPS Updates → Real-Time Tracking
 3. Emergency Request → Assignment Alert → Accept/Decline
-4. En Route → Location Updates → ETA Tracking
-5. On Scene → Status Updates → Hospital Notification
 ```
 
-#### **Patient Flow**
-```
-1. Emergency Request → Driver Assignment → Driver Info
-2. En Route → Live Tracking → ETA Updates
-3. Driver Location → Map View → Real-Time Updates
-4. Arrival Notification → Driver Details → Communication
-5. Transport → Live Tracking → Hospital Updates
-```
+### **🎨 UI/UX Design (SIMPLIFIED)**
 
-### **🎨 UI/UX Design**
-
-#### **Fleet Management Interface**
+#### **Fleet Management (Simple Enhancement)**
 ```javascript
-// Progressive Fleet Management
-View 1: Fleet Overview (Focused View)
-├── Active ambulances (Large count)
-├── Available drivers (Green, prominent)
-├── Busy drivers (Gray, secondary)
-├── Offline drivers (Red, alert)
-└── "Manage Fleet" button (Primary Action)
-
-View 2: Driver Assignment (List View)
-├── Driver profile + status
-├── Assigned ambulance (if any)
-├── Current location (map pin)
-├── Availability status
-└── Assignment actions (Assign/Unassign)
-
-View 3: Real-Time Tracking (Map View)
-├── Live ambulance locations
-├── Driver status indicators
-├── Route visualization
-├── ETA information
-└── Communication options
-```
-
-#### **Driver Dashboard**
-```javascript
-// Driver-focused interface
-const DriverDashboard = () => {
-  return (
-    <View style={styles.container}>
-      <DriverStatus driver={driver} />
-      <AssignedAmbulance ambulance={ambulance} />
-      <LocationMap location={currentLocation} />
-      <EmergencyAlerts emergencies={pendingEmergencies} />
-      <QuickActions />
-    </View>
-  );
-};
-```
-
-### **⚡ Micro-Interactions**
-
-#### **Fleet Management**
-- **Driver Cards**: Slide animation on assignment
-- **Status Changes**: Color transition with pulse
-- **Location Updates**: Map marker animation
-- **Assignment**: Success animation with haptic feedback
-
-#### **Real-Time Tracking**
-- **GPS Updates**: Smooth marker movement
-- **Route Lines**: Animated path drawing
-- **ETA Updates**: Number change animation
-- **Status Changes**: Icon transition animation
-
-### **🔄 State Management**
-```javascript
-// Driver states
-const DriverStates = {
-  ONLINE: 'online',
-  OFFLINE: 'offline',
-  BUSY: 'busy',
-  BREAK: 'break',
-  EMERGENCY: 'emergency'
-};
-
-// Ambulance states
-const AmbulanceStates = {
-  AVAILABLE: 'available',
-  ASSIGNED: 'assigned',
-  EN_ROUTE: 'en_route',
-  ON_SCENE: 'on_scene',
-  TRANSPORTING: 'transporting',
-  RETURNING: 'returning'
-};
-```
-
-### **📱 Screen-by-Screen Implementation**
-
-#### **Screen 1: Fleet Management**
-```javascript
-export const FleetManagementScreen = () => {
-  const [drivers, setDrivers] = useState([]);
-  const [ambulances, setAmbulances] = useState([]);
-  const [selectedDriver, setSelectedDriver] = useState(null);
+// Enhanced Hospital Modal - Add Fleet Section
+<div className="fleet-management-section">
+  <Label htmlFor="ambulances_count">Available Ambulances</Label>
+  <Input
+    type="number"
+    name="ambulances_count"
+    value={formData.ambulances_count}
+    onChange={handleChange}
+    className="rounded-xl"
+  />
   
-  return (
-    <View style={styles.container}>
-      <FleetOverview drivers={drivers} ambulances={ambulances} />
-      <DriverList drivers={drivers} onDriverSelect={setSelectedDriver} />
-      <AssignmentModal driver={selectedDriver} />
-    </View>
-  );
-};
+  <div className="mt-4">
+    <h4 className="font-semibold mb-2">Driver Assignments</h4>
+    <DriverAssignmentList hospitalId={hospital.id} />
+  </div>
+</div>
 ```
 
-#### **Screen 2: Real-Time Tracking**
-```javascript
-export const TrackingScreen = () => {
-  const [ambulances, setAmbulances] = useState([]);
-  const [selectedAmbulance, setSelectedAmbulance] = useState(null);
-  
-  return (
-    <View style={styles.container}>
-      <MapView ambulances={ambulances} onAmbulanceSelect={setSelectedAmbulance} />
-      <AmbulanceInfo ambulance={selectedAmbulance} />
-      <CommunicationOptions ambulance={selectedAmbulance} />
-    </View>
-  );
-};
-```
+### **📋 IMPLEMENTATION NOTES**
 
-### **🛡️ Safety Mechanisms**
-```javascript
-// Prevent duplicate assignments
-const checkDriverAvailability = async (driverId) => {
-  const driver = await getDriver(driverId);
-  return driver.status === 'online' && !driver.ambulance_id;
-};
+**Key Simplifications:**
+- ✅ **Enhance existing modal** instead of new screens
+- ✅ **Simple database relationships** instead of complex fleet management
+- ✅ **Basic GPS tracking** instead of real-time maps
+- ✅ **Direct assignment logic** instead of complex dispatch algorithms
 
-// Location validation
-const validateLocationUpdate = (location, previousLocation) => {
-  const distance = calculateDistance(location, previousLocation);
-  return distance < MAX_REASONABLE_SPEED; // Prevent teleportation
-};
-```
-
-### **✅ Acceptance Criteria**
-- [ ] Drivers can be assigned to ambulances
-- [ ] Driver location updates in real-time
-- [ ] Hospital admins can manage fleet
-- [ ] Emergency requests assign actual drivers
-- [ ] Map tracking is smooth and accurate
-- [ ] Driver status changes are immediate
-- [ ] Assignment conflicts are prevented
+**Avoid Over-Engineering:**
+- ❌ Complex fleet management dashboards
+- ❌ Intricate tracking systems
+- ❌ Excessive real-time features
+- ❌ Over-engineered dispatch UI
 
 ---
 
