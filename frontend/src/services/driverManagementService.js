@@ -127,40 +127,43 @@ export const driverManagementService = {
   },
 
   /**
-   * Complete trip and free up driver
+   * Complete trip - Enhanced with automatic ambulance status update
    */
   async completeTrip(requestId) {
     try {
-      const { data, error } = await supabase
-        .rpc('complete_trip', { request_uuid: requestId });
+      const { data, error } = await supabase.rpc('complete_trip', {
+        request_uuid: requestId
+      });
 
       if (error) throw error;
-      
-      toast.success('Trip completed successfully');
+
+      toast.success('Trip completed - Driver marked as available');
       return data;
     } catch (error) {
       console.error('Error completing trip:', error);
       toast.error('Failed to complete trip');
-      return false;
+      throw error;
     }
   },
 
   /**
-   * Cancel trip and free up driver
+   * Cancel trip - Enhanced with automatic ambulance status update
    */
   async cancelTrip(requestId, reason = null) {
     try {
-      const { data, error } = await supabase
-        .rpc('cancel_trip', { request_uuid: requestId, reason });
+      const { data, error } = await supabase.rpc('cancel_trip', {
+        request_uuid: requestId,
+        reason: reason
+      });
 
       if (error) throw error;
-      
-      toast.success('Trip cancelled successfully');
+
+      toast.success('Trip cancelled - Driver marked as available');
       return data;
     } catch (error) {
       console.error('Error cancelling trip:', error);
       toast.error('Failed to cancel trip');
-      return false;
+      throw error;
     }
   },
 

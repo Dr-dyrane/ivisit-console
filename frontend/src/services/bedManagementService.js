@@ -116,19 +116,17 @@ export const bedManagementService = {
   },
 
   /**
-   * Discharge patient and free up bed
-   * Trigger automatically updates available_beds++
+   * Discharge patient - Enhanced with automatic bed count update
    */
   async dischargePatient(requestId) {
     try {
-      const { data, error } = await supabase
-        .rpc('discharge_patient', { 
-          request_uuid: requestId 
-        });
+      const { data, error } = await supabase.rpc('discharge_patient', {
+        request_uuid: requestId
+      });
 
       if (error) throw error;
 
-      toast.success('Patient discharged successfully');
+      toast.success('Patient discharged - Bed count updated automatically');
       return data;
     } catch (error) {
       console.error('Error discharging patient:', error);
@@ -138,20 +136,18 @@ export const bedManagementService = {
   },
 
   /**
-   * Cancel bed reservation and free up bed
-   * Trigger automatically updates available_beds++
+   * Cancel bed reservation - Enhanced with automatic bed count update
    */
-  async cancelReservation(requestId, reason = null) {
+  async cancelBedReservation(requestId, reason = null) {
     try {
-      const { data, error } = await supabase
-        .rpc('cancel_bed_reservation', { 
-          request_uuid: requestId,
-          reason: reason
-        });
+      const { data, error } = await supabase.rpc('cancel_bed_reservation', {
+        request_uuid: requestId,
+        reason: reason
+      });
 
       if (error) throw error;
 
-      toast.success('Bed reservation cancelled');
+      toast.success('Bed reservation cancelled - Bed count updated automatically');
       return data;
     } catch (error) {
       console.error('Error cancelling reservation:', error);
