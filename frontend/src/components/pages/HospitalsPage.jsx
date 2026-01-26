@@ -740,13 +740,13 @@ export const HospitalsPage = () => {
 
       {/* Pagination Controls */}
       <PaginationControls
-        currentPage={pagination.currentPage}
-        totalPages={pagination.totalPages}
-        onPrevPage={pagination.prevPage}
-        onNextPage={pagination.nextPage}
-        hasPrevPage={pagination.hasPrevPage}
-        hasNextPage={pagination.hasNextPage}
-        loading={loading}
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          onPrevPage={pagination.prevPage}
+          onNextPage={pagination.nextPage}
+          hasPrevPage={pagination.hasPrevPage}
+          hasNextPage={pagination.hasNextPage}
+          loading={loading}
       />
 
       <ConfirmationModal

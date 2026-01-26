@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Edit, Trash2, Eye, Star } from 'lucide-react';
+import { Edit, Trash2, Eye, Star, Hospital } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, isMobile = false }) => {

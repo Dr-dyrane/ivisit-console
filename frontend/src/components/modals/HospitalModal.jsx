@@ -8,13 +8,14 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
-import { X, Hospital, MapPin, Phone, Bed, Ambulance, Star, Clock, Activity } from 'lucide-react';
+import { X, Hospital, MapPin, Phone, Bed, Ambulance, Star, Clock, Activity, User, UserCheck, AlertCircle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 
 import { uploadImage } from '../../services/storageService';
 import { Loader2, Upload } from 'lucide-react';
 import hospitalImportService from '../../services/hospitalImportService';
 import { useEffect, useRef } from 'react';
+import { bedManagementService } from '../../services/bedManagementService';
 
 export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   const isView = mode === 'view';
@@ -27,16 +28,26 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
     phone: '',
     rating: 4.5,
     type: 'premium',
-    emergency_level: 'Level 1 Trauma Center',
-    available_beds: 10,
-    ambulances_count: 5,
-    wait_time: '10 mins',
-    price_range: '$150',
-    status: 'available',
+    image: '',
+    specialties: [],
+    service_types: [],
+    features: [],
+    emergency_level: 'Level 1',
+    available_beds: 0,
+    total_beds: 0,
+    reserved_beds: 0,
+    ambulances_count: 0,
+    wait_time: '',
+    price_range: '',
+    latitude: null,
+    longitude: null,
     verified: false,
-    latitude: 0,
-    longitude: 0,
+    status: 'available'
   });
+
+  const [activeReservations, setActiveReservations] = useState([]);
+  const [bedUtilization, setBedUtilization] = useState(null);
+  const [loadingReservations, setLoadingReservations] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -141,6 +152,44 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
       }
     };
   }, [showSearchResults]);
+
+  // Load bed reservations and utilization when modal opens
+  useEffect(() => {
+    if (isOpen && hospital && isView) {
+      loadBedData();
+      
+      // Set up real-time subscription
+      const unsubscribe = bedManagementService.subscribeToReservations(
+        hospital.id,
+        () => loadBedData() // Refresh data when changes occur
+      );
+      
+      return () => {
+        if (unsubscribe) unsubscribe();
+      };
+    }
+  }, [isOpen, hospital, isView]);
+
+  const loadBedData = async () => {
+    if (!hospital?.id) return;
+    
+    try {
+      setLoadingReservations(true);
+      
+      // Load active reservations
+      const reservations = await bedManagementService.getActiveReservations(hospital.id);
+      setActiveReservations(reservations);
+      
+      // Load bed utilization stats
+      const utilization = await bedManagementService.getBedUtilization(hospital.id);
+      setBedUtilization(utilization);
+      
+    } catch (error) {
+      console.error('Error loading bed data:', error);
+    } finally {
+      setLoadingReservations(false);
+    }
+  };
 
   const handleSelectHospital = (hospital) => {
     setFormData(prev => ({
@@ -398,13 +447,41 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                 <GlassCard icon={<Activity />} title="Live Capacity">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Beds</Label>
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Total Beds</Label>
                       <div className="relative">
-                        <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
+                        <Input
+                          type="number"
+                          name="total_beds"
+                          value={formData.total_beds || 0}
+                          onChange={handleChange}
+                          disabled={isView}
+                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Available</Label>
+                      <div className="relative">
+                        <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
                         <Input
                           type="number"
                           name="available_beds"
                           value={formData.available_beds}
+                          onChange={handleChange}
+                          disabled={isView}
+                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Reserved</Label>
+                      <div className="relative">
+                        <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500" />
+                        <Input
+                          type="number"
+                          name="reserved_beds"
+                          value={formData.reserved_beds || 0}
                           onChange={handleChange}
                           disabled={isView}
                           className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
@@ -425,35 +502,123 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         />
                       </div>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Wait Time</Label>
-                      <div className="relative">
-                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          name="wait_time"
-                          value={formData.wait_time}
-                          onChange={handleChange}
-                          disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Rating</Label>
-                      <div className="relative">
-                        <Star className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500 fill-orange-500" />
-                        <Input
-                          type="number"
-                          step="0.1"
-                          name="rating"
-                          value={formData.rating}
-                          onChange={handleChange}
-                          disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
-                        />
-                      </div>
-                    </div>
                   </div>
+                  
+                  {/* Bed Utilization Indicator */}
+                  {(formData.total_beds || 0) > 0 && (
+                    <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase">Bed Utilization</span>
+                        <span className="text-xs font-bold">
+                          {Math.round(((formData.total_beds - formData.available_beds) / formData.total_beds) * 100)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-white/10 rounded-full h-2">
+                        <div 
+                          className="h-2 rounded-full bg-gradient-to-r from-green-500 via-orange-500 to-red-500"
+                          style={{ width: `${Math.min(((formData.total_beds - formData.available_beds) / formData.total_beds) * 100, 100)}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between mt-1 text-[10px] text-muted-foreground">
+                        <span>{formData.total_beds - formData.available_beds} occupied</span>
+                        <span>{formData.available_beds} available</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Active Bed Reservations - Only show in view mode */}
+                  {isView && (
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Bed className="h-4 w-4 text-primary" />
+                          <span className="text-xs font-semibold text-muted-foreground uppercase">Active Reservations</span>
+                        </div>
+                        <Badge className="bg-primary/20 text-primary border-0 text-xs">
+                          {activeReservations.length} active
+                        </Badge>
+                      </div>
+                      
+                      {loadingReservations ? (
+                        <div className="space-y-2">
+                          {[1, 2].map((i) => (
+                            <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse" />
+                          ))}
+                        </div>
+                      ) : activeReservations.length === 0 ? (
+                        <div className="text-center py-4 text-xs text-muted-foreground">
+                          No active bed reservations
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {activeReservations.map((reservation) => (
+                            <div key={reservation.id} className="p-3 bg-white/5 rounded-xl border border-white/10">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <User className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-sm font-medium truncate">
+                                      {reservation.patient_name || 'Patient'}
+                                    </span>
+                                    <Badge className={`text-xs ${
+                                      reservation.status === 'in_progress' ? 'bg-orange-500/20 text-orange-500' :
+                                      reservation.status === 'accepted' ? 'bg-blue-500/20 text-blue-500' :
+                                      'bg-green-500/20 text-green-500'
+                                    } border-0`}>
+                                      {reservation.status_display}
+                                    </Badge>
+                                  </div>
+                                  
+                                  <div className="text-xs text-muted-foreground space-y-1">
+                                    {reservation.bed_type && (
+                                      <div>Bed: {reservation.bed_type}</div>
+                                    )}
+                                    {reservation.bed_number && (
+                                      <div>Room: {reservation.bed_number}</div>
+                                    )}
+                                    <div>Reserved: {new Date(reservation.reserved_at).toLocaleString()}</div>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex gap-1 ml-2">
+                                  {reservation.status === 'in_progress' && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => bedManagementService.cancelReservation(reservation.id)}
+                                      className="h-7 px-2 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10"
+                                    >
+                                      Cancel
+                                    </Button>
+                                  )}
+                                  {reservation.status === 'accepted' && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => bedManagementService.updateReservationStatus(reservation.id, 'arrived')}
+                                      className="h-7 px-2 text-xs"
+                                    >
+                                      Arrived
+                                    </Button>
+                                  )}
+                                  {reservation.status === 'arrived' && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => bedManagementService.dischargePatient(reservation.id)}
+                                      className="h-7 px-2 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
+                                    >
+                                      Discharge
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </GlassCard>
 
                 {/* Location & Contact */}
