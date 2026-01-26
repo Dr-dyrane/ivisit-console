@@ -13,12 +13,13 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
-import { Hospital, MapPin, Star, Bed, Ambulance, Plus, Edit, Trash2, Eye, ChevronRight, Filter, BarChart3, Globe } from 'lucide-react';
+import { Hospital, MapPin, Star, Bed, Ambulance, Plus, Edit, Trash2, Eye, ChevronRight, Filter, BarChart3, Globe, Calendar } from 'lucide-react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { HospitalModal } from '../modals/HospitalModal';
 import { ReportsModal } from '../modals/ReportsModal';
+import StaffSchedulingModal from '../modals/StaffSchedulingModal';
 import { withTimeout } from '../../lib/utils';
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
@@ -43,6 +44,7 @@ export const HospitalsPage = () => {
   const [filters, setFilters] = useState({});
   const [kpiFilter, setKpiFilter] = useState('all');
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [schedulingModalOpen, setSchedulingModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const [confirmationModal, setConfirmationModal] = useState({
@@ -692,6 +694,18 @@ export const HospitalsPage = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => {
+                                  setSelectedHospital(hospital);
+                                  setSchedulingModalOpen(true);
+                                }}
+                                className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                aria-label={`Manage schedule for ${hospital.name}`}
+                              >
+                                <Calendar className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => handleDelete(hospital)}
                                 className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                                 aria-label={`Delete ${hospital.name}`}
@@ -837,6 +851,13 @@ export const HospitalsPage = () => {
         onClose={() => setAnalyticsModalOpen(false)}
         analyticsData={hospitalsData?.stats}
         initialType="hospital"
+      />
+
+      <StaffSchedulingModal
+        isOpen={schedulingModalOpen}
+        onClose={() => setSchedulingModalOpen(false)}
+        hospitalId={selectedHospital?.id}
+        existingStaff={[]} // Pass existing staff if needed
       />
     </div>
   );
