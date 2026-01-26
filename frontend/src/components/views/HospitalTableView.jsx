@@ -20,7 +20,6 @@ export const HospitalTableView = ({
   onView,
   onEdit,
   onDelete,
-  getStatusBadge,
   isMobile = false,
   selectedIds = [],
   onSelect,
@@ -30,6 +29,22 @@ export const HospitalTableView = ({
 }) => {
   const { isAdmin, isProvider } = useAuth();
   const canManage = isAdmin() || isProvider();
+
+  // Helper function to get status badge styling
+  const getStatusBadge = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'verified':
+        return 'bg-green-500/20 text-green-500 border-green-500/30';
+      case 'unverified':
+        return 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30';
+      case 'pending':
+        return 'bg-blue-500/20 text-blue-500 border-blue-500/30';
+      case 'inactive':
+        return 'bg-red-500/20 text-red-500 border-red-500/30';
+      default:
+        return 'bg-gray-500/20 text-gray-500 border-gray-500/30';
+    }
+  };
 
   const SortIcon = ({ columnKey }) => {
     if (sortConfig?.key !== columnKey) return <ArrowUpDown className="ml-2 h-3 w-3 text-muted-foreground/30" />;

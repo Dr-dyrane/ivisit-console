@@ -40,7 +40,10 @@ export const useContextAction = (openModal) => {
             icon: Hospital,
             label: 'Add Hospital',
             color: 'info',
-            action: () => openModal('hospital')
+            action: () => {
+                // Trigger HospitalsPage modal instead of FAB modal
+                window.dispatchEvent(new CustomEvent('openHospitalModal'));
+            }
         };
     } else if (currentPath.includes('/ambulances')) {
         return {

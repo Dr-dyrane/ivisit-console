@@ -5,7 +5,22 @@ import { Button } from '../ui/button';
 import { Edit, Trash2, Eye, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, getStatusBadge, isMobile = false }) => {
+export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, isMobile = false }) => {
+  // Helper function to get status badge styling
+  const getStatusBadge = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'verified':
+        return 'bg-green-500/20 text-green-500 border-green-500/30';
+      case 'unverified':
+        return 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30';
+      case 'pending':
+        return 'bg-blue-500/20 text-blue-500 border-blue-500/30';
+      case 'inactive':
+        return 'bg-red-500/20 text-red-500 border-red-500/30';
+      default:
+        return 'bg-gray-500/20 text-gray-500 border-gray-500/30';
+    }
+  };
   return (
     <motion.div
       initial={{ opacity: 0 }}

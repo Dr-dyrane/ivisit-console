@@ -116,7 +116,8 @@ export const ContextAwareFAB = () => {
           switch (key) {
             case 'emergency': return <EmergencyRequestModal key={key} {...props} />;
             case 'user': return <UserModal key={key} {...props} />;
-            case 'hospital': return <HospitalModal key={key} {...props} />;
+            // Skip hospital modal - HospitalsPage handles it
+            case 'hospital': return null;
             case 'ambulance': return <AmbulanceModal key={key} {...props} />;
             case 'doctor': return <DoctorModal key={key} {...props} />;
             case 'visit': return <VisitModal key={key} {...props} />;

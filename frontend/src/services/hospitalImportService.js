@@ -1,0 +1,353 @@
+// Hospital Import Service for Console - Manages Google Places integration
+import { supabase } from '../lib/supabase';
+
+class HospitalImportService {
+  // Import hospitals from Google Places using unified Edge Function
+  async importHospitalsFromGoogle(lat, lng, radius = 10, adminId = null) {
+    try {
+      console.log('[HospitalImportService] Importing hospitals from unified Edge Function...', { lat, lng, radius });
+
+      // Use the unified Edge Function with database merging
+      const { data, error } = await supabase.functions.invoke('discover-hospitals', {
+        body: { 
+          latitude: lat, 
+          longitude: lng, 
+          radius: radius * 1000, // Convert to meters
+          mode: 'nearby',
+          limit: 20,
+          includeGooglePlaces: true,
+          mergeWithDatabase: true,
+          createdBy: adminId
+        }
+      });
+
+      if (error) {
+        console.log('[HospitalImportService] Edge Function unavailable, using fallback:', error.message);
+        // Fallback to direct database query for existing hospitals
+        return this.getHospitalsDirectly(lat, lng, radius, adminId);
+      }
+
+      // Process unified results
+      const hospitals = data?.data || [];
+      const meta = data?.meta || {};
+      
+      console.log('[HospitalImportService] Unified results:', {
+        total: hospitals.length,
+        google_places: meta.google_places_count,
+        database: meta.database_count,
+        merged: meta.merged_count
+      });
+
+      // Filter for newly imported hospitals (Google-only or pending)
+      const newlyImported = hospitals.filter(h => h.google_only || h.import_status === 'pending');
+
+      return {
+        success: true,
+        hospitals: newlyImported,
+        all_hospitals: hospitals, // All hospitals from the area
+        total_found: hospitals.length,
+        total_imported: newlyImported.length,
+        meta: meta
+      };
+    } catch (error) {
+      console.error('HospitalImportService.importHospitalsFromGoogle error:', error);
+      // Final fallback - return existing hospitals from database
+      return this.getHospitalsDirectly(lat, lng, radius, adminId);
+    }
+  }
+
+  // Fallback method to get hospitals directly from database
+  async getHospitalsDirectly(lat, lng, radius, adminId = null) {
+    try {
+      console.log('[HospitalImportService] Using fallback: direct database query');
+      
+      // Use the nearby_hospitals RPC function as fallback
+      const { data, error } = await supabase
+        .rpc('nearby_hospitals', {
+          user_lat: lat,
+          user_lng: lng,
+          radius_km: radius
+        });
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        hospitals: [], // No new imports in fallback mode
+        all_hospitals: data || [],
+        total_found: data?.length || 0,
+        total_imported: 0,
+        fallback_used: true
+      };
+    } catch (error) {
+      console.error('HospitalImportService.getHospitalsDirectly error:', error);
+      throw error;
+    }
+  }
+
+  // Get hospitals pending verification
+  async getPendingHospitals() {
+    try {
+      const { data, error } = await supabase
+        .from('hospitals')
+        .select('*')
+        .eq('import_status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('HospitalImportService.getPendingHospitals error:', error);
+      throw error;
+    }
+  }
+
+  // Get all hospitals with filtering
+  async getHospitals(filters = {}) {
+    try {
+      let query = supabase
+        .from('hospitals')
+        .select('*');
+
+      // Apply filters
+      if (filters.import_status) {
+        query = query.eq('import_status', filters.import_status);
+      }
+      if (filters.org_admin_id) {
+        query = query.eq('org_admin_id', filters.org_admin_id);
+      }
+      if (filters.verified !== undefined) {
+        query = query.eq('verified', filters.verified);
+      }
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('HospitalImportService.getHospitals error:', error);
+      throw error;
+    }
+  }
+
+  // Approve hospital import
+  async approveHospital(hospitalId) {
+    try {
+      const { data, error } = await supabase
+        .from('hospitals')
+        .update({
+          import_status: 'verified',
+          verified: true,
+          status: 'available'
+        })
+        .eq('id', hospitalId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('HospitalImportService.approveHospital error:', error);
+      throw error;
+    }
+  }
+
+  // Reject hospital import
+  async rejectHospital(hospitalId, reason = '') {
+    try {
+      const { data, error } = await supabase
+        .from('hospitals')
+        .update({
+          import_status: 'rejected',
+          verified: false,
+          status: 'inactive'
+        })
+        .eq('id', hospitalId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('HospitalImportService.rejectHospital error:', error);
+      throw error;
+    }
+  }
+
+  // Assign hospital to org admin
+  async assignHospitalToAdmin(hospitalId, orgAdminId) {
+    try {
+      const { data, error } = await supabase
+        .from('hospitals')
+        .update({
+          org_admin_id: orgAdminId
+        })
+        .eq('id', hospitalId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('HospitalImportService.assignHospitalToAdmin error:', error);
+      throw error;
+    }
+  }
+
+  // Get available org admins for assignment
+  async getAvailableOrgAdmins() {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, role, provider_type')
+        .eq('role', 'provider')
+        .eq('provider_type', 'hospital')
+        .order('full_name');
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('HospitalImportService.getAvailableOrgAdmins error:', error);
+      throw error;
+    }
+  }
+
+  // Get hospitals assigned to specific admin
+  async getHospitalsByAdmin(orgAdminId) {
+    try {
+      const { data, error } = await supabase
+        .from('hospitals')
+        .select('*')
+        .eq('org_admin_id', orgAdminId)
+        .eq('import_status', 'verified')
+        .order('name');
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('HospitalImportService.getHospitalsByAdmin error:', error);
+      throw error;
+    }
+  }
+
+  // Update hospital details
+  async updateHospital(hospitalId, updates) {
+    try {
+      const { data, error } = await supabase
+        .from('hospitals')
+        .update(updates)
+        .eq('id', hospitalId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('HospitalImportService.updateHospital error:', error);
+      throw error;
+    }
+  }
+
+  // Get import logs
+  async getImportLogs(limit = 50) {
+    try {
+      const { data, error } = await supabase
+        .from('hospital_import_logs')
+        .select(`
+          *,
+          profiles:created_by (
+            email,
+            full_name
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('HospitalImportService.getImportLogs error:', error);
+      throw error;
+    }
+  }
+
+  // Get hospital statistics
+  async getHospitalStats() {
+    try {
+      const { data, error } = await supabase
+        .from('hospitals')
+        .select('import_status, verified, status, org_admin_id');
+
+      if (error) throw error;
+
+      const stats = {
+        total: data.length,
+        pending: data.filter(h => h.import_status === 'pending').length,
+        verified: data.filter(h => h.import_status === 'verified').length,
+        rejected: data.filter(h => h.import_status === 'rejected').length,
+        assigned: data.filter(h => h.org_admin_id).length,
+        active: data.filter(h => h.status === 'available').length,
+        inactive: data.filter(h => h.status === 'inactive').length
+      };
+
+      return stats;
+    } catch (error) {
+      console.error('HospitalImportService.getHospitalStats error:', error);
+      throw error;
+    }
+  }
+
+  // Sync hospital with Google Places using unified Edge Function
+  async syncHospitalWithGoogle(hospitalId) {
+    try {
+      // Get hospital details first
+      const { data: hospital, error: fetchError } = await supabase
+        .from('hospitals')
+        .select('*')
+        .eq('id', hospitalId)
+        .single();
+
+      if (fetchError || !hospital) {
+        throw new Error('Hospital not found');
+      }
+
+      console.log('[HospitalImportService] Syncing hospital with unified Edge Function:', hospital.name);
+
+      // Use the unified Edge Function in text search mode
+      const { data, error } = await supabase.functions.invoke('discover-hospitals', {
+        body: {
+          query: hospital.name,
+          mode: 'text_search',
+          limit: 1,
+          includeGooglePlaces: true,
+          mergeWithDatabase: true
+        }
+      });
+
+      if (error) {
+        console.log('[HospitalImportService] Edge Function unavailable for sync, skipping:', error.message);
+        // Return original hospital if Edge Function fails
+        return hospital;
+      }
+
+      const results = data?.data || [];
+      const updatedHospital = results[0];
+
+      if (updatedHospital) {
+        console.log('[HospitalImportService] Hospital synced successfully');
+        return updatedHospital;
+      }
+
+      console.log('[HospitalImportService] No updated data found for hospital');
+      return hospital;
+    } catch (error) {
+      console.error('HospitalImportService.syncHospitalWithGoogle error:', error);
+      throw error;
+    }
+  }
+}
+
+export default new HospitalImportService();

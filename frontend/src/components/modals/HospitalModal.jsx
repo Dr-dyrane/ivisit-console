@@ -13,6 +13,8 @@ import { Badge } from '../ui/badge';
 
 import { uploadImage } from '../../services/storageService';
 import { Loader2, Upload } from 'lucide-react';
+import hospitalImportService from '../../services/hospitalImportService';
+import { useEffect, useRef } from 'react';
 
 export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   const isView = mode === 'view';
@@ -39,6 +41,11 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showImage, setShowImage] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchTimeoutRef = useRef(null);
+  const searchContainerRef = useRef(null);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -58,6 +65,101 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleGoogleSearch = async (query) => {
+    if (!query || query.length < 3) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    try {
+      setSearchLoading(true);
+      // Call the real edge function for Google Places search
+      const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/discover-hospitals`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          query: query,
+          mode: 'text_search',
+          limit: 5
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Search failed');
+      }
+
+      const data = await response.json();
+      setSearchResults(data.hospitals || []);
+      setShowSearchResults(true);
+    } catch (error) {
+      console.error('Google search error:', error);
+      toast.error('Failed to search hospitals');
+      setSearchResults([]);
+      setShowSearchResults(false);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Debounced search handler
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Set new timeout for debounced search
+    searchTimeoutRef.current = setTimeout(() => {
+      handleGoogleSearch(query);
+    }, 300);
+  };
+
+  // Click outside handler for search results
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setShowSearchResults(false);
+      }
+    };
+
+    if (showSearchResults) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [showSearchResults]);
+
+  const handleSelectHospital = (hospital) => {
+    setFormData(prev => ({
+      ...prev,
+      name: hospital.name,
+      address: hospital.address,
+      phone: hospital.phone,
+      rating: hospital.rating || 4.0,
+      type: hospital.types?.includes('hospital') ? 'premium' : 'standard',
+      website: hospital.website,
+      latitude: hospital.geometry?.location?.lat || 0,
+      longitude: hospital.geometry?.location?.lng || 0,
+      place_id: hospital.place_id,
+      imported_from_google: true,
+      import_status: 'pending'
+    }));
+    setShowSearchResults(false);
+    setSearchResults([]);
+    toast.success(`Selected ${hospital.name}`);
   };
 
   const handleChange = (e) => {
@@ -137,6 +239,71 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
 
             <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
               <form onSubmit={handleSubmit} className="space-y-6">
+
+                {/* --- GOOGLE AUTOFILL SECTION --- */}
+                {isCreate && (
+                  <GlassCard icon={<MapPin />} title="Auto-fill from Google">
+                    <div className="relative" ref={searchContainerRef}>
+                      <div className="space-y-2">
+                        <Label htmlFor="googleSearch" className="text-xs font-semibold text-muted-foreground uppercase px-1">Search Google Places</Label>
+                        <div className="relative">
+                          <Input
+                            id="googleSearch"
+                            placeholder="Search for a hospital (e.g. Mayo Clinic)..."
+                            className="rounded-2xl bg-white/5 border-white/10 h-12 pl-10"
+                            onChange={handleSearchChange}
+                          />
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                            {searchLoading ? (
+                              <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                            ) : (
+                              <MapPin className="w-4 h-4 text-primary" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Search Results Dropdown */}
+                      {showSearchResults && (
+                        <div className="absolute z-50 w-full bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl max-h-64 overflow-y-auto mt-2">
+                          {searchResults.length > 0 ? (
+                            searchResults.map((hospital, index) => (
+                              <div
+                                key={hospital.place_id || index}
+                                className="p-3 hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-b-0 transition-colors"
+                                onClick={() => handleSelectHospital(hospital)}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="p-2 bg-primary/10 rounded-lg">
+                                    <Hospital className="w-4 h-4 text-primary" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold text-sm truncate">{hospital.name}</h4>
+                                    <p className="text-xs text-muted-foreground truncate">{hospital.address}</p>
+                                    {hospital.rating && (
+                                      <div className="flex items-center gap-1 mt-1">
+                                        <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                                        <span className="text-xs text-muted-foreground">{hospital.rating}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                              No hospitals found. Try a different search term.
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <p className="text-[10px] text-muted-foreground mt-2 px-1">
+                        Search results from Google Places. Select a hospital to auto-fill details.
+                      </p>
+                    </div>
+                  </GlassCard>
+                )}
 
                 {/* General Information */}
                 <GlassCard icon={<Activity />} title="Facility Details">
