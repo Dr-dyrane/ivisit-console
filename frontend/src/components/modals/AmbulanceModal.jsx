@@ -15,6 +15,8 @@ import { uploadImage } from '../../services/storageService';
 import { Loader2, Upload, UserPlus, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getProfilesByRole } from '../../services/profilesService';
+import { driverManagementService } from '../../services/driverManagementService';
+import { Clock, UserCheck, AlertTriangle } from 'lucide-react';
 
 export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
   const isView = mode === 'view';
@@ -46,6 +48,11 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
   const [showImage, setShowImage] = useState(false);
   const [hospitals, setHospitals] = useState([]);
 
+  // Driver assignment state
+  const [activeAssignments, setActiveAssignments] = useState([]);
+  const [driverUtilization, setDriverUtilization] = useState(null);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
+
   // Sync formData when ambulance prop changes
   useEffect(() => {
     if (ambulance) {
@@ -66,10 +73,48 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
 
   useEffect(() => {
     fetchHospitals();
-    if (isCreate) {
+    if (isCreate || isEdit) {
       fetchAvailableProfiles();
     }
-  }, [isCreate]);
+  }, [isCreate, isEdit]);
+
+  // Load driver assignments when modal opens in view mode
+  useEffect(() => {
+    if (isOpen && ambulance && isView) {
+      loadDriverData();
+
+      // Set up real-time subscription
+      const unsubscribe = driverManagementService.subscribeToAssignments(
+        ambulance.hospital_id,
+        () => loadDriverData() // Refresh data when changes occur
+      );
+
+      return () => {
+        if (unsubscribe) unsubscribe();
+      };
+    }
+  }, [isOpen, ambulance, isView]);
+
+  const loadDriverData = async () => {
+    if (!ambulance?.hospital_id) return;
+
+    try {
+      setLoadingAssignments(true);
+
+      // Load active assignments
+      const assignments = await driverManagementService.getActiveAssignments(ambulance.hospital_id);
+      setActiveAssignments(assignments);
+
+      // Load driver utilization stats
+      const utilization = await driverManagementService.getDriverUtilization(ambulance.hospital_id);
+      setDriverUtilization(utilization);
+
+    } catch (error) {
+      console.error('Error loading driver data:', error);
+    } finally {
+      setLoadingAssignments(false);
+    }
+  };
 
   const fetchHospitals = async () => {
     try {
@@ -90,11 +135,14 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
       const { data: existingAmbulances } = await supabase.from('ambulances').select('profile_id');
       const existingProfileIds = new Set(existingAmbulances?.map(a => a.profile_id).filter(Boolean) || []);
 
-      // Filter: Only show those not already linked AND who are compatible (Ambulance type or unset)
+      // In EDIT mode, include current ambulance's provider in available options
+      const currentAmbulanceProfileId = ambulance?.profile_id;
+
       const available = profiles.filter(p => {
         const isAlreadyLinked = existingProfileIds.has(p.id);
         const isCompatibleProvider = p.provider_type === 'ambulance' || !p.provider_type;
-        return !isAlreadyLinked && isCompatibleProvider;
+        const isCurrentProvider = isEdit && p.id === currentAmbulanceProfileId;
+        return (!isAlreadyLinked || isCurrentProvider) && isCompatibleProvider;
       });
 
       setAvailableProfiles(available);
@@ -274,7 +322,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {isCreate && (
+                {(isCreate || isEdit) && (
                   <GlassCard
                     icon={linkingExisting ? <Users className="text-primary" /> : <UserPlus className="text-primary" />}
                     title="Account Linkage"
@@ -283,8 +331,12 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
-                          <Label className="text-sm font-semibold">Link Existing Provider</Label>
-                          <p className="text-xs text-muted-foreground">Select an existing account to link this vehicle</p>
+                          <Label className="text-sm font-semibold">
+                            {isCreate ? 'Link Existing Provider' : 'Change Assigned Provider'}
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            {isCreate ? 'Select an existing account to link this vehicle' : 'Change the provider assigned to this vehicle'}
+                          </p>
                         </div>
                         <Button
                           type="button"
@@ -304,7 +356,9 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
 
                       {linkingExisting && (
                         <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Select Provider Account</Label>
+                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">
+                            {isCreate ? 'Select Provider Account' : 'Change Provider Account'}
+                          </Label>
                           <Select
                             value={formData.profile_id}
                             onValueChange={handleProfileSelect}
@@ -332,6 +386,30 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                           {availableProfiles.length > 0 && (
                             <p className="text-[10px] text-primary/70 ml-1 italic font-medium">Auto-populates call sign and organization</p>
                           )}
+                        </div>
+                      )}
+
+                      {/* Show current provider assignment in EDIT mode */}
+                      {isEdit && formData.profile_id && !linkingExisting && (
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Currently Assigned Provider</Label>
+                          <div className="p-3 bg-white/5 rounded-xl border border-white/10">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-semibold">{formData.profile_id}</div>
+                                <div className="text-xs text-muted-foreground">Provider ID</div>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setLinkingExisting(true)}
+                                className="rounded-xl"
+                              >
+                                Change Provider
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -535,6 +613,141 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                         </div>
                       </div>
                     </GlassCard>
+
+                    {/* Driver Utilization - Only show in view mode */}
+                    {isView && driverUtilization && (
+                      <GlassCard icon={<Activity className="text-green-500" />} title="Driver Utilization">
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="text-center p-3 bg-white/5 rounded-xl border border-white/10">
+                              <div className="text-2xl font-bold text-green-400">{driverUtilization.total_drivers}</div>
+                              <div className="text-xs text-muted-foreground">Total Drivers</div>
+                            </div>
+                            <div className="text-center p-3 bg-white/5 rounded-xl border border-white/10">
+                              <div className="text-2xl font-bold text-blue-400">{driverUtilization.available_drivers}</div>
+                              <div className="text-xs text-muted-foreground">Available</div>
+                            </div>
+                            <div className="text-center p-3 bg-white/5 rounded-xl border border-white/10">
+                              <div className="text-2xl font-bold text-orange-400">{driverUtilization.on_trip_drivers}</div>
+                              <div className="text-xs text-muted-foreground">On Trip</div>
+                            </div>
+                            <div className="text-center p-3 bg-white/5 rounded-xl border border-white/10">
+                              <div className="text-2xl font-bold text-purple-400">{driverUtilization.utilization_percentage}%</div>
+                              <div className="text-xs text-muted-foreground">Utilization</div>
+                            </div>
+                          </div>
+
+                          {/* Utilization Bar */}
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-xs">
+                              <span>Fleet Utilization</span>
+                              <span>{driverUtilization.utilization_percentage}%</span>
+                            </div>
+                            <div className="w-full bg-white/10 rounded-full h-2">
+                              <div
+                                className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${Math.min(driverUtilization.utilization_percentage, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </GlassCard>
+                    )}
+
+                    {/* Active Driver Assignments - Only show in view mode */}
+                    {isView && (
+                      <GlassCard icon={<Users className="text-blue-500" />} title="Active Assignments">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4 text-primary" />
+                              <span className="text-xs font-semibold text-muted-foreground uppercase">Current Trips</span>
+                            </div>
+                            <Badge className="bg-primary/20 text-primary border-0 text-xs">
+                              {activeAssignments.length} active
+                            </Badge>
+                          </div>
+
+                          {loadingAssignments ? (
+                            <div className="space-y-2">
+                              {[1, 2].map((i) => (
+                                <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse" />
+                              ))}
+                            </div>
+                          ) : activeAssignments.length === 0 ? (
+                            <div className="text-center py-4 text-xs text-muted-foreground">
+                              No active driver assignments
+                            </div>
+                          ) : (
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                              {activeAssignments.map((assignment) => (
+                                <div key={assignment.id} className="p-3 bg-white/5 rounded-xl border border-white/10">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <UserCheck className="h-3 w-3 text-muted-foreground" />
+                                        <span className="text-sm font-medium truncate">
+                                          {assignment.patient_name || 'Patient'}
+                                        </span>
+                                        <Badge className={`text-xs ${assignment.status === 'in_progress' ? 'bg-orange-500/20 text-orange-500' :
+                                            assignment.status === 'accepted' ? 'bg-blue-500/20 text-blue-500' :
+                                              'bg-green-500/20 text-green-500'
+                                          } border-0`}>
+                                          {assignment.status_display}
+                                        </Badge>
+                                      </div>
+
+                                      <div className="text-xs text-muted-foreground space-y-1">
+                                        {assignment.ambulance_info && (
+                                          <div>Ambulance: {assignment.ambulance_info.call_sign || assignment.ambulance_info.vehicle_number}</div>
+                                        )}
+                                        {assignment.driver_name && (
+                                          <div>Driver: {assignment.driver_name}</div>
+                                        )}
+                                        <div>Assigned: {new Date(assignment.assigned_at).toLocaleString()}</div>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex gap-1 ml-2">
+                                      {assignment.status === 'in_progress' && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => driverManagementService.cancelTrip(assignment.id)}
+                                          className="h-7 px-2 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10"
+                                        >
+                                          Cancel
+                                        </Button>
+                                      )}
+                                      {assignment.status === 'accepted' && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => driverManagementService.updateTripStatus(assignment.id, 'arrived')}
+                                          className="h-7 px-2 text-xs"
+                                        >
+                                          Arrived
+                                        </Button>
+                                      )}
+                                      {assignment.status === 'arrived' && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => driverManagementService.completeTrip(assignment.id)}
+                                          className="h-7 px-2 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
+                                        >
+                                          Complete
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </GlassCard>
+                    )}
                   </div>
                 </div>
 
