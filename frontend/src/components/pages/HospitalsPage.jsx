@@ -7,6 +7,7 @@ import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import { getCurrentUser, applyAuthFilter } from '../../services/authService';
+import { createHospital, updateHospital } from '../../services/hospitalsService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -220,6 +221,35 @@ export const HospitalsPage = () => {
       }
     });
   }, [fetchHospitals]);
+
+  const handleSave = useCallback(async (formData) => {
+    try {
+      if (modalMode === 'create') {
+        const newHospital = await createHospital(formData);
+        await createNotification(
+          NotificationTypes.HOSPITAL,
+          NotificationActions.CREATED,
+          newHospital.id,
+          { message: `${newHospital.name} has been added to the network` }
+        );
+        toast.success('Hospital created successfully');
+      } else if (modalMode === 'edit') {
+        const updatedHospital = await updateHospital(selectedHospital.id, formData);
+        await createNotification(
+          NotificationTypes.HOSPITAL,
+          NotificationActions.UPDATED,
+          updatedHospital.id,
+          { message: `${updatedHospital.name} has been updated` }
+        );
+        toast.success('Hospital updated successfully');
+      }
+      return true;
+    } catch (error) {
+      console.error('Error saving hospital:', error);
+      toast.error(error.message || 'Failed to save hospital');
+      throw error;
+    }
+  }, [modalMode, selectedHospital]);
 
   const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
@@ -557,6 +587,30 @@ export const HospitalsPage = () => {
                       {/* Apple hover glow effect */}
                       <div className="hover-glow hover-glow-primary" />
 
+                      {/* Hospital Image */}
+                      {hospital.image || hospital.google_photos?.[0] ? (
+                        <div className="relative h-48 w-full mb-4 rounded-xl overflow-hidden bg-black/20">
+                          <img
+                            src={hospital.image || hospital.google_photos?.[0]}
+                            alt={hospital.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          {/* Fallback placeholder */}
+                          <div className="absolute inset-0 flex items-center justify-center bg-muted/20 hidden">
+                            <Hospital className="h-12 w-12 text-muted-foreground/50" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-48 w-full mb-4 rounded-xl bg-muted/20 flex items-center justify-center">
+                          <Hospital className="h-12 w-12 text-muted-foreground/50" />
+                        </div>
+                      )}
+
                       {/* Top Right Icon */}
                       <div className="absolute top-0 right-0 p-5 z-20">
                         <div className="relative">
@@ -711,6 +765,7 @@ export const HospitalsPage = () => {
           onClose={handleModalClose}
           hospital={selectedHospital}
           mode={modalMode}
+          onSave={handleSave}
         />
       )}
 

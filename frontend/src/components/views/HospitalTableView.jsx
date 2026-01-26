@@ -2,7 +2,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Edit, Trash2, Eye, Star, MoreHorizontal, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { Edit, Trash2, Eye, Star, MoreHorizontal, ArrowUpDown, ChevronUp, ChevronDown, Hospital } from 'lucide-react';
 import { Card } from '../ui/card';
 import { motion } from 'framer-motion';
 import { Checkbox } from '../ui/checkbox';
@@ -82,6 +82,7 @@ export const HospitalTableView = ({
                   />
                 </TableHead>
               )}
+              <TableHead className="w-[60px]">Image</TableHead>
               <SortableHead label="Name" columnKey="name" />
               <SortableHead label="Address" columnKey="address" />
               <SortableHead label="Status" columnKey="status" />
@@ -110,6 +111,29 @@ export const HospitalTableView = ({
                     />
                   </TableCell>
                 )}
+                <TableCell className="w-[60px]">
+                  {hospital.image || hospital.google_photos?.[0] ? (
+                    <div className="relative h-10 w-10 rounded-lg overflow-hidden bg-black/20">
+                      <img
+                        src={hospital.image || hospital.google_photos?.[0]}
+                        alt={hospital.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      {/* Fallback placeholder */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-muted/20 hidden">
+                        <Hospital className="h-4 w-4 text-muted-foreground/50" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-10 w-10 rounded-lg bg-muted/20 flex items-center justify-center">
+                      <Hospital className="h-4 w-4 text-muted-foreground/50" />
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell className="font-bold">{hospital.name || 'Unknown'}</TableCell>
                 <TableCell className="text-muted-foreground truncate max-w-[200px]">{hospital.address || '-'}</TableCell>
                 <TableCell>

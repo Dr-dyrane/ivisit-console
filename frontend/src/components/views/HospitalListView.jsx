@@ -36,6 +36,31 @@ export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, isMobile
         >
           <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-sm p-4 border-0 hover:shadow-md transition-shadow group">
             <div className="flex items-center gap-4 justify-between">
+              {/* Hospital Image */}
+              <div className="flex-shrink-0">
+                {hospital.image || hospital.google_photos?.[0] ? (
+                  <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-black/20">
+                    <img
+                      src={hospital.image || hospital.google_photos?.[0]}
+                      alt={hospital.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                    {/* Fallback placeholder */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted/20 hidden">
+                      <Hospital className="h-6 w-6 text-muted-foreground/50" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-16 w-16 rounded-xl bg-muted/20 flex items-center justify-center">
+                    <Hospital className="h-6 w-6 text-muted-foreground/50" />
+                  </div>
+                )}
+              </div>
+              
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
                   <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
