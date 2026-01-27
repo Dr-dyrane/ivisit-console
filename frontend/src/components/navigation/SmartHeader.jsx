@@ -29,10 +29,10 @@ export const SmartHeader = () => {
                 }}
                 // Apple-Wordy Smart Header with glass-card design
                 className={`fixed z-40 h-16 flex items-center justify-between transition-all duration-300 ${isMobile
-                    ? 'top-2 left-2 right-2 glass-card rounded-2xl hover-lift'
+                    ? 'top-2 left-2 right-2 rounded-2xl hover-lift'
                     : isScrolledDown
-                        ? 'top-0 left-0 right-0 glass-card border-b border-border/20'
-                        : 'top-0 left-0 right-0 glass-card border-b border-border/10'
+                        ? 'top-0 left-0 right-0'
+                        : 'top-0 left-0 right-0'
                     }`}
                 style={{
                     paddingRight: isMobile ? '16px' : '32px'  // 16px (2×8px) mobile, 32px (4×8px) desktop

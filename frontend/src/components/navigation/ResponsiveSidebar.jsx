@@ -67,10 +67,11 @@ export const ContextPanelShell = () => {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-            className={`fixed top-4 bottom-4 left-auto right-0 z-40 flex flex-col ${isDesktop ? 'w-[320px]' : 'w-72'} rounded-3xl backdrop-blur-xl border-black/10 dark:border-white/10 ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'
-              } overflow-hidden`}
+            className={`fixed top-4 bottom-4 left-auto right-0 z-40 flex flex-col ${isDesktop ? 'w-[320px]' : 'w-72'} rounded-3xl backdrop-blur-sm bg-transparent border-none overflow-hidden`}
             style={{
-              boxShadow: '-4px 0 24px rgba(0,0,0,0.1)'
+              border: 'none !important',
+              borderWidth: '0 !important',
+              borderColor: 'transparent !important'
             }}
           >
             <div className="h-full flex flex-col">

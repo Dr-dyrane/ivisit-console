@@ -90,7 +90,7 @@ export const ContextPanel = () => {
         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         className="text-center py-12"
       >
-        <div className="w-16 h-16 bg-destructive/20 rounded-2xl flex items-center justify-center border border-destructive/30 mx-auto mb-6">
+        <div className="w-16 h-16 bg-destructive/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <Lock className="h-8 w-8 text-destructive" />
         </div>
         <h3 className="font-bold text-xl mb-2 text-foreground">Access Restricted</h3>
@@ -143,7 +143,7 @@ export const ContextPanel = () => {
         {/* Subtle service bar */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/20 via-success/20 to-primary/20" />
         
-        <div className="px-6 pt-4 pb-3 border-b border-border/20 md:px-6">
+        <div className="px-6 pt-4 pb-3 md:px-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-bold text-lg tracking-tight text-foreground">{title}</h2>
@@ -177,7 +177,7 @@ export const ContextPanel = () => {
   };
 
   const renderPanelWithHeader = (panelContent) => (
-    <div className="h-full flex flex-col glass-card rounded-3xl">
+    <div className="h-full flex flex-col rounded-3xl">
       {/* Header - Hidden on mobile */}
       <div className="hidden md:block">
         {renderPanelHeader()}
@@ -288,7 +288,7 @@ export const ContextPanel = () => {
         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         className="text-center py-12"
       >
-        <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 mx-auto mb-6">
+        <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <Sparkles className="h-8 w-8 text-primary" />
         </div>
         <h3 className="font-bold text-xl mb-2 text-foreground">Context Panel</h3>

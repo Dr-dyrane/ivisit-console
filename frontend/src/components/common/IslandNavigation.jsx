@@ -220,10 +220,10 @@ export const IslandNavigation = () => {
         onMouseLeave={() => setIsHovered(false)}
         animate={{ width: navWidth, x: 0 }}
         transition={{ type: "spring", stiffness: 250, damping: 28 }}
-        className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col glass-card border-r border-border/10 ${isScrolledDown ? 'bg-background/70' : 'bg-background/30'}`}
+        className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-sm ${isScrolledDown ? 'bg-background/70' : 'bg-background/30'}`}
       >
         {/* 1. BRANDING & BACK ARROW */}
-        <div className="h-[63px] flex-shrink-0 flex items-center px-4 border-b border-primary/20">
+        <div className="h-[63px] flex-shrink-0 flex items-center px-4">
           <div className="relative flex items-center w-full">
             <AnimatePresence mode="wait">
               {isNotHome ? (
