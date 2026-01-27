@@ -43,10 +43,11 @@ export const SmartFooter = () => {
                             style={{
                                 boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
                             }}
-                        >
+                        >            {/* Simple Static Dot Grid - Apple-level simplicity */}
+                            <div className="absolute inset-0 dot-grid pointer-events-none" />
                             {/* Shared RGB Hive Effect */}
                             <div className="hover-glow hover-glow-success" />
-                            
+
                             {/* Left Section: Status/Context */}
                             <div className="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground whitespace-nowrap">
                                 {footerConfig.type === 'pagination' ? (

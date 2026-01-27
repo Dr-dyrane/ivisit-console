@@ -222,6 +222,8 @@ export const IslandNavigation = () => {
         transition={{ type: "spring", stiffness: 250, damping: 28 }}
         className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-sm ${isScrolledDown ? 'bg-background/70' : 'bg-background/30'}`}
       >
+        {/* Simple Static Dot Grid - Apple-level simplicity */}
+        <div className="absolute inset-0 dot-grid pointer-events-none" />
         {/* 1. BRANDING & BACK ARROW */}
         <div className="h-[63px] flex-shrink-0 flex items-center px-4">
           <div className="relative flex items-center w-full">
@@ -360,10 +362,10 @@ export const IslandNavigation = () => {
           >
             <div className="relative">
               <Avatar className={`h-9 w-9 rounded-lg border-2 flex-shrink-0 ${!isBroad ? profile?.role === 'admin' ? 'border-red-500' :
-                  profile?.role === 'org_admin' ? 'border-blue-500' :
-                    profile?.role === 'provider' ? 'border-green-500' :
-                      profile?.role === 'sponsor' ? 'border-purple-500' :
-                        'border-gray-500' : 'border-border'
+                profile?.role === 'org_admin' ? 'border-blue-500' :
+                  profile?.role === 'provider' ? 'border-green-500' :
+                    profile?.role === 'sponsor' ? 'border-purple-500' :
+                      'border-gray-500' : 'border-border'
                 }`}>
                 <AvatarImage src={getAvatarUrl(profile, user)} />
                 <AvatarFallback className="bg-primary/5 text-primary text-xs font-semibold">
@@ -373,10 +375,10 @@ export const IslandNavigation = () => {
               {/* Status dot for expanded state - Apple style */}
               {isBroad && (
                 <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${profile?.role === 'admin' ? 'bg-red-500' :
-                    profile?.role === 'org_admin' ? 'bg-blue-500' :
-                      profile?.role === 'provider' ? 'bg-green-500' :
-                        profile?.role === 'sponsor' ? 'bg-purple-500' :
-                          'bg-gray-500'
+                  profile?.role === 'org_admin' ? 'bg-blue-500' :
+                    profile?.role === 'provider' ? 'bg-green-500' :
+                      profile?.role === 'sponsor' ? 'bg-purple-500' :
+                        'bg-gray-500'
                   }`} />
               )}
             </div>

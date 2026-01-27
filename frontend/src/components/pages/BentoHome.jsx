@@ -322,7 +322,7 @@ export const BentoHome = () => {
         <LayoutGroup>
           <motion.div
             layout
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense surface-1 rounded-3xl"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense rounded-3xl"
           >
             {/* Emergency Counter Skeleton */}
             {!isPatient() && !isViewer() && <EmergencyCardSkeleton />}
@@ -410,7 +410,7 @@ export const BentoHome = () => {
         {/* Apple-style Grid Container */}
         <motion.div
           layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense surface-1 rounded-3xl"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense rounded-3xl"
         >
 
           {/* Live Emergency Counter - Show based on role */}
@@ -635,10 +635,10 @@ export const BentoHome = () => {
                   <div className="hover-glow hover-glow-warning" />
                   <div className="relative z-10 flex flex-col h-full justify-between gap-4">
                     <div className="flex justify-between items-start">
-                      <div className="w-12 h-12 squircle surface-2 flex items-center justify-center">
+                      <div className="w-12 h-12 squircle bg-primary/10 flex items-center justify-center">
                         <FileCheck className="h-6 w-6 text-warning" />
                       </div>
-                      <Badge className="squircle-sm surface-2 text-warning font-bold editorial-subtitle px-2 py-0.5">{appStats.pendingVerifications} PENDING</Badge>
+                      <Badge className="squircle-sm bg-warning/10 text-warning font-bold editorial-subtitle px-2 py-0.5">{appStats.pendingVerifications} PENDING</Badge>
                     </div>
                     <div>
                       <h4 className="font-bold text-xl tracking-tight">Verification</h4>
@@ -677,7 +677,7 @@ export const BentoHome = () => {
                   <div className="hover-glow hover-glow-success" />
                   <div className="relative z-10 flex flex-col h-full justify-between gap-4">
                     <div className="flex justify-between items-start">
-                      <div className="w-12 h-12 squircle surface-2 flex items-center justify-center">
+                      <div className="w-12 h-12 squircle bg-primary/10 flex items-center justify-center">
                         <TrendingUp className="h-6 w-6 text-success" />
                       </div>
                     </div>

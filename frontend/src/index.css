@@ -110,8 +110,8 @@ code {
 		--glass-blur: 20px;
 		--glass-saturation: 140%;
 		/* Apple-inspired background hierarchy */
-		--background: 0 0% 100%;
-		/* Pure white - no warmth */
+		--background: 210 40% 98%;
+		/* Slate-50 - light gray background */
 		--foreground: 0 0% 3.9%;
 		/* Apple's exact black */
 		--card: 0 0% 100%;
@@ -189,8 +189,8 @@ code {
 	}
 
 	.dark {
-		--background: 0 0% 0%;
-		/* True black, not dark blue */
+		--background: 224 41% 7%;
+		/* #0B0F1A - Deep Navy Blue-Black */
 		--foreground: 0 0% 100%;
 		/* Pure white text */
 		--card: 0 0% 3%;
@@ -308,9 +308,15 @@ code {
 	.hover-glow-info { color: hsl(var(--info)); }
 	.hover-glow-secondary { color: hsl(var(--secondary)); }
 
-	/* Glass Card Variants */
-	.glass-card {
-		@apply glass shadow-2xl;
+	/* Dot Grid Pattern - Inspired by ivisit design */
+	.dot-grid {
+		background-image: radial-gradient(currentColor 1px, transparent 1px);
+		background-size: 20px 20px;
+		opacity: 0.03;
+	}
+	
+	.dark .dot-grid {
+		opacity: 0.08;
 	}
 
 	.glass-card-premium {

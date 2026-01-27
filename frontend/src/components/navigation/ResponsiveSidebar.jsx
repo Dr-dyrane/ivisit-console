@@ -61,6 +61,7 @@ export const ContextPanelShell = () => {
             onClick={closeContextPanel}
           />
 
+
           {/* Context Panel */}
           <motion.div
             initial={{ x: '100%', opacity: 0 }}
@@ -73,7 +74,8 @@ export const ContextPanelShell = () => {
               borderWidth: '0 !important',
               borderColor: 'transparent !important'
             }}
-          >
+          >      {/* Simple Static Dot Grid - Apple-level simplicity */}
+            <div className="absolute inset-0 dot-grid pointer-events-none" />
             <div className="h-full flex flex-col">
               {/* Content area - full height */}
               <div

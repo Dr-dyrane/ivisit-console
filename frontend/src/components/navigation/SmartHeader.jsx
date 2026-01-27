@@ -37,7 +37,8 @@ export const SmartHeader = () => {
                 style={{
                     paddingRight: isMobile ? '16px' : '32px'  // 16px (2×8px) mobile, 32px (4×8px) desktop
                 }}
-            >
+            >            {/* Simple Static Dot Grid - Apple-level simplicity */}
+                <div className="absolute inset-0 dot-grid pointer-events-none" />
                 <div className="flex items-center gap-2 md:gap-0 overflow-hidden h-full">
                     {/* Logo Zone - This will now slide with the paddingLeft */}
 
@@ -95,7 +96,7 @@ export const SmartHeader = () => {
                             >
                                 {/* Shared RGB Hive Effect */}
                                 <div className="hover-glow hover-glow-primary" />
-                                
+
                                 <Search className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
                                 <span className="text-sm text-muted-foreground font-medium group-hover:text-foreground hidden lg:inline-block transition-colors">Search...</span>
                             </button>
@@ -110,7 +111,7 @@ export const SmartHeader = () => {
                             >
                                 {/* Shared RGB Hive Effect */}
                                 <div className="hover-glow hover-glow-success" />
-                                
+
                                 {isContextPanelOpen ? (
                                     <PanelRightClose className="h-5 w-5 text-success group-hover:scale-110 transition-transform" />
                                 ) : (
