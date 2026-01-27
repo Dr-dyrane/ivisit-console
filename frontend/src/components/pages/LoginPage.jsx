@@ -511,7 +511,8 @@ export const LoginPage = () => {
 													toast.success("Password reset link sent to your email");
 												} catch (err) {
 													console.error("Password reset error:", err);
-													toast.error("Failed to send reset link");
+													const errorMessage = err?.message || "Failed to send reset link";
+													toast.error(errorMessage);
 												} finally {
 													setIsLoading(false);
 												}
