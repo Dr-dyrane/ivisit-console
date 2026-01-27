@@ -6,6 +6,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { X, Lock, ShieldCheck, Key, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleAuthError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
 import { supabase } from '../../lib/supabase';
@@ -48,7 +49,7 @@ const TwoFactorAuthSection = () => {
             setStatus('enrolling');
         } catch (err) {
             setError(err.message);
-            toast.error("Failed to start enrollment");
+            handleAuthError(err, 'update');
         }
     };
 
@@ -89,7 +90,7 @@ const TwoFactorAuthSection = () => {
                 toast.success("2FA Disabled");
             }
         } catch (err) {
-            toast.error("Failed to disable 2FA");
+            handleAuthError(err, 'update');
         }
     };
 
@@ -189,7 +190,7 @@ export const SecurityModal = ({ isOpen, onClose }) => {
             onClose();
         } catch (error) {
             console.error('Error updating password:', error);
-            toast.error(error.message || "Failed to update password");
+            handleAuthError(error, 'update');
         } finally {
             setLoading(false);
         }

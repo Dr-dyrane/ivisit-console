@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { 
   getStaffSchedules, 
   createStaffSchedule, 
@@ -78,7 +79,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
 
     } catch (error) {
       console.error('Error loading scheduling data:', error);
-      toast.error('Failed to load scheduling data');
+      handleApiError(error, 'fetch');
     } finally {
       setLoading(false);
       setFetchingStaff(false);
@@ -170,7 +171,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
 
     } catch (error) {
       console.error('Error adding schedule:', error);
-      toast.error(error.message || 'Failed to schedule staff member');
+      handleApiError(error, 'create');
     } finally {
       setLoading(false);
     }
@@ -184,7 +185,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
       toast.success('Shift deleted successfully');
     } catch (error) {
       console.error('Error deleting schedule:', error);
-      toast.error('Failed to delete shift');
+      handleApiError(error, 'delete');
     } finally {
       setLoading(false);
     }
@@ -255,7 +256,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
 
     } catch (error) {
       console.error('Error updating schedule:', error);
-      toast.error(error.message || 'Failed to update schedule');
+      handleApiError(error, 'update');
     } finally {
       setLoading(false);
     }

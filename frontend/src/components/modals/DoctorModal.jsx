@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Switch } from '../ui/switch';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { X, Stethoscope, Mail, Phone, Building, Award, Star, Activity, User, Shield } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -78,7 +79,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
       toast.success('Image uploaded successfully');
     } catch (error) {
       console.error('Upload failed:', error);
-      toast.error('Failed to upload image');
+      handleApiError(error, 'create');
     } finally {
       setUploading(false);
     }
@@ -205,7 +206,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
       onClose(true);
     } catch (error) {
       console.error('Error saving doctor:', error);
-      toast.error(error.message || 'Failed to save doctor');
+      handleApiError(error, isCreate ? 'create' : 'update');
     } finally {
       setLoading(false);
     }

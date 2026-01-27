@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Crown, Users, Calendar, Globe, ChevronRight, Zap, Check, CheckSquare, Square, Send, Search } from 'lucide-react';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { getSubscribersForBulkEmail, sendBulkEmail, sendWelcomeEmail, sendCustomEmail } from '../../services/subscriptionService';
 
 export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave }) => {
@@ -78,7 +79,7 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
       setAvailableSubscribers(subscribers);
     } catch (error) {
       console.error('Error loading subscribers:', error);
-      toast.error('Failed to load subscribers');
+      handleApiError(error, 'fetch');
     }
   };
 
@@ -107,7 +108,7 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
       onClose();
     } catch (error) {
       console.error('Error sending bulk email:', error);
-      toast.error('Failed to send bulk email');
+      handleApiError(error, 'submit');
     } finally {
       setBulkEmailLoading(false);
     }
@@ -138,6 +139,7 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
       } catch (error) {
         console.error('Error sending custom email:', error);
         toast.error('Failed to send email');
+        handleApiError(error, 'submit');
       } finally {
         setLoading(false);
       }
@@ -157,6 +159,7 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
       } catch (error) {
         console.error('Error sending welcome email:', error);
         toast.error('Failed to send welcome email');
+        handleApiError(error, 'submit');
       } finally {
         setLoading(false);
       }

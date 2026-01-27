@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../ui/badge';
 import { X, Upload, Shield, Calendar, Building, CreditCard, FileText, CheckCircle, ImageIcon, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { uploadInsuranceCardImage } from '../../services/insuranceService';
 
 export const InsuranceModal = ({
@@ -120,7 +121,7 @@ export const InsuranceModal = ({
       onClose();
     } catch (error) {
       console.error(error);
-      toast.error(`Failed to ${mode} insurance policy`);
+      handleApiError(error, mode);
     } finally {
       setLoading(false);
     }

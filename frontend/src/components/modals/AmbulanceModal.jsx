@@ -6,6 +6,7 @@ import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { X, Ambulance, MapPin, Activity, Star, Calendar, Hospital, Shield, Zap } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
@@ -196,7 +197,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
       toast.success('Image uploaded successfully');
     } catch (error) {
       console.error('Upload failed:', error);
-      toast.error('Failed to upload image');
+      handleApiError(error, 'create');
     } finally {
       setUploading(false);
     }
@@ -240,7 +241,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
       onClose(true);
     } catch (error) {
       console.error('Error saving ambulance:', error);
-      toast.error('Failed to save ambulance');
+      handleApiError(error, 'update');
     } finally {
       setLoading(false);
     }

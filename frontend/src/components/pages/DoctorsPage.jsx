@@ -14,7 +14,8 @@ import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
 import { Stethoscope, Plus, Edit, Trash2, Eye, Hospital, Star, Phone, ChevronRight, Filter, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
-import { toast } from 'sonner';
+import { toast } from "sonner";
+import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { DoctorModal } from '../modals/DoctorModal';
 import { ViewToggle } from '../common/ViewToggle';
@@ -287,7 +288,7 @@ export const DoctorsPage = () => {
           fetchDoctors();
         } catch (err) {
           console.error("Bulk delete failed", err);
-          toast.error("Failed to delete selected doctors");
+          handleApiError(err, 'delete');
         }
         setConfirmationModal(prev => ({ ...prev, isOpen: false }));
       }

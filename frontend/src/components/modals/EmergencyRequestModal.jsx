@@ -7,6 +7,7 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { X, Siren, MapPin, Clock, Activity, Phone, User, AlertTriangle, Navigation, CheckCircle2 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -116,7 +117,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
       onClose(true);
     } catch (error) {
       console.error('Error saving emergency request:', error);
-      toast.error('Failed to save emergency request');
+      handleApiError(error, 'create');
     } finally {
       setLoading(false);
     }

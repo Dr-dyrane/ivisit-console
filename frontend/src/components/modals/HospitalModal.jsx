@@ -8,6 +8,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { X, Hospital, MapPin, Phone, Bed, Ambulance, Star, Clock, Activity, User, UserCheck, AlertCircle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 
@@ -72,7 +73,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
       toast.success('Image uploaded successfully');
     } catch (error) {
       console.error('Upload failed:', error);
-      toast.error('Failed to upload image');
+      handleApiError(error, 'create');
     } finally {
       setUploading(false);
     }
@@ -110,7 +111,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
       setShowSearchResults(true);
     } catch (error) {
       console.error('Google search error:', error);
-      toast.error('Failed to search hospitals');
+      handleApiError(error, 'fetch');
       setSearchResults([]);
       setShowSearchResults(false);
     } finally {
@@ -231,7 +232,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
       onClose(true);
     } catch (error) {
       console.error('Error saving hospital:', error);
-      toast.error('Failed to save hospital');
+      handleApiError(error, isCreate ? 'create' : 'update');
     } finally {
       setLoading(false);
     }

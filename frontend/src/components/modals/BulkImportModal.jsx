@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { X, Upload, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 
 export const BulkImportModal = ({ open, onClose, onImport }) => {
   const [file, setFile] = useState(null);
@@ -46,7 +47,7 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
         }
         setPreview(data.slice(0, 5));
       } catch (error) {
-        toast.error('Failed to parse file');
+        handleApiError(error, 'create');
       }
     };
     reader.readAsText(file);
@@ -100,7 +101,7 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
       };
       reader.readAsText(file);
     } catch (error) {
-      toast.error('Failed to import file');
+      handleApiError(error, 'create');
     } finally {
       setLoading(false);
     }

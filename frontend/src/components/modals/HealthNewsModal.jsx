@@ -9,6 +9,7 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { X, Save, ExternalLink, Globe, Newspaper, Eye, EyeOff, Plus, Edit, FileText, File, FileCheck } from 'lucide-react';
 
 export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
@@ -76,7 +77,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
       onClose(true);
     } catch (error) {
       console.error('Error saving health news:', error);
-      toast.error('Failed to save health news');
+      handleApiError(error, 'create');
     } finally {
       setLoading(false);
     }

@@ -15,6 +15,7 @@ import { PaginationControls } from '../ui/PaginationControls';
 import { Hospital, MapPin, Star, Bed, Ambulance, Plus, Edit, Trash2, Eye, ChevronRight, Filter, BarChart3, Globe, Calendar } from 'lucide-react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { HospitalModal } from '../modals/HospitalModal';
 import { ReportsModal } from '../modals/ReportsModal';
@@ -94,7 +95,7 @@ export const HospitalsPage = () => {
       setHospitals(data || []);
     } catch (error) {
       console.error('Error fetching hospitals:', error);
-      toast.error(error.message || 'Failed to load hospitals');
+      handleApiError(error, 'fetch');
     } finally {
       setLoading(false);
     }
@@ -186,7 +187,7 @@ export const HospitalsPage = () => {
           setConfirmationModal(prev => ({ ...prev, isOpen: false }));
         } catch (error) {
           console.error('Error deleting hospital:', error);
-          toast.error('Failed to delete hospital');
+          handleApiError(error, 'delete');
         }
       }
     });
@@ -216,7 +217,7 @@ export const HospitalsPage = () => {
       return true;
     } catch (error) {
       console.error('Error saving hospital:', error);
-      toast.error(error.message || 'Failed to save hospital');
+      handleApiError(error, 'update');
       throw error;
     }
   }, [modalMode, selectedHospital]);
@@ -268,7 +269,7 @@ export const HospitalsPage = () => {
           fetchHospitals();
           setConfirmationModal(prev => ({ ...prev, isOpen: false }));
         } catch (error) {
-          toast.error('Failed to delete hospitals');
+          handleApiError(error, 'delete');
         }
       }
     });

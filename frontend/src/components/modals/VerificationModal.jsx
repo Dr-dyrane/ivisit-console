@@ -10,6 +10,7 @@ import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { X, Shield, User, Phone, Mail, Calendar, CheckCircle, FileText, AlertTriangle, Ban, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 
 export const VerificationModal = ({
@@ -64,7 +65,7 @@ export const VerificationModal = ({
       }
     } catch (error) {
       console.error(error);
-      toast.error('Failed to update verification status');
+      handleApiError(error, 'update');
     } finally {
       setLoading(false);
     }
@@ -92,7 +93,7 @@ export const VerificationModal = ({
       toast.success(approved ? 'Provider approved successfully!' : 'Provider verification rejected');
       onClose();
     } catch (error) {
-      toast.error(error.message || 'Failed to update verification status');
+      handleApiError(error, 'update');
     } finally {
       setLoading(false);
     }

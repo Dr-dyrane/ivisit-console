@@ -31,7 +31,8 @@ import {
   Edit,
   AlertTriangle
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from "sonner";
+import { handleApiError } from "../../utils/errorHandler";
 import { motion, LayoutGroup } from 'framer-motion';
 import { Badge } from '../ui/badge';
 
@@ -184,7 +185,7 @@ export const InsuranceManagementPage = () => {
           toast.success('Policy deleted successfully');
           setConfirmationModal(prev => ({ ...prev, isOpen: false }));
         } catch (err) {
-          toast.error('Failed to delete policy');
+          handleApiError(err, 'delete');
         }
       },
       variant: 'destructive',
@@ -197,7 +198,7 @@ export const InsuranceManagementPage = () => {
       await verifyPolicy(policy.id, true);
       toast.success('Policy verified successfully');
     } catch (err) {
-      toast.error('Failed to verify policy');
+      handleApiError(err, 'update');
     }
   }, [verifyPolicy]);
 
@@ -232,7 +233,7 @@ export const InsuranceManagementPage = () => {
       }
       setModalMode(null);
     } catch (err) {
-      toast.error(selectedPolicy ? 'Failed to update policy' : 'Failed to create policy');
+      handleApiError(err, selectedPolicy ? 'update' : 'create');
     }
   }, [selectedPolicy, modalMode, updatePolicy, createPolicy]);
 
@@ -817,7 +818,7 @@ export const InsuranceManagementPage = () => {
                     setSelectedIds([]);
                     setConfirmationModal(prev => ({ ...prev, isOpen: false }));
                   } catch (err) {
-                    toast.error('Failed to delete policies');
+                    handleApiError(err, 'delete');
                   }
                 },
                 variant: 'destructive',

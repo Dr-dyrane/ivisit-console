@@ -33,6 +33,7 @@ import {
   Crown
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { motion, LayoutGroup } from 'framer-motion';
 import { Badge } from '../ui/badge';
 import { subscribeToSubscribers } from '../../services/subscribersService';
@@ -117,7 +118,7 @@ export const SubscriptionManagementPage = () => {
 
           if (error) {
             console.error('Failed to send welcome email:', error);
-            toast.error(`Failed to send welcome email to ${newSubscriber.email}`);
+            handleApiError(error, 'submit');
           } else {
             console.log('Welcome email sent successfully:', data);
             toast.success(`Welcome email sent to ${newSubscriber.email}`);
@@ -248,7 +249,7 @@ export const SubscriptionManagementPage = () => {
           fetchSubscribers();
           setConfirmationModal(prev => ({ ...prev, isOpen: false }));
         } catch (error) {
-          toast.error('Failed to delete subscriber');
+          handleApiError(error, 'delete');
         }
       },
       variant: 'destructive',
@@ -287,7 +288,7 @@ export const SubscriptionManagementPage = () => {
       }
       setModalMode(null);
     } catch (err) {
-      toast.error(selectedSubscriber ? 'Failed to update subscriber' : 'Failed to create subscriber');
+      handleApiError(err, selectedSubscriber ? 'update' : 'create');
     }
   }, [selectedSubscriber, modalMode, updateSubscriber, createSubscriber]);
 
@@ -889,7 +890,7 @@ export const SubscriptionManagementPage = () => {
                     setSelectedIds([]);
                     setConfirmationModal(prev => ({ ...prev, isOpen: false }));
                   } catch (err) {
-                    toast.error('Failed to delete subscribers');
+                    handleApiError(err, 'delete');
                   }
                 },
                 variant: 'destructive',

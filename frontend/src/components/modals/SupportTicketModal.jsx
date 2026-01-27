@@ -10,6 +10,7 @@ import { Textarea } from '../ui/textarea';
 import { Badge } from '../ui/badge';
 import { X, Save, MessageSquare, Tag, User, Headphones, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 
 export const SupportTicketModal = ({
   ticket,
@@ -71,7 +72,7 @@ export const SupportTicketModal = ({
       }
       onClose();
     } catch (error) {
-      toast.error(`Failed to ${mode} support ticket`);
+      handleApiError(error, mode);
     } finally {
       setLoading(false);
     }

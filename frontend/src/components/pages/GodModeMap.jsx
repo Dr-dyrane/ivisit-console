@@ -5,6 +5,7 @@ import {
 	AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { handleApiError } from "../../utils/errorHandler";
 import { useTheme } from "../../contexts/ThemeContext";
 import { MAP_STYLES } from "../../constants/mapStyles";
 import { MapProvider, useMapContext } from "../../contexts/MapContext";
@@ -238,7 +239,7 @@ const GodModeMapContent = () => {
 	}, [mapProvider, isSwitchingMap]);
 
 	if (error) {
-		toast.error("Failed to load map data: " + error.message);
+		handleApiError(error, 'fetch');
 	}
 
 	// Register map controls in header

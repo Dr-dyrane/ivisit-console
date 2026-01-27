@@ -18,7 +18,8 @@ import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
 import { Users, Plus, Edit, Trash2, Eye, Shield, UserCheck, ChevronRight, Phone, Mail, Filter, BarChart3, X } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
-import { toast } from 'sonner';
+import { toast } from "sonner";
+import { handleApiError } from "../../utils/errorHandler";
 import { UserModal } from '../modals/UserModal';
 import { withTimeout } from '../../lib/utils';
 import { ViewToggle } from '../common/ViewToggle';
@@ -238,7 +239,7 @@ export const UsersPage = () => {
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      toast.error(error.message || 'Failed to load users');
+      handleApiError(error, 'fetch');
     } finally {
       setLoading(false);
     }
@@ -391,7 +392,7 @@ export const UsersPage = () => {
       fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
-      toast.error('Failed to delete user');
+      handleApiError(error, 'delete');
     }
   }, [fetchUsers]);
 
@@ -455,7 +456,7 @@ export const UsersPage = () => {
           fetchUsers();
         } catch (err) {
           console.error("Bulk delete failed", err);
-          toast.error("Failed to delete selected users");
+          handleApiError(err, 'delete');
         }
         setConfirmationModal(prev => ({ ...prev, isOpen: false }));
       }

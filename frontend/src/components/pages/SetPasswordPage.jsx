@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { motion } from 'framer-motion';
 import { Lock, Eye, EyeOff, ShieldCheck, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleAuthError } from "../../utils/errorHandler";
 import { z } from 'zod';
 
 const passwordSchema = z.string().min(8, "Password must be at least 8 characters");
@@ -66,7 +67,7 @@ export const SetPasswordPage = () => {
             if (error instanceof z.ZodError) {
                 toast.error(error.errors[0].message);
             } else {
-                toast.error(error.message || "Failed to set password");
+                handleAuthError(error, 'update');
             }
         } finally {
             setLoading(false);

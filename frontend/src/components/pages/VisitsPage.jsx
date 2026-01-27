@@ -17,7 +17,8 @@ import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
 import { Calendar, Plus, Edit, Trash2, Eye, User, Hospital, Clock, CheckCircle, ChevronRight, MapPin, Filter, AlertCircle, PlayCircle } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
-import { toast } from 'sonner';
+import { toast } from "sonner";
+import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { VisitModal } from '../modals/VisitModal';
 import { withTimeout, formatDate } from '../../lib/utils';
@@ -167,7 +168,7 @@ export const VisitsPage = () => {
       setVisits(visitsData || []);
     } catch (error) {
       console.error('Error fetching visits:', error);
-      toast.error(error.message || 'Failed to load visits');
+      handleApiError(error, 'fetch');
     } finally {
       setLoading(false);
     }
@@ -284,7 +285,7 @@ export const VisitsPage = () => {
           fetchVisits();
           setConfirmationModal(prev => ({ ...prev, isOpen: false }));
         } catch (e) {
-          toast.error('Failed to delete visits');
+          handleApiError(e, 'delete');
         }
       }
     });
@@ -313,7 +314,7 @@ export const VisitsPage = () => {
           fetchVisits();
           setConfirmationModal(prev => ({ ...prev, isOpen: false }));
         } catch (e) {
-          toast.error('Failed to delete visit');
+          handleApiError(e, 'delete');
         }
       }
     });
@@ -335,7 +336,7 @@ export const VisitsPage = () => {
       setModalMode(null);
     } catch (error) {
       console.error('Save error:', error);
-      toast.error('Failed to save visit');
+      handleApiError(error, 'create');
       throw error; // Re-throw for modal to handle loading state
     }
   }, [modalMode, selectedVisit, fetchVisits, user.id]);

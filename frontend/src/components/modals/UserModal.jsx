@@ -8,6 +8,7 @@ import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { X, User, Phone, Mail, MapPin, Calendar, Shield, CreditCard, BadgeCheck, Building2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
@@ -101,7 +102,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
       onClose(true);
     } catch (error) {
       console.error('Error saving user:', error);
-      toast.error('Failed to save user');
+      handleApiError(error, 'update');
     } finally {
       setLoading(false);
     }

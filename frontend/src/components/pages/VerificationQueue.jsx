@@ -25,7 +25,8 @@ import {
   Ban
 } from 'lucide-react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { toast } from 'sonner';
+import { toast } from "sonner";
+import { handleApiError } from "../../utils/errorHandler";
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { usePagination } from '../../hooks/usePagination';
@@ -100,7 +101,7 @@ export const VerificationQueue = () => {
         totalPages: result.pagination.totalPages
       }));
     } catch (error) {
-      toast.error(error.message || 'Failed to fetch verification queue');
+      handleApiError(error, 'fetch');
     } finally {
       setLoading(false);
     }
@@ -178,7 +179,7 @@ export const VerificationQueue = () => {
       setSelectedProvider(null);
       fetchVerificationData();
     } catch (error) {
-      toast.error(error.message || 'Failed to update verification status');
+      handleApiError(error, 'update');
     } finally {
       setActionLoading(false);
     }

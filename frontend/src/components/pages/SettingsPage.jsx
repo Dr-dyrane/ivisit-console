@@ -9,6 +9,7 @@ import { User, Mail, Shield, LogOut, Moon, Sun, Bell, Lock, Smartphone, Globe, C
 import { Switch } from '../ui/switch';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
+import { handleAuthError } from "../../utils/errorHandler";
 import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { usePageHeader } from '../../contexts/LayoutContext';
 
@@ -66,7 +67,7 @@ export const SettingsPage = () => {
             toast.success('Signed out successfully');
             navigate('/login');
         } catch (error) {
-            toast.error('Failed to sign out');
+            handleAuthError(error, 'update');
         }
     }, [signOut, navigate]);
 

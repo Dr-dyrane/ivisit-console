@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
 import { SupportTicketModal } from '../modals/SupportTicketModal';
@@ -168,7 +169,7 @@ export const SupportTicketsPage = () => {
           toast.success('Ticket deleted successfully');
           setConfirmationModal(prev => ({ ...prev, isOpen: false }));
         } catch (error) {
-          toast.error('Failed to delete ticket');
+          handleApiError(error, 'delete');
         }
       },
       variant: 'destructive',
@@ -197,7 +198,7 @@ export const SupportTicketsPage = () => {
       await assignTicketToAgent(ticket.id, profile.id);
       toast.success('Ticket assigned to you');
     } catch (error) {
-      toast.error('Failed to assign ticket');
+      handleApiError(error, 'update');
     }
   }, [assignTicketToAgent, profile]);
 
@@ -649,7 +650,7 @@ export const SupportTicketsPage = () => {
                     setSelectedIds([]);
                     setConfirmationModal(prev => ({ ...prev, isOpen: false }));
                   } catch (err) {
-                    toast.error('Failed to delete tickets');
+                    handleApiError(err, 'delete');
                   }
                 },
                 variant: 'destructive',

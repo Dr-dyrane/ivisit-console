@@ -6,6 +6,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { X, Upload, User, Smartphone, Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { getAvatarUrl } from '../../lib/avatarUtils';
 
@@ -63,7 +64,7 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
             onClose();
         } catch (error) {
             console.error(error);
-            toast.error('Failed to update profile');
+            handleApiError(error, 'update');
         } finally {
             setLoading(false);
         }

@@ -5,6 +5,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { X, Mail, Shield, Send, Loader2, Building2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHospitals } from '../../services/hospitalsService';
@@ -26,7 +27,7 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
                     setHospitals(data);
                 } catch (error) {
                     console.error('Failed to fetch hospitals:', error);
-                    toast.error('Failed to load organizations');
+                    handleApiError(error, 'fetch');
                 }
             };
             fetchHospitals();
@@ -68,7 +69,7 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
             if (error.message.includes('FunctionsFetchError') || error.message.includes('Failed to fetch')) {
                 toast.error('Invite service unavailable. Please check backend deployment.');
             } else {
-                toast.error(error.message || 'Failed to send invitation');
+                handleApiError(error, 'create');
             }
         } finally {
             setLoading(false);

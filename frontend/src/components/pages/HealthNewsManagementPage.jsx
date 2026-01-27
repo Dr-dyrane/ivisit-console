@@ -15,6 +15,7 @@ import { PaginationControls } from '../ui/PaginationControls';
 import { Newspaper, MapPin, Star, Plus, Edit, Trash2, Eye, ChevronRight, Filter, Clock, Globe, Tag, Calendar, EyeOff, FileCheck, File } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { HealthNewsModal } from '../modals/HealthNewsModal';
 import { ReportsModal } from '../modals/ReportsModal';
@@ -159,7 +160,7 @@ export const HealthNewsManagementPage = () => {
       setHealthNews(data || []);
     } catch (error) {
       console.error('Error fetching health news:', error);
-      toast.error(error.message || 'Failed to load health news');
+      handleApiError(error, 'fetch');
     } finally {
       setLoading(false);
     }
@@ -199,7 +200,7 @@ export const HealthNewsManagementPage = () => {
           setConfirmationModal(prev => ({ ...prev, isOpen: false }));
         } catch (error) {
           console.error('Error deleting news:', error);
-          toast.error('Failed to delete news article');
+          handleApiError(error, 'delete');
         }
       },
       variant: 'destructive',

@@ -11,6 +11,7 @@ import {
   Siren, Hospital, Bed, Ambulance
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 
 /**
  * Enhanced ReportsModal that handles both visual analytics and report generation
@@ -212,7 +213,7 @@ export const ReportsModal = ({ open, onClose, analyticsData, timeRange, initialT
       }
       toast.success(`Generated ${selectedReports.length} report(s) successfully`);
     } catch (error) {
-      toast.error('Failed to generate reports');
+      handleApiError(error, 'create');
     } finally {
       setIsGenerating(false);
     }

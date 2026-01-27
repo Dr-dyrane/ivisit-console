@@ -7,6 +7,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { X, HelpCircle, Send, MessageSquare, Loader2, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { createSupportTicket } from '../../services/supportTicketsService';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -39,7 +40,7 @@ export const SupportModal = ({ isOpen, onClose }) => {
             onClose();
         } catch (error) {
             console.error('Error creating ticket:', error);
-            toast.error("Failed to submit ticket.");
+            handleApiError(error, 'submit');
         } finally {
             setLoading(false);
         }

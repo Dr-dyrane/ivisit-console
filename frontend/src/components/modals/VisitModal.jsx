@@ -8,6 +8,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
+import { handleApiError } from "../../utils/errorHandler";
 import { X, Calendar, User, Hospital, Clock, FileText } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -93,7 +94,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
       onClose(true);
     } catch (error) {
       console.error('Error saving visit:', error);
-      toast.error('Failed to save visit');
+      handleApiError(error, 'create');
     } finally {
       setLoading(false);
     }
