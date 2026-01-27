@@ -1,7 +1,7 @@
 import {
     Home, MapPin, FileCheck, TrendingUp,
     Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance,
-    Users, Newspaper, Headphones, Shield, Mail, FolderKanban, Handshake
+    Users, Newspaper, Headphones, Shield, Mail, FolderKanban, Handshake, Settings
 } from 'lucide-react';
 
 /**
@@ -60,6 +60,14 @@ export const NAV_CONFIG = {
             { id: 'insurance', path: '/insurance', icon: Shield, label: 'Insurance', resource: 'insurance', minRole: 'admin' },
             { id: 'subscriptions', path: '/subscriptions', icon: Mail, label: 'Subscriptions', resource: 'subscriptions', minRole: 'admin' },
         ]
+    },
+    user: {
+        id: 'user',
+        label: 'User',
+        icon: Settings,
+        items: [
+            { id: 'settings', path: '/settings', icon: Settings, label: 'Settings', resource: 'settings', minRole: 'viewer' },
+        ]
     }
 };
 
@@ -105,5 +113,6 @@ export const getAccessibleNav = (userProfile, canHelper) => {
         main: filteredMain,
         ops: filteredOps.items.length > 0 ? filteredOps : null,
         mgmt: filteredMgmt.items.length > 0 ? filteredMgmt : null,
+        user: NAV_CONFIG.user,
     };
 };

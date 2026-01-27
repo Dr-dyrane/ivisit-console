@@ -71,9 +71,13 @@ function checkPathAccess(path, accessibleNav) {
 	// Check management items
 	const mgmtItem = accessibleNav.mgmt?.items?.find(item => item.path === path);
 	if (mgmtItem) return true;
+	
+	// Check user items
+	const userItem = accessibleNav.user?.items?.find(item => item.path === path);
+	if (userItem) return true;
 
 	// Always allow access to basic pages
-	const allowedPaths = ['/', '/login', '/unauthorized', '/map'];
+	const allowedPaths = [ '/login', '/unauthorized',];
 	if (allowedPaths.includes(path)) return true;
 
 	return false;
