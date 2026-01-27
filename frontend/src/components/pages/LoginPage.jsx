@@ -21,6 +21,7 @@ import {
 import ThemeToggle from "../ui/theme-toggle";
 import { toast } from "sonner";
 import { z } from "zod";
+import { handleAuthError } from "../../utils/errorHandler";
 
 // --- Validation Schemas ---
 const emailSchema = z.string().email("Please enter a valid email address");
@@ -393,7 +394,7 @@ export const LoginPage = () => {
 													if (error) throw error;
 												} catch (err) {
 													console.error("Google Login Error:", err);
-													toast.error("Failed to initiate Google Login");
+													handleAuthError(err, 'authenticate');
 													setIsLoading(false);
 												}
 											}}
@@ -511,8 +512,7 @@ export const LoginPage = () => {
 													toast.success("Password reset link sent to your email");
 												} catch (err) {
 													console.error("Password reset error:", err);
-													const errorMessage = err?.message || "Failed to send reset link";
-													toast.error(errorMessage);
+													handleAuthError(err, 'reset');
 												} finally {
 													setIsLoading(false);
 												}
