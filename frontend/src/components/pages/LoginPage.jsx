@@ -501,7 +501,23 @@ export const LoginPage = () => {
 									<div className="mt-8 text-center space-y-4">
 										<button
 											type="button"
-											className="text-sm font-medium text-primary hover:underline"
+											onClick={async () => {
+												setIsLoading(true);
+												try {
+													const { error } = await supabase.auth.resetPasswordForEmail(email, {
+														redirectTo: `${window.location.origin}/set-password`,
+													});
+													if (error) throw error;
+													toast.success("Password reset link sent to your email");
+												} catch (err) {
+													console.error("Password reset error:", err);
+													toast.error("Failed to send reset link");
+												} finally {
+													setIsLoading(false);
+												}
+											}}
+											disabled={isLoading}
+											className="text-sm font-medium text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
 										>
 											Forgot your password?
 										</button>
