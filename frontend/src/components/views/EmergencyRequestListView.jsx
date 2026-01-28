@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Trash2, Eye, MapPin, Clock, CheckCheck, Send, Navigation, User, Hospital } from 'lucide-react';
+import { Trash2, Eye, MapPin, Clock, CheckCheck, Send, Navigation, User, Hospital, Stethoscope } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Checkbox } from '../ui/checkbox';
 import { validateDataSchema } from '../../utils/schemaValidator';
@@ -105,6 +105,24 @@ export const EmergencyRequestListView = ({
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
+
+                {/* View Clinical Record Action */}
+                {(req.status === 'completed' || req.status === 'cancelled') && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const event = new CustomEvent('openVisitModal', {
+                        detail: { visit: { ...req, type: req.service_type }, mode: 'view' }
+                      });
+                      window.dispatchEvent(event);
+                    }}
+                    className="squircle h-8 w-8 p-0 hover:bg-info/10 hover:text-info"
+                    title="View Clinical Record"
+                  >
+                    <Stethoscope className="h-4 w-4" />
+                  </Button>
+                )}
 
                 {/* Dispatch Action */}
                 {canManage && onDispatch && (req.status === 'pending' || (req.status === 'in_progress' && !req.ambulance_id)) && (

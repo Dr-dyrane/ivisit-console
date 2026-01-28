@@ -5,8 +5,8 @@ import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { formatEmergencyLocation } from '../../utils/locationUtils';
-import { 
-  getServiceTypeBadge, 
+import {
+  getServiceTypeBadge,
   getServiceTypeDisplay,
   getStatusDisplay
 } from '../../constants/emergency';
@@ -23,6 +23,7 @@ import { PaginationControls } from '../ui/PaginationControls';
 import { useAuth } from '../../contexts/AuthContext';
 import { EmergencyDetailsModal } from '../modals/EmergencyDetailsModal';
 import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
+import { VisitModal } from '../modals/VisitModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { withTimeout } from '../../lib/utils';
 import { toast } from 'sonner';
@@ -63,7 +64,7 @@ export const EmergencyRequestsPage = () => {
   const location = useLocation();
   const { isMobile } = useNavigation();
   const { emergencyData, refreshAllData } = usePageData();
-  
+
   // Create currentUser object with methods expected by child components
   const currentUser = useMemo(() => ({
     isAdmin: () => isAdmin(),
@@ -72,6 +73,18 @@ export const EmergencyRequestsPage = () => {
     user,
     profile
   }), [isAdmin, isOrgAdmin, isProvider, user, profile]);
+
+  useEffect(() => {
+    const handleOpenVisit = (e) => {
+      setVisitModal({
+        isOpen: true,
+        visit: e.detail.visit,
+        mode: e.detail.mode || 'view'
+      });
+    };
+    window.addEventListener('openVisitModal', handleOpenVisit);
+    return () => window.removeEventListener('openVisitModal', handleOpenVisit);
+  }, []);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -90,6 +103,12 @@ export const EmergencyRequestsPage = () => {
     onConfirm: null,
     variant: 'destructive',
     confirmLabel: 'Delete'
+  });
+
+  const [visitModal, setVisitModal] = useState({
+    isOpen: false,
+    visit: null,
+    mode: 'view'
   });
 
   const { viewMode, setViewMode } = useViewMode('emergency-requests-page', 'grid');
@@ -912,6 +931,14 @@ export const EmergencyRequestsPage = () => {
         initialValues={filters}
         viewToggle={isMobile ? viewToggleComponent : null}
         isMobile={isMobile}
+      />
+
+      <VisitModal
+        isOpen={visitModal.isOpen}
+        onClose={() => setVisitModal(prev => ({ ...prev, isOpen: false }))}
+        visit={visitModal.visit}
+        mode={visitModal.mode}
+        users={profile ? [profile] : []}
       />
 
       <ReportsModal

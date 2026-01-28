@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { VisitModal } from '../modals/VisitModal';
+import { EmergencyDetailsModal } from '../modals/EmergencyDetailsModal';
 import { withTimeout, formatDate } from '../../lib/utils';
 import { ViewToggle } from '../common/ViewToggle';
 import { usePageData } from '../../contexts/PageDataContext';
@@ -55,6 +56,11 @@ export const VisitsPage = () => {
     onConfirm: null,
     variant: 'destructive',
     confirmLabel: 'Delete'
+  });
+
+  const [emergencyModal, setEmergencyModal] = useState({
+    isOpen: false,
+    request: null
   });
 
   const { viewMode, setViewMode } = useViewMode('visits-page', 'grid');
@@ -227,13 +233,22 @@ export const VisitsPage = () => {
       setAnalyticsModalOpen(true);
     };
 
+    const handleOpenEmergency = (e) => {
+      setEmergencyModal({
+        isOpen: true,
+        request: e.detail.request || e.detail
+      });
+    };
+
     window.addEventListener('openVisitModal', handleOpenModal);
+    window.addEventListener('openEmergencyDetails', handleOpenEmergency);
     window.addEventListener('openFilters', handleOpenFilters);
     window.addEventListener('openVisitAnalytics', handleOpenAnalytics);
     window.addEventListener('openReportsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openVisitModal', handleOpenModal);
+      window.removeEventListener('openEmergencyDetails', handleOpenEmergency);
       window.removeEventListener('openFilters', handleOpenFilters);
       window.removeEventListener('openVisitAnalytics', handleOpenAnalytics);
       window.removeEventListener('openReportsModal', handleOpenAnalytics);
@@ -916,6 +931,12 @@ export const VisitsPage = () => {
           </Button>
         )}
       </BulkActionBar>
+
+      <EmergencyDetailsModal
+        isOpen={emergencyModal.isOpen}
+        onClose={() => setEmergencyModal(prev => ({ ...prev, isOpen: false }))}
+        request={emergencyModal.request}
+      />
 
       <ReportsModal
         open={analyticsModalOpen}

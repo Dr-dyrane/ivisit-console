@@ -23,7 +23,36 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
+import { supabase } from '../../lib/supabase';
+
 export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
+  const [visitOutcome, setVisitOutcome] = React.useState(null);
+  const [loadingOutcome, setLoadingOutcome] = React.useState(false);
+
+  React.useEffect(() => {
+    if (request?.id && (request.status === 'completed' || request.status === 'cancelled')) {
+      fetchVisitOutcome(request.id);
+    } else {
+      setVisitOutcome(null);
+    }
+  }, [request]);
+
+  const fetchVisitOutcome = async (id) => {
+    setLoadingOutcome(true);
+    try {
+      const { data, error } = await supabase
+        .from('visits')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (!error && data) setVisitOutcome(data);
+    } catch (e) {
+      console.error('Error fetching visit outcome:', e);
+    } finally {
+      setLoadingOutcome(false);
+    }
+  };
+
   if (!request) return null;
 
   const getPriorityColor = (priority) => {
@@ -141,6 +170,42 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                     <p className="text-lg font-normal leading-relaxed text-foreground/90">
                       {request.description || 'No detailed description provided for this emergency incident.'}
                     </p>
+
+                    {/* Clinical Outcome Bridge */}
+                    {visitOutcome && (
+                      <div className="mt-6 p-4 rounded-2xl bg-green-500/5 border border-green-500/10 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-green-500 border-green-500/20 bg-green-500/5 text-[10px] font-bold uppercase">Clinical Outcome</Badge>
+                          <span className="text-xs text-muted-foreground">Recorded by {visitOutcome.doctor || 'Attending Physician'}</span>
+                        </div>
+                        <div className="space-y-2">
+                          {visitOutcome.summary && (
+                            <p className="text-sm font-medium">"{visitOutcome.summary}"</p>
+                          )}
+                          {visitOutcome.prescriptions && (
+                            <div className="flex flex-wrap gap-2">
+                              {Array.isArray(visitOutcome.prescriptions) ? visitOutcome.prescriptions.map((p, i) => (
+                                <Badge key={i} variant="secondary" className="text-[10px] bg-white/5 border-white/10 uppercase tracking-tighter">{p}</Badge>
+                              )) : <Badge variant="secondary" className="text-[10px] bg-white/5 border-white/10 uppercase tracking-tighter">{visitOutcome.prescriptions}</Badge>}
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-between h-8 text-green-500 hover:bg-green-500/5 text-xs font-semibold rounded-xl"
+                          onClick={() => {
+                            const event = new CustomEvent('openVisitModal', { detail: { visit: visitOutcome, mode: 'view' } });
+                            window.dispatchEvent(event);
+                            onClose(false);
+                          }}
+                        >
+                          View Full Medical Record
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+
                     <div className="flex flex-wrap gap-4 pt-4 border-t border-white/5">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="w-4 h-4" />
@@ -276,7 +341,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                       <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Type</p>
                         <p className="font-semibold">
-                          {typeof request.ambulance_type === 'string' 
+                          {typeof request.ambulance_type === 'string'
                             ? JSON.parse(request.ambulance_type)?.title || 'Standard'
                             : 'Standard'
                           }

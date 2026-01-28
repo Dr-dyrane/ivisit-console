@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Modal } from '../ui/modal';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -9,10 +9,11 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { X, Calendar, User, Hospital, Clock, FileText } from 'lucide-react';
+import { X, Calendar, User, Hospital, Clock, FileText, Siren } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useAuth } from '../../contexts/AuthContext';
+import { fetchVisitContext, fetchEmergencyContext, formatVisitDateTime, isEmergencyVisit } from '../../utils/visitContextUtils';
 
 export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], hospitals = [] }) => {
   const isView = mode === 'view';
@@ -40,23 +41,43 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
   const [loading, setLoading] = useState(false);
 
   const { isAdmin, isOrgAdmin, orgId } = useAuth();
+  const [visitContext, setVisitContext] = useState(null);
+  const [emergencyContext, setEmergencyContext] = useState(null);
+  const [loadingContext, setLoadingContext] = useState(false);
+
   useEffect(() => {
     if (visit) {
+      // ✅ Use proper date formatting - no manual parsing
+      const formattedDate = formatVisitDateTime(visit);
+
       setFormData(prev => ({
-        ...prev, // ✅ Keep existing state
-        ...visit, // ✅ Merge with existing
-        // Explicitly handle fields to ensure they don't break
+        ...prev,
+        ...visit,
         user_id: visit.user_id || prev.user_id,
         hospital_id: visit.hospital_id || prev.hospital_id,
-        visit_type: visit.visit_type || 'checkup',
+        visit_type: visit.visit_type || visit.type || 'checkup',
         status: visit.status || 'scheduled',
-        date: visit.date ? new Date(visit.date).toISOString().slice(0, 16) : '',
+        date: formattedDate,
         room_number: visit.room_number || prev.room_number || '',
         cost: visit.cost || prev.cost || '',
         estimated_duration: visit.estimated_duration || prev.estimated_duration || '',
         insurance_covered: visit.insurance_covered ?? prev.insurance_covered ?? true,
         preparation: Array.isArray(visit.preparation) ? visit.preparation.join('\n') : (visit.preparation || prev.preparation || '')
       }));
+
+      // ✅ Fetch visit context using proper services
+      if (visit.user_id || visit.hospital_id) {
+        fetchVisitContext(visit).then(setVisitContext);
+      }
+
+      // ✅ Fetch Emergency Context if this visit originated from one
+      if (isEmergencyVisit(visit)) {
+        setLoadingContext(true);
+        fetchEmergencyContext(visit.request_id || visit.id).then(context => {
+          setEmergencyContext(context);
+          setLoadingContext(false);
+        });
+      }
     } else if (isCreate && isOrgAdmin() && orgId) {
       setFormData(prev => ({ ...prev, hospital_id: orgId }));
     }
@@ -168,18 +189,18 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="user_id" className="text-xs font-semibold text-muted-foreground uppercase">Patient</Label>
-                      {isView && formData.profiles ? (
+                      {isView && visitContext?.patient ? (
                         <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border-0 h-14">
                           <Avatar className="w-8 h-8">
-                            <AvatarImage src={formData.profiles.avatar_url} />
-                            <AvatarFallback>{formData.profiles.username?.[0] || formData.profiles.full_name?.[0] || 'U'}</AvatarFallback>
+                            <AvatarImage src={visitContext.patient.avatar} />
+                            <AvatarFallback>{visitContext.patient.fullName?.[0] || 'U'}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1">
                             <p className="font-medium text-sm">
-                              {formData.profiles.full_name || formData.profiles.username || 'Unknown'}
+                              {visitContext.patient.fullName || 'Unknown Patient'}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {formData.profiles.email || 'No email'}
+                              {visitContext.patient.email || 'No email'}
                             </p>
                           </div>
                         </div>
@@ -213,9 +234,12 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     {/* Doctor Display (Read Only if available) */}
                     {(isView || formData.doctor) && (
                       <div className="space-y-2">
-                        <Label className="text-xs font-semibold text-muted-foreground uppercase">Doctor</Label>
+                        <Label className="text-xs font-semibold text-muted-foreground uppercase">Doctor / Unit</Label>
                         <Input
-                          value={formData.doctor || 'Unassigned'}
+                          value={
+                            formData.doctor?.name ||
+                            (typeof formData.doctor === 'string' ? formData.doctor : 'Unassigned')
+                          }
                           disabled
                           className="rounded-2xl bg-muted/30 border-0 h-14 font-normal"
                         />
@@ -225,15 +249,15 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     {/* Hospital Selection */}
                     <div className="space-y-2">
                       <Label htmlFor="hospital_id" className="text-xs font-semibold text-muted-foreground uppercase">Facility</Label>
-                      {isView && formData.hospitals ? (
+                      {isView && visitContext?.hospital ? (
                         <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border-0 h-14">
                           <Hospital className="w-5 h-5 text-muted-foreground" />
                           <div className="flex-1">
                             <p className="font-medium text-sm">
-                              {formData.hospitals.name || 'Unknown Hospital'}
+                              {visitContext.hospital.name || 'Unknown Hospital'}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {formData.hospitals.address || 'No address'}
+                              {visitContext.hospital.address || 'No address'}
                             </p>
                           </div>
                         </div>
@@ -430,6 +454,52 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     </div>
                   </div>
                 </GlassCard>
+
+                {/* Emergency Context Bridge */}
+                {emergencyContext && (
+                  <GlassCard icon={<Siren className="text-red-500" />} title="Incident Context">
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-2xl bg-red-500/5 border border-red-500/10">
+                        <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2">Original Situation Report</p>
+                        <p className="text-sm leading-relaxed italic">"{emergencyContext.emergency?.description || 'No description provided'}"</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase">Service Type</p>
+                          <p className="text-xs font-semibold">{emergencyContext.emergency?.serviceType || 'Emergency'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase">Status</p>
+                          <p className="text-xs font-semibold">{emergencyContext.emergency?.status || 'Unknown'}</p>
+                        </div>
+                      </div>
+                      {emergencyContext.patient && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Patient</p>
+                            <p className="text-xs font-semibold">{emergencyContext.patient.fullName || 'Unknown'}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Contact</p>
+                            <p className="text-xs font-semibold">{emergencyContext.patient.phone || 'N/A'}</p>
+                          </div>
+                        </div>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full rounded-xl border-red-500/20 text-red-500 hover:bg-red-500/5 text-[10px] font-bold uppercase tracking-wider"
+                        onClick={() => {
+                          const event = new CustomEvent('openEmergencyDetails', { detail: emergencyContext.emergency });
+                          window.dispatchEvent(event);
+                          onClose(false);
+                        }}
+                      >
+                        View Full Incident Log
+                      </Button>
+                    </div>
+                  </GlassCard>
+                )}
 
                 {/* Footer Actions */}
                 <div className="p-4 sm:p-6 rounded-[24px] bg-muted/30  flex gap-3 justify-end">

@@ -2,7 +2,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Trash2, Eye, Send, CheckCheck, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { Trash2, Eye, Send, CheckCheck, ArrowUpDown, ChevronUp, ChevronDown, Stethoscope } from 'lucide-react';
 import { Card } from '../ui/card';
 import { motion } from 'framer-motion';
 import { Checkbox } from '../ui/checkbox';
@@ -133,6 +133,22 @@ export const EmergencyRequestTableView = ({
                           <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                           View Details
                         </DropdownMenuItem>
+
+                        {/* View Clinical Record Action */}
+                        {(req.status === 'completed' || req.status === 'cancelled') && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              const event = new CustomEvent('openVisitModal', {
+                                detail: { visit: { ...req, type: req.service_type }, mode: 'view' }
+                              });
+                              window.dispatchEvent(event);
+                            }}
+                            className="cursor-pointer font-medium text-xs py-2 text-info focus:text-info focus:bg-info/10"
+                          >
+                            <Stethoscope className="mr-2 h-3.5 w-3.5" />
+                            Clinical Record
+                          </DropdownMenuItem>
+                        )}
 
                         {/* Dispatch Action */}
                         {canManage && onDispatch && (req.status === 'pending' || (req.status === 'in_progress' && !req.ambulance_id)) && (
