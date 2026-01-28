@@ -1,9 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
+import { formatEmergencyLocation } from '../../utils/locationUtils';
+import { 
+  getServiceTypeBadge, 
+  getServiceTypeDisplay,
+  getStatusDisplay
+} from '../../constants/emergency';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import { getEmergencyRequests } from '../../services/emergencyService';
@@ -39,6 +45,7 @@ import {
   CheckCircle,
   FileText,
   BarChart3,
+  Hospital,
   Send,
   CheckCheck
 } from 'lucide-react';
@@ -52,10 +59,19 @@ import { usePageData } from '../../contexts/PageDataContext';
 import { SEOHead } from '../common/SEOHead';
 
 export const EmergencyRequestsPage = () => {
-  const { isAdmin, isOrgAdmin, isProvider, orgId, profile, can } = useAuth();
+  const { isAdmin, isOrgAdmin, isProvider, orgId, profile, can, user } = useAuth();
   const location = useLocation();
   const { isMobile } = useNavigation();
   const { emergencyData, refreshAllData } = usePageData();
+  
+  // Create currentUser object with methods expected by child components
+  const currentUser = useMemo(() => ({
+    isAdmin: () => isAdmin(),
+    isOrgAdmin: () => isOrgAdmin(),
+    isProvider: () => isProvider(),
+    user,
+    profile
+  }), [isAdmin, isOrgAdmin, isProvider, user, profile]);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -99,19 +115,16 @@ export const EmergencyRequestsPage = () => {
       if (filters.status && filters.status.length > 0) {
         query = query.in('status', filters.status);
       }
-      if (filters.priority && filters.priority.length > 0) {
-        query = query.in('priority', filters.priority);
-      }
       if (filters.search) {
-        // Search by location or emergency_type
-        query = query.or(`location.ilike.%${filters.search}%,emergency_type.ilike.%${filters.search}%`);
+        // Search by location or service_type
+        query = query.or(`location.ilike.%${filters.search}%,service_type.ilike.%${filters.search}%`);
       }
 
       // Apply KPI Filter to count query
-      if (kpiFilter === 'critical') query = query.eq('priority', 'critical');
-      if (kpiFilter === 'high') query = query.eq('priority', 'high');
+      if (kpiFilter === 'ambulance') query = query.eq('service_type', 'ambulance');
+      if (kpiFilter === 'bed') query = query.eq('service_type', 'bed');
       if (kpiFilter === 'pending') query = query.eq('status', 'pending');
-      if (kpiFilter === 'active') query = query.in('status', ['assigned', 'in_progress']);
+      if (kpiFilter === 'inProgress') query = query.eq('status', 'in_progress');
 
       const { count } = await query;
       pagination.setTotalCount(count || 0);
@@ -133,18 +146,15 @@ export const EmergencyRequestsPage = () => {
       if (filters.status && filters.status.length > 0) {
         dataQuery = dataQuery.in('status', filters.status);
       }
-      if (filters.priority && filters.priority.length > 0) {
-        dataQuery = dataQuery.in('priority', filters.priority);
-      }
       if (filters.search) {
-        dataQuery = dataQuery.or(`location.ilike.%${filters.search}%,emergency_type.ilike.%${filters.search}%`);
+        dataQuery = dataQuery.or(`location.ilike.%${filters.search}%,service_type.ilike.%${filters.search}%`);
       }
 
       // Apply KPI Filter to data query
-      if (kpiFilter === 'critical') dataQuery = dataQuery.eq('priority', 'critical');
-      if (kpiFilter === 'high') dataQuery = dataQuery.eq('priority', 'high');
+      if (kpiFilter === 'ambulance') dataQuery = dataQuery.eq('service_type', 'ambulance');
+      if (kpiFilter === 'bed') dataQuery = dataQuery.eq('service_type', 'bed');
       if (kpiFilter === 'pending') dataQuery = dataQuery.eq('status', 'pending');
-      if (kpiFilter === 'active') dataQuery = dataQuery.in('status', ['assigned', 'in_progress']);
+      if (kpiFilter === 'inProgress') dataQuery = dataQuery.eq('status', 'in_progress');
 
       const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load emergency requests - timeout');
 
@@ -200,17 +210,6 @@ export const EmergencyRequestsPage = () => {
       placeholder: 'Search by location or type...'
     },
     {
-      key: 'priority',
-      type: 'multiselect',
-      label: 'Priority',
-      options: [
-        { value: 'critical', label: 'Critical' },
-        { value: 'high', label: 'High' },
-        { value: 'medium', label: 'Medium' },
-        { value: 'low', label: 'Low' },
-      ]
-    },
-    {
       key: 'status',
       type: 'multiselect',
       label: 'Status',
@@ -248,7 +247,7 @@ export const EmergencyRequestsPage = () => {
       aria-label="Filter emergency requests"
     >
       <FilterIcon className="h-4 w-4" />
-      {(filters.search || (filters.priority && filters.priority.length > 0) || (filters.status && filters.status.length > 0)) && (
+      {(filters.search || (filters.status && filters.status.length > 0)) && (
         <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
       )}
     </Button>
@@ -256,7 +255,7 @@ export const EmergencyRequestsPage = () => {
 
   const headerActions = React.useMemo(() => {
     // Only Admins and Org Admins can create new emergency requests
-    if (isAdmin() || isOrgAdmin()) {
+    if (currentUser.isAdmin() || currentUser.isOrgAdmin()) {
       return (
         <Button
           onClick={handleCreateEmergency}
@@ -269,7 +268,7 @@ export const EmergencyRequestsPage = () => {
       );
     }
     return null;
-  }, [handleCreateEmergency, isAdmin, isOrgAdmin]);
+  }, [handleCreateEmergency, currentUser]);
 
   usePageHeader(
     'Emergency Logs',
@@ -409,27 +408,6 @@ export const EmergencyRequestsPage = () => {
     };
   }, [handleCreateEmergency]);
 
-  const getPriorityBadge = (priority) => {
-    const badges = {
-      critical: 'bg-destructive/20 text-destructive',
-      high: 'bg-warning/20 text-warning',
-      medium: 'bg-info/20 text-info',
-      low: 'bg-success/20 text-success',
-    };
-    return badges[priority] || badges.medium;
-  };
-
-  const getStatusBadge = (status) => {
-    const badges = {
-      pending: 'bg-warning/20 text-warning',
-      in_progress: 'bg-info/20 text-info',
-      accepted: 'bg-blue-500/20 text-blue-500',
-      completed: 'bg-success/20 text-success',
-      cancelled: 'bg-destructive/20 text-destructive',
-    };
-    return badges[status] || 'bg-muted/20 text-muted-foreground';
-  };
-
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
       <SEOHead title="Emergency Requests" description="Monitor and respond to critical emergency requests in real-time." />
@@ -451,7 +429,7 @@ export const EmergencyRequestsPage = () => {
                   {selectedIds.length}
                 </div>
 
-                {(isAdmin() || (typeof isProvider === 'function' && isProvider())) && (
+                {(currentUser.isAdmin() || (typeof currentUser.isProvider === 'function' && currentUser.isProvider())) && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -538,7 +516,7 @@ export const EmergencyRequestsPage = () => {
                   </Card>
                 </motion.div>
 
-                {/* Critical Card */}
+                {/* Ambulance Card - Main Emergency Type */}
                 <motion.div
                   layout
                   className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
@@ -547,39 +525,38 @@ export const EmergencyRequestsPage = () => {
                   transition={{ duration: 0.4, delay: 0.15 }}
                 >
                   <Card
-                    className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'critical' ? 'ring-2 ring-destructive shadow-lg' : ''
+                    className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'ambulance' ? 'ring-2 ring-primary shadow-lg' : ''
                       }`}
-                    onClick={() => setKpiFilter('critical')}
+                    onClick={() => setKpiFilter('ambulance')}
                     role="button"
                     tabIndex={0}
-                    aria-label="Filter by critical requests"
+                    aria-label="Filter by ambulance requests"
                   >
-                    {/* Apple hover glow effect */}
-                    <div className="hover-glow hover-glow-destructive" />
+                    <div className="hover-glow hover-glow-primary" />
                     <div className="absolute top-0 right-0 p-4 z-20">
                       <div className="relative">
-                        <div className={`absolute inset-0 ${kpiFilter === 'critical' ? 'bg-destructive/30' : 'bg-destructive/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                        <div className={`absolute inset-0 ${kpiFilter === 'ambulance' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
                         <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                          <Siren className={`h-5 w-5 ${kpiFilter === 'critical' ? 'text-destructive' : 'text-muted-foreground'} transition-colors duration-200`} />
+                          <Navigation className={`h-5 w-5 ${kpiFilter === 'ambulance' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
                         </div>
                       </div>
                     </div>
                     <div className="relative z-10">
                       <div className="flex items-center gap-2 mb-2">
-                        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Critical</p>
-                        {kpiFilter === 'critical' && <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />}
+                        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Ambulance</p>
+                        {kpiFilter === 'ambulance' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
                       </div>
-                      <h3 className="text-3xl font-bold tracking-tighter">{emergencyData.stats.critical || 0}</h3>
+                      <h3 className="text-3xl font-bold tracking-tighter">{emergencyData.stats.ambulance || 0}</h3>
                       <div className="flex items-center gap-2 mt-2">
-                        <Badge className="geo-round bg-destructive/20 text-destructive border-0 font-bold text-xs">
-                          URGENT
+                        <Badge className="geo-round bg-primary/20 text-primary border-0 font-bold text-xs">
+                          DISPATCH
                         </Badge>
                       </div>
                     </div>
                   </Card>
                 </motion.div>
 
-                {/* High Priority Card */}
+                {/* Bed Booking Card - Main Emergency Type */}
                 <motion.div
                   layout
                   className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
@@ -588,32 +565,31 @@ export const EmergencyRequestsPage = () => {
                   transition={{ duration: 0.4, delay: 0.2 }}
                 >
                   <Card
-                    className={`h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'high' ? 'ring-2 ring-warning shadow-lg' : ''
+                    className={`h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'bed' ? 'ring-2 ring-warning shadow-lg' : ''
                       }`}
-                    onClick={() => setKpiFilter('high')}
+                    onClick={() => setKpiFilter('bed')}
                     role="button"
                     tabIndex={0}
-                    aria-label="Filter by high priority requests"
+                    aria-label="Filter by bed booking requests"
                   >
-                    {/* Apple hover glow effect */}
                     <div className="hover-glow hover-glow-warning" />
                     <div className="absolute top-0 right-0 p-4 z-20">
                       <div className="relative">
-                        <div className={`absolute inset-0 ${kpiFilter === 'high' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                        <div className={`absolute inset-0 ${kpiFilter === 'bed' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
                         <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                          <AlertTriangle className={`h-5 w-5 ${kpiFilter === 'high' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
+                          <Hospital className={`h-5 w-5 ${kpiFilter === 'bed' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
                         </div>
                       </div>
                     </div>
                     <div className="relative z-10">
                       <div className="flex items-center gap-2 mb-2">
-                        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">High Priority</p>
-                        {kpiFilter === 'high' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
+                        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Bed Booking</p>
+                        {kpiFilter === 'bed' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
                       </div>
-                      <h3 className="text-3xl font-bold tracking-tighter">{emergencyData.stats.high || 0}</h3>
+                      <h3 className="text-3xl font-bold tracking-tighter">{emergencyData.stats.bed || 0}</h3>
                       <div className="flex items-center gap-2 mt-2">
                         <Badge className="squircle-3xl bg-warning/20 text-warning border-0 font-bold text-xs">
-                          ATTENTION
+                          RESERVE
                         </Badge>
                       </div>
                     </div>
@@ -729,28 +705,38 @@ export const EmergencyRequestsPage = () => {
                         transition={{ delay: index * 0.05 }}
                         className="col-span-1"
                       >
-                        <Card className={`h-full geo-arrow glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col ${req.priority === 'critical' ? 'ring-1 ring-destructive/20' : ''}`}>
+                        <Card className={`h-full geo-arrow glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col ${req.service_type === 'critical_care' || req.service_type === 'ambulance' ? 'ring-1 ring-destructive/20' : ''}`}>
                           {/* Apple hover glow effect */}
-                          <div className={`hover-glow ${req.priority === 'critical' ? 'hover-glow-destructive' : 'hover-glow-warning'}`} />
+                          <div className={`hover-glow ${req.service_type === 'critical_care' ? 'hover-glow-destructive' : req.service_type === 'ambulance' ? 'hover-glow-primary' : req.service_type === 'bed' ? 'hover-glow-warning' : 'hover-glow-success'}`} />
                           <div className="absolute top-0 right-0 p-5 z-20">
                             <div className="relative">
-                              <div className={`absolute inset-0 ${req.priority === 'critical' ? 'bg-destructive/20' : 'bg-warning/10'} blur-xl rounded-full scale-150`} />
+                              <div className={`absolute inset-0 ${req.service_type === 'critical_care' ? 'bg-destructive/20' : req.service_type === 'ambulance' ? 'bg-primary/20' : req.service_type === 'bed' ? 'bg-warning/20' : 'bg-success/10'} blur-xl rounded-full scale-150`} />
                               <div className="w-10 h-10 geo-round surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
-                                <Siren className={`h-5 w-5 ${req.priority === 'critical' ? 'text-destructive' : 'text-warning'}`} />
+                                {req.service_type === 'ambulance' ? (
+                                  <Navigation className={`h-5 w-5 text-primary`} />
+                                ) : req.service_type === 'bed' ? (
+                                  <Hospital className={`h-5 w-5 text-warning`} />
+                                ) : (
+                                  <Siren className={`h-5 w-5 ${req.service_type === 'critical_care' ? 'text-destructive' : 'text-warning'}`} />
+                                )}
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 mb-4 relative z-10">
-                            <Badge className={`geo-sharp ${getPriorityBadge(req.priority)} border-0 font-bold editorial-subtitle px-3 py-1`}>
-                              {req.priority || 'medium'}
+                            <Badge className={`geo-sharp ${getServiceTypeBadge(req.service_type)} border-0 font-bold editorial-subtitle px-3 py-1`}>
+                              {getServiceTypeDisplay(req.service_type)}
                             </Badge>
                             <Badge className="geo-sharp bg-muted text-muted-foreground border-0 px-2 py-1 font-semibold">
-                              {req.status}
+                              {getStatusDisplay(req.status)}
                             </Badge>
                           </div>
                           <h3 className="font-bold text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
-                            {req.service_type ? req.service_type.replace('_', ' ').toUpperCase() : 'Unknown Emergency'}
+                            {req.patient_snapshot?.fullName || req.requester_name || req.patient_name || 'Unknown Requester'}
                           </h3>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 relative z-10">
+                            <User className="h-4 w-4" />
+                            <span className="font-normal">{req.patient_snapshot?.phone || req.requester_phone || req.patient_phone || 'No contact info'}</span>
+                          </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 relative z-10">
                             <Clock className="h-4 w-4 text-info" />
                             <span className="font-normal">{req.created_at ? new Date(req.created_at).toLocaleTimeString() : 'Just now'}</span>
@@ -759,13 +745,17 @@ export const EmergencyRequestsPage = () => {
                             <div className="flex items-start gap-3 text-sm p-3 geo-sharp bg-muted/30">
                               <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                               <span className="font-normal leading-snug truncate-2">
-                              {req.patient_location ? 
-                                typeof req.patient_location === 'string' ? req.patient_location :
-                                'Coordinates available'
-                                : 'Location shared'
-                              }
-                            </span>
+                                {formatEmergencyLocation(req.patient_location, req.pickup_location)}
+                              </span>
                             </div>
+                            {req.hospital_name && (
+                              <div className="flex items-start gap-3 text-sm p-3 geo-sharp bg-muted/30">
+                                <Hospital className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                                <span className="font-normal leading-snug truncate-2">
+                                  {req.hospital_name}
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
                             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">ACTIONS</div>
@@ -782,7 +772,7 @@ export const EmergencyRequestsPage = () => {
                               </Button>
 
                               {/* Primary Action: Dispatch OR Complete */}
-                              {(isAdmin() || isOrgAdmin()) && (
+                              {(currentUser.isAdmin() || currentUser.isOrgAdmin()) && (
                                 <>
                                   {/* Dispatch Case: Pending/In-Progress & No Ambulance */}
                                   {(req.status === 'pending' || (req.status === 'in_progress' && !req.ambulance_id)) && (
@@ -813,7 +803,7 @@ export const EmergencyRequestsPage = () => {
                               )}
 
                               {/* Delete Action - Always Last */}
-                              {isAdmin() && (
+                              {currentUser.isAdmin() && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -826,7 +816,7 @@ export const EmergencyRequestsPage = () => {
                               )}
 
                               {/* Provider-specific actions */}
-                              {isProvider() && req.status !== 'completed' && (
+                              {currentUser.isProvider() && req.status !== 'completed' && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -856,12 +846,10 @@ export const EmergencyRequestsPage = () => {
               onDelete={handleDelete}
               onDispatch={handleDispatch}
               onComplete={handleComplete}
-              getPriorityBadge={getPriorityBadge}
-              getStatusBadge={getStatusBadge}
               isMobile={isMobile}
               selectedIds={selectedIds}
               onSelect={handleSelect}
-              currentUser={{ isAdmin, isOrgAdmin, isProvider }}
+              currentUser={currentUser}
             />
           )}
 
@@ -873,15 +861,13 @@ export const EmergencyRequestsPage = () => {
               onDelete={handleDelete}
               onDispatch={handleDispatch}
               onComplete={handleComplete}
-              getPriorityBadge={getPriorityBadge}
-              getStatusBadge={getStatusBadge}
               isMobile={isMobile}
               selectedIds={selectedIds}
               onSelect={handleSelect}
               onSelectAll={handleSelectAll}
               sortConfig={sortConfig}
               onSort={handleSort}
-              currentUser={{ isAdmin, isOrgAdmin, isProvider }}
+              currentUser={currentUser}
             />
           )}
         </>

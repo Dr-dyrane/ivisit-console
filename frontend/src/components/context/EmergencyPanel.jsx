@@ -146,19 +146,23 @@ export const EmergencyPanel = ({ emergencyData = [], emergencyStats, useMockData
             <Card key={request.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 geo-round ${request.priority === 'critical' ? 'bg-destructive' :
-                    request.priority === 'high' ? 'bg-warning' :
-                      request.priority === 'medium' ? 'bg-info' : 'bg-success'
-                    }`} />
+                  <div className={`w-2 h-2 geo-round ${
+                    request.service_type === 'critical_care' ? 'bg-destructive' :
+                    request.service_type === 'ambulance' ? 'bg-primary' :
+                    request.service_type === 'bed' ? 'bg-warning' :
+                    'bg-info'
+                  }`} />
                   <div>
-                    <p className="font-normal text-sm truncate max-w-[120px]">{request.patient_name || 'Unknown Patient'}</p>
+                    <p className="font-normal text-sm truncate max-w-[120px]">
+                      {request.patient_snapshot?.fullName || request.patient_name || 'Unknown Patient'}
+                    </p>
                     <p className="text-xs text-muted-foreground truncate max-w-[120px]">
-                      {request.location || 'Unknown location'}
+                      {request.hospital_name || request.patient_location || 'Unknown location'}
                     </p>
                   </div>
                 </div>
                 <Badge variant="outline" className="text-[10px] capitalize px-1.5 py-0.5 h-5">
-                  {request.priority}
+                  {request.service_type?.replace('_', ' ') || 'unknown'}
                 </Badge>
               </div>
             </Card>

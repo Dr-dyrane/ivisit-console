@@ -2,10 +2,12 @@ import React from 'react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Trash2, Eye, MapPin, Clock, CheckCheck, Send, Navigation, Hospital } from 'lucide-react';
+import { Trash2, Eye, MapPin, Clock, CheckCheck, Send, Navigation, User, Hospital } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Checkbox } from '../ui/checkbox';
 import { validateDataSchema } from '../../utils/schemaValidator';
+import { formatEmergencyLocation } from '../../utils/locationUtils';
+import { getServiceTypeBadge, getServiceTypeDisplay, getStatusDisplay, getStatusBadge } from '../../constants/emergency';
 
 export const EmergencyRequestListView = ({
   requests,
@@ -13,8 +15,6 @@ export const EmergencyRequestListView = ({
   onDelete,
   onDispatch,
   onComplete,
-  getPriorityBadge,
-  getStatusBadge,
   isMobile = false,
   selectedIds = [],
   onSelect,
@@ -26,20 +26,6 @@ export const EmergencyRequestListView = ({
   }
   const canManage = currentUser ? (currentUser.isAdmin() || currentUser.isOrgAdmin()) : false;
   const canDelete = currentUser ? (currentUser.isAdmin() || (typeof currentUser.isProvider === 'function' && currentUser.isProvider())) : false;
-
-  // Default status badge function if not provided
-  const defaultGetStatusBadge = (status) => {
-    const badges = {
-      pending: 'bg-warning/20 text-warning',
-      in_progress: 'bg-info/20 text-info',
-      accepted: 'bg-blue-500/20 text-blue-500',
-      completed: 'bg-success/20 text-success',
-      cancelled: 'bg-destructive/20 text-destructive',
-    };
-    return badges[status] || 'bg-muted/20 text-muted-foreground';
-  };
-
-  const statusBadge = getStatusBadge || defaultGetStatusBadge;
 
   return (
     <motion.div
@@ -68,13 +54,13 @@ export const EmergencyRequestListView = ({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
                   <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
-                    {req.service_type ? req.service_type.replace('_', ' ').toUpperCase() : 'Unknown Emergency'}
+                    {req.patient_snapshot?.fullName || req.requester_name || req.patient_name || 'Unknown Requester'}
                   </h3>
-                  <Badge className={`squircle-sm ${getPriorityBadge(req.priority)} border-0 font-bold`}>
-                    {req.priority || 'Normal'}
+                  <Badge className={`squircle-sm ${getServiceTypeBadge(req.service_type)} border-0 font-bold`}>
+                    {getServiceTypeDisplay(req.service_type)}
                   </Badge>
-                  <Badge className={`geo-sharp border-0 px-2.5 py-1 ${statusBadge(req.status)}`}>
-                    {req.status}
+                  <Badge className={`geo-sharp border-0 px-2.5 py-1 ${getStatusBadge(req.status)}`}>
+                    {getStatusDisplay(req.status)}
                   </Badge>
                   {req.ambulance_id && (
                     <Badge className="geo-sharp-xs bg-blue-500/20 text-blue-500 border-0">
@@ -84,13 +70,15 @@ export const EmergencyRequestListView = ({
                 </div>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
+                    <User className="h-4 w-4" />
+                    <span className="truncate">
+                      {req.patient_snapshot?.phone || req.requester_phone || req.patient_phone || 'No contact info'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
                     <MapPin className="h-4 w-4" />
                     <span className="truncate">
-                      {req.patient_location ? 
-                        typeof req.patient_location === 'string' ? req.patient_location :
-                        'Coordinates available'
-                        : 'Location shared'
-                      }
+                      {formatEmergencyLocation(req.patient_location, req.pickup_location)}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">

@@ -75,16 +75,31 @@ export const BentoHome = () => {
   });
 
   // Calculate app-wide stats from all data sources
-  const appStats = useMemo(() => ({
-    liveEmergencies: emergencyStats?.critical || 0,
-    responseTime: Math.round((analyticsData?.avgResponseTime || 4.2) * 10) / 10, // Round to 1 decimal place
-    activeProviders: doctorsStats?.totalDoctors || 48,
-    todayRequests: emergencyStats?.total || 0,
-    totalUsers: userData?.statistics?.totalUsers || 23, // Fixed: Use actual user count from profiles table
-    completionRate: analyticsData?.completionRate || 94,
-    availableAmbulances: analyticsData?.availableAmbulances || 12,
-    pendingVerifications: verificationData?.pending || 15
-  }), [emergencyStats, analyticsData, doctorsStats, verificationData, userData]);
+  const appStats = useMemo(() => {
+    // Calculate today's requests from raw emergency data
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]; // 24 hours ago
+    
+    const todayRequests = emergencyData?.recent?.filter(req => 
+      req.created_at?.startsWith(today)
+    ).length || 0;
+    
+    const yesterdayRequests = emergencyData?.recent?.filter(req => 
+      req.created_at?.startsWith(yesterday)
+    ).length || 0;
+
+    return {
+      liveEmergencies: emergencyStats?.critical_care || 0,
+      responseTime: Math.round((analyticsData?.avgResponseTime || 4.2) * 10) / 10, // Round to 1 decimal place
+      activeProviders: doctorsStats?.totalDoctors || 48,
+      todayRequests: todayRequests, // ✅ Shows actual today's count
+      yesterdayRequests: yesterdayRequests, // ✅ For comparison
+      totalUsers: userData?.statistics?.totalUsers || 23, // Fixed: Use actual user count from profiles table
+      completionRate: analyticsData?.completionRate || 94,
+      availableAmbulances: analyticsData?.availableAmbulances || 12,
+      pendingVerifications: verificationData?.pending || 15
+    };
+  }, [emergencyData, emergencyStats, analyticsData, doctorsStats, verificationData, userData]);
 
   // Debug: Log real data to console
   useEffect(() => {

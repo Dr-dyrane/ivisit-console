@@ -1,5 +1,21 @@
 import L from 'leaflet';
 
+// Service type color mapping for emergency markers
+const getServiceTypeColor = (serviceType) => {
+  switch (serviceType) {
+    case 'critical_care':
+      return '#ef4444'; // red
+    case 'ambulance':
+      return '#3b82f6'; // blue  
+    case 'bed':
+      return '#eab308'; // yellow
+    case 'emergency_room':
+      return '#f97316'; // orange
+    default:
+      return '#6b7280'; // gray
+  }
+};
+
 export const createMarkerIcon = (type, data, getPriorityColor, getStatusColor) => {
 	let html = "";
 
@@ -12,7 +28,7 @@ export const createMarkerIcon = (type, data, getPriorityColor, getStatusColor) =
             </div>
         </div>`;
 	} else if (type === "emergency") {
-		const color = getPriorityColor(data.priority);
+		const color = getServiceTypeColor(data.service_type);
 		// Using Lucide icons SVGs inline for fallback map
 		html = `
         <div style="

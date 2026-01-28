@@ -73,18 +73,21 @@ export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 								</span>
 								<Badge
 									variant="secondary"
-									className={`text-[9px] px-1.5 py-0 h-4 ${req.priority === "critical"
-										? "bg-destructive/10 text-destructive"
-										: req.priority === "high"
-											? "bg-warning/10 text-warning"
-											: "bg-muted/50 text-muted-foreground"
-										}`}
+									className={`text-[9px] px-1.5 py-0 h-4 ${
+										req.service_type === 'critical_care'
+											? "bg-destructive/10 text-destructive"
+											: req.service_type === 'ambulance'
+												? "bg-primary/10 text-primary"
+												: req.service_type === 'bed'
+													? "bg-warning/10 text-warning"
+													: "bg-muted/50 text-muted-foreground"
+									}`}
 								>
-									{req.priority || "medium"}
+									{req.service_type?.replace('_', ' ') || "unknown"}
 								</Badge>
 							</div>
 							<div className="text-xs text-muted-foreground truncate">
-								{req.location || "Emergency request"}
+								{req.hospital_name || req.patient_location || "Emergency request"}
 							</div>
 						</div>
 					</div>

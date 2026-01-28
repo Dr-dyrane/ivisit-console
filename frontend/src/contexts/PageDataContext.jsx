@@ -14,43 +14,66 @@ import { getVerificationStats } from '../services/verificationService';
 import { getRecentActivity } from '../services/activityService';
 import { getInsurancePolicies } from '../services/insurancePoliciesService';
 
-// Mock data as fallback
+// Mock data as fallback - Based on actual mobile app service types
 const mockEmergencyData = {
   stats: {
-    total: 3,
-    critical: 1,
-    high: 1,
+    total: 4,
+    ambulance: 2,    // From mobile app serviceType: "ambulance"
+    bed: 1,          // From mobile app serviceType: "bed"
+    critical_care: 1, // From mobile app serviceType: "critical_care"
+    emergency_room: 0, // From mobile app serviceType: "emergency_room"
     pending: 1,
-    active: 1,
-    completed: 1
+    inProgress: 1,
+    completed: 2
   },
   recent: [
     {
       id: 'mock-1',
-      patient_name: 'John Doe',
-      priority: 'critical',
+      service_type: 'ambulance', // Main emergency type
       status: 'pending',
-      location: 'Downtown Hospital',
+      hospital_name: 'Downtown Hospital',
+      patient_snapshot: {
+        fullName: 'John Doe',
+        phone: '+1234567890'
+      },
       created_at: new Date().toISOString(),
-      description: 'Chest pain and difficulty breathing'
+      description: 'Ambulance dispatch emergency'
     },
     {
       id: 'mock-2',
-      patient_name: 'Jane Smith',
-      priority: 'high',
+      service_type: 'bed', // Main emergency type
       status: 'in_progress',
-      location: 'Westside Medical Center',
+      hospital_name: 'Westside Medical Center',
+      patient_snapshot: {
+        fullName: 'Jane Smith',
+        phone: '+0987654321'
+      },
       created_at: new Date(Date.now() - 3600000).toISOString(),
-      description: 'Fractured arm from fall'
+      description: 'Bed booking emergency'
     },
     {
       id: 'mock-3',
-      patient_name: 'Mike Johnson',
-      priority: 'medium',
+      service_type: 'critical_care',
       status: 'completed',
-      location: 'North General Hospital',
+      hospital_name: 'North General Hospital',
+      patient_snapshot: {
+        fullName: 'Robert Johnson',
+        phone: '+1122334455'
+      },
       created_at: new Date(Date.now() - 7200000).toISOString(),
-      description: 'Minor burns on hand'
+      description: 'Critical care emergency'
+    },
+    {
+      id: 'mock-4',
+      service_type: 'ambulance',
+      status: 'completed',
+      hospital_name: 'Bay Area Medical Clinic',
+      patient_snapshot: {
+        fullName: 'Sarah Wilson',
+        phone: '+5544332211'
+      },
+      created_at: new Date(Date.now() - 10800000).toISOString(),
+      description: 'Ambulance transport completed'
     }
   ]
 };
@@ -155,33 +178,36 @@ export const PageDataProvider = ({ children }) => {
         return;
       }
 
-      // Use service with RBAC
       const data = await getEmergencyRequests();
 
       const total = data?.length || 0;
-      const critical = data?.filter(r => r.priority === 'critical').length || 0;
-      const high = data?.filter(r => r.priority === 'high').length || 0;
+      const ambulance = data?.filter(r => r.service_type === 'ambulance').length || 0;
+      const bed = data?.filter(r => r.service_type === 'bed').length || 0;
+      const critical_care = data?.filter(r => r.service_type === 'critical_care').length || 0;
+      const emergency_room = data?.filter(r => r.service_type === 'emergency_room').length || 0;
       const pending = data?.filter(r => r.status === 'pending').length || 0;
-      const active = data?.filter(r => ['assigned', 'in_progress', 'accepted'].includes(r.status)).length || 0;
+      const inProgress = data?.filter(r => r.status === 'in_progress').length || 0;
       const completed = data?.filter(r => r.status === 'completed').length || 0;
 
       setEmergencyData({
         stats: {
           total,
-          critical,
-          high,
+          ambulance,
+          bed,
+          critical_care,
+          emergency_room,
           pending,
-          active,
+          inProgress,
           completed
         },
-        recent: data?.slice(0, 5) || []
+        recent: data?.slice(0, 10) || []
       });
 
     } catch (error) {
       console.error('Error fetching emergency data:', error);
       // Only fallback to mock if it's not an auth error, or maybe just show empty
       // setUseMockData(true); 
-      setEmergencyData({ stats: { total: 0, critical: 0, high: 0, pending: 0, active: 0 }, recent: [] });
+      setEmergencyData({ stats: { total: 0, ambulance: 0, bed: 0, critical_care: 0, emergency_room: 0, pending: 0, inProgress: 0, completed: 0 }, recent: [] });
     } finally {
       setLoading(prev => ({ ...prev, emergency: false }));
     }
@@ -686,8 +712,31 @@ export const PageDataProvider = ({ children }) => {
     // Fallback for array structure (legacy or initial state) or default
     const safeData = Array.isArray(emergencyData) ? emergencyData : [];
 
-    const critical = safeData.filter(req => req.priority === 'critical').length;
+    const ambulance = safeData.filter(req => req.service_type === 'ambulance').length;
+    const bed = safeData.filter(req => req.service_type === 'bed').length;
+    const critical = safeData.filter(req => req.service_type === 'critical_care').length;
+    const emergency = safeData.filter(req => req.service_type === 'emergency_room').length;
+    const pending = safeData.filter(req => req.status === 'pending').length;
+    const inProgress = safeData.filter(req => req.status === 'in_progress').length;
+    const completed = safeData.filter(req => req.status === 'completed').length;
+
+    return {
+      total: safeData.length,
+      ambulance,
+      bed,
+      critical,
+      emergency,
+      pending,
+      inProgress,
+      completed
+    };
+  };
+
+  const getVerificationStats = () => {
+    const safeData = Array.isArray(verificationData) ? verificationData : [];
+
     const high = safeData.filter(req => req.priority === 'high').length;
+    const critical = safeData.filter(req => req.priority === 'critical').length;
     const pending = safeData.filter(req => req.status === 'pending').length;
     const inProgress = safeData.filter(req => req.status === 'in_progress').length;
 

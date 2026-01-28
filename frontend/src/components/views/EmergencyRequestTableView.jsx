@@ -14,6 +14,8 @@ import {
   DropdownMenuSeparator
 } from '../ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
+import { formatEmergencyLocation } from '../../utils/locationUtils';
+import { getServiceTypeBadge, getServiceTypeDisplay, getStatusDisplay, getStatusBadge } from '../../constants/emergency';
 
 export const EmergencyRequestTableView = ({
   requests,
@@ -21,8 +23,6 @@ export const EmergencyRequestTableView = ({
   onDelete,
   onDispatch,
   onComplete,
-  getPriorityBadge,
-  getStatusBadge,
   isMobile = false,
   selectedIds = [],
   onSelect,
@@ -68,10 +68,12 @@ export const EmergencyRequestTableView = ({
                   onCheckedChange={onSelectAll}
                 />
               </TableHead>
-              <SortableHead label="Type" columnKey="service_type" />
-              <SortableHead label="Priority" columnKey="priority" />
+              <SortableHead label="Requester" columnKey="requester_name" />
+              <SortableHead label="Service Type" columnKey="service_type" />
               <SortableHead label="Status" columnKey="status" />
+              <SortableHead label="Contact" columnKey="requester_phone" />
               <SortableHead label="Location" columnKey="patient_location" />
+              <SortableHead label="Hospital" columnKey="hospital_name" />
               <SortableHead label="Time" columnKey="created_at" />
               <TableHead className="font-bold uppercase tracking-wider text-right pr-6">Actions</TableHead>
             </TableRow>
@@ -93,22 +95,16 @@ export const EmergencyRequestTableView = ({
                     onClick={(e) => e.stopPropagation()}
                   />
                 </TableCell>
-                <TableCell className="font-bold">{req.service_type || 'Unknown'}</TableCell>
+                <TableCell className="font-bold">{req.patient_snapshot?.fullName || req.requester_name || req.patient_name || 'Unknown Requester'}</TableCell>
                 <TableCell>
-                  <Badge className={`squircle-sm ${getPriorityBadge(req.priority)} border-0 font-bold`}>
-                    {req.priority || 'Normal'}
+                  <Badge className={`squircle-sm ${getServiceTypeBadge(req.service_type)} border-0 font-bold`}>
+                    {getServiceTypeDisplay(req.service_type)}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Badge className={`squircle-sm border-0 font-bold ${
-                      req.status === 'pending' ? 'bg-warning/20 text-warning' :
-                      req.status === 'assigned' ? 'bg-info/20 text-info' :
-                      req.status === 'completed' ? 'bg-success/20 text-success' :
-                      req.status === 'cancelled' ? 'bg-destructive/20 text-destructive' :
-                      'bg-muted/20 text-muted-foreground'
-                    }`}>
-                      {req.status}
+                    <Badge className={`squircle-sm border-0 font-bold ${getStatusBadge(req.status)}`}>
+                      {getStatusDisplay(req.status)}
                     </Badge>
                     {req.ambulance_id && (
                       <Badge className="squircle-xs bg-blue-500/20 text-blue-500 border-0">
@@ -117,13 +113,9 @@ export const EmergencyRequestTableView = ({
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-sm">
-                  {req.patient_location ? 
-                    typeof req.patient_location === 'string' ? req.patient_location :
-                    `${req.patient_location.lat?.toFixed(4) || 'N/A'}, ${req.patient_location.lng?.toFixed(4) || 'N/A'}` 
-                    : 'No location'
-                  }
-                </TableCell>
+                <TableCell className="text-sm">{req.patient_snapshot?.phone || req.requester_phone || req.patient_phone || 'No contact'}</TableCell>
+                <TableCell className="text-sm">{formatEmergencyLocation(req.patient_location, req.pickup_location)}</TableCell>
+                <TableCell className="text-sm">{req.hospital_name || 'Not specified'}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {req.created_at ? new Date(req.created_at).toLocaleString() : 'No time'}
                 </TableCell>

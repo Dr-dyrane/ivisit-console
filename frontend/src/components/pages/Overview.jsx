@@ -56,11 +56,7 @@ export const Overview = () => {
     try {
       const { data, error } = await supabase
         .from('emergency_requests')
-        .select(`
-          *,
-          patient:profiles!emergency_requests_user_id_fkey(username, avatar_url),
-          hospital:hospitals(name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -255,9 +251,11 @@ export const Overview = () => {
                       <Activity className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-normal">{request.patient?.username || 'Unknown Patient'}</p>
+                      <p className="font-normal">
+                        {request.patient_snapshot?.fullName || request.patient_name || 'Unknown Patient'}
+                      </p>
                       <p className="text-sm text-muted-foreground">
-                        {request.hospital?.name || 'Hospital not assigned'}
+                        {request.hospital_name || 'Hospital not assigned'}
                       </p>
                     </div>
                   </div>

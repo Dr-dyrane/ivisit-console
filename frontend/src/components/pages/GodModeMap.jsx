@@ -166,8 +166,10 @@ const GodModeMapContent = () => {
 	// Filter processed requests based on selected filter
 	const filteredRequests = useMemo(() => {
 		if (filter === "all") return processedEmergencies;
-		return processedEmergencies.filter(req => req.priority === filter);
+		// return processedEmergencies.filter(req => req.priority === filter);
+		return processedEmergencies.filter(req => req.service_type === filter);
 	}, [processedEmergencies, filter]);
+
 
 	// 2. Combine for Rendering Markers
 	const allMarkers = useMemo(() => {
