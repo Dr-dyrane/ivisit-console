@@ -149,7 +149,7 @@ export const NotificationCenter = () => {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="absolute top-full right-0 mt-2 w-96 max-h-[600px] z-50"
+                className="absolute top-full right-0 mt-2 w-96 max-h-[600px] z-50 backdrop-blur-sm"
               >
                 <Card className="squircle-xl bg-background/35 backdrop-blur-xs shadow-2xl border-0 overflow-hidden flex flex-col">
                   <div className="p-4 border-b border-white/10 flex items-center justify-between">

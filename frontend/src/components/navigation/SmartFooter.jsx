@@ -36,7 +36,7 @@ export const SmartFooter = () => {
                         right: `${rightOffset}px`,
                     }}
                 >
-                    <div className="pointer-events-auto">
+                    <div className="pointer-events-auto backdrop-blur-[2px]">
                         <div
                             className={`pointer-events-auto glass-card rounded-full px-6 h-12 flex items-center gap-6 min-w-[320px] justify-between border-border/20 relative overflow-hidden group ${isScrolledDown ? 'bg-background/80' : 'bg-background/40'
                                 }`}
