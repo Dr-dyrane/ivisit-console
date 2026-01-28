@@ -75,7 +75,7 @@ export const ContextPanelShell = () => {
               borderColor: 'transparent !important'
             }}
           >      {/* Simple Static Dot Grid - Apple-level simplicity */}
-            <div className="absolute inset-0 dot-grid pointer-events-none" />
+            
             <div className="h-full flex flex-col">
               {/* Content area - full height */}
               <div

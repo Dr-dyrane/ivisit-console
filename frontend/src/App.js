@@ -78,7 +78,7 @@ const AppShell = ({ children }) => {
 						transition={{ type: "spring", stiffness: 300, damping: 30 }}
 						className="relative z-10"
 					>			{/* Simple Static Dot Grid - Apple-level simplicity */}
-			<div className="absolute inset-0 dot-grid pointer-events-none" />
+			
 						<div className="md:p-6">
 							{children}
 						</div>

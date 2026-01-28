@@ -38,7 +38,7 @@ export const SmartHeader = () => {
                     paddingRight: isMobile ? '16px' : '32px'  // 16px (2×8px) mobile, 32px (4×8px) desktop
                 }}
             >            {/* Simple Static Dot Grid - Apple-level simplicity */}
-                <div className="absolute inset-0 dot-grid pointer-events-none" />
+                
                 <div className="flex items-center gap-2 md:gap-0 overflow-hidden h-full">
                     {/* Logo Zone - This will now slide with the paddingLeft */}
 

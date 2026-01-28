@@ -223,7 +223,7 @@ export const IslandNavigation = () => {
         className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-sm ${isScrolledDown ? 'bg-background/70' : 'bg-background/30'}`}
       >
         {/* Simple Static Dot Grid - Apple-level simplicity */}
-        <div className="absolute inset-0 dot-grid pointer-events-none" />
+        
         {/* 1. BRANDING & BACK ARROW */}
         <div className="h-[63px] flex-shrink-0 flex items-center px-4">
           <div className="relative flex items-center w-full">

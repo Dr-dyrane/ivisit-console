@@ -44,7 +44,7 @@ export const SmartFooter = () => {
                                 boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
                             }}
                         >            {/* Simple Static Dot Grid - Apple-level simplicity */}
-                            <div className="absolute inset-0 dot-grid pointer-events-none" />
+                            
                             {/* Shared RGB Hive Effect */}
                             <div className="hover-glow hover-glow-success" />
 
