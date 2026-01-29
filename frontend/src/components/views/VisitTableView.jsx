@@ -14,13 +14,14 @@ import {
 import { Edit, Trash2, Eye, MoreHorizontal, ArrowUpDown, ChevronUp, ChevronDown, User, Stethoscope } from 'lucide-react';
 import { Card } from '../ui/card';
 import { motion } from 'framer-motion';
+import { getStandardizedPatient } from '../../utils/patientUtils';
+import { getStandardizedHospital } from '../../utils/hospitalUtils';
 
 export const VisitTableView = ({
   visits,
   onView,
   onEdit,
   onDelete,
-  getStatusBadge,
   isMobile = false,
   selectedIds = [],
   onSelect,
@@ -37,6 +38,16 @@ export const VisitTableView = ({
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'scheduled': return 'bg-blue-500/20 text-blue-500';
+      case 'in_progress': return 'bg-orange-500/20 text-orange-500';
+      case 'completed': return 'bg-green-500/20 text-green-500';
+      case 'cancelled': return 'bg-red-500/20 text-red-500';
+      default: return 'bg-muted/20 text-muted-foreground';
+    }
   };
 
   const isAllSelected = visits.length > 0 && visits.every(v => selectedIds.includes(v.id));
@@ -77,6 +88,7 @@ export const VisitTableView = ({
               </TableHead>
               <SortableHead label="Visit ID" sortKey="id" />
               <SortableHead label="Patient" sortKey="user_id" />
+              <SortableHead label="Hospital" sortKey="hospital_id" />
               <SortableHead label="Status" sortKey="status" />
               <SortableHead label="Type" sortKey="visit_type" />
               <SortableHead label="Cost" sortKey="cost" />
@@ -88,7 +100,7 @@ export const VisitTableView = ({
           <TableBody>
             {visits.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                   No visits found.
                 </TableCell>
               </TableRow>
@@ -112,37 +124,49 @@ export const VisitTableView = ({
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-semibold text-sm flex items-center gap-1.5">
-                        <User className="w-3 h-3 text-primary/70" />
-                        {visit.patient?.full_name || visit.patient?.username || visit.user_id?.slice(0, 8) || 'Unknown'}
-                      </span>
-                      {visit.patient?.email && (
-                        <span className="text-xs text-muted-foreground truncate max-w-[150px]">
-                          {visit.patient.email}
-                        </span>
-                      )}
-                      {(visit.doctor || visit.doctor_name) && (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                          <Stethoscope className="w-3 h-3" />
-                          {visit.doctor || visit.doctor_name || 'Unassigned'}
-                        </span>
-                      )}
+                      {(() => {
+                        const patient = getStandardizedPatient(visit);
+                        return (
+                          <>
+                            <span className="font-semibold text-sm flex items-center gap-1.5">
+                              <User className="w-3 h-3 text-primary/70" />
+                              {patient.name}
+                            </span>
+                            {patient.email && (
+                              <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                                {patient.email}
+                              </span>
+                            )}
+                            {(visit.doctor || visit.doctor_name) && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                                <Stethoscope className="w-3 h-3" />
+                                {visit.doctor || visit.doctor_name || 'Unassigned'}
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-medium text-sm">
-                        {visit.hospital?.name || visit.hospital || 'N/A'}
-                      </span>
-                      {visit.room_number && (
-                        <span className="text-xs text-muted-foreground">
-                          Room {visit.room_number}
-                        </span>
-                      )}
+                      {(() => {
+                        const hospital = getStandardizedHospital(visit);
+                        return (
+                          <>
+                            <span className="font-medium text-sm">{hospital.name}</span>
+                            {visit.room_number && (
+                              <span className="text-xs text-muted-foreground">
+                                Room {visit.room_number}
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={`squircle-sm ${getStatusBadge ? getStatusBadge(visit.status) : ''} border-0 font-bold uppercase text-[10px]`}>
+                    <Badge className={`squircle-sm ${getStatusBadge(visit.status)} border-0 font-bold uppercase text-[10px]`}>
                       {visit.status}
                     </Badge>
                   </TableCell>
@@ -156,11 +180,18 @@ export const VisitTableView = ({
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-foreground/90 mb-0.5">{visit.hospital?.name || visit.hospital || 'Unknown Facility'}</span>
-                      <div className="flex items-center gap-1.5">
-                        {visit.room_number && <Badge variant="secondary" className="text-[10px] h-4 px-1 rounded-sm">{visit.room_number}</Badge>}
-                        <span className="text-[10px] text-muted-foreground truncate max-w-[100px]" title={visit.address}>{visit.address || ''}</span>
-                      </div>
+                      {(() => {
+                        const hospital = getStandardizedHospital(visit);
+                        return (
+                          <>
+                            <span className="text-xs font-bold text-foreground/90 mb-0.5">{hospital.name}</span>
+                            <div className="flex items-center gap-1.5">
+                              {visit.room_number && <Badge variant="secondary" className="text-[10px] h-4 px-1 rounded-sm">{visit.room_number}</Badge>}
+                              <span className="text-[10px] text-muted-foreground truncate max-w-[100px]" title={hospital.address}>{hospital.address}</span>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </TableCell>
                   <TableCell className="text-sm">

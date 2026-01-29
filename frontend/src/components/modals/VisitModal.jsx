@@ -16,6 +16,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { fetchVisitContext, fetchEmergencyContext, formatVisitDateTime, isEmergencyVisit } from '../../utils/visitContextUtils';
 
 export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], hospitals = [] }) => {
+  // Debug: Log incoming visit data
+  React.useEffect(() => {
+    console.log('🔍 VisitModal - Visit Data:', visit);
+    console.log('🔍 VisitModal - Mode:', mode);
+  }, [visit, mode]);
+
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
   const isCreate = mode === 'create';
@@ -73,10 +79,16 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
       // ✅ Fetch Emergency Context if this visit originated from one
       if (isEmergencyVisit(visit)) {
         setLoadingContext(true);
-        fetchEmergencyContext(visit.request_id || visit.id).then(context => {
-          setEmergencyContext(context);
-          setLoadingContext(false);
-        });
+        fetchEmergencyContext(visit.request_id || visit.id)
+          .then(context => {
+            setEmergencyContext(context);
+          })
+          .catch(error => {
+            console.error('Error fetching emergency context:', error);
+          })
+          .finally(() => {
+            setLoadingContext(false);
+          });
       }
     } else if (isCreate && isOrgAdmin() && orgId) {
       setFormData(prev => ({ ...prev, hospital_id: orgId }));
@@ -456,7 +468,13 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                 </GlassCard>
 
                 {/* Emergency Context Bridge */}
-                {emergencyContext && (
+                {loadingContext ? (
+                  <GlassCard icon={<Siren className="text-red-500" />} title="Loading Incident Context">
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500"></div>
+                    </div>
+                  </GlassCard>
+                ) : emergencyContext ? (
                   <GlassCard icon={<Siren className="text-red-500" />} title="Incident Context">
                     <div className="space-y-4">
                       <div className="p-4 rounded-2xl bg-red-500/5 border border-red-500/10">
@@ -499,7 +517,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                       </Button>
                     </div>
                   </GlassCard>
-                )}
+                ) : null}
 
                 {/* Footer Actions */}
                 <div className="p-4 sm:p-6 rounded-[24px] bg-muted/30  flex gap-3 justify-end">

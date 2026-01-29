@@ -16,6 +16,8 @@ import {
 import { MoreHorizontal } from 'lucide-react';
 import { formatEmergencyLocation } from '../../utils/locationUtils';
 import { getServiceTypeBadge, getServiceTypeDisplay, getStatusDisplay, getStatusBadge } from '../../constants/emergency';
+import { getVisit } from '../../services/visitsService';
+import { getStandardizedPatient } from '../../utils/patientUtils';
 
 export const EmergencyRequestTableView = ({
   requests,
@@ -95,7 +97,7 @@ export const EmergencyRequestTableView = ({
                     onClick={(e) => e.stopPropagation()}
                   />
                 </TableCell>
-                <TableCell className="font-bold">{req.patient_snapshot?.fullName || req.requester_name || req.patient_name || 'Unknown Requester'}</TableCell>
+                <TableCell className="font-bold">{getStandardizedPatient(req).name}</TableCell>
                 <TableCell>
                   <Badge className={`squircle-sm ${getServiceTypeBadge(req.service_type)} border-0 font-bold`}>
                     {getServiceTypeDisplay(req.service_type)}
@@ -113,7 +115,7 @@ export const EmergencyRequestTableView = ({
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-sm">{req.patient_snapshot?.phone || req.requester_phone || req.patient_phone || 'No contact'}</TableCell>
+                <TableCell className="text-sm">{getStandardizedPatient(req).phone}</TableCell>
                 <TableCell className="text-sm">{formatEmergencyLocation(req.patient_location, req.pickup_location)}</TableCell>
                 <TableCell className="text-sm">{req.hospital_name || 'Not specified'}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">
@@ -137,11 +139,23 @@ export const EmergencyRequestTableView = ({
                         {/* View Clinical Record Action */}
                         {(req.status === 'completed' || req.status === 'cancelled') && (
                           <DropdownMenuItem
-                            onClick={() => {
-                              const event = new CustomEvent('openVisitModal', {
-                                detail: { visit: { ...req, type: req.service_type }, mode: 'view' }
-                              });
-                              window.dispatchEvent(event);
+                            onClick={async () => {
+                              console.log('🔍 EmergencyRequestTableView - Clinical Record clicked for request:', req);
+                              try {
+                                // Fetch the actual visit data using the shared ID
+                                const visitData = await getVisit(req.id);
+                                console.log('🔍 EmergencyRequestTableView - Fetched visit data:', visitData);
+                                if (visitData) {
+                                  const event = new CustomEvent('openVisitModal', {
+                                    detail: { visit: visitData, mode: 'view' }
+                                  });
+                                  window.dispatchEvent(event);
+                                } else {
+                                  console.warn('No visit data found for emergency:', req.id);
+                                }
+                              } catch (error) {
+                                console.error('Error fetching visit data:', error);
+                              }
                             }}
                             className="cursor-pointer font-medium text-xs py-2 text-info focus:text-info focus:bg-info/10"
                           >

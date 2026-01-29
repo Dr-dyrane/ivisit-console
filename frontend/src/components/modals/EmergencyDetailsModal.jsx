@@ -24,30 +24,44 @@ import {
 import { format } from 'date-fns';
 
 import { supabase } from '../../lib/supabase';
+import { getVisit } from '../../services/visitsService';
+import { getStandardizedPatient } from '../../utils/patientUtils';
 
 export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
   const [visitOutcome, setVisitOutcome] = React.useState(null);
   const [loadingOutcome, setLoadingOutcome] = React.useState(false);
+
+  // Debug: Log incoming request data
+  React.useEffect(() => {
+    console.log('🔍 EmergencyDetailsModal - Request Data:', request);
+  }, [request]);
 
   React.useEffect(() => {
     if (request?.id && (request.status === 'completed' || request.status === 'cancelled')) {
       fetchVisitOutcome(request.id);
     } else {
       setVisitOutcome(null);
+      if (!request) {
+        console.log('🔍 EmergencyDetailsModal - No request data provided');
+      }
     }
   }, [request]);
 
   const fetchVisitOutcome = async (id) => {
+    console.log('🔍 EmergencyDetailsModal - Fetching visit outcome for ID:', id);
     setLoadingOutcome(true);
     try {
-      const { data, error } = await supabase
-        .from('visits')
-        .select('*')
-        .eq('id', id)
-        .single();
-      if (!error && data) setVisitOutcome(data);
+      const visitData = await getVisit(id);
+      console.log('🔍 EmergencyDetailsModal - Visit data received:', visitData);
+      if (visitData) {
+        setVisitOutcome(visitData);
+      } else {
+        console.log('🔍 EmergencyDetailsModal - No visit data found for emergency ID:', id);
+        setVisitOutcome(null);
+      }
     } catch (e) {
       console.error('Error fetching visit outcome:', e);
+      setVisitOutcome(null);
     } finally {
       setLoadingOutcome(false);
     }
@@ -172,7 +186,14 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                     </p>
 
                     {/* Clinical Outcome Bridge */}
-                    {visitOutcome && (
+                    {loadingOutcome ? (
+                      <div className="mt-6 p-4 rounded-2xl bg-muted/5 border border-muted/10 space-y-3">
+                        <div className="flex items-center justify-center py-4">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-muted-foreground"></div>
+                          <span className="ml-2 text-xs text-muted-foreground">Loading clinical outcome...</span>
+                        </div>
+                      </div>
+                    ) : visitOutcome ? (
                       <div className="mt-6 p-4 rounded-2xl bg-green-500/5 border border-green-500/10 space-y-3">
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="text-green-500 border-green-500/20 bg-green-500/5 text-[10px] font-bold uppercase">Clinical Outcome</Badge>
@@ -191,7 +212,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                           )}
                         </div>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           className="w-full justify-between h-8 text-green-500 hover:bg-green-500/5 text-xs font-semibold rounded-xl"
                           onClick={() => {
@@ -200,11 +221,21 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                             onClose(false);
                           }}
                         >
-                          View Full Medical Record
-                          <ChevronRight className="w-4 h-4" />
+                          <span>View Full Clinical Record</span>
+                          <ChevronRight className="w-3 h-3" />
                         </Button>
                       </div>
-                    )}
+                    ) : (request?.status === 'completed' || request?.status === 'cancelled') ? (
+                      <div className="mt-6 p-4 rounded-2xl bg-yellow-500/5 border border-yellow-500/10 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-yellow-500 border-yellow-500/20 bg-yellow-500/5 text-[10px] font-bold uppercase">Clinical Record</Badge>
+                          <span className="text-xs text-muted-foreground">No visit outcome recorded</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          This emergency was completed but no detailed clinical record was found in the system.
+                        </p>
+                      </div>
+                    ) : null}
 
                     <div className="flex flex-wrap gap-4 pt-4 border-t border-white/5">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -221,72 +252,43 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
 
                 {/* Requester Info */}
                 <GlassCard icon={<User className="text-purple-500" />} title="Requester">
-                  {request.patient_snapshot ? (
-                    <div className="space-y-6">
-                      <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16 rounded-[20px] border-2 border-white/10 shadow-xl">
-                          <AvatarFallback className="text-xl font-semibold">
-                            {request.patient_snapshot.fullName?.[0] || request.patient_snapshot.username?.[0] || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h4 className="text-lg font-semibold">
-                            {request.patient_snapshot.fullName || request.patient_snapshot.username || 'Unknown'}
-                          </h4>
-                          <p className="text-sm text-muted-foreground uppercase tracking-wider">
-                            {request.patient_snapshot.username || 'Patient'}
-                          </p>
+                  {(() => {
+                    const patient = getStandardizedPatient(request);
+                    return (
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-4">
+                          <Avatar className="h-16 w-16 rounded-[20px] border-2 border-white/10 shadow-xl">
+                            <AvatarImage src={patient.avatar} />
+                            <AvatarFallback className="text-xl font-semibold">
+                              {patient.initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h4 className="text-lg font-semibold">{patient.name}</h4>
+                            <p className="text-sm text-muted-foreground uppercase tracking-wider">
+                              {request.patient_snapshot?.username || request.profiles?.username || 'Patient'}
+                            </p>
+                          </div>
                         </div>
+                        <div className="space-y-3 pt-4 border-t border-white/5">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="opacity-50">Phone</span>
+                            <span className="font-normal">{patient.phone}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="opacity-50">Email</span>
+                            <span className="font-normal truncate max-w-[150px]">
+                              {patient.email}
+                            </span>
+                          </div>
+                        </div>
+                        <Button variant="outline" className="w-full rounded-2xl border-white/10 hover:bg-white/5 gap-2">
+                          <Phone className="w-4 h-4" />
+                          Call Patient
+                        </Button>
                       </div>
-                      <div className="space-y-3 pt-4 border-t border-white/5">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="opacity-50">Phone</span>
-                          <span className="font-normal">{request.patient_snapshot.phone || 'Not provided'}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="opacity-50">Email</span>
-                          <span className="font-normal truncate max-w-[150px]">
-                            {request.patient_snapshot.email || 'Not provided'}
-                          </span>
-                        </div>
-                      </div>
-                      <Button variant="outline" className="w-full rounded-2xl border-white/10 hover:bg-white/5 gap-2">
-                        <Phone className="w-4 h-4" />
-                        Call Patient
-                      </Button>
-                    </div>
-                  ) : request.profiles ? (
-                    <div className="space-y-6">
-                      <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16 rounded-[20px] border-2 border-white/10 shadow-xl">
-                          <AvatarImage src={request.profiles.avatar_url} />
-                          <AvatarFallback className="text-xl font-semibold">{request.profiles.username?.[0]}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h4 className="text-lg font-semibold">{request.profiles.username || 'Unknown'}</h4>
-                          <p className="text-sm text-muted-foreground uppercase tracking-wider">{request.profiles.role || 'Patient'}</p>
-                        </div>
-                      </div>
-                      <div className="space-y-3 pt-4 border-t border-white/5">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="opacity-50">Phone</span>
-                          <span className="font-normal">{request.profiles.phone || 'Not provided'}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="opacity-50">Email</span>
-                          <span className="font-normal truncate max-w-[150px]">{request.profiles.email || 'Not provided'}</span>
-                        </div>
-                      </div>
-                      <Button variant="outline" className="w-full rounded-2xl border-white/10 hover:bg-white/5 gap-2">
-                        <Phone className="w-4 h-4" />
-                        Call Patient
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="py-8 text-center opacity-40">
-                      <p className="text-sm italic">User profile not available</p>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </GlassCard>
 
                 {/* Location Card */}
