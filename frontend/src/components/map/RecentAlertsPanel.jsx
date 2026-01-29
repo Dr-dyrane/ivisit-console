@@ -13,19 +13,28 @@ export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 	});
 
 	const getStatusIcon = (status) => {
+		// PULLBACK NOTE: Updated status icons to match new emergency schema
+		// OLD: pending, dispatched, en_route
+		// NEW: pending, assigned, in_progress, completed, cancelled
 		switch (status) {
 			case 'pending': return <Clock className="h-3 w-3" />;
-			case 'dispatched': return <Activity className="h-3 w-3" />;
+			case 'assigned': return <Activity className="h-3 w-3" />;
+			case 'in_progress': return <Activity className="h-3 w-3" />;
+			case 'completed': return <AlertTriangle className="h-3 w-3" />;
 			default: return <AlertTriangle className="h-3 w-3" />;
 		}
 	};
 
 	const getStatusColor = (status) => {
+		// PULLBACK NOTE: Updated status colors to match new emergency schema
+		// OLD: pending, dispatched, en_route, arrived
+		// NEW: pending, assigned, in_progress, completed, cancelled
 		switch (status) {
 			case 'pending': return 'text-warning';
-			case 'dispatched': return 'text-info';
-			case 'en_route': return 'text-primary';
-			case 'arrived': return 'text-success';
+			case 'assigned': return 'text-info';
+			case 'in_progress': return 'text-primary';
+			case 'completed': return 'text-success';
+			case 'cancelled': return 'text-destructive';
 			default: return 'text-muted-foreground';
 		}
 	};
@@ -44,10 +53,14 @@ export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 					className="text-xs bg-background/50 border border-border/20 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary/20"
 				>
 					<option value="all">All</option>
+					{/* PULLBACK NOTE: Updated status options to match new emergency schema */}
+					{/* OLD: pending, dispatched, en_route, arrived */}
+					{/* NEW: pending, assigned, in_progress, completed, cancelled */}
 					<option value="pending">Pending</option>
-					<option value="dispatched">Dispatched</option>
-					<option value="en_route">En Route</option>
-					<option value="arrived">Arrived</option>
+					<option value="assigned">Assigned</option>
+					<option value="in_progress">In Progress</option>
+					<option value="completed">Completed</option>
+					<option value="cancelled">Cancelled</option>
 				</select>
 			</div>
 
@@ -84,7 +97,10 @@ export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 													: "bg-muted/50 text-muted-foreground"
 									}`}
 								>
-									{req.service_type?.replace('_', ' ') || "unknown"}
+									{/* PULLBACK NOTE: Changed fallback text for better UX */}
+									{/* OLD: "unknown" */}
+									{/* NEW: "emergency" */}
+									{req.service_type?.replace('_', ' ') || "emergency"}
 								</Badge>
 							</div>
 							<div className="text-xs text-muted-foreground truncate">

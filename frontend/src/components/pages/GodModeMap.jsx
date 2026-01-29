@@ -10,6 +10,11 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { MAP_STYLES } from "../../constants/mapStyles";
 import { MapProvider, useMapContext } from "../../contexts/MapContext";
 import { supabaseMapService } from "../../services/supabaseMapService";
+// PULLBACK NOTE: Added imports for PostGIS geometry support and patient data standardization
+// NEW: import { decodePostGISGeometry } from "../../utils/locationUtils";
+// NEW: import { getStandardizedPatient } from "../../utils/patientUtils";
+import { decodePostGISGeometry } from "../../utils/locationUtils";
+import { getStandardizedPatient } from "../../utils/patientUtils";
 
 // Import extracted map components
 import {
@@ -124,11 +129,54 @@ const GodModeMapContent = () => {
 
 
 
-	// Helper to resolve location (PRODUCTION READY - No simulation)
+	// Helper to resolve location (PRODUCTION READY - Handles PostGIS geometry)
+	// PULLBACK NOTE: Enhanced to support new PostGIS geometry fields from emergency schema
+	// OLD: Only handled legacy lat/lng fields
+	// NEW: Handles patient_location, pickup_location, responder_location (PostGIS) + legacy lat/lng
 	const resolveLocation = useMemo(() => {
 		return (item, indexSeed, forceSimulate = false) => {
 			if (!item) return null;
 
+			// PULLBACK NOTE: NEW - Handle emergency requests with PostGIS geometry
+			if (item.patient_location) {
+				const decoded = decodePostGISGeometry(item.patient_location);
+				if (decoded && decoded.lat && decoded.lng) {
+					return {
+						...item,
+						lat: decoded.lat,
+						lng: decoded.lng,
+						isSimulated: false
+					};
+				}
+			}
+
+			// PULLBACK NOTE: NEW - Handle pickup_location for ambulances
+			if (item.pickup_location) {
+				const decoded = decodePostGISGeometry(item.pickup_location);
+				if (decoded && decoded.lat && decoded.lng) {
+					return {
+						...item,
+						lat: decoded.lat,
+						lng: decoded.lng,
+						isSimulated: false
+					};
+				}
+			}
+
+			// PULLBACK NOTE: NEW - Handle responder_location for ambulances
+			if (item.responder_location) {
+				const decoded = decodePostGISGeometry(item.responder_location);
+				if (decoded && decoded.lat && decoded.lng) {
+					return {
+						...item,
+						lat: decoded.lat,
+						lng: decoded.lng,
+						isSimulated: false
+					};
+				}
+			}
+
+			// PULLBACK NOTE: UNCHANGED - Handle legacy lat/lng fields (backward compatibility)
 			const valLat = parseFloat(item.lat || item.latitude);
 			const valLng = parseFloat(item.lng || item.longitude);
 			const hasRealLoc = !isNaN(valLat) && !isNaN(valLng) && valLat !== 0;

@@ -18,7 +18,10 @@ export const MapProvider = ({ children }) => {
     ambulances: [],
     hospitals: [],
     users: [], // Patient locations
-    showLayers: { emergencies: false, ambulances: true, hospitals: false },
+    // PULLBACK NOTE: Changed defaults from false to true for better UX
+    // OLD: showLayers: { emergencies: false, ambulances: true, hospitals: false }
+    // NEW: showLayers: { emergencies: true, ambulances: true, hospitals: true }
+    showLayers: { emergencies: true, ambulances: true, hospitals: true },
     filter: 'all',
     loading: true,
     selectedMarker: null,

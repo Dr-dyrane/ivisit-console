@@ -34,27 +34,34 @@ export const MapPanel = ({ emergencyStats }) => {
 
   // Command Center State
   const [realTimeTracking, setRealTimeTracking] = useState(true);
-  const [autoRecenter, setAutoRecenter] = useState(false);
-  const [alertRadius, setAlertRadius] = useState(5);
-  const [mapStyle, setMapStyle] = useState('standard');
+  const [autoRecenter, setAutoRecenter] = useState(false); // PULLBACK NOTE: Added auto-recenter state
+  const [alertRadius, setAlertRadius] = useState(5); // PULLBACK NOTE: Added alert radius state
+  const [mapStyle, setMapStyle] = useState('standard'); // PULLBACK NOTE: Added map style state
 
   // Filter Logic for List
+  // PULLBACK NOTE: Changed filter logic to match new emergency schema
+  // OLD: req.priority === activeFilter
+  // NEW: req.service_type === activeFilter
   const filteredList = React.useMemo(() => {
     if (activeFilter === 'all') return emergencyRequests;
-    return emergencyRequests.filter(req => req.priority === activeFilter);
+    return emergencyRequests.filter(req => req.service_type === activeFilter);
   }, [emergencyRequests, activeFilter]);
 
+  // PULLBACK NOTE: Updated emergency filters to use new service types
+  // OLD: Used priority-based filters (pending, dispatched, en_route)
+  // NEW: Uses service_type filters (ambulance, bed, critical_care)
   const emergencyFilters = [
-    { key: 'all', label: 'All', icon: Radio, count: emergencyStats?.critical + emergencyStats?.pending + emergencyStats?.inProgress || 0 },
-    { key: 'pending', label: 'Pending', icon: Clock, count: emergencyStats?.pending || 0 },
-    { key: 'dispatched', label: 'Dispatched', icon: CheckCircle, count: emergencyStats?.inProgress || 0 },
-    { key: 'en_route', label: 'En Route', icon: Ambulance, count: Math.max(0, (emergencyStats?.inProgress || 0) - 2) }
-  ];
+    { key: 'all', label: 'All', icon: Radio, count: emergencyRequests?.length || 0 },
+    { key: 'ambulance', label: 'Ambulance', icon: Ambulance, count: emergencyRequests?.filter(req => req.service_type === 'ambulance').length || 0 },
+    { key: 'bed', label: 'Bed', icon: Hospital, count: emergencyRequests?.filter(req => req.service_type === 'bed').length || 0 },
+    { key: 'critical_care', label: 'Critical Care', icon: AlertTriangle, count: emergencyRequests?.filter(req => req.service_type === 'critical_care').length || 0 }
+  ].filter(filter => emergencyRequests && emergencyRequests.length > 0 ? true : filter.key === 'all');
 
   const handleRecenterAll = () => {
     recenterMap();
   };
 
+  // ... rest of the code remains the same ...
   const handleExportMapData = () => {
     const mapDataExport = {
       timestamp: new Date().toISOString(),

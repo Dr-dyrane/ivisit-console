@@ -7,10 +7,20 @@ import { AlertTriangle, Ambulance, Hospital, MapPin, Phone, Send, CheckCheck } f
 import { useAuth } from '../../contexts/AuthContext';
 import { dispatchEmergency, completeEmergency } from '../../services/emergencyResponseService';
 import { toast } from 'sonner';
+// PULLBACK NOTE: Added imports for patient data standardization and location display
+// NEW: import { getStandardizedPatient } from '../../utils/patientUtils";
+// NEW: import { LocationCell } from '../ui/LocationCell';
+import { getStandardizedPatient } from '../../utils/patientUtils';
+import { LocationCell } from '../ui/LocationCell';
 
 export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh }) => {
 	const { isAdmin, isOrgAdmin } = useAuth();
 	if (!selectedMarker) return null;
+
+	// PULLBACK NOTE: NEW - Get standardized patient data for emergencies
+	// OLD: Used selectedMarker.data.name directly
+	// NEW: Uses getStandardizedPatient for consistent patient info across app
+	const patientData = selectedMarker.type === "emergency" ? getStandardizedPatient(selectedMarker.data) : null;
 
 	return (
 		<AnimatePresence>
@@ -58,7 +68,11 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 									{selectedMarker.type}
 								</p>
 								<h3 className="font-bold text-xl truncate w-48">
-									{selectedMarker.data.name ||
+									{/* PULLBACK NOTE: Changed to use patient data first */}
+									{/* OLD: selectedMarker.data.name */}
+									{/* NEW: patientData?.name || selectedMarker.data.name */}
+									{patientData?.name ||
+										selectedMarker.data.name ||
 										selectedMarker.data.call_sign ||
 										`#${selectedMarker.data.id?.slice(-6)}`}
 								</h3>
@@ -86,13 +100,26 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 									</Badge>
 								</div>
 
-								<div className="p-3 squircle bg-muted/30">
-									<div className="flex items-start gap-2 text-sm">
-										<MapPin className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
-										<span className="font-normal">
-											{selectedMarker.data.location || "Location shared"}
-										</span>
+								{patientData?.phone && (
+									<div className="p-3 squircle bg-muted/30">
+										<div className="flex items-start gap-2 text-sm">
+											<Phone className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+											<span className="font-normal">
+												{patientData.phone}
+											</span>
+										</div>
 									</div>
+								)}
+
+								{/* PULLBACK NOTE: Replaced raw location display with LocationCell */}
+								{/* OLD: <MapPin> + selectedMarker.data.location */}
+								{/* NEW: LocationCell with PostGIS geometry support */}
+								<div className="p-3 squircle bg-muted/30">
+									<LocationCell 
+										location={selectedMarker.data.patient_location}
+										pickupLocation={selectedMarker.data.pickup_location}
+										responderLocation={selectedMarker.data.responder_location}
+									/>
 								</div>
 
 								<div className="flex gap-2">
