@@ -4,8 +4,58 @@
  */
 
 /**
+ * Decode PostGIS geometry string to extract coordinates
+ * @param {string} geometry - PostGIS geometry string (e.g., "0101000020E6100000A41A55E4B23F5DC07D6669E068E04040")
+ * @returns {Object|null} Coordinates {lat, lng} or null
+ */
+export const decodePostGISGeometry = (geometry) => {
+  if (!geometry || !geometry.startsWith('0101')) {
+    return null;
+  }
+
+  try {
+    // PostGIS Point (SRID 4326) format: 0101000020E6100000 + coordinate data
+    // Extract the coordinate data after the SRID prefix
+    const hexData = geometry.substring(16); // Remove "0101000020E6100000"
+    
+    // Handle both 32-char (standard) and 34-char (extended) formats
+    if (hexData.length !== 32 && hexData.length !== 34) {
+      return null;
+    }
+
+    // For 34-char format, skip the first 2 bytes (likely metadata) and take last 32
+    const coordHex = hexData.length === 34 ? hexData.substring(2) : hexData;
+    
+    // Convert hex to float64 (little-endian) in browser
+    const lngHex = coordHex.substring(0, 16);
+    const latHex = coordHex.substring(16);
+    
+    // Helper function to convert hex to double
+    const hexToDouble = (hex) => {
+      const buffer = new ArrayBuffer(8);
+      const view = new DataView(buffer);
+      
+      // Convert hex to bytes (little-endian)
+      for (let i = 0; i < 8; i++) {
+        view.setUint8(i, parseInt(hex.substr(i * 2, 2), 16));
+      }
+      
+      return view.getFloat64(0, true); // true for little-endian
+    };
+    
+    const lng = hexToDouble(lngHex);
+    const lat = hexToDouble(latHex);
+
+    return { lat, lng };
+  } catch (error) {
+    console.error('Error decoding PostGIS geometry:', error);
+    return null;
+  }
+};
+
+/**
  * Format emergency location for display
- * @param {Object|string} location - Location data (geometry object or string)
+ * @param {Object|string} location - Location data (geometry object, string, or PostGIS geometry)
  * @param {Object} pickupLocation - Alternative pickup location
  * @returns {string} Human-readable location
  */
@@ -16,6 +66,14 @@ export const formatEmergencyLocation = (location, pickupLocation) => {
 
   // If location is already a string (address)
   if (typeof location === 'string') {
+    // Check if it's PostGIS geometry
+    if (location.startsWith('0101')) {
+      const coords = decodePostGISGeometry(location);
+      if (coords) {
+        return `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
+      }
+      return 'GPS Coordinates';
+    }
     return location;
   }
 
@@ -35,7 +93,7 @@ export const formatEmergencyLocation = (location, pickupLocation) => {
   }
 
   // Default fallback
-  return 'Coordinates available';
+  return 'Location shared';
 };
 
 /**

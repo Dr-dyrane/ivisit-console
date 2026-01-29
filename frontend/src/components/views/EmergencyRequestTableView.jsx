@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -15,8 +16,10 @@ import {
 } from '../ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
 import { formatEmergencyLocation } from '../../utils/locationUtils';
+import { LocationCell } from '../ui/LocationCell';
 import { getServiceTypeBadge, getServiceTypeDisplay, getStatusDisplay, getStatusBadge } from '../../constants/emergency';
 import { getVisit } from '../../services/visitsService';
+import { toast } from 'sonner';
 import { getStandardizedPatient } from '../../utils/patientUtils';
 
 export const EmergencyRequestTableView = ({
@@ -33,6 +36,7 @@ export const EmergencyRequestTableView = ({
   onSort,
   currentUser
 }) => {
+  const navigate = useNavigate();
   const canManage = currentUser ? (currentUser.isAdmin() || currentUser.isOrgAdmin()) : false;
   const canDelete = currentUser ? (currentUser.isAdmin() || (typeof currentUser.isProvider === 'function' && currentUser.isProvider())) : false;
 
@@ -116,7 +120,13 @@ export const EmergencyRequestTableView = ({
                   </div>
                 </TableCell>
                 <TableCell className="text-sm">{getStandardizedPatient(req).phone}</TableCell>
-                <TableCell className="text-sm">{formatEmergencyLocation(req.patient_location, req.pickup_location)}</TableCell>
+                <TableCell className="text-sm">
+                  <LocationCell 
+                    location={req.patient_location} 
+                    pickupLocation={req.pickup_location}
+                    responderLocation={req.responder_location}
+                  />
+                </TableCell>
                 <TableCell className="text-sm">{req.hospital_name || 'Not specified'}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {req.created_at ? new Date(req.created_at).toLocaleString() : 'No time'}
@@ -146,15 +156,16 @@ export const EmergencyRequestTableView = ({
                                 const visitData = await getVisit(req.id);
                                 console.log('🔍 EmergencyRequestTableView - Fetched visit data:', visitData);
                                 if (visitData) {
-                                  const event = new CustomEvent('openVisitModal', {
-                                    detail: { visit: visitData, mode: 'view' }
-                                  });
-                                  window.dispatchEvent(event);
+                                  // Navigate to Visits page with visit ID as parameter
+                                  navigate(`/visits?view=${visitData.id}`);
                                 } else {
                                   console.warn('No visit data found for emergency:', req.id);
+                                  // Show notification that no visit record exists
+                                  toast.warning('No clinical record found for this emergency request');
                                 }
                               } catch (error) {
                                 console.error('Error fetching visit data:', error);
+                                toast.error('Failed to load clinical record');
                               }
                             }}
                             className="cursor-pointer font-medium text-xs py-2 text-info focus:text-info focus:bg-info/10"

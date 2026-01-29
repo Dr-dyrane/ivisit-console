@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { LocationCell } from '../ui/LocationCell';
 import {
   X,
   Siren,
@@ -302,7 +303,13 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                       {request.patient_location && (
                         <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Patient Location</p>
-                          <p className="font-mono text-sm font-semibold">Coordinates Available</p>
+                          <p className="font-mono text-sm font-semibold">
+                            <LocationCell 
+                              location={request.patient_location} 
+                              pickupLocation={request.pickup_location}
+                              responderLocation={request.responder_location}
+                            />
+                          </p>
                         </div>
                       )}
                       <div className="grid grid-cols-2 gap-4">

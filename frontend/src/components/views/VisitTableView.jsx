@@ -172,7 +172,7 @@ export const VisitTableView = ({
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="border-white/10">
-                      {visit.visit_type || 'General'}
+                      {visit.type || 'General'}
                     </Badge>
                   </TableCell>
                   <TableCell>

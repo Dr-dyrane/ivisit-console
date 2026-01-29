@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
+import { LocationCell } from '../ui/LocationCell';
 import {
   AlertTriangle,
   Activity,
@@ -157,7 +158,13 @@ export const EmergencyPanel = ({ emergencyData = [], emergencyStats, useMockData
                       {request.patient_snapshot?.fullName || request.patient_name || 'Unknown Patient'}
                     </p>
                     <p className="text-xs text-muted-foreground truncate max-w-[120px]">
-                      {request.hospital_name || request.patient_location || 'Unknown location'}
+                      {request.hospital_name || (
+                        <LocationCell 
+                          location={request.patient_location} 
+                          pickupLocation={request.pickup_location}
+                          responderLocation={request.responder_location}
+                        />
+                      ) || 'Unknown location'}
                     </p>
                   </div>
                 </div>

@@ -114,6 +114,11 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
       delete submitData.user_email;
       delete submitData.user_email;
       delete submitData.hospital_name;
+      delete submitData.hospital; // Remove hospital text field to prevent UUID conflicts
+
+      // Debug: Log what's being submitted
+      console.log('🔍 VisitModal - Submitting data:', submitData);
+      console.log('🔍 VisitModal - hospital_id:', submitData.hospital_id, typeof submitData.hospital_id);
 
       // Convert preparation back to array if string
       if (typeof submitData.preparation === 'string') {

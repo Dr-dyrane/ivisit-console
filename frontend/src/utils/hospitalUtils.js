@@ -80,18 +80,27 @@ export const getHospitalId = (data) => {
 };
 
 /**
- * Standardized hospital data object
- * @param {Object} data - Raw data object
+ * Get standardized hospital data from various sources
+ * @param {Object} data - Data source (emergency request, visit, hospital object, etc.)
+ * @param {boolean} preserveOriginal - Whether to preserve original database fields (default: false)
  * @returns {Object} Standardized hospital object
  */
-export const getStandardizedHospital = (data) => {
+export const getStandardizedHospital = (data, preserveOriginal = false) => {
   const contact = getHospitalContact(data);
   
-  return {
+  const result = {
+    // Add standardized fields for UI display
     id: getHospitalId(data),
     name: contact.name,
     address: contact.address,
     phone: contact.phone,
     specialty: data.hospital?.specialty || data.hospitals?.specialty || data.specialty
   };
+
+  // Preserve original hospital_id for database operations only when requested
+  if (preserveOriginal) {
+    result.hospital_id = data.hospital_id;
+  }
+
+  return result;
 };

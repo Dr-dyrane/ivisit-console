@@ -93,16 +93,18 @@ export const getPatientInitials = (name) => {
 };
 
 /**
- * Standardized patient data object
- * @param {Object} data - Raw data object
+ * Get standardized patient data from various sources
+ * @param {Object} data - Data source (emergency request, visit, profile, etc.)
+ * @param {boolean} preserveOriginal - Whether to preserve original database fields (default: false)
  * @returns {Object} Standardized patient object
  */
-export const getStandardizedPatient = (data) => {
+export const getStandardizedPatient = (data, preserveOriginal = false) => {
   const name = getPatientName(data);
   const contact = getPatientContact(data);
   const avatar = getPatientAvatar(data);
   
-  return {
+  const result = {
+    // Add standardized fields for UI display
     name,
     initials: getPatientInitials(name),
     phone: contact.phone,
@@ -110,4 +112,11 @@ export const getStandardizedPatient = (data) => {
     avatar,
     id: data.patient?.id || data.profiles?.id || data.user_id || data.id
   };
+
+  // Preserve original user_id for database operations only when requested
+  if (preserveOriginal) {
+    result.user_id = data.user_id;
+  }
+
+  return result;
 };

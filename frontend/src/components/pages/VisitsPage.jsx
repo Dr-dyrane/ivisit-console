@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { getDoctorByProfileId } from '../../services/doctorsService';
-import { createVisit, updateVisit } from '../../services/visitsService';
+import { createVisit, updateVisit, getVisit } from '../../services/visitsService';
 import { getHospitals } from '../../services/hospitalsService';
 import { getProfiles } from '../../services/profilesService';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
@@ -37,6 +38,32 @@ export const VisitsPage = () => {
   const { user, isAdmin, isOrgAdmin, isProvider, orgId } = useAuth();
   const { isMobile } = useNavigation();
   const { visitsData, refreshAllData } = usePageData();
+  const location = useLocation();
+
+  // Handle URL parameter to open specific visit modal
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const viewVisitId = urlParams.get('view');
+    
+    if (viewVisitId) {
+      // Fetch the specific visit and open modal
+      const fetchAndOpenVisit = async () => {
+        try {
+          const visitData = await getVisit(viewVisitId);
+          if (visitData) {
+            setSelectedVisit(visitData);
+            setModalMode('view');
+          }
+        } catch (error) {
+          console.error('Error fetching visit:', error);
+          // Show error notification
+          toast.error('Failed to load clinical record');
+        }
+      };
+      
+      fetchAndOpenVisit();
+    }
+  }, [location.search]);
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedVisit, setSelectedVisit] = useState(null);

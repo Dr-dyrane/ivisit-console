@@ -113,12 +113,6 @@ export async function getVisit(visitId) {
           full_name,
           phone,
           avatar_url
-        ),
-        hospitals!visits_hospital_id_fkey (
-          id,
-          name,
-          address,
-          phone
         )
       `)
       .eq('id', visitId)
@@ -131,9 +125,7 @@ export async function getVisit(visitId) {
       return {
         ...data,
         patient: data.profiles, // Map profiles to patient for consistency
-        hospital: data.hospitals,
-        profiles: undefined, // Remove original profiles to avoid confusion
-        hospitals: undefined // Remove original hospitals to avoid confusion
+        profiles: undefined // Remove original profiles to avoid confusion
       };
     }
 

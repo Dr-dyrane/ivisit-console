@@ -20,6 +20,12 @@ export {
   getStandardizedHospital
 } from './hospitalUtils';
 
+export {
+  formatEmergencyLocation,
+  extractCoordinates,
+  decodePostGISGeometry
+} from './locationUtils';
+
 /**
  * Complete standardized data object for any record
  * @param {Object} data - Raw data object
@@ -29,6 +35,7 @@ export const getStandardizedRecord = (data) => {
   return {
     patient: getStandardizedPatient(data),
     hospital: getStandardizedHospital(data),
+    location: formatEmergencyLocation(data.patient_location, data.pickup_location),
     originalData: data
   };
 };

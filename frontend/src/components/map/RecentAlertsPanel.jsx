@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { AlertTriangle, Clock, Activity } from 'lucide-react';
+import { LocationCell } from '../ui/LocationCell';
 
 export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 	const [statusFilter, setStatusFilter] = useState('all');
@@ -87,7 +88,13 @@ export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 								</Badge>
 							</div>
 							<div className="text-xs text-muted-foreground truncate">
-								{req.hospital_name || req.patient_location || "Emergency request"}
+								{req.hospital_name || (
+									<LocationCell 
+										location={req.patient_location} 
+										pickupLocation={req.pickup_location}
+										responderLocation={req.responder_location}
+									/>
+								) || "Emergency request"}
 							</div>
 						</div>
 					</div>

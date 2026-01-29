@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -6,8 +7,10 @@ import { Trash2, Eye, MapPin, Clock, CheckCheck, Send, Navigation, User, Hospita
 import { motion } from 'framer-motion';
 import { Checkbox } from '../ui/checkbox';
 import { validateDataSchema } from '../../utils/schemaValidator';
-import { formatEmergencyLocation } from '../../utils/locationUtils';
+import { LocationCell } from '../ui/LocationCell';
 import { getServiceTypeBadge, getServiceTypeDisplay, getStatusDisplay, getStatusBadge } from '../../constants/emergency';
+import { getVisit } from '../../services/visitsService';
+import { toast } from 'sonner';
 
 export const EmergencyRequestListView = ({
   requests,
@@ -20,6 +23,7 @@ export const EmergencyRequestListView = ({
   onSelect,
   currentUser
 }) => {
+  const navigate = useNavigate();
   // Development schema validation
   if (process.env.NODE_ENV === 'development' && requests.length > 0) {
     validateDataSchema('emergency_requests', requests[0], 'EmergencyRequestListView');
@@ -78,7 +82,11 @@ export const EmergencyRequestListView = ({
                   <div className="flex items-center gap-1">
                     <MapPin className="h-4 w-4" />
                     <span className="truncate">
-                      {formatEmergencyLocation(req.patient_location, req.pickup_location)}
+                      <LocationCell 
+                        location={req.patient_location} 
+                        pickupLocation={req.pickup_location}
+                        responderLocation={req.responder_location}
+                      />
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
@@ -111,11 +119,22 @@ export const EmergencyRequestListView = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => {
-                      const event = new CustomEvent('openVisitModal', {
-                        detail: { visit: { ...req, type: req.service_type }, mode: 'view' }
-                      });
-                      window.dispatchEvent(event);
+                    onClick={async () => {
+                      try {
+                        // Fetch the actual visit data using the shared ID
+                        const visitData = await getVisit(req.id);
+                        if (visitData) {
+                          // Navigate to Visits page with visit ID as parameter
+                          navigate(`/visits?view=${visitData.id}`);
+                        } else {
+                          console.warn('No visit data found for emergency:', req.id);
+                          // Show notification that no visit record exists
+                          toast.warning('No clinical record found for this emergency request');
+                        }
+                      } catch (error) {
+                        console.error('Error fetching visit data:', error);
+                        toast.error('Failed to load clinical record');
+                      }
                     }}
                     className="squircle h-8 w-8 p-0 hover:bg-info/10 hover:text-info"
                     title="View Clinical Record"

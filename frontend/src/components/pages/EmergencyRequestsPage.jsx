@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
-import { formatEmergencyLocation } from '../../utils/locationUtils';
+import { LocationCell } from '../ui/LocationCell';
 import {
   getServiceTypeBadge,
   getServiceTypeDisplay,
@@ -23,7 +23,6 @@ import { PaginationControls } from '../ui/PaginationControls';
 import { useAuth } from '../../contexts/AuthContext';
 import { EmergencyDetailsModal } from '../modals/EmergencyDetailsModal';
 import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
-import { VisitModal } from '../modals/VisitModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { withTimeout } from '../../lib/utils';
 import { toast } from 'sonner';
@@ -73,18 +72,6 @@ export const EmergencyRequestsPage = () => {
     user,
     profile
   }), [isAdmin, isOrgAdmin, isProvider, user, profile]);
-
-  useEffect(() => {
-    const handleOpenVisit = (e) => {
-      setVisitModal({
-        isOpen: true,
-        visit: e.detail.visit,
-        mode: e.detail.mode || 'view'
-      });
-    };
-    window.addEventListener('openVisitModal', handleOpenVisit);
-    return () => window.removeEventListener('openVisitModal', handleOpenVisit);
-  }, []);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -103,12 +90,6 @@ export const EmergencyRequestsPage = () => {
     onConfirm: null,
     variant: 'destructive',
     confirmLabel: 'Delete'
-  });
-
-  const [visitModal, setVisitModal] = useState({
-    isOpen: false,
-    visit: null,
-    mode: 'view'
   });
 
   const { viewMode, setViewMode } = useViewMode('emergency-requests-page', 'grid');
@@ -764,7 +745,11 @@ export const EmergencyRequestsPage = () => {
                             <div className="flex items-start gap-3 text-sm p-3 geo-sharp bg-muted/30">
                               <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                               <span className="font-normal leading-snug truncate-2">
-                                {formatEmergencyLocation(req.patient_location, req.pickup_location)}
+                                <LocationCell
+                                  location={req.patient_location}
+                                  pickupLocation={req.pickup_location}
+                                  responderLocation={req.responder_location}
+                                />
                               </span>
                             </div>
                             {req.hospital_name && (
@@ -931,14 +916,6 @@ export const EmergencyRequestsPage = () => {
         initialValues={filters}
         viewToggle={isMobile ? viewToggleComponent : null}
         isMobile={isMobile}
-      />
-
-      <VisitModal
-        isOpen={visitModal.isOpen}
-        onClose={() => setVisitModal(prev => ({ ...prev, isOpen: false }))}
-        visit={visitModal.visit}
-        mode={visitModal.mode}
-        users={profile ? [profile] : []}
       />
 
       <ReportsModal
