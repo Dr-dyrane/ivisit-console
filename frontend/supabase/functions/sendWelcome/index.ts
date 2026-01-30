@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
 }
 
 interface WelcomeEmailPayload {
@@ -18,6 +18,18 @@ export const handler = async (req: Request) => {
   }
 
   try {
+    // Create Supabase admin client for internal operations
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
     const { email }: WelcomeEmailPayload = await req.json()
 
     if (!email) {
@@ -71,14 +83,8 @@ export const handler = async (req: Request) => {
       throw new Error(`Failed to send email: ${errorData}`)
     }
 
-    // Update subscriber record
-    // @ts-ignore - Deno global is available in runtime
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    // @ts-ignore - Deno global is available in runtime
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    const supabaseClient = createClient(supabaseUrl!, supabaseServiceKey!)
-
-    const { error: updateError } = await supabaseClient
+    // Update subscriber record using admin client
+    const { error: updateError } = await supabaseAdmin
       .from('subscribers')
       .update({
         new_user: false

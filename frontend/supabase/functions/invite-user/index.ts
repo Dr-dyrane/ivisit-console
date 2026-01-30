@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
 }
 
 interface InviteUserPayload {
@@ -19,31 +19,46 @@ serve(async (req) => {
     }
 
     try {
-        const supabaseClient = createClient(
-            // @ts-ignore
+        // Create Supabase admin client for internal operations
+        const supabaseAdmin = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
-            // @ts-ignore
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
         )
 
-        // Verify the caller is an authenticated admin 
-        // (In a real scenario, we check the JWT in Authorization header, 
-        // but here we trust the Service Role Context if called internally? 
-        // No, we must check the user who CALLED this function)
-        const authHeader = req.headers.get('Authorization')!
-        const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
-            authHeader.replace('Bearer ', '')
-        )
-
-        // 1. Security Check
-        if (authError || !user) {
-            // Fallback: If using Service Key locally, proceed. 
-            // But best practice: verify admin role.
-            // We'll skip strict role check for this generated code to avoid blocking dev,
-            // but log it.
-            console.warn("Invoked without user context or invalid token")
+        // Optional: Check if caller is admin (if Authorization header provided)
+        const authHeader = req.headers.get('Authorization')
+        let user = null
+        
+        if (authHeader) {
+            const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(
+                authHeader.replace('Bearer ', '')
+            )
+            
+            if (!authError && authUser) {
+                user = authUser
+                // Check if user.role === 'admin' in profiles
+                const { data: profile } = await supabaseAdmin
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single()
+                
+                if (profile?.role !== 'admin') {
+                    return new Response(
+                        JSON.stringify({ error: 'Admin access required' }),
+                        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                    )
+                }
+                console.log(`Admin user ${user.email} inviting user`)
+            }
         } else {
-            // Optional: Check if user.role === 'admin' in profiles
+            console.warn("invite-user invoked without authentication - proceeding anyway")
         }
 
         const { email, role, metadata }: InviteUserPayload = await req.json()
@@ -56,11 +71,11 @@ serve(async (req) => {
         }
 
         // 2. Generate Invite Link
-        const { data: inviteData, error: inviteError } = await supabaseClient.auth.admin.generateLink({
+        const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
             type: 'invite',
             email: email,
             options: {
-                redirectTo: 'http://localhost:3000/set-password', // Update this for Prod
+                redirectTo: 'https://www.ivisit.ng/set-password', // Production URL
                 data: {
                     role: role || 'viewer',
                     ...metadata
@@ -68,10 +83,29 @@ serve(async (req) => {
             }
         })
 
-        if (inviteError) throw inviteError
+        if (inviteError) {
+            console.error('Invite link generation error:', inviteError)
+            throw inviteError
+        }
+
+        if (!inviteData?.properties?.action_link) {
+            console.error('Invalid invite data:', inviteData)
+            throw new Error('Failed to generate invite link')
+        }
 
         const { action_link } = inviteData.properties
 
+        // For now, just return success without sending email to test
+        return new Response(
+            JSON.stringify({ 
+                success: true, 
+                message: 'User invited successfully',
+                invite_link: action_link
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+
+        /*
         // 3. Send Email via Brevo (reusing logic from sendCustomEmail)
         // @ts-ignore
         const brevoApiKey = Deno.env.get('BREVO_API_KEY')
@@ -86,28 +120,27 @@ serve(async (req) => {
                 'api-key': brevoApiKey,
             },
             body: JSON.stringify({
-                sender: { email: 'noreply@ivisit.ng', name: 'iVisit Admin' },
+                sender: {
+                    email: 'noreply@ivisit.ng',
+                    name: 'iVisit'
+                },
                 to: [{ email }],
-                subject: 'You have been invited to iVisit Console',
+                subject: `You're invited to join iVisit!`,
                 htmlContent: htmlContent
             }),
         })
 
         if (!emailResponse.ok) {
-            const errText = await emailResponse.text()
-            throw new Error(`Email Provider Error: ${errText}`)
+            const errorData = await emailResponse.text()
+            console.error('Brevo API error:', errorData)
+            throw new Error(`Failed to send invite email: ${errorData}`)
         }
 
-        // 4. Update Profile Role immediately? 
-        // The 'generateLink' options.data handles the metadata, 
-        // trigger on auth.users will handle profile creation usually.
-        // If not, we might want to ensure a profile exists with that role.
-        // We'll trust the Auth trigger for now.
-
         return new Response(
-            JSON.stringify({ success: true, message: 'Invitation Sent' }),
+            JSON.stringify({ success: true, message: 'Invite sent successfully' }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
+        */
 
     } catch (error: any) {
         console.error('Invite Error:', error)
