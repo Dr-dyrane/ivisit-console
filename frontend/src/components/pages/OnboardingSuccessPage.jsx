@@ -93,16 +93,6 @@ export const OnboardingSuccessPage = () => {
                         <h2 className="font-semibold text-foreground">What happens next?</h2>
 
                         <div className="flex gap-3">
-                            <Mail className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                            <div>
-                                <p className="font-medium text-sm">Check your email</p>
-                                <p className="text-xs text-muted-foreground">
-                                    We've sent a confirmation email with next steps
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3">
                             <Clock className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                             <div>
                                 <p className="font-medium text-sm">Verification in 24-48 hours</p>
@@ -126,8 +116,8 @@ export const OnboardingSuccessPage = () => {
                     {/* Actions */}
                     <div className="space-y-3">
                         <Button asChild className="w-full gap-2">
-                            <Link to="/login">
-                                Go to Login
+                            <Link to="/">
+                                Go to Dashboard
                                 <ArrowRight className="w-4 h-4" />
                             </Link>
                         </Button>

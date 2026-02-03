@@ -96,7 +96,7 @@ const ProgressSidebar = () => {
                         onClick={() => isAccessible && goToStep(index)}
                         disabled={!isAccessible}
                         className={`
-                            group relative flex items-start gap-3 p-3 rounded-xl text-left transition-all
+                            group relative flex items-center gap-3 p-3 rounded-xl text-left transition-all
                             ${isCurrent
                                 ? 'bg-primary/10 border border-primary/30 shadow-lg shadow-primary/10'
                                 : isCompleted
@@ -131,11 +131,12 @@ const ProgressSidebar = () => {
                         {/* Icon */}
                         <Icon className={`w-4 h-4 flex-shrink-0 ${isCurrent ? 'text-primary' : 'text-muted-foreground'}`} />
 
-                        {/* Active indicator line */}
+                        {/* Active indicator line - centered vertically */}
                         {isCurrent && (
                             <motion.div
                                 layoutId="activeStep"
-                                className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"
+                                className="absolute left-0 inset-y-0 my-auto w-1 h-8 bg-primary rounded-r-full"
+                                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                             />
                         )}
                     </motion.button>
@@ -277,23 +278,35 @@ const NavigationButtons = () => {
         isSubmitting,
         goPrev,
         goNext,
+        createAdminAccount,
         submitOnboarding,
+        currentStepConfig,
     } = useOnboarding();
 
-    const handleContinue = () => {
+    const handleContinue = async () => {
         if (isLastStep) {
             submitOnboarding();
+        } else if (currentStepConfig?.id === 'account') {
+            // Step 2: Create admin account before continuing
+            // This authenticates the user and sets onboarding_status = 'pending'
+            await createAdminAccount();
+            // goNext is called inside createAdminAccount on success
         } else {
             goNext();
         }
     };
+
+    // Hide footer on first step (type selection uses play button for continue)
+    if (isFirstStep) {
+        return null;
+    }
 
     return (
         <div className="flex justify-between items-center pt-6 border-t border-border/30">
             <Button
                 variant="ghost"
                 onClick={goPrev}
-                disabled={isFirstStep || isSubmitting}
+                disabled={isSubmitting}
                 className="gap-2"
             >
                 <ChevronLeft className="w-4 h-4" />
@@ -358,19 +371,19 @@ export const OnboardingWizard = () => {
 
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col">
-                <div className="flex-1 bg-background/80 dark:bg-white/[0.02] backdrop-blur-xl rounded-2xl p-6 lg:p-8">
+                <div className="h-auto bg-background/80 dark:bg-white/[0.02] backdrop-blur-xl rounded-2xl p-6 lg:p-8">
                     {/* Desktop: Step Header */}
                     <div className="hidden lg:block mb-8">
                         <StepHeader />
                     </div>
 
-                    {/* Step Content */}
-                    <div className="max-w-xl mx-auto lg:mx-0">
+                    {/* Step Content - Full width for card-based steps */}
+                    <div className="w-full">
                         <StepContent />
                     </div>
 
-                    {/* Navigation */}
-                    <div className="max-w-xl mx-auto lg:mx-0 mt-8">
+                    {/* Navigation - Hidden on first step */}
+                    <div className="w-full mt-8">
                         <NavigationButtons />
                     </div>
                 </div>

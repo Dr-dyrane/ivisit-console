@@ -39,23 +39,107 @@ const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
  */
 export const onboardingService = {
     /**
-     * Submit complete onboarding data
-     * Creates organization, admin user, and stores verification documents
+     * Step 2: Create admin account and set onboarding_status = 'pending'
+     * If user already has a session (e.g., page refresh), skip creation.
      * 
-     * @important SCHEMA MAPPING:
-     * - Hospital table uses existing columns only (no city, state, email, etc.)
-     * - Address field combines street + city + state
-     * - type field maps from organizationType ('hospital', 'clinic', 'ambulance_service')
-     * - available_beds maps from bedCapacity
-     * - ambulances_count maps from fleetSize
-     * - latitude/longitude from location object
-     * - verified=false (pending verification)
+     * @param {Object} formData - Admin account form data
+     * @returns {Object} - { success: boolean, user: object, skipped: boolean }
+     */
+    createAdminAccount: async (formData) => {
+        try {
+            // Check if user is already authenticated (e.g., refreshed during onboarding)
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                console.log('[Onboarding] User already authenticated, skipping account creation');
+                return {
+                    success: true,
+                    user: session.user,
+                    skipped: true,
+                    message: 'Already authenticated'
+                };
+            }
+
+            // Sign up the admin user
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: formData.adminEmail,
+                password: formData.adminPassword,
+                options: {
+                    data: {
+                        full_name: formData.adminFullName,
+                    }
+                }
+            });
+
+            if (authError) {
+                console.error('Admin user creation failed:', authError);
+                // Handle common Supabase auth errors gracefully
+                const errorMessages = {
+                    'User already registered': 'This email is already registered. Please use a different email or try logging in.',
+                    'Password should be at least 6 characters': 'Password must be at least 6 characters long.',
+                    'Unable to validate email address': 'Please enter a valid email address.',
+                    'Signup is disabled': 'Registration is temporarily unavailable. Please try again later.',
+                    'Email rate limit exceeded': 'Too many attempts. Please wait a few minutes and try again.',
+                    'over_email_send_rate_limit': 'Too many attempts. Please wait a few minutes and try again.',
+                };
+                const userMessage = errorMessages[authError.message] ||
+                    errorMessages[authError.code] ||
+                    `Account creation failed: ${authError.message}`;
+                throw new Error(userMessage);
+            }
+
+            // Wait for profile trigger to create profile
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Set onboarding_status = 'pending' to enable hospital creation via RLS
+            if (authData.user) {
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .update({
+                        full_name: formData.adminFullName,
+                        onboarding_status: 'pending',
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', authData.user.id);
+
+                if (profileError) {
+                    console.error('Profile update failed:', profileError);
+                    // Don't throw - user is created, profile can be fixed later
+                }
+            }
+
+            return {
+                success: true,
+                user: authData.user,
+                skipped: false,
+                message: 'Admin account created successfully'
+            };
+
+        } catch (error) {
+            console.error('Admin account creation failed:', error);
+            // Re-throw with user-friendly message if not already formatted
+            if (error.message?.includes('fetch') || error.message?.includes('network')) {
+                throw new Error('Network error. Please check your connection and try again.');
+            }
+            throw error;
+        }
+    },
+
+    /**
+     * Step 5: Submit complete onboarding - creates organization and links to user
+     * User must be authenticated and have onboarding_status = 'pending'
      * 
-     * @see migrations/20260109201500_create_hospitals.sql for actual schema
+     * @param {Object} formData - Complete onboarding form data
+     * @returns {Object} - { success: boolean, organization: object }
      */
     submitOnboarding: async (formData) => {
         try {
-            // Build full address from components (city/state don't exist as separate columns)
+            // Get current session
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) {
+                throw new Error('User must be authenticated to submit onboarding');
+            }
+
+            // Build full address from components
             const fullAddress = [
                 formData.address,
                 formData.city,
@@ -63,36 +147,21 @@ export const onboardingService = {
             ].filter(Boolean).join(', ');
 
             // Step 1: Create organization record in hospitals table
-            // ONLY using columns that exist in the schema!
             const orgData = {
-                // Core fields that exist
                 name: formData.organizationName,
-                address: fullAddress, // Combined address
+                address: fullAddress,
                 phone: formData.phone,
-
-                // Type mapping: organizationType → type
-                // Schema allows: 'premium', 'standard', etc. but we use org types
                 type: formData.organizationType || 'standard',
-
-                // Arrays that exist
                 specialties: formData.specialties || [],
-                service_types: formData.serviceTypes || [], // Existing column
-                features: formData.features || [], // Existing column
-
-                // Numeric fields - correct mappings
-                available_beds: formData.bedCapacity || 0, // NOT bed_capacity
-                ambulances_count: formData.fleetSize || 0, // NOT fleet_size
-
-                // Location fields - separate lat/lng, NOT location object
+                service_types: formData.serviceTypes || [],
+                features: formData.features || [],
+                available_beds: formData.bedCapacity || 0,
+                ambulances_count: formData.fleetSize || 0,
                 latitude: formData.location?.lat || null,
                 longitude: formData.location?.lng || null,
-
-                // Status fields
-                verification_status: 'pending', // NEW: Column now exists!
-                verified: false, // Keep boolean in sync
-                status: 'available', // Default status
-
-                // Timestamp
+                verification_status: 'pending',
+                verified: false,
+                status: 'available',
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             };
@@ -108,51 +177,23 @@ export const onboardingService = {
                 throw new Error('Failed to create organization: ' + orgError.message);
             }
 
-            // Step 2: Create admin user via Edge Function
-            const { data: { session } } = await supabase.auth.getSession();
+            // Step 2: Update profile with org_admin role and link to organization
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update({
+                    role: 'org_admin',
+                    organization_id: organization.id,
+                    onboarding_status: 'complete', // Mark onboarding done
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', session.user.id);
 
-            // Sign up the admin user
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: formData.adminEmail,
-                password: formData.adminPassword,
-                options: {
-                    data: {
-                        full_name: formData.adminFullName,
-                        role: 'org_admin',
-                        organization_id: organization.id,
-                    }
-                }
-            });
-
-            if (authError) {
-                // Rollback organization if user creation fails
-                await supabase.from('hospitals').delete().eq('id', organization.id);
-                console.error('Admin user creation failed:', authError);
-                throw new Error('Failed to create admin account: ' + authError.message);
+            if (profileError) {
+                console.error('Profile update failed:', profileError);
+                // Don't delete hospital - admin can fix profile later
             }
 
-            // Step 3: Update profile with org_admin role
-            // Profile columns that exist: id, email, phone, username, first_name, last_name, full_name, image_uri, role, provider_type, bvn_verified, organization_id
-            // NOTE: verification_status does NOT exist in profiles table
-            if (authData.user) {
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .upsert({
-                        id: authData.user.id,
-                        full_name: formData.adminFullName,
-                        email: formData.adminEmail,
-                        role: 'org_admin', // Valid: 'patient', 'provider', 'admin', 'org_admin', 'dispatcher', 'viewer', 'sponsor'
-                        organization_id: organization.id, // FK to hospitals.id
-                        updated_at: new Date().toISOString(),
-                    });
-
-                if (profileError) {
-                    console.error('Profile update failed:', profileError);
-                    // Don't throw - user is created, profile can be fixed later
-                }
-            }
-
-            // Step 4: Upload verification documents (if any)
+            // Step 3: Upload verification documents (if any)
             if (formData.documents?.length > 0) {
                 for (const doc of formData.documents) {
                     if (doc.file) {
@@ -163,19 +204,15 @@ export const onboardingService = {
 
                         if (uploadError) {
                             console.error('Document upload failed:', uploadError);
-                            // Don't throw - documents can be uploaded later
                         }
                     }
                 }
             }
 
-            // Step 5: Fetch display IDs for the new organization and user
-            // Trigger happens on INSERT, so we wait a brief moment or just fetch manually
+            // Step 4: Fetch display IDs
             const { getDisplayId } = await import('./displayIdService');
-
-            // Wait up to 500ms for trigger to process if needed, then fetch
             const orgDisplayId = await getDisplayId(organization.id);
-            const userDisplayId = await getDisplayId(authData.user.id);
+            const userDisplayId = await getDisplayId(session.user.id);
 
             return {
                 success: true,
@@ -184,7 +221,7 @@ export const onboardingService = {
                     display_id: orgDisplayId
                 },
                 user: {
-                    ...authData.user,
+                    ...session.user,
                     display_id: userDisplayId
                 },
                 message: 'Registration submitted successfully'

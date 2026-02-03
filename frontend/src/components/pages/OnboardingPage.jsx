@@ -38,16 +38,18 @@ import ThemeToggle from '../ui/theme-toggle';
  */
 export const OnboardingPage = () => {
     const navigate = useNavigate();
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, isOnboarding } = useAuth();
 
     // ========================================================================
-    // AUTH GUARD: Redirect logged-in users to dashboard
+    // AUTH GUARD: Only redirect users who have COMPLETED onboarding
+    // If user is mid-onboarding (onboarding_status = 'pending'), let them stay
     // ========================================================================
     useEffect(() => {
-        if (!authLoading && user) {
+        if (!authLoading && user && !isOnboarding()) {
+            // User is authenticated AND has completed onboarding → go to dashboard
             navigate('/', { replace: true });
         }
-    }, [authLoading, user, navigate]);
+    }, [authLoading, user, isOnboarding, navigate]);
 
     // Show nothing while checking auth
     if (authLoading) {
@@ -58,8 +60,8 @@ export const OnboardingPage = () => {
         );
     }
 
-    // Don't render for authenticated users (redirect will happen)
-    if (user) {
+    // Redirect will happen for authenticated users who completed onboarding
+    if (user && !isOnboarding()) {
         return null;
     }
 

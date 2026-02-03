@@ -24,10 +24,11 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { onboardingService } from '../services/onboardingService';
+import { useAuth } from './AuthContext';
 
 // ============================================================================
 // TYPES & CONSTANTS
@@ -146,11 +147,34 @@ export const OnboardingProvider = ({ children }) => {
     const navigate = useNavigate();
 
     // ========================================================================
-    // STATE
+    // STORAGE KEYS
     // ========================================================================
 
-    const [currentStep, setCurrentStep] = useState(0);
-    const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+    const STORAGE_KEY = 'ivisit_onboarding_data';
+    const STEP_KEY = 'ivisit_onboarding_step';
+
+    // ========================================================================
+    // STATE (with sessionStorage persistence)
+    // ========================================================================
+
+    const [currentStep, setCurrentStep] = useState(() => {
+        try {
+            const saved = sessionStorage.getItem(STEP_KEY);
+            return saved ? parseInt(saved, 10) : 0;
+        } catch {
+            return 0;
+        }
+    });
+
+    const [formData, setFormData] = useState(() => {
+        try {
+            const saved = sessionStorage.getItem(STORAGE_KEY);
+            return saved ? { ...INITIAL_FORM_DATA, ...JSON.parse(saved) } : INITIAL_FORM_DATA;
+        } catch {
+            return INITIAL_FORM_DATA;
+        }
+    });
+
     const [stepValidity, setStepValidity] = useState({
         type: false,
         account: false,   // Now step 2
@@ -161,6 +185,52 @@ export const OnboardingProvider = ({ children }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [direction, setDirection] = useState(0); // Animation direction: 1=forward, -1=back
     const [selectedHospital, setSelectedHospital] = useState(null); // For hospital claim feature
+
+    // Get auth state to check if user is mid-onboarding
+    const { isOnboarding, user } = useAuth();
+
+    // ========================================================================
+    // AUTO-SKIP TO STEP 3 IF USER HAS PENDING STATUS
+    // If onboarding_status = 'pending', Steps 1-2 are complete
+    // ========================================================================
+    useEffect(() => {
+        if (user && isOnboarding()) {
+            // User is authenticated with pending status - skip to Step 3 (details)
+            // Step indices: 0=type, 1=account, 2=details
+            if (currentStep < 2) {
+                setCurrentStep(2); // Jump to Organization Details
+                setStepValidity(prev => ({
+                    ...prev,
+                    type: true,     // Already selected
+                    account: true,  // Already created account
+                }));
+            }
+        }
+    }, [user, isOnboarding, currentStep]);
+
+    // ========================================================================
+    // PERSISTENCE EFFECTS
+    // ========================================================================
+
+    // Save form data to sessionStorage on change
+    useEffect(() => {
+        try {
+            // Don't save password to storage for security
+            const dataToSave = { ...formData, adminPassword: '' };
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        } catch {
+            // Ignore storage errors
+        }
+    }, [formData]);
+
+    // Save current step to sessionStorage on change
+    useEffect(() => {
+        try {
+            sessionStorage.setItem(STEP_KEY, currentStep.toString());
+        } catch {
+            // Ignore storage errors
+        }
+    }, [currentStep]);
 
     // ========================================================================
     // DERIVED STATE
@@ -240,13 +310,42 @@ export const OnboardingProvider = ({ children }) => {
     }, [currentStep, isCurrentStepValid]);
 
     /**
-     * Submit the onboarding form
+     * Create admin account after completing Step 2 (Admin Account)
+     * This authenticates the user and sets onboarding_status = 'pending'
+     */
+    const createAdminAccount = useCallback(async () => {
+        setIsSubmitting(true);
+        try {
+            const result = await onboardingService.createAdminAccount(formData);
+            if (result.success) {
+                toast.success('Account created! Continue setting up your organization.');
+                // Advance to next step (Organization Details)
+                goNext();
+            }
+            return result;
+        } catch (error) {
+            console.error('Admin account creation failed:', error);
+            toast.error(error.message || 'Failed to create account. Please try again.');
+            throw error;
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [formData, goNext]);
+
+    /**
+     * Submit the onboarding form (Step 5)
+     * User is already authenticated with onboarding_status = 'pending'
      */
     const submitOnboarding = useCallback(async () => {
         setIsSubmitting(true);
         try {
             const result = await onboardingService.submitOnboarding(formData);
             if (result.success) {
+                // Clear persisted data on success
+                try {
+                    sessionStorage.removeItem(STORAGE_KEY);
+                    sessionStorage.removeItem(STEP_KEY);
+                } catch { }
                 toast.success('Registration submitted successfully!');
                 navigate('/onboarding-success', { state: { result } });
             }
@@ -262,6 +361,11 @@ export const OnboardingProvider = ({ children }) => {
      * Reset the entire onboarding state
      */
     const resetOnboarding = useCallback(() => {
+        // Clear persisted data
+        try {
+            sessionStorage.removeItem(STORAGE_KEY);
+            sessionStorage.removeItem(STEP_KEY);
+        } catch { }
         setCurrentStep(0);
         setFormData(INITIAL_FORM_DATA);
         setStepValidity({
@@ -350,6 +454,7 @@ export const OnboardingProvider = ({ children }) => {
         goNext,
         goPrev,
         goToStep,
+        createAdminAccount,
         submitOnboarding,
         resetOnboarding,
         selectHospital,
@@ -370,6 +475,7 @@ export const OnboardingProvider = ({ children }) => {
         goNext,
         goPrev,
         goToStep,
+        createAdminAccount,
         submitOnboarding,
         resetOnboarding,
         selectHospital,

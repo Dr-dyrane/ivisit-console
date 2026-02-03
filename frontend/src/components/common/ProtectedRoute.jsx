@@ -15,7 +15,7 @@ export const ProtectedRoute = ({
 	resource = null,
 	path = null,
 }) => {
-	const { user, profile, loading, hasRole, hasMinRole, can } = useAuth();
+	const { user, profile, loading, hasRole, hasMinRole, can, isOnboarding } = useAuth();
 	const location = useLocation();
 	const currentPath = path || location.pathname;
 
@@ -25,6 +25,11 @@ export const ProtectedRoute = ({
 
 	if (!user) {
 		return <Navigate to="/login" state={{ from: location }} replace />;
+	}
+
+	// If user is mid-onboarding, redirect them back to onboarding
+	if (isOnboarding()) {
+		return <Navigate to="/onboarding" replace />;
 	}
 
 	// Get accessible navigation based on user profile
@@ -71,13 +76,13 @@ function checkPathAccess(path, accessibleNav) {
 	// Check management items
 	const mgmtItem = accessibleNav.mgmt?.items?.find(item => item.path === path);
 	if (mgmtItem) return true;
-	
+
 	// Check user items
 	const userItem = accessibleNav.user?.items?.find(item => item.path === path);
 	if (userItem) return true;
 
 	// Always allow access to basic pages
-	const allowedPaths = [ '/login', '/unauthorized',];
+	const allowedPaths = ['/login', '/unauthorized',];
 	if (allowedPaths.includes(path)) return true;
 
 	return false;

@@ -214,6 +214,9 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   const isViewer = () => hasRole('viewer');
   const isPatient = () => hasRole('patient');
 
+  // Check if user is mid-onboarding (has pending status)
+  const isOnboarding = () => profile?.onboarding_status === 'pending';
+
   /**
    * Universal Permission Checker
    * @param {string} action - 'view', 'create', 'edit', 'delete'
@@ -283,6 +286,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     isProvider,
     isViewer,
     isPatient,
+    isOnboarding,
     can,
   };
 
