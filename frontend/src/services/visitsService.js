@@ -16,6 +16,8 @@ const TABLE_NAME = 'visits';
 export async function getVisits(filter = {}) {
   try {
     const user = await getCurrentUser();
+    // NOTE: hospital_id is TEXT (Google Place ID), not UUID FK to hospitals table
+    // So we cannot join hospitals directly - just fetch the raw fields
     let query = supabase.from(TABLE_NAME).select(`
       *,
       profiles!visits_user_id_fkey (
@@ -25,12 +27,6 @@ export async function getVisits(filter = {}) {
         full_name,
         phone,
         avatar_url
-      ),
-      hospitals!visits_hospital_id_fkey (
-        id,
-        name,
-        address,
-        phone
       )
     `);
 
@@ -87,9 +83,7 @@ export async function getVisits(filter = {}) {
     return (data || []).map(visit => ({
       ...visit,
       patient: visit.profiles, // Map profiles to patient for consistency
-      hospital: visit.hospitals,
       profiles: undefined, // Remove original profiles to avoid confusion
-      hospitals: undefined // Remove original hospitals to avoid confusion
     }));
   } catch (error) {
     console.error('Error fetching visits:', error);

@@ -19,12 +19,19 @@ export const ProtectedRoute = ({
 	const location = useLocation();
 	const currentPath = path || location.pathname;
 
+	// Wait for auth to complete
 	if (loading) {
 		return <DynamicAuthSkeleton pathname={currentPath} />;
 	}
 
 	if (!user) {
 		return <Navigate to="/login" state={{ from: location }} replace />;
+	}
+
+	// Wait for profile to be fetched before checking access
+	// This prevents race condition where user is redirected before profile loads
+	if (!profile) {
+		return <DynamicAuthSkeleton pathname={currentPath} />;
 	}
 
 	// If user is mid-onboarding, redirect them back to onboarding

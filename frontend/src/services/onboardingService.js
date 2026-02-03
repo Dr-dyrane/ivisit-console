@@ -125,6 +125,76 @@ export const onboardingService = {
     },
 
     /**
+     * Search hospitals by name for autofill in Step 3
+     * User must be authenticated (after Step 2) to call this.
+     * 
+     * @param {string} query - Search query (min 2 characters)
+     * @returns {Array} - List of matching hospitals with claim status
+     * 
+     * @example
+     * const hospitals = await onboardingService.searchHospitalsByName('General');
+     * // Returns: [{ id, name, address, city, state, claimStatus: 'unclaimed'|'pending'|'verified' }]
+     */
+    searchHospitalsByName: async (query) => {
+        try {
+            if (!query || query.length < 2) return [];
+
+            // Search hospitals by name (case-insensitive partial match)
+            const { data: hospitals, error } = await supabase
+                .from('hospitals')
+                .select('id, name, address, phone, latitude, longitude, verification_status, verified')
+                .ilike('name', `%${query}%`)
+                .limit(10);
+
+            if (error) {
+                console.error('Hospital search failed:', error);
+                return [];
+            }
+
+            // Check which hospitals already have org admins (claimed)
+            const hospitalIds = hospitals.map(h => h.id);
+
+            const { data: claimedProfiles } = await supabase
+                .from('profiles')
+                .select('organization_id')
+                .in('organization_id', hospitalIds)
+                .not('organization_id', 'is', null);
+
+            const claimedOrgIds = new Set(claimedProfiles?.map(p => p.organization_id) || []);
+
+            // Transform to search result format with claim status
+            return hospitals.map(hospital => {
+                // Determine claim status
+                let claimStatus = 'unclaimed';
+                if (claimedOrgIds.has(hospital.id)) {
+                    claimStatus = hospital.verified ? 'verified' : 'pending';
+                }
+
+                // Parse address into components (if stored as full address)
+                const addressParts = hospital.address?.split(',').map(s => s.trim()) || [];
+
+                return {
+                    id: hospital.id,
+                    name: hospital.name,
+                    address: addressParts[0] || hospital.address,
+                    city: addressParts[1] || '',
+                    state: addressParts[2] || '',
+                    phone: hospital.phone,
+                    location: hospital.latitude && hospital.longitude
+                        ? { lat: hospital.latitude, lng: hospital.longitude }
+                        : null,
+                    claimStatus,
+                    isGoogleImported: false, // Could add a field for this
+                };
+            });
+
+        } catch (error) {
+            console.error('Hospital search error:', error);
+            return [];
+        }
+    },
+
+    /**
      * Step 5: Submit complete onboarding - creates organization and links to user
      * User must be authenticated and have onboarding_status = 'pending'
      * 
