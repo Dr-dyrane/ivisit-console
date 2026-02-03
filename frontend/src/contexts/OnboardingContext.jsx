@@ -248,7 +248,7 @@ export const OnboardingProvider = ({ children }) => {
             const result = await onboardingService.submitOnboarding(formData);
             if (result.success) {
                 toast.success('Registration submitted successfully!');
-                navigate('/onboarding-success');
+                navigate('/onboarding-success', { state: { result } });
             }
         } catch (error) {
             console.error('Onboarding submission failed:', error);

@@ -72,6 +72,18 @@ async function getProfilesWithAuthData(filter) {
       profiles = profiles.slice(start, end);
     }
 
+    // NEW: Enrich with display IDs
+    if (profiles.length > 0) {
+      const { getDisplayIds } = await import('./displayIdService');
+      const profileIds = profiles.map(p => p.id);
+      const displayIds = await getDisplayIds(profileIds);
+
+      profiles = profiles.map(p => ({
+        ...p,
+        display_id: displayIds.get(p.id) || null
+      }));
+    }
+
     return profiles;
   } catch (error) {
     console.error('Error fetching profiles with auth data:', error);
@@ -178,7 +190,20 @@ export async function getProfiles(filter = {}) {
     const { data, error } = await query;
     if (error) throw error;
 
-    return data || [];
+    // NEW: Enrich with display IDs
+    let enrichedData = data || [];
+    if (enrichedData.length > 0) {
+      const { getDisplayIds } = await import('./displayIdService');
+      const profileIds = enrichedData.map(p => p.id);
+      const displayIds = await getDisplayIds(profileIds);
+
+      enrichedData = enrichedData.map(p => ({
+        ...p,
+        display_id: displayIds.get(p.id) || null
+      }));
+    }
+
+    return enrichedData;
   } catch (error) {
     console.error('Error fetching profiles:', error);
     throw error;

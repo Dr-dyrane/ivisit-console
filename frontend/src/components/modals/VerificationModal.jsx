@@ -130,6 +130,11 @@ export const VerificationModal = ({
                     {mode === 'view' ? 'Provider Details' : 'Verification Review'}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
+                    {provider.display_id && (
+                      <Badge className="rounded-full bg-primary/20 text-primary border-0 font-mono text-[10px] px-2 py-0.5">
+                        {provider.display_id}
+                      </Badge>
+                    )}
                     <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${formData.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
                       {formData.bvn_verified ? 'VERIFIED' : 'PENDING'}
                     </Badge>

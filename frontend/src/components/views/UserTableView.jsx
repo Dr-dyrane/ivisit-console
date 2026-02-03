@@ -112,19 +112,19 @@ export const UserTableView = ({
                   <TableCell className="font-bold">{user.full_name || user.username || 'Unknown'}</TableCell>
                   <TableCell className="text-muted-foreground">{user.email || '-'}</TableCell>
                   <TableCell>
-                    <Badge className={`squircle-sm ${user.role === 'admin' ? 'bg-warning/20 text-warning' :
-                      user.role === 'provider' ? 'bg-success/20 text-success' :
-                        'bg-info/20 text-info'
-                      } border-0 font-bold`}>
+                    <Badge className={`squircle-sm ${user.role === 'admin' ? 'bg-orange-500/10 text-orange-500 border-orange-500/10' :
+                      user.role === 'provider' ? 'bg-green-500/10 text-green-500 border-green-500/10' :
+                        'bg-blue-500/10 text-blue-500 border-blue-500/10'
+                      } border-0 font-black text-[10px] tracking-widest uppercase px-2 py-0.5 backdrop-blur-md`}>
                       {user.role}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground capitalize">{user.provider_type || '-'}</TableCell>
                   <TableCell>
                     {user.bvn_verified ? (
-                      <Badge className="squircle-sm bg-success/20 text-success border-0">Verified</Badge>
+                      <Badge className="squircle bg-success/10 text-success border-0 font-black text-[10px] tracking-widest uppercase px-2 py-0.5">Verified</Badge>
                     ) : (
-                      <Badge className="squircle-sm bg-muted text-muted-foreground border-0">Pending</Badge>
+                      <Badge className="squircle bg-white/5 text-muted-foreground/60 border-0 font-black text-[10px] tracking-widest uppercase px-2 py-0.5">Pending</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-muted-foreground whitespace-nowrap">

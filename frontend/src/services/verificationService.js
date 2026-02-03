@@ -20,7 +20,7 @@ export async function getVerificationQueue(filters = {}) {
     // Check if user can access verification queue
     const user = await getCurrentUser();
     const role = user?.role || 'viewer';
-    
+
     if (!['admin', 'org_admin', 'sponsor'].includes(role)) {
       throw new AuthorizationError('Admin, Org Admin, or Sponsor access required for verification queue', 'verification', 'getQueue');
     }
@@ -67,6 +67,19 @@ export async function getVerificationQueue(filters = {}) {
     const { data, error, count } = await query;
     if (error) throw error;
 
+    // NEW: Enrich with display IDs
+    let enrichedData = data || [];
+    if (enrichedData.length > 0) {
+      const { getDisplayIds } = await import('./displayIdService');
+      const profileIds = enrichedData.map(p => p.id);
+      const displayIds = await getDisplayIds(profileIds);
+
+      enrichedData = enrichedData.map(p => ({
+        ...p,
+        display_id: displayIds.get(p.id) || null
+      }));
+    }
+
     // Get global stats for providers only
     const statsQuery = supabase
       .from(TABLE_NAME)
@@ -85,7 +98,7 @@ export async function getVerificationQueue(filters = {}) {
     logAuthorizationEvent('verification', 'getQueue', null, true);
 
     return {
-      data: data || [],
+      data: enrichedData,
       stats,
       pagination: {
         page,
@@ -141,7 +154,7 @@ export async function verifyProvider(providerId, approved) {
 
     if (error) throw error;
 
-    logAuthorizationEvent('verification', 'verifyProvider', providerId, true, 
+    logAuthorizationEvent('verification', 'verifyProvider', providerId, true,
       `${approved ? 'Approved' : 'Rejected'} provider: ${provider.username}`);
 
     // Log activity
@@ -245,7 +258,7 @@ export async function canVerifyProviders() {
   try {
     const user = await getCurrentUser();
     const role = user?.role || 'viewer';
-    
+
     // Admins, Org Admins, and Sponsors can verify providers
     return ['admin', 'org_admin', 'sponsor'].includes(role);
   } catch (error) {

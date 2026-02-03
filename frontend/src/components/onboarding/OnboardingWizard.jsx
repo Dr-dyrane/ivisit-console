@@ -339,11 +339,11 @@ export const OnboardingWizard = () => {
         <div className="min-h-[calc(100vh-120px)] flex flex-col lg:flex-row gap-6">
             {/* Desktop: Progress Sidebar */}
             <aside className="hidden lg:block w-80 flex-shrink-0">
-                <div className="sticky top-4 bg-background/80 dark:bg-white/[0.02] backdrop-blur-xl rounded-2xl overflow-hidden">
+                <div className="sticky top-4 glass-card-premium rounded-2xl overflow-hidden border border-white/10 shadow-premium">
                     {/* Progress bar */}
-                    <div className="h-1 bg-muted/50">
+                    <div className="h-1 bg-white/5">
                         <motion.div
-                            className="h-full bg-primary"
+                            className="h-full bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)]"
                             initial={{ width: 0 }}
                             animate={{ width: `${progressPercent}%` }}
                             transition={{ type: 'spring', stiffness: 100, damping: 20 }}

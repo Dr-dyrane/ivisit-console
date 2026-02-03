@@ -58,7 +58,20 @@ export async function getHospitals(filter = {}) {
     const { data, error } = await query;
     if (error) throw error;
 
-    return data || [];
+    // NEW: Enrich with display IDs (ORG-XXXXXX)
+    let enrichedData = data || [];
+    if (enrichedData.length > 0) {
+      const { getDisplayIds } = await import('./displayIdService');
+      const orgIds = enrichedData.map(h => h.id);
+      const displayIds = await getDisplayIds(orgIds);
+
+      enrichedData = enrichedData.map(h => ({
+        ...h,
+        display_id: displayIds.get(h.id) || null
+      }));
+    }
+
+    return enrichedData;
   } catch (error) {
     console.error('Error fetching hospitals:', error);
     throw error;

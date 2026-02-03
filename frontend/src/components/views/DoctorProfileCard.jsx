@@ -112,10 +112,13 @@ export const DoctorProfileCard = () => {
                         </div>
                     </div>
                     <div>
-                        <h3 className="font-bold text-lg leading-none">Professional Profile</h3>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-1">
-                            Provider ID: {displayId || `#${doctorProfile.id?.slice(-8)}`}
-                        </p>
+                        <h3 className="text-xl font-black tracking-tight leading-none mb-1.5 text-foreground">Professional Profile</h3>
+                        <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary pulse-dot" />
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-black">
+                                ID: {displayId || `#${doctorProfile.id?.slice(-8)}`}
+                            </p>
+                        </div>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -149,35 +152,35 @@ export const DoctorProfileCard = () => {
             <div className="p-6 grid gap-8 relative z-10">
                 {/* Read Only Stats Row */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-white/5 space-y-1">
-                        <div className="flex items-center gap-2 text-muted-foreground text-xs font-bold uppercase tracking-wider">
-                            <Award className="w-3 h-3" /> Specialization
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm shadow-inner space-y-1 group/stat hover:bg-white/10 transition-colors">
+                        <div className="flex items-center gap-2 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">
+                            <Award className="w-3 h-3 opacity-50 group-hover/stat:opacity-100 transition-opacity" /> Specialization
                         </div>
-                        <div className="font-semibold text-sm truncate" title={doctorProfile.specialization}>
+                        <div className="font-bold text-sm truncate text-foreground/90 group-hover/stat:text-foreground transition-colors" title={doctorProfile.specialization}>
                             {doctorProfile.specialization || 'General'}
                         </div>
                     </div>
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-white/5 space-y-1">
-                        <div className="flex items-center gap-2 text-muted-foreground text-xs font-bold uppercase tracking-wider">
-                            <Building2 className="w-3 h-3" /> Affiliation
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm shadow-inner space-y-1 group/stat hover:bg-white/10 transition-colors">
+                        <div className="flex items-center gap-2 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">
+                            <Building2 className="w-3 h-3 opacity-50 group-hover/stat:opacity-100 transition-opacity" /> Affiliation
                         </div>
-                        <div className="font-semibold text-sm truncate" title={doctorProfile.hospitals?.name}>
+                        <div className="font-bold text-sm truncate text-foreground/90 group-hover/stat:text-foreground transition-colors" title={doctorProfile.hospitals?.name}>
                             {doctorProfile.hospitals?.name || 'Independent'}
                         </div>
                     </div>
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-white/5 space-y-1">
-                        <div className="flex items-center gap-2 text-muted-foreground text-xs font-bold uppercase tracking-wider">
-                            <Star className="w-3 h-3 text-orange-400" /> Rating
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm shadow-inner space-y-1 group/stat hover:bg-white/10 transition-colors">
+                        <div className="flex items-center gap-2 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">
+                            <Star className="w-3 h-3 text-orange-400 opacity-50 group-hover/stat:opacity-100 transition-opacity" /> Rating
                         </div>
-                        <div className="font-semibold text-sm">
-                            {doctorProfile.rating} <span className="text-muted-foreground text-xs">({doctorProfile.reviews_count} reviews)</span>
+                        <div className="font-bold text-sm text-foreground/90 group-hover/stat:text-foreground transition-colors">
+                            {doctorProfile.rating} <span className="text-muted-foreground/60 text-[10px] font-medium ml-1">({doctorProfile.reviews_count} reviews)</span>
                         </div>
                     </div>
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-white/5 space-y-1">
-                        <div className="flex items-center gap-2 text-muted-foreground text-xs font-bold uppercase tracking-wider">
-                            <Activity className="w-3 h-3" /> Status
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm shadow-inner space-y-1 group/stat hover:bg-white/10 transition-colors">
+                        <div className="flex items-center gap-2 text-muted-foreground/60 text-[10px] font-black uppercase tracking-widest">
+                            <Activity className="w-3 h-3 opacity-50 group-hover/stat:opacity-100 transition-opacity" /> Status
                         </div>
-                        <div className={`font-semibold text-sm ${formData.is_available ? 'text-green-500' : 'text-muted-foreground'}`}>
+                        <div className={`font-bold text-sm transition-colors ${formData.is_available ? 'text-green-500' : 'text-muted-foreground/60'}`}>
                             {formData.is_available ? 'Available' : 'Unavailable'}
                         </div>
                     </div>

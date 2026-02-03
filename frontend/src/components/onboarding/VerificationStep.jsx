@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Upload, FileText, Check, AlertCircle, Shield } from 'lucide-react';
+import { Badge } from '../ui/badge';
 import { motion } from 'framer-motion';
 
 /**
@@ -73,29 +74,31 @@ export const VerificationStep = ({ formData, updateFormData, setStepValid, onSub
 
     // Summary of what's being submitted
     const renderSummary = () => (
-        <div className="bg-muted/30 rounded-xl p-4 space-y-3">
-            <h3 className="font-semibold flex items-center gap-2">
-                <Check className="w-4 h-4 text-primary" />
-                Registration Summary
-            </h3>
-            <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">Organization</span>
-                    <span className="font-medium">{formData.organizationName}</span>
+        <div className="relative overflow-hidden rounded-2xl bg-white/[0.03] border border-white/10 p-5 shadow-premium space-y-4">
+            <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <Check className="w-5 h-5 text-primary" />
                 </div>
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">Type</span>
-                    <span className="font-medium capitalize">
+                <div>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Registration Summary</h3>
+                    <p className="text-[10px] text-muted-foreground font-medium">Please review your details</p>
+                </div>
+            </div>
+
+            <div className="space-y-3 pt-2">
+                <div className="flex justify-between items-center px-3 py-2 rounded-xl bg-white/5 border border-white/5 group-hover:bg-white/10 transition-colors">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Organization</span>
+                    <span className="text-sm font-black text-foreground">{formData.organizationName}</span>
+                </div>
+                <div className="flex justify-between items-center px-3 py-2 rounded-xl bg-white/5 border border-white/5">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Type</span>
+                    <Badge variant="outline" className="squircle border-primary/30 bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest">
                         {formData.organizationType?.replace('_', ' ')}
-                    </span>
+                    </Badge>
                 </div>
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">Admin</span>
-                    <span className="font-medium">{formData.adminEmail}</span>
-                </div>
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">Location</span>
-                    <span className="font-medium">{formData.city}, {formData.state}</span>
+                <div className="flex justify-between items-center px-3 py-2 rounded-xl bg-white/5 border border-white/5">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Admin</span>
+                    <span className="text-sm font-medium text-foreground truncate max-w-[150px]">{formData.adminEmail}</span>
                 </div>
             </div>
         </div>

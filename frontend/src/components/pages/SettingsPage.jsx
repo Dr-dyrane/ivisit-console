@@ -103,14 +103,14 @@ export const SettingsPage = () => {
         document.documentElement.classList.toggle('dark', newMode);
     };
 
-    const getRoleBadgeColor = (role) => {
-        const colors = {
-            admin: 'bg-primary/10 text-primary border-primary/20',
-            sponsor: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
-            provider: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-            viewer: 'bg-muted text-muted-foreground border-border/10',
+    const getRoleBadgeStyles = (role) => {
+        const styles = {
+            admin: 'bg-primary/5 text-primary border-primary/20 backdrop-blur-md shadow-sm',
+            sponsor: 'bg-purple-500/5 text-purple-500 border-purple-500/20 backdrop-blur-md shadow-sm',
+            provider: 'bg-blue-500/5 text-blue-500 border-blue-500/20 backdrop-blur-md shadow-sm',
+            viewer: 'bg-white/5 text-muted-foreground border-white/10 backdrop-blur-md shadow-sm',
         };
-        return colors[role] || colors.viewer;
+        return styles[role] || styles.viewer;
     };
 
     return (
@@ -158,34 +158,44 @@ export const SettingsPage = () => {
                                                 {getAvatarFallback(profile, user)}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <div className="absolute bottom-2 right-2 w-6 h-6 bg-success rounded-full border-4 border-background shadow-sm" title="Online" />
+                                        <div className="absolute bottom-2 right-2 w-6 h-6 bg-success rounded-full border-4 border-background shadow-sm pulse-dot" title="Online" />
                                     </div>
 
-                                    <div className="mb-4 text-center md:text-left flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 justify-center md:justify-start">
-                                            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground truncate">
+                                    <div className="text-center md:text-left flex-1 min-w-0 w-full space-y-1.5">
+                                        {/* Primary Identity - Full Name (No Truncation) */}
+                                        <div className="space-y-1">
+                                            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-foreground leading-tight break-words">
                                                 {profile?.username || 'User Profile'}
                                             </h2>
-                                            {displayId && (
-                                                <Badge variant="outline" className="squircle bg-primary/5 text-primary border-primary/20 font-mono text-xs">
-                                                    {displayId}
-                                                </Badge>
-                                            )}
+                                        </div>
+
+                                        {/* Badges Row - Pushed to its own line */}
+                                        <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start">
                                             {profile?.bvn_verified && (
-                                                <Badge className="squircle bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 p-1 px-2" title="Verified User">
-                                                    <Shield className="w-4 h-4 mr-1" />
+                                                <Badge className="squircle bg-blue-500/10 text-blue-500 border-blue-500/10 backdrop-blur-md px-2.5 py-1 font-bold text-[10px] tracking-widest uppercase shadow-sm">
+                                                    <Shield className="w-3 h-3 mr-1.5" />
                                                     Verified
                                                 </Badge>
                                             )}
-                                        </div>
-                                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-2 text-muted-foreground">
-                                            <Badge variant="outline" className={`squircle border px-3 py-1 font-semibold uppercase tracking-wider ${getRoleBadgeColor(profile?.role)}`}>
-                                                {profile?.role || 'VIEWER'}
+                                            <Badge variant="outline" className={`squircle border px-3 py-1 font-black text-[10px] tracking-widest uppercase shadow-sm ${getRoleBadgeStyles(profile?.role)}`}>
+                                                {profile?.role?.toUpperCase() || 'VIEWER'}
                                             </Badge>
-                                            <span className="flex items-center gap-1.5 text-sm font-medium px-3 py-1 bg-muted/30 squircle rounded-lg text-muted-foreground border border-white/5">
-                                                <Mail className="h-3.5 w-3.5" />
-                                                <span className="truncate max-w-[200px]">{user?.email || profile?.email}</span>
-                                            </span>
+                                        </div>
+
+                                        {/* Secondary Identifiers - IDs and Email */}
+                                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-0.5">
+                                            {displayId && (
+                                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 backdrop-blur-md shadow-inner group/id hover:bg-white/10 transition-colors">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary pulse-dot" />
+                                                    <span className="font-mono text-[10px] tracking-tighter text-foreground/80">{displayId}</span>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 backdrop-blur-md shadow-inner group/email hover:bg-white/10 transition-colors max-w-full overflow-hidden">
+                                                <Mail className="h-3 w-3 opacity-50 shrink-0" />
+                                                <span className="text-[11px] tracking-tight text-muted-foreground/80 break-all">
+                                                    {user?.email || profile?.email}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
 

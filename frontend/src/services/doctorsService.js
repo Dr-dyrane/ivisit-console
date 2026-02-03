@@ -66,7 +66,20 @@ export async function getDoctors(filter = {}) {
     const { data, error, count } = await query;
     if (error) throw error;
 
-    return { data: data || [], count: count || 0 };
+    // NEW: Enrich with display IDs (PRV-XXXXXX) via profile_id
+    let enrichedData = data || [];
+    if (enrichedData.length > 0) {
+      const { getDisplayIds } = await import('./displayIdService');
+      const profileIds = enrichedData.map(d => d.profile_id).filter(Boolean);
+      const displayIds = await getDisplayIds(profileIds);
+
+      enrichedData = enrichedData.map(d => ({
+        ...d,
+        display_id: displayIds.get(d.profile_id) || null
+      }));
+    }
+
+    return { data: enrichedData, count: count || 0 };
   } catch (error) {
     console.error('Error fetching doctors:', error);
     throw error;

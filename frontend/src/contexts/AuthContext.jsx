@@ -57,7 +57,11 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
             .eq('id', userId);
           data.role = 'admin';
         }
-        setProfile(data);
+
+        // NEW: Enrich with display ID
+        const { getDisplayId } = await import('../services/displayIdService');
+        const display_id = await getDisplayId(data.id);
+        setProfile({ ...data, display_id });
       } else {
         // Create new profile if doesn't exist
         const role = email === 'halodyrane@gmail.com' ? 'admin' : 'viewer';
@@ -79,7 +83,10 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
           console.error('Error creating profile:', createError);
           setProfile(newProfile); // Use local profile as fallback
         } else {
-          setProfile(createdProfile);
+          // NEW: Enrich with display ID
+          const { getDisplayId } = await import('../services/displayIdService');
+          const display_id = await getDisplayId(createdProfile.id);
+          setProfile({ ...createdProfile, display_id });
         }
       }
     } catch (error) {

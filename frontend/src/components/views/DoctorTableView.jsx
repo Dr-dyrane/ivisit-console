@@ -80,6 +80,7 @@ export const DoctorTableView = ({
                   aria-label="Select all"
                 />
               </TableHead>
+              <SortableHead label="ID" columnKey="display_id" />
               <SortableHead label="Name" columnKey="name" />
               <SortableHead label="Specialization" columnKey="specialization" />
               <TableHead className="font-bold uppercase tracking-wider">Hospital</TableHead>
@@ -107,6 +108,9 @@ export const DoctorTableView = ({
                       onCheckedChange={(checked) => handleSelectOne(doctor.id, checked)}
                       aria-label={`Select ${doctor.name}`}
                     />
+                  </TableCell>
+                  <TableCell className="font-mono text-[10px] font-bold text-primary/80">
+                    {doctor.display_id || '-'}
                   </TableCell>
                   <TableCell className="font-bold">{doctor.name || 'Unknown'}</TableCell>
                   <TableCell>{doctor.specialization || 'General Practitioner'}</TableCell>

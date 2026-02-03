@@ -169,10 +169,24 @@ export const onboardingService = {
                 }
             }
 
+            // Step 5: Fetch display IDs for the new organization and user
+            // Trigger happens on INSERT, so we wait a brief moment or just fetch manually
+            const { getDisplayId } = await import('./displayIdService');
+
+            // Wait up to 500ms for trigger to process if needed, then fetch
+            const orgDisplayId = await getDisplayId(organization.id);
+            const userDisplayId = await getDisplayId(authData.user.id);
+
             return {
                 success: true,
-                organization,
-                user: authData.user,
+                organization: {
+                    ...organization,
+                    display_id: orgDisplayId
+                },
+                user: {
+                    ...authData.user,
+                    display_id: userDisplayId
+                },
                 message: 'Registration submitted successfully'
             };
 
@@ -237,11 +251,16 @@ export const onboardingService = {
                 return [];
             }
 
+            // Enrich with display IDs
+            const { getDisplayIds } = await import('./displayIdService');
+            const displayIds = await getDisplayIds(data.map(h => h.id));
+
             // Add claim status based on 'verified' boolean (only column that exists)
             // verified=true means hospital is claimed and verified
             // verified=false could be unclaimed OR pending (can't distinguish without more columns)
             return (data || []).map(hospital => ({
                 ...hospital,
+                display_id: displayIds.get(hospital.id) || null,
                 // Parse city/state from address if needed (format: "street, city, state")
                 city: hospital.address?.split(', ')[1] || '',
                 state: hospital.address?.split(', ')[2] || '',
