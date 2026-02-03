@@ -63,6 +63,9 @@ export const VerificationQueueListView = ({
                           <h3 className="font-bold text-lg tracking-tight text-foreground group-hover:text-primary transition-colors line-clamp-1">
                             {provider.username || provider.full_name || 'Unknown Provider'}
                           </h3>
+                          <Badge className="squircle-sm bg-primary/20 text-primary border-0 font-mono text-[10px] ml-1">
+                            {provider.display_id || 'PRV-PENDING'}
+                          </Badge>
                           {provider.bvn_verified && (
                             <div className="text-primary" title="BVN Verified">
                               <CheckCircle className="h-3.5 w-3.5 fill-primary/10" />

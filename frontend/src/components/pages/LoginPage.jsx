@@ -405,6 +405,19 @@ export const LoginPage = () => {
 											Continue with Google
 										</button>
 
+										<div className="pt-4 border-t border-border">
+											<p className="text-sm text-muted-foreground mb-3">
+												New to iVisit?
+											</p>
+											<a
+												href="/onboarding"
+												className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+											>
+												Register your organization
+												<ArrowRight size={14} />
+											</a>
+										</div>
+
 										<div className="pt-2">
 											<a href="https://www.ivisit.ng/support" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
 												Trouble signing in? Contact Support

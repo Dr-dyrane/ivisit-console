@@ -33,20 +33,23 @@ import { HealthNewsManagementPage } from "./components/pages/HealthNewsManagemen
 import { SupportTicketsPage } from "./components/pages/SupportTicketsPage";
 import { InsuranceManagementPage } from "./components/pages/InsuranceManagementPage";
 import { SubscriptionManagementPage } from "./components/pages/SubscriptionManagementPage";
+import { OnboardingPage } from "./components/pages/OnboardingPage";
+import { OnboardingSuccessPage } from "./components/pages/OnboardingSuccessPage";
 import { Toaster } from "./components/ui/sonner";
 import { motion } from "framer-motion";
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import { PWAProvider } from "./contexts/PWAContext";
 import "./App.css";
 
 const AppShell = ({ children }) => {
 	const location = useLocation();
 	const { isScrolledDown, sidebarWidth, isContextPanelOpen } = useLayout();
-	const hideNav = ["/login", "/unauthorized", "/set-password"].includes(location.pathname);
+	const hideNav = ["/login", "/unauthorized", "/set-password", "/onboarding", "/onboarding-success"].includes(location.pathname);
 	const isMobile = window.innerWidth < 768;
 
 	return (
 		<div className="relative h-screen w-full text-foreground overflow-hidden flex flex-col">
-			
+
 			{!hideNav && <SmartHeader />}
 
 			<div className="flex-1 flex relative overflow-hidden">
@@ -78,7 +81,7 @@ const AppShell = ({ children }) => {
 						transition={{ type: "spring", stiffness: 300, damping: 30 }}
 						className="relative z-10"
 					>			{/* Simple Static Dot Grid - Apple-level simplicity */}
-			
+
 						<div className="md:p-6">
 							{children}
 						</div>
@@ -123,6 +126,8 @@ function AppRoutes() {
 				<Routes>
 					<Route path="/login" element={<LoginPage />} />
 					<Route path="/set-password" element={<SetPasswordPage />} />
+					<Route path="/onboarding" element={<OnboardingPage />} />
+					<Route path="/onboarding-success" element={<OnboardingSuccessPage />} />
 					<Route path="/unauthorized" element={<UnauthorizedPage />} />
 					<Route path="/" element={<ProtectedRoute><BentoHome allowedRoles={["sponsor", "viewer", "provider", "admin"]} /></ProtectedRoute>} />
 					<Route path="/map" element={<ProtectedRoute minRole="provider"><GodModeMap /></ProtectedRoute>} />
@@ -150,10 +155,12 @@ function App() {
 	return (
 		<ErrorBoundary>
 			<ThemeProvider>
-				<Router>
-					<AppRoutes />
-					<Toaster position="top-right" richColors />
-				</Router>
+				<PWAProvider>
+					<Router>
+						<AppRoutes />
+						<Toaster position="top-right" richColors />
+					</Router>
+				</PWAProvider>
 			</ThemeProvider>
 		</ErrorBoundary>
 	);

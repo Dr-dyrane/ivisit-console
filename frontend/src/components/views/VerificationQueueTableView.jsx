@@ -61,6 +61,7 @@ export const VerificationQueueTableView = ({
                                     aria-label="Select all"
                                 />
                             </TableHead>
+                            <TableHead className="w-[100px] text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4">ID</TableHead>
                             <TableHead className="w-[300px] text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 pl-6">Applicant</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Role</TableHead>
                             <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Joined</TableHead>
@@ -86,6 +87,9 @@ export const VerificationQueueTableView = ({
                                             onCheckedChange={(checked) => onSelect(provider.id, checked)}
                                             aria-label={`Select ${provider.full_name || provider.name}`}
                                         />
+                                    </TableCell>
+                                    <TableCell className="font-mono text-[10px] font-bold text-primary/80">
+                                        {provider.display_id || 'PRV-PENDING'}
                                     </TableCell>
                                     <TableCell className="py-4 pl-6">
                                         <div className="flex items-center gap-3">

@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { getDisplayId } from '../../services/displayIdService';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card } from '../ui/card';
@@ -23,6 +24,7 @@ import { useDoctorProfile } from '../../hooks/useDoctorProfile';
 export const SettingsPage = () => {
     const { user, profile, signOut, isAdmin, isSponsor, isProvider } = useAuth();
     const { doctorProfile } = useDoctorProfile();
+    const [displayId, setDisplayId] = useState(null);
     const [darkMode, setDarkMode] = useState(document.documentElement.classList.contains('dark'));
     const navigate = useNavigate();
 
@@ -58,6 +60,17 @@ export const SettingsPage = () => {
             window.removeEventListener('openDoctorModal', handleOpenDoctor);
         };
     }, []);
+
+    // Fetch display ID for beautification
+    useEffect(() => {
+        const fetchId = async () => {
+            if (profile?.id) {
+                const id = await getDisplayId(profile.id);
+                setDisplayId(id);
+            }
+        };
+        fetchId();
+    }, [profile?.id]);
 
 
 
@@ -153,6 +166,11 @@ export const SettingsPage = () => {
                                             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground truncate">
                                                 {profile?.username || 'User Profile'}
                                             </h2>
+                                            {displayId && (
+                                                <Badge variant="outline" className="squircle bg-primary/5 text-primary border-primary/20 font-mono text-xs">
+                                                    {displayId}
+                                                </Badge>
+                                            )}
                                             {profile?.bvn_verified && (
                                                 <Badge className="squircle bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 p-1 px-2" title="Verified User">
                                                     <Shield className="w-4 h-4 mr-1" />

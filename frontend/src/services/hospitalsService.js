@@ -38,6 +38,10 @@ export async function getHospitals(filter = {}) {
     if (filter?.verified !== undefined) {
       query = query.eq('verified', filter.verified);
     }
+    // NEW: Support verification_status filter (pending, verified, rejected)
+    if (filter?.verification_status) {
+      query = query.eq('verification_status', filter.verification_status);
+    }
     if (filter?.specialty) {
       query = query.contains('specialties', [filter.specialty]);
     }
@@ -104,6 +108,7 @@ export async function createHospital(input) {
       latitude: input.latitude,
       longitude: input.longitude,
       verified: input.verified || false,
+      verification_status: input.verification_status || 'pending', // NEW
       status: input.status || 'available',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

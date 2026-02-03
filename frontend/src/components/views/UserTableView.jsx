@@ -78,6 +78,7 @@ export const UserTableView = ({
                   aria-label="Select all"
                 />
               </TableHead>
+              <SortableHead label="ID" columnKey="display_id" />
               <SortableHead label="Username" columnKey="username" />
               <SortableHead label="Email" columnKey="email" />
               <SortableHead label="Role" columnKey="role" />
@@ -104,6 +105,9 @@ export const UserTableView = ({
                       onCheckedChange={(checked) => handleSelectOne(user.id, checked)}
                       aria-label={`Select ${user.username}`}
                     />
+                  </TableCell>
+                  <TableCell className="font-mono text-[10px] font-bold text-primary/80">
+                    {user.display_id || '-'}
                   </TableCell>
                   <TableCell className="font-bold">{user.full_name || user.username || 'Unknown'}</TableCell>
                   <TableCell className="text-muted-foreground">{user.email || '-'}</TableCell>
@@ -167,7 +171,7 @@ export const UserTableView = ({
             })}
             {users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                   No users found.
                 </TableCell>
               </TableRow>

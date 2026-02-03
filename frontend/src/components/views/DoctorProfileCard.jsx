@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getDisplayId } from '../../services/displayIdService';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -12,6 +13,7 @@ export const DoctorProfileCard = () => {
     const { doctorProfile, loading, updateProfile } = useDoctorProfile();
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({});
+    const [displayId, setDisplayId] = useState(null);
 
     // Initialize form data when profile loads
     useEffect(() => {
@@ -25,6 +27,17 @@ export const DoctorProfileCard = () => {
             });
         }
     }, [doctorProfile]);
+
+    // Fetch display ID for beautification
+    useEffect(() => {
+        const fetchId = async () => {
+            if (doctorProfile?.profile_id) {
+                const id = await getDisplayId(doctorProfile.profile_id);
+                setDisplayId(id);
+            }
+        };
+        fetchId();
+    }, [doctorProfile?.profile_id]);
 
     const handleSave = async () => {
         try {
@@ -100,7 +113,9 @@ export const DoctorProfileCard = () => {
                     </div>
                     <div>
                         <h3 className="font-bold text-lg leading-none">Professional Profile</h3>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-1">Provider ID: #{doctorProfile.id?.slice(-8)}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-1">
+                            Provider ID: {displayId || `#${doctorProfile.id?.slice(-8)}`}
+                        </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">

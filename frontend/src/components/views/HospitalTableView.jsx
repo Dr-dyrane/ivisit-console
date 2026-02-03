@@ -36,12 +36,12 @@ export const HospitalTableView = ({
     switch (status?.toLowerCase()) {
       case 'verified':
         return 'bg-green-500/20 text-green-500 border-green-500/30';
-      case 'unverified':
-        return 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30';
+      case 'rejected':
+        return 'bg-red-500/20 text-red-500 border-red-500/30';
       case 'pending':
         return 'bg-blue-500/20 text-blue-500 border-blue-500/30';
       case 'inactive':
-        return 'bg-red-500/20 text-red-500 border-red-500/30';
+        return 'bg-gray-500/20 text-gray-500 border-gray-500/30';
       default:
         return 'bg-gray-500/20 text-gray-500 border-gray-500/30';
     }
@@ -84,6 +84,7 @@ export const HospitalTableView = ({
                 </TableHead>
               )}
               <TableHead className="w-[60px]">Image</TableHead>
+              <SortableHead label="ID" columnKey="display_id" />
               <SortableHead label="Name" columnKey="name" />
               <SortableHead label="Address" columnKey="address" />
               <SortableHead label="Status" columnKey="status" />
@@ -135,11 +136,14 @@ export const HospitalTableView = ({
                     </div>
                   )}
                 </TableCell>
+                <TableCell className="font-mono text-[10px] font-bold text-primary/80">
+                  {hospital.display_id || 'ORG-PENDING'}
+                </TableCell>
                 <TableCell className="font-bold">{hospital.name || 'Unknown'}</TableCell>
                 <TableCell className="text-muted-foreground truncate max-w-[200px]">{hospital.address || '-'}</TableCell>
                 <TableCell>
-                  <Badge className={`squircle-sm ${getStatusBadge(hospital.status)} border-0 font-bold`}>
-                    {hospital.status}
+                  <Badge className={`squircle-sm ${getStatusBadge(hospital.verification_status || hospital.status)} border-0 font-bold`}>
+                    {(hospital.verification_status || hospital.status)?.toUpperCase()}
                   </Badge>
                 </TableCell>
                 <TableCell className="font-medium">{hospital.available_beds || '0'}</TableCell>
