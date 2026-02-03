@@ -4,6 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* iOS PWA Safe Area Support */
+html {
+	background-color: hsl(var(--background));
+}
+
 body {
 	margin: 0;
 	font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
@@ -12,6 +17,14 @@ body {
 	overflow-y: scroll;
 	overflow-x: hidden;
 	scroll-behavior: smooth;
+	/* iOS PWA: Extend content into safe areas with proper padding */
+	padding-top: env(safe-area-inset-top);
+	padding-bottom: env(safe-area-inset-bottom);
+	padding-left: env(safe-area-inset-left);
+	padding-right: env(safe-area-inset-right);
+	min-height: 100vh;
+	min-height: 100dvh; /* Dynamic viewport height for iOS */
+	background-color: hsl(var(--background));
 }
 
 /* Hide scrollbars completely */
