@@ -78,7 +78,11 @@ export const DynamicBottomBar = () => {
 
     return (
         <>
-            <div id="dynamic-bottom-bar" className="fixed bottom-6 left-0 right-0 flex justify-center z-50 pointer-events-none">
+            <div
+                id="dynamic-bottom-bar"
+                className="fixed left-0 right-0 flex justify-center z-50 pointer-events-none"
+                style={{ bottom: 'calc(1.5rem + var(--safe-bottom))' }}
+            >
                 <motion.div
                     initial={{ y: 100, opacity: 0 }}
                     animate={{
