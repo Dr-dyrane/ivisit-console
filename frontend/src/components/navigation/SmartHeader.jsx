@@ -35,7 +35,9 @@ export const SmartHeader = () => {
                         : 'top-0 left-0 right-0'
                     }`}
                 style={{
-                    paddingRight: isMobile ? '16px' : '32px'
+                    paddingRight: isMobile ? '16px' : '32px',
+                    paddingTop: 'var(--safe-top)',
+                    height: 'calc(2rem + var(--safe-top))'
                 }}
             >            {/* Simple Static Dot Grid - Apple-level simplicity */}
 
