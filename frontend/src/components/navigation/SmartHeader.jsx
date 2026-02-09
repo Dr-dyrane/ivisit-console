@@ -28,16 +28,14 @@ export const SmartHeader = () => {
                     mass: 0.8
                 }}
                 // Apple-Wordy Smart Header with glass-card design
-                className={`fixed z-40 h-16 flex items-center justify-between transition-all duration-300 ${isMobile
+                className={`fixed z-40 flex items-center justify-between transition-all duration-300 ${isMobile
                     ? 'top-2 left-2 right-2 rounded-2xl hover-lift'
-                    : isScrolledDown
-                        ? 'top-0 left-0 right-0'
-                        : 'top-0 left-0 right-0'
+                    : 'top-0 left-0 right-0 border-b border-border/10 bg-background/50 backdrop-blur-xl'
                     }`}
                 style={{
                     paddingRight: isMobile ? '16px' : '32px',
-                    paddingTop: 'var(--safe-top)',
-                    height: 'calc(2rem + var(--safe-top))'
+                    paddingTop: isMobile ? 'var(--safe-top)' : '0',
+                    height: isMobile ? 'calc(2rem + var(--safe-top))' : '4rem'
                 }}
             >            {/* Simple Static Dot Grid - Apple-level simplicity */}
 
