@@ -254,6 +254,42 @@ export const deletePaymentMethod = async (organizationId, paymentMethodId) => {
 };
 
 /**
+ * Process Cash Payment (Manual Confirmation)
+ * Records a cash payment in the ledger and deducts the 2.5% platform fee from Org balance
+ */
+export const processCashPayment = async (emergencyId, orgId, amount, currency = 'USD') => {
+    const { data, error } = await supabase.rpc('process_cash_payment', {
+        p_emergency_request_id: emergencyId,
+        p_organization_id: orgId,
+        p_amount: Number(amount),
+        p_currency: currency
+    });
+
+    if (error) throw error;
+    if (!data.success) throw new Error(data.error || 'Failed to process cash payment');
+
+    return data;
+};
+
+/**
+ * Check if Organization can accept a Cash Payment (Wallet Cap)
+ * Verifies if their current balance is enough to cover the 2.5% fee
+ */
+export const checkCashEligibility = async (orgId, estimatedAmount) => {
+    const { data, error } = await supabase.rpc('check_cash_eligibility', {
+        p_organization_id: orgId,
+        p_estimated_amount: Number(estimatedAmount)
+    });
+
+    if (error) {
+        console.error('Error checking cash eligibility:', error);
+        return false;
+    }
+
+    return data;
+};
+
+/**
  * Set Default Payout Method
  */
 export const setPayoutMethod = async (organizationId, paymentMethodId) => {

@@ -15,6 +15,7 @@ import { createNotification, NotificationTypes, NotificationActions } from '../.
 import { getEmergencyRequests } from '../../services/emergencyService';
 import { dispatchEmergency, completeEmergency } from '../../services/emergencyResponseService';
 import { getCurrentUser, applyAuthFilter } from '../../services/authService';
+import * as walletService from '../../services/walletService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -368,6 +369,23 @@ export const EmergencyRequestsPage = () => {
 
   const handleDispatch = useCallback(async (request) => {
     try {
+      // 1. Wallet Cap Check for Cash Payments
+      // We check eligibility based on estimated base costs ($50 for ambulance, $25 for beds)
+      if (isOrgAdmin() || isAdmin()) {
+        const targetOrgId = orgId || request.organization_id || request.hospital_id;
+        if (targetOrgId && targetOrgId.length === 36) { // Ensure it's a UUID
+          const estimatedAmount = request.service_type === 'ambulance' ? 50 : 25;
+          const isEligible = await walletService.checkCashEligibility(targetOrgId, estimatedAmount);
+
+          if (!isEligible) {
+            toast.error("Insufficient Wallet Balance", {
+              description: "Your organization balance must cover the 2.5% platform fee to accept cash jobs. Please top up."
+            });
+            return;
+          }
+        }
+      }
+
       toast.loading('Dispatching emergency response...', { id: 'dispatch' });
 
       const result = await dispatchEmergency(request.id, request);
@@ -394,6 +412,24 @@ export const EmergencyRequestsPage = () => {
       toast.error('Failed to complete emergency');
     }
   }, [fetchRequests]);
+
+  const handleProcessCash = useCallback(async (request) => {
+    try {
+      const amount = prompt("Enter the total cash amount received (USD):", "50.00");
+      if (!amount || isNaN(amount)) return;
+
+      toast.loading('Processing cash payment...', { id: 'cash-pay' });
+
+      const targetOrgId = orgId || request.organization_id || request.hospital_id;
+      await walletService.processCashPayment(request.id, targetOrgId, amount);
+
+      toast.success('Cash payment confirmed and fee deducted.', { id: 'cash-pay' });
+      fetchRequests();
+    } catch (error) {
+      console.error('Cash processing failed:', error);
+      toast.error(error.message || 'Failed to process cash payment', { id: 'cash-pay' });
+    }
+  }, [fetchRequests, orgId]);
 
   // Handle custom events from context panel
   useEffect(() => {
@@ -803,6 +839,33 @@ export const EmergencyRequestsPage = () => {
                                       <CheckCheck className="h-4 w-4" />
                                     </Button>
                                   )}
+                                  {/* Cash Payment Action */}
+                                  {canManage && req.status === 'completed' && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleProcessCash(req)}
+                                      className="geo-round h-8 w-8 p-0 hover:bg-yellow-500/10 hover:text-yellow-500 transition-colors"
+                                      title="Process Cash Payment"
+                                    >
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="18"
+                                        height="18"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      >
+                                        <circle cx="8" cy="8" r="6" />
+                                        <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
+                                        <path d="M7 6h1v4" />
+                                        <path d="m16.71 13.88.7.71-2.82 2.82" />
+                                      </svg>
+                                    </Button>
+                                  )}
                                 </>
                               )}
 
@@ -850,6 +913,7 @@ export const EmergencyRequestsPage = () => {
               onDelete={handleDelete}
               onDispatch={handleDispatch}
               onComplete={handleComplete}
+              onProcessCash={handleProcessCash}
               isMobile={isMobile}
               selectedIds={selectedIds}
               onSelect={handleSelect}
@@ -865,6 +929,7 @@ export const EmergencyRequestsPage = () => {
               onDelete={handleDelete}
               onDispatch={handleDispatch}
               onComplete={handleComplete}
+              onProcessCash={handleProcessCash}
               isMobile={isMobile}
               selectedIds={selectedIds}
               onSelect={handleSelect}

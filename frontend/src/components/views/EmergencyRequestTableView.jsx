@@ -28,6 +28,7 @@ export const EmergencyRequestTableView = ({
   onDelete,
   onDispatch,
   onComplete,
+  onProcessCash,
   isMobile = false,
   selectedIds = [],
   onSelect,
@@ -121,8 +122,8 @@ export const EmergencyRequestTableView = ({
                 </TableCell>
                 <TableCell className="text-sm">{getStandardizedPatient(req).phone}</TableCell>
                 <TableCell className="text-sm">
-                  <LocationCell 
-                    location={req.patient_location} 
+                  <LocationCell
+                    location={req.patient_location}
                     pickupLocation={req.pickup_location}
                     responderLocation={req.responder_location}
                   />
@@ -188,6 +189,37 @@ export const EmergencyRequestTableView = ({
                           <DropdownMenuItem onClick={() => onComplete(req)} className="cursor-pointer font-medium text-xs py-2 text-info focus:text-info focus:bg-info/10">
                             <CheckCheck className="mr-2 h-3.5 w-3.5" />
                             Complete
+                          </DropdownMenuItem>
+                        )}
+
+                        {/* Cash Payment Action */}
+                        {canManage && req.status === 'completed' && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              if (window.confirm(`Process cash payment for this request? This will deduct the 2.5% platform fee from your organization's wallet.`)) {
+                                onProcessCash?.(req);
+                              }
+                            }}
+                            className="cursor-pointer font-medium text-xs py-2 text-yellow-500 focus:text-yellow-500 focus:bg-yellow-500/10"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="mr-2"
+                            >
+                              <circle cx="8" cy="8" r="6" />
+                              <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
+                              <path d="M7 6h1v4" />
+                              <path d="m16.71 13.88.7.71-2.82 2.82" />
+                            </svg>
+                            Process Cash
                           </DropdownMenuItem>
                         )}
 
