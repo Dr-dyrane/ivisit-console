@@ -57,14 +57,15 @@ export const IslandNavigation = () => {
 
   // --- Progressive Reveal & Auto-Cleanup Logic ---
 
-  // Auto-expand the group containing the active route and close others
+  // Auto-expand the group containing the active route on route change
   useEffect(() => {
     const isOps = accessibleNav.ops?.items.some(item => item.path === location.pathname);
     const isMgmt = accessibleNav.mgmt?.items.some(item => item.path === location.pathname);
+    const isFinance = accessibleNav.finance?.items.some(item => item.path === location.pathname);
 
     if (isOps) setOpenGroups(['ops']);
     else if (isMgmt) setOpenGroups(['mgmt']);
-    else setOpenGroups([]);
+    else if (isFinance) setOpenGroups(['finance']);
   }, [location.pathname, accessibleNav]);
 
   const toggleGroup = (groupId) => {
@@ -223,7 +224,7 @@ export const IslandNavigation = () => {
         className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-sm ${isScrolledDown ? 'bg-background/70' : 'bg-background/30'}`}
       >
         {/* Simple Static Dot Grid - Apple-level simplicity */}
-        
+
         {/* 1. BRANDING & BACK ARROW */}
         <div className="h-[63px] flex-shrink-0 flex items-center px-4">
           <div className="relative flex items-center w-full">
@@ -276,6 +277,7 @@ export const IslandNavigation = () => {
 
           {renderGroup(accessibleNav.ops)}
           {renderGroup(accessibleNav.mgmt)}
+          {renderGroup(accessibleNav.finance)}
         </div>
 
         <div className="p-4 border-t border-border/10 space-y-3">

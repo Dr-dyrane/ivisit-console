@@ -84,12 +84,16 @@ function checkPathAccess(path, accessibleNav) {
 	const mgmtItem = accessibleNav.mgmt?.items?.find(item => item.path === path);
 	if (mgmtItem) return true;
 
+	// [BUG-FIX] Check finance items
+	const financeItem = accessibleNav.finance?.items?.find(item => item.path === path);
+	if (financeItem) return true;
+
 	// Check user items
 	const userItem = accessibleNav.user?.items?.find(item => item.path === path);
 	if (userItem) return true;
 
 	// Always allow access to basic pages
-	const allowedPaths = ['/login', '/unauthorized',];
+	const allowedPaths = ['/login', '/unauthorized', '/onboarding', '/onboarding-success', '/set-password'];
 	if (allowedPaths.includes(path)) return true;
 
 	return false;

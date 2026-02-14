@@ -120,7 +120,7 @@ export const MobileNavMenu = ({ onClose }) => {
                 <div className="h-px bg-border/40 mx-4 my-4" />
 
                 {/* Groups with Accordion logic */}
-                {['ops', 'mgmt'].map(groupId => {
+                {['ops', 'mgmt', 'finance'].map(groupId => {
                     const group = accessibleNav[groupId];
                     if (!group) return null;
 

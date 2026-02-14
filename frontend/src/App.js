@@ -33,6 +33,8 @@ import { HealthNewsManagementPage } from "./components/pages/HealthNewsManagemen
 import { SupportTicketsPage } from "./components/pages/SupportTicketsPage";
 import { InsuranceManagementPage } from "./components/pages/InsuranceManagementPage";
 import { SubscriptionManagementPage } from "./components/pages/SubscriptionManagementPage";
+import { WalletManagementPage } from "./components/pages/WalletManagementPage";
+import { PricingManagementPage } from "./components/pages/PricingManagementPage";
 import { OnboardingPage } from "./components/pages/OnboardingPage";
 import { OnboardingSuccessPage } from "./components/pages/OnboardingSuccessPage";
 import { Toaster } from "./components/ui/sonner";
@@ -144,6 +146,8 @@ function AppRoutes() {
 					<Route path="/support-tickets" element={<ProtectedRoute minRole="provider"><SupportTicketsPage /></ProtectedRoute>} />
 					<Route path="/insurance" element={<ProtectedRoute minRole="admin"><InsuranceManagementPage /></ProtectedRoute>} />
 					<Route path="/subscriptions" element={<ProtectedRoute minRole="admin"><SubscriptionManagementPage /></ProtectedRoute>} />
+					<Route path="/wallet" element={<ProtectedRoute minRole="org_admin"><WalletManagementPage /></ProtectedRoute>} />
+					<Route path="/pricing" element={<ProtectedRoute minRole="org_admin"><PricingManagementPage /></ProtectedRoute>} />
 					<Route path="*" element={<NotFoundPage />} />
 				</Routes>
 			</AppLayout>

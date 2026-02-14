@@ -79,11 +79,42 @@ export async function getDisplayId(entityId) {
 
         if (error) {
             console.error('[DisplayID] Error getting display ID:', error);
-            return null;
+            return await getDisplayIdFromProfile(entityId);
         }
-        return data;
+
+        // [BUG-FIX] Robustly handle different return formats (scalar vs array of objects)
+        if (data) {
+            if (Array.isArray(data) && data.length > 0) {
+                return data[0].display_id || data[0];
+            }
+            if (typeof data === 'object' && data.display_id) {
+                return data.display_id;
+            }
+            return data;
+        }
+
+        return await getDisplayIdFromProfile(entityId);
     } catch (error) {
         console.error('[DisplayID] Exception getting display ID:', error);
+        return await getDisplayIdFromProfile(entityId);
+    }
+}
+
+/**
+ * Fallback to look up display_id column from profiles table
+ * @private
+ */
+async function getDisplayIdFromProfile(userId) {
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('display_id')
+            .eq('id', userId)
+            .single();
+
+        if (error || !data) return null;
+        return data.display_id;
+    } catch (e) {
         return null;
     }
 }

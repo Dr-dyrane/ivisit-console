@@ -35,7 +35,7 @@ export const RouteGuard = ({ children }) => {
 
   // Check access using navigation config (primary protection)
   const hasNavigationAccess = checkRouteAccess(currentPath, profile, can);
-  
+
   if (!hasNavigationAccess) {
     console.log(`[RouteGuard] Navigation access denied for ${profile?.role} to ${currentPath}`);
     return <Navigate to="/unauthorized" replace />;
@@ -57,15 +57,15 @@ export const RouteGuard = ({ children }) => {
  * Higher-order component for protecting specific routes
  * Usage: <ProtectedRouteComponent path="/visits" component={VisitsPage} />
  */
-export const ProtectedRouteComponent = ({ 
-  path, 
-  component: Component, 
-  minRole, 
-  resource, 
-  ...props 
+export const ProtectedRouteComponent = ({
+  path,
+  component: Component,
+  minRole,
+  resource,
+  ...props
 }) => {
   const routeConfig = getRouteProtection(path);
-  
+
   return (
     <RouteGuard>
       <ProtectedRoute
@@ -85,7 +85,7 @@ export const ProtectedRouteComponent = ({
  */
 export const useRouteAccess = (path) => {
   const { profile, can } = useAuth();
-  
+
   return {
     canAccess: checkRouteAccess(path, profile, can),
     routeConfig: getRouteProtection(path),
@@ -102,7 +102,7 @@ export const useRouteAccess = (path) => {
  */
 export const RouteAccess = ({ path, children, fallback = null }) => {
   const { canAccess } = useRouteAccess(path);
-  
+
   return canAccess ? children : fallback;
 };
 
@@ -114,15 +114,15 @@ export const RouteAccessDebug = () => {
   const { profile, can } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
-  
+
   const accessibleNav = getAccessibleNav(profile, can);
   const hasAccess = checkRouteAccess(currentPath, profile, can);
   const routeConfig = getRouteProtection(currentPath);
-  
+
   if (process.env.NODE_ENV !== 'development') {
     return null;
   }
-  
+
   return (
     <div className="fixed bottom-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs max-w-sm z-50">
       <div className="font-bold mb-2">Route Access Debug</div>
@@ -132,9 +132,10 @@ export const RouteAccessDebug = () => {
       <div>Min Role: {routeConfig.minRole || 'none'}</div>
       <div>Resource: {routeConfig.resource || 'none'}</div>
       <div className="mt-2 opacity-75">
-        Accessible Nav Items: {accessibleNav.main?.length || 0} main, 
-        {accessibleNav.ops?.items?.length || 0} ops, 
-        {accessibleNav.mgmt?.items?.length || 0} mgmt
+        Accessible Nav Items: {accessibleNav.main?.length || 0} main,
+        {accessibleNav.ops?.items?.length || 0} ops,
+        {accessibleNav.mgmt?.items?.length || 0} mgmt,
+        {accessibleNav.finance?.items?.length || 0} finance
       </div>
     </div>
   );

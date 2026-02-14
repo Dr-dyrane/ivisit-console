@@ -192,30 +192,30 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     }
   };
 
-  const hasRole = (roles) => {
+  const hasRole = useCallback((roles) => {
     if (!profile) return false;
     if (Array.isArray(roles)) {
       return roles.includes(profile.role);
     }
     return profile.role === roles;
-  };
+  }, [profile]);
 
-  const hasMinRole = (minRole) => {
+  const hasMinRole = useCallback((minRole) => {
     if (!profile) return false;
     const userLevel = ROLE_HIERARCHY[profile.role] || 0;
     const requiredLevel = ROLE_HIERARCHY[minRole] || 0;
     return userLevel >= requiredLevel;
-  };
+  }, [profile]);
 
-  const isAdmin = () => hasRole('admin');
-  const isSponsor = () => hasRole('sponsor');
-  const isOrgAdmin = () => hasRole('org_admin');
-  const isProvider = () => hasRole('provider');
-  const isViewer = () => hasRole('viewer');
-  const isPatient = () => hasRole('patient');
+  const isAdmin = useCallback(() => hasRole('admin'), [hasRole]);
+  const isSponsor = useCallback(() => hasRole('sponsor'), [hasRole]);
+  const isOrgAdmin = useCallback(() => hasRole('org_admin'), [hasRole]);
+  const isProvider = useCallback(() => hasRole('provider'), [hasRole]);
+  const isViewer = useCallback(() => hasRole('viewer'), [hasRole]);
+  const isPatient = useCallback(() => hasRole('patient'), [hasRole]);
 
   // Check if user is mid-onboarding (has pending status)
-  const isOnboarding = () => profile?.onboarding_status === 'pending';
+  const isOnboarding = useCallback(() => profile?.onboarding_status === 'pending', [profile]);
 
   /**
    * Universal Permission Checker
@@ -241,7 +241,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     return false;
   }, [isAdmin, isOrgAdmin, isProvider]);
 
-  const updateProfile = async (updates) => {
+  const updateProfile = useCallback(async (updates) => {
     try {
       if (!user) throw new Error('No user logged in');
       const data = await updateProfileService(user.id, updates);
@@ -251,9 +251,9 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
       console.error('Error updating profile:', error);
       throw error;
     }
-  };
+  }, [user]);
 
-  const uploadAvatar = async (file) => {
+  const uploadAvatar = useCallback(async (file) => {
     try {
       if (!user) throw new Error('No user logged in');
       return await uploadProfileAvatar(user.id, file);
@@ -261,13 +261,13 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
       console.error('Error uploading avatar:', error);
       throw error;
     }
-  };
+  }, [user]);
 
-  const updatePassword = async (password) => {
+  const updatePassword = useCallback(async (password) => {
     return await updatePasswordService(password);
-  };
+  }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     profile,
     orgId: profile?.organization_id || null,
@@ -288,7 +288,27 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     isPatient,
     isOnboarding,
     can,
-  };
+  }), [
+    user,
+    profile,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    updateProfile,
+    uploadAvatar,
+    updatePassword,
+    hasRole,
+    hasMinRole,
+    isAdmin,
+    isSponsor,
+    isOrgAdmin,
+    isProvider,
+    isViewer,
+    isPatient,
+    isOnboarding,
+    can
+  ]);
 
   // Show skeleton during initial load
   if (initializing) {

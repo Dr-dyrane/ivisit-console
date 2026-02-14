@@ -12,87 +12,102 @@ import { NAV_CONFIG } from './navigation';
  */
 export const ROUTE_PROTECTION = {
   // Public routes
-  '/': { 
+  '/': {
     public: true,
     title: 'Dashboard'
   },
-  '/login': { 
+  '/login': {
     public: true,
     title: 'Login'
   },
-  '/unauthorized': { 
+  '/unauthorized': {
     public: true,
     title: 'Unauthorized'
   },
-  '/map': { 
+  '/map': {
     public: true,
     title: 'Live Map'
   },
 
   // Protected routes - use navigation config for access control
-  '/analytics': { 
+  '/analytics': {
     minRole: 'provider',
     resource: 'analytics',
     title: 'Statistics'
   },
 
   // Operations routes
-  '/visits': { 
+  '/visits': {
     minRole: 'provider',
     resource: 'visits',
     title: 'Visits'
   },
-  '/emergencies': { 
+  '/emergencies': {
     minRole: 'provider',
     resource: 'emergencies',
     title: 'Emergencies'
   },
-  '/hospitals': { 
+  '/hospitals': {
     minRole: 'admin',
     resource: 'hospitals',
     title: 'Hospitals'
   },
-  '/ambulances': { 
+  '/ambulances': {
     minRole: 'org_admin',
     resource: 'ambulances',
     title: 'Ambulances'
   },
-  '/doctors': { 
+  '/doctors': {
     minRole: 'org_admin',
     resource: 'doctors',
     title: 'Doctors'
   },
 
   // Management routes
-  '/support-tickets': { 
+  '/support-tickets': {
     minRole: 'provider',
     resource: 'support',
     title: 'Support'
   },
-  '/health-news': { 
+  '/health-news': {
     minRole: 'provider',
     resource: 'news',
     title: 'Health News'
   },
-  '/verification': { 
+  '/verification': {
     minRole: 'org_admin',
     resource: 'verification',
     title: 'Queue'
   },
-  '/users': { 
+  '/users': {
     minRole: 'org_admin',
     resource: 'users',
     title: 'Users'
   },
-  '/insurance': { 
+  '/insurance': {
     minRole: 'admin',
     resource: 'insurance',
     title: 'Insurance'
   },
-  '/subscriptions': { 
+  '/subscriptions': {
     minRole: 'admin',
     resource: 'subscriptions',
     title: 'Subscriptions'
+  },
+  '/wallet': {
+    minRole: 'org_admin',
+    resource: 'wallet',
+    title: 'Wallet'
+  },
+  '/pricing': {
+    minRole: 'org_admin',
+    resource: 'pricing',
+    title: 'Pricing'
+  },
+  '/settings': {
+    minRole: 'viewer',
+    resource: 'settings',
+    title: 'Settings'
   },
 };
 
@@ -125,18 +140,19 @@ export function getProtectedRoutesForRole(userRole) {
  */
 function isRoleAllowed(userRole, config) {
   if (!config.minRole) return true;
-  
+
   const ROLE_LEVELS = {
     patient: 10,
     viewer: 20,
     provider: 40,
-    org_admin: 60,
+    sponsor: 60,
+    org_admin: 80,
     admin: 100
   };
-  
+
   const userLevel = ROLE_LEVELS[userRole] || 0;
   const requiredLevel = ROLE_LEVELS[config.minRole] || 0;
-  
+
   return userLevel >= requiredLevel;
 }
 
@@ -163,6 +179,13 @@ export function checkRouteAccess(path, userProfile, canHelper) {
 
   const mgmtItem = accessibleNav.mgmt?.items?.find(item => item.path === path);
   if (mgmtItem) return true;
+
+  // [BUG-FIX] Check finance and user groups as well
+  const financeItem = accessibleNav.finance?.items?.find(item => item.path === path);
+  if (financeItem) return true;
+
+  const userItem = accessibleNav.user?.items?.find(item => item.path === path);
+  if (userItem) return true;
 
   return false;
 }

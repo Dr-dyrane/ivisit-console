@@ -691,8 +691,8 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                                           {assignment.patient_name || 'Patient'}
                                         </span>
                                         <Badge className={`text-xs ${assignment.status === 'in_progress' ? 'bg-orange-500/20 text-orange-500' :
-                                            assignment.status === 'accepted' ? 'bg-blue-500/20 text-blue-500' :
-                                              'bg-green-500/20 text-green-500'
+                                          assignment.status === 'accepted' ? 'bg-blue-500/20 text-blue-500' :
+                                            'bg-green-500/20 text-green-500'
                                           } border-0`}>
                                           {assignment.status_display}
                                         </Badge>

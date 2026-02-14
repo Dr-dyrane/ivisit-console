@@ -1,7 +1,8 @@
 import {
     Home, MapPin, FileCheck, TrendingUp,
     Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance,
-    Users, Newspaper, Headphones, Shield, Mail, FolderKanban, Handshake, Settings
+    Users, Newspaper, Headphones, Shield, Mail, FolderKanban, Handshake, Settings,
+    Wallet, DollarSign
 } from 'lucide-react';
 
 /**
@@ -55,10 +56,17 @@ export const NAV_CONFIG = {
             // Org Admin+ items
             { id: 'verification', path: '/verification', icon: FileCheck, label: 'Queue', resource: 'verification', minRole: 'org_admin' },
             { id: 'users', path: '/users', icon: Users, label: 'Users', resource: 'users', minRole: 'org_admin' },
-
-            // Platform Admin only
-            { id: 'insurance', path: '/insurance', icon: Shield, label: 'Insurance', resource: 'insurance', minRole: 'admin' },
             { id: 'subscriptions', path: '/subscriptions', icon: Mail, label: 'Subscriptions', resource: 'subscriptions', minRole: 'admin' },
+        ]
+    },
+    finance: {
+        id: 'finance',
+        label: 'Finance',
+        icon: DollarSign,
+        items: [
+            { id: 'wallet', path: '/wallet', icon: Wallet, label: 'Wallet', resource: 'wallet', minRole: 'org_admin' },
+            { id: 'pricing', path: '/pricing', icon: DollarSign, label: 'Pricing', resource: 'pricing', minRole: 'org_admin' },
+            { id: 'insurance', path: '/insurance', icon: Shield, label: 'Insurance', resource: 'insurance', minRole: 'org_admin' },
         ]
     },
     user: {
@@ -109,10 +117,16 @@ export const getAccessibleNav = (userProfile, canHelper) => {
         items: NAV_CONFIG.mgmt.items.filter(isItemAccessible)
     };
 
+    const filteredFinance = {
+        ...NAV_CONFIG.finance,
+        items: NAV_CONFIG.finance.items.filter(isItemAccessible)
+    };
+
     return {
         main: filteredMain,
         ops: filteredOps.items.length > 0 ? filteredOps : null,
         mgmt: filteredMgmt.items.length > 0 ? filteredMgmt : null,
+        finance: filteredFinance.items.length > 0 ? filteredFinance : null,
         user: NAV_CONFIG.user,
     };
 };

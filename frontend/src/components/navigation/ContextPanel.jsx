@@ -70,6 +70,8 @@ export const ContextPanel = () => {
       '/map': !isPatient() && !isViewer(), // Operational roles only
       '/settings': isAdmin(), // Admin only
       '/subscriptions': isAdmin(), // Admin only
+      '/wallet': isAdmin() || isOrgAdmin(), // Admin and Org Admin
+      '/pricing': isAdmin() || isOrgAdmin(), // Admin and Org Admin
     };
 
     // Check if current path starts with any protected path
@@ -78,7 +80,7 @@ export const ContextPanel = () => {
         return allowed;
       }
     }
-    
+
     return true; // Default to allowed for unknown paths
   };
 
@@ -120,7 +122,9 @@ export const ContextPanel = () => {
       '/insurance': { title: 'Insurance', subtitle: 'Policy Management' },
       '/map': { title: 'Map Intelligence', subtitle: 'Location Services' },
       '/settings': { title: 'System Settings', subtitle: 'Configuration' },
-      '/subscriptions': { title: 'Subscriptions', subtitle: 'Email Management' }
+      '/subscriptions': { title: 'Subscriptions', subtitle: 'Email Management' },
+      '/wallet': { title: 'Wallet & Billing', subtitle: 'Financial Operations' },
+      '/pricing': { title: 'Pricing Engine', subtitle: 'Service Costs' }
     };
 
     const currentHeader = Object.keys(headers).find(key =>
@@ -142,7 +146,7 @@ export const ContextPanel = () => {
       >
         {/* Subtle service bar */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/20 via-success/20 to-primary/20" />
-        
+
         <div className="px-6 pt-4 pb-3 md:px-6">
           <div className="flex items-center justify-between">
             <div>
