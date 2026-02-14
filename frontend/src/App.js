@@ -38,6 +38,7 @@ import { PricingManagementPage } from "./components/pages/PricingManagementPage"
 import { OnboardingPage } from "./components/pages/OnboardingPage";
 import { OnboardingSuccessPage } from "./components/pages/OnboardingSuccessPage";
 import { Toaster } from "./components/ui/sonner";
+import { GlobalFinancialModals } from "./components/modals/GlobalFinancialModals";
 import { motion } from "framer-motion";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { PWAProvider } from "./contexts/PWAContext";
@@ -113,7 +114,10 @@ const AppLayout = ({ children }) => (
 		<PageDataProvider>
 			<NavigationProvider>
 				<LayoutProvider>
-					<AppShell>{children}</AppShell>
+					<AppShell>
+						{children}
+						<GlobalFinancialModals />
+					</AppShell>
 				</LayoutProvider>
 			</NavigationProvider>
 		</PageDataProvider>

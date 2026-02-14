@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { usePageHeader } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import {
@@ -130,7 +130,26 @@ export const PricingManagementPage = () => {
         );
     }, [pricing, searchTerm]);
 
-    usePageHeader('Pricing Management');
+
+    const footerContent = useMemo(() => (
+        <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
+                <div className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-zinc-500 animate-pulse' : 'bg-success'}`} />
+                <span>{pricing.length} Active Price Points • {activeTab} View Enabled</span>
+            </div>
+        </div>
+    ), [pricing.length, loading, activeTab]);
+
+    usePageFooter(footerContent, 'status', true);
+
+    const headerActions = useMemo(() => (
+        <Button onClick={() => openModal()} className="glass-card-premium h-9 px-3 md:px-4 text-[10px] font-bold tracking-widest uppercase">
+            <Plus className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Add Override</span>
+        </Button>
+    ), []);
+
+    usePageHeader('Pricing Engine', headerActions);
 
     const getTypeIcon = (type) => {
         switch (type) {
@@ -143,32 +162,29 @@ export const PricingManagementPage = () => {
     };
 
     return (
-        <div className="min-h-screen pb-20">
-            <div className="flex justify-between items-center mb-8">
-                <div className="flex bg-muted/20 p-1 rounded-2xl w-fit gap-1">
+        <div className="min-h-screen py-6 md:py-8">
+            <div className="pt-2" />
+
+            <div className="flex justify-center md:justify-start mb-6 md:mb-8 px-0 md:px-2">
+                <div className="flex bg-muted/20 p-1 rounded-2xl w-full md:w-fit gap-1">
                     <button
                         onClick={() => setActiveTab('services')}
-                        className={`px-6 py-2 rounded-xl text-xs font-bold tracking-wider uppercase transition-all ${activeTab === 'services' ? 'bg-background shadow-lg text-primary scale-105' : 'text-muted-foreground hover:text-foreground'
+                        className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-xs font-bold tracking-wider uppercase transition-all ${activeTab === 'services' ? 'bg-background shadow-lg text-primary scale-105' : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
                         Services
                     </button>
                     <button
                         onClick={() => setActiveTab('rooms')}
-                        className={`px-6 py-2 rounded-xl text-xs font-bold tracking-wider uppercase transition-all ${activeTab === 'rooms' ? 'bg-background shadow-lg text-primary scale-105' : 'text-muted-foreground hover:text-foreground'
+                        className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-xs font-bold tracking-wider uppercase transition-all ${activeTab === 'rooms' ? 'bg-background shadow-lg text-primary scale-105' : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
                         Rooms
                     </button>
                 </div>
-
-                <Button onClick={() => openModal()} className="glass-card-premium">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Override
-                </Button>
             </div>
 
-            <div className="relative max-w-md mb-8">
+            <div className="relative w-full md:max-w-md mb-6 md:mb-8 px-0 md:px-2">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                     placeholder="Search pricing..."
@@ -178,46 +194,46 @@ export const PricingManagementPage = () => {
                 />
             </div>
 
-            <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-0 md:px-2">
                 <AnimatePresence>
                     {filteredPricing.map((item) => (
                         <motion.div key={item.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                            <Card className="p-6 h-full glass-card-premium border-none shadow-2xl relative group overflow-hidden flex flex-col">
-                                <div className="hover-glow hover-glow-primary" />
-                                <div className="flex justify-between items-start mb-6 relative z-10">
+                            <Card className="p-6 h-full glass-card-premium border-none shadow-2xl relative group overflow-hidden flex flex-col transition-all duration-300 hover:scale-[1.01] hover:shadow-glow">
+                                <div className="hover-glow hover-glow-primary opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
+                                <div className="flex justify-between items-start mb-6 relative z-10 transition-colors duration-300">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary transition-all duration-300">
                                             {getTypeIcon(item.service_type || item.room_type)}
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-lg tracking-tight truncate max-w-[150px]">
+                                            <h3 className="font-bold text-lg tracking-tight truncate max-w-[150px] transition-colors duration-300">
                                                 {item.service_name || item.room_name}
                                             </h3>
-                                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground transition-colors duration-300">
                                                 {item.service_type || item.room_type}
                                             </p>
                                         </div>
                                     </div>
                                     {item.hospital_id ? (
-                                        <Badge className="bg-success text-white border-none text-[8px] font-black uppercase px-2 py-0.5 rounded-full">
+                                        <Badge className="bg-success text-white border-none text-[8px] font-black uppercase px-2 py-0.5 rounded-full shadow-sm">
                                             OVERRIDE
                                         </Badge>
                                     ) : (
-                                        <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase px-2 py-0.5 rounded-full">
+                                        <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase px-2 py-0.5 rounded-full shadow-sm">
                                             GLOBAL
                                         </Badge>
                                     )}
                                 </div>
 
-                                <p className="text-sm text-muted-foreground mb-8 line-clamp-2 relative z-10 flex-1">
+                                <p className="text-sm text-muted-foreground mb-8 line-clamp-2 relative z-10 flex-1 transition-colors duration-300">
                                     {item.description || 'Standard platform pricing.'}
                                 </p>
 
                                 <div className="flex items-end justify-between relative z-10">
                                     <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Fee</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 transition-colors duration-300">Fee</p>
                                         <div className="flex items-baseline gap-1">
-                                            <span className="text-3xl font-black tracking-tighter">
+                                            <span className="text-3xl font-black tracking-tighter transition-colors duration-300">
                                                 {new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency || 'USD' }).format(item.base_price || item.price_per_night)}
                                             </span>
                                         </div>
@@ -228,7 +244,7 @@ export const PricingManagementPage = () => {
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => openModal(item)}
-                                            className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
+                                            className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all duration-300"
                                         >
                                             <Edit className="h-4 w-4" />
                                         </Button>

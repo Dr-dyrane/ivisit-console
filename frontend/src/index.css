@@ -359,6 +359,24 @@ code {
 
 	.glass-card-premium {
 		@apply glass shadow-premium;
+		background: hsl(var(--card));
+		border: 1px solid hsl(var(--border));
+		color: hsl(var(--foreground));
+	}
+
+	.dark .glass-card-premium {
+		@apply glass shadow-premium;
+		background: hsl(var(--glass-bg));
+		border: 1px solid hsl(var(--primary) / 0.4);
+		color: hsl(var(--foreground));
+	}
+
+	.glass-card-premium:hover {
+		border-color: hsl(var(--primary) / 0.5);
+	}
+
+	.dark .glass-card-premium:hover {
+		border-color: hsl(var(--primary) / 0.5);
 	}
 
 	.glass-strong {

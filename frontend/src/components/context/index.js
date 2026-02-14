@@ -14,3 +14,4 @@ export { InsurancePanel } from './InsurancePanel';
 export { SettingsPanel } from './SettingsPanel';
 export { DashboardPanel } from './DashboardPanel';
 export { SubscriptionsPanel } from './SubscriptionsPanel';
+export { WalletPanel } from './WalletPanel';

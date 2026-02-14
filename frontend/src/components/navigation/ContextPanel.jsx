@@ -20,7 +20,8 @@ import {
   InsurancePanel,
   SettingsPanel,
   DashboardPanel,
-  SubscriptionsPanel
+  SubscriptionsPanel,
+  WalletPanel
 } from '../context';
 
 export const ContextPanel = () => {
@@ -44,7 +45,8 @@ export const ContextPanel = () => {
     filters,
     insurance,
     hospitalsData,
-    ambulancesData
+    ambulancesData,
+    walletData
   } = usePageData();
 
   const { subscribers } = useSubscription();
@@ -281,6 +283,8 @@ export const ContextPanel = () => {
     return renderPanelWithHeader(<SubscriptionsPanel subscribers={subscribers} />);
   } else if (currentPath.includes('/settings')) {
     return renderPanelWithHeader(<SettingsPanel />);
+  } else if (currentPath.includes('/wallet') || currentPath.includes('/pricing')) {
+    return renderPanelWithHeader(<WalletPanel walletData={walletData} />);
   }
 
   // Default panel

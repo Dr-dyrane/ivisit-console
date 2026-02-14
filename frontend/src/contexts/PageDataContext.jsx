@@ -140,7 +140,7 @@ export const usePageData = () => {
 };
 
 export const PageDataProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const [emergencyData, setEmergencyData] = useState(mockEmergencyData);
   const [analyticsData, setAnalyticsData] = useState(mockAnalyticsData);
   const [doctorsData, setDoctorsData] = useState(mockDoctorsData);
@@ -161,8 +161,10 @@ export const PageDataProvider = ({ children }) => {
     users: false,
     supportTickets: false,
     insurance: false,
-    activity: false
+    activity: false,
+    wallet: false
   });
+  const [walletData, setWalletData] = useState({ wallet: null, ledger: [], projection: 0 });
   const [hospitalsData, setHospitalsData] = useState({ stats: null, recent: [] });
   const [ambulancesData, setAmbulancesData] = useState({ stats: null, recent: [] });
   const [useMockData, setUseMockData] = useState(false);
@@ -530,26 +532,43 @@ export const PageDataProvider = ({ children }) => {
     }
   }, [useMockData]);
 
-  // Fetch activity data
+  const fetchWalletData = useCallback(async () => {
+    try {
+      if (!user || !profile) return;
+      setLoading(prev => ({ ...prev, wallet: true }));
+
+      let wallet;
+      if (isAdmin()) {
+        const { data } = await supabase.from('ivisit_main_wallet').select('*').single();
+        wallet = data;
+      } else if (profile.organization_id) {
+        const { data } = await supabase.from('organization_wallets').select('*').eq('organization_id', profile.organization_id).single();
+        wallet = data;
+      }
+
+      let ledgerQuery = supabase.from('wallet_ledger').select('*');
+      if (!isAdmin() && profile.organization_id) {
+        ledgerQuery = ledgerQuery.eq('organization_id', profile.organization_id);
+      }
+      const { data: ledger } = await ledgerQuery.order('created_at', { ascending: false }).limit(10);
+
+      setWalletData({ wallet, ledger: ledger || [], projection: 0 });
+    } catch (error) {
+      console.error('Error fetching wallet data:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, wallet: false }));
+    }
+  }, [user, profile, isAdmin]);
+
   const fetchActivityData = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, activity: true }));
-
       if (useMockData) {
-        // Use mock activity data for now
-        setActivityData([
-          { id: 'mock-1', action: 'emergency_created', description: 'New emergency request from Victoria Island', time_ago: '2m ago' },
-          { id: 'mock-2', action: 'emergency_completed', description: 'Emergency response completed - Lekki', time_ago: '15m ago' },
-          { id: 'mock-3', action: 'provider_verified', description: 'New provider verified - Dr. Adebayo', time_ago: '1h ago' },
-          { id: 'mock-4', action: 'ambulance_dispatched', description: 'Ambulance dispatched to Ikeja', time_ago: '2h ago' },
-          { id: 'mock-5', action: 'system_backup', description: 'System backup completed successfully', time_ago: '3h ago' },
-        ]);
+        setActivityData([]);
         return;
       }
-
-      const data = await getRecentActivity(20, 0);
+      const data = await getRecentActivity();
       setActivityData(data || []);
-
     } catch (error) {
       console.error('Error fetching activity data:', error);
       setActivityData([]);
@@ -570,6 +589,7 @@ export const PageDataProvider = ({ children }) => {
     fetchUsersData();
     fetchSupportTicketsData();
     fetchInsurancePolicies();
+    fetchWalletData();
     fetchActivityData();
   }, [
     fetchEmergencyData,
@@ -582,6 +602,7 @@ export const PageDataProvider = ({ children }) => {
     fetchUsersData,
     fetchSupportTicketsData,
     fetchInsurancePolicies,
+    fetchWalletData,
     fetchActivityData
   ]);
 
@@ -764,7 +785,7 @@ export const PageDataProvider = ({ children }) => {
         fetchUsersData(),
         fetchSupportTicketsData(),
         fetchInsurancePolicies(),
-        fetchActivityData()
+        fetchWalletData()
       ]);
     } catch (error) {
       console.error('Error refreshing all data:', error);
@@ -780,7 +801,7 @@ export const PageDataProvider = ({ children }) => {
     fetchUsersData,
     fetchSupportTicketsData,
     fetchInsurancePolicies,
-    fetchActivityData
+    fetchWalletData
   ]);
 
   const getInsuranceStats = () => {
@@ -839,7 +860,9 @@ export const PageDataProvider = ({ children }) => {
     fetchActivityData,
     getEmergencyStats,
     getInsuranceStats,
-    setUseMockData,
+    walletData,
+    fetchWalletData,
+    useMockData,
     refreshAllData,
 
     // Mock data for reference

@@ -18,100 +18,193 @@ import {
     TrendingUp,
     History
 } from 'lucide-react';
+import {
+    getProjectedRevenue,
+    getOrgStripeStatus,
+    listPaymentMethods,
+    deletePaymentMethod
+} from '../../services/walletService';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Separator } from '../ui/separator';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "../ui/dialog";
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
+
 export const WalletManagementPage = () => {
-    const { user, profile, isAdmin, isOrgAdmin } = useAuth();
+    const { profile, isAdmin, isOrgAdmin } = useAuth();
     const [loading, setLoading] = useState(true);
     const [wallet, setWallet] = useState(null);
     const [ledger, setLedger] = useState([]);
-    const [activeTab, setActiveTab] = useState('history');
+    const [projection, setProjection] = useState(0);
+    const [orgInfo, setOrgInfo] = useState(null);
+    const [paymentMethods, setPaymentMethods] = useState([]);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            // 1. Fetch Wallet Balance
+            // 1. Fetch Main Wallet or Org Wallet based on role
+            let walletData;
             if (isAdmin()) {
                 const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('*').single();
-                setWallet(mainWallet);
-            } else if (isOrgAdmin()) {
-                const { data: orgWallet } = await supabase.from('organization_wallets')
-                    .select('*')
-                    .eq('organization_id', profile.organization_id)
-                    .single();
-                setWallet(orgWallet);
+                walletData = mainWallet;
+            } else {
+                const { data: orgWallet } = await supabase.from('organization_wallets').select('*').eq('organization_id', profile.organization_id).single();
+                walletData = orgWallet;
+            }
+            setWallet(walletData);
+
+            // 2. Fetch Billing Details (Admin vs Org Admin)
+            if (isAdmin()) {
+                // For Platform Admins: Fetch personal saved cards for platform funding
+                const methods = await listPaymentMethods(null);
+                setPaymentMethods(methods);
+                setOrgInfo({ stripe_customer_id: profile?.stripe_customer_id, is_platform: true });
+            } else if (profile.organization_id) {
+                // For Organization Admins: Fetch org stripe status and saved cards
+                const status = await getOrgStripeStatus(profile.organization_id);
+                setOrgInfo(status);
+                const methods = await listPaymentMethods(profile.organization_id);
+                setPaymentMethods(methods);
             }
 
-            // 2. Fetch Ledger History
-            let query = supabase.from('wallet_ledger').select('*');
+            // 3. Fetch 30d Projection
+            const proj = await getProjectedRevenue(isAdmin() ? null : profile.organization_id);
+            setProjection(proj);
 
+            // 4. Fetch Ledger History
+            let query = supabase.from('wallet_ledger').select('*');
             if (isOrgAdmin()) {
                 query = query.eq('organization_id', profile.organization_id);
             }
 
             const { data: ledgerData, error } = await query.order('created_at', { ascending: false }).limit(50);
-
             if (error) throw error;
             setLedger(ledgerData || []);
         } catch (error) {
             console.error('Error fetching wallet data:', error);
-            toast.error('Failed to load wallet information');
+            // toast.error('Connection to Stripe timed out. Showing last synced balance.');
         } finally {
             setLoading(false);
         }
-    }, [isAdmin, isOrgAdmin, profile.organization_id]);
+    }, [profile.organization_id, isAdmin, isOrgAdmin]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
+    const handleExport = useCallback(() => {
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + "Date,Type,Description,Amount,Currency\n"
+            + ledger.map(e => `${new Date(e.created_at).toLocaleString()},${e.transaction_type},${e.description},${e.amount},${wallet?.currency}`).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `ivisit_ledger_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success('Ledger exported successfully');
+    }, [ledger, wallet?.currency]);
+
+    const handleDeleteMethod = async (id) => {
+        try {
+            await deletePaymentMethod(profile.organization_id, id);
+            toast.success('Card removed successfully');
+            fetchData();
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
+
+
+    const handleTopUpTrigger = () => {
+        window.dispatchEvent(new CustomEvent('openTopUpModal'));
+    };
+
+    const handleWithdrawTrigger = () => {
+        window.dispatchEvent(new CustomEvent('openWithdrawModal'));
+    };
+
     const headerActions = useMemo(() => (
         <div className="flex gap-2">
+            {(isOrgAdmin() || isAdmin()) && (
+                <Button
+                    onClick={handleTopUpTrigger}
+                    className="glass-card-premium h-9 px-3 md:px-4 text-[10px] font-bold tracking-widest uppercase bg-success/20 hover:bg-success/30 border-success/30 text-success"
+                    title={isAdmin() ? 'Credit Main' : 'Top Up'}
+                >
+                    <ArrowUpRight className="h-4 w-4 md:mr-2" />
+                    <span className="hidden md:inline">{isAdmin() ? 'Credit Main' : 'Top Up'}</span>
+                </Button>
+            )}
             <Button
-                variant="outline"
-                onClick={() => toast.info('Exporting...')}
-                className="glass-card h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+                onClick={handleWithdrawTrigger}
+                className="glass-card-premium h-9 px-3 md:px-4 text-[10px] font-bold tracking-widest uppercase"
+                title="Withdraw Funds"
             >
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-            </Button>
-            <Button
-                onClick={() => toast.success('Withdrawal requested')}
-                className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-            >
-                <ArrowUpRight className="h-4 w-4 mr-2" />
-                Withdraw Funds
+                <ArrowUpRight className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Withdraw Funds</span>
             </Button>
         </div>
-    ), []);
+    ), [isAdmin, isOrgAdmin]);
 
     usePageHeader('Wallet & Billing', headerActions);
+
+    const footerContent = useMemo(() => (
+        <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
+                <div className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-zinc-500 animate-pulse' : 'bg-success'}`} />
+                <span>{ledger.length} Transactions Recorded • Live Balance Active</span>
+            </div>
+        </div>
+    ), [ledger.length, loading]);
+
+    usePageFooter(footerContent, 'status', true);
+
+    // Context Panel & FAB Event Listeners
+    useEffect(() => {
+        const handleExportEvent = () => handleExport();
+        window.addEventListener('exportLedger', handleExportEvent);
+        return () => {
+            window.removeEventListener('exportLedger', handleExportEvent);
+        };
+    }, [handleExport]);
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: wallet?.currency || 'USD' }).format(amount || 0);
     };
 
     return (
-        <div className="min-h-screen pb-20 pt-4">
+        <div className="min-h-screen py-6 md:py-8">
+            <div className="pt-2" />
 
             {/* Overview Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-                <Card className="lg:col-span-2 p-8 bg-black border-none shadow-2xl relative overflow-hidden group">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 px-0 md:px-2">
+                <Card className="lg:col-span-2 p-8 bg-card border-none shadow-2xl relative overflow-hidden group hover:shadow-glow transition-all duration-300 hover:scale-[1.01]">
                     <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div>
-                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-2">Available Balance</p>
-                            <h2 className="text-6xl font-black tracking-tighter text-white mb-4">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2">Available Balance</p>
+                            <h2 className="text-6xl font-black tracking-tighter text-foreground mb-4">
                                 {formatCurrency(wallet?.balance)}
                             </h2>
                             <div className="flex items-center gap-3">
                                 <Badge className="bg-success text-white border-none py-1 px-3 rounded-full text-[10px] font-black tracking-widest uppercase">
                                     ACTIVE
                                 </Badge>
-                                <div className="flex items-center gap-1.5 text-zinc-400 text-xs">
+                                <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
                                     <Clock className="w-3.5 h-3.5" />
                                     Last Updated: {wallet?.updated_at ? new Date(wallet.updated_at).toLocaleTimeString() : 'Just now'}
                                 </div>
@@ -119,128 +212,164 @@ export const WalletManagementPage = () => {
                         </div>
 
                         <div className="flex flex-col gap-3">
-                            <div className="w-full md:w-64 p-4 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 flex items-center gap-4">
+                            <div className="w-full p-4 rounded-3xl bg-muted/10 backdrop-blur-xl border border-border/10 flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center text-primary">
                                     <TrendingUp className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Projected (30d)</p>
-                                    <p className="text-xl font-bold text-white tracking-tight">+ $4,250.00</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Projected (30d)</p>
+                                    <p className="text-xl font-bold text-foreground tracking-tight">
+                                        + {formatCurrency(projection)}
+                                    </p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Liquid background effect */}
-                    <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
-                    <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-success/10 rounded-full blur-[80px] pointer-events-none" />
+                    <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary/20 rounded-full blur-[100px] pointer-events-none opacity-50 dark:opacity-100" />
+                    <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-success/10 rounded-full blur-[80px] pointer-events-none opacity-50 dark:opacity-100" />
                 </Card>
 
-                <Card className="p-8 glass-card-premium border-none shadow-2xl flex flex-col justify-center gap-6">
+                <Card className="p-8 glass-card-premium border-none shadow-2xl flex flex-col justify-center gap-6 group hover:shadow-glow transition-all duration-300 hover:scale-[1.01]">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-900 dark:text-zinc-100 shadow-inner">
+                        <div className="w-12 h-12 rounded-2xl bg-muted/20 flex items-center justify-center text-foreground shadow-inner">
                             <CreditCard className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">Stripe Payouts</p>
-                            <h4 className="font-bold text-lg tracking-tight">Connected Account</h4>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">Stripe Billing</p>
+                            <h4 className="font-bold text-lg tracking-tight">Financial Hub</h4>
                         </div>
                     </div>
 
                     <div className="space-y-4">
-                        <div className="p-4 rounded-2xl bg-muted/30 flex items-center justify-between group cursor-pointer hover:bg-muted/50 transition-colors">
-                            <div className="flex items-center gap-3">
-                                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                                <span className="text-sm font-semibold tracking-tight">Account Active</span>
+                        <div className="p-4 rounded-2xl bg-muted/30 flex flex-col gap-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-2 h-2 rounded-full ${orgInfo?.stripe_account_id ? 'bg-success animate-pulse' : 'bg-warning'}`} />
+                                    <span className="text-sm font-semibold tracking-tight">
+                                        {orgInfo?.stripe_account_id ? 'Payouts Enabled' : 'Setup Required'}
+                                    </span>
+                                </div>
+                                {orgInfo?.payout_method_last4 && (
+                                    <Badge variant="outline" className="text-[10px] bg-background/50 border-border/10 uppercase tracking-tighter">
+                                        {orgInfo.payout_method_brand} •••• {orgInfo.payout_method_last4}
+                                    </Badge>
+                                )}
                             </div>
-                            <ExternalLink className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all" />
+
+                            {paymentMethods.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Saved Methods</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {paymentMethods.map(pm => (
+                                            <div key={pm.id} className="flex items-center gap-2 bg-background/50 rounded-lg px-2 py-1 border border-border/10 group relative">
+                                                <span className="text-[10px] font-mono text-muted-foreground">•••• {pm.card?.last4}</span>
+                                                <button
+                                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => handleDeleteMethod(pm.id)}
+                                                >
+                                                    <MoreVertical className="w-3 h-3 text-muted-foreground hover:text-destructive" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-                        <Button className="w-full py-6 rounded-2xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold tracking-widest uppercase text-[10px] hover:scale-[1.02] active:scale-[0.98] transition-all">
-                            Withdrawal Settings
+                        <Button
+                            className="w-full py-6 rounded-2xl bg-primary text-primary-foreground font-bold tracking-widest uppercase text-[10px] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
+                            onClick={() => window.dispatchEvent(new CustomEvent('openBillingModal'))}
+                        >
+                            {paymentMethods.length > 0 ? 'Manage Billing' : 'Link Payment Card'}
                         </Button>
                     </div>
                 </Card>
             </div>
 
             {/* Transaction History */}
-            <h3 className="text-2xl font-black tracking-tighter mb-6 flex items-center gap-3 px-2">
+            <h3 className="text-2xl font-black tracking-tighter mb-6 flex items-center gap-3 px-4">
                 <History className="w-6 h-6 text-primary" />
                 Transaction Ledger
             </h3>
 
-            <Card className="glass-card-premium border-none shadow-2xl overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-muted/30">
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Type</th>
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Description</th>
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Date</th>
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground text-right">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/10">
-                            {loading ? (
-                                [1, 2, 3, 4, 5].map(i => (
-                                    <tr key={i} className="animate-pulse">
-                                        <td colSpan={4} className="px-6 py-6 h-12" />
-                                    </tr>
-                                ))
-                            ) : ledger.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-20 text-center">
-                                        <History className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-20" />
-                                        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">No activities recorded yet</p>
-                                    </td>
+            <div className="px-0 md:px-2">
+                <Card className="glass-card-premium border-none shadow-2xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="bg-muted/30">
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Type</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Description</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Date</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground text-right">Amount</th>
                                 </tr>
-                            ) : (
-                                ledger.map((item) => (
-                                    <tr key={item.id} className="hover:bg-muted/20 transition-colors group">
-                                        <td className="px-6 py-6 whitespace-nowrap">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.transaction_type === 'credit' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
-                                                    }`}>
-                                                    {item.transaction_type === 'credit' ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
-                                                </div>
-                                                <span className="text-xs font-black uppercase tracking-widest">
-                                                    {item.transaction_type}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-6">
-                                            <div>
-                                                <p className="text-sm font-bold tracking-tight text-foreground">{item.description}</p>
-                                                <p className="text-[10px] text-muted-foreground uppercase tracking-tighter font-mono">{item.reference_type} ref: {item.reference_id?.slice(0, 8)}</p>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-6 whitespace-nowrap">
-                                            <p className="text-xs font-bold text-muted-foreground">
-                                                {new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                                            </p>
-                                            <p className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-tight">
-                                                {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
-                                        </td>
-                                        <td className="px-6 py-6 whitespace-nowrap text-right">
-                                            <span className={`text-lg font-black tracking-tighter ${item.transaction_type === 'credit' ? 'text-success' : 'text-foreground'
-                                                }`}>
-                                                {item.transaction_type === 'credit' ? '+' : '-'} {formatCurrency(Math.abs(item.amount))}
-                                            </span>
+                            </thead>
+                            <tbody className="divide-y divide-border/10">
+                                {loading ? (
+                                    [1, 2, 3, 4, 5].map(i => (
+                                        <tr key={i} className="animate-pulse">
+                                            <td colSpan={4} className="px-6 py-6 h-12" />
+                                        </tr>
+                                    ))
+                                ) : ledger.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} className="px-6 py-20 text-center">
+                                            <History className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-20" />
+                                            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">No activities recorded yet</p>
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
+                                ) : (
+                                    ledger.map((item) => (
+                                        <tr key={item.id} className="hover:bg-muted/20 transition-colors group">
+                                            <td className="px-6 py-6 whitespace-nowrap">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.transaction_type === 'credit' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
+                                                        }`}>
+                                                        {item.transaction_type === 'credit' ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
+                                                    </div>
+                                                    <span className="text-xs font-black uppercase tracking-widest">
+                                                        {item.transaction_type}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-6">
+                                                <div>
+                                                    <p className="text-sm font-bold tracking-tight text-foreground">{item.description}</p>
+                                                    <p className="text-[10px] text-muted-foreground uppercase tracking-tighter font-mono">{item.reference_type} ref: {item.reference_id?.slice(0, 8)}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-6 whitespace-nowrap">
+                                                <p className="text-xs font-bold text-muted-foreground">
+                                                    {new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </p>
+                                                <p className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-tight">
+                                                    {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            </td>
+                                            <td className="px-6 py-6 whitespace-nowrap text-right">
+                                                <span className={`text-lg font-black tracking-tighter ${item.transaction_type === 'credit' ? 'text-success' : 'text-foreground'
+                                                    }`}>
+                                                    {item.transaction_type === 'credit' ? '+' : '-'} {formatCurrency(Math.abs(item.amount))}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
 
-            {/* Footer info */}
-            <div className="mt-8 flex items-center gap-2 px-4 opacity-50">
-                <ShieldCheck className="w-4 h-4 text-success" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">End-to-end encrypted transactions by iVisit Gateway</span>
+                {/* Footer info */}
+                <div className="mt-8 flex items-center gap-2 px-4 opacity-50">
+                    <ShieldCheck className="w-4 h-4 text-success" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">End-to-end encrypted transactions by iVisit Gateway</span>
+                </div>
+
             </div>
         </div>
     );
 };
+

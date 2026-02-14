@@ -34,6 +34,8 @@ import {
 import { motion, LayoutGroup } from 'framer-motion';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { SEOHead } from '../common/SEOHead';
+import { getWalletSummary } from '../../services/walletService';
+import { Wallet, TrendingDown as TrendingDownIcon } from 'lucide-react';
 
 // Responsive Grid Hook or similar logic can be added here if needed, 
 // but CSS Grid with auto-fit/minmax is usually cleaner for "filling spaces".
@@ -41,7 +43,7 @@ import { SEOHead } from '../common/SEOHead';
 
 export const BentoHome = () => {
   const navigate = useNavigate();
-  const { hasMinRole, isAdmin, isProvider, isPatient, isViewer, isSponsor, isOrgAdmin } = useAuth();
+  const { user, profile, hasMinRole, isAdmin, isProvider, isPatient, isViewer, isSponsor, isOrgAdmin } = useAuth();
   const {
     emergencyData,
     emergencyStats,
@@ -74,17 +76,25 @@ export const BentoHome = () => {
     activeProviders: 0
   });
 
+  const [walletStats, setWalletStats] = useState({
+    balance: 0,
+    todayIncome: 0,
+    yesterdayIncome: 0,
+    trend: 0,
+    currency: 'USD'
+  });
+
   // Calculate app-wide stats from all data sources
   const appStats = useMemo(() => {
     // Calculate today's requests from raw emergency data
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]; // 24 hours ago
-    
-    const todayRequests = emergencyData?.recent?.filter(req => 
+
+    const todayRequests = emergencyData?.recent?.filter(req =>
       req.created_at?.startsWith(today)
     ).length || 0;
-    
-    const yesterdayRequests = emergencyData?.recent?.filter(req => 
+
+    const yesterdayRequests = emergencyData?.recent?.filter(req =>
       req.created_at?.startsWith(yesterday)
     ).length || 0;
 
@@ -210,6 +220,13 @@ export const BentoHome = () => {
 
     fetchSubscriptionData();
   }, [fetchSubscriptionAnalytics]);
+
+  // Fetch wallet stats
+  useEffect(() => {
+    if (isAdmin() || isOrgAdmin() || isSponsor()) {
+      getWalletSummary(profile, isAdmin() || isSponsor()).then(setWalletStats);
+    }
+  }, [isAdmin, isOrgAdmin, isSponsor, profile]);
 
   const chartData = [
     { time: '00:00', value: 5 },
@@ -1096,47 +1113,125 @@ export const BentoHome = () => {
             className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-1"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.4, delay: 0.7, ease: [0.4, 0, 0.2, 1] }}
           >
-            <Link to="/trending" className="block h-full group">
-              <div className="h-full min-h-[160px] glass-card p-8 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between">
+            <Link to="/community" className="block h-full group">
+              <div className="h-full min-h-[160px] geo-bg glass shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between">
                 {/* Shared RGB Hive Effect */}
                 <div className="hover-glow hover-glow-warning" />
 
-                {/* Warning gradient background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-warning/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                {/* Subscription-style Pattern */}
+                <div className="absolute inset-0 opacity-5"
+                  style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, currentColor 0%, transparent 40%), radial-gradient(circle at 75% 75%, currentColor 0%, transparent 40%)', backgroundSize: '60px 60px', color: 'hsl(var(--warning))' }}>
+                </div>
 
-                {/* Warning icon - fixed positioning */}
-                <div className="absolute top-6 right-6 z-30">
-                  <div className="w-12 h-12 bg-warning/20 rounded-2xl flex items-center justify-center border border-warning/30 transition-transform duration-300 group-hover:scale-110">
-                    <TrendingUp className="h-6 w-6 text-warning" />
+                {/* Top Right Icon - Appears on hover */}
+                <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                      <TrendingUp className="h-5 w-5 text-warning" />
+                    </div>
                   </div>
                 </div>
 
                 <div className="relative z-10 flex flex-col h-full justify-between gap-4">
                   <div className="flex justify-between items-start">
-                    <div className="w-12 h-12 bg-warning/20 rounded-2xl flex items-center justify-center group-hover:opacity-0 transition-opacity">
+                    <div className="w-12 h-12 squircle bg-warning/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
                       <TrendingUp className="h-6 w-6 text-warning" />
                     </div>
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <ChevronRight className="h-6 w-6 text-warning" />
-                    </div>
+                    <Badge className="squircle-sm bg-warning/20 text-warning border-0 font-bold editorial-subtitle px-2 py-0.5">TRENDING</Badge>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-2xl tracking-tight text-foreground">Trending</h4>
-                    <p className="text-lg text-muted-foreground font-medium">24 topics today</p>
-                  </div>
-                </div>
+                    <p className="editorial-subtitle text-warning mb-1">REAL-TIME</p>
+                    <h4 className="font-bold text-xl tracking-tight text-foreground">Trending Topics</h4>
+                    <p className="text-sm text-muted-foreground font-medium">Search patterns and social health</p>
 
-                {/* Warning chevron - fixed positioning no overlap */}
-                <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <div className="w-10 h-10 bg-warning/20 rounded-full flex items-center justify-center border border-warning/30">
-                    <ChevronRight className="h-5 w-5 text-warning" />
+                    {/* Bottom Right Chevron - Appears on hover */}
+                    <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
+                      <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                        <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </Link>
           </motion.div>
+
+          {/* iVisit Wallet - Admin/Org Admin/Sponsor Only */}
+          {(isAdmin() || isOrgAdmin() || isSponsor()) && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-1"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.75, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <Link to="/wallet" className="block h-full group">
+                <div className="h-full min-h-[160px] geo-bg glass shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between">
+                  {/* Shared RGB Hive Effect */}
+                  <div className="hover-glow hover-glow-success" />
+
+                  {/* Pattern background */}
+                  <div className="absolute inset-0 opacity-5"
+                    style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, currentColor 0%, transparent 40%), radial-gradient(circle at 75% 75%, currentColor 0%, transparent 40%)', backgroundSize: '60px 60px', color: 'hsl(var(--success))' }}>
+                  </div>
+
+                  {/* Top Right Icon - Appears on hover */}
+                  <div className="absolute top-0 right-0 p-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="relative">
+                      <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                        <Wallet className="h-5 w-5 text-success" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+                    <div className="flex justify-between items-start">
+                      <div className="w-12 h-12 squircle bg-success/10 flex items-center justify-center group-hover:opacity-0 transition-opacity">
+                        <Wallet className="h-6 w-6 text-success" />
+                      </div>
+                      <Badge className="squircle-sm bg-success/10 text-success border-0 font-bold editorial-subtitle px-2 py-0.5">WALLET</Badge>
+                    </div>
+                    <div>
+                      <p className="editorial-subtitle text-success mb-1">FINANCE</p>
+                      <div className="flex items-baseline gap-2">
+                        <h4 className="font-bold text-xl tracking-tight text-foreground">
+                          {new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: walletStats?.currency || 'USD'
+                          }).format(walletStats?.balance || 0)}
+                        </h4>
+                        <div className="flex items-center gap-1">
+                          {walletStats.trend >= 0 ? (
+                            <TrendingUp className="h-3 w-3 text-success" />
+                          ) : (
+                            <TrendingDownIcon className="h-3 w-3 text-destructive" />
+                          )}
+                          <span className={`text-[10px] font-bold ${walletStats.trend >= 0 ? 'text-success' : 'text-destructive'}`}>
+                            {walletStats.trend >= 0 ? '+' : ''}{walletStats.trend}%
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground font-medium">
+                        Income Today: {new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: walletStats?.currency || 'USD'
+                        }).format(walletStats?.todayIncome || 0)}
+                      </p>
+
+                      {/* Bottom Right Chevron - Appears on hover */}
+                      <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
+                        <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                          <ChevronRight className="h-5 w-5 text-success ml-0.5" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          )}
 
           {/* Subscription Card - Admin Only */}
           {isAdmin() && (
@@ -1308,6 +1403,6 @@ export const BentoHome = () => {
 
         </motion.div>
       </LayoutGroup>
-    </div>
+    </div >
   );
 };

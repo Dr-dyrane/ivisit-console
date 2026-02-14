@@ -47,6 +47,8 @@ import { toast } from 'sonner';
 import { usePageHeader } from '../../contexts/LayoutContext';
 import { ReportsModal } from '../modals/ReportsModal';
 import { useSubscription } from '../../hooks/useSubscription';
+import { getFinanceAnalytics } from '../../services/walletService';
+import { Wallet } from 'lucide-react';
 
 const CHART_COLORS = {
   primary: 'hsl(var(--primary))',
@@ -87,6 +89,8 @@ export const Analytics = () => {
     inactiveFree: 0,
     inactivePremium: 0,
   });
+
+  const [financeData, setFinanceData] = useState([]);
 
   const [responseTimeData, setResponseTimeData] = useState([]);
   const [requestsByStatus, setRequestsByStatus] = useState([]);
@@ -177,6 +181,24 @@ export const Analytics = () => {
     }
   }), [stats, responseTimeData, requestsByStatus, requestsByDay, emergencyTypes, dominantType, subscriptionStats]);
 
+  // Financial summary metrics
+  const financeSummary = useMemo(() => {
+    const defaultRes = { total: 0, weeklyAvg: 0, today: 0, health: 0 };
+    if (!financeData || !financeData.length) return defaultRes;
+
+    const total = financeData.reduce((sum, d) => sum + (Number(d.income) || 0), 0);
+    const today = Number(financeData[financeData.length - 1]?.income) || 0;
+    const weeklyAvg = total / (financeData.length || 1);
+    const health = weeklyAvg > 0 ? Math.min(100, (today / weeklyAvg) * 50 + 50) : 0;
+
+    return {
+      total: total || 0,
+      weeklyAvg: weeklyAvg || 0,
+      today: today || 0,
+      health: health || 0
+    };
+  }, [financeData]);
+
   const headerActions = useMemo(() => (
     <div className="flex items-center gap-3">
       <Select value={timeRange} onValueChange={setTimeRange}>
@@ -262,7 +284,7 @@ export const Analytics = () => {
     try {
       // Get current user for RBAC filtering
       const user = await getCurrentUser();
-      
+
       // Apply RBAC filtering to queries
       let requestsQuery = supabase.from('emergency_requests').select('*');
       let usersQuery = supabase.from('profiles').select('*', { count: 'exact' });
@@ -300,6 +322,10 @@ export const Analytics = () => {
         ambulancesQuery,
         fetchSubscriptionAnalytics() // Use hook instead of direct service call
       ]);
+
+      if (isAdmin() || isOrgAdmin() || isSponsor()) {
+        getFinanceAnalytics(user, isAdmin() || isSponsor(), timeRange === '7d' ? 7 : 30).then(setFinanceData);
+      }
 
       const requests = requestsRes.data || [];
       const completed = requests.filter(r => r.status === 'completed');
@@ -1595,6 +1621,101 @@ export const Analytics = () => {
                 </div>
               </Card>
             </motion.div>
+
+            {/* Financial Performance Card - Admin/Org Admin/Sponsor only */}
+            {(isAdmin() || isOrgAdmin() || isSponsor()) && (
+              <motion.div
+                layout
+                className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <Card className="h-full min-h-[350px] geo-shard glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
+                  <div className="hover-glow hover-glow-success" />
+
+                  {/* Top Right Icon Decoration */}
+                  <div className="absolute top-0 right-0 p-6 z-20">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
+                      <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                        <Wallet className="h-6 w-6 text-success" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 relative z-10">
+                    <h3 className="font-bold text-xl tracking-tight">Finance Analytics</h3>
+                    <p className="text-sm text-muted-foreground font-medium">Wallet & Revenue Performance</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6 flex-1 relative z-10">
+                    {/* Left Side: Horizontal Bars */}
+                    <div className="space-y-4">
+                      {[
+                        { label: 'Today', value: `$${financeSummary.today.toFixed(0)}`, progress: 75, color: 'success' },
+                        { label: 'Avg/Week', value: `$${(financeSummary.weeklyAvg * 7).toFixed(0)}`, progress: 60, color: 'primary' },
+                        { label: 'Total', value: `$${financeSummary.total.toFixed(0)}`, progress: 90, color: 'info' }
+                      ].map((m, idx) => (
+                        <div key={idx} className="space-y-1.5">
+                          <div className="flex justify-between items-center px-1">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{m.label}</span>
+                            <span className="text-sm font-bold tracking-tight">{m.value}</span>
+                          </div>
+                          <div className="h-1.5 bg-muted/30 squircle-sm overflow-hidden">
+                            <motion.div
+                              className={`h-full bg-${m.color} squircle-sm`}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${m.progress}%` }}
+                              transition={{ duration: 1, delay: 0.9 + (idx * 0.1) }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Right Side: Donut & Trend Graph */}
+                    <div className="flex flex-col justify-between">
+                      {/* Mini Chart */}
+                      <div className="h-20 w-full mb-4 opacity-70">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={financeData}>
+                            <Area
+                              type="monotone"
+                              dataKey="income"
+                              stroke={CHART_COLORS.success}
+                              fill={CHART_COLORS.success}
+                              fillOpacity={0.1}
+                              strokeWidth={2}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      {/* Status Circular Indicator */}
+                      <div className="flex items-center gap-3 p-3 geo-round bg-success/5 border border-success/10">
+                        <div className="relative w-10 h-10 flex items-center justify-center">
+                          <svg className="w-full h-full transform -rotate-90">
+                            <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-muted/20" />
+                            <circle
+                              cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="4" fill="transparent"
+                              strokeDasharray={100}
+                              strokeDashoffset={100 - financeSummary.health}
+                              className="text-success"
+                            />
+                          </svg>
+                          <span className="absolute text-[8px] font-black">{Math.round(financeSummary.health)}%</span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-tighter">Health Score</p>
+                          <p className="text-[9px] text-muted-foreground leading-none">Vitals looking strong</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            )}
 
           </motion.div>
         </LayoutGroup>

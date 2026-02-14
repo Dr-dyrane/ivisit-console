@@ -13,7 +13,8 @@ import {
     Newspaper,
     Headphones,
     Mail,
-    Send
+    Send,
+    ArrowUpCircle
 } from 'lucide-react';
 
 export const useContextAction = (openModal) => {
@@ -142,6 +143,15 @@ export const useContextAction = (openModal) => {
             label: 'Email Actions',
             color: 'primary',
             action: () => openModal('emailActions')
+        };
+    } else if (currentPath.includes('/wallet') || currentPath.includes('/pricing')) {
+        return {
+            icon: ArrowUpCircle,
+            label: 'Top Up',
+            color: 'success',
+            action: () => {
+                window.dispatchEvent(new CustomEvent('openTopUpModal'));
+            }
         };
     } else {
         return {

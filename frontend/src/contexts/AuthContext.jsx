@@ -220,26 +220,59 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   /**
    * Universal Permission Checker
    * @param {string} action - 'view', 'create', 'edit', 'delete'
-   * @param {string} resource - 'doctors', 'visits', 'ambulances', etc.
+   * @param {string} resource - 'doctors', 'visits', 'ambulances', 'finance', 'analytics', etc.
    * @returns {boolean}
    */
   const can = useCallback((action, resource) => {
     if (isAdmin()) return true;
 
+    // Finance & Analytics access (Privileged)
+    if (['finance', 'analytics', 'subscriptions'].includes(resource)) {
+      if (isAdmin() || isOrgAdmin() || isSponsor()) {
+        if (isSponsor() && action !== 'view') return false; // Sponsors are read-only for finance
+        return true;
+      }
+      return false;
+    }
+
     // Org Admins can manage their own resources
     if (isOrgAdmin()) {
-      const manageable = ['doctors', 'ambulances', 'visits', 'users', 'emergency_requests'];
+      const manageable = ['doctors', 'ambulances', 'visits', 'users', 'emergency_requests', 'drivers', 'staff'];
       if (manageable.includes(resource)) return true;
+    }
+
+    // Sponsors can view operational data for transparency
+    if (isSponsor()) {
+      const viewable = ['emergency_requests', 'hospitals', 'visits'];
+      if (action === 'view' && viewable.includes(resource)) return true;
     }
 
     // Providers can view and sometimes edit their own stuff
     if (isProvider()) {
-      const viewable = ['doctors', 'ambulances', 'visits', 'hospitals'];
+      const viewable = [
+        'doctors',
+        'ambulances',
+        'visits',
+        'hospitals',
+        'emergency_requests',
+        'medical_profiles'
+      ];
       if (action === 'view' && viewable.includes(resource)) return true;
+
+      // Dispatchers (special provider type) have more operational control
+      if (profile?.provider_type === 'dispatcher' || profile?.role === 'dispatcher') {
+        const dispatchable = ['ambulances', 'emergency_requests', 'drivers'];
+        if (dispatchable.includes(resource)) return true;
+      }
+    }
+
+    // Viewers are read-only across the system
+    if (isViewer()) {
+      if (action === 'view') return true;
     }
 
     return false;
-  }, [isAdmin, isOrgAdmin, isProvider]);
+  }, [isAdmin, isOrgAdmin, isProvider, isSponsor, isViewer, profile]);
 
   const updateProfile = useCallback(async (updates) => {
     try {
