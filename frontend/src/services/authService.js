@@ -93,37 +93,29 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
   // 1. Apply Role-Based Scoping
   if (role === 'admin' && bypassForAdmin) {
     // Admin gets full access - no scoping applied
-    console.log('[RBAC] Admin access - no filters applied');
   } else if (role === 'org_admin' && orgId) {
     // Org Admin sees everything in their organization
-    console.log(`[RBAC] Org Admin - filtering by ${orgIdField} = ${orgId}`);
     query = query.eq(orgIdField, orgId);
   } else if (role === 'provider' || role === 'doctor') {
     // Provider/Doctor sees only records assigned to them
-    console.log(`[RBAC] Provider - applying specialized filtering for ${resourceType}`);
 
     // For visits and emergencies, prioritizing hospital-based scoping
     if (resourceType === 'visit') {
       // Visits: Filter by hospital organization first, then doctor name as fallback
       if (orgId && orgIdField) {
-        console.log(`[RBAC] Provider - filtering by ${orgIdField} = ${orgId} (Hospital Scope)`);
         query = query.eq(orgIdField, orgId);
       } else if (providerIdField && user?.full_name) {
-        console.log(`[RBAC] Provider - filtering by ${providerIdField} = ${user.full_name} (Assigned Doctor)`);
         query = query.eq(providerIdField, user.full_name);
       }
     } else if (resourceType === 'emergency') {
       // Emergencies: Filter by hospital org_id first, then responder_id for assigned emergencies
       if (orgId && orgIdField) {
-        console.log(`[RBAC] Provider - filtering by ${orgIdField} = ${orgId} (Hospital Scope)`);
         query = query.eq(orgIdField, orgId);
       } else if (providerIdField && userId) {
         // For emergencies, providerIdField should be 'responder_id' and userId is the provider's UUID
-        console.log(`[RBAC] Provider - filtering by ${providerIdField} = ${userId} (Assigned Driver)`);
         query = query.eq(providerIdField, userId);
       } else if (userId) {
         // Fallback: see emergencies requested by the provider (as patient)
-        console.log(`[RBAC] Provider - filtering by ${userIdField} = ${userId} (Own Requests)`);
         query = query.eq(userIdField, userId);
       }
     } else if (resourceType === 'support') {
@@ -141,7 +133,6 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
   } else {
     // Everyone else (patients, viewers, etc.) only sees their own data
     if (userId) {
-      console.log(`[RBAC] User ${userId} - filtering by ${userIdField}`);
       query = query.eq(userIdField, userId);
     }
   }

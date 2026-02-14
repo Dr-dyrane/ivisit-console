@@ -22,18 +22,14 @@ export async function getInsurancePolicies(filter = {}) {
     // Insurance policies table doesn't have organization_id, only user_id
     if (user?.role === 'admin') {
       // Admin gets all policies
-      console.log('[RBAC] Admin access - all insurance policies');
     } else if (user?.role === 'org_admin') {
       // Org Admin gets all policies (no organization_id field to filter by)
-      console.log('[RBAC] Org Admin access - all insurance policies (no org field)');
     } else if (user?.role === 'provider') {
       // Providers shouldn't access insurance data
-      console.log('[RBAC] Provider access denied for insurance policies - not applicable');
       return [];
     } else {
       // Patients see only their own policies
       query = query.eq('user_id', user?.id);
-      console.log(`[RBAC] Patient access - own insurance policies`);
     }
 
     // 2. Apply Custom Filters

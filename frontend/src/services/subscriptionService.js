@@ -16,26 +16,16 @@ const TABLE_NAME = 'subscribers';
 export async function getSubscribers(filter = {}) {
   try {
     const user = await getCurrentUser();
-
-    // Providers shouldn't access subscriber data - return empty
-    if (user?.role === 'provider') {
-      console.log('[RBAC] Provider access denied for subscribers - not applicable');
-      return [];
-    }
-
     let query = supabase.from(TABLE_NAME).select('*');
 
     // 1. Apply RBAC Scoping
     // Subscribers table doesn't have organization_id, so org_admins get all subscribers
     if (user?.role === 'admin') {
       // Admin gets all subscribers
-      console.log('[RBAC] Admin access - all subscribers');
     } else if (user?.role === 'org_admin') {
       // Org Admin gets all subscribers (no organization_id field to filter by)
-      console.log('[RBAC] Org Admin access - all subscribers (no org field)');
     } else {
       // Other roles get no access to subscriber data
-      console.log('[RBAC] Access denied for subscribers - insufficient permissions');
       return [];
     }
 

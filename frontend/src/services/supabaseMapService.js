@@ -16,7 +16,7 @@ export const supabaseMapService = {
   async fetchInitialMapData() {
     try {
       const user = await getCurrentUser();
-      
+
       // 1. Emergencies with RBAC
       let emergenciesQuery = supabase
         .from('emergency_requests')
@@ -66,12 +66,6 @@ export const supabaseMapService = {
       if (errEmergencies) console.error("Error fetching map emergencies:", errEmergencies);
       if (errAmbulances) console.error("Error fetching map ambulances:", errAmbulances);
       if (errHospitals) console.error("Error fetching map hospitals:", errHospitals);
-
-      console.log(`[Map RBAC] User ${user?.role} loaded:`, {
-        emergencies: emergencies?.length || 0,
-        ambulances: ambulances?.length || 0,
-        hospitals: hospitals?.length || 0
-      });
 
       return {
         emergencies: emergencies || [],
