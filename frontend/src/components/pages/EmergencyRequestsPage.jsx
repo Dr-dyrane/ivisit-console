@@ -405,7 +405,17 @@ export const EmergencyRequestsPage = () => {
 
     try {
       await completeEmergency(request.id);
-      toast.success('Emergency completed. Resources freed.');
+
+      // Auto-trigger cash processing if it's a cash job and not yet completed
+      if (request.payment_method_id === 'cash' && request.payment_status !== 'completed') {
+        toast.info('Cash Payment Required', {
+          description: 'This was a cash job. Please confirm total amount received.'
+        });
+        handleProcessCash(request);
+      } else {
+        toast.success('Emergency completed. Resources freed.');
+      }
+
       fetchRequests();
     } catch (error) {
       console.error('Complete failed:', error);

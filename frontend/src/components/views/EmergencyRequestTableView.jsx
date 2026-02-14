@@ -81,6 +81,7 @@ export const EmergencyRequestTableView = ({
               <SortableHead label="Contact" columnKey="requester_phone" />
               <SortableHead label="Location" columnKey="patient_location" />
               <SortableHead label="Hospital" columnKey="hospital_name" />
+              <SortableHead label="Payment" columnKey="payment_status" />
               <SortableHead label="Time" columnKey="created_at" />
               <TableHead className="font-bold uppercase tracking-wider text-right pr-6">Actions</TableHead>
             </TableRow>
@@ -129,6 +130,25 @@ export const EmergencyRequestTableView = ({
                   />
                 </TableCell>
                 <TableCell className="text-sm">{req.hospital_name || 'Not specified'}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5">
+                      <Badge className={`squircle-xs border-0 font-bold ${req.payment_method_id === 'cash' ? 'bg-yellow-500/20 text-yellow-600' : 'bg-blue-500/20 text-blue-600'}`}>
+                        {req.payment_method_id?.toUpperCase() || 'UNSET'}
+                      </Badge>
+                      {req.payment_status === 'completed' ? (
+                        <CheckCheck className="h-3 w-3 text-success" />
+                      ) : (
+                        <Clock className="h-3 w-3 text-warning" />
+                      )}
+                    </div>
+                    {req.total_cost && (
+                      <span className="text-[10px] font-bold text-muted-foreground ml-1">
+                        ${Number(req.total_cost).toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {req.created_at ? new Date(req.created_at).toLocaleString() : 'No time'}
                 </TableCell>
@@ -193,7 +213,7 @@ export const EmergencyRequestTableView = ({
                         )}
 
                         {/* Cash Payment Action */}
-                        {canManage && req.status === 'completed' && (
+                        {canManage && req.status === 'completed' && req.payment_method_id === 'cash' && req.payment_status !== 'completed' && (
                           <DropdownMenuItem
                             onClick={() => {
                               if (window.confirm(`Process cash payment for this request? This will deduct the 2.5% platform fee from your organization's wallet.`)) {

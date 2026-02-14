@@ -40,6 +40,11 @@ BEGIN
         jsonb_build_object('source', 'cash_payment', 'confirmed_at', NOW(), 'ledger_credited', false)
     )
     RETURNING id INTO v_payment_id;
+    
+    -- 2. Update the emergency request to reflect payment status
+    UPDATE public.emergency_requests 
+    SET payment_status = 'completed'
+    WHERE id = p_emergency_request_id;
 
     RETURN jsonb_build_object(
         'success', true,
