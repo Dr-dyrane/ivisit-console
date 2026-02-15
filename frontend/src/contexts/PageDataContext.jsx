@@ -577,8 +577,10 @@ export const PageDataProvider = ({ children }) => {
     }
   }, [useMockData]);
 
-  // Initialize all data on mount
+  // Initialize all data on mount - only when user is authenticated
   useEffect(() => {
+    if (!user) return;
+
     fetchEmergencyData();
     fetchVerificationData();
     fetchAnalyticsData();
@@ -592,6 +594,7 @@ export const PageDataProvider = ({ children }) => {
     fetchWalletData();
     fetchActivityData();
   }, [
+    user,
     fetchEmergencyData,
     fetchVerificationData,
     fetchAnalyticsData,
@@ -608,120 +611,111 @@ export const PageDataProvider = ({ children }) => {
 
   // Real-time subscription for emergency data
   useEffect(() => {
-    fetchEmergencyData();
+    if (!user || useMockData) return;
 
-    if (!useMockData) {
-      const channel = supabase
-        .channel('emergency_changes')
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'emergency_requests' },
-          fetchEmergencyData
-        )
-        .subscribe();
+    const channel = supabase
+      .channel('emergency_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'emergency_requests' },
+        fetchEmergencyData
+      )
+      .subscribe();
 
-      return () => supabase.removeChannel(channel);
-    }
-  }, [useMockData, fetchEmergencyData]);
+    return () => supabase.removeChannel(channel);
+  }, [user, useMockData, fetchEmergencyData]);
 
   // Real-time subscription for doctors data
   useEffect(() => {
-    if (!useMockData) {
-      const channel = supabase
-        .channel('doctor_changes')
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'doctors' },
-          fetchDoctorsData
-        )
-        .subscribe();
+    if (!user || useMockData) return;
 
-      return () => supabase.removeChannel(channel);
-    }
-  }, [useMockData, fetchDoctorsData]);
+    const channel = supabase
+      .channel('doctor_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'doctors' },
+        fetchDoctorsData
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [user, useMockData, fetchDoctorsData]);
 
   // Real-time subscription for visits data
   useEffect(() => {
-    if (!useMockData) {
-      const channel = supabase
-        .channel('visit_changes')
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'visits' },
-          fetchVisitsData
-        )
-        .subscribe();
+    if (!user || useMockData) return;
 
-      return () => supabase.removeChannel(channel);
-    }
-  }, [useMockData, fetchVisitsData]);
+    const channel = supabase
+      .channel('visit_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'visits' },
+        fetchVisitsData
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [user, useMockData, fetchVisitsData]);
 
   // Real-time subscription for insurance policies
   useEffect(() => {
-    if (!useMockData) {
-      const channel = supabase
-        .channel('insurance_changes')
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'insurance_policies' },
-          fetchInsurancePolicies
-        )
-        .subscribe();
+    if (!user || useMockData) return;
 
-      return () => supabase.removeChannel(channel);
-    }
-  }, [useMockData, fetchInsurancePolicies]);
+    const channel = supabase
+      .channel('insurance_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'insurance_policies' },
+        fetchInsurancePolicies
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [user, useMockData, fetchInsurancePolicies]);
 
   // Real-time subscription for verification data and user data
   useEffect(() => {
-    fetchVerificationData();
-    fetchUsersData();
+    if (!user || useMockData) return;
 
-    if (!useMockData) {
-      const channel = supabase
-        .channel('profile_changes')
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'profiles' },
-          () => {
-            fetchVerificationData();
-            fetchUsersData();
-          }
-        )
-        .subscribe();
+    const channel = supabase
+      .channel('profile_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => {
+          fetchVerificationData();
+          fetchUsersData();
+        }
+      )
+      .subscribe();
 
-      return () => supabase.removeChannel(channel);
-    }
-  }, [useMockData, fetchVerificationData, fetchUsersData]);
+    return () => supabase.removeChannel(channel);
+  }, [user, useMockData, fetchVerificationData, fetchUsersData]);
 
   // Real-time subscription for support tickets data
   useEffect(() => {
-    fetchSupportTicketsData();
+    if (!user || useMockData) return;
 
-    if (!useMockData) {
-      const channel = supabase
-        .channel('support_tickets_changes')
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'support_tickets' },
-          fetchSupportTicketsData
-        )
-        .subscribe();
+    const channel = supabase
+      .channel('support_tickets_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'support_tickets' },
+        fetchSupportTicketsData
+      )
+      .subscribe();
 
-      return () => supabase.removeChannel(channel);
-    }
-  }, [useMockData, fetchSupportTicketsData]);
+    return () => supabase.removeChannel(channel);
+  }, [user, useMockData, fetchSupportTicketsData]);
 
   // Real-time subscription for activity data
   useEffect(() => {
-    fetchActivityData();
+    if (!user || useMockData) return;
 
-    if (!useMockData) {
-      const channel = supabase
-        .channel('activity_changes')
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'user_activity' },
-          fetchActivityData
-        )
-        .subscribe();
+    const channel = supabase
+      .channel('activity_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'user_activity' },
+        fetchActivityData
+      )
+      .subscribe();
 
-      return () => supabase.removeChannel(channel);
-    }
-  }, [useMockData, fetchActivityData]);
+    return () => supabase.removeChannel(channel);
+  }, [user, useMockData, fetchActivityData]);
 
   // Calculate emergency statistics
   const getEmergencyStats = () => {
