@@ -107,9 +107,14 @@ export const UserTableView = ({
                     />
                   </TableCell>
                   <TableCell className="font-mono text-[10px] font-bold text-primary/80">
-                    {user.display_id || '-'}
+                    {user.display_id || user.profile_display_id || '-'}
                   </TableCell>
-                  <TableCell className="font-bold">{user.full_name || user.username || 'Unknown'}</TableCell>
+                  <TableCell className="font-bold">
+                    <div className="flex flex-col">
+                      <span className="text-sm">{user.full_name || user.profile_full_name || 'Unknown User'}</span>
+                      <span className="text-[10px] text-muted-foreground font-medium lowercase">@{user.username || user.profile_username || 'no-handle'}</span>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{user.email || '-'}</TableCell>
                   <TableCell>
                     <Badge className={`squircle-sm ${user.role === 'admin' ? 'bg-orange-500/10 text-orange-500 border-orange-500/10' :

@@ -31,13 +31,16 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
           <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-sm p-4 border-0 hover:shadow-md transition-shadow group">
             <div className="flex items-center gap-4 justify-between">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
-                    {user.full_name || user.username || user.profile_username || 'Unknown User'}
-                  </h3>
-                  <Badge className={`squircle-sm ${getRoleBadge(user.role)} border-0 font-bold`}>
-                    {user.role}
-                  </Badge>
+                <div className="flex flex-col gap-1 mb-2">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
+                      {user.full_name || user.profile_full_name || 'Unknown User'}
+                    </h3>
+                    <Badge className={`squircle-sm ${getRoleBadge(user.role)} border-0 font-bold`}>
+                      {user.role}
+                    </Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground font-medium lowercase">@{user.username || user.profile_username || 'no-handle'}</span>
                 </div>
                 <p className="text-sm text-muted-foreground truncate">
                   {user.email || 'No email'} • {user.provider_type || 'N/A'}

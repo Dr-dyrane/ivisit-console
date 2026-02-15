@@ -255,69 +255,12 @@ export const UsersPage = () => {
       if (modalMode === 'edit' && selectedUser?.id) {
         savedProfile = await updateProfile(selectedUser.id, formData);
 
-        // Auto-link logic for providers
-        if (formData.role === 'provider' && formData.provider_type) {
-          if (formData.provider_type === 'doctor') {
-            const existingDoctor = await getDoctorByProfileId(selectedUser.id);
-            if (!existingDoctor) {
-              await createDoctor({
-                profile_id: selectedUser.id,
-                name: formData.full_name || formData.username,
-                email: formData.email,
-                phone: formData.phone,
-                hospital_id: formData.organization_id,
-                status: 'available'
-              });
-              toast.info('Professional doctor record created automatically');
-            }
-          } else if (formData.provider_type === 'ambulance') {
-            // Check if ambulance exists (assuming profile_id maps 1:1 for now)
-            const { data: existingAmbulance } = await supabase.from('ambulances').select('id').eq('profile_id', selectedUser.id).single();
-            if (!existingAmbulance) {
-              await createAmbulance({
-                profile_id: selectedUser.id,
-                call_sign: formData.username,
-                hospital_id: formData.organization_id,
-                status: 'available',
-                type: 'Basic'
-              });
-              toast.info('Ambulance record created automatically');
-            }
-          }
-        }
-
         fetchUsers();
       } else if (modalMode === 'create') {
-        // Manual creation logic (truncated for brevity in diff)
         if (!formData.id) {
           throw new Error("Cannot create user manually without 'Invite' flow. Please use 'Invite User' to create new users with secure access.");
         }
-        savedProfile = await createProfile(formData);
-
-        // Auto-link logic for create mode
-        if (formData.role === 'provider' && formData.provider_type) {
-          if (formData.provider_type === 'doctor') {
-            await createDoctor({
-              profile_id: savedProfile.id,
-              name: formData.full_name || formData.username,
-              email: formData.email,
-              phone: formData.phone,
-              hospital_id: formData.organization_id,
-              status: 'available'
-            });
-            toast.info('Professional doctor record created automatically');
-          } else if (formData.provider_type === 'ambulance') {
-            await createAmbulance({
-              profile_id: savedProfile.id,
-              call_sign: formData.username,
-              hospital_id: formData.organization_id,
-              status: 'available',
-              type: 'Basic'
-            });
-            toast.info('Ambulance record created automatically');
-          }
-        }
-
+        await createProfile(formData);
         fetchUsers();
       }
     } catch (error) {

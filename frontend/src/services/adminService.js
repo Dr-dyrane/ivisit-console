@@ -65,12 +65,10 @@ const logAdminAction = async (action, details = {}) => {
       action,
       details,
       ip_address: details.ipAddress || 'unknown',
-      user_agent: navigator.userAgent,
-      timestamp: new Date().toISOString()
+      user_agent: navigator.userAgent
     });
   } catch (error) {
     console.error('Failed to log admin action:', error);
-    // Don't throw - audit logging failure shouldn't break admin operations
   }
 };
 

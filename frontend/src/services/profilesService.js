@@ -28,21 +28,24 @@ async function isAdmin() {
  */
 async function getProfilesWithAuthData(filter) {
   try {
-    // Get all auth users with profile data
-    const { data, error } = await supabase.rpc('get_all_auth_users');
+    // Get all auth users with profile data, scoped by organization if provided
+    const { data, error } = await supabase.rpc('get_all_auth_users', {
+      p_organization_id: filter?.organization_id || null
+    });
     if (error) throw error;
 
     let profiles = (data || []).map(u => ({
       ...u,
       // Map RPC specific fields to standard profile fields
-      role: u.profile_role,
-      username: u.profile_username,
-      first_name: u.profile_first_name,
-      last_name: u.profile_last_name,
-      full_name: u.profile_full_name,
-      provider_type: u.profile_provider_type,
-      bvn_verified: u.profile_bvn_verified,
+      role: u.profile_role || u.role,
+      username: u.profile_username || u.username,
+      first_name: u.profile_first_name || u.first_name,
+      last_name: u.profile_last_name || u.last_name,
+      full_name: u.profile_full_name || u.full_name,
+      provider_type: u.profile_provider_type || u.provider_type,
+      bvn_verified: u.profile_bvn_verified || u.bvn_verified,
       organization_id: u.profile_organization_id || u.organization_id,
+      display_id: u.profile_display_id || u.display_id,
       // Handle image_uri/avatar if present in RPC, otherwise rely on fallbacks
       image_uri: u.profile_image_uri || u.image_uri,
       avatar_url: u.profile_avatar_url || u.avatar_url
@@ -112,6 +115,8 @@ export async function getUserStatistics() {
         sponsor: data[0].sponsor_count,
         viewer: data[0].viewer_count,
         patient: data[0].patient_count,
+        org_admin: data[0].org_admin_count,
+        dispatcher: data[0].dispatcher_count
       }
     } : {};
   } catch (error) {
@@ -142,9 +147,13 @@ export async function getProfiles(filter = {}) {
   try {
     const user = await getCurrentUser();
 
-    // If admin and wants full user data, use admin service
-    if (user?.role === 'admin' && filter?.includeAuthData) {
-      return await getProfilesWithAuthData(filter);
+    // Use the enhanced RPC path for any role that has administrative permissions (admin, org_admin, dispatcher)
+    const isAdminRole = user?.role === 'admin' || user?.role === 'org_admin' || user?.role === 'dispatcher';
+
+    if (isAdminRole && filter?.includeAuthData) {
+      // Pass the organization_id filter if the user is scoped (org_admin/dispatcher)
+      const scopingId = user.role === 'admin' ? filter.organization_id : (user.organization_id || filter.organization_id);
+      return await getProfilesWithAuthData({ ...filter, organization_id: scopingId });
     }
 
     let query = supabase.from(TABLE_NAME).select('*');
@@ -199,7 +208,7 @@ export async function getProfiles(filter = {}) {
 
       enrichedData = enrichedData.map(p => ({
         ...p,
-        display_id: displayIds.get(p.id) || null
+        display_id: p.display_id || (displayIds.get ? displayIds.get(p.id) : displayIds[p.id]) || null
       }));
     }
 
