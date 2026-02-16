@@ -286,8 +286,8 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                               <SelectValue placeholder="Select Organization" />
                             </SelectTrigger>
                             <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                              {hospitals?.map(hospital => (
-                                <SelectItem key={hospital.id} value={hospital.id}>
+                              {hospitals?.filter(h => h.organization_id).map(hospital => (
+                                <SelectItem key={hospital.organization_id} value={hospital.organization_id}>
                                   {hospital.name}
                                 </SelectItem>
                               ))}
