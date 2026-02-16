@@ -32,6 +32,7 @@ async function getProfilesWithAuthData(filter) {
     const { data, error } = await supabase.rpc('get_all_auth_users', {
       p_organization_id: filter?.organization_id || null
     });
+
     if (error) throw error;
 
     let profiles = (data || []).map(u => ({
@@ -93,6 +94,7 @@ async function getProfilesWithAuthData(filter) {
     throw error;
   }
 }
+
 
 /**
  * Get user statistics (admin only)
