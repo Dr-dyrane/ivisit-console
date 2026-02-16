@@ -28,8 +28,8 @@ export const HospitalTableView = ({
   sortConfig,
   onSort
 }) => {
-  const { isAdmin, isProvider } = useAuth();
-  const canManage = isAdmin() || isProvider();
+  const { isAdmin, isOrgAdmin, isProvider } = useAuth();
+  const canManage = isAdmin() || isOrgAdmin() || isProvider();
 
   // Helper function to get status badge styling
   const getStatusBadge = (status) => {
