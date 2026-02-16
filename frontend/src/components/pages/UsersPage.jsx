@@ -316,13 +316,12 @@ export const UsersPage = () => {
 
   const handleDelete = useCallback(async (user) => {
     try {
-      const targetId = user.id || user.user_id; // Check for alternate keys
+      const targetId = user.id || user.user_id;
       if (!targetId) {
         throw new Error("Could not determine user ID for deletion");
       }
 
       const { error } = await supabase.rpc('delete_user_by_admin', { target_user_id: targetId });
-
       if (error) throw error;
 
       await createNotification(
@@ -331,13 +330,27 @@ export const UsersPage = () => {
         targetId,
         { message: `User ${user.username} has been removed from the system` }
       );
+
+      // Optimistic removal for instant UX
+      setUsers(prev => prev.filter(u => u.id !== targetId));
+      if (statistics) {
+        setStatistics(prev => prev ? {
+          ...prev,
+          totalUsers: (prev.totalUsers || 0) - 1,
+          totalProfiles: (prev.totalProfiles || 0) - 1,
+        } : prev);
+      }
+
       toast.success('User deleted successfully');
+
+      // Background sync to ensure consistency
       fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
       handleApiError(error, 'delete');
     }
-  }, [fetchUsers]);
+  }, [fetchUsers, statistics]);
+
 
   const handleViewAnalytics = useCallback(() => {
     setAnalyticsModalOpen(true);
