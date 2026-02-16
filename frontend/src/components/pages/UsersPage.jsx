@@ -321,6 +321,10 @@ export const UsersPage = () => {
         throw new Error("Could not determine user ID for deletion");
       }
 
+      // FIX: Direct supabase.from('profiles').delete() fails silently (200, 0 rows)
+      // because the FOR ALL RLS policy using get_current_user_role() doesn't match
+      // rows for DELETE operations even when the caller IS admin.
+      // SECURITY DEFINER RPC bypasses RLS entirely. See migration 20260216070500.
       const { error } = await supabase.rpc('delete_user_by_admin', { target_user_id: targetId });
       if (error) throw error;
 

@@ -62,18 +62,18 @@ export const HospitalsPage = () => {
   const fetchHospitals = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Check if we have a specific hospital ID in URL
       const params = new URLSearchParams(location.search);
       const hospitalId = params.get('id');
-      
+
       if (hospitalId) {
         // Use existing getHospital function
         const specificHospital = await getHospital(hospitalId);
-        
+
         setHospitals(specificHospital ? [specificHospital] : []);
         pagination.setTotalCount(specificHospital ? 1 : 0);
-        
+
         // Auto-open the modal for this hospital
         if (specificHospital) {
           setSelectedHospital(specificHospital);
@@ -81,17 +81,17 @@ export const HospitalsPage = () => {
         }
         return;
       }
-      
+
       // Otherwise, fetch all hospitals using the existing service
       const data = await getHospitals({
         limit: pagination.pageSize,
         offset: pagination.paginationRange.start
       });
-      
+
       // Get total count for pagination
       const totalCount = await getHospitals();
       pagination.setTotalCount(totalCount.length);
-      
+
       setHospitals(data || []);
     } catch (error) {
       console.error('Error fetching hospitals:', error);
@@ -125,7 +125,7 @@ export const HospitalsPage = () => {
   // Open "Add" modal on page load if requested via URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    
+
     // Handle add=true parameter
     if (params.get('add') === 'true') {
       handleCreate();
@@ -169,10 +169,13 @@ export const HospitalsPage = () => {
       variant: 'destructive',
       onConfirm: async () => {
         try {
-          const { error } = await supabase
-            .from('hospitals')
-            .delete()
-            .eq('id', hospital.id);
+          // FIX: Direct supabase.from('hospitals').delete() fails silently (200, 0 rows)
+          // because the FOR ALL RLS policy using get_current_user_role() doesn't match
+          // rows for DELETE operations even when the caller IS admin.
+          // SECURITY DEFINER RPC bypasses RLS entirely. See migration 20260216070700.
+          const { error } = await supabase.rpc('delete_hospital_by_admin', {
+            target_hospital_id: hospital.id
+          });
 
           if (error) throw error;
 
@@ -731,13 +734,13 @@ export const HospitalsPage = () => {
 
       {/* Pagination Controls */}
       <PaginationControls
-          currentPage={pagination.currentPage}
-          totalPages={pagination.totalPages}
-          onPrevPage={pagination.prevPage}
-          onNextPage={pagination.nextPage}
-          hasPrevPage={pagination.hasPrevPage}
-          hasNextPage={pagination.hasNextPage}
-          loading={loading}
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        onPrevPage={pagination.prevPage}
+        onNextPage={pagination.nextPage}
+        hasPrevPage={pagination.hasPrevPage}
+        hasNextPage={pagination.hasNextPage}
+        loading={loading}
       />
 
       <ConfirmationModal
