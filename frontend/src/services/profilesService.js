@@ -289,6 +289,13 @@ export async function createProfile(input) {
 
 /**
  * Update profile
+ *
+ * FIX: Direct supabase.from('profiles').update() fails for admin updating
+ * OTHER users' profiles (RLS USING clause with get_current_user_role()
+ * silently returns 0 rows, causing PGRST116). For admin edits on other
+ * users, we use the update_profile_by_admin SECURITY DEFINER RPC.
+ * Self-updates still use the direct path (own-row RLS works fine).
+ * See migration 20260216070800.
  */
 export async function updateProfile(profileId, input) {
   try {
@@ -315,16 +322,31 @@ export async function updateProfile(profileId, input) {
 
     payload.updated_at = new Date().toISOString();
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update(payload)
-      .eq('id', profileId)
-      .select()
-      .single();
+    // Check if this is a self-update or admin updating another user
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    const isSelfUpdate = currentUser?.id === profileId;
 
-    if (error) throw error;
+    if (isSelfUpdate) {
+      // Self-update: direct table update works (own-row RLS)
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .update(payload)
+        .eq('id', profileId)
+        .select()
+        .single();
 
-    return data;
+      if (error) throw error;
+      return data;
+    } else {
+      // Admin updating another user: use SECURITY DEFINER RPC
+      const { data, error } = await supabase.rpc('update_profile_by_admin', {
+        target_user_id: profileId,
+        profile_data: payload
+      });
+
+      if (error) throw error;
+      return data;
+    }
   } catch (error) {
     console.error(`Error updating profile ${profileId}:`, error);
     throw error;
