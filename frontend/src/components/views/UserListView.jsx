@@ -43,7 +43,7 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
                   <span className="text-xs text-muted-foreground font-medium lowercase">@{user.username || user.profile_username || 'no-handle'}</span>
                 </div>
                 <p className="text-sm text-muted-foreground truncate">
-                  {user.email || 'No email'} • {user.provider_type || 'N/A'}
+                  {user.email || 'No email'} • {user.organization_name || 'N/A'} • {user.provider_type || 'N/A'}
                 </p>
               </div>
 

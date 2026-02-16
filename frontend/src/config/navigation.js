@@ -2,7 +2,7 @@ import {
     Home, MapPin, FileCheck, TrendingUp,
     Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance,
     Users, Newspaper, Headphones, Shield, Mail, FolderKanban, Handshake, Settings,
-    Wallet, DollarSign
+    Wallet, DollarSign, Building2
 } from 'lucide-react';
 
 /**
@@ -56,6 +56,7 @@ export const NAV_CONFIG = {
             // Org Admin+ items
             { id: 'verification', path: '/verification', icon: FileCheck, label: 'Queue', resource: 'verification', minRole: 'org_admin' },
             { id: 'users', path: '/users', icon: Users, label: 'Users', resource: 'users', minRole: 'org_admin' },
+            { id: 'organizations', path: '/organizations', icon: Building2, label: 'Organizations', resource: 'organizations', minRole: 'admin' },
             { id: 'subscriptions', path: '/subscriptions', icon: Mail, label: 'Subscriptions', resource: 'subscriptions', minRole: 'admin' },
         ]
     },

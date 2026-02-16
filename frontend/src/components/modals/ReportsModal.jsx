@@ -43,7 +43,7 @@ const REPORT_TYPES = [
     icon: Hospital,
     color: 'text-primary',
     bg: 'bg-primary/10',
-    dataKeys: ['total', 'available', 'full', 'totalBeds']
+    dataKeys: ['total', 'available', 'totalBeds', 'totalAmbulances']
   },
   {
     id: 'usage',
@@ -521,10 +521,10 @@ const EmergencyOverview = ({ analytics, getPercentage }) => (
 const HospitalOverview = ({ analytics, getPercentage }) => (
   <div className="space-y-6">
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatBubble label="Total Hospitals" value={analytics.total || 0} icon={<Hospital />} color="text-primary" bg="bg-primary/10" />
-      <StatBubble label="Available" value={analytics.available || 0} subText={`${getPercentage(analytics.available, analytics.total)}% ready`} icon={<CheckCircle />} color="text-green-500" bg="bg-green-500/10" />
-      <StatBubble label="Capacity Full" value={analytics.full || 0} icon={<AlertTriangle />} color="text-destructive" bg="bg-destructive/10" />
-      <StatBubble label="Total Beds" value={analytics.totalBeds || 0} icon={<Bed />} color="text-blue-500" bg="bg-blue-500/10" />
+      <StatBubble label="Total Hospitals" value={analytics.total || analytics.totalHospitals || 0} icon={<Hospital />} color="text-primary" bg="bg-primary/10" />
+      <StatBubble label="Available" value={analytics.available || analytics.availableHospitals || 0} subText={`${getPercentage(analytics.available || analytics.availableHospitals, analytics.total || analytics.totalHospitals)}% ready`} icon={<CheckCircle />} color="text-green-500" bg="bg-green-500/10" />
+      <StatBubble label="Total Beds" value={analytics.totalBeds || 0} icon={<Bed />} color="text-info" bg="bg-info/10" />
+      <StatBubble label="Ambulance Fleet" value={analytics.totalAmbulances || 0} icon={<Ambulance />} color="text-success" bg="bg-success/10" />
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <GlassCard title="Network Status" icon={<Activity className="text-primary" />}>
@@ -533,12 +533,12 @@ const HospitalOverview = ({ analytics, getPercentage }) => (
             <span className="text-sm">Verified Partners</span>
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-green-500" />
-              <span className="font-semibold">{analytics.verified || 0}</span>
+              <span className="font-semibold">{analytics.verified || analytics.verifiedHospitals || 0}</span>
             </div>
           </div>
           <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30">
             <span className="text-sm">Verification Rate</span>
-            <span className="font-semibold text-primary">{getPercentage(analytics.verified, analytics.total)}%</span>
+            <span className="font-semibold text-primary">{getPercentage(analytics.verified || analytics.verifiedHospitals, analytics.total || analytics.totalHospitals)}%</span>
           </div>
         </div>
       </GlassCard>

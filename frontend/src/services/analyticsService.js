@@ -19,7 +19,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
  */
 const getCachedOrFetch = async (key, fetchFunction, duration = CACHE_DURATION) => {
   const cached = cache.get(key);
-  
+
   if (cached && (Date.now() - cached.timestamp) < duration) {
     return cached.data;
   }
@@ -60,7 +60,7 @@ export const getAnalyticsData = async (options = {}) => {
       const hours = getTimeRangeHours(timeRange);
       if (hours) {
         const cutoffDate = new Date(Date.now() - hours * 60 * 60 * 1000);
-        filteredEmergencies = emergencies.filter(e => 
+        filteredEmergencies = emergencies.filter(e =>
           new Date(e.created_at) >= cutoffDate
         );
       }
@@ -69,8 +69,8 @@ export const getAnalyticsData = async (options = {}) => {
     // Calculate derived metrics
     const completedEmergencies = filteredEmergencies.filter(e => e.status === 'completed');
     const totalEmergencies = filteredEmergencies.length;
-    const avgResponseTime = completedEmergencies.length > 0 
-      ? completedEmergencies.reduce((acc, e) => acc + (e.response_time_minutes || 0), 0) / completedEmergencies.length 
+    const avgResponseTime = completedEmergencies.length > 0
+      ? completedEmergencies.reduce((acc, e) => acc + (e.response_time_minutes || 0), 0) / completedEmergencies.length
       : 0;
 
     // Calculate trend data
@@ -85,16 +85,20 @@ export const getAnalyticsData = async (options = {}) => {
       emailVerifiedUsers: userStats.emailVerifiedUsers || 0,
       phoneVerifiedUsers: userStats.phoneVerifiedUsers || 0,
       roleDistribution: userStats.roleDistribution || {},
-      
+
       // Emergency analytics
       totalEmergencies,
       avgResponseTime: Math.round(avgResponseTime * 10) / 10,
       successRate: totalEmergencies > 0 ? Math.round((completedEmergencies.length / totalEmergencies) * 100) : 95,
-      
+
       // Infrastructure analytics
       totalHospitals: hospitals.length,
       totalAmbulances: ambulances.length,
-      
+      totalBeds: hospitals.reduce((acc, h) => acc + (h.available_beds || 0), 0),
+      capacityFull: hospitals.filter(h => h.status === 'full').length,
+      availableHospitals: hospitals.filter(h => h.status === 'available').length,
+      verifiedHospitals: hospitals.filter(h => h.verified).length,
+
       // Subscription analytics
       subscriptionAnalytics: {
         totalSubscribers: subscriptionData.total || 0,
@@ -108,10 +112,10 @@ export const getAnalyticsData = async (options = {}) => {
         byStatus: subscriptionData.byStatus || {},
         recentSubscriptions: subscriptionData.recentSubscriptions || 0,
       },
-      
+
       // Trend analytics
       trends: trendData,
-      
+
       // Raw data for charts (optional)
       ...(includeRawData && {
         emergencies: filteredEmergencies,
@@ -135,7 +139,7 @@ export const getAnalyticsData = async (options = {}) => {
 export const getAnalyticsSummary = async (options = {}) => {
   try {
     const analytics = await getAnalyticsData({ ...options, includeRawData: false });
-    
+
     // Return only key metrics for summary display
     return {
       totalUsers: analytics.totalUsers,
@@ -166,17 +170,17 @@ export const getAnalyticsSummary = async (options = {}) => {
 export const getTimeSeriesData = async (metric = 'emergencies', period = 'day') => {
   try {
     const cacheKey = `timeseries_${metric}_${period}`;
-    
+
     return await getCachedOrFetch(cacheKey, async () => {
       // This would typically call a database function optimized for time-series
       // For now, we'll simulate with the emergency requests
       const emergencies = await getEmergencyRequests();
-      
+
       // Group by time period
       const grouped = emergencies.reduce((acc, emergency) => {
         const date = new Date(emergency.created_at);
         let key;
-        
+
         switch (period) {
           case 'hour':
             key = date.toISOString().slice(0, 13) + ':00';
@@ -195,11 +199,11 @@ export const getTimeSeriesData = async (metric = 'emergencies', period = 'day') 
           default:
             key = date.toISOString().slice(0, 10);
         }
-        
+
         if (!acc[key]) {
           acc[key] = { date: key, count: 0, responseTime: 0, completed: 0 };
         }
-        
+
         acc[key].count += 1;
         if (emergency.response_time_minutes) {
           acc[key].responseTime += emergency.response_time_minutes;
@@ -207,10 +211,10 @@ export const getTimeSeriesData = async (metric = 'emergencies', period = 'day') 
         if (emergency.status === 'completed') {
           acc[key].completed += 1;
         }
-        
+
         return acc;
       }, {});
-      
+
       // Convert to array and sort
       return Object.values(grouped)
         .map(item => ({
@@ -232,18 +236,18 @@ export const getTimeSeriesData = async (metric = 'emergencies', period = 'day') 
 export const getPerformanceMetrics = async () => {
   try {
     const cacheKey = 'performance_metrics';
-    
+
     return await getCachedOrFetch(cacheKey, async () => {
       // Simulate performance metrics
       const emergencies = await getEmergencyRequests();
-      
+
       const responseTimes = emergencies
         .filter(e => e.response_time_minutes)
         .map(e => e.response_time_minutes);
-      
+
       return {
-        avgResponseTime: responseTimes.length > 0 
-          ? responseTimes.reduce((a, b) => a + b) / responseTimes.length 
+        avgResponseTime: responseTimes.length > 0
+          ? responseTimes.reduce((a, b) => a + b) / responseTimes.length
           : 0,
         medianResponseTime: responseTimes.length > 0
           ? responseTimes.sort((a, b) => a - b)[Math.floor(responseTimes.length / 2)]
@@ -281,7 +285,7 @@ const getTimeRangeHours = (range) => {
     '1y': 8760,
     'all': null
   };
-  
+
   return ranges[range] || null;
 };
 
@@ -293,17 +297,17 @@ const calculateTrends = (emergencies) => {
   const now = new Date();
   const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-  
+
   const currentWeek = emergencies.filter(e => new Date(e.created_at) >= lastWeek);
-  const previousWeek = emergencies.filter(e => 
+  const previousWeek = emergencies.filter(e =>
     new Date(e.created_at) >= twoWeeksAgo && new Date(e.created_at) < lastWeek
   );
-  
+
   const trend = currentWeek.length - previousWeek.length;
-  const trendPercentage = previousWeek.length > 0 
+  const trendPercentage = previousWeek.length > 0
     ? Math.round((trend / previousWeek.length) * 100)
     : 0;
-  
+
   return {
     emergencyTrend: trend,
     emergencyTrendPercentage: trendPercentage,

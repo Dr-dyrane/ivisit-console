@@ -48,8 +48,8 @@ export const PricingManagementPage = () => {
 
             let query = supabase.from(table).select('*');
 
-            if (isOrgAdmin()) {
-                query = query.or(`hospital_id.is.null,hospital_id.eq.${profile.organization_id}`);
+            if (isOrgAdmin() && profile.organization_id) {
+                query = query.or(`organization_id.eq.${profile.organization_id},and(hospital_id.is.null,organization_id.is.null)`);
             }
 
             const { data, error } = await query.order('hospital_id', { ascending: false });

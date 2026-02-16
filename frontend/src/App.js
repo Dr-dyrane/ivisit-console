@@ -21,6 +21,7 @@ import { VerificationQueue } from "./components/pages/VerificationQueue";
 import { Analytics } from "./components/pages/Analytics";
 import { HospitalsPage } from "./components/pages/HospitalsPage";
 import { AmbulancesPage } from "./components/pages/AmbulancesPage";
+import { OrganizationsPage } from "./components/pages/OrganizationsPage";
 import { UsersPage } from "./components/pages/UsersPage";
 import { DoctorsPage } from "./components/pages/DoctorsPage";
 import { VisitsPage } from "./components/pages/VisitsPage";
@@ -145,6 +146,7 @@ function AppRoutes() {
 					<Route path="/emergencies" element={<ProtectedRoute minRole="provider"><EmergencyRequestsPage /></ProtectedRoute>} />
 					<Route path="/verification" element={<ProtectedRoute minRole="org_admin"><VerificationQueue /></ProtectedRoute>} />
 					<Route path="/users" element={<ProtectedRoute minRole="org_admin"><UsersPage /></ProtectedRoute>} />
+					<Route path="/organizations" element={<ProtectedRoute minRole="admin"><OrganizationsPage /></ProtectedRoute>} />
 					<Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 					<Route path="/health-news" element={<ProtectedRoute minRole="provider"><HealthNewsManagementPage /></ProtectedRoute>} />
 					<Route path="/support-tickets" element={<ProtectedRoute minRole="provider"><SupportTicketsPage /></ProtectedRoute>} />

@@ -82,6 +82,7 @@ export const UserTableView = ({
               <SortableHead label="Username" columnKey="username" />
               <SortableHead label="Email" columnKey="email" />
               <SortableHead label="Role" columnKey="role" />
+              <TableHead className="font-bold uppercase tracking-wider">Organization</TableHead>
               <SortableHead label="Provider Type" columnKey="provider_type" />
               <SortableHead label="Verified" columnKey="bvn_verified" />
               <SortableHead label="Joined" columnKey="created_at" />
@@ -123,6 +124,9 @@ export const UserTableView = ({
                       } border-0 font-black text-[10px] tracking-widest uppercase px-2 py-0.5 backdrop-blur-md`}>
                       {user.role}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground font-medium text-xs">
+                    {user.organization_name || '-'}
                   </TableCell>
                   <TableCell className="text-muted-foreground capitalize">{user.provider_type || '-'}</TableCell>
                   <TableCell>
@@ -176,7 +180,7 @@ export const UserTableView = ({
             })}
             {users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                   No users found.
                 </TableCell>
               </TableRow>

@@ -453,7 +453,7 @@ export const HospitalsPage = () => {
               </Card>
             </motion.div>
 
-            {/* Capacity/Full Card */}
+            {/* Total Beds Card */}
             <motion.div
               layout
               className="col-span-1"
@@ -462,39 +462,32 @@ export const HospitalsPage = () => {
               transition={{ duration: 0.4, delay: 0.2 }}
             >
               <Card
-                className={`h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'full' ? 'ring-2 ring-destructive shadow-lg' : ''
-                  }`}
-                onClick={() => setKpiFilter('full')}
-                role="button"
-                tabIndex={0}
-                aria-label="Filter by full capacity hospitals"
+                className="h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
               >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-destructive" />
+                <div className="hover-glow hover-glow-info" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
-                    <div className={`absolute inset-0 ${kpiFilter === 'full' ? 'bg-destructive/30' : 'bg-destructive/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className="absolute inset-0 bg-info/10 blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200" />
                     <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                      <Bed className={`h-5 w-5 ${kpiFilter === 'full' ? 'text-destructive' : 'text-muted-foreground'} transition-colors duration-200`} />
+                      <Bed className="h-5 w-5 text-info" />
                     </div>
                   </div>
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">At Capacity</p>
-                    {kpiFilter === 'full' && <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />}
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Beds</p>
                   </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{hospitalsData.stats.full || 0}</h3>
+                  <h3 className="text-3xl font-bold tracking-tighter">{hospitalsData.stats.totalBeds || 0}</h3>
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge className="squircle-3xl bg-destructive/20 text-destructive border-0 font-bold text-xs">
-                      NO BEDS
+                    <Badge className="squircle-3xl bg-info/20 text-info border-0 font-bold text-xs uppercase">
+                      Network capacity
                     </Badge>
                   </div>
                 </div>
               </Card>
             </motion.div>
 
-            {/* Verified Card */}
+            {/* Total Ambulances Card */}
             <motion.div
               layout
               className="col-span-1"
@@ -503,32 +496,25 @@ export const HospitalsPage = () => {
               transition={{ duration: 0.4, delay: 0.25 }}
             >
               <Card
-                className={`h-full min-h-[140px] geo-wave glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'verified' ? 'ring-2 ring-info shadow-lg' : ''
-                  }`}
-                onClick={() => setKpiFilter('verified')}
-                role="button"
-                tabIndex={0}
-                aria-label="Filter by verified hospitals"
+                className="h-full min-h-[140px] geo-wave glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
               >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-info" />
+                <div className="hover-glow hover-glow-success" />
                 <div className="absolute top-0 right-0 p-4 z-20">
                   <div className="relative">
-                    <div className={`absolute inset-0 ${kpiFilter === 'verified' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                    <div className="absolute inset-0 bg-success/10 blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200" />
                     <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                      <Star className={`h-5 w-5 ${kpiFilter === 'verified' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
+                      <Ambulance className="h-5 w-5 text-success" />
                     </div>
                   </div>
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Verified</p>
-                    {kpiFilter === 'verified' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Ambulance Fleet</p>
                   </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{hospitalsData.stats.verified || 0}</h3>
+                  <h3 className="text-3xl font-bold tracking-tighter">{hospitalsData.stats.totalAmbulances || 0}</h3>
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge className="geo-wave bg-info/20 text-info border-0 font-bold text-xs">
-                      PARTNERS
+                    <Badge className="geo-wave bg-success/20 text-success border-0 font-bold text-xs uppercase">
+                      Active vehicles
                     </Badge>
                   </div>
                 </div>

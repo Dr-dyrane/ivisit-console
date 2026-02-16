@@ -372,9 +372,11 @@ export const PageDataProvider = ({ children }) => {
       const full = data?.filter(h => h.status === 'full').length || 0;
       const busy = data?.filter(h => h.status === 'busy').length || 0;
       const verified = data?.filter(h => h.verified).length || 0;
+      const totalBeds = data?.reduce((acc, h) => acc + (h.available_beds || 0), 0) || 0;
+      const totalAmbulances = data?.reduce((acc, h) => acc + (h.ambulances_count || 0), 0) || 0;
 
       setHospitalsData({
-        stats: { total, available, full, busy, verified },
+        stats: { total, available, full, busy, verified, totalBeds, totalAmbulances },
         recent: data?.slice(0, 5) || []
       });
     } catch (error) {

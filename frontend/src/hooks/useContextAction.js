@@ -153,6 +153,15 @@ export const useContextAction = (openModal) => {
                 window.dispatchEvent(new CustomEvent('openTopUpModal'));
             }
         };
+    } else if (currentPath.includes('/organizations')) {
+        return {
+            icon: Plus,
+            label: 'Add Organization',
+            color: 'primary',
+            action: () => {
+                window.dispatchEvent(new CustomEvent('openOrganizationModal'));
+            }
+        };
     } else {
         return {
             icon: Plus,

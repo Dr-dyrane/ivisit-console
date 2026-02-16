@@ -21,7 +21,8 @@ import {
   SettingsPanel,
   DashboardPanel,
   SubscriptionsPanel,
-  WalletPanel
+  WalletPanel,
+  OrganizationsPanel
 } from '../context';
 
 export const ContextPanel = () => {
@@ -74,6 +75,7 @@ export const ContextPanel = () => {
       '/subscriptions': isAdmin(), // Admin only
       '/wallet': isAdmin() || isOrgAdmin(), // Admin and Org Admin
       '/pricing': isAdmin() || isOrgAdmin(), // Admin and Org Admin
+      '/organizations': isAdmin(), // Admin only
     };
 
     // Check if current path starts with any protected path
@@ -126,7 +128,8 @@ export const ContextPanel = () => {
       '/settings': { title: 'System Settings', subtitle: 'Configuration' },
       '/subscriptions': { title: 'Subscriptions', subtitle: 'Email Management' },
       '/wallet': { title: 'Wallet & Billing', subtitle: 'Financial Operations' },
-      '/pricing': { title: 'Pricing Engine', subtitle: 'Service Costs' }
+      '/pricing': { title: 'Pricing Engine', subtitle: 'Service Costs' },
+      '/organizations': { title: 'Organization Ops', subtitle: 'Network Management' }
     };
 
     const currentHeader = Object.keys(headers).find(key =>
@@ -285,6 +288,8 @@ export const ContextPanel = () => {
     return renderPanelWithHeader(<SettingsPanel />);
   } else if (currentPath.includes('/wallet') || currentPath.includes('/pricing')) {
     return renderPanelWithHeader(<WalletPanel walletData={walletData} />);
+  } else if (currentPath.includes('/organizations')) {
+    return renderPanelWithHeader(<OrganizationsPanel />);
   }
 
   // Default panel

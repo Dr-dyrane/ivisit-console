@@ -272,27 +272,37 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                       </Select>
                     </div>
 
-                    {(formData.role === 'org_admin' || formData.role === 'provider') && isAdmin() && (
+                    {(formData.role === 'org_admin' || formData.role === 'provider') && (
                       <div className="space-y-2">
                         <Label htmlFor="organization_id" className="text-xs font-semibold text-muted-foreground uppercase">Organization</Label>
                         <div className="relative">
                           <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
-                          <Select
-                            value={formData.organization_id}
-                            onValueChange={(value) => setFormData(prev => ({ ...prev, organization_id: value }))}
-                            disabled={isView}
-                          >
-                            <SelectTrigger className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 font-medium">
-                              <SelectValue placeholder="Select Organization" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                              {hospitals?.filter(h => h.organization_id).map(hospital => (
-                                <SelectItem key={hospital.organization_id} value={hospital.organization_id}>
-                                  {hospital.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          {isView ? (
+                            <div className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 font-medium flex items-center text-sm">
+                              {formData.organization_name || '-'}
+                            </div>
+                          ) : isAdmin() ? (
+                            <Select
+                              value={formData.organization_id}
+                              onValueChange={(value) => setFormData(prev => ({ ...prev, organization_id: value }))}
+                              disabled={isView}
+                            >
+                              <SelectTrigger className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 font-medium">
+                                <SelectValue placeholder="Select Organization" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                                {hospitals?.filter(h => h.organization_id).map(hospital => (
+                                  <SelectItem key={hospital.organization_id} value={hospital.organization_id}>
+                                    {hospital.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <div className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 font-medium flex items-center text-sm">
+                              {formData.organization_name || '-'}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

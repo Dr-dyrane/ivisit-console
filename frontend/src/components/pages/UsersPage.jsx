@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import { getCurrentUser, applyAuthFilter } from '../../services/authService';
 import { getProfiles, getUserStatistics, searchUsers, createProfile, updateProfile } from '../../services/profilesService';
+import { getOrganizations } from '../../services/organizationsService';
 import { getDoctorByProfileId, createDoctor } from '../../services/doctorsService';
 import { createAmbulance } from '../../services/ambulancesService';
 import { Card } from '../ui/card';
@@ -38,6 +39,7 @@ export const UsersPage = () => {
   const { isMobile } = useNavigation();
   const location = useLocation();
   const [users, setUsers] = useState([]);
+  const [organizationsMap, setOrganizationsMap] = useState({});
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -149,34 +151,50 @@ export const UsersPage = () => {
     pagination.resetPagination();
   }, [filters, pagination.resetPagination]);
 
+  // Fetch organizations map once on mount
+  useEffect(() => {
+    const fetchOrgs = async () => {
+      try {
+        const orgs = await getOrganizations();
+        const map = {};
+        orgs.forEach(o => map[o.id] = o.name);
+        setOrganizationsMap(map);
+      } catch (error) {
+        console.error('Error fetching orgs for mapping:', error);
+      }
+    };
+    fetchOrgs();
+  }, []);
+
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
 
-      // For admins and org admins, we fetch all users (up to limit) to calculate accurate client-side stats/counts if server stats are limited
       const isPrivileged = isAdmin() || isOrgAdmin();
       const limit = isPrivileged ? 1000 : pagination.itemsPerPage;
       const offset = isPrivileged ? 0 : pagination.paginationRange.start;
 
       const filterOptions = {
-        includeAuthData: isAdmin(), // Only platform admins get full access to auth data (emails/phones of all users)
+        includeAuthData: isPrivileged,
         limit,
         offset,
-        // Only pass service-compatible filters
         role: filters.role,
         provider_type: filters.provider_type,
         verified: filters.bvn_verified === 'verified' ? true : filters.bvn_verified === 'unverified' ? false : undefined,
       };
 
-      // Use the enhanced service
-      const data = await getProfiles(filterOptions);
+      let data = await getProfiles(filterOptions);
+
+      // Frontend Mapping Logic: Ensure organization names are set from our local map
+      data = data.map(u => ({
+        ...u,
+        organization_name: u.organization_id ? (organizationsMap[u.organization_id] || 'Independent') : 'Independent'
+      }));
 
       if (isPrivileged) {
-        // Calculate total count and apply pagination for admins/org admins locally
         const totalCount = data.length;
         pagination.setTotalCount(totalCount);
 
-        // Apply pagination manually
         const startIndex = pagination.itemsPerPage * (pagination.currentPage - 1);
         const paginatedData = data.slice(startIndex, startIndex + pagination.itemsPerPage);
 
@@ -243,7 +261,7 @@ export const UsersPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination, filters, isAdmin]);
+  }, [filters, isAdmin, isOrgAdmin, pagination.itemsPerPage, pagination.paginationRange.start, pagination.setTotalCount, organizationsMap]);
 
   useEffect(() => {
     fetchUsers();
