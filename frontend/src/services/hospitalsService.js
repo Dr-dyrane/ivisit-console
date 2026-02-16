@@ -25,7 +25,7 @@ export async function getHospitals(filter = {}) {
     } else {
       // Apply RBAC Scoping only for admins and org admins
       query = applyAuthFilter(query, user, {
-        orgIdField: 'id', // Org admins can only see THEIR hospital (single record)
+        orgIdField: 'organization_id', // Org admins see hospitals in their org
         bypassForAdmin: true
       });
     }
