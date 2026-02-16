@@ -147,32 +147,12 @@ export async function createHospital(input) {
  */
 export async function updateHospital(hospitalId, input) {
   try {
-    // Column whitelist — prevents unknown fields (total_beds, display_id, etc.)
-    const VALID_COLUMNS = [
-      'name', 'address', 'phone', 'rating', 'type', 'image',
-      'specialties', 'service_types', 'features',
-      'emergency_level', 'available_beds', 'ambulances_count',
-      'wait_time', 'price_range', 'latitude', 'longitude',
-      'verified', 'verification_status', 'status',
-      'organization_id', 'hospital_id',
-    ];
-
-    const FK_FIELDS = ['organization_id', 'hospital_id'];
-
-    const payload = { updated_at: new Date().toISOString() };
-    for (const key of VALID_COLUMNS) {
-      if (key in input) {
-        // Sanitize empty FK strings to null
-        payload[key] = FK_FIELDS.includes(key) && input[key] === '' ? null : input[key];
-      }
-    }
-
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update(payload)
-      .eq('id', hospitalId)
-      .select()
-      .single();
+    // We use a SECURITY DEFINER RPC to bypass RLS issues and handle 
+    // column stripping (total_beds, etc.) on the server side.
+    const { data, error } = await supabase.rpc('update_hospital_by_admin', {
+      target_hospital_id: hospitalId,
+      payload: input
+    });
 
     if (error) throw error;
 
