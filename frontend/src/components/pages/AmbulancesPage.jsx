@@ -78,7 +78,7 @@ export const AmbulancesPage = () => {
 
       // Apply RBAC filter using centralized service
       query = applyAuthFilter(query, user, {
-        orgIdField: 'hospital_id',
+        orgIdField: 'organization_id',
         resourceType: 'ambulances'
       });
 
@@ -106,7 +106,7 @@ export const AmbulancesPage = () => {
 
       // Apply RBAC filter to data query using centralized service
       dataQuery = applyAuthFilter(dataQuery, user, {
-        orgIdField: 'hospital_id',
+        orgIdField: 'organization_id',
         resourceType: 'ambulances'
       });
 
