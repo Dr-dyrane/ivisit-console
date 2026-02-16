@@ -1,12 +1,24 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter, useLayout } from '../../contexts/LayoutContext';
 import { getOrganizations, saveOrganization, deleteOrganization } from '../../services/organizationsService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { TableSkeleton } from '../ui/skeleton';
-import { Building2, Plus, Edit, Trash2, Globe, Mail, DollarSign, Activity, CheckCircle, XCircle } from 'lucide-react';
+import { Skeleton } from '../ui/skeleton';
+import {
+    Building2,
+    Plus,
+    Search,
+    LayoutGrid,
+    List as ListIcon,
+    Table as TableIcon,
+    Activity,
+    CheckCircle,
+    DollarSign,
+    Wallet,
+    Globe,
+    Filter
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
@@ -14,12 +26,23 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { useLayout } from '../../contexts/LayoutContext';
+import { OrganizationTableView } from '../views/OrganizationTableView';
+import { OrganizationListView } from '../views/OrganizationListView';
+import { OrganizationsPanel } from '../context/OrganizationsPanel';
+import { usePagination } from '../../hooks/usePagination';
+import { useViewMode } from '../../hooks/useViewMode';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 
 export const OrganizationsPage = () => {
     const { isAdmin } = useAuth();
+    const { openContextPanel, closeContextPanel } = useLayout();
     const [organizations, setOrganizations] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const { viewMode, setViewMode } = useViewMode('organizations', 'table');
+    const { currentPage, goToPage, itemsPerPage, setTotalCount } = usePagination(12);
+
+    // Modal State
     const [selectedOrg, setSelectedOrg] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [confirmationModal, setConfirmationModal] = useState({
@@ -34,12 +57,13 @@ export const OrganizationsPage = () => {
             setLoading(true);
             const data = await getOrganizations();
             setOrganizations(data);
+            setTotalCount(data?.length || 0);
         } catch (error) {
             handleApiError(error, 'fetch');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [setTotalCount]);
 
     useEffect(() => {
         fetchOrganizations();
@@ -92,220 +116,278 @@ export const OrganizationsPage = () => {
         }
     };
 
+    // Filters & Pagination
+    const filteredOrgs = useMemo(() => {
+        const term = searchTerm.toLowerCase();
+        return organizations.filter(org =>
+            org.name.toLowerCase().includes(term) ||
+            org.contact_email?.toLowerCase().includes(term) ||
+            org.stripe_account_id?.toLowerCase().includes(term)
+        );
+    }, [organizations, searchTerm]);
+
+    const paginatedOrgs = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredOrgs.slice(start, start + itemsPerPage);
+    }, [filteredOrgs, currentPage, itemsPerPage]);
+
     const headerActions = useMemo(() => (
-        isAdmin() && (
-            <Button onClick={handleCreate} className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase">
-                <Plus className="h-4 w-4 mr-2" />
-                ADD ORGANIZATION
-            </Button>
-        )
-    ), [isAdmin]);
+        <div className="flex items-center gap-2">
+            <div className="flex bg-muted/20 p-1 rounded-xl mr-2">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setViewMode('grid')}
+                    className={`h-8 w-8 rounded-lg ${viewMode === 'grid' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+                >
+                    <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setViewMode('table')}
+                    className={`h-8 w-8 rounded-lg ${viewMode === 'table' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+                >
+                    <TableIcon className="h-4 w-4" />
+                </Button>
+            </div>
+            {isAdmin() && (
+                <Button onClick={handleCreate} className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Board New Org
+                </Button>
+            )}
+        </div>
+    ), [isAdmin, viewMode, setViewMode]);
 
-    usePageHeader("Organizations", headerActions);
+    usePageHeader("Organization Registry", headerActions);
 
-    // Event listener for FAB action
+    const footerContent = useMemo(() => (
+        <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
+                <div className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-zinc-500 animate-pulse' : 'bg-success'}`} />
+                <span>{organizations.length} Organizations Enrolled</span>
+            </div>
+        </div>
+    ), [organizations.length, loading]);
+
+    usePageFooter(footerContent, 'status', true);
+
+    /**
+     * NOTE (2026-02-16): Removed initial context panel auto-open to adhere 
+     * to the 'Alexander UI' principle of 'Reveal Gradually'.
+     * The panel now only opens via explicit user interaction.
+     */
+
     useEffect(() => {
-        const handleOpenModal = () => handleCreate();
-        window.addEventListener('openOrganizationModal', handleOpenModal);
-        return () => window.removeEventListener('openOrganizationModal', handleOpenModal);
+        const handleOpenAdd = () => handleCreate();
+        window.addEventListener('openOrganizationModal', handleOpenAdd);
+        return () => window.removeEventListener('openOrganizationModal', handleOpenAdd);
     }, [handleCreate]);
 
-    // Right Panel Context
-    const { openContextPanel, closeContextPanel } = useLayout();
-    useEffect(() => {
-        // Optional: Trigger panel on mount or specific action
-        // openContextPanel('organizations'); 
-        return () => closeContextPanel();
-    }, [openContextPanel, closeContextPanel]);
+    const totalWallet = organizations.reduce((acc, curr) => acc + (curr.wallet_balance || 0), 0);
 
     return (
         <div className="min-h-screen py-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <Card className="geo-block glass-card p-6 flex items-center gap-4 border-l-4 border-l-primary/50 relative overflow-hidden group">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8">
+                <Card className="col-span-1 geo-block glass-card p-6 flex items-center gap-4 border-l-4 border-l-primary/50 relative overflow-hidden group hover-lift transition-all">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-110" />
                     <div className="p-3 bg-primary/20 rounded-2xl relative z-10">
                         <Building2 className="h-6 w-6 text-primary" />
                     </div>
                     <div className="relative z-10">
-                        <p className="text-[10px] font-bold text-primary/60 uppercase tracking-widest">Active Partners</p>
+                        <p className="text-[10px] font-bold text-primary/60 uppercase tracking-widest">Active Nodes</p>
                         <h3 className="text-2xl font-black">{organizations.filter(o => o.is_active).length}</h3>
                     </div>
                 </Card>
 
-                <Card className="geo-sharp glass-card-premium p-6 flex flex-col gap-3 group hover:border-success/30 transition-colors">
+                <Card className="col-span-1 geo-sharp glass-card-premium p-6 flex flex-col gap-3 group hover-lift transition-all">
                     <div className="flex items-center justify-between">
                         <div className="p-2 bg-success/20 rounded-xl">
                             <Activity className="h-5 w-5 text-success" />
                         </div>
-                        <Badge className="bg-success text-white border-0 text-[8px] font-black tracking-tighter">LIVE</Badge>
+                        <Badge className="bg-success text-white border-0 text-[8px] font-black tracking-tighter uppercase px-2 py-0.5">LITE</Badge>
                     </div>
                     <div>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Network Health</p>
                         <h3 className="text-xl font-bold flex items-center gap-2">
-                            98.2% <span className="text-[10px] text-success font-normal">↑ 2%</span>
+                            99.8% <span className="text-[10px] text-success font-normal tracking-tight">↑ Optimal</span>
                         </h3>
                     </div>
                 </Card>
 
-                <Card className="geo-round glass-card p-6 flex items-center gap-4 bg-gradient-to-br from-info/5 to-transparent border-info/20 overflow-hidden">
+                <Card className="col-span-1 geo-round glass-card p-6 flex items-center gap-4 bg-gradient-to-br from-info/5 to-transparent border-info/20 overflow-hidden hover-lift transition-all shadow-premium">
                     <div className="p-3 bg-info/20 rounded-full border border-info/30">
-                        <DollarSign className="h-6 w-6 text-info" />
+                        <Wallet className="h-6 w-6 text-info" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-bold text-info/60 uppercase tracking-widest">Revenue Fee</p>
-                        <h3 className="text-2xl font-black">2.5% <span className="text-[10px] text-muted-foreground font-medium uppercase font-sans">Avg</span></h3>
+                        <p className="text-[10px] font-bold text-info/60 uppercase tracking-widest">Network Float</p>
+                        <h3 className="text-2xl font-black">
+                            ${totalWallet.toLocaleString()}
+                        </h3>
                     </div>
                 </Card>
 
-                <Card className="geo-block glass-card p-6 flex items-center gap-4 bg-white/5 border-dashed">
+                <Card className="col-span-1 geo-block glass-card p-6 flex items-center gap-4 bg-white/5 border-dashed hover-lift transition-all">
                     <div className="p-3 bg-white/10 rounded-2xl">
-                        <CheckCircle className="h-6 w-6 text-white/50" />
+                        <Globe className="h-6 w-6 text-white/50" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Verified Orgs</p>
-                        <h3 className="text-2xl font-black">{organizations.length}</h3>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Regions</p>
+                        <h3 className="text-2xl font-black">Global</h3>
                     </div>
+                </Card>
+                <Card className="col-span-1 geo-sharp glass-card-premium p-6 flex flex-col justify-center items-center gap-1 border-t-2 border-t-primary/50 group hover-lift transition-all">
+                    <div className="p-2 bg-primary/10 rounded-full mb-1">
+                        <DollarSign className="h-4 w-4 text-primary" />
+                    </div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Avg_Fee</p>
+                    <h3 className="text-xl font-black">
+                        {(organizations.length > 0 ? (organizations.reduce((acc, o) => acc + (parseFloat(o.ivisit_fee_percentage) || 0), 0) / organizations.length) : 0).toFixed(1)}%
+                    </h3>
                 </Card>
             </div>
 
-            {loading ? (
-                <TableSkeleton rows={5} />
-            ) : (
-                <Card className="geo-sharp glass-card-premium overflow-hidden border-0">
-                    <Table>
-                        <TableHeader className="bg-white/5">
-                            <TableRow className="hover:bg-transparent border-0">
-                                <TableHead className="font-bold uppercase tracking-wider text-[10px]">Organization Name</TableHead>
-                                <TableHead className="font-bold uppercase tracking-wider text-[10px]">Contact</TableHead>
-                                <TableHead className="font-bold uppercase tracking-wider text-[10px]">Stripe ID</TableHead>
-                                <TableHead className="font-bold uppercase tracking-wider text-[10px]">Fee %</TableHead>
-                                <TableHead className="font-bold uppercase tracking-wider text-[10px]">Status</TableHead>
-                                <TableHead className="text-right font-bold uppercase tracking-wider text-[10px]">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {organizations.map((org) => (
-                                <TableRow key={org.id} className="hover:bg-white/5 border-white/5 transition-colors group">
-                                    <TableCell className="font-bold text-foreground/90 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
-                                                {org.name[0]}
-                                            </div>
-                                            {org.name}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium">
-                                            <Mail className="h-3 w-3" />
-                                            {org.contact_email || 'N/A'}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="font-mono text-[10px] text-muted-foreground">
-                                        {org.stripe_account_id || 'NOT CONNECTED'}
-                                    </TableCell>
-                                    <TableCell className="font-bold text-primary">
-                                        {org.ivisit_fee_percentage}%
-                                    </TableCell>
-                                    <TableCell>
-                                        {org.is_active ? (
-                                            <Badge className="bg-success/20 text-success border-0 font-bold text-[10px]">ACTIVE</Badge>
-                                        ) : (
-                                            <Badge className="bg-destructive/20 text-destructive border-0 font-bold text-[10px]">INACTIVE</Badge>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(org)} className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary">
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDelete(org)} className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </Card>
-            )}
+            {/* Controls */}
+            <div className="flex items-center justify-between gap-4 mb-8">
+                <div className="relative w-full max-w-md">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                        placeholder="Search registry by name, email or ID..."
+                        className="w-full h-12 bg-muted/20 border-0 rounded-2xl pl-12 pr-6 text-xs font-medium focus:ring-2 ring-primary/20 transition-all outline-none"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <Button variant="ghost" size="icon" className="md:hidden h-12 w-12 rounded-2xl bg-muted/20">
+                    <Filter className="h-5 w-5" />
+                </Button>
+            </div>
+
+            {/* Content Area */}
+            <div className="min-h-[400px]">
+                {loading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[1, 2, 3, 4, 5, 6].map(i => (
+                            <Skeleton key={i} className="h-64 rounded-[32px] bg-muted/20" />
+                        ))}
+                    </div>
+                ) : filteredOrgs.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-muted/5 rounded-[40px] border border-dashed border-muted/20 text-center">
+                        <Building2 className="h-12 w-12 text-muted-foreground/20 mb-4" />
+                        <h4 className="text-lg font-bold text-muted-foreground">Registry Empty</h4>
+                        <p className="text-sm text-muted-foreground/60 mb-6">No organizations match your current criteria.</p>
+                        {isAdmin() && (
+                            <Button variant="outline" onClick={handleCreate} className="rounded-2xl px-8 uppercase tracking-widest text-[10px] font-bold">
+                                Onboard New Partner
+                            </Button>
+                        )}
+                    </div>
+                ) : viewMode === 'table' ? (
+                    <OrganizationTableView
+                        organizations={paginatedOrgs}
+                        onView={handleEdit}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        selectedIds={[]}
+                        onSelect={() => { }}
+                        onSelectAll={() => { }}
+                    />
+                ) : (
+                    <OrganizationListView
+                        organizations={paginatedOrgs}
+                        onView={handleEdit}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                    />
+                )}
+            </div>
 
             {/* Org Modal */}
-            {isModalOpen && selectedOrg && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-xl" onClick={() => setIsModalOpen(false)} />
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="relative z-10 w-full max-w-md bg-background/95 backdrop-blur-2xl rounded-[32px] p-8 shadow-2xl border border-white/10"
-                    >
-                        <h2 className="text-xl font-bold mb-6 flex items-center gap-3">
-                            <Building2 className="text-primary" />
-                            {selectedOrg.id ? 'Edit Organization' : 'New Organization'}
-                        </h2>
-                        <form onSubmit={handleSave} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label className="text-[10px] uppercase tracking-widest font-bold opacity-60">Organization Name</Label>
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogContent className="sm:max-w-[425px] rounded-[32px] glass-card shadow-2xl border border-white/10 overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-success/20">
+                        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} className="h-full bg-success origin-left" />
+                    </div>
+
+                    <DialogHeader className="pt-4">
+                        <DialogTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
+                            <div className="p-2 bg-success/10 rounded-xl">
+                                <Building2 className="h-5 w-5 text-success" />
+                            </div>
+                            {selectedOrg?.id ? 'Entity Configuration' : 'Entity Provisioning'}
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <form onSubmit={handleSave} className="space-y-5 py-6">
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Legal_Name</Label>
+                            <Input
+                                value={selectedOrg?.name || ''}
+                                onChange={(e) => setSelectedOrg({ ...selectedOrg, name: e.target.value })}
+                                className="rounded-2xl bg-muted/20 border-0 h-12 px-5 font-bold"
+                                placeholder="Enter organization name"
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Registry_Contact</Label>
+                            <Input
+                                value={selectedOrg?.contact_email || ''}
+                                onChange={(e) => setSelectedOrg({ ...selectedOrg, contact_email: e.target.value })}
+                                className="rounded-2xl bg-muted/20 border-0 h-12 px-5"
+                                placeholder="admin@org.com"
+                                type="email"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Revenue_Share (%)</Label>
                                 <Input
-                                    value={selectedOrg.name}
-                                    onChange={(e) => setSelectedOrg({ ...selectedOrg, name: e.target.value })}
-                                    className="rounded-2xl bg-white/5 border-0 h-12"
-                                    placeholder="Enter organization name"
-                                    required
+                                    type="number"
+                                    step="0.01"
+                                    value={selectedOrg?.ivisit_fee_percentage || ''}
+                                    onChange={(e) => setSelectedOrg({ ...selectedOrg, ivisit_fee_percentage: e.target.value })}
+                                    className="rounded-2xl bg-muted/20 border-0 h-12 px-5 font-bold"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] uppercase tracking-widest font-bold opacity-60">Contact Email</Label>
-                                <Input
-                                    value={selectedOrg.contact_email}
-                                    onChange={(e) => setSelectedOrg({ ...selectedOrg, contact_email: e.target.value })}
-                                    className="rounded-2xl bg-white/5 border-0 h-12"
-                                    placeholder="admin@org.com"
-                                    type="email"
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] uppercase tracking-widest font-bold opacity-60">Fee Percentage (%)</Label>
-                                    <Input
-                                        type="number"
-                                        step="0.01"
-                                        value={selectedOrg.ivisit_fee_percentage}
-                                        onChange={(e) => setSelectedOrg({ ...selectedOrg, ivisit_fee_percentage: e.target.value })}
-                                        className="rounded-2xl bg-white/5 border-0 h-12"
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Lifecycle_State</Label>
+                                <div className="flex h-12 items-center gap-4 px-5 rounded-2xl bg-muted/20 border-0">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedOrg?.is_active || false}
+                                        onChange={(e) => setSelectedOrg({ ...selectedOrg, is_active: e.target.checked })}
+                                        className="w-5 h-5 accent-success rounded-[4px]"
                                     />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] uppercase tracking-widest font-bold opacity-60">Status</Label>
-                                    <div className="flex h-12 items-center gap-4 px-4 rounded-2xl bg-white/5 border-0">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedOrg.is_active}
-                                            onChange={(e) => setSelectedOrg({ ...selectedOrg, is_active: e.target.checked })}
-                                            className="w-5 h-5 accent-primary"
-                                        />
-                                        <span className="text-sm font-medium">Active</span>
-                                    </div>
+                                    <span className="text-sm font-bold opacity-60">Active Node</span>
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] uppercase tracking-widest font-bold opacity-60">Stripe Account ID (Pricing)</Label>
-                                <Input
-                                    value={selectedOrg.stripe_account_id}
-                                    onChange={(e) => setSelectedOrg({ ...selectedOrg, stripe_account_id: e.target.value })}
-                                    className="rounded-2xl bg-white/5 border-0 h-12 font-mono text-xs"
-                                    placeholder="acct_..."
-                                />
-                                <p className="text-[10px] opacity-40 italic">Link this to enable automated payouts and fee splits.</p>
-                            </div>
-                            <div className="pt-4 flex gap-3">
-                                <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)} className="flex-1 rounded-2xl">Cancel</Button>
-                                <Button type="submit" className="flex-1 rounded-2xl font-bold">SAVE CHANGES</Button>
-                            </div>
-                        </form>
-                    </motion.div>
-                </div>
-            )}
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Connected_Stripe_ID</Label>
+                            <Input
+                                value={selectedOrg?.stripe_account_id || ''}
+                                onChange={(e) => setSelectedOrg({ ...selectedOrg, stripe_account_id: e.target.value })}
+                                className="rounded-2xl bg-muted/20 border-0 h-12 px-5 font-mono text-xs"
+                                placeholder="acct_..."
+                            />
+                            <p className="text-[10px] opacity-40 italic ml-4">Authorized for automated secure payouts.</p>
+                        </div>
+
+                        <DialogFooter className="gap-3 pt-4">
+                            <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)} className="rounded-2xl font-bold uppercase tracking-widest text-[10px] h-12 px-8">Return</Button>
+                            <Button type="submit" className="rounded-2xl bg-success text-white font-bold uppercase tracking-[0.2em] text-[10px] h-12 px-10 shadow-xl shadow-success/20">
+                                Deploy Config
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             <ConfirmationModal
                 isOpen={confirmationModal.isOpen}

@@ -1,172 +1,131 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { motion } from 'framer-motion';
 import { Card } from '../ui/card';
-import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Building2, Plus, BarChart3, Shield, CheckCircle2, Activity, TrendingUp, Globe, Briefcase } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { getOrganizations } from '../../services/organizationsService';
+import {
+    Building2,
+    Users2,
+    Activity,
+    Plus,
+    BarChart3,
+    ShieldCheck,
+    TrendingUp,
+    Wallet
+} from 'lucide-react';
 
-export const OrganizationsPanel = () => {
-    const { isAdmin } = useAuth();
-    const [stats, setStats] = useState({
-        total: 0,
-        active: 0,
-        pending: 0,
-        verified: 0
-    });
-    const [recentOrgs, setRecentOrgs] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchOrgData = async () => {
-            try {
-                setLoading(true);
-                const orgs = await getOrganizations();
-
-                setStats({
-                    total: orgs.length,
-                    active: orgs.filter(o => o.status === 'active').length,
-                    pending: orgs.filter(o => o.status === 'pending').length,
-                    verified: orgs.filter(o => o.verified).length
-                });
-
-                setRecentOrgs(orgs.slice(0, 5));
-            } catch (error) {
-                console.error("Failed to fetch organization panel stats", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchOrgData();
-    }, []);
-
-    const onAddOrg = () => {
-        window.dispatchEvent(new CustomEvent('openOrganizationModal'));
+export const OrganizationsPanel = ({ organizations = [] }) => {
+    const handleOpenCreateOrg = () => {
+        const event = new CustomEvent('openOrganizationModal');
+        window.dispatchEvent(event);
     };
 
-    const onViewReports = () => {
-        window.dispatchEvent(new CustomEvent('openReportsModal'));
-    };
+    const activeOrgs = organizations.filter(o => o.is_active).length;
+    const totalWallet = organizations.reduce((acc, curr) => acc + (curr.wallet_balance || 0), 0);
 
     return (
-        <div className="space-y-6">
-            {/* Quick Stats */}
-            <div className="space-y-4">
-                <h3 className="font-bold text-lg flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-primary" />
-                    Network Health
-                </h3>
+        <div className="space-y-4">
+            {/* Network Overview */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-3"
+            >
+                <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Network Core</h3>
 
-                <div className="grid grid-cols-2 gap-3">
-                    <Card className="p-4 bg-background/50 backdrop-blur-sm border-0">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Building2 className="h-4 w-4 text-primary" />
-                            <span className="text-sm font-normal text-muted-foreground">Total</span>
+                <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
+                                <Activity className="h-5 w-5 text-success" />
+                            </div>
+                            <div>
+                                <span className="font-bold tracking-tight">Active Nodes</span>
+                                <p className="text-xs text-muted-foreground">Online organizations</p>
+                            </div>
                         </div>
-                        <div className="text-2xl font-semibold">{stats.total}</div>
-                    </Card>
-
-                    <Card className="p-4 bg-background/50 backdrop-blur-sm border-0">
-                        <div className="flex items-center gap-2 mb-2">
-                            <CheckCircle2 className="h-4 w-4 text-success" />
-                            <span className="text-sm font-normal text-muted-foreground">Verified</span>
-                        </div>
-                        <div className="text-2xl font-semibold text-success">{stats.verified}</div>
-                    </Card>
-                </div>
-            </div>
-
-            {/* System Status */}
-            <div className="space-y-4">
-                <h3 className="font-bold text-lg flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-primary" />
-                    Operational Status
-                </h3>
-
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-success/10 border border-success/20">
-                        <div className="flex items-center gap-2">
-                            <Globe className="h-4 w-4 text-success" />
-                            <span className="text-sm font-normal">Active Partners</span>
-                        </div>
-                        <Badge className="bg-success/20 text-success border-0 text-sm font-semibold">
-                            {stats.active}
-                        </Badge>
+                        <Badge className="bg-success/20 text-success border-0">{activeOrgs}</Badge>
                     </div>
+                </Card>
 
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-warning/10 border border-warning/20">
-                        <div className="flex items-center gap-2">
-                            <Briefcase className="h-4 w-4 text-warning" />
-                            <span className="text-sm font-normal">Pending Review</span>
+                <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
+                                <Wallet className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                                <span className="font-bold tracking-tight">Total Float</span>
+                                <p className="text-xs text-muted-foreground">Total network balance</p>
+                            </div>
                         </div>
-                        <Badge className="bg-warning/20 text-warning border-0 text-sm font-semibold">
-                            {stats.pending}
-                        </Badge>
+                        <span className="font-bold text-sm tracking-tighter">
+                            ${totalWallet.toLocaleString()}
+                        </span>
                     </div>
-                </div>
-            </div>
+                </Card>
+            </motion.div>
+
+            {/* Security Status */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="space-y-3"
+            >
+                <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Verification</h3>
+
+                <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 geo-round bg-info/20 flex items-center justify-center">
+                                <ShieldCheck className="h-5 w-5 text-info" />
+                            </div>
+                            <div>
+                                <span className="font-bold tracking-tight">Verified</span>
+                                <p className="text-xs text-muted-foreground">KYC completed</p>
+                            </div>
+                        </div>
+                        <Badge className="bg-info/20 text-info border-0">{organizations.length}</Badge>
+                    </div>
+                </Card>
+            </motion.div>
 
             {/* Quick Actions */}
-            <div className="space-y-4">
-                <h3 className="font-bold text-lg flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    Management
-                </h3>
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="space-y-3"
+            >
+                <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Operations</h3>
 
-                <div className="space-y-2">
-                    {isAdmin() && (
-                        <Button
-                            onClick={onAddOrg}
-                            className="w-full justify-start h-10 bg-muted/20 hover:bg-muted/30 border border-border/20 text-[10px] font-bold tracking-widest uppercase text-foreground"
-                        >
-                            <Plus className="h-4 w-4 mr-2" />
-                            ADD ORGANIZATION
-                        </Button>
-                    )}
-
-                    <Button
-                        onClick={onViewReports}
-                        className="w-full justify-start h-10 bg-primary/10 hover:bg-primary/20 border border-primary/20 text-[10px] font-bold tracking-widest uppercase text-primary"
+                <div className="grid grid-cols-2 gap-2">
+                    <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleOpenCreateOrg}
+                        className="bg-success/10 hover:bg-success/20 text-success border border-success/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
                     >
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        REVENUE REPORTS
-                    </Button>
-                </div>
-            </div>
+                        <Plus className="h-4 w-4" />
+                        <span className="font-normal text-xs uppercase tracking-tighter">Onboard</span>
+                    </motion.button>
 
-            {/* Recent Partners */}
-            <div className="space-y-4">
-                <h3 className="font-bold text-lg flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-info" />
-                    Recent Partners
-                </h3>
+                    <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
+                    >
+                        <TrendingUp className="h-4 w-4" />
+                        <span className="font-normal text-xs uppercase tracking-tighter">Growth</span>
+                    </motion.button>
 
-                <div className="space-y-3">
-                    {loading ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">Loading...</p>
-                    ) : recentOrgs.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">No organizations found</p>
-                    ) : (
-                        recentOrgs.map((org) => (
-                            <div
-                                key={org.id}
-                                className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/40 transition-colors cursor-pointer"
-                            >
-                                <div className="w-8 h-8 rounded-full bg-primary/10 border border-border/20 flex items-center justify-center shrink-0">
-                                    <span className="text-xs font-semibold text-primary">
-                                        {org.name?.[0]?.toUpperCase()}
-                                    </span>
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="text-sm font-normal truncate">{org.name}</p>
-                                    <p className="text-xs text-muted-foreground truncate">{org.type || 'Standard partner'}</p>
-                                </div>
-                            </div>
-                        ))
-                    )}
+                    <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        className="col-span-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 flex items-center justify-center gap-2 transition-colors"
+                    >
+                        <BarChart3 className="h-4 w-4" />
+                        <span className="font-normal text-xs uppercase tracking-[0.2em]">Network Report</span>
+                    </motion.button>
                 </div>
-            </div>
+            </motion.div>
         </div>
     );
 };

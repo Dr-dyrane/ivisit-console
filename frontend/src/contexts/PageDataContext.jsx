@@ -13,6 +13,8 @@ import { getAnalyticsData } from '../services/analyticsService';
 import { getVerificationStats } from '../services/verificationService';
 import { getRecentActivity } from '../services/activityService';
 import { getInsurancePolicies } from '../services/insurancePoliciesService';
+import { getOrganizations } from '../services/organizationsService';
+import { getPricing } from '../services/pricingService';
 
 // Mock data as fallback - Based on actual mobile app service types
 const mockEmergencyData = {
@@ -167,6 +169,9 @@ export const PageDataProvider = ({ children }) => {
   const [walletData, setWalletData] = useState({ wallet: null, ledger: [], projection: 0 });
   const [hospitalsData, setHospitalsData] = useState({ stats: null, recent: [] });
   const [ambulancesData, setAmbulancesData] = useState({ stats: null, recent: [] });
+  const [organizationsData, setOrganizationsData] = useState({ organizations: [], stats: null });
+  const [servicePricing, setServicePricing] = useState([]);
+  const [roomPricing, setRoomPricing] = useState([]);
   const [useMockData, setUseMockData] = useState(false);
 
   // Fetch emergency data
@@ -579,6 +584,45 @@ export const PageDataProvider = ({ children }) => {
     }
   }, [useMockData]);
 
+  const fetchPricingData = useCallback(async () => {
+    try {
+      setLoading(prev => ({ ...prev, pricing: true }));
+      if (useMockData) return;
+
+      const [services, rooms] = await Promise.all([
+        getPricing('services'),
+        getPricing('rooms')
+      ]);
+
+      setServicePricing(services || []);
+      setRoomPricing(rooms || []);
+    } catch (error) {
+      console.error('Error fetching pricing data:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, pricing: false }));
+    }
+  }, [useMockData]);
+
+  const fetchOrganizationsData = useCallback(async () => {
+    try {
+      setLoading(prev => ({ ...prev, organizations: true }));
+      if (useMockData) return;
+
+      const data = await getOrganizations();
+      const active = data?.filter(o => o.is_active).length || 0;
+      const totalWallet = data?.reduce((acc, curr) => acc + (curr.wallet_balance || 0), 0) || 0;
+
+      setOrganizationsData({
+        organizations: data || [],
+        stats: { total: data?.length || 0, active, totalWallet }
+      });
+    } catch (error) {
+      console.error('Error fetching organizations data:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, organizations: false }));
+    }
+  }, [useMockData]);
+
   // Initialize all data on mount - only when user is authenticated
   useEffect(() => {
     if (!user) return;
@@ -595,6 +639,8 @@ export const PageDataProvider = ({ children }) => {
     fetchInsurancePolicies();
     fetchWalletData();
     fetchActivityData();
+    fetchOrganizationsData();
+    fetchPricingData();
   }, [
     user,
     fetchEmergencyData,
@@ -608,7 +654,9 @@ export const PageDataProvider = ({ children }) => {
     fetchSupportTicketsData,
     fetchInsurancePolicies,
     fetchWalletData,
-    fetchActivityData
+    fetchActivityData,
+    fetchOrganizationsData,
+    fetchPricingData
   ]);
 
   // Real-time subscription for emergency data
@@ -688,6 +736,40 @@ export const PageDataProvider = ({ children }) => {
 
     return () => supabase.removeChannel(channel);
   }, [user, useMockData, fetchVerificationData, fetchUsersData]);
+
+  // Real-time subscription for organizations
+  useEffect(() => {
+    if (!user || useMockData) return;
+
+    const channel = supabase
+      .channel('organization_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'organizations' },
+        fetchOrganizationsData
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [user, useMockData, fetchOrganizationsData]);
+
+  // Real-time subscription for pricing
+  useEffect(() => {
+    if (!user || useMockData) return;
+
+    const channel = supabase
+      .channel('pricing_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'service_pricing' },
+        fetchPricingData
+      )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'room_pricing' },
+        fetchPricingData
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [user, useMockData, fetchPricingData]);
 
   // Real-time subscription for support tickets data
   useEffect(() => {
@@ -856,6 +938,10 @@ export const PageDataProvider = ({ children }) => {
     fetchActivityData,
     getEmergencyStats,
     getInsuranceStats,
+    ambulancesData,
+    organizationsData,
+    servicePricing,
+    roomPricing,
     walletData,
     fetchWalletData,
     useMockData,

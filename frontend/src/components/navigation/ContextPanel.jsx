@@ -22,7 +22,8 @@ import {
   DashboardPanel,
   SubscriptionsPanel,
   WalletPanel,
-  OrganizationsPanel
+  OrganizationsPanel,
+  PricingContextPanel
 } from '../context';
 
 export const ContextPanel = () => {
@@ -43,10 +44,11 @@ export const ContextPanel = () => {
     activityData,
     refreshAllData,
     userData,
-    filters,
     insurance,
     hospitalsData,
-    ambulancesData,
+    organizationsData,
+    servicePricing,
+    roomPricing,
     walletData
   } = usePageData();
 
@@ -128,7 +130,7 @@ export const ContextPanel = () => {
       '/settings': { title: 'System Settings', subtitle: 'Configuration' },
       '/subscriptions': { title: 'Subscriptions', subtitle: 'Email Management' },
       '/wallet': { title: 'Wallet & Billing', subtitle: 'Financial Operations' },
-      '/pricing': { title: 'Pricing Engine', subtitle: 'Service Costs' },
+      '/pricing': { title: 'Premium Engine', subtitle: 'Dynamic Cost Control' },
       '/organizations': { title: 'Organization Ops', subtitle: 'Network Management' }
     };
 
@@ -286,10 +288,12 @@ export const ContextPanel = () => {
     return renderPanelWithHeader(<SubscriptionsPanel subscribers={subscribers} />);
   } else if (currentPath.includes('/settings')) {
     return renderPanelWithHeader(<SettingsPanel />);
-  } else if (currentPath.includes('/wallet') || currentPath.includes('/pricing')) {
+  } else if (currentPath.includes('/pricing')) {
+    return renderPanelWithHeader(<PricingContextPanel pricing={[...servicePricing, ...roomPricing]} />);
+  } else if (currentPath.includes('/wallet')) {
     return renderPanelWithHeader(<WalletPanel walletData={walletData} />);
   } else if (currentPath.includes('/organizations')) {
-    return renderPanelWithHeader(<OrganizationsPanel />);
+    return renderPanelWithHeader(<OrganizationsPanel organizations={organizationsData?.organizations || []} />);
   }
 
   // Default panel

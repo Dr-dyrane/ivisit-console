@@ -16,3 +16,4 @@ export { DashboardPanel } from './DashboardPanel';
 export { SubscriptionsPanel } from './SubscriptionsPanel';
 export { WalletPanel } from './WalletPanel';
 export { OrganizationsPanel } from './OrganizationsPanel';
+export { PricingContextPanel } from './PricingContextPanel';
