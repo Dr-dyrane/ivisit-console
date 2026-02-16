@@ -5,7 +5,9 @@
 CREATE OR REPLACE FUNCTION public.calculate_emergency_cost(
     p_service_type TEXT,
     p_distance DECIMAL DEFAULT 0,
-    p_is_urgent BOOLEAN DEFAULT false
+    p_is_urgent BOOLEAN DEFAULT false,
+    p_hospital_id UUID DEFAULT NULL,
+    p_room_id UUID DEFAULT NULL
 )
 RETURNS TABLE (
     base_cost DECIMAL,
@@ -26,12 +28,35 @@ DECLARE
     v_service_name TEXT;
 BEGIN
     -- 1. Determine Base Cost
-    -- Try to look up from database first
-    SELECT base_price, service_name INTO v_base_cost, v_service_name
-    FROM service_pricing
-    WHERE service_type = p_service_type AND is_active = true
-    ORDER BY base_price DESC -- Pick the highest/standard one if multiple match (e.g. ALS vs Basic)
-    LIMIT 1;
+    -- Hierarchy for Bed: Room Override > Hospital Default > Global Default
+    -- Hierarchy for Ambulance/Consultation: Hospital Override > Organization Override > Global Default
+    
+    IF p_service_type IN ('bed', 'bed_booking') AND p_room_id IS NOT NULL THEN
+        SELECT base_price, room_type INTO v_base_cost, v_service_name
+        FROM hospital_rooms
+        WHERE id = p_room_id;
+    END IF;
+
+    IF v_base_cost IS NULL OR v_base_cost = 0 THEN
+        -- Check service_pricing with scoping
+        SELECT sp.base_price, sp.service_name 
+        INTO v_base_cost, v_service_name
+        FROM service_pricing sp
+        LEFT JOIN hospitals h ON h.id = p_hospital_id
+        WHERE sp.service_type = p_service_type 
+          AND sp.is_active = true
+          AND (
+            sp.hospital_id = p_hospital_id OR 
+            sp.organization_id = h.organization_id OR 
+            (sp.hospital_id IS NULL AND sp.organization_id IS NULL)
+          )
+        ORDER BY 
+          (sp.hospital_id = p_hospital_id) DESC, 
+          (sp.organization_id = h.organization_id) DESC,
+          sp.hospital_id DESC NULLS LAST,
+          sp.organization_id DESC NULLS LAST
+        LIMIT 1;
+    END IF;
 
     -- Fallback/Overrides to match Mock Logic if DB is empty or value too low for testing
     IF v_base_cost IS NULL OR v_base_cost = 0 THEN
