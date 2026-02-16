@@ -86,23 +86,31 @@ export async function getAmbulance(ambulanceId) {
  */
 export async function createAmbulance(input) {
   try {
-    const payload = {
-      id: input.id,
-      type: input.type,
-      call_sign: input.call_sign,
-      status: input.status || 'available',
-      location: input.location,
-      eta: input.eta,
-      crew: input.crew,
-      hospital: input.hospital, // Keep hospital as text field
-      hospital_id: input.hospital_id === '' ? null : input.hospital_id, // Add hospital_id as UUID field
-      vehicle_number: input.vehicle_number,
-      last_maintenance: input.last_maintenance,
-      rating: input.rating,
-      current_call: input.current_call,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    // Build payload, omitting undefined/null/empty values so DB defaults apply
+    const payload = {};
+
+    // Only include id if explicitly provided; otherwise let DB DEFAULT generate it
+    if (input.id) payload.id = input.id;
+
+    // Required fields
+    if (input.type) payload.type = input.type;
+    if (input.call_sign) payload.call_sign = input.call_sign;
+    payload.status = input.status || 'available';
+
+    // Optional fields — only include if truthy
+    if (input.location) payload.location = input.location;
+    if (input.eta) payload.eta = input.eta;
+    if (input.crew) payload.crew = input.crew;
+    if (input.hospital) payload.hospital = input.hospital;
+    if (input.hospital_id && input.hospital_id !== '') payload.hospital_id = input.hospital_id;
+    if (input.vehicle_number) payload.vehicle_number = input.vehicle_number;
+    if (input.last_maintenance) payload.last_maintenance = input.last_maintenance;
+    if (input.rating != null) payload.rating = input.rating;
+    if (input.current_call) payload.current_call = input.current_call;
+    if (input.driver_id) payload.driver_id = input.driver_id;
+
+    payload.created_at = new Date().toISOString();
+    payload.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -124,10 +132,28 @@ export async function createAmbulance(input) {
  */
 export async function updateAmbulance(ambulanceId, input) {
   try {
-    const payload = {
-      ...input,
-      updated_at: new Date().toISOString(),
-    };
+    // Whitelist of valid ambulance table columns to prevent PGRST204 errors
+    const VALID_COLUMNS = [
+      'call_sign', 'type', 'status', 'vehicle_number',
+      'hospital_id', 'hospital', 'location', 'eta', 'crew',
+      'rating', 'last_maintenance', 'current_call',
+      'driver_id', 'profile_id', 'organization_id',
+      'base_price', 'currency'
+    ];
+
+    const payload = {};
+    for (const key of VALID_COLUMNS) {
+      if (key in input) {
+        // Sanitize empty strings to null for UUID/FK fields
+        if (['hospital_id', 'driver_id', 'profile_id', 'organization_id'].includes(key)) {
+          payload[key] = input[key] === '' ? null : input[key];
+        } else {
+          payload[key] = input[key];
+        }
+      }
+    }
+
+    payload.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -145,6 +171,7 @@ export async function updateAmbulance(ambulanceId, input) {
   }
 }
 
+
 /**
  * Assign driver to ambulance
  */
@@ -152,7 +179,7 @@ export async function assignDriverToAmbulance(ambulanceId, driverId) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .update({ 
+      .update({
         driver_id: driverId,
         updated_at: new Date().toISOString()
       })

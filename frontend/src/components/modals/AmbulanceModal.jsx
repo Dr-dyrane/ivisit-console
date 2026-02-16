@@ -132,18 +132,24 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
       // Get only provider profiles
       const profiles = await getProfilesByRole('provider');
 
-      // Get existing ambulances to avoid duplicates
-      const { data: existingAmbulances } = await supabase.from('ambulances').select('profile_id');
-      const existingProfileIds = new Set(existingAmbulances?.map(a => a.profile_id).filter(Boolean) || []);
+      // Scope to org for non-admin users
+      const orgScopedProfiles = isOrgAdmin() && orgId
+        ? profiles.filter(p => p.organization_id === orgId)
+        : profiles;
 
-      // In EDIT mode, include current ambulance's provider in available options
-      const currentAmbulanceProfileId = ambulance?.profile_id;
+      // Get existing ambulances to check driver assignments
+      const { data: existingAmbulances } = await supabase.from('ambulances').select('driver_id');
+      const assignedDriverIds = new Set(existingAmbulances?.map(a => a.driver_id).filter(Boolean) || []);
 
-      const available = profiles.filter(p => {
-        const isAlreadyLinked = existingProfileIds.has(p.id);
-        const isCompatibleProvider = p.provider_type === 'ambulance' || !p.provider_type;
-        const isCurrentProvider = isEdit && p.id === currentAmbulanceProfileId;
-        return (!isAlreadyLinked || isCurrentProvider) && isCompatibleProvider;
+      // In EDIT mode, include current ambulance's driver in available options
+      const currentDriverId = ambulance?.driver_id;
+
+      const available = orgScopedProfiles.filter(p => {
+        const isAlreadyAssigned = assignedDriverIds.has(p.id);
+        // Include driver and ambulance provider types (both can drive ambulances)
+        const isCompatibleProvider = ['ambulance', 'driver'].includes(p.provider_type) || !p.provider_type;
+        const isCurrentDriver = isEdit && p.id === currentDriverId;
+        return (!isAlreadyAssigned || isCurrentDriver) && isCompatibleProvider;
       });
 
       setAvailableProfiles(available);
@@ -154,13 +160,13 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
     }
   };
 
-  const handleProfileSelect = (profileId) => {
-    const profile = availableProfiles.find(p => p.id === profileId);
+  const handleProfileSelect = (driverId) => {
+    const profile = availableProfiles.find(p => p.id === driverId);
     if (profile) {
       setFormData(prev => ({
         ...prev,
-        profile_id: profile.id,
-        call_sign: profile.username || prev.call_sign,
+        driver_id: profile.id,
+        call_sign: prev.call_sign || profile.username,
         hospital_id: profile.organization_id || prev.hospital_id,
         image: profile.image_uri || profile.avatar_url || prev.image
       }));
@@ -326,17 +332,17 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                 {(isCreate || isEdit) && (
                   <GlassCard
                     icon={linkingExisting ? <Users className="text-primary" /> : <UserPlus className="text-primary" />}
-                    title="Account Linkage"
+                    title="Driver Assignment"
                     className="border-primary/20 bg-primary/5"
                   >
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label className="text-sm font-semibold">
-                            {isCreate ? 'Link Existing Provider' : 'Change Assigned Provider'}
+                            {isCreate ? 'Assign Driver' : 'Change Assigned Driver'}
                           </Label>
                           <p className="text-xs text-muted-foreground">
-                            {isCreate ? 'Select an existing account to link this vehicle' : 'Change the provider assigned to this vehicle'}
+                            {isCreate ? 'Select a driver to assign to this vehicle' : 'Change the driver assigned to this vehicle'}
                           </p>
                         </div>
                         <Button
@@ -358,19 +364,19 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                       {linkingExisting && (
                         <div className="space-y-1.5">
                           <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">
-                            {isCreate ? 'Select Provider Account' : 'Change Provider Account'}
+                            {isCreate ? 'Select Driver' : 'Change Driver'}
                           </Label>
                           <Select
-                            value={formData.profile_id}
+                            value={formData.driver_id || ''}
                             onValueChange={handleProfileSelect}
                           >
                             <SelectTrigger className="rounded-xl bg-background/50 border-white/10 h-12 shadow-inner">
-                              <SelectValue placeholder={fetchingProfiles ? "Loading profiles..." : "Choose a provider..."} />
+                              <SelectValue placeholder={fetchingProfiles ? "Loading drivers..." : "Choose a driver..."} />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl max-h-64">
                               {availableProfiles.length === 0 ? (
                                 <div className="p-4 text-center text-sm text-muted-foreground italic">
-                                  {fetchingProfiles ? 'Finding available providers...' : 'No unlinked providers found'}
+                                  {fetchingProfiles ? 'Finding available drivers...' : 'No available drivers found'}
                                 </div>
                               ) : (
                                 availableProfiles.map(p => (
@@ -385,20 +391,20 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                             </SelectContent>
                           </Select>
                           {availableProfiles.length > 0 && (
-                            <p className="text-[10px] text-primary/70 ml-1 italic font-medium">Auto-populates call sign and organization</p>
+                            <p className="text-[10px] text-primary/70 ml-1 italic font-medium">Auto-populates hospital from driver's org</p>
                           )}
                         </div>
                       )}
 
-                      {/* Show current provider assignment in EDIT mode */}
-                      {isEdit && formData.profile_id && !linkingExisting && (
+                      {/* Show current driver assignment in EDIT mode */}
+                      {isEdit && formData.driver_id && !linkingExisting && (
                         <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Currently Assigned Provider</Label>
+                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Currently Assigned Driver</Label>
                           <div className="p-3 bg-white/5 rounded-xl border border-white/10">
                             <div className="flex items-center justify-between">
                               <div>
-                                <div className="font-semibold">{formData.profile_id}</div>
-                                <div className="text-xs text-muted-foreground">Provider ID</div>
+                                <div className="font-semibold">{formData.driver_id}</div>
+                                <div className="text-xs text-muted-foreground">Driver ID</div>
                               </div>
                               <Button
                                 type="button"
@@ -407,7 +413,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                                 onClick={() => setLinkingExisting(true)}
                                 className="rounded-xl"
                               >
-                                Change Provider
+                                Change Driver
                               </Button>
                             </div>
                           </div>
