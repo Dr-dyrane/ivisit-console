@@ -219,8 +219,7 @@ export const WalletManagementPage = () => {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: wallet?.currency || 'USD' }).format(amount || 0);
     };
 
-    const backfillLedger = async () => {
-        const toastId = toast.loading('Auditing ledger for missing fees...');
+    const backfillLedger = useCallback(async () => {
         let added = 0;
         try {
             // 1. Get all completed payments for this org
@@ -231,7 +230,7 @@ export const WalletManagementPage = () => {
                 .eq('organization_id', profile.organization_id)
                 .not('metadata', 'is', null);
 
-            if (!allPayments) throw new Error("No payments found");
+            if (!allPayments) return;
 
             // Get wallet ID once
             const { data: walletData } = await supabase
@@ -240,7 +239,7 @@ export const WalletManagementPage = () => {
                 .eq('organization_id', profile.organization_id)
                 .single();
 
-            if (!walletData) throw new Error("Wallet not found");
+            if (!walletData) return;
 
             for (const p of allPayments) {
                 let meta = p.metadata;
@@ -287,27 +286,26 @@ export const WalletManagementPage = () => {
                 }
             }
 
-            toast.success(`Audit complete. Fixed ${added} transactions.`, { id: toastId });
-            fetchData();
+            if (added > 0) {
+                console.log(`Self-healing: Backfilled ${added} missing fee entries.`);
+                fetchData();
+            }
         } catch (e) {
-            console.error(e);
-            toast.error('Audit failed: ' + e.message, { id: toastId });
+            console.error("Backfill error:", e);
         }
-    };
+    }, [profile.organization_id, fetchData]);
+
+    // Auto-run backfill on mount for org admins
+    useEffect(() => {
+        if (isOrgAdmin()) {
+            backfillLedger();
+        }
+    }, [isOrgAdmin, backfillLedger]);
 
     return (
         <div className="min-h-screen py-6 md:py-8">
             <div className="pt-2" />
 
-            {/* Temporary Audit Button */}
-            {isOrgAdmin() && (
-                <div className="mb-4 flex justify-end">
-                    <Button variant="outline" size="sm" onClick={backfillLedger} className="text-[10px] uppercase tracking-widest opacity-50 hover:opacity-100">
-                        <ShieldCheck className="w-3 h-3 mr-2" />
-                        Audit & Fix Ledger
-                    </Button>
-                </div>
-            )}
 
             {/* Overview Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 px-0 md:px-2">
@@ -595,8 +593,11 @@ export const WalletManagementPage = () => {
                                     <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/5">
                                         <Building className="w-4 h-4 text-muted-foreground mt-1" />
                                         <div>
-                                            <p className="font-bold text-sm">{selectedPayment.emergency_requests?.hospitals?.name || 'Unknown Hospital'}</p>
-                                            <p className="text-xs text-muted-foreground">{selectedPayment.emergency_requests?.hospitals?.address || 'Location Unavailable'}</p>
+                                            <p className="font-bold text-sm capitalize mb-0.5">
+                                                {selectedPayment.emergency_requests?.service_type?.replace(/_/g, ' ') || 'Emergency Service'}
+                                            </p>
+                                            <p className="text-xs font-medium text-foreground/80">{selectedPayment.emergency_requests?.hospitals?.name || 'Unknown Hospital'}</p>
+                                            <p className="text-[10px] text-muted-foreground mt-0.5">{selectedPayment.emergency_requests?.hospitals?.address || 'Location Unavailable'}</p>
                                         </div>
                                     </div>
                                 </div>
