@@ -88,8 +88,16 @@ export const WalletManagementPage = () => {
             setProjection(proj);
 
             // 4. Fetch Ledger History (Credits & Debits)
-            let query = supabase.from('wallet_ledger').select('*');
-            if (isOrgAdmin()) {
+            let query = supabase.from('wallet_ledger').select(`
+                *,
+                organizations (
+                    name
+                )
+            `);
+
+            if (isAdmin()) {
+                query = query.eq('wallet_type', 'main');
+            } else if (isOrgAdmin()) {
                 query = query.eq('organization_id', profile.organization_id);
             }
 
@@ -484,7 +492,11 @@ export const WalletManagementPage = () => {
                                             <td className="px-6 py-6">
                                                 <div>
                                                     <p className="text-sm font-bold tracking-tight text-foreground">
-                                                        {activeTab === 'ledger' ? item.description : `Payment for ${item.emergency_request_id || 'Service'}`}
+                                                        {activeTab === 'ledger' ? (
+                                                            isAdmin() && item.organizations?.name
+                                                                ? <span className='flex flex-col gap-0.5'><span>{item.description}</span><span className='text-[10px] text-muted-foreground uppercase tracking-widest font-normal'>from {item.organizations.name}</span></span>
+                                                                : item.description
+                                                        ) : `Payment for ${item.emergency_request_id || 'Service'}`}
                                                     </p>
                                                     <p className="text-[10px] text-muted-foreground uppercase tracking-tighter font-mono">
                                                         {activeTab === 'ledger' ? `${item.reference_type} ref: ${item.reference_id?.slice(0, 8) || 'N/A'}` : `ID: ${item.id.slice(0, 8)}`}
