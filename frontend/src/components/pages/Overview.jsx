@@ -37,7 +37,7 @@ export const Overview = () => {
       const activeRequests = await supabase
         .from('emergency_requests')
         .select('*', { count: 'exact' })
-        .in('status', ['pending', 'accepted', 'in_progress']);
+        .in('status', ['pending_approval', 'in_progress', 'accepted', 'arrived']);
 
       setStats({
         totalRequests: requestsRes.count || 0,
@@ -274,12 +274,14 @@ export const Overview = () => {
 
 function getStatusColor(status) {
   const colors = {
+    pending_approval: 'bg-warning/20 text-warning border-warning/30',
     pending: 'bg-warning/20 text-warning border-warning/30',
     accepted: 'bg-info/20 text-info border-info/30',
     arrived: 'bg-secondary/20 text-secondary border-secondary/30',
     in_progress: 'bg-primary/20 text-primary border-primary/30',
     completed: 'bg-success/20 text-success border-success/30',
     cancelled: 'bg-muted text-muted-foreground',
+    payment_declined: 'bg-destructive/20 text-destructive border-destructive/30',
   };
   return colors[status] || colors.pending;
 }

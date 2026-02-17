@@ -124,7 +124,7 @@ export const EmergencyRequestsPage = () => {
       // Apply KPI Filter to count query
       if (kpiFilter === 'ambulance') query = query.eq('service_type', 'ambulance');
       if (kpiFilter === 'bed') query = query.eq('service_type', 'bed');
-      if (kpiFilter === 'pending') query = query.eq('status', 'pending');
+      if (kpiFilter === 'pending') query = query.eq('status', 'pending_approval');
       if (kpiFilter === 'inProgress') query = query.eq('status', 'in_progress');
 
       const { count } = await query;
@@ -154,7 +154,7 @@ export const EmergencyRequestsPage = () => {
       // Apply KPI Filter to data query
       if (kpiFilter === 'ambulance') dataQuery = dataQuery.eq('service_type', 'ambulance');
       if (kpiFilter === 'bed') dataQuery = dataQuery.eq('service_type', 'bed');
-      if (kpiFilter === 'pending') dataQuery = dataQuery.eq('status', 'pending');
+      if (kpiFilter === 'pending') dataQuery = dataQuery.eq('status', 'pending_approval');
       if (kpiFilter === 'inProgress') dataQuery = dataQuery.eq('status', 'in_progress');
 
       const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load emergency requests - timeout');

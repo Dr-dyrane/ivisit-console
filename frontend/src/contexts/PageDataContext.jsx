@@ -192,9 +192,13 @@ export const PageDataProvider = ({ children }) => {
       const bed = data?.filter(r => r.service_type === 'bed').length || 0;
       const critical_care = data?.filter(r => r.service_type === 'critical_care').length || 0;
       const emergency_room = data?.filter(r => r.service_type === 'emergency_room').length || 0;
-      const pending = data?.filter(r => r.status === 'pending').length || 0;
+      const pending_approval = data?.filter(r => r.status === 'pending_approval').length || 0;
       const inProgress = data?.filter(r => r.status === 'in_progress').length || 0;
+      const accepted = data?.filter(r => r.status === 'accepted').length || 0;
+      const arrived = data?.filter(r => r.status === 'arrived').length || 0;
       const completed = data?.filter(r => r.status === 'completed').length || 0;
+      // Active = all non-terminal statuses (what matters for the dashboard)
+      const active = pending_approval + inProgress + accepted + arrived;
 
       setEmergencyData({
         stats: {
@@ -203,9 +207,13 @@ export const PageDataProvider = ({ children }) => {
           bed,
           critical_care,
           emergency_room,
-          pending,
+          pending_approval,
+          pending: pending_approval, // Alias for backward compatibility
           inProgress,
-          completed
+          accepted,
+          arrived,
+          completed,
+          active
         },
         recent: data?.slice(0, 10) || []
       });
@@ -214,7 +222,7 @@ export const PageDataProvider = ({ children }) => {
       console.error('Error fetching emergency data:', error);
       // Only fallback to mock if it's not an auth error, or maybe just show empty
       // setUseMockData(true); 
-      setEmergencyData({ stats: { total: 0, ambulance: 0, bed: 0, critical_care: 0, emergency_room: 0, pending: 0, inProgress: 0, completed: 0 }, recent: [] });
+      setEmergencyData({ stats: { total: 0, ambulance: 0, bed: 0, critical_care: 0, emergency_room: 0, pending_approval: 0, pending: 0, inProgress: 0, accepted: 0, arrived: 0, completed: 0, active: 0 }, recent: [] });
     } finally {
       setLoading(prev => ({ ...prev, emergency: false }));
     }
@@ -815,9 +823,12 @@ export const PageDataProvider = ({ children }) => {
     const bed = safeData.filter(req => req.service_type === 'bed').length;
     const critical = safeData.filter(req => req.service_type === 'critical_care').length;
     const emergency = safeData.filter(req => req.service_type === 'emergency_room').length;
-    const pending = safeData.filter(req => req.status === 'pending').length;
+    const pending_approval = safeData.filter(req => req.status === 'pending_approval').length;
     const inProgress = safeData.filter(req => req.status === 'in_progress').length;
+    const accepted = safeData.filter(req => req.status === 'accepted').length;
+    const arrived = safeData.filter(req => req.status === 'arrived').length;
     const completed = safeData.filter(req => req.status === 'completed').length;
+    const active = pending_approval + inProgress + accepted + arrived;
 
     return {
       total: safeData.length,
@@ -825,9 +836,13 @@ export const PageDataProvider = ({ children }) => {
       bed,
       critical,
       emergency,
-      pending,
+      pending_approval,
+      pending: pending_approval,
       inProgress,
-      completed
+      accepted,
+      arrived,
+      completed,
+      active
     };
   };
 

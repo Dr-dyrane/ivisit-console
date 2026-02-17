@@ -99,7 +99,7 @@ export const BentoHome = () => {
     ).length || 0;
 
     return {
-      liveEmergencies: emergencyStats?.critical_care || 0,
+      liveEmergencies: emergencyStats?.active || 0,
       responseTime: Math.round((analyticsData?.avgResponseTime || 4.2) * 10) / 10, // Round to 1 decimal place
       activeProviders: doctorsStats?.totalDoctors || 48,
       todayRequests: todayRequests, // ✅ Shows actual today's count
