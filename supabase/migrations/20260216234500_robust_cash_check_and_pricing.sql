@@ -90,6 +90,9 @@ BEGIN
     v_platform_fee_rate := COALESCE(v_platform_fee_rate, 2.5);
     
     -- Formula: Total = Subtotal / (1 - rate) to ensure provider gets exactly Subtotal?
+    -- Actually, user said "add orchestrator fee of 2.5 %". Usually implies Price * 1.025.
+    -- But in paymentService.js: totalWithFee = baseAmount / (1 - feeRate);
+    -- Let's stick to the paymentService.js formula for consistency.
     v_total_cost := v_total_cost / (1 - (v_platform_fee_rate / 100));
     v_platform_fee := v_total_cost - (v_base_cost + v_distance_surcharge + v_urgency_surcharge);
 
@@ -112,6 +115,9 @@ END;
 $$;
 
 -- 2. Robust check_cash_eligibility (replaces any previous versions to avoid ambiguity)
+-- DROP FUNCTION IF EXISTS public.check_cash_eligibility(UUID, DECIMAL);
+-- DROP FUNCTION IF EXISTS public.check_cash_eligibility(TEXT, DECIMAL);
+
 CREATE OR REPLACE FUNCTION public.check_cash_eligibility(
     p_organization_id TEXT,
     p_estimated_amount DECIMAL
@@ -123,6 +129,7 @@ DECLARE
     v_fee_rate DECIMAL;
     v_required_fee DECIMAL;
 BEGIN
+    -- Defensive UUID cast
     BEGIN
         v_org_id := p_organization_id::UUID;
     EXCEPTION WHEN OTHERS THEN
@@ -131,17 +138,30 @@ BEGIN
 
     IF v_org_id IS NULL THEN RETURN FALSE; END IF;
 
-    SELECT balance INTO v_balance FROM public.organization_wallets WHERE organization_id = v_org_id;
-    SELECT ivisit_fee_percentage INTO v_fee_rate FROM public.organizations WHERE id = v_org_id;
+    -- Get wallet balance
+    SELECT balance INTO v_balance 
+    FROM public.organization_wallets 
+    WHERE organization_id = v_org_id;
+    
+    -- Get fee rate
+    SELECT ivisit_fee_percentage INTO v_fee_rate 
+    FROM public.organizations 
+    WHERE id = v_org_id;
     
     v_fee_rate := COALESCE(v_fee_rate, 2.5);
+    
+    -- Calculate required fee (2.5% of estimated amount must be in wallet)
     v_required_fee := (p_estimated_amount * v_fee_rate) / 100;
     
+    -- Log for debugging (visible in Supabase logs)
+    -- RAISE NOTICE 'Org: %, Balance: %, Required Fee: %', v_org_id, v_balance, v_required_fee;
+
     RETURN COALESCE(v_balance, 0) >= v_required_fee;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 3. Ensure nearby_hospitals returns the correct fields for the UI
+-- Re-run the update to ensure it's effective
 CREATE OR REPLACE FUNCTION public.nearby_hospitals(
     user_lat double precision,
     user_lng double precision,

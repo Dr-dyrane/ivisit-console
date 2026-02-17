@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Trash2, Eye, Send, CheckCheck, ArrowUpDown, ChevronUp, ChevronDown, Stethoscope } from 'lucide-react';
+import { Trash2, Eye, Send, CheckCheck, ArrowUpDown, ChevronUp, ChevronDown, Stethoscope, Clock } from 'lucide-react';
 import { Card } from '../ui/card';
 import { motion } from 'framer-motion';
 import { Checkbox } from '../ui/checkbox';

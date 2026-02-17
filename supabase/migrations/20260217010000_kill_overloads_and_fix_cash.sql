@@ -58,6 +58,9 @@ GRANT EXECUTE ON FUNCTION public.check_cash_eligibility(TEXT, NUMERIC) TO authen
 
 -- 3. Ensure calculate_emergency_cost also uses the latest org-specific fee
 -- Updated to match JS parameters: p_service_type, p_hospital_id, p_ambulance_id, p_room_id
+-- Drop previous versions to allow return type changes
+DROP FUNCTION IF EXISTS public.calculate_emergency_cost(TEXT, UUID, UUID, UUID, DECIMAL, BOOLEAN);
+
 CREATE OR REPLACE FUNCTION public.calculate_emergency_cost(
     p_service_type TEXT,
     p_hospital_id UUID DEFAULT NULL,

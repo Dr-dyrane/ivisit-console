@@ -266,3 +266,80 @@ GRANT EXECUTE ON FUNCTION public.delete_user_by_admin(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.delete_hospital(TEXT) TO authenticated;
 
 NOTIFY pgrst, 'reload schema';
+
+-- PATCH: Wallet Payment Process (Hyper-Safe ID Casting)
+CREATE OR REPLACE FUNCTION public.process_wallet_payment(
+    p_user_id TEXT,
+    p_organization_id TEXT,
+    p_emergency_request_id TEXT,
+    p_amount DECIMAL,
+    p_currency TEXT
+)
+RETURNS JSONB AS $$
+DECLARE
+    v_user_uuid UUID;
+    v_org_uuid UUID;
+    v_req_uuid UUID;
+    v_patient_wallet_id UUID;
+    v_patient_balance DECIMAL;
+    v_payment_id UUID;
+BEGIN
+    BEGIN
+        v_user_uuid := p_user_id::UUID;
+        v_org_uuid := p_organization_id::UUID;
+        v_req_uuid := p_emergency_request_id::UUID;
+    EXCEPTION WHEN OTHERS THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Invalid UUID format provided for payment entities');
+    END;
+
+    SELECT id, balance INTO v_patient_wallet_id, v_patient_balance
+    FROM public.patient_wallets
+    WHERE user_id = v_user_uuid;
+    
+    IF v_patient_wallet_id IS NULL THEN
+        -- Auto-create wallet if missing (fail-safe)
+        INSERT INTO public.patient_wallets (user_id, balance, currency)
+        VALUES (v_user_uuid, 0.00, p_currency)
+        RETURNING id, balance INTO v_patient_wallet_id, v_patient_balance;
+    END IF;
+
+    IF v_patient_balance < p_amount THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Insufficient wallet balance. Please top up.');
+    END IF;
+
+    UPDATE public.patient_wallets
+    SET balance = balance - p_amount, updated_at = NOW()
+    WHERE id = v_patient_wallet_id;
+
+    INSERT INTO public.wallet_ledger (
+        wallet_type, wallet_id, user_id, amount, 
+        transaction_type, description, reference_id, reference_type
+    ) VALUES (
+        'patient', v_patient_wallet_id, v_user_uuid, -p_amount,
+        'debit', 'Service Payment (Wallet)', v_req_uuid, 'emergency_request'
+    );
+
+    INSERT INTO public.payments (
+        user_id, amount, currency, status, 
+        payment_method_id, emergency_request_id, organization_id, metadata
+    ) VALUES (
+        v_user_uuid, p_amount, p_currency, 'completed',
+        'wallet_' || v_patient_wallet_id::text,
+        v_req_uuid, v_org_uuid,
+        jsonb_build_object('source', 'patient_wallet', 'wallet_id', v_patient_wallet_id)
+    )
+    RETURNING id INTO v_payment_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'payment_id', v_payment_id,
+        'new_balance', (SELECT balance FROM public.patient_wallets WHERE id = v_patient_wallet_id)
+    );
+
+EXCEPTION WHEN OTHERS THEN
+    RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.process_wallet_payment(TEXT, TEXT, TEXT, DECIMAL, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.process_wallet_payment(TEXT, TEXT, TEXT, DECIMAL, TEXT) TO service_role;

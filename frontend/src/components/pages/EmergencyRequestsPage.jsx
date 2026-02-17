@@ -850,7 +850,7 @@ export const EmergencyRequestsPage = () => {
                                     </Button>
                                   )}
                                   {/* Cash Payment Action */}
-                                  {canManage && req.status === 'completed' && (
+                                  {req.status === 'completed' && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
