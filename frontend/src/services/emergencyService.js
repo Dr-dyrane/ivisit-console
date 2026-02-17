@@ -288,6 +288,46 @@ export async function cancelEmergencyRequest(requestId, reason) {
 }
 
 /**
+ * Approve a pending cash payment (called by org_admin).
+ */
+export async function approveCashPayment(paymentId, requestId) {
+  try {
+    const { data, error } = await supabase.rpc('approve_cash_payment', {
+      p_payment_id: paymentId,
+      p_request_id: requestId,
+    });
+
+    if (error) throw error;
+    if (!data?.success) throw new Error(data?.error || 'Approval failed');
+
+    return data;
+  } catch (error) {
+    console.error('Error approving cash payment:', error);
+    throw error;
+  }
+}
+
+/**
+ * Decline a pending cash payment (called by org_admin).
+ */
+export async function declineCashPayment(paymentId, requestId) {
+  try {
+    const { data, error } = await supabase.rpc('decline_cash_payment', {
+      p_payment_id: paymentId,
+      p_request_id: requestId,
+    });
+
+    if (error) throw error;
+    if (!data?.success) throw new Error(data?.error || 'Decline failed');
+
+    return data;
+  } catch (error) {
+    console.error('Error declining cash payment:', error);
+    throw error;
+  }
+}
+
+/**
  * Get active emergency requests (in_progress or accepted)
  */
 export async function getActiveEmergencyRequests() {
@@ -295,7 +335,7 @@ export async function getActiveEmergencyRequests() {
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
-      .in('status', ['in_progress', 'accepted'])
+      .in('status', ['pending_approval', 'in_progress', 'accepted', 'arrived'])
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -413,11 +453,11 @@ export async function getEmergencyStats() {
       .select('id', { count: 'exact' })
       .eq('status', 'in_progress');
 
-    // Get pending requests
+    // Get pending requests (new cash approval flow)
     const { data: pendingData } = await supabase
       .from(TABLE_NAME)
       .select('id', { count: 'exact' })
-      .eq('status', 'pending');
+      .in('status', ['pending', 'pending_approval']);
 
     // Get today's completed
     const today = new Date().toISOString().split('T')[0];

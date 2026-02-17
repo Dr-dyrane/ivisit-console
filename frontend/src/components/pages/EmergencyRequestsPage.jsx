@@ -278,7 +278,9 @@ export const EmergencyRequestsPage = () => {
     filterButtonComponent
   );
 
-  const pendingCount = React.useMemo(() => requests.filter(r => r.status === 'pending').length, [requests]);
+  const pendingCount = React.useMemo(() =>
+    requests.filter(r => r.status === 'pending' || r.status === 'pending_approval').length,
+    [requests]);
 
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
@@ -968,9 +970,12 @@ export const EmergencyRequestsPage = () => {
       {/* Emergency Details Modal */}
       <EmergencyDetailsModal
         isOpen={isDetailsModalOpen}
-        onClose={() => {
+        onClose={(shouldRefresh) => {
           setIsDetailsModalOpen(false);
           setSelectedRequest(null);
+          if (shouldRefresh === true) {
+            fetchRequests();
+          }
         }}
         request={selectedRequest}
       />

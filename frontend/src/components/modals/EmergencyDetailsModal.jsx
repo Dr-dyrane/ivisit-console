@@ -23,14 +23,46 @@ import {
   Ambulance
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 import { supabase } from '../../lib/supabase';
 import { getVisit } from '../../services/visitsService';
 import { getStandardizedPatient } from '../../utils/patientUtils';
+import { approveCashPayment, declineCashPayment } from '../../services/emergencyService';
 
 export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
   const [visitOutcome, setVisitOutcome] = React.useState(null);
   const [loadingOutcome, setLoadingOutcome] = React.useState(false);
+  const [paymentData, setPaymentData] = React.useState(null);
+  const [isProcessingApproval, setIsProcessingApproval] = React.useState(false);
+
+  const handleApprove = async () => {
+    if (!paymentData || !request) return;
+    setIsProcessingApproval(true);
+    try {
+      await approveCashPayment(paymentData.id, request.id);
+      toast.success('Cash payment approved. Dispatching responder.');
+      onClose(true); // Close and refresh
+    } catch (e) {
+      toast.error(e.message || 'Failed to approve payment');
+    } finally {
+      setIsProcessingApproval(false);
+    }
+  };
+
+  const handleDecline = async () => {
+    if (!paymentData || !request) return;
+    setIsProcessingApproval(true);
+    try {
+      await declineCashPayment(paymentData.id, request.id);
+      toast.success('Cash payment declined.');
+      onClose(true); // Close and refresh
+    } catch (e) {
+      toast.error(e.message || 'Failed to decline payment');
+    } finally {
+      setIsProcessingApproval(false);
+    }
+  };
 
   // Debug: Log incoming request data
   React.useEffect(() => {
@@ -42,11 +74,34 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
       fetchVisitOutcome(request.id);
     } else {
       setVisitOutcome(null);
-      if (!request) {
-        console.log('🔍 EmergencyDetailsModal - No request data provided');
-      }
     }
-  }, [request]);
+
+    if (request?.id && request.status === 'pending_approval') {
+      fetchPaymentData(request.id);
+    } else {
+      setPaymentData(null);
+    }
+
+    if (!request && isOpen) {
+      console.log('🔍 EmergencyDetailsModal - No request data provided');
+    }
+  }, [request, isOpen]);
+
+  const fetchPaymentData = async (requestId) => {
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('emergency_request_id', requestId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (data) setPaymentData(data);
+    } catch (e) {
+      console.error('Error fetching payment data:', e);
+    }
+  };
 
   const fetchVisitOutcome = async (id) => {
     console.log('🔍 EmergencyDetailsModal - Fetching visit outcome for ID:', id);
@@ -154,20 +209,66 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
 
             <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
               {/* Status Tracker Bubbles */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                {['pending', 'dispatched', 'en_route', 'arrived', 'completed'].map((step, i, arr) => {
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+                {['pending_approval', 'dispatched', 'en_route', 'arrived', 'completed'].map((step, i, arr) => {
                   const isCurrent = request.status === step;
-                  const isPast = arr.indexOf(request.status) > i;
+                  // Handle 'pending' as 'pending_approval' for visual consistency if needed
+                  const effectiveStatus = (request.status === 'pending') ? 'pending_approval' : request.status;
+                  const currentIndex = arr.indexOf(effectiveStatus);
+                  const isPast = currentIndex > i;
+                  const stepLabel = step === 'pending_approval' ? 'Approval' : step;
+
                   return (
                     <div key={step} className={`p-3 rounded-2xl text-center border transition-all ${isCurrent ? 'bg-primary/10 border-primary/20 text-primary' :
                       isPast ? 'bg-green-500/5 border-green-500/10 text-green-500 opacity-60' :
                         'bg-white/5 border-white/10 text-muted-foreground opacity-30'
                       }`}>
-                      <p className="text-[10px] font-semibold uppercase tracking-widest">{step.replace('_', ' ')}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-widest">{stepLabel.replace('_', ' ')}</p>
                     </div>
                   );
                 })}
               </div>
+
+              {/* Cash Payment Approval Action */}
+              {request.status === 'pending_approval' && (
+                <div className="p-6 rounded-3xl bg-orange-500/10 border border-orange-500/20 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-500/20 rounded-xl">
+                      <Shield className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-orange-500">Cash Payment Approval Required</h4>
+                      <p className="text-sm text-muted-foreground">The patient has requested a cash payment. Please verify and approve to start the trip.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Fee Amount</p>
+                      <p className="text-xl font-bold">
+                        {paymentData?.amount || request.fee_amount || '0.00'} {paymentData?.currency || 'USD'}
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={handleDecline}
+                        disabled={isProcessingApproval}
+                        className="rounded-xl border-red-500/20 hover:bg-red-500/10 text-red-500"
+                      >
+                        Decline
+                      </Button>
+                      <Button
+                        onClick={handleApprove}
+                        disabled={isProcessingApproval}
+                        className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white px-6"
+                      >
+                        {isProcessingApproval ? 'Processing...' : 'Approve & Dispatch'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Dispatch Source Indicator */}
               {request.ambulance_id && (
@@ -304,8 +405,8 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                         <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Patient Location</p>
                           <p className="font-mono text-sm font-semibold">
-                            <LocationCell 
-                              location={request.patient_location} 
+                            <LocationCell
+                              location={request.patient_location}
                               pickupLocation={request.pickup_location}
                               responderLocation={request.responder_location}
                             />

@@ -9,7 +9,7 @@ export const EMERGENCY_SERVICE_TYPES = {
   AMBULANCE: 'ambulance',  // From mobile app serviceType: "ambulance"
   BED: 'bed',            // From mobile app serviceType: "bed"
   CRITICAL_CARE: 'critical_care',
-  EMERGENCY_ROOM: 'emergency_room', 
+  EMERGENCY_ROOM: 'emergency_room',
   CONSULTATION: 'consultation'
 };
 
@@ -25,6 +25,7 @@ export const SERVICE_TYPE_DISPLAY = {
 // Status Enums - Based on database schema
 export const EMERGENCY_STATUS = {
   PENDING: 'pending',
+  PENDING_APPROVAL: 'pending_approval',
   IN_PROGRESS: 'in_progress',
   ACCEPTED: 'accepted',
   COMPLETED: 'completed',
@@ -34,6 +35,7 @@ export const EMERGENCY_STATUS = {
 // Status Display Names
 export const STATUS_DISPLAY = {
   [EMERGENCY_STATUS.PENDING]: 'Pending',
+  [EMERGENCY_STATUS.PENDING_APPROVAL]: 'Approval Needed',
   [EMERGENCY_STATUS.IN_PROGRESS]: 'In Progress',
   [EMERGENCY_STATUS.ACCEPTED]: 'Accepted',
   [EMERGENCY_STATUS.COMPLETED]: 'Completed',
@@ -81,6 +83,7 @@ export const SERVICE_TYPE_BADGES = {
 // Badge Classes for Status
 export const STATUS_BADGES = {
   [EMERGENCY_STATUS.PENDING]: 'bg-warning/20 text-warning',
+  [EMERGENCY_STATUS.PENDING_APPROVAL]: 'bg-orange-500/20 text-orange-500',
   [EMERGENCY_STATUS.IN_PROGRESS]: 'bg-info/20 text-info',
   [EMERGENCY_STATUS.ACCEPTED]: 'bg-blue-500/20 text-blue-500',
   [EMERGENCY_STATUS.COMPLETED]: 'bg-success/20 text-success',

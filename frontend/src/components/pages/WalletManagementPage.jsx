@@ -16,7 +16,8 @@ import {
     ExternalLink,
     ChevronRight,
     TrendingUp,
-    History
+    History,
+    RefreshCw
 } from 'lucide-react';
 import {
     getProjectedRevenue,
@@ -50,6 +51,8 @@ export const WalletManagementPage = () => {
     const [projection, setProjection] = useState(0);
     const [orgInfo, setOrgInfo] = useState(null);
     const [paymentMethods, setPaymentMethods] = useState([]);
+    const [payments, setPayments] = useState([]);
+    const [activeTab, setActiveTab] = useState('ledger');
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -92,6 +95,14 @@ export const WalletManagementPage = () => {
             const { data: ledgerData, error } = await query.order('created_at', { ascending: false }).limit(50);
             if (error) throw error;
             setLedger(ledgerData || []);
+
+            // 5. Fetch Payments
+            let payQuery = supabase.from('payments').select('*');
+            if (isOrgAdmin()) {
+                payQuery = payQuery.eq('organization_id', profile.organization_id);
+            }
+            const { data: payData } = await payQuery.order('created_at', { ascending: false }).limit(50);
+            setPayments(payData || []);
         } catch (error) {
             console.error('Error fetching wallet data:', error);
             // toast.error('Connection to Stripe timed out. Showing last synced balance.');
@@ -288,11 +299,28 @@ export const WalletManagementPage = () => {
                 </Card>
             </div>
 
-            {/* Transaction History */}
-            <h3 className="text-2xl font-black tracking-tighter mb-6 flex items-center gap-3 px-4">
-                <History className="w-6 h-6 text-primary" />
-                Transaction Ledger
-            </h3>
+            {/* Tab Header */}
+            <div className="flex items-center justify-between mb-6 px-4">
+                <div className="flex items-center gap-6">
+                    <button
+                        onClick={() => setActiveTab('ledger')}
+                        className={` font-bold tracking-tighter flex items-center gap-3 transition-all ${activeTab === 'ledger' ? 'text-primary scale-105' : 'text-muted-foreground opacity-50 hover:opacity-100'}`}
+                    >
+                        <History className="w-4 h-4" />
+                        Transaction Ledger
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('payments')}
+                        className={` font-bold tracking-tighter flex items-center gap-3 transition-all ${activeTab === 'payments' ? 'text-primary scale-105' : 'text-muted-foreground opacity-50 hover:opacity-100'}`}
+                    >
+                        <ShieldCheck className="w-4 h-4" />
+                        Service Payments
+                    </button>
+                </div>
+                <Button variant="ghost" size="sm" onClick={fetchData} className="h-8 w-8 p-0 rounded-full hover:bg-primary/10">
+                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
+            </div>
 
             <div className="px-0 md:px-2">
                 <Card className="glass-card-premium border-none shadow-2xl overflow-hidden">
@@ -300,7 +328,7 @@ export const WalletManagementPage = () => {
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="bg-muted/30">
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Type</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">{activeTab === 'ledger' ? 'Type' : 'Method'}</th>
                                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Description</th>
                                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Date</th>
                                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground text-right">Amount</th>
@@ -313,31 +341,41 @@ export const WalletManagementPage = () => {
                                             <td colSpan={4} className="px-6 py-6 h-12" />
                                         </tr>
                                     ))
-                                ) : ledger.length === 0 ? (
+                                ) : (activeTab === 'ledger' ? ledger : payments).length === 0 ? (
                                     <tr>
                                         <td colSpan={4} className="px-6 py-20 text-center">
                                             <History className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-20" />
-                                            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">No activities recorded yet</p>
+                                            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">No {activeTab} recorded yet</p>
                                         </td>
                                     </tr>
                                 ) : (
-                                    ledger.map((item) => (
+                                    (activeTab === 'ledger' ? ledger : payments).map((item) => (
                                         <tr key={item.id} className="hover:bg-muted/20 transition-colors group">
                                             <td className="px-6 py-6 whitespace-nowrap">
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.transaction_type === 'credit' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeTab === 'ledger'
+                                                        ? (item.transaction_type === 'credit' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive')
+                                                        : (item.status === 'completed' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning')
                                                         }`}>
-                                                        {item.transaction_type === 'credit' ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
+                                                        {activeTab === 'ledger' ? (
+                                                            item.transaction_type === 'credit' ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />
+                                                        ) : (
+                                                            <CreditCard className="w-5 h-5" />
+                                                        )}
                                                     </div>
                                                     <span className="text-xs font-black uppercase tracking-widest">
-                                                        {item.transaction_type}
+                                                        {activeTab === 'ledger' ? item.transaction_type : item.payment_method_id}
                                                     </span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-6">
                                                 <div>
-                                                    <p className="text-sm font-bold tracking-tight text-foreground">{item.description}</p>
-                                                    <p className="text-[10px] text-muted-foreground uppercase tracking-tighter font-mono">{item.reference_type} ref: {item.reference_id?.slice(0, 8)}</p>
+                                                    <p className="text-sm font-bold tracking-tight text-foreground">
+                                                        {activeTab === 'ledger' ? item.description : `Payment for ${item.emergency_request_id || 'Service'}`}
+                                                    </p>
+                                                    <p className="text-[10px] text-muted-foreground uppercase tracking-tighter font-mono">
+                                                        {activeTab === 'ledger' ? `${item.reference_type} ref: ${item.reference_id?.slice(0, 8) || 'N/A'}` : `ID: ${item.id.slice(0, 8)}`}
+                                                    </p>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-6 whitespace-nowrap">
@@ -349,9 +387,11 @@ export const WalletManagementPage = () => {
                                                 </p>
                                             </td>
                                             <td className="px-6 py-6 whitespace-nowrap text-right">
-                                                <span className={`text-lg font-black tracking-tighter ${item.transaction_type === 'credit' ? 'text-success' : 'text-foreground'
+                                                <span className={`text-lg font-black tracking-tighter ${activeTab === 'ledger'
+                                                    ? (item.transaction_type === 'credit' ? 'text-success' : 'text-foreground')
+                                                    : 'text-foreground'
                                                     }`}>
-                                                    {item.transaction_type === 'credit' ? '+' : '-'} {formatCurrency(Math.abs(item.amount))}
+                                                    {activeTab === 'ledger' ? (item.transaction_type === 'credit' ? '+' : '-') : ''} {formatCurrency(Math.abs(item.amount))}
                                                 </span>
                                             </td>
                                         </tr>
