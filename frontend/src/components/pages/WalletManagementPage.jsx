@@ -52,6 +52,7 @@ export const WalletManagementPage = () => {
     const [orgInfo, setOrgInfo] = useState(null);
     const [paymentMethods, setPaymentMethods] = useState([]);
     const [payments, setPayments] = useState([]);
+    const [selectedPayment, setSelectedPayment] = useState(null);
     const [activeTab, setActiveTab] = useState('ledger');
 
     const fetchData = useCallback(async () => {
@@ -86,7 +87,7 @@ export const WalletManagementPage = () => {
             const proj = await getProjectedRevenue(isAdmin() ? null : profile.organization_id);
             setProjection(proj);
 
-            // 4. Fetch Ledger History
+            // 4. Fetch Ledger History (Credits & Debits)
             let query = supabase.from('wallet_ledger').select('*');
             if (isOrgAdmin()) {
                 query = query.eq('organization_id', profile.organization_id);
@@ -97,12 +98,32 @@ export const WalletManagementPage = () => {
             setLedger(ledgerData || []);
 
             // 5. Fetch Payments
-            let payQuery = supabase.from('payments').select('*');
+            let payQuery = supabase.from('payments').select(`
+                *,
+                emergency_requests (
+                    id,
+                    service_type,
+                    created_at,
+                    hospitals (
+                        name,
+                        address
+                    )
+                )
+            `);
             if (isOrgAdmin()) {
                 payQuery = payQuery.eq('organization_id', profile.organization_id);
             }
             const { data: payData } = await payQuery.order('created_at', { ascending: false }).limit(50);
-            setPayments(payData || []);
+
+            // Enrich with user details manually since profiles are separate
+            const enrichedPayments = await Promise.all((payData || []).map(async (p) => {
+                const userId = p.user_id; // Direct user_id from payments table
+                if (!userId) return p;
+                const { data: userData } = await supabase.from('profiles').select('first_name, last_name, phone, email').eq('id', userId).single();
+                return { ...p, user_details: userData };
+            }));
+
+            setPayments(enrichedPayments);
         } catch (error) {
             console.error('Error fetching wallet data:', error);
             // toast.error('Connection to Stripe timed out. Showing last synced balance.');
@@ -198,9 +219,95 @@ export const WalletManagementPage = () => {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: wallet?.currency || 'USD' }).format(amount || 0);
     };
 
+    const backfillLedger = async () => {
+        const toastId = toast.loading('Auditing ledger for missing fees...');
+        let added = 0;
+        try {
+            // 1. Get all completed payments for this org
+            const { data: allPayments } = await supabase
+                .from('payments')
+                .select('*')
+                .eq('status', 'completed')
+                .eq('organization_id', profile.organization_id)
+                .not('metadata', 'is', null);
+
+            if (!allPayments) throw new Error("No payments found");
+
+            // Get wallet ID once
+            const { data: walletData } = await supabase
+                .from('organization_wallets')
+                .select('id')
+                .eq('organization_id', profile.organization_id)
+                .single();
+
+            if (!walletData) throw new Error("Wallet not found");
+
+            for (const p of allPayments) {
+                let meta = p.metadata;
+                if (typeof meta === 'string') {
+                    try { meta = JSON.parse(meta); } catch (e) { continue; }
+                }
+
+                // Only process payments that have a fee and haven't been debited yet
+                if (!meta.fee || meta.ledger_debited) continue;
+
+                // Double check if already in ledger by reference_id
+                const { data: existing } = await supabase
+                    .from('wallet_ledger')
+                    .select('id')
+                    .eq('reference_id', p.id)
+                    .eq('transaction_type', 'debit')
+                    .maybeSingle();
+
+                if (!existing) {
+                    // Insert Debit
+                    const { error: insertError } = await supabase.from('wallet_ledger').insert({
+                        wallet_id: walletData.id,
+                        organization_id: profile.organization_id,
+                        amount: -Math.abs(Number(meta.fee)),
+                        transaction_type: 'debit',
+                        description: `Platform Fee (Audit Fix)`,
+                        reference_id: p.id,
+                        reference_type: 'payment_fee',
+                        status: 'completed',
+                        created_at: p.created_at // Backdate to payment time
+                    });
+
+                    if (insertError) {
+                        console.error('Failed to insert ledger entry:', insertError);
+                        continue;
+                    }
+
+                    // Mark as processed
+                    await supabase.from('payments').update({
+                        metadata: { ...meta, ledger_debited: true }
+                    }).eq('id', p.id);
+
+                    added++;
+                }
+            }
+
+            toast.success(`Audit complete. Fixed ${added} transactions.`, { id: toastId });
+            fetchData();
+        } catch (e) {
+            console.error(e);
+            toast.error('Audit failed: ' + e.message, { id: toastId });
+        }
+    };
+
     return (
         <div className="min-h-screen py-6 md:py-8">
             <div className="pt-2" />
+
+            {/* Temporary Audit Button */}
+            {isOrgAdmin() && (
+                <div className="mb-4 flex justify-end">
+                    <Button variant="outline" size="sm" onClick={backfillLedger} className="text-[10px] uppercase tracking-widest opacity-50 hover:opacity-100">
+                        <ShieldCheck className="w-3 h-3 mr-2" />
+                        Audit & Fix Ledger
+                    </Button>
+                </div>
+            )}
 
             {/* Overview Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 px-0 md:px-2">
@@ -350,7 +457,15 @@ export const WalletManagementPage = () => {
                                     </tr>
                                 ) : (
                                     (activeTab === 'ledger' ? ledger : payments).map((item) => (
-                                        <tr key={item.id} className="hover:bg-muted/20 transition-colors group">
+                                        <tr
+                                            key={item.id}
+                                            className="hover:bg-muted/20 transition-colors group cursor-pointer"
+                                            onClick={() => {
+                                                if (activeTab === 'payments') {
+                                                    setSelectedPayment(item);
+                                                }
+                                            }}
+                                        >
                                             <td className="px-6 py-6 whitespace-nowrap">
                                                 <div className="flex items-center gap-3">
                                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeTab === 'ledger'
@@ -409,6 +524,98 @@ export const WalletManagementPage = () => {
                 </div>
 
             </div>
+
+            {/* Receipt Modal */}
+            <AnimatePresence>
+                {selectedPayment && (
+                    <Dialog open={!!selectedPayment} onOpenChange={() => setSelectedPayment(null)}>
+                        <DialogContent className="glass-card-premium border-none p-0 overflow-hidden sm:max-w-[425px] max-h-[85vh] overflow-y-auto no-scrollbar">
+                            <div className="bg-gradient-to-br from-primary/20 via-primary/5 to-transparent p-6 flex flex-col items-center justify-center border-b border-border/10">
+                                <div className="w-16 h-16 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg mb-4">
+                                    <ShieldCheck className="w-8 h-8 text-primary" />
+                                </div>
+                                <DialogTitle className="text-2xl font-black tracking-tighter text-center">Payment Complete</DialogTitle>
+                                <DialogDescription className="text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
+                                    Transaction ID: {selectedPayment.id?.slice(0, 12)}
+                                </DialogDescription>
+                                <h2 className="text-4xl font-black tracking-tighter mt-4">
+                                    {formatCurrency(selectedPayment.amount)}
+                                </h2>
+                            </div>
+
+                            <div className="p-6 space-y-6">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Date</Label>
+                                        <p className="font-bold text-sm">
+                                            {new Date(selectedPayment.created_at).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Time</Label>
+                                        <p className="font-bold text-sm">
+                                            {new Date(selectedPayment.created_at).toLocaleTimeString()}
+                                        </p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Method</Label>
+                                        <div className="flex items-center gap-2">
+                                            <CreditCard className="w-3 h-3 text-muted-foreground" />
+                                            <p className="font-bold text-sm capitalize">{selectedPayment.payment_method_id}</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Status</Label>
+                                        <Badge variant="outline" className="bg-success/10 text-success border-success/20 uppercase tracking-widest text-[10px]">
+                                            {selectedPayment.status}
+                                        </Badge>
+                                    </div>
+                                </div>
+
+                                <Separator className="bg-border/10" />
+
+                                {/* User Details Section */}
+                                {selectedPayment.user_details && (
+                                    <div className="space-y-3">
+                                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 block">Patient / Payer</Label>
+                                        <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/5">
+                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                                                {selectedPayment.user_details.first_name?.[0]}{selectedPayment.user_details.last_name?.[0]}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-sm">{selectedPayment.user_details.first_name} {selectedPayment.user_details.last_name}</p>
+                                                <p className="text-xs text-muted-foreground">{selectedPayment.user_details.phone || selectedPayment.user_details.email}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="space-y-3">
+                                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 block">Service Details</Label>
+                                    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/5">
+                                        <Building className="w-4 h-4 text-muted-foreground mt-1" />
+                                        <div>
+                                            <p className="font-bold text-sm">{selectedPayment.emergency_requests?.hospitals?.name || 'Unknown Hospital'}</p>
+                                            <p className="text-xs text-muted-foreground">{selectedPayment.emergency_requests?.hospitals?.address || 'Location Unavailable'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-muted/30 -mx-6 -mb-6 p-6 mt-4 border-t border-border/10">
+                                    <div className="flex justify-between items-center text-xs text-muted-foreground mb-2">
+                                        <span>Subtotal</span>
+                                        <span>{formatCurrency(selectedPayment.amount)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                        <span>Platform Fee (2.5%)</span>
+                                        <span>Included</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
