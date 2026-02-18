@@ -26,7 +26,7 @@ export async function getAmbulances(filter = {}) {
       // Apply standard RBAC for other roles
       query = applyAuthFilter(query, user, {
         userIdField: 'profile_id',
-        orgIdField: 'organization_id',
+        orgIdField: 'hospital_id',
         resourceType: 'ambulance'
       });
     }

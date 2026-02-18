@@ -30,18 +30,27 @@ export async function getStaffSchedules(filter = {}) {
     };
 
     // Get schedules from ambulance crew assignments (public read access)
-    const { data: ambulances, error: ambulanceError } = await supabase
+    let ambulanceQuery = supabase
       .from('ambulances')
       .select(`
         id,
         call_sign,
         crew,
+        hospital_id,
         hospital,
         status,
         type,
         created_at,
         updated_at
       `);
+
+    // Apply RBAC
+    ambulanceQuery = applyAuthFilter(ambulanceQuery, user, {
+      orgIdField: 'hospital_id',
+      resourceType: 'ambulance'
+    });
+
+    const { data: ambulances, error: ambulanceError } = await ambulanceQuery;
 
     if (ambulanceError) throw ambulanceError;
 
@@ -53,6 +62,7 @@ export async function getStaffSchedules(filter = {}) {
         profile_name: crewMember,
         ambulance_id: ambulance.id,
         ambulance_call_sign: ambulance.call_sign,
+        hospital_id: ambulance.hospital_id,
         hospital_name: ambulance.hospital,
         date: new Date().toISOString().split('T')[0], // Current date as default
         start_time: '00:00', // Full day shift
@@ -67,7 +77,7 @@ export async function getStaffSchedules(filter = {}) {
     }).flat();
 
     // Get doctor schedules from doctors table
-    const { data: doctors, error: doctorError } = await supabase
+    let doctorQuery = supabase
       .from('doctors')
       .select(`
         id,
@@ -87,6 +97,14 @@ export async function getStaffSchedules(filter = {}) {
           phone
         )
       `);
+
+    // Apply RBAC
+    doctorQuery = applyAuthFilter(doctorQuery, user, {
+      userIdField: 'profile_id',
+      orgIdField: 'hospital_id'
+    });
+
+    const { data: doctors, error: doctorError } = await doctorQuery;
 
     if (doctorError) throw doctorError;
 
@@ -115,8 +133,8 @@ export async function getStaffSchedules(filter = {}) {
 
     // Apply filters
     if (filter.hospital_id) {
-      results.schedules = results.schedules.filter(s => 
-        s.hospital_id === filter.hospital_id || 
+      results.schedules = results.schedules.filter(s =>
+        s.hospital_id === filter.hospital_id ||
         s.hospital_name === filter.hospital_id
       );
     }
@@ -174,12 +192,17 @@ export async function getAvailableStaff(hospitalId) {
       `)
       .eq('status', 'available');
 
+    // Apply RBAC
+    doctorQuery = applyAuthFilter(doctorQuery, user, {
+      userIdField: 'profile_id',
+      orgIdField: 'hospital_id'
+    });
+
     // Apply hospital filter if specified
     if (hospitalId) {
       doctorQuery = doctorQuery.eq('hospital_id', hospitalId);
     }
 
-    // Note: doctors table may need RBAC - check if it has organization_id
     const { data: doctors, error: doctorError } = await doctorQuery;
 
     if (doctorError) throw doctorError;
@@ -199,7 +222,7 @@ export async function getAvailableStaff(hospitalId) {
     }));
 
     // Get other providers (drivers, paramedics, etc.)
-    const { data: providers, error: providerError } = await supabase
+    let providerQuery = supabase
       .from('profiles')
       .select(`
         id,
@@ -214,14 +237,21 @@ export async function getAvailableStaff(hospitalId) {
       .eq('role', 'provider')
       .in('provider_type', ['driver', 'paramedic', 'ambulance_service']);
 
+    // Apply RBAC
+    providerQuery = applyAuthFilter(providerQuery, user, {
+      orgIdField: 'organization_id'
+    });
+
+    const { data: providers, error: providerError } = await providerQuery;
+
     if (providerError) throw providerError;
 
     // Transform providers to staff format
     const providerStaff = (providers || []).map(provider => ({
       id: provider.id,
       name: provider.full_name || provider.username,
-      role: provider.provider_type === 'driver' ? 'Driver' : 
-           provider.provider_type === 'paramedic' ? 'Paramedic' : 'Staff',
+      role: provider.provider_type === 'driver' ? 'Driver' :
+        provider.provider_type === 'paramedic' ? 'Paramedic' : 'Staff',
       department: 'Emergency Services',
       email: provider.email,
       phone: provider.phone,
@@ -231,8 +261,8 @@ export async function getAvailableStaff(hospitalId) {
 
     // Combine and filter by hospital if specified
     const allStaff = [...doctorStaff, ...providerStaff];
-    
-    return hospitalId 
+
+    return hospitalId
       ? allStaff.filter(staff => staff.hospital_id === hospitalId)
       : allStaff;
 
@@ -291,7 +321,7 @@ export async function updateStaffSchedule(id, updateData) {
     // Parse schedule ID to determine type
     if (id.startsWith('doctor_')) {
       const doctorId = id.replace('doctor_', '');
-      
+
       const { data, error } = await supabase
         .from('doctors')
         .update({
@@ -325,7 +355,7 @@ export async function deleteStaffSchedule(id) {
     // Parse schedule ID to determine type
     if (id.startsWith('doctor_')) {
       const doctorId = id.replace('doctor_', '');
-      
+
       const { error } = await supabase
         .from('doctors')
         .update({
@@ -353,7 +383,7 @@ export async function deleteStaffSchedule(id) {
 export async function getScheduleStats(hospitalId, dateFrom, dateTo) {
   try {
     const user = await getCurrentUser();
-    
+
     // Get doctor stats
     let doctorQuery = supabase
       .from('doctors')
@@ -364,7 +394,7 @@ export async function getScheduleStats(hospitalId, dateFrom, dateTo) {
     }
 
     const { data: doctors, error: doctorError } = await doctorQuery;
-    
+
     if (doctorError) throw doctorError;
 
     // Get ambulance stats
@@ -379,14 +409,14 @@ export async function getScheduleStats(hospitalId, dateFrom, dateTo) {
         .select('name')
         .eq('id', hospitalId)
         .single();
-      
+
       if (hospital) {
         ambulanceQuery = ambulanceQuery.eq('hospital', hospital.name);
       }
     }
 
     const { data: ambulances, error: ambulanceError } = await ambulanceQuery;
-    
+
     if (ambulanceError) throw ambulanceError;
 
     const doctorStats = (doctors || []).reduce((acc, doctor) => {
@@ -449,9 +479,9 @@ export async function checkScheduleConflicts(profileId, date, startTime, endTime
 
     return {
       has_conflicts: hasConflict,
-      conflicts: hasConflict ? [{ 
+      conflicts: hasConflict ? [{
         reason: `Doctor is currently ${doctor.status}`,
-        doctor_status: doctor.status 
+        doctor_status: doctor.status
       }] : []
     };
 
@@ -518,7 +548,7 @@ export async function getStaffScheduleById(id) {
 
     if (id.startsWith('doctor_')) {
       const doctorId = id.replace('doctor_', '');
-      
+
       const { data, error } = await supabase
         .from('doctors')
         .select(`

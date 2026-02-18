@@ -51,9 +51,13 @@ export const supabaseMapService = {
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Apply RBAC for hospitals (org admins see their hospital, admins see all)
-      if (user?.role !== 'admin' && user?.organization_id) {
-        hospitalsQuery = hospitalsQuery.eq('id', user.organization_id);
+      // Apply RBAC for hospitals (org admins see their org's hospitals, admins see all)
+      if (user?.role !== 'admin' && user?.hospital_ids?.length) {
+        // Org admin: scope to all hospitals under their organization
+        hospitalsQuery = hospitalsQuery.in('id', user.hospital_ids);
+      } else if (user?.role !== 'admin' && user?.organization_id) {
+        // Fallback: match by organization_id
+        hospitalsQuery = hospitalsQuery.eq('organization_id', user.organization_id);
       } else if (user?.role !== 'admin') {
         // Non-admin without org see no hospitals
         hospitalsQuery = hospitalsQuery.eq('id', 'none');

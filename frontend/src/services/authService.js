@@ -20,12 +20,36 @@ export async function getCurrentUser() {
       .eq('id', session.user.id)
       .single();
 
-    return {
+    const result = {
       ...session.user,
       role: profile?.role || 'viewer',
       organization_id: profile?.organization_id || null,
-      full_name: profile?.full_name || profile?.username || null
+      full_name: profile?.full_name || profile?.username || null,
+      hospital_ids: null // Will be populated for org_admin
     };
+
+    // For org_admin: resolve all hospitals in the same organization
+    // profiles.organization_id stores the PARENT organization UUID (organizations.id)
+    // We find all hospitals under that organization
+    if (result.role === 'org_admin' && result.organization_id) {
+      try {
+        // Fetch all hospitals under this organization
+        const { data: orgHospitals } = await supabase
+          .from('hospitals')
+          .select('id')
+          .eq('organization_id', result.organization_id);
+
+        result.hospital_ids = (orgHospitals || []).map(h => h.id);
+      } catch {
+        // Fallback: empty — RLS will handle visibility
+        result.hospital_ids = [];
+      }
+
+      // If no hospitals found, the org_admin won't see any scoped data
+      // but RLS still works as a safety net
+    }
+
+    return result;
   } catch (error) {
     console.error('Error getting current user:', error);
     return null;
@@ -94,18 +118,24 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
   if (role === 'admin' && bypassForAdmin) {
     // Admin gets full access - no scoping applied
   } else if (role === 'org_admin' && orgId) {
-    // Org Admin sees everything in their organization
-    // If resource is an emergency or visit, we should allow them to see all records matching their org
-    if (resourceType === 'emergency') {
-      // Optimized: RLS handles the heavy lifting, but we can add a filter to help the optimizer
-      // We don't strictly eq(hospital_id, orgId) because orgId might be the PARENT Org ID.
-      // If it's a UUID, we check if it matches hospital_id or organization_id
-      if (orgId.length === 36) {
-        // We'll rely on RLS for the parent-child mapping to keep the JS simple and robust
+    // Org Admin sees everything across all hospitals in their organization
+    // Key fact: orgId is the PARENT organization UUID (from organizations.id)
+    //   - If orgIdField = 'organization_id' → orgId matches directly
+    //   - If orgIdField = 'hospital_id' → need hospital_ids (resolved in getCurrentUser)
+    const hospitalIds = user?.hospital_ids;
+    const isHospitalScoped = orgIdField === 'hospital_id';
+
+    if (isHospitalScoped && hospitalIds?.length) {
+      // Scope to all hospitals under this org admin's organization
+      if (hospitalIds.length > 1) {
+        query = query.in(orgIdField, hospitalIds);
       } else {
-        query = query.eq(orgIdField, orgId);
+        query = query.eq(orgIdField, hospitalIds[0]);
       }
+    } else if (isHospitalScoped) {
+      // hospital_ids not resolved — skip client-side filter, RLS handles visibility
     } else {
+      // orgIdField is 'organization_id' or similar — orgId matches directly
       query = query.eq(orgIdField, orgId);
     }
   } else if (role === 'provider' || role === 'doctor') {
