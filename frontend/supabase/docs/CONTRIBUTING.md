@@ -17,20 +17,31 @@ The "UUID = TEXT" era is over.
 - Human-readable IDs (e.g., `AMB-123456`) must live in separate `display_id` or `request_id` columns of type `TEXT`.
 - **Never** perform implicit casts in your SQL functions. Use explicit types.
 
-## 3. Workflow for Schema Changes
-1. **Local Dev**: Modify the SQL inside the Baseline file.
-2. **Local Test**: `npx supabase db reset` to ensure the baseline builds from scratch without errors.
-3. **Remote Redeploy**: 
-   ```bash
-   npx supabase migration repair --status reverted 20260218060000
-   npx supabase db push
-   ```
-4. **Sync**: Run `node scripts/sync_to_console.js` to align the console team instantly.
+## 3. The "Staged Evolution" Workflow (Floating Fixes)
+To maintain the **Golden Master** schema while solving complex production bugs (like RLS recursion), follow the "Floating Fix" pattern:
 
-## 4. Documentation is Code
-If you add a table or modify a core trigger:
-- Update the `REFERENCE.md` inventory.
-- Update the `ARCHITECTURE.md` if the fundamental data flow changes.
+- **Phase 1: Diagnosis**: Use inspection tools (e.g., `inspect_profile_policies()`) to see the actual live state on remote. 
+- **Phase 2: Floating Fixes**: Create standalone migration files (e.g., `20260218110000_kill_recursion.sql`). **DO NOT** fold into the baseline immediately.
+- **Phase 3: Verification**: Create a test script in `docs/archive/test-scripts/` and run it against remote.
+- **Phase 4: Documentation**: Record results in `docs/archive/task-verifications/`.
+- **Phase 5: Consolidation**: Once 3-4 floating fixes are confirmed stable over time, fold them into the **Golden Master** (`20260218060000`) and heal the migration history.
+
+## 4. The "Nuclear De-Recursion" Standard
+When fixing RLS Infinite Recursion:
+- **Rule**: Never use `SELECT FROM table_name` directly in a policy.
+- **Pattern**: Use a `SECURITY DEFINER` helper function:
+  ```sql
+  CREATE OR REPLACE FUNCTION public.get_current_user_role() 
+  RETURNS text SECURITY DEFINER AS $$ ... $$;
+  ```
+- **Execution**: Apply the fix in a floating file, verify with `test-recursion-fix.js`, and document the "Ghost Policies" killed.
+
+## 5. Documentation & Verification Repo
+Every major fix must leave a trail:
+- **Test Script**: `docs/archive/test-scripts/test-[task-name].js`
+- **Verification Report**: `docs/archive/task-verifications/[task-name]-verification.md`
+- **Reference Updated**: `docs/REFERENCE.md` if schema changed.
 
 ---
-**Failure to follow these rules will result in a rejected PR. Quality is intentional.**
+**Standard**: All IDs are **UUID native**. Mapping to Display IDs (REQ-XXXX) is handled by triggers.
+**Quality is intentional. Every fix is verified before it is baseline.**

@@ -1276,11 +1276,11 @@ export const BentoHome = () => {
                       <div className="flex items-center gap-4 mt-2">
                         <div className="flex items-center gap-1">
                           <div className="w-2 h-2 rounded-full bg-success" />
-                          <span className="text-xs font-semibold text-success">{subscriptionStats.active} active</span>
+                          <span className="text-xs font-semibold text-success">{subscriptionStats?.active || 0} active</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <div className="w-2 h-2 rounded-full bg-warning" />
-                          <span className="text-xs font-semibold text-warning">{subscriptionStats.paid} premium</span>
+                          <span className="text-xs font-semibold text-warning">{subscriptionStats?.paid || 0} premium</span>
                         </div>
                       </div>
                       <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-30">
