@@ -137,3 +137,33 @@ CREATE TRIGGER handle_visit_updated_at BEFORE UPDATE ON public.visits FOR EACH R
 CREATE TRIGGER stamp_amb_display_id BEFORE INSERT ON public.ambulances FOR EACH ROW EXECUTE PROCEDURE public.stamp_entity_display_id();
 CREATE TRIGGER stamp_req_display_id BEFORE INSERT ON public.emergency_requests FOR EACH ROW EXECUTE PROCEDURE public.stamp_entity_display_id();
 CREATE TRIGGER stamp_visit_display_id BEFORE INSERT ON public.visits FOR EACH ROW EXECUTE PROCEDURE public.stamp_entity_display_id();
+
+-- D. Update Resource Availability
+CREATE OR REPLACE FUNCTION public.update_resource_availability()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Handle Ambulance Status
+    IF (NEW.ambulance_id IS NOT NULL) THEN
+        IF (NEW.status IN ('accepted', 'arrived', 'in_progress')) THEN
+            UPDATE public.ambulances SET status = 'on_trip' WHERE id = NEW.ambulance_id;
+        ELSIF (NEW.status IN ('completed', 'cancelled', 'payment_declined')) THEN
+            UPDATE public.ambulances SET status = 'available' WHERE id = NEW.ambulance_id;
+        END IF;
+    END IF;
+
+    -- Handle Bed Availability
+    IF (NEW.service_type = 'bed') THEN
+        IF (NEW.status = 'in_progress' AND OLD.status != 'in_progress') THEN
+            UPDATE public.hospitals SET available_beds = GREATEST(0, available_beds - 1) WHERE id = NEW.hospital_id;
+        ELSIF (NEW.status IN ('completed', 'cancelled') AND OLD.status NOT IN ('completed', 'cancelled')) THEN
+            UPDATE public.hospitals SET available_beds = available_beds + 1 WHERE id = NEW.hospital_id;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_emergency_status_resource_sync
+AFTER UPDATE ON public.emergency_requests
+FOR EACH ROW EXECUTE PROCEDURE public.update_resource_availability();
