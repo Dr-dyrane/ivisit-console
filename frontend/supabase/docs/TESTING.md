@@ -1,124 +1,175 @@
-# Testing Guide for iVisit Supabase Schema
+# Testing Guide for iVisit Console Supabase Schema
 
 ## 🎯 Overview
 
-This guide outlines testing procedures and standards for ensuring Supabase schema integrity and functionality.
+This guide outlines the task-based testing framework for ensuring Supabase schema integrity and functionality in the ivisit-console workspace.
 
-## 🧪 Test Suite Structure
+## 🧪 Testing Structure
 
-### **Comprehensive System Test**
-- **Location**: `supabase/tests/test_comprehensive_system.js`
-- **Purpose**: Validates entire modular schema deployment
-- **Coverage**: All modules, functions, tables, and security
+### **Directory Organization**
+```
+supabase/tests/
+├── tasks/                        # Task definitions and validation
+│   └── [task files].md         # Task definitions with objectives
+├── scripts/                      # Test execution scripts (JavaScript)
+│   └── [test scripts].js         # Test execution and validation
+├── fixes/                        # Mini SQL fixes for errors
+│   └── [fix files].sql           # Targeted SQL fixes
+├── validation/                   # Validation results and reports
+│   ├── test_results.json         # Test results storage
+│   ├── error_log.json           # Error log storage
+│   └── validation_report.md     # Validation reports
+└── archives/                     # Archived test results
+    └── historical_tests/        # Past test runs
+```
 
-### **Test Categories**
-1. **Core RPC Functions** - Location services, geospatial queries
-2. **Emergency Logic** - Atomic operations, payment integration
-3. **Table Access** - All 13 core tables accessible
-4. **Display ID Resolution** - ID mapping system functionality
-5. **Security Functions** - RLS policies, access control
-6. **Wallet System** - Financial operations
+## 🔄 Testing Workflow
 
-## 📋 Testing Standards
+### **Step 1: Task Definition**
+- Create task validation file with clear objectives
+- Define error constraints and success criteria
+- Set prerequisites and dependencies
+
+### **Step 2: Test Execution**
+```bash
+# Run comprehensive system test
+node supabase/tests/scripts/test_runner.js console_comprehensive
+
+# Run specific task
+node supabase/tests/scripts/test_runner.js [task_name]
+```
+
+### **Step 3: Error Detection & Logging**
+- JavaScript test runner detects errors automatically
+- Errors categorized as Critical/Warning/Info
+- Detailed error logs written to `validation/error_log.json`
+
+### **Step 4: Fix Generation**
+- Mini SQL fixes generated automatically for common errors
+- Targeted fixes stored in `fixes/` directory
+- Fixes designed to be idempotent and safe
+
+### **Step 5: Fix Application**
+```bash
+# Apply fixes from error_fixes.sql
+# (Manual execution or automated via test runner)
+```
+
+### **Step 6: Migration Integration**
+- Update core migration pillars with successful fixes
+- Remove redundant fix migrations
+- Sync changes to console
+
+### **Step 7: Final Validation**
+- Run comprehensive test suite again
+- Confirm 100% success rate
+- Generate final validation report
+
+## 📋 **Testing Standards**
 
 ### **Success Criteria**
 - **100% test pass rate** required
 - **No schema cache errors**
 - **All modules deployed**
-- **Emergency system operational**
+- **Console functions operational**
 - **Display ID mapping working**
 
-### **Required Test Results**
-```
-✅ Passed: 19
-❌ Failed: 0
-📊 Success Rate: 100.0%
-```
+### **Error Classification**
+- **Critical**: Block deployment (missing functions, tables)
+- **Warning**: Fix required (missing columns, naming issues)
+- **Info**: Monitor only (empty tables, optional features)
 
-### **Module Validation**
-- ✅ Infrastructure (Extensions, Utilities) - Deployed
-- ✅ Identity (Profiles, Preferences, Medical) - Deployed
-- ✅ Organizations (Hospitals, Doctors) - Deployed
-- ✅ Logistics (Ambulances, Emergency Requests) - Deployed
-- ✅ Financials (Wallets, Payments, Insurance) - Deployed
-- ✅ Operations (Notifications, Support, CMS) - Deployed
-- ✅ Analytics (Activity, Search, Audit) - Deployed
-- ✅ Security (RLS Policies, Access Control) - Deployed
-- ✅ Emergency Logic (Atomic Operations) - Deployed
-- ✅ Automations (Cross-Table Hooks) - Deployed
-- ✅ Core RPC Functions (Location Services) - Deployed
+### **Fix Process**
+1. **Detect error** through automated testing
+2. **Log error** with full context and categorization
+3. **Generate fix** using SQL templates
+4. **Apply fix** manually or automatically
+5. **Validate fix** with re-testing
+6. **Integrate fix** into core migrations
+7. **Sync to console** and validate
 
-## 🚀 Running Tests
+## 🎯 **Console-Specific Testing**
 
-### **Comprehensive Test Suite**
-```bash
-# Run full system validation
-node supabase/tests/test_comprehensive_system.js
-```
+### **Function Testing**
+Test all console-specific functions:
+- **check-user**: User validation and status
+- **invite-user**: User invitation system
+- **process-subscribers**: Subscription processing
+- **sendBulkEmail**: Bulk email campaigns
+- **sendCustomEmail**: Custom email campaigns
+- **sendWelcome**: Welcome email automation
+- **unsubscribe**: Email unsubscribe handling
 
-### **Migration Status Check**
-```bash
-# Verify all migrations deployed
-npx supabase migration list
-```
+### **Integration Testing**
+Test console-specific integrations:
+- **Email service integration** (Resend)
+- **User management workflows**
+- **Subscription processing**
+- **Webhook handling**
 
-### **Expected Output**
-```
-🧪 Comprehensive System Test...
+### **Schema Validation**
+Validate console-specific schema elements:
+- **User management tables**
+- **Subscription and billing tables**
+- **Email template system**
+- **Webhook event handling**
 
-🔍 Testing Core RPC Functions...
-✅ Nearby hospitals: 0 found
-✅ Nearby ambulances: 0 found
+## 🚀 **Getting Started with Console Testing**
 
-🔍 Testing Emergency Logic Functions...
-✅ Emergency logic function exists and is callable
+### **For Developers**
+1. **Define task** in `tests/tasks/` directory
+2. **Run test runner** with task name
+3. **Review error logs** in `validation/error_log.json`
+4. **Apply fixes** from `fixes/` directory
+5. **Validate fixes** and update migrations
 
-🔍 Testing Table Access and Display ID Mapping...
-✅ profiles: 0 records
-✅ organizations: 0 records
-✅ hospitals: 0 records
-✅ doctors: 0 records
-✅ ambulances: 0 records
-✅ emergency_requests: 0 records
-✅ visits: 0 records
-✅ patient_wallets: 0 records
-✅ organization_wallets: 0 records
-✅ payments: 0 records
-✅ notifications: 0 records
-✅ id_mappings: 0 records
+### **For Testing**
+1. **Use comprehensive test runner** for full validation
+2. **Check error logs** for issues and patterns
+3. **Apply targeted fixes** for identified problems
+4. **Run validation** to confirm fixes work
+5. **Document results** in validation reports
 
-🔍 Testing Security Functions...
-✅ Security function is_admin accessible
+### **For Maintenance**
+1. **Monitor error logs** for recurring issues
+2. **Update test scenarios** for new features
+3. **Maintain fix library** for common problems
+4. **Archive old test results** periodically
 
-🔍 Testing Display ID Resolution...
-✅ ID mappings: 0 records
-✅ get_entity_id function accessible
+## 📊 **Console Test Categories**
 
-🔍 Testing Wallet System...
-✅ Patient wallets: 0 records
+### **1. User Management Tests**
+- User creation and validation
+- Role-based access control
+- Profile management
+- Authentication workflows
 
-🎯 Comprehensive System Test Summary:
-✅ Passed: 19
-❌ Failed: 0
-📊 Success Rate: 100.0%
-```
+### **2. Email System Tests**
+- Email delivery validation
+- Template rendering tests
+- Bulk email processing
+- Unsubscribe handling
 
-## 🔍 Test Breakdown
+### **3. Subscription Tests**
+- Payment processing workflows
+- Subscription renewal logic
+- Billing integration
+- Webhook event handling
 
-### **1. Core RPC Functions**
-- **nearby_hospitals**: PostGIS geospatial queries
-- **nearby_ambulances**: Location-based ambulance search
-- **Expected**: 0 results (empty database)
+### **4. Integration Tests**
+- Third-party service integrations
+- API endpoint validation
+- Data synchronization
+- Error handling workflows
 
-### **2. Emergency Logic Functions**
-- **create_emergency_v4**: Atomic emergency creation
-- **Payment integration**: Cash vs digital payment handling
-- **Status management**: Proper flow control
+## 🔧 **Console-Specific Tools**
 
-### **3. Table Access Validation**
-- **All 13 core tables**: Accessible and structured
-- **Display ID columns**: Present where required
-- **Foreign keys**: Proper relationships
+### **Test Runner Customization**
+The console test runner should include:
+- **Email service testing** (Resend integration)
+- **Subscription validation** (payment processing)
+- **User workflow testing** (invitation, onboarding)
+- **Webhook validation** (event processing)
 
 ### **4. Security Functions**
 - **is_admin**: Role-based access control
