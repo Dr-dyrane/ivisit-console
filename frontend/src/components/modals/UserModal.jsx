@@ -46,6 +46,8 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
         ...user,
         username: user.username || user.profile_username || '', // Handle varied naming
         full_name: user.full_name || '',
+        role: user.role || 'patient',
+        provider_type: user.provider_type || '',
         organization_id: user.organization_id || (isOrgAdmin() ? orgId : ''),
       }));
     } else if (isCreate) {

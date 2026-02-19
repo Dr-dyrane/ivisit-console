@@ -101,10 +101,10 @@ export const BentoHome = () => {
     return {
       liveEmergencies: emergencyStats?.active || 0,
       responseTime: Math.round((analyticsData?.avgResponseTime || 4.2) * 10) / 10, // Round to 1 decimal place
-      activeProviders: doctorsStats?.totalDoctors || 48,
+      activeProviders: doctorsStats?.totalDoctors || 0,
       todayRequests: todayRequests, // ✅ Shows actual today's count
       yesterdayRequests: yesterdayRequests, // ✅ For comparison
-      totalUsers: userData?.statistics?.totalUsers || 23, // Fixed: Use actual user count from profiles table
+      totalUsers: userData?.statistics?.totalUsers || 0, // Fixed: Use actual user count from profiles table
       completionRate: analyticsData?.completionRate || 94,
       availableAmbulances: analyticsData?.availableAmbulances || 12,
       pendingVerifications: verificationData?.pending || 15
