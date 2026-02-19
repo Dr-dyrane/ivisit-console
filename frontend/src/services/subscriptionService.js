@@ -6,6 +6,7 @@
 
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
+import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'subscribers';
 
@@ -72,6 +73,8 @@ export async function getSubscribers(filter = {}) {
  */
 export async function getSubscriber(subscriberId) {
   try {
+    if (!isValidUUID(subscriberId)) return null;
+
     const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
 

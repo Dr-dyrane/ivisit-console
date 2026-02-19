@@ -6,6 +6,7 @@
 
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
+import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'visits';
 
@@ -16,8 +17,7 @@ const TABLE_NAME = 'visits';
 export async function getVisits(filter = {}) {
   try {
     const user = await getCurrentUser();
-    // NOTE: hospital_id is TEXT (Google Place ID), not UUID FK to hospitals table
-    // So we cannot join hospitals directly - just fetch the raw fields
+    // hospital_id is a UUID FK to the hospitals table.
     let query = supabase.from(TABLE_NAME).select(`
       *,
       profiles!visits_user_id_fkey (
@@ -96,7 +96,7 @@ export async function getVisits(filter = {}) {
  */
 export async function getVisit(visitId) {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from(TABLE_NAME)
       .select(`
         *,
@@ -108,9 +108,15 @@ export async function getVisit(visitId) {
           phone,
           avatar_url
         )
-      `)
-      .eq('id', visitId)
-      .single();
+      `);
+
+    if (isValidUUID(visitId)) {
+      query = query.eq('id', visitId);
+    } else {
+      query = query.eq('display_id', visitId);
+    }
+
+    const { data, error } = await query.single();
 
     if (error && error.code !== 'PGRST116') throw error;
 

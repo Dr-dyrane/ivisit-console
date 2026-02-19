@@ -6,6 +6,7 @@
 
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
+import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'support_tickets';
 
@@ -75,6 +76,8 @@ export async function getSupportTickets(filter = {}) {
  */
 export async function getSupportTicket(ticketId) {
   try {
+    if (!isValidUUID(ticketId)) return null;
+
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')

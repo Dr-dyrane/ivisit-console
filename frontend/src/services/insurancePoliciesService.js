@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'insurance_policies';
 
@@ -49,6 +50,8 @@ export async function getInsurancePolicies(filter) {
  */
 export async function getInsurancePolicy(policyId) {
   try {
+    if (!isValidUUID(policyId)) return null;
+
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')

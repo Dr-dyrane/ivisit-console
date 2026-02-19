@@ -60,7 +60,7 @@ export const supabaseMapService = {
         hospitalsQuery = hospitalsQuery.eq('organization_id', user.organization_id);
       } else if (user?.role !== 'admin') {
         // Non-admin without org see no hospitals
-        hospitalsQuery = hospitalsQuery.eq('id', 'none');
+        hospitalsQuery = hospitalsQuery.eq('id', '00000000-0000-0000-0000-000000000000');
       }
 
       const { data: emergencies, error: errEmergencies } = await emergenciesQuery;

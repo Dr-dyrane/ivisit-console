@@ -6,6 +6,7 @@
 
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
+import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'hospitals';
 
@@ -83,11 +84,15 @@ export async function getHospitals(filter = {}) {
  */
 export async function getHospital(hospitalId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('id', hospitalId)
-      .single();
+    let query = supabase.from(TABLE_NAME).select('*');
+
+    if (isValidUUID(hospitalId)) {
+      query = query.eq('id', hospitalId);
+    } else {
+      query = query.eq('display_id', hospitalId);
+    }
+
+    const { data, error } = await query.single();
 
     if (error && error.code !== 'PGRST116') throw error;
 

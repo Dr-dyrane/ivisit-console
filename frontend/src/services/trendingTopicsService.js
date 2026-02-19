@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'trending_topics';
 
@@ -43,6 +44,8 @@ export async function getTrendingTopics(filter) {
  */
 export async function getTrendingTopic(topicId) {
   try {
+    if (!isValidUUID(topicId)) return null;
+
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')

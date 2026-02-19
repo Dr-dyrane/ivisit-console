@@ -6,6 +6,7 @@
 
 import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './authService';
+import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'search_history';
 
@@ -15,13 +16,15 @@ const TABLE_NAME = 'search_history';
  */
 export async function getSearchHistory(filter) {
   try {
+    if (!isValidUUID(filter?.user_id)) return [];
+
     const user = await getCurrentUser();
-    
+
     // Apply authorization - users can only see their own search history
     if (user?.id !== filter.user_id) {
       throw new Error('Unauthorized: Cannot access other users search history');
     }
-    
+
     let query = supabase.from(TABLE_NAME).select('*').eq('user_id', filter.user_id);
 
     if (filter.query_type) {
@@ -52,6 +55,8 @@ export async function getSearchHistory(filter) {
  */
 export async function getSearchHistoryEntry(entryId) {
   try {
+    if (!isValidUUID(entryId)) return null;
+
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')

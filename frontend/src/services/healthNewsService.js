@@ -6,6 +6,7 @@
 
 import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './authService';
+import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'health_news';
 
@@ -62,6 +63,8 @@ export async function getHealthNews(filter) {
  */
 export async function getHealthNewsItem(newsId) {
   try {
+    if (!isValidUUID(newsId)) return null;
+
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
@@ -221,7 +224,7 @@ export async function toggleHealthNewsPublish(newsId, published) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .update({ 
+      .update({
         published,
         updated_at: new Date().toISOString()
       })

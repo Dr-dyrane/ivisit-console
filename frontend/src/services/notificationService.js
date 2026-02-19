@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { isValidUUID } from '../lib/utils';
 
 export const NotificationTypes = {
   AMBULANCE: 'ambulance',
@@ -136,6 +137,8 @@ export const subscribeToNotifications = (userId, callback) => {
 
 export const markNotificationAsRead = async (notificationId) => {
   try {
+    if (!isValidUUID(notificationId)) return false;
+
     const { error } = await supabase
       .from('notifications')
       .update({ read: true })
@@ -151,6 +154,8 @@ export const markNotificationAsRead = async (notificationId) => {
 
 export const getNotifications = async (userId, limit = 50, read = null) => {
   try {
+    if (!isValidUUID(userId)) return [];
+
     let query = supabase
       .from('notifications')
       .select('*')

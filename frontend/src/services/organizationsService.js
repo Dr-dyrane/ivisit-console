@@ -5,6 +5,7 @@
 
 import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './authService';
+import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'organizations';
 
@@ -48,14 +49,18 @@ export async function getOrganizations() {
  */
 export async function getOrganization(orgId) {
     try {
-        const { data, error } = await supabase
-            .from(TABLE_NAME)
-            .select('*')
-            .eq('id', orgId)
-            .single();
+        let query = supabase.from(TABLE_NAME).select('*');
 
-        if (error) throw error;
-        return data;
+        if (isValidUUID(orgId)) {
+            query = query.eq('id', orgId);
+        } else {
+            query = query.eq('display_id', orgId);
+        }
+
+        const { data, error } = await query.single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        return data || null;
     } catch (error) {
         console.error(`Error fetching organization ${orgId}:`, error);
         throw error;

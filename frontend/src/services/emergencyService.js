@@ -6,6 +6,7 @@
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
 import { logEmergencyActivity } from './activityService';
+import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'emergency_requests';
 
@@ -85,11 +86,15 @@ export async function getEmergencyRequests(filter) {
  */
 export async function getEmergencyRequest(requestId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('id', requestId)
-      .single();
+    let query = supabase.from(TABLE_NAME).select('*');
+
+    if (isValidUUID(requestId)) {
+      query = query.eq('id', requestId);
+    } else {
+      query = query.eq('display_id', requestId);
+    }
+
+    const { data, error } = await query.single();
 
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
 

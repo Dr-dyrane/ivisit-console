@@ -6,6 +6,7 @@
 
 import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './authService';
+import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'medical_profiles';
 
@@ -15,13 +16,15 @@ const TABLE_NAME = 'medical_profiles';
  */
 export async function getUserMedicalProfile(userId) {
   try {
+    if (!isValidUUID(userId)) return null;
+
     const user = await getCurrentUser();
-    
+
     // Apply authorization - admins can see any profile, others only own
     if (user?.role !== 'admin' && userId !== user?.id) {
       throw new Error('Unauthorized: Cannot access other users medical profiles');
     }
-    
+
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
@@ -80,12 +83,12 @@ export async function createMedicalProfile(input) {
 export async function updateMedicalProfile(userId, input) {
   try {
     const user = await getCurrentUser();
-    
+
     // Apply authorization - admins can update any profile, others only own
     if (user?.role !== 'admin' && userId !== user?.id) {
       throw new Error('Unauthorized: Cannot update other users medical profiles');
     }
-    
+
     const payload = {
       ...input,
       updated_at: new Date().toISOString(),

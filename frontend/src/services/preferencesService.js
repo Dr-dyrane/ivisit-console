@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'preferences';
 
@@ -13,6 +14,8 @@ const TABLE_NAME = 'preferences';
  */
 export async function getUserPreferences(userId) {
   try {
+    if (!isValidUUID(userId)) return null;
+
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
