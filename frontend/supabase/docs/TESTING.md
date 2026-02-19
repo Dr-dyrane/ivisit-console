@@ -1,8 +1,8 @@
-# Testing Guide for iVisit Console Supabase Schema
+# Testing Guide for iVisit Supabase Schema
 
 ## 🎯 Overview
 
-This guide outlines the task-based testing framework for ensuring Supabase schema integrity and functionality in the ivisit-console workspace.
+This guide outlines the task-based testing framework for ensuring Supabase schema integrity and functionality.
 
 ## 🧪 Testing Structure
 
@@ -10,11 +10,14 @@ This guide outlines the task-based testing framework for ensuring Supabase schem
 ```
 supabase/tests/
 ├── tasks/                        # Task definitions and validation
-│   └── [task files].md         # Task definitions with objectives
+│   ├── task_validation.md         # Task validation framework
+│   └── error_constraints.md       # Error definitions and constraints
 ├── scripts/                      # Test execution scripts (JavaScript)
-│   └── [test scripts].js         # Test execution and validation
+│   ├── test_runner.js            # Main test runner with error handling
+│   ├── test_comprehensive_system.js # Comprehensive system tests
+│   └── [other test scripts].js   # Additional test scripts
 ├── fixes/                        # Mini SQL fixes for errors
-│   └── [fix files].sql           # Targeted SQL fixes
+│   └── error_fixes.sql          # Targeted SQL fixes for common errors
 ├── validation/                   # Validation results and reports
 │   ├── test_results.json         # Test results storage
 │   ├── error_log.json           # Error log storage
@@ -33,143 +36,118 @@ supabase/tests/
 ### **Step 2: Test Execution**
 ```bash
 # Run comprehensive system test
-node supabase/tests/scripts/test_runner.js console_comprehensive
+node supabase/tests/scripts/test_runner.js comprehensive_system
 
 # Run specific task
 node supabase/tests/scripts/test_runner.js [task_name]
 ```
 
 ### **Step 3: Error Detection & Logging**
-- JavaScript test runner detects errors automatically
+- JavaScript test runner (`scripts/test_runner.js`) detects errors automatically
 - Errors categorized as Critical/Warning/Info
 - Detailed error logs written to `validation/error_log.json`
 
 ### **Step 4: Fix Generation**
 - Mini SQL fixes generated automatically for common errors
-- Targeted fixes stored in `fixes/` directory
+- Targeted fixes stored in `fixes/`
 - Fixes designed to be idempotent and safe
 
 ### **Step 5: Fix Application**
 ```bash
-# Apply fixes from error_fixes.sql
+# Apply fixes from the fixes/ directory
 # (Manual execution or automated via test runner)
 ```
 
 ### **Step 6: Migration Integration**
-- Update core migration pillars with successful fixes
+- Update core migration pillars (`migrations/*.sql`) with successful fixes
 - Remove redundant fix migrations
-- Sync changes to console
+- Sync changes to console via `scripts/sync_to_console.js`
 
 ### **Step 7: Final Validation**
 - Run comprehensive test suite again
 - Confirm 100% success rate
 - Generate final validation report
 
-## 📋 **Testing Standards**
+## 📋 Testing Standards
 
 ### **Success Criteria**
 - **100% test pass rate** required
 - **No schema cache errors**
 - **All modules deployed**
-- **Console functions operational**
+- **Emergency system operational**
 - **Display ID mapping working**
 
-### **Error Classification**
-- **Critical**: Block deployment (missing functions, tables)
-- **Warning**: Fix required (missing columns, naming issues)
-- **Info**: Monitor only (empty tables, optional features)
+## 🚀 Running Tests
 
-### **Fix Process**
-1. **Detect error** through automated testing
-2. **Log error** with full context and categorization
-3. **Generate fix** using SQL templates
-4. **Apply fix** manually or automatically
-5. **Validate fix** with re-testing
-6. **Integrate fix** into core migrations
-7. **Sync to console** and validate
+### **Comprehensive Test Suite**
+```bash
+# Run full system validation
+node supabase/tests/scripts/test_runner.js comprehensive_system
+```
 
-## 🎯 **Console-Specific Testing**
+### **Migration Status Check**
+```bash
+# Verify all migrations deployed
+npx supabase migration list
+```
 
-### **Function Testing**
-Test all console-specific functions:
-- **check-user**: User validation and status
-- **invite-user**: User invitation system
-- **process-subscribers**: Subscription processing
-- **sendBulkEmail**: Bulk email campaigns
-- **sendCustomEmail**: Custom email campaigns
-- **sendWelcome**: Welcome email automation
-- **unsubscribe**: Email unsubscribe handling
+### **Expected Output**
+```
+🧪 Comprehensive System Test...
 
-### **Integration Testing**
-Test console-specific integrations:
-- **Email service integration** (Resend)
-- **User management workflows**
-- **Subscription processing**
-- **Webhook handling**
+🔍 Testing Core RPC Functions...
+✅ Nearby hospitals: 0 found
+✅ Nearby ambulances: 0 found
 
-### **Schema Validation**
-Validate console-specific schema elements:
-- **User management tables**
-- **Subscription and billing tables**
-- **Email template system**
-- **Webhook event handling**
+🔍 Testing Emergency Logic Functions...
+✅ Emergency logic function exists and is callable
 
-## 🚀 **Getting Started with Console Testing**
+🔍 Testing Table Access and Display ID Mapping...
+✅ profiles: 0 records
+✅ organizations: 0 records
+✅ hospitals: 0 records
+✅ doctors: 0 records
+✅ ambulances: 0 records
+✅ emergency_requests: 0 records
+✅ visits: 0 records
+✅ patient_wallets: 0 records
+✅ organization_wallets: 0 records
+✅ payments: 0 records
+✅ notifications: 0 records
+✅ id_mappings: 0 records
 
-### **For Developers**
-1. **Define task** in `tests/tasks/` directory
-2. **Run test runner** with task name
-3. **Review error logs** in `validation/error_log.json`
-4. **Apply fixes** from `fixes/` directory
-5. **Validate fixes** and update migrations
+🔍 Testing Security Functions...
+✅ Security function is_admin accessible
 
-### **For Testing**
-1. **Use comprehensive test runner** for full validation
-2. **Check error logs** for issues and patterns
-3. **Apply targeted fixes** for identified problems
-4. **Run validation** to confirm fixes work
-5. **Document results** in validation reports
+🔍 Testing Display ID Resolution...
+✅ ID mappings: 0 records
+✅ get_entity_id function accessible
 
-### **For Maintenance**
-1. **Monitor error logs** for recurring issues
-2. **Update test scenarios** for new features
-3. **Maintain fix library** for common problems
-4. **Archive old test results** periodically
+🔍 Testing Wallet System...
+✅ Patient wallets: 0 records
 
-## 📊 **Console Test Categories**
+🎯 Comprehensive System Test Summary:
+✅ Passed: 19
+❌ Failed: 0
+📊 Success Rate: 100.0%
+```
 
-### **1. User Management Tests**
-- User creation and validation
-- Role-based access control
-- Profile management
-- Authentication workflows
+## 🔍 Test Breakdown
 
-### **2. Email System Tests**
-- Email delivery validation
-- Template rendering tests
-- Bulk email processing
-- Unsubscribe handling
+### **1. Core RPC Functions**
+- **nearby_hospitals**: PostGIS geospatial queries
+- **nearby_ambulances**: Location-based ambulance search
+- **Expected**: 0 results (empty database)
 
-### **3. Subscription Tests**
-- Payment processing workflows
-- Subscription renewal logic
-- Billing integration
-- Webhook event handling
+### **2. Emergency Logic Functions**
+- **create_emergency_v4**: Atomic emergency creation
+- **Payment integration**: Cash vs digital payment handling
+- **Status management**: Proper flow control
 
-### **4. Integration Tests**
-- Third-party service integrations
-- API endpoint validation
-- Data synchronization
-- Error handling workflows
-
-## 🔧 **Console-Specific Tools**
-
-### **Test Runner Customization**
-The console test runner should include:
-- **Email service testing** (Resend integration)
-- **Subscription validation** (payment processing)
-- **User workflow testing** (invitation, onboarding)
-- **Webhook validation** (event processing)
+### **3. Table Access Validation**
+- **All 13 core tables**: Accessible and structured
+- **Display ID columns**: Present where required
+- **Foreign keys**: Proper relationships
 
 ### **4. Security Functions**
 - **is_admin**: Role-based access control

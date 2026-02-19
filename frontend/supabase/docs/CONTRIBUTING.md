@@ -238,7 +238,7 @@ Test SQL → Test → Verify → Update Core Migration → Delete Test SQL → F
 ### **Testing Commands**
 ```bash
 # Run comprehensive system test
-node supabase/tests/scripts/test_runner.js console_comprehensive
+node supabase/tests/scripts/test_runner.js comprehensive_system
 
 # Run specific task test
 node supabase/tests/scripts/test_runner.js [task_name]

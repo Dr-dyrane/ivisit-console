@@ -1,14 +1,14 @@
 # Console Sync Guide
 
-This guide outlines the process for synchronizing local schema changes to Supabase console and maintaining consistency between the ivisit-app and ivisit-console workspaces.
+This guide outlines the process for synchronizing local schema changes to the Supabase console and maintaining consistency between environments.
 
 ## 🎯 **Overview**
 
 The console sync process ensures that:
-- Local schema changes are reflected in Supabase console
+- Local schema changes are reflected in the Supabase console
 - API reference documentation stays current
 - Schema snapshots are up to date
-- All environments remain consistent across iVisit ecosystem
+- All environments remain consistent
 
 ## 🔄 **Sync Process**
 
@@ -103,34 +103,21 @@ Contains complete API reference for all available functions:
   "version": "1.0.0",
   "generated": "2026-02-19T12:00:00Z",
   "functions": {
-    "check-user": {
-      "description": "Validate user existence and status",
+    "nearby_hospitals": {
+      "description": "Find nearby hospitals based on location",
       "parameters": {
-        "email": {"type": "string", "required": true},
-        "include_profile": {"type": "boolean", "default": false}
+        "lat": {"type": "number", "required": true},
+        "lng": {"type": "number", "required": true},
+        "radius_km": {"type": "number", "default": 10}
       },
       "returns": {
-        "type": "object",
-        "properties": {
-          "exists": {"type": "boolean"},
-          "profile": {"type": "object"},
-          "status": {"type": "string"}
-        }
-      }
-    },
-    "invite-user": {
-      "description": "Invite new users to platform",
-      "parameters": {
-        "email": {"type": "string", "required": true},
-        "role": {"type": "string", "required": true},
-        "organization_id": {"type": "string", "optional": true}
-      },
-      "returns": {
-        "type": "object",
-        "properties": {
-          "success": {"type": "boolean"},
-          "user_id": {"type": "string"},
-          "invite_token": {"type": "string"}
+        "type": "array",
+        "items": {
+          "id": "uuid",
+          "name": "string",
+          "display_id": "string",
+          "location": "geometry",
+          "distance_km": "number"
         }
       }
     }
@@ -287,27 +274,6 @@ SELECT proname FROM pg_proc WHERE proname = 'function_name';
 - [ ] Schema inconsistencies between environments
 - [ ] Functions not accessible in console
 
-## 🔄 **Cross-Workspace Sync**
-
-### **Sync from ivisit-app to ivisit-console**
-```bash
-# In ivisit-app workspace
-npx supabase db push --include-all
-node supabase/scripts/generate_api_reference.js
-node supabase/scripts/generate_schema_snapshot.js
-
-# Copy to console workspace
-cp supabase/docs/console/api_reference.json ../ivisit-console/frontend/supabase/docs/console/
-cp supabase/docs/console/schema_snapshot.json ../ivisit-console/frontend/supabase/docs/console/
-```
-
-### **Sync from ivisit-console to ivisit-app**
-```bash
-# In ivisit-console workspace
-cp supabase/docs/console/api_reference.json ../ivisit-app/supabase/docs/console/
-cp supabase/docs/console/schema_snapshot.json ../ivisit-app/supabase/docs/console/
-```
-
 ---
 
-**Following this guide ensures consistent synchronization between all iVisit workspaces while maintaining reliable documentation and schema integrity.**
+**Following this guide ensures consistent synchronization between local development and the Supabase console, maintaining reliable documentation and schema integrity.**
