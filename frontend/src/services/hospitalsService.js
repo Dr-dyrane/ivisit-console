@@ -56,7 +56,7 @@ export async function getHospitals(filter = {}) {
       query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
     }
 
-    const { data, error } = await query;
+    const { data, error, count } = await (filter?.count ? query.select('*', { count: 'exact' }) : query);
     if (error) throw error;
 
     // NEW: Enrich with display IDs (ORG-XXXXXX)
@@ -72,7 +72,12 @@ export async function getHospitals(filter = {}) {
       }));
     }
 
-    return enrichedData;
+    const result = enrichedData;
+    if (filter?.count) {
+      return { data: result, count: count || 0 };
+    }
+
+    return result;
   } catch (error) {
     console.error('Error fetching hospitals:', error);
     throw error;

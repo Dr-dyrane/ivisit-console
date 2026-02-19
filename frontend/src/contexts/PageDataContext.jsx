@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
@@ -153,18 +153,18 @@ export const PageDataProvider = ({ children }) => {
   const [activityData, setActivityData] = useState([]);
   const [userData, setUserData] = useState({ users: [], statistics: null });
   const [loading, setLoading] = useState({
-    emergency: false,
-    analytics: false,
-    doctors: false,
-    visits: false,
-    verification: false,
+    emergency: true,
+    analytics: true,
+    doctors: true,
+    visits: true,
+    verification: true,
     hospitals: false,
     ambulances: false,
     users: false,
     supportTickets: false,
     insurance: false,
-    activity: false,
-    wallet: false
+    activity: true,
+    wallet: true
   });
   const [walletData, setWalletData] = useState({ wallet: null, ledger: [], projection: 0 });
   const [hospitalsData, setHospitalsData] = useState({ stats: null, recent: [] });
@@ -562,8 +562,8 @@ export const PageDataProvider = ({ children }) => {
       }
 
       let ledgerQuery = supabase.from('wallet_ledger').select('*');
-      if (!isAdmin() && profile.organization_id) {
-        ledgerQuery = ledgerQuery.eq('organization_id', profile.organization_id);
+      if (wallet?.id) {
+        ledgerQuery = ledgerQuery.eq('wallet_id', wallet.id);
       }
       const { data: ledger } = await ledgerQuery.order('created_at', { ascending: false }).limit(10);
 
@@ -809,8 +809,8 @@ export const PageDataProvider = ({ children }) => {
     return () => supabase.removeChannel(channel);
   }, [user, useMockData, fetchActivityData]);
 
-  // Calculate emergency statistics
-  const getEmergencyStats = () => {
+  // Calculate statistics (Memoized to prevent churn)
+  const emergencyStats = useMemo(() => {
     // If emergencyData has stats property (new structure), use it
     if (emergencyData && emergencyData.stats) {
       return emergencyData.stats;
@@ -844,9 +844,9 @@ export const PageDataProvider = ({ children }) => {
       completed,
       active
     };
-  };
+  }, [emergencyData]);
 
-  const getVerificationStats = () => {
+  const verificationStats = useMemo(() => {
     const safeData = Array.isArray(verificationData) ? verificationData : [];
 
     const high = safeData.filter(req => req.priority === 'high').length;
@@ -862,7 +862,7 @@ export const PageDataProvider = ({ children }) => {
       inProgress,
       completed: safeData.filter(req => req.status === 'completed').length
     };
-  };
+  }, [verificationData]);
 
   // Refresh all data
   const refreshAllData = useCallback(async () => {
@@ -897,7 +897,7 @@ export const PageDataProvider = ({ children }) => {
     fetchWalletData
   ]);
 
-  const getInsuranceStats = () => {
+  const insuranceStats = useMemo(() => {
     const policies = insurancePolicies || [];
     const active = policies.filter(p => p.status === 'active').length;
     const expired = policies.filter(p => p.status === 'expired').length;
@@ -915,12 +915,12 @@ export const PageDataProvider = ({ children }) => {
       verified,
       verificationRate
     };
-  };
+  }, [insurancePolicies]);
 
-  const value = {
+  const value = useMemo(() => ({
     // Data
     emergencyData,
-    emergencyStats: getEmergencyStats(),
+    emergencyStats,
     analyticsData,
     doctorsData,
     doctorsStats: doctorsData.stats,
@@ -934,6 +934,11 @@ export const PageDataProvider = ({ children }) => {
     ambulancesData,
     // Add insurance data directly to value so it's accessible
     insurance: insurancePolicies,
+    insuranceStats,
+    walletData,
+    organizationsData,
+    servicePricing,
+    roomPricing,
 
     // Loading states
     loading,
@@ -951,15 +956,7 @@ export const PageDataProvider = ({ children }) => {
     fetchSupportTicketsData,
     fetchInsurancePolicies,
     fetchActivityData,
-    getEmergencyStats,
-    getInsuranceStats,
-    ambulancesData,
-    organizationsData,
-    servicePricing,
-    roomPricing,
-    walletData,
     fetchWalletData,
-    useMockData,
     refreshAllData,
 
     // Mock data for reference
@@ -972,7 +969,40 @@ export const PageDataProvider = ({ children }) => {
       supportTickets: mockSupportTicketsData,
       insurance: [] // Mock insurance data
     }
-  };
+  }), [
+    emergencyData,
+    emergencyStats,
+    analyticsData,
+    doctorsData,
+    visitsData,
+    verificationData,
+    supportTicketsData,
+    activityData,
+    userData,
+    hospitalsData,
+    ambulancesData,
+    insurancePolicies,
+    insuranceStats,
+    walletData,
+    organizationsData,
+    servicePricing,
+    roomPricing,
+    loading,
+    useMockData,
+    fetchEmergencyData,
+    fetchVerificationData,
+    fetchAnalyticsData,
+    fetchDoctorsData,
+    fetchVisitsData,
+    fetchHospitalsData,
+    fetchAmbulancesData,
+    fetchUsersData,
+    fetchSupportTicketsData,
+    fetchInsurancePolicies,
+    fetchActivityData,
+    fetchWalletData,
+    refreshAllData
+  ]);
 
   return (
     <PageDataContext.Provider value={value}>

@@ -29,17 +29,346 @@ import {
   TrendingUp,
   BarChart3,
   ArrowRight,
-  Mail
+  Mail,
+  ShieldAlert
 } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { SEOHead } from '../common/SEOHead';
 import { getWalletSummary } from '../../services/walletService';
 import { Wallet, TrendingDown as TrendingDownIcon } from 'lucide-react';
+// Remove incorrect StandardMap import
 
 // Responsive Grid Hook or similar logic can be added here if needed, 
 // but CSS Grid with auto-fit/minmax is usually cleaner for "filling spaces".
 // However, for the "water bubble" effect, Framer Motion's layout prop is key.
+
+const MapViewCard = React.memo(() => (
+  <motion.div
+    layout
+    className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.4, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+  >
+    <Link to="/map" className="block h-full group">
+      <div className="h-full min-h-[320px] glass-card p-0 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift border-primary/20 hover:border-primary/40 transition-colors">
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-primary/20 z-10" />
+          <div
+            className="w-full h-full opacity-60 group-hover:opacity-80 transition-opacity duration-500 bg-cover bg-center"
+            style={{ backgroundImage: "url('https://dlwtcmhdzoklveihuhjf.supabase.co/storage/v1/object/public/images/map.png')" }}
+          />
+        </div>
+        <div className="relative z-10 p-8 flex flex-col justify-between h-full">
+          <div className="flex justify-between items-start">
+            <div className="w-12 h-12 bg-primary/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-primary/30 animation-pulse-slow">
+              <MapPin className="h-6 w-6 text-primary" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-3xl font-semibold text-white tracking-tight">Active Map</h3>
+            <p className="text-white/70 font-medium">Real-time fleet tracking</p>
+          </div>
+        </div>
+        <div className="absolute bottom-6 right-6 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+          <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center border border-primary/30 backdrop-blur-md">
+            <ChevronRight className="h-5 w-5 text-primary" />
+          </div>
+        </div>
+      </div>
+    </Link>
+  </motion.div>
+));
+
+const VerificationQueueCard = React.memo(({ verificationStats }) => (
+  <motion.div
+    layout
+    className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-2"
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.4, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
+  >
+    <Link to="/verifications" className="block h-full group">
+      <div className="h-full min-h-[320px] glass-card p-6 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift border-warning/20 hover:border-warning/40 transition-colors">
+        <div className="hover-glow hover-glow-warning" />
+        <div className="absolute inset-0 bg-gradient-to-br from-warning/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="w-12 h-12 bg-warning/20 rounded-2xl flex items-center justify-center border border-warning/30 group-hover:scale-110 transition-transform duration-300">
+          <ShieldAlert className="h-6 w-6 text-warning" />
+        </div>
+        <div className="space-y-1">
+          <div className="flex items-baseline gap-1">
+            <span className="text-5xl font-semibold text-foreground tracking-tight">
+              {verificationStats.critical + verificationStats.high}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Priority Queue</p>
+        </div>
+        <div className="space-y-2">
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Verification Backlog</span>
+            <span className="text-warning font-bold">{verificationStats.pending} pending</span>
+          </div>
+          <div className="h-1.5 w-full bg-warning/10 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${(verificationStats.completed / (verificationStats.total || 1)) * 100}%` }}
+              className="h-full bg-warning"
+            />
+          </div>
+        </div>
+        <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300">
+          <ChevronRight className="h-5 w-5 text-warning" />
+        </div>
+      </div>
+    </Link>
+  </motion.div>
+));
+
+const AnalyticsQuickCard = React.memo(({ totalVisits, completionRate }) => (
+  <motion.div
+    layout
+    className="col-span-1 lg:col-span-1 row-span-2"
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.4, delay: 0.5, ease: [0.4, 0, 0.2, 1] }}
+  >
+    <Link to="/reports" className="block h-full group">
+      <div className="h-full min-h-[320px] glass-card p-6 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift border-info/20 hover:border-info/40 transition-colors">
+        <div className="hover-glow hover-glow-info" />
+        <div className="absolute inset-0 bg-gradient-to-br from-info/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="w-12 h-12 bg-info/20 rounded-2xl flex items-center justify-center border border-info/30 group-hover:scale-110 transition-transform duration-300">
+          <BarChart3 className="h-6 w-6 text-info" />
+        </div>
+        <div className="space-y-1">
+          <h3 className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Platform Stats</h3>
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-semibold text-foreground tracking-tight">{totalVisits}</span>
+            <span className="text-sm text-info font-medium">Monthly Visits</span>
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-success/10 rounded-lg">
+              <TrendingUp className="h-4 w-4 text-success" />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Conversion</p>
+              <p className="text-lg font-semibold text-success">{completionRate}%</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-info/10 rounded-lg">
+              <Users className="h-4 w-4 text-info" />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Patient Satisfaction</p>
+              <p className="text-lg font-semibold text-info">4.8/5.0</p>
+            </div>
+          </div>
+        </div>
+        <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300">
+          <ChevronRight className="h-5 w-5 text-info" />
+        </div>
+      </div>
+    </Link>
+  </motion.div>
+));
+
+// Card Components (Defined outside to prevent unnecessary re-renders/remounts)
+const EmergencyCounterCard = React.memo(({ liveEmergencies, chartData, isPatient }) => (
+  <motion.div
+    layout
+    className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 row-span-2"
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+  >
+    <Link to="/map" className="block h-full group">
+      <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
+        <div className="hover-glow hover-glow-primary" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute top-6 right-6 z-30">
+          <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 transition-transform duration-300 group-hover:scale-110">
+            <Activity className="h-6 w-6 text-primary" />
+          </div>
+        </div>
+        <div className="relative z-10 flex flex-col flex-1">
+          <div className="space-y-2 flex-1">
+            <h2 className="text-7xl lg:text-8xl font-semibold text-foreground leading-none tracking-tight">
+              {liveEmergencies}
+            </h2>
+            <p className="text-xl text-muted-foreground font-medium">
+              {isPatient ? 'Your Active Requests' : 'Active Emergencies'}
+            </p>
+          </div>
+        </div>
+        <div className="relative z-10 h-20 min-w-[100px]">
+          <ResponsiveContainer width="100%" height={80} minWidth={100}>
+            <AreaChart data={chartData}>
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke="hsl(var(--primary))"
+                fill="hsl(var(--primary) / 0.1)"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+          <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center border border-primary/30">
+            <ChevronRight className="h-5 w-5 text-primary" />
+          </div>
+        </div>
+      </div>
+    </Link>
+  </motion.div>
+));
+
+const ResponseTimeCard = React.memo(({ responseTime }) => (
+  <motion.div
+    layout
+    className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
+  >
+    <div className="h-full min-h-[320px] glass-card p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden group hover-lift">
+      <div className="hover-glow hover-glow-success" />
+      <div className="absolute inset-0 bg-gradient-to-br from-success/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className="absolute top-6 right-6 z-30">
+        <div className="w-12 h-12 bg-success/20 rounded-2xl flex items-center justify-center border border-success/30 transition-transform duration-300 group-hover:scale-110">
+          <Clock className="h-6 w-6 text-success" />
+        </div>
+      </div>
+      <div className="relative z-10 flex flex-col flex-1">
+        <div className="space-y-2 flex-1">
+          <h3 className="text-6xl lg:text-7xl font-semibold text-foreground leading-none tracking-tight">
+            {responseTime}<span className="text-2xl text-muted-foreground ml-2">m</span>
+          </h3>
+          <p className="text-xl text-muted-foreground font-medium">Response Time</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 text-success font-medium text-sm relative z-10">
+        <CheckCircle2 className="h-5 w-5" />
+        <span>23% faster today</span>
+      </div>
+      <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+        <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center border border-success/30">
+          <ChevronRight className="h-5 w-5 text-success" />
+        </div>
+      </div>
+    </div>
+  </motion.div>
+));
+
+const RequestsCard = React.memo(({ requests, isPatient }) => (
+  <motion.div
+    layout
+    className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.4, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+  >
+    <div className="h-full min-h-[320px] glass-card p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden group hover-lift">
+      <div className="hover-glow hover-glow-info" />
+      <div className="absolute inset-0 bg-gradient-to-br from-info/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className="absolute top-6 right-6 z-30">
+        <div className="w-12 h-12 bg-info/20 rounded-2xl flex items-center justify-center border border-info/30 transition-transform duration-300 group-hover:scale-110">
+          <Activity className="h-6 w-6 text-info" />
+        </div>
+      </div>
+      <div className="relative z-10 flex flex-col flex-1">
+        <div className="space-y-2 flex-1">
+          <h3 className="text-6xl lg:text-7xl font-semibold text-foreground leading-none tracking-tight">
+            {requests}
+          </h3>
+          <p className="text-xl text-muted-foreground font-medium">
+            {isPatient ? "Your Requests" : "Today's Requests"}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 text-info font-medium text-sm relative z-10">
+        <TrendingUp className="h-5 w-5" />
+        <span>+8% vs yesterday</span>
+      </div>
+      <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
+        <div className="w-10 h-10 bg-info/20 rounded-full flex items-center justify-center border border-info/30">
+          <ChevronRight className="h-5 w-5 text-info" />
+        </div>
+      </div>
+    </div>
+  </motion.div>
+));
+
+const EmergencyCardSkeleton = React.memo(() => (
+  <motion.div
+    layout
+    className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 row-span-2"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+  >
+    <div className="h-full min-h-[320px] glass-card-premium p-8 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
+      <div className="relative z-10 flex flex-col flex-1">
+        <div className="space-y-2 flex-1">
+          <div className="h-16 w-32 bg-muted/50 rounded-lg shimmer" />
+          <div className="h-6 w-48 bg-muted/30 rounded-lg shimmer" />
+        </div>
+      </div>
+      <div className="relative z-10 h-20">
+        <div className="h-full w-full bg-muted/20 rounded-lg shimmer" />
+      </div>
+    </div>
+  </motion.div>
+));
+
+const MetricCardSkeleton = React.memo(() => (
+  <motion.div
+    layout
+    className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+  >
+    <div className="h-full min-h-[320px] glass-card p-8 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-muted/10 via-transparent to-transparent" />
+      <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+        <div className="flex justify-between items-start">
+          <div className="w-12 h-12 bg-muted/30 rounded-2xl shimmer" />
+          <div className="w-16 h-6 bg-muted/20 rounded-lg shimmer" />
+        </div>
+        <div className="space-y-2">
+          <div className="h-8 w-24 bg-muted/40 rounded-lg shimmer" />
+          <div className="h-4 w-32 bg-muted/20 rounded-lg shimmer" />
+        </div>
+      </div>
+    </div>
+  </motion.div>
+));
+
+const QuickActionCardSkeleton = React.memo(() => (
+  <motion.div
+    layout
+    className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+  >
+    <div className="h-full min-h-[140px] glass-card p-6 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-muted/5 via-transparent to-transparent" />
+      <div className="relative z-10">
+        <div className="flex justify-between items-start mb-4">
+          <div className="w-12 h-12 bg-muted/30 rounded-2xl shimmer" />
+          <div className="w-8 h-8 bg-muted/20 rounded-lg shimmer" />
+        </div>
+        <div className="space-y-2">
+          <div className="h-6 w-20 bg-muted/40 rounded-lg shimmer" />
+          <div className="h-4 w-16 bg-muted/20 rounded-lg shimmer" />
+        </div>
+      </div>
+    </div>
+  </motion.div>
+));
 
 export const BentoHome = () => {
   const navigate = useNavigate();
@@ -107,9 +436,18 @@ export const BentoHome = () => {
       totalUsers: userData?.statistics?.totalUsers || 0, // Fixed: Use actual user count from profiles table
       completionRate: analyticsData?.completionRate || 94,
       availableAmbulances: analyticsData?.availableAmbulances || 12,
-      pendingVerifications: verificationData?.pending || 15
+      pendingVerifications: verificationData?.pending || 15,
+      totalVisits: visitsStats?.total || 0, // Added for AnalyticsQuickCard
     };
-  }, [emergencyData, emergencyStats, analyticsData, doctorsStats, verificationData, userData]);
+  }, [emergencyData, emergencyStats, analyticsData, doctorsStats, verificationData, userData, visitsStats]);
+
+  const verificationStats = useMemo(() => ({
+    pending: appStats.pendingVerifications,
+    critical: verificationData?.critical || 0,
+    high: verificationData?.high || 0,
+    completed: verificationData?.completed || 0,
+    total: verificationData?.total || 1,
+  }), [appStats.pendingVerifications, verificationData]);
 
   // Debug: Log real data to console
   useEffect(() => {
@@ -126,74 +464,6 @@ export const BentoHome = () => {
   // Transform activity data for display
   const recentActivities = transformActivityData(activityData || []);
 
-  // Individual card skeletons for better UX
-  const EmergencyCardSkeleton = () => (
-    <motion.div
-      layout
-      className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 row-span-2"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-    >
-      <div className="h-full min-h-[320px] glass-card-premium p-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
-        <div className="relative z-10 flex flex-col flex-1">
-          <div className="space-y-2 flex-1">
-            <div className="h-16 w-32 bg-muted/50 rounded-lg shimmer" />
-            <div className="h-6 w-48 bg-muted/30 rounded-lg shimmer" />
-          </div>
-        </div>
-        <div className="relative z-10 h-20">
-          <div className="h-full w-full bg-muted/20 rounded-lg shimmer" />
-        </div>
-      </div>
-    </motion.div>
-  );
-
-  const MetricCardSkeleton = () => (
-    <motion.div
-      layout
-      className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-    >
-      <div className="h-full min-h-[320px] glass-card p-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-muted/10 via-transparent to-transparent" />
-        <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-          <div className="flex justify-between items-start">
-            <div className="w-12 h-12 bg-muted/30 rounded-2xl shimmer" />
-            <div className="w-16 h-6 bg-muted/20 rounded-lg shimmer" />
-          </div>
-          <div className="space-y-2">
-            <div className="h-8 w-24 bg-muted/40 rounded-lg shimmer" />
-            <div className="h-4 w-32 bg-muted/20 rounded-lg shimmer" />
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-
-  const QuickActionCardSkeleton = () => (
-    <motion.div
-      layout
-      className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-    >
-      <div className="h-full min-h-[140px] glass-card p-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-muted/5 via-transparent to-transparent" />
-        <div className="relative z-10">
-          <div className="flex justify-between items-start mb-4">
-            <div className="w-12 h-12 bg-muted/30 rounded-2xl shimmer" />
-            <div className="w-8 h-8 bg-muted/20 rounded-lg shimmer" />
-          </div>
-          <div className="space-y-2">
-            <div className="h-6 w-20 bg-muted/40 rounded-lg shimmer" />
-            <div className="h-4 w-16 bg-muted/20 rounded-lg shimmer" />
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
 
   const headerActions = React.useMemo(() => (
     <Button
@@ -447,288 +717,35 @@ export const BentoHome = () => {
 
           {/* Live Emergency Counter - Show based on role */}
           {(!isPatient() && !isViewer()) && (
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 row-span-2"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <Link to="/map" className="block h-full group">
-                <div className="h-full min-h-[320px] glass-card-premium p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift">
-                  {/* Shared RGB Hive Effect */}
-                  <div className="hover-glow hover-glow-primary" />
-
-                  {/* Brand gradient background */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                  {/* Brand icon - fixed positioning */}
-                  <div className="absolute top-6 right-6 z-30">
-                    <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 transition-transform duration-300 group-hover:scale-110">
-                      <Activity className="h-6 w-6 text-primary" />
-                    </div>
-                  </div>
-
-                  <div className="relative z-10 flex flex-col flex-1">
-                    <div className="space-y-2 flex-1">
-                      <h2 className="text-7xl lg:text-8xl font-semibold text-foreground leading-none tracking-tight">
-                        {appStats.liveEmergencies}
-                      </h2>
-                      <p className="text-xl text-muted-foreground font-medium">
-                        {isPatient() ? 'Your Active Requests' : 'Active Emergencies'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Brand-colored chart */}
-                  <div className="relative z-10 h-20 min-w-[100px]">
-                    <ResponsiveContainer width="100%" height={80} minWidth={100}>
-                      <AreaChart data={chartData}>
-                        <Area
-                          type="monotone"
-                          dataKey="value"
-                          stroke="hsl(var(--primary))"
-                          fill="hsl(var(--primary) / 0.1)"
-                          strokeWidth={2}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Brand chevron - fixed positioning no overlap */}
-                  <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                    <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center border border-primary/30">
-                      <ChevronRight className="h-5 w-5 text-primary" />
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </motion.div>
+            <EmergencyCounterCard
+              liveEmergencies={appStats.liveEmergencies}
+              chartData={chartData}
+              isPatient={isPatient()}
+            />
           )}
 
           {/* Response Time - Admin/Org Admin Only */}
           {(isAdmin() || isOrgAdmin()) && (
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <div className="h-full min-h-[320px] glass-card p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden group hover-lift">
-                {/* Shared RGB Hive Effect */}
-                <div className="hover-glow hover-glow-success" />
-
-                {/* Success gradient background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-success/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                {/* Success icon - fixed positioning */}
-                <div className="absolute top-6 right-6 z-30">
-                  <div className="w-12 h-12 bg-success/20 rounded-2xl flex items-center justify-center border border-success/30 transition-transform duration-300 group-hover:scale-110">
-                    <Clock className="h-6 w-6 text-success" />
-                  </div>
-                </div>
-
-                <div className="relative z-10 flex flex-col flex-1">
-                  <div className="space-y-2 flex-1">
-                    <h3 className="text-6xl lg:text-7xl font-semibold text-foreground leading-none tracking-tight">
-                      {appStats.responseTime}<span className="text-2xl text-muted-foreground ml-2">m</span>
-                    </h3>
-                    <p className="text-xl text-muted-foreground font-medium">Response Time</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 text-success font-medium text-sm relative z-10">
-                  <CheckCircle2 className="h-5 w-5" />
-                  <span>23% faster today</span>
-                </div>
-
-                {/* Success chevron - fixed positioning no overlap */}
-                <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center border border-success/30">
-                    <ChevronRight className="h-5 w-5 text-success" />
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+            <ResponseTimeCard responseTime={appStats.responseTime} />
           )}
 
           {/* Today's Requests - Provider+ Only */}
           {(!isPatient() && !isViewer() && !isSponsor()) && (
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-2"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <div className="h-full min-h-[320px] glass-card p-8 flex flex-col justify-between cursor-pointer relative overflow-hidden group hover-lift">
-                {/* Shared RGB Hive Effect */}
-                <div className="hover-glow hover-glow-info" />
-
-                {/* Info gradient background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-info/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                {/* Info icon - fixed positioning */}
-                <div className="absolute top-6 right-6 z-30">
-                  <div className="w-12 h-12 bg-info/20 rounded-2xl flex items-center justify-center border border-info/30 transition-transform duration-300 group-hover:scale-110">
-                    <Activity className="h-6 w-6 text-info" />
-                  </div>
-                </div>
-
-                <div className="relative z-10 flex flex-col flex-1">
-                  <div className="space-y-2 flex-1">
-                    <h3 className="text-6xl lg:text-7xl font-semibold text-foreground leading-none tracking-tight">
-                      {appStats.todayRequests}
-                    </h3>
-                    <p className="text-xl text-muted-foreground font-medium">
-                      {isPatient() ? "Your Requests" : "Today's Requests"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 text-info font-medium text-sm relative z-10">
-                  <TrendingUp className="h-5 w-5" />
-                  <span>+8% vs yesterday</span>
-                </div>
-
-                {/* Info chevron - fixed positioning no overlap */}
-                <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <div className="w-10 h-10 bg-info/20 rounded-full flex items-center justify-center border border-info/30">
-                    <ChevronRight className="h-5 w-5 text-info" />
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+            <RequestsCard requests={appStats.todayRequests} isPatient={isPatient()} />
           )}
 
           {/* Map View - Secondary Navigation Card */}
-          <motion.div
-            layout
-            className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
-          >
-            <Link to="/map" className="block h-full group">
-              <div className="h-full min-h-[160px] glass-card p-8 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between">
-                {/* Shared RGB Hive Effect */}
-                <div className="hover-glow hover-glow-secondary" />
+          {(isAdmin() || isOrgAdmin() || isProvider()) && <MapViewCard />}
 
-                {/* Secondary gradient background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          {/* Verification Queue - Admin Only */}
+          {isAdmin() && <VerificationQueueCard verificationStats={verificationStats} />}
 
-                {/* Secondary icon - fixed positioning */}
-                <div className="absolute top-6 right-6 z-30">
-                  <div className="w-12 h-12 bg-secondary/20 rounded-2xl flex items-center justify-center border border-secondary/30 transition-transform duration-300 group-hover:scale-110">
-                    <MapPin className="h-6 w-6 text-secondary" />
-                  </div>
-                </div>
-
-                <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-                  <div className="flex justify-between items-start">
-                    <div className="w-12 h-12 bg-secondary/20 rounded-2xl flex items-center justify-center group-hover:opacity-0 transition-opacity">
-                      <MapPin className="h-6 w-6 text-secondary" />
-                    </div>
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <ChevronRight className="h-6 w-6 text-secondary" />
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-2xl tracking-tight text-foreground">Live Map</h4>
-                    <p className="text-lg text-muted-foreground font-medium">Real-time tracking</p>
-                  </div>
-                </div>
-
-                {/* Secondary chevron - fixed positioning no overlap */}
-                <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <div className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center border border-secondary/30">
-                    <ChevronRight className="h-5 w-5 text-secondary" />
-                  </div>
-                </div>
-              </div>
-            </Link>
-          </motion.div>
-
-          {/* Verification Queue (Medium) - Admin Only */}
-          {isAdmin() && (
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: 0.24 }}
-            >
-              <Link to="/verification" className="block h-full group">
-                <Card
-                  className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between"
-                >
-                  {/* Apple hover glow effect */}
-                  <div className="hover-glow hover-glow-warning" />
-                  <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-                    <div className="flex justify-between items-start">
-                      <div className="w-12 h-12 squircle bg-primary/10 flex items-center justify-center">
-                        <FileCheck className="h-6 w-6 text-warning" />
-                      </div>
-                      <Badge className="squircle-sm bg-warning/10 text-warning font-bold editorial-subtitle px-2 py-0.5">{appStats.pendingVerifications} PENDING</Badge>
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xl tracking-tight">Verification</h4>
-                      <p className="text-sm text-muted-foreground font-medium">Review queue</p>
-                      <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                        <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                          <ChevronRight className="h-5 w-5 text-warning ml-0.5" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </Link>
-            </motion.div>
-          )}
-
-          {/* Analytics (Medium) - Admin/Org Admin/Sponsor Only */}
+          {/* Analytics Overview - Show based on role */}
           {(isAdmin() || isOrgAdmin() || isSponsor()) && (
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: 0.20 }}
-            >
-              <Link to="/analytics" className="block h-full group">
-                <Card
-                  className="h-full min-h-[160px] squircle-3xl glass shadow-premium p-6 hover-lift cursor-pointer relative overflow-hidden flex flex-col justify-between"
-                >
-                  {/* Dot Pattern for Data */}
-                  <div className="absolute inset-0 opacity-10"
-                    style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 0)', backgroundSize: '16px 16px', color: 'hsl(var(--success))' }}>
-                  </div>
-
-                  {/* Apple hover glow effect */}
-                  <div className="hover-glow hover-glow-success" />
-                  <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-                    <div className="flex justify-between items-start">
-                      <div className="w-12 h-12 squircle bg-primary/10 flex items-center justify-center">
-                        <TrendingUp className="h-6 w-6 text-success" />
-                      </div>
-                    </div>
-                    <div>
-                      <p className="editorial-subtitle text-success mb-1">INSIGHTS</p>
-                      <h4 className="font-bold text-xl tracking-tight">Analytics</h4>
-                      <p className="text-sm text-muted-foreground font-medium">
-                        {isSponsor() ? 'Impact metrics' : isAdmin() ? 'System analytics' : 'Org metrics'}
-                      </p>
-                      <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                        <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                          <ChevronRight className="h-5 w-5 text-success ml-0.5" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </Link>
-            </motion.div>
+            <AnalyticsQuickCard
+              totalVisits={appStats.totalVisits}
+              completionRate={appStats.completionRate}
+            />
           )}
 
           {/* Patient-Specific Cards */}

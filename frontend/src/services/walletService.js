@@ -37,8 +37,15 @@ export const getWalletSummary = async (profile, isAdmin) => {
             .select('amount, created_at')
             .eq('transaction_type', 'credit');
 
-        if (!isAdmin) {
-            query = query.eq('organization_id', profile.organization_id);
+        if (isAdmin) {
+            // Platform Ledger: Filter by the platform's singular wallet_id
+            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('id').single();
+            if (mainWallet) query = query.eq('wallet_id', mainWallet.id);
+        } else {
+            // Org Ledger: Filter by the organization's specific wallet_id
+            // Note: wallet_ledger does NOT contain organization_id directly.
+            const { data: orgWallet } = await supabase.from('organization_wallets').select('id').eq('organization_id', profile.organization_id).single();
+            if (orgWallet) query = query.eq('wallet_id', orgWallet.id);
         }
 
         const { data: ledgerData } = await query.gte('created_at', yesterday.toISOString());
@@ -83,8 +90,12 @@ export const getFinanceAnalytics = async (profile, isAdmin, days = 30) => {
             .select('amount, created_at, transaction_type')
             .gte('created_at', startDate.toISOString());
 
-        if (!isAdmin) {
-            query = query.eq('organization_id', profile.organization_id);
+        if (isAdmin) {
+            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('id').single();
+            if (mainWallet) query = query.eq('wallet_id', mainWallet.id);
+        } else {
+            const { data: orgWallet } = await supabase.from('organization_wallets').select('id').eq('organization_id', profile.organization_id).single();
+            if (orgWallet) query = query.eq('wallet_id', orgWallet.id);
         }
 
         const { data, error } = await query.order('created_at', { ascending: true });
@@ -143,7 +154,13 @@ export const getProjectedRevenue = async (organizationId = null) => {
             .gte('created_at', sevenDaysAgo.toISOString());
 
         if (organizationId) {
-            query = query.eq('organization_id', organizationId);
+            // Multi-tenant isolation: wallet_ledger is linked via wallet_id
+            const { data: orgWallet } = await supabase.from('organization_wallets').select('id').eq('organization_id', organizationId).single();
+            if (orgWallet) query = query.eq('wallet_id', orgWallet.id);
+        } else {
+            // Platform-wide metrics
+            const { data: mainWallet } = await supabase.from('ivisit_main_wallet').select('id').single();
+            if (mainWallet) query = query.eq('wallet_id', mainWallet.id);
         }
 
         const { data, error } = await query;

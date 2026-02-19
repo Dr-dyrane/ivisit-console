@@ -88,17 +88,11 @@ export const WalletManagementPage = () => {
             setProjection(proj);
 
             // 4. Fetch Ledger History (Credits & Debits)
-            let query = supabase.from('wallet_ledger').select(`
-                *,
-                organizations (
-                    name
-                )
-            `);
-
-            if (isAdmin()) {
-                query = query.eq('wallet_type', 'main');
-            } else if (isOrgAdmin()) {
-                query = query.eq('organization_id', profile.organization_id);
+            // Note: wallet_ledger is linked via wallet_id, not organization_id directly.
+            // This ensures multi-tenant isolation and platform-wide ledger support.
+            let query = supabase.from('wallet_ledger').select('*');
+            if (walletData?.id) {
+                query = query.eq('wallet_id', walletData.id);
             }
 
             const { data: ledgerData, error } = await query.order('created_at', { ascending: false }).limit(50);
@@ -492,14 +486,10 @@ export const WalletManagementPage = () => {
                                             <td className="px-6 py-6">
                                                 <div>
                                                     <p className="text-sm font-bold tracking-tight text-foreground">
-                                                        {activeTab === 'ledger' ? (
-                                                            isAdmin() && item.organizations?.name
-                                                                ? <span className='flex flex-col gap-0.5'><span>{item.description}</span><span className='text-[10px] text-muted-foreground uppercase tracking-widest font-normal'>from {item.organizations.name}</span></span>
-                                                                : item.description
-                                                        ) : `Payment for ${item.emergency_request_id || 'Service'}`}
+                                                        {item.description}
                                                     </p>
                                                     <p className="text-[10px] text-muted-foreground uppercase tracking-tighter font-mono">
-                                                        {activeTab === 'ledger' ? `${item.reference_type} ref: ${item.reference_id?.slice(0, 8) || 'N/A'}` : `ID: ${item.id.slice(0, 8)}`}
+                                                        {activeTab === 'ledger' ? `Ref: ${item.reference_id?.slice(0, 8) || 'N/A'}` : `ID: ${item.id.slice(0, 8)}`}
                                                     </p>
                                                 </div>
                                             </td>

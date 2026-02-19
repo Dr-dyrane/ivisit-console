@@ -83,15 +83,13 @@ export const HospitalsPage = () => {
       }
 
       // Otherwise, fetch all hospitals using the existing service
-      const data = await getHospitals({
+      const { data, count } = await getHospitals({
         limit: pagination.pageSize,
-        offset: pagination.paginationRange.start
+        offset: pagination.paginationRange.start,
+        count: true
       });
 
-      // Get total count for pagination
-      const totalCount = await getHospitals();
-      pagination.setTotalCount(totalCount.length);
-
+      pagination.setTotalCount(count);
       setHospitals(data || []);
     } catch (error) {
       console.error('Error fetching hospitals:', error);
@@ -99,7 +97,7 @@ export const HospitalsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination, location.search]);
+  }, [pagination.pageSize, pagination.paginationRange.start, location.search]);
 
   useEffect(() => {
     fetchHospitals();
@@ -115,7 +113,7 @@ export const HospitalsPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchHospitals, pagination.currentPage, location.search]);
+  }, [fetchHospitals, pagination.currentPage, pagination.pageSize, location.search]);
 
   const handleCreate = useCallback(() => {
     setSelectedHospital(null);
