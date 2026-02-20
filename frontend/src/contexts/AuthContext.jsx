@@ -39,7 +39,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
 
     try {
       console.log(`[AuthContext] Fetching profile for ${email}...`);
-      
+
       const profilePromise = supabase
         .from('profiles')
         .select('*')
@@ -98,7 +98,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
             .select('*')
             .eq('id', userId)
             .single();
-            
+
           if (finalProfile) {
             setProfile(finalProfile);
           } else {
@@ -155,9 +155,9 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (!mounted) return;
-        
+
         clearTimeout(timeoutId);
-        
+
         if (error) throw error;
 
         if (session?.user) {
@@ -185,9 +185,9 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
-      
+
       console.log('[AuthContext] Auth State Change:', event);
-      
+
       setUser(session?.user ?? null);
 
       if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || (event === 'INITIAL_SESSION' && session?.user)) {
@@ -272,6 +272,9 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
 
   // Check if user is mid-onboarding (has pending status)
   const isOnboarding = useCallback(() => profile?.onboarding_status === 'pending', [profile]);
+
+  // Check if user has skipped onboarding
+  const isSkippedOnboarding = useCallback(() => profile?.onboarding_status === 'skipped', [profile]);
 
   /**
    * Universal Permission Checker
@@ -376,6 +379,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     isViewer,
     isPatient,
     isOnboarding,
+    isSkippedOnboarding,
     can,
   }), [
     user,
@@ -396,6 +400,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     isViewer,
     isPatient,
     isOnboarding,
+    isSkippedOnboarding,
     can
   ]);
 

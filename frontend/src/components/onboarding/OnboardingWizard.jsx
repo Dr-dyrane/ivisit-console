@@ -278,6 +278,7 @@ const NavigationButtons = () => {
         isSubmitting,
         goPrev,
         goNext,
+        skipOnboarding,
         createAdminAccount,
         submitOnboarding,
         currentStepConfig,
@@ -303,15 +304,27 @@ const NavigationButtons = () => {
 
     return (
         <div className="flex justify-between items-center pt-6 border-t border-border/30">
-            <Button
-                variant="ghost"
-                onClick={goPrev}
-                disabled={isSubmitting}
-                className="gap-2"
-            >
-                <ChevronLeft className="w-4 h-4" />
-                Back
-            </Button>
+            <div className="flex items-center gap-4">
+                <Button
+                    variant="ghost"
+                    onClick={goPrev}
+                    disabled={isSubmitting}
+                    className="gap-2"
+                >
+                    <ChevronLeft className="w-4 h-4" />
+                    Back
+                </Button>
+
+                {/* Skip option for users with identity (Step 3+) */}
+                {currentStepConfig?.id !== 'type' && currentStepConfig?.id !== 'account' && (
+                    <button
+                        onClick={skipOnboarding}
+                        className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
+                    >
+                        Skip for now
+                    </button>
+                )}
+            </div>
 
             <Button
                 onClick={handleContinue}

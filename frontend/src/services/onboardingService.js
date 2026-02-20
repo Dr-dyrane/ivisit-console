@@ -304,6 +304,33 @@ export const onboardingService = {
     },
 
     /**
+     * Skip onboarding - allows user into dashboard but tracks incomplete state
+     * User must be authenticated and have onboarding_status = 'pending'
+     */
+    skipOnboarding: async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) throw new Error('User not authenticated');
+
+            const { data, error } = await supabase
+                .from('profiles')
+                .update({
+                    onboarding_status: 'skipped',
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', session.user.id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return { success: true, profile: data };
+        } catch (error) {
+            console.error('Failed to skip onboarding:', error);
+            throw error;
+        }
+    },
+
+    /**
      * Check if email is already registered
      */
     checkEmailAvailability: async (email) => {

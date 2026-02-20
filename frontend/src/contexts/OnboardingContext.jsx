@@ -358,6 +358,36 @@ export const OnboardingProvider = ({ children }) => {
     }, [formData, navigate]);
 
     /**
+     * Skip onboarding and go to dashboard
+     */
+    const skipOnboarding = useCallback(async () => {
+        setIsSubmitting(true);
+        try {
+            const { success, profile } = await onboardingService.skipOnboarding();
+            if (success) {
+                // Clear persisted data
+                try {
+                    sessionStorage.removeItem(STORAGE_KEY);
+                    sessionStorage.removeItem(STEP_KEY);
+                } catch { }
+
+                toast.success('Onboarding deferred. You can complete this later from your dashboard.');
+
+                // Navigate to dashboard
+                navigate('/', { replace: true });
+
+                // Note: AuthContext will pick up the 'skipped' status on next profile refresh or we can force it
+                window.location.reload(); // Quickest way to refresh all contexts
+            }
+        } catch (error) {
+            console.error('Skip onboarding failed:', error);
+            toast.error('Failed to skip onboarding.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [navigate]);
+
+    /**
      * Reset the entire onboarding state
      */
     const resetOnboarding = useCallback(() => {
@@ -456,6 +486,7 @@ export const OnboardingProvider = ({ children }) => {
         goToStep,
         createAdminAccount,
         submitOnboarding,
+        skipOnboarding,
         resetOnboarding,
         selectHospital,
     }), [
@@ -477,6 +508,7 @@ export const OnboardingProvider = ({ children }) => {
         goToStep,
         createAdminAccount,
         submitOnboarding,
+        skipOnboarding,
         resetOnboarding,
         selectHospital,
     ]);

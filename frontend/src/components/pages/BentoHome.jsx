@@ -125,6 +125,51 @@ const VerificationQueueCard = React.memo(({ verificationStats }) => (
   </motion.div>
 ));
 
+const IncompleteOnboardingCard = React.memo(({ onComplete }) => (
+  <motion.div
+    layout
+    className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 row-span-1"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+  >
+    <div className="h-full min-h-[160px] glass-card-premium p-6 flex items-center justify-between cursor-pointer relative overflow-hidden group hover-lift border-primary/30">
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-transparent opacity-50" />
+
+      <div className="relative z-10 flex items-center gap-6">
+        <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 shadow-glow-primary">
+          <motion.div
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <ShieldAlert className="h-8 w-8 text-primary" />
+          </motion.div>
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-foreground">Complete Your Profile</h3>
+          <p className="text-sm text-muted-foreground max-w-md">
+            Your account is active, but your organization details are missing.
+            Complete the setup to unlock full features and team management.
+          </p>
+        </div>
+      </div>
+
+      <div className="relative z-10 flex flex-col items-end gap-2">
+        <Link to="/onboarding">
+          <Button size="sm" className="gap-2 shadow-glow">
+            Finish Setup
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </Link>
+        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Identity Confirmed</span>
+      </div>
+
+      {/* Decorative pulse */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16" />
+    </div>
+  </motion.div>
+));
+
 const AnalyticsQuickCard = React.memo(({ totalVisits, completionRate }) => (
   <motion.div
     layout
@@ -372,7 +417,7 @@ const QuickActionCardSkeleton = React.memo(() => (
 
 export const BentoHome = () => {
   const navigate = useNavigate();
-  const { user, profile, hasMinRole, isAdmin, isProvider, isPatient, isViewer, isSponsor, isOrgAdmin } = useAuth();
+  const { user, profile, hasMinRole, isAdmin, isProvider, isPatient, isViewer, isSponsor, isOrgAdmin, isSkippedOnboarding } = useAuth();
   const {
     emergencyData,
     emergencyStats,
@@ -714,6 +759,8 @@ export const BentoHome = () => {
           layout
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense rounded-3xl"
         >
+          {/* Finish Onboarding Reminder - Only for those who skipped */}
+          {isSkippedOnboarding() && <IncompleteOnboardingCard />}
 
           {/* Live Emergency Counter - Show based on role */}
           {(!isPatient() && !isViewer()) && (

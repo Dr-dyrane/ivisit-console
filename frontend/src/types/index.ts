@@ -11,6 +11,7 @@ export type DatabaseHospital = Database['public']['Tables']['hospitals']['Row'];
 
 export type UserRole = 'patient' | 'provider' | 'admin';
 export type ProviderType = 'hospital' | 'ambulance_service' | 'doctor' | 'driver' | 'paramedic';
+export type OnboardingStatus = 'pending' | 'complete' | 'skipped';
 
 export interface Profile {
   id: string;
@@ -23,6 +24,7 @@ export interface Profile {
   image_uri?: string;
   role?: UserRole;
   provider_type?: ProviderType;
+  onboarding_status?: OnboardingStatus;
   bvn_verified?: boolean;
   created_at: string;
   updated_at: string;
