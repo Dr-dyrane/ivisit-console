@@ -16,6 +16,15 @@ const TABLE_NAME = 'insurance_policies';
 export async function getInsurancePolicies(filter = {}) {
   try {
     const user = await getCurrentUser();
+    
+    // PULLBACK NOTE: Early return if user not authenticated
+    // OLD: Proceed with query even if user is undefined
+    // NEW: Return empty array if no user to prevent UUID errors
+    if (!user || !user.id) {
+      console.log('User not authenticated, returning empty insurance policies');
+      return [];
+    }
+
     let query = supabase.from(TABLE_NAME).select('*');
 
     // 1. Apply RBAC Scoping
@@ -29,7 +38,7 @@ export async function getInsurancePolicies(filter = {}) {
       return [];
     } else {
       // Patients see only their own policies
-      query = query.eq('user_id', user?.id);
+      query = query.eq('user_id', user.id);
     }
 
     // 2. Apply Custom Filters

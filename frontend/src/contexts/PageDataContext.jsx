@@ -627,6 +627,14 @@ export const PageDataProvider = ({ children }) => {
   // Initialize all data on mount - only when user is authenticated
   useEffect(() => {
     if (!user) return;
+    
+    // PULLBACK NOTE: Added user.id check to prevent undefined UUID errors
+    // OLD: Fetch data as soon as user is available
+    // NEW: Only fetch when user.id is available (after full auth)
+    if (!user.id) {
+      console.log('User ID not available yet, skipping initial data fetch');
+      return;
+    }
 
     fetchEmergencyData();
     fetchVerificationData();

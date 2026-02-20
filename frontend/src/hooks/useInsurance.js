@@ -9,15 +9,26 @@ import {
   getInsuranceAnalytics,
   subscribeToInsurancePolicies
 } from '../services/insuranceService';
+import { subscribeToInsurancePolicies as subscribe } from '../services/insurancePoliciesService';
+import { useAuth } from '../contexts/AuthContext';
 
 export const useInsurance = () => {
+  const { user, profile } = useAuth();
   const [insurancePolicies, setInsurancePolicies] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [analytics, setAnalytics] = useState(null);
 
   // Fetch insurance policies
   const fetchInsurancePolicies = useCallback(async (filter) => {
+    // PULLBACK NOTE: Only fetch if user is authenticated
+    // OLD: Fetch on mount regardless of auth state
+    // NEW: Only fetch when user is available
+    if (!user || !user.id) {
+      console.log('User not authenticated, skipping insurance policies fetch');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -29,7 +40,7 @@ export const useInsurance = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   // Create insurance policy
   const createPolicy = useCallback(async (policyData) => {
@@ -120,13 +131,20 @@ export const useInsurance = () => {
 
   // Set up real-time subscription
   useEffect(() => {
+    // PULLBACK NOTE: Only subscribe if user is authenticated
+    // OLD: Subscribe regardless of auth state
+    // NEW: Only subscribe when user is available
+    if (!user || !user.id) {
+      return;
+    }
+
     const unsubscribe = subscribeToInsurancePolicies((payload) => {
       console.log('Insurance policy change:', payload);
       fetchInsurancePolicies(); // Refetch on any change
     });
 
     return unsubscribe;
-  }, [fetchInsurancePolicies]);
+  }, [fetchInsurancePolicies, user]);
 
   return {
     insurancePolicies,
