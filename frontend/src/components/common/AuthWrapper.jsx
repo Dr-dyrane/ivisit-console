@@ -175,7 +175,40 @@ export const AuthWrapper = ({ children }) => {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          await fetchProfile(session.user.id, session.user.email);
+          // PULLBACK NOTE: Enhanced profile fetching with Google OAuth support
+          // OLD: Only fetch existing profile
+          // NEW: Create profile if doesn't exist (for new Google OAuth users)
+          try {
+            await fetchProfile(session.user.id, session.user.email);
+          } catch (error) {
+            // If profile doesn't exist, create one for new OAuth users
+            if (error.code === 'PGRST116') {
+              console.log('Profile not found, creating new profile for OAuth user');
+              const newProfile = {
+                id: session.user.id,
+                email: session.user.email,
+                username: session.user.email?.split('@')[0] || 'User',
+                role: 'viewer', // Default role for new users
+                created_at: new Date().toISOString(),
+              };
+
+              const { data: createdProfile, error: createError } = await supabase
+                .from('profiles')
+                .insert([newProfile])
+                .select()
+                .single();
+
+              if (createError) {
+                console.error('Error creating profile:', createError);
+                setProfile(newProfile); // Use local profile as fallback
+              } else {
+                setProfile(createdProfile);
+                toast.success('Account created successfully');
+              }
+            } else {
+              throw error;
+            }
+          }
         } else {
           setProfile(null);
         }
