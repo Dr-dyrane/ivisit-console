@@ -449,17 +449,17 @@ export const BentoHome = () => {
     total: verificationData?.total || 1,
   }), [appStats.pendingVerifications, verificationData]);
 
-  // Debug: Log real data to console
-  useEffect(() => {
-    console.log('🔍 Dashboard Real Data Check:', {
-      emergencyStats,
-      analyticsData,
-      doctorsStats,
-      visitsStats,
-      verificationData,
-      appStats
-    });
-  }, [emergencyStats, analyticsData, doctorsStats, visitsStats, verificationData, appStats]);
+  // Debug: Log real data to console (commented out for performance)
+  // useEffect(() => {
+  //   console.log('🔍 Dashboard Real Data Check:', {
+  //     emergencyStats,
+  //     analyticsData,
+  //     doctorsStats,
+  //     visitsStats,
+  //     verificationData,
+  //     appStats
+  //   });
+  // }, [emergencyStats, analyticsData, doctorsStats, visitsStats, verificationData, appStats]);
 
   // Transform activity data for display
   const recentActivities = transformActivityData(activityData || []);

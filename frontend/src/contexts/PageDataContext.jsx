@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
@@ -143,6 +143,14 @@ export const usePageData = () => {
 
 export const PageDataProvider = ({ children }) => {
   const { user, profile, isAdmin } = useAuth();
+  const [pageLoading, setPageLoading] = useState(true);
+  const [useMockData, setUseMockData] = useState(false);
+
+  // Debounce refs for real-time updates
+  const supportTicketsTimeoutRef = useRef(null);
+  const activityTimeoutRef = useRef(null);
+  const DEBOUNCE_DELAY = 1000; // 1 second debounce
+
   const [emergencyData, setEmergencyData] = useState(mockEmergencyData);
   const [analyticsData, setAnalyticsData] = useState(mockAnalyticsData);
   const [doctorsData, setDoctorsData] = useState(mockDoctorsData);
@@ -152,33 +160,18 @@ export const PageDataProvider = ({ children }) => {
   const [insurancePolicies, setInsurancePolicies] = useState([]);
   const [activityData, setActivityData] = useState([]);
   const [userData, setUserData] = useState({ users: [], statistics: null });
-  const [loading, setLoading] = useState({
-    emergency: true,
-    analytics: true,
-    doctors: true,
-    visits: true,
-    verification: true,
-    hospitals: false,
-    ambulances: false,
-    users: false,
-    supportTickets: false,
-    insurance: false,
-    activity: true,
-    wallet: true
-  });
   const [walletData, setWalletData] = useState({ wallet: null, ledger: [], projection: 0 });
   const [hospitalsData, setHospitalsData] = useState({ stats: null, recent: [] });
   const [ambulancesData, setAmbulancesData] = useState({ stats: null, recent: [] });
   const [organizationsData, setOrganizationsData] = useState({ organizations: [], stats: null });
   const [servicePricing, setServicePricing] = useState([]);
   const [roomPricing, setRoomPricing] = useState([]);
-  const [useMockData, setUseMockData] = useState(false);
 
   // Fetch emergency data
   // Fetch emergency data
   const fetchEmergencyData = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, emergency: true }));
+      setPageLoading(true);
 
       if (useMockData) {
         setEmergencyData(mockEmergencyData);
@@ -224,13 +217,13 @@ export const PageDataProvider = ({ children }) => {
       // setUseMockData(true); 
       setEmergencyData({ stats: { total: 0, ambulance: 0, bed: 0, critical_care: 0, emergency_room: 0, pending_approval: 0, pending: 0, inProgress: 0, accepted: 0, arrived: 0, completed: 0, active: 0 }, recent: [] });
     } finally {
-      setLoading(prev => ({ ...prev, emergency: false }));
+      setPageLoading(false);
     }
   }, [useMockData]);
 
   const fetchVerificationData = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, verification: true }));
+      setPageLoading(true);
 
       if (useMockData) {
         setVerificationData(mockVerificationData);
@@ -256,13 +249,13 @@ export const PageDataProvider = ({ children }) => {
       setVerificationData(mockVerificationData);
       // setUseMockData(true);
     } finally {
-      setLoading(prev => ({ ...prev, verification: false }));
+      setPageLoading(false);
     }
   }, [useMockData]);
 
   const fetchDoctorsData = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, doctors: true }));
+      setPageLoading(true);
 
       if (useMockData) {
         setDoctorsData(mockDoctorsData);
@@ -295,13 +288,13 @@ export const PageDataProvider = ({ children }) => {
       setDoctorsData(mockDoctorsData);
       // setUseMockData(true);
     } finally {
-      setLoading(prev => ({ ...prev, doctors: false }));
+      setPageLoading(false);
     }
   }, [useMockData]);
 
   const fetchVisitsData = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, visits: true }));
+      setPageLoading(true);
 
       if (useMockData) {
         setVisitsData(mockVisitsData);
@@ -333,13 +326,13 @@ export const PageDataProvider = ({ children }) => {
       console.error('Error fetching visits data:', error);
       setVisitsData(mockVisitsData);
     } finally {
-      setLoading(prev => ({ ...prev, visits: false }));
+      setPageLoading(false);
     }
   }, [useMockData]);
 
   const fetchAnalyticsData = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, analytics: true }));
+      setPageLoading(true);
 
       if (useMockData) {
         setAnalyticsData(mockAnalyticsData);
@@ -365,13 +358,13 @@ export const PageDataProvider = ({ children }) => {
       console.error('Error fetching analytics data:', error);
       setAnalyticsData(mockAnalyticsData);
     } finally {
-      setLoading(prev => ({ ...prev, analytics: false }));
+      setPageLoading(false);
     }
   }, [useMockData]);
 
   const fetchHospitalsData = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, hospitals: true }));
+      setPageLoading(true);
 
       if (useMockData) return;
 
@@ -395,13 +388,13 @@ export const PageDataProvider = ({ children }) => {
     } catch (error) {
       console.error('Error fetching hospitals data:', error);
     } finally {
-      setLoading(prev => ({ ...prev, hospitals: false }));
+      setPageLoading(false);
     }
   }, [useMockData]);
 
   const fetchAmbulancesData = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, ambulances: true }));
+      setPageLoading(true);
 
       if (useMockData) return;
 
@@ -425,13 +418,13 @@ export const PageDataProvider = ({ children }) => {
     } catch (error) {
       console.error('Error fetching ambulances data:', error);
     } finally {
-      setLoading(prev => ({ ...prev, ambulances: false }));
+      setPageLoading(false);
     }
   }, [useMockData]);
 
   const fetchUsersData = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, users: true }));
+      setPageLoading(true);
 
       if (useMockData) {
         setUserData({ users: [], statistics: null });
@@ -473,13 +466,13 @@ export const PageDataProvider = ({ children }) => {
       console.error('Error fetching users data:', error);
       setUserData({ users: [], statistics: null });
     } finally {
-      setLoading(prev => ({ ...prev, users: false }));
+      setPageLoading(false);
     }
   }, [useMockData]);
 
   const fetchSupportTicketsData = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, supportTickets: true }));
+      setPageLoading(true);
 
       if (useMockData) {
         setSupportTicketsData(mockSupportTicketsData);
@@ -523,13 +516,13 @@ export const PageDataProvider = ({ children }) => {
       setSupportTicketsData(mockSupportTicketsData);
       setUseMockData(true);
     } finally {
-      setLoading(prev => ({ ...prev, supportTickets: false }));
+      setPageLoading(false);
     }
   }, [useMockData]);
 
   const fetchInsurancePolicies = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, insurance: true }));
+      setPageLoading(true);
 
       if (useMockData) {
         setInsurancePolicies([]);
@@ -543,14 +536,14 @@ export const PageDataProvider = ({ children }) => {
       console.error('Error fetching insurance policies:', error);
       setInsurancePolicies([]);
     } finally {
-      setLoading(prev => ({ ...prev, insurance: false }));
+      setPageLoading(false);
     }
   }, [useMockData]);
 
   const fetchWalletData = useCallback(async () => {
     try {
       if (!user || !profile) return;
-      setLoading(prev => ({ ...prev, wallet: true }));
+      setPageLoading(true);
 
       let wallet;
       if (isAdmin()) {
@@ -571,13 +564,13 @@ export const PageDataProvider = ({ children }) => {
     } catch (error) {
       console.error('Error fetching wallet data:', error);
     } finally {
-      setLoading(prev => ({ ...prev, wallet: false }));
+      setPageLoading(false);
     }
   }, [user, profile, isAdmin]);
 
   const fetchActivityData = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, activity: true }));
+      setPageLoading(true);
       if (useMockData) {
         setActivityData([]);
         return;
@@ -588,13 +581,13 @@ export const PageDataProvider = ({ children }) => {
       console.error('Error fetching activity data:', error);
       setActivityData([]);
     } finally {
-      setLoading(prev => ({ ...prev, activity: false }));
+      setPageLoading(false);
     }
   }, [useMockData]);
 
   const fetchPricingData = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, pricing: true }));
+      setPageLoading(true);
       if (useMockData) return;
 
       const [services, rooms] = await Promise.all([
@@ -607,13 +600,13 @@ export const PageDataProvider = ({ children }) => {
     } catch (error) {
       console.error('Error fetching pricing data:', error);
     } finally {
-      setLoading(prev => ({ ...prev, pricing: false }));
+      setPageLoading(false);
     }
   }, [useMockData]);
 
   const fetchOrganizationsData = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, organizations: true }));
+      setPageLoading(true);
       if (useMockData) return;
 
       const data = await getOrganizations();
@@ -627,7 +620,7 @@ export const PageDataProvider = ({ children }) => {
     } catch (error) {
       console.error('Error fetching organizations data:', error);
     } finally {
-      setLoading(prev => ({ ...prev, organizations: false }));
+      setPageLoading(false);
     }
   }, [useMockData]);
 
@@ -645,27 +638,12 @@ export const PageDataProvider = ({ children }) => {
     fetchUsersData();
     fetchSupportTicketsData();
     fetchInsurancePolicies();
-    fetchWalletData();
     fetchActivityData();
-    fetchOrganizationsData();
+    fetchWalletData();
     fetchPricingData();
-  }, [
-    user,
-    fetchEmergencyData,
-    fetchVerificationData,
-    fetchAnalyticsData,
-    fetchDoctorsData,
-    fetchVisitsData,
-    fetchHospitalsData,
-    fetchAmbulancesData,
-    fetchUsersData,
-    fetchSupportTicketsData,
-    fetchInsurancePolicies,
-    fetchWalletData,
-    fetchActivityData,
-    fetchOrganizationsData,
-    fetchPricingData
-  ]);
+    fetchOrganizationsData();
+    setPageLoading(false);
+  }, [user]);
 
   // Real-time subscription for emergency data
   useEffect(() => {
@@ -779,6 +757,25 @@ export const PageDataProvider = ({ children }) => {
     return () => supabase.removeChannel(channel);
   }, [user, useMockData, fetchPricingData]);
 
+  // Debounced fetch functions for real-time updates
+  const debouncedFetchSupportTickets = useCallback(() => {
+    if (supportTicketsTimeoutRef.current) {
+      clearTimeout(supportTicketsTimeoutRef.current);
+    }
+    supportTicketsTimeoutRef.current = setTimeout(() => {
+      fetchSupportTicketsData();
+    }, DEBOUNCE_DELAY);
+  }, [fetchSupportTicketsData]);
+
+  const debouncedFetchActivity = useCallback(() => {
+    if (activityTimeoutRef.current) {
+      clearTimeout(activityTimeoutRef.current);
+    }
+    activityTimeoutRef.current = setTimeout(() => {
+      fetchActivityData();
+    }, DEBOUNCE_DELAY);
+  }, [fetchActivityData]);
+
   // Real-time subscription for support tickets data
   useEffect(() => {
     if (!user || useMockData) return;
@@ -787,12 +784,12 @@ export const PageDataProvider = ({ children }) => {
       .channel('support_tickets_changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'support_tickets' },
-        fetchSupportTicketsData
+        debouncedFetchSupportTickets
       )
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, fetchSupportTicketsData]);
+  }, [user, useMockData, debouncedFetchSupportTickets]);
 
   // Real-time subscription for activity data
   useEffect(() => {
@@ -802,12 +799,12 @@ export const PageDataProvider = ({ children }) => {
       .channel('activity_changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'user_activity' },
-        fetchActivityData
+        debouncedFetchActivity
       )
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, fetchActivityData]);
+  }, [user, useMockData, debouncedFetchActivity]);
 
   // Calculate statistics (Memoized to prevent churn)
   const emergencyStats = useMemo(() => {
@@ -917,7 +914,12 @@ export const PageDataProvider = ({ children }) => {
     };
   }, [insurancePolicies]);
 
-  const value = useMemo(() => ({
+  // PULLBACK NOTE: Optimized context value to prevent excessive re-renders
+// OLD: useMemo with 30+ dependencies causing constant re-creation
+// NEW: Split into stable data and methods to minimize dependency churn
+
+  // Memoize data separately from methods
+  const dataValue = useMemo(() => ({
     // Data
     emergencyData,
     emergencyStats,
@@ -941,23 +943,8 @@ export const PageDataProvider = ({ children }) => {
     roomPricing,
 
     // Loading states
-    loading,
+    loading: pageLoading,
     useMockData,
-
-    // Methods
-    fetchEmergencyData,
-    fetchVerificationData,
-    fetchAnalyticsData,
-    fetchDoctorsData,
-    fetchVisitsData,
-    fetchHospitalsData,
-    fetchAmbulancesData,
-    fetchUsersData,
-    fetchSupportTicketsData,
-    fetchInsurancePolicies,
-    fetchActivityData,
-    fetchWalletData,
-    refreshAllData,
 
     // Mock data for reference
     mockData: {
@@ -987,8 +974,26 @@ export const PageDataProvider = ({ children }) => {
     organizationsData,
     servicePricing,
     roomPricing,
-    loading,
-    useMockData,
+    pageLoading,
+    useMockData
+  ]);
+
+  // Memoize methods separately (they're stable due to useCallback)
+  const methodsValue = useMemo(() => ({
+    fetchEmergencyData,
+    fetchVerificationData,
+    fetchAnalyticsData,
+    fetchDoctorsData,
+    fetchVisitsData,
+    fetchHospitalsData,
+    fetchAmbulancesData,
+    fetchUsersData,
+    fetchSupportTicketsData,
+    fetchInsurancePolicies,
+    fetchActivityData,
+    fetchWalletData,
+    refreshAllData
+  }), [
     fetchEmergencyData,
     fetchVerificationData,
     fetchAnalyticsData,
@@ -1003,6 +1008,12 @@ export const PageDataProvider = ({ children }) => {
     fetchWalletData,
     refreshAllData
   ]);
+
+  // Combine data and methods
+  const value = useMemo(() => ({
+    ...dataValue,
+    ...methodsValue
+  }), [dataValue, methodsValue]);
 
   return (
     <PageDataContext.Provider value={value}>

@@ -180,11 +180,26 @@ export async function verifyProvider(providerId, approved) {
   }
 }
 
+// Cache for verification stats to prevent repeated admin checks
+const verificationStatsCache = new Map();
+const STATS_CACHE_DURATION = 10 * 1000; // 10 seconds
+
 /**
  * Get verification statistics
  * Admin only
  */
 export async function getVerificationStats() {
+  const now = Date.now();
+  
+  // Check cache first
+  if (verificationStatsCache.has('stats')) {
+    const cached = verificationStatsCache.get('stats');
+    if (now - cached.timestamp < STATS_CACHE_DURATION) {
+      logAuthorizationEvent('verification', 'getStats', null, true, 'Cache hit');
+      return cached.data;
+    }
+  }
+
   try {
     const adminCheck = await isAdmin();
     if (!adminCheck) {
@@ -209,6 +224,12 @@ export async function getVerificationStats() {
         return signupDate > weekAgo && !u.bvn_verified; // Recent unverified providers
       }).length || 0
     };
+
+    // Cache the result
+    verificationStatsCache.set('stats', {
+      data: stats,
+      timestamp: now
+    });
 
     logAuthorizationEvent('verification', 'getStats', null, true);
 

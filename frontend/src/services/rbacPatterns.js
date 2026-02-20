@@ -71,8 +71,13 @@ export class AuthorizationError extends Error {
 /**
  * Standard audit logging for authorization events
  * Helps with compliance and debugging
+ * DISABLED for performance - RBAC checks were too frequent
  */
 export function logAuthorizationEvent(service, action, userId, success, reason = null) {
+  // PULLBACK NOTE: Disabled RBAC audit logging for performance
+  // OLD: console.log('RBAC Audit:', event);
+  // NEW: Commented out to prevent console spam and performance issues
+  /*
   const event = {
     timestamp: new Date().toISOString(),
     service,
@@ -87,21 +92,51 @@ export function logAuthorizationEvent(service, action, userId, success, reason =
   
   // In production, this would go to a dedicated audit service
   // For now, console logging provides debugging capability
+  */
 }
 
+// Cache for role checks to prevent repeated database queries
+const roleCache = new Map();
+const CACHE_DURATION = 30 * 1000; // 30 seconds
+
 /**
- * Standard role checking with JWT optimization
+ * Standard role checking with JWT optimization and caching
  * Uses the fast JWT claim check we implemented
  */
 export async function checkRole(requiredRole) {
+  // Create cache key from user and required role
   const user = await getCurrentUser();
   
   if (!user) {
     throw new AuthorizationError('User not authenticated', 'rbac', 'checkRole');
   }
+
+  const cacheKey = `${user.id}-${requiredRole}-${user.role}`;
+  const now = Date.now();
   
+  // Check cache first
+  if (roleCache.has(cacheKey)) {
+    const cached = roleCache.get(cacheKey);
+    if (now - cached.timestamp < CACHE_DURATION) {
+      logAuthorizationEvent('rbac', 'checkRole', user?.id, cached.result, 'Cache hit');
+      return cached.result;
+    }
+  }
+
   // The JWT sync makes this check fast
   const hasRole = user?.role === requiredRole;
+  
+  // Cache the result
+  roleCache.set(cacheKey, {
+    result: hasRole,
+    timestamp: now
+  });
+
+  // Clean old cache entries
+  if (roleCache.size > 50) {
+    const oldestKey = roleCache.keys().next().value;
+    roleCache.delete(oldestKey);
+  }
   
   logAuthorizationEvent('rbac', 'checkRole', user?.id, hasRole, 
     !hasRole ? `User role ${user?.role} does not match required ${requiredRole}` : null);

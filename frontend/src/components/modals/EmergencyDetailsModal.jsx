@@ -64,10 +64,10 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
     }
   };
 
-  // Debug: Log incoming request data
-  React.useEffect(() => {
-    console.log('🔍 EmergencyDetailsModal - Request Data:', request);
-  }, [request]);
+  // Debug: Log incoming request data (commented out for performance)
+  // React.useEffect(() => {
+  //   console.log('🔍 EmergencyDetailsModal - Request Data:', request);
+  // }, [request]);
 
   React.useEffect(() => {
     if (request?.id && (request.status === 'completed' || request.status === 'cancelled')) {
@@ -83,7 +83,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
     }
 
     if (!request && isOpen) {
-      console.log('🔍 EmergencyDetailsModal - No request data provided');
+      // console.log('🔍 EmergencyDetailsModal - No request data provided');
     }
   }, [request, isOpen]);
 
@@ -104,15 +104,15 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
   };
 
   const fetchVisitOutcome = async (id) => {
-    console.log('🔍 EmergencyDetailsModal - Fetching visit outcome for ID:', id);
+    // console.log('🔍 EmergencyDetailsModal - Fetching visit outcome for ID:', id);
     setLoadingOutcome(true);
     try {
       const visitData = await getVisit(id);
-      console.log('🔍 EmergencyDetailsModal - Visit data received:', visitData);
+      // console.log('🔍 EmergencyDetailsModal - Visit data received:', visitData);
       if (visitData) {
         setVisitOutcome(visitData);
       } else {
-        console.log('🔍 EmergencyDetailsModal - No visit data found for emergency ID:', id);
+        // console.log('🔍 EmergencyDetailsModal - No visit data found for emergency ID:', id);
         setVisitOutcome(null);
       }
     } catch (e) {
