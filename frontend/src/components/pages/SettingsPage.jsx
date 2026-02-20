@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { getDisplayId } from '../../services/displayIdService';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -11,7 +11,7 @@ import { Switch } from '../ui/switch';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { handleAuthError } from "../../utils/errorHandler";
-import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
+import { getAvatarUrl, getAvatarFallback, markAvatarUrlAsFailed } from '../../lib/avatarUtils';
 import { usePageHeader } from '../../contexts/LayoutContext';
 
 import { ProfileEditModal } from '../modals/ProfileEditModal';
@@ -27,6 +27,10 @@ export const SettingsPage = () => {
     const [displayId, setDisplayId] = useState(null);
     const [darkMode, setDarkMode] = useState(document.documentElement.classList.contains('dark'));
     const navigate = useNavigate();
+
+    // Memoize avatar URL and fallback to prevent excessive re-computation
+    const avatarUrl = useMemo(() => getAvatarUrl(profile, user), [profile, user]);
+    const avatarFallback = useMemo(() => getAvatarFallback(profile, user), [profile, user]);
 
     // Modal States
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -151,11 +155,22 @@ export const SettingsPage = () => {
                                     <div className="relative group">
                                         <Avatar className="h-36 w-36 squircle-2xl border-[6px] border-background shadow-2xl ring-1 ring-white/10">
                                             <AvatarImage
-                                                src={getAvatarUrl(profile, user)}
+                                                src={avatarUrl}
                                                 className="object-cover"
+                                                onError={(e) => {
+                                                    console.error('Avatar image failed to load:', e);
+                                                    console.error('Failed src:', avatarUrl);
+                                                    // Mark URL as failed to prevent repeated attempts
+                                                    markAvatarUrlAsFailed(avatarUrl);
+                                                    // Force re-render to get fallback
+                                                    e.target.style.display = 'none';
+                                                }}
+                                                onLoad={() => {
+                                                    console.log('Avatar image loaded successfully:', avatarUrl);
+                                                }}
                                             />
                                             <AvatarFallback className="squircle bg-muted text-muted-foreground font-bold text-5xl">
-                                                {getAvatarFallback(profile, user)}
+                                                {avatarFallback}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="absolute bottom-2 right-2 w-6 h-6 bg-success rounded-full border-4 border-background shadow-sm pulse-dot" title="Online" />
