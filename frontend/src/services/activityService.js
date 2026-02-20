@@ -42,6 +42,12 @@ export async function logActivity(action, entityType, entityId, description, met
  */
 export async function getRecentActivity(limit = 20, offset = 0) {
   try {
+    const user = await getCurrentUser();
+    // RBAC: Patients should not be calling recent activity (Console only)
+    if (user?.role === 'patient') {
+      return [];
+    }
+
     const { data, error } = await supabase.rpc('get_recent_activity', {
       limit_count: limit,
       offset_count: offset
@@ -60,6 +66,12 @@ export async function getRecentActivity(limit = 20, offset = 0) {
  */
 export async function getActivityStats(daysBack = 7) {
   try {
+    const user = await getCurrentUser();
+    // RBAC: Patients should not be calling activity stats (Console only)
+    if (user?.role === 'patient') {
+      return { total_actions: 0, unique_users: 0, period_days: daysBack };
+    }
+
     const { data, error } = await supabase.rpc('get_activity_stats', {
       days_back: daysBack
     });

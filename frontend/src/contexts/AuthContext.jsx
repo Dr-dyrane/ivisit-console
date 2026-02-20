@@ -34,7 +34,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   const fetchProfile = async (userId, email) => {
     // Add timeout to prevent hanging
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Profile fetch timeout')), 5000);
+      setTimeout(() => reject(new Error('Profile fetch timeout')), 15000); // Increased to 15s
     });
 
     try {
@@ -122,7 +122,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
       // Fallback profile to prevent app from breaking
       setProfile({
         id: userId,
-        role: email === 'halodyrane@gmail.com' ? 'admin' : 'viewer',
+        role: email === 'halodyrane@gmail.com' ? 'admin' : 'org_admin',
         username: email?.split('@')[0] || 'User',
         email: email,
       });

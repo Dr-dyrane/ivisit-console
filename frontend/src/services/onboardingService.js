@@ -316,6 +316,7 @@ export const onboardingService = {
                 .from('profiles')
                 .update({
                     onboarding_status: 'skipped',
+                    role: 'viewer', // Stay as viewer until registration is complete
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', session.user.id)
