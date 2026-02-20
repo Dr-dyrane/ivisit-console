@@ -25,7 +25,7 @@ async function runMigration(filePath, fileName) {
     
     const sql = fs.readFileSync(filePath, 'utf8');
     
-    const { error } = await supabase.rpc('exec_sql', { sql_query: sql });
+    const { error } = await supabase.rpc('exec_sql', { sql });
     
     if (error) {
       console.error(`Error running ${fileName}:`, error);
