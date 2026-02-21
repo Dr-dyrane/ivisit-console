@@ -30,7 +30,7 @@ export const MobileFeaturedMetric = ({
 
             <div className="flex justify-between items-start relative z-10">
                 <div className="space-y-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60">
+                    <p className="text-[10px] font-normal uppercase tracking-[0.2em] text-muted-foreground/60">
                         {label}
                     </p>
                     <div className="flex items-baseline gap-2">

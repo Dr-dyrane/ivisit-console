@@ -29,7 +29,7 @@ export const MobileActivityRow = ({ icon: Icon, msg, time, color = 'hsl(var(--pr
                     <p className="text-[13px] font-medium tracking-tight text-foreground/80 line-clamp-1 leading-tight mb-1">
                         {msg}
                     </p>
-                    <p className="text-[9px] text-muted-foreground font-semibold tracking-widest uppercase opacity-30">
+                    <p className="text-[9px] text-muted-foreground font-normal tracking-widest uppercase opacity-30">
                         {time}
                     </p>
                 </div>
@@ -49,15 +49,15 @@ export const MobileActivityRow = ({ icon: Icon, msg, time, color = 'hsl(var(--pr
                     >
                         <div className="pt-3 border-t border-white/5 flex flex-col gap-1.5">
                             {user && (
-                                <p className="text-[11px] text-muted-foreground tracking-tight">
+                                <p className="text-[11px] text-muted-foreground tracking-tight font-normal">
                                     Triggered by <span className="text-foreground/70 font-medium">{user}</span>
                                 </p>
                             )}
                             <div className="flex items-center justify-between">
-                                <p className="text-[9px] text-muted-foreground/40 tracking-wider uppercase font-semibold">
+                                <p className="text-[9px] text-muted-foreground/40 tracking-wider uppercase font-normal">
                                     Log ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}
                                 </p>
-                                <p className="text-[9px] text-success/60 font-semibold uppercase tracking-widest">
+                                <p className="text-[9px] text-success/60 font-medium uppercase tracking-widest">
                                     Verified
                                 </p>
                             </div>

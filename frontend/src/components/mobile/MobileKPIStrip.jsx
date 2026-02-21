@@ -21,10 +21,10 @@ export const MobileKPIStrip = ({ kpis }) => {
                         style={{ backgroundColor: kpi.color || 'hsl(var(--primary))' }}
                     />
                     <div className="flex flex-col min-w-0">
-                        <span className="text-[14px] font-semibold tracking-tighter leading-none truncate text-foreground/90">
+                        <span className="text-[14px] font-medium tracking-tighter leading-none truncate text-foreground/90">
                             {kpi.value}
                         </span>
-                        <span className="text-[9px] text-muted-foreground/40 font-semibold uppercase tracking-[0.15em] leading-none truncate mt-1">
+                        <span className="text-[9px] text-muted-foreground/40 font-normal uppercase tracking-[0.15em] leading-none truncate mt-1">
                             {kpi.label}
                         </span>
                     </div>

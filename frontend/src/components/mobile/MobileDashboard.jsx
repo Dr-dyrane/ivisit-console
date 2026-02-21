@@ -241,9 +241,9 @@ export const MobileDashboard = ({
                                     { label: 'Cloud Buffer', value: 'Steady', progress: 65, color: 'hsl(var(--warning))' }
                                 ].map((sys, i) => (
                                     <div key={i} className="space-y-3">
-                                        <div className="flex justify-between text-[10px] font-bold tracking-widest uppercase text-foreground/40">
+                                        <div className="flex justify-between text-[10px] font-normal tracking-widest uppercase text-foreground/40">
                                             <span>{sys.label}</span>
-                                            <span className="text-foreground/60">{sys.value}</span>
+                                            <span className="text-foreground/50 font-medium">{sys.value}</span>
                                         </div>
                                         <div className="h-1.5 w-full bg-white/[0.08] rounded-full overflow-hidden shadow-inner">
                                             <motion.div

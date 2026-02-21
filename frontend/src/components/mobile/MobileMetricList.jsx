@@ -10,7 +10,7 @@ export const MobileSectionHeader = ({ label, color = 'hsl(var(--primary))', coun
     <div className="px-1 pt-6 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
             <div className="w-1 h-1 rounded-full opacity-50" style={{ backgroundColor: color }} />
-            <h5 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60">
+            <h5 className="text-[10px] font-normal uppercase tracking-[0.2em] text-muted-foreground/60">
                 {label}
             </h5>
         </div>
@@ -73,13 +73,13 @@ export const MobileMetricRow = ({
                 </div>
 
                 <div className="flex-1 min-w-0 relative z-10">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] mb-0.5 truncate text-muted-foreground/50">
+                    <p className="text-[10px] font-normal uppercase tracking-[0.15em] mb-0.5 truncate text-muted-foreground/50">
                         {label}
                     </p>
                     <div className="flex items-baseline gap-1.5">
-                        <span className="text-[15px] font-bold tracking-tight text-foreground/95">{value}</span>
+                        <span className="text-[15px] font-semibold tracking-tight text-foreground/95">{value}</span>
                         {trend && (
-                            <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${trend.includes('+') ? 'text-success bg-success/10' : 'text-destructive bg-destructive/10'}`}>
+                            <span className={`text-[8px] font-semibold px-1.5 py-0.5 rounded-full ${trend.includes('+') ? 'text-success bg-success/10' : 'text-destructive bg-destructive/10'}`}>
                                 {trend}
                             </span>
                         )}
