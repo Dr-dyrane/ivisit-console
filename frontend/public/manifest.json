@@ -65,11 +65,7 @@
         }
     ],
     "start_url": "/",
-    "display": "fullscreen",
-    "display_override": [
-        "fullscreen",
-        "standalone"
-    ],
+    "display": "standalone",
     "orientation": "any",
     "theme_color": "#0a0a0a",
     "background_color": "#0a0a0a",
