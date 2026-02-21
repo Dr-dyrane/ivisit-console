@@ -51,7 +51,7 @@ const PWADebugTracker = () => {
 		<div className="fixed bottom-1 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none select-none">
 			<div className="bg-white/[0.02] backdrop-blur-md px-2 py-0.5 rounded-full shadow-2xl flex items-center justify-center">
 				<span className="text-[8px] font-medium text-zinc-500/50 uppercase tracking-[0.2em] leading-none">
-					v1.0.12
+					v1.0.14
 				</span>
 			</div>
 		</div>
@@ -65,7 +65,7 @@ const AppShell = ({ children }) => {
 	const isMobile = window.innerWidth < 768;
 
 	return (
-		<div className="relative h-full w-full text-foreground overflow-hidden flex flex-col">
+		<div className="relative h-screen w-full text-foreground overflow-hidden flex flex-col">
 
 			{!hideNav && <SmartHeader />}
 
@@ -92,6 +92,8 @@ const AppShell = ({ children }) => {
 							paddingRight: isMobile ? 16 : 48,
 							// Top padding when scrolled - 16px (2×8px)
 							paddingTop: isScrolledDown ? 0 : 16,
+							// Bottom padding - Respect iOS Safe Areas + Base clearance (Stable Restore)
+							paddingBottom: 'calc(112px + var(--safe-bottom))'
 						}}
 						transition={{ type: "spring", stiffness: 300, damping: 30 }}
 						className="relative z-10"
