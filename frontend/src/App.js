@@ -167,6 +167,17 @@ function App() {
 					<Router>
 						<AppRoutes />
 						<Toaster position="top-right" richColors />
+						{/* PWA Version Tracker - Temporary for Validation */}
+						<div
+							className="fixed bottom-2 right-2 z-[9999] pointer-events-none select-none opacity-50"
+							style={{ paddingBottom: 'var(--safe-bottom)' }}
+						>
+							<div className="bg-black/80 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 shadow-2xl">
+								<span className="text-[10px] font-mono text-zinc-500 uppercase tracking-tighter">
+									v1.0.1-PWA-GEOMETRIC-LOCK
+								</span>
+							</div>
+						</div>
 					</Router>
 				</PWAProvider>
 			</ThemeProvider>
