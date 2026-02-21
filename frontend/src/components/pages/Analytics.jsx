@@ -1449,7 +1449,7 @@ export const Analytics = () => {
                   <div className="flex-1 grid grid-cols-6 grid-rows-4 gap-2 relative z-10">
                     {demandHeatmap.map((item, idx) => (
                       <motion.div key={idx} initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.8 + (idx * 0.02) }} className="relative group/cell">
-                        <div className={`w-full h-full rounded-md border border-white/5 transition-all duration-500 cursor-crosshair ${item.value > 80 ? 'bg-destructive/60' : item.value > 50 ? 'bg-warning/40' : item.value > 30 ? 'bg-info/20' : 'bg-white/5'}`} />
+                        <div className={`w-full h-full rounded-md border-white/5 transition-all duration-500 cursor-crosshair ${item.value > 80 ? 'bg-destructive/60' : item.value > 50 ? 'bg-warning/40' : item.value > 30 ? 'bg-info/20' : 'bg-white/5'}`} />
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-background/90 backdrop-blur-md rounded text-[8px] font-bold opacity-0 group-hover/cell:opacity-100 transition-opacity z-50 whitespace-nowrap border border-white/10 shadow-xl pointer-events-none">
                           {item.hour} • {item.value}% LOAD
                         </div>
@@ -1797,38 +1797,39 @@ export const Analytics = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
             >
-              <Card className="h-full min-h-[350px] geo-shard glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
+              <Card className="h-full min-h-[350px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
                 <div className="hover-glow hover-glow-success" />
 
-                {/* Top Right Icon Decoration */}
-                <div className="absolute top-0 right-0 p-6 z-20">
+                {/* Header */}
+                <div className="relative z-10 flex items-center justify-between mb-6">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-success mb-1">Financial</p>
+                    <h3 className="font-bold text-xl tracking-tight">Revenue Performance</h3>
+                  </div>
                   <div className="relative">
                     <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
-                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <Wallet className="h-6 w-6 text-success" />
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                      <Wallet className="h-5 w-5 text-success" />
                     </div>
                   </div>
                 </div>
 
-                <div className="mb-6 relative z-10">
-                  <h3 className="font-bold text-xl tracking-tight">Finance Analytics</h3>
-                  <p className="text-sm text-muted-foreground font-medium">Wallet & Revenue Performance</p>
-                </div>
+                {/* Body — always 2 columns */}
+                <div className="flex-1 grid grid-cols-2 gap-4 relative z-10">
 
-                <div className="flex flex-col md:flex-row gap-6 flex-1 relative z-10">
-                  {/* Left Side: Horizontal Bars */}
-                  <div className="flex-1 space-y-4">
+                  {/* LEFT: Revenue Metrics */}
+                  <div className="flex flex-col justify-between gap-3">
                     {[
                       { label: 'Today', value: `$${financeSummary.today.toFixed(0)}`, progress: 75, color: 'success' },
                       { label: 'Avg/Week', value: `$${(financeSummary.weeklyAvg * 7).toFixed(0)}`, progress: 60, color: 'primary' },
                       { label: 'Total', value: `$${financeSummary.total.toFixed(0)}`, progress: 90, color: 'info' }
                     ].map((m, idx) => (
-                      <div key={idx} className="space-y-1.5">
-                        <div className="flex justify-between items-center px-1">
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{m.label}</span>
-                          <span className="text-sm font-bold tracking-tight">{m.value}</span>
+                      <div key={idx} className="space-y-1.5 p-3 rounded-xl bg-white/5 border-white/5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{m.label}</span>
+                          <span className="text-base font-black tracking-tight">{m.value}</span>
                         </div>
-                        <div className="h-1.5 bg-muted/30 squircle-sm overflow-hidden">
+                        <div className="h-1 bg-muted/30 squircle-sm overflow-hidden">
                           <motion.div
                             className={`h-full bg-${m.color} squircle-sm`}
                             initial={{ width: 0 }}
@@ -1838,46 +1839,67 @@ export const Analytics = () => {
                         </div>
                       </div>
                     ))}
+
+                    {/* Health Score Row */}
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-success/5 border-success/10">
+                      <div className="relative w-10 h-10 shrink-0 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90">
+                          <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="3" fill="transparent" className="text-muted/10" />
+                          <circle
+                            cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="3" fill="transparent"
+                            strokeDasharray={100}
+                            strokeDashoffset={100 - financeSummary.health}
+                            className="text-success transition-all duration-1000"
+                          />
+                        </svg>
+                        <span className="absolute text-[9px] font-black">{Math.round(financeSummary.health)}%</span>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-success">Health</p>
+                        <p className="text-[8px] text-muted-foreground leading-tight">Vitals nominal</p>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Right Side: Donut & Trend Graph */}
-                  <div className="flex-1 flex flex-col justify-between gap-4">
-                    {/* Mini Chart */}
-                    <div className="h-24 w-full opacity-70 bg-success/5 rounded-2xl overflow-hidden p-2">
+                  {/* RIGHT: Area Chart */}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex-1 bg-success/5 rounded-2xl overflow-hidden p-2 border-success/10">
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={financeData}>
+                        <AreaChart data={financeData} margin={{ top: 4, right: 4, left: -30, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="financeGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor={CHART_COLORS.success} stopOpacity={0.3} />
+                              <stop offset="95%" stopColor={CHART_COLORS.success} stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="2 4" stroke="hsl(var(--muted))" vertical={false} opacity={0.3} />
+                          <XAxis dataKey="day" fontSize={8} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" />
+                          <YAxis fontSize={8} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" />
+                          <Tooltip content={<CustomTooltip />} />
                           <Area
                             type="monotone"
                             dataKey="income"
                             stroke={CHART_COLORS.success}
-                            fill={CHART_COLORS.success}
-                            fillOpacity={0.2}
+                            fill="url(#financeGrad)"
                             strokeWidth={2}
+                            name="Income"
                           />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
-
-                    {/* Status Circular Indicator */}
-                    <div className="flex items-center gap-4 p-4 squircle-xl bg-success/5 border border-success/10">
-                      <div className="relative w-12 h-12 flex items-center justify-center">
-                        <svg className="w-full h-full transform -rotate-90">
-                          <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-muted/10" />
-                          <circle
-                            cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent"
-                            strokeDasharray={125}
-                            strokeDashoffset={125 - (financeSummary.health * 1.25)}
-                            className="text-success transition-all duration-1000"
-                          />
-                        </svg>
-                        <span className="absolute text-[10px] font-black">{Math.round(financeSummary.health)}%</span>
+                    {/* Quick Stat Tiles */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2 rounded-lg bg-white/5 border-white/5 text-center">
+                        <p className="text-[8px] font-bold text-muted-foreground uppercase">Paid Conv.</p>
+                        <p className="text-sm font-black text-foreground">{financeSummary.paidConversion || 0}%</p>
                       </div>
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-success">Health Score</p>
-                        <p className="text-[9px] text-muted-foreground leading-tight">System vitals are within nominal range</p>
+                      <div className="p-2 rounded-lg bg-white/5 border-white/5 text-center">
+                        <p className="text-[8px] font-bold text-muted-foreground uppercase">Avg/Req</p>
+                        <p className="text-sm font-black text-foreground">${financeSummary.avgPerRequest || 0}</p>
                       </div>
                     </div>
                   </div>
+
                 </div>
               </Card>
             </motion.div>
