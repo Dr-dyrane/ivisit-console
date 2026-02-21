@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { usePageHeader } from "../../contexts/LayoutContext";
+import { usePageHeader, useLayout } from "../../contexts/LayoutContext";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
+import { MobileMap } from "../mobile/MobileMap";
 import { Card } from "../ui/card";
 import {
 	AlertTriangle,
+	RefreshCw,
+	Navigation
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { handleApiError } from "../../utils/errorHandler";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -32,6 +37,7 @@ const LAGOS_CENTER = { lat: 6.5244, lng: 3.3792 };
 const GodModeMapContent = () => {
 	const { theme } = useTheme();
 	const isDark = theme === 'dark';
+	const { isMobile } = useBreakpoint();
 	const { mapData, toggleLayer, setFilter, setSelectedMarker, refresh } = useMapContext();
 	const {
 		emergencyRequests,
@@ -292,30 +298,49 @@ const GodModeMapContent = () => {
 		handleApiError(error, 'fetch');
 	}
 
-	// Register map controls in header
+	// Header actions - Simplified for desktop (Filters only)
 	const headerActions = useMemo(() => (
 		<div className="flex items-center gap-3">
-			<MapLayerControls
-				showLayers={showLayers}
-				setShowLayers={toggleLayer}
-			/>
-			<div className="w-px h-4 bg-border/30" />
 			<div className="flex items-center">
-				<RefreshControls
-					fetchAllData={refresh}
-					loading={loading}
-				/>
+				{/* We can keep filters here if needed, but the primary controls move to the map */}
 			</div>
 		</div>
-	), [showLayers, loading, toggleLayer, refresh]);
+	), []);
 
 	usePageHeader("Live Map", headerActions);
+
+	if (isMobile) {
+		return (
+			<MobileMap
+				mapData={mapData}
+				toggleLayer={toggleLayer}
+				setFilter={setFilter}
+				setSelectedMarker={setSelectedMarker}
+				refresh={refresh}
+				userLocation={userLocation}
+				mapProvider={mapProvider}
+				mapStyles={mapStyles}
+				allMarkers={allMarkers}
+				activeRoutes={activeRoutes}
+				processedAmbulances={processedAmbulances}
+				processedHospitals={processedHospitals}
+				filteredRequests={filteredRequests}
+				simulatedSessionId={simulatedSessionId}
+				getPriorityColor={getPriorityColor}
+				getStatusColor={getStatusColor}
+				theme={theme}
+				isSwitchingMap={isSwitchingMap}
+				setMapProvider={setMapProvider}
+				setIsSwitchingMap={setIsSwitchingMap}
+			/>
+		);
+	}
 
 	return (
 		<div className="min-h-screen py-6 md:py-8 pt-4">
 			<div className="flex gap-4 h-[calc(100vh-12rem)] relative">
 				{/* Map */}
-				<Card className="flex-1 squircle-2xl p-0 overflow-hidden bg-background/35 backdrop-blur-xs border-0 relative shadow-premium">
+				<Card className="flex-1 squircle-2xl p-0 overflow-hidden bg-background border-0 relative shadow-premium">
 					{isSwitchingMap && (
 						<div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center">
 							<AlertTriangle className="h-12 w-12 text-destructive mb-4 animate-bounce" />
@@ -371,6 +396,41 @@ const GodModeMapContent = () => {
 							theme={theme}
 						/>
 					)}
+
+					{/* 3. Floating Tactical Controls (Unified Pattern) */}
+					<div className="absolute bottom-6 right-6 flex flex-col items-end gap-3 z-[100]">
+						<motion.button
+							whileTap={{ scale: 0.9 }}
+							onClick={(e) => {
+								e.stopPropagation();
+								refresh();
+							}}
+							className="w-12 h-12 rounded-2xl apple-glass-heavy flex items-center justify-center shadow-premium border border-white/10 hover:bg-white/5 transition-all pointer-events-auto"
+							title="Refresh Data"
+						>
+							<RefreshCw size={20} className={`${loading ? 'animate-spin' : ''} text-primary`} />
+						</motion.button>
+
+						<MapLayerControls
+							showLayers={showLayers}
+							setShowLayers={toggleLayer}
+						/>
+
+						<motion.button
+							whileTap={{ scale: 0.9 }}
+							onClick={(e) => {
+								e.stopPropagation();
+								if (userLocation) {
+									toast.info("Re-centering map...");
+									window.dispatchEvent(new CustomEvent('recenter-map'));
+								}
+							}}
+							className="w-12 h-12 rounded-2xl apple-glass-heavy flex items-center justify-center shadow-premium border border-white/10 hover:bg-white/5 transition-all pointer-events-auto"
+							title="Center on Location"
+						>
+							<Navigation size={20} className="text-foreground/60" />
+						</motion.button>
+					</div>
 				</Card>
 
 				{/* Selected Marker Details Panel with Dispatch Actions */}

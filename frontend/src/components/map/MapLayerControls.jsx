@@ -17,34 +17,29 @@ export const MapLayerControls = ({ showLayers, setShowLayers }) => {
 	};
 
 	return (
-		<div className="flex items-center">
+		<div className="flex items-center justify-end">
 			<motion.div
-				layout
 				initial={false}
-				transition={{ type: "spring", stiffness: 400, damping: 30 }}
-				className="ios-action-pill rounded-full p-1 cursor-pointer"
+				className="apple-glass-heavy rounded-full p-1 cursor-pointer flex flex-row-reverse items-center"
 				onClick={() => setIsExpanded(!isExpanded)}
 			>
-				{/* MASTER ICON (Always Visible) */}
-				<div className="p-1.5 flex items-center justify-center">
+				{/* MASTER ICON (Always Visible - Now on the right) */}
+				<div className="p-2 flex items-center justify-center">
 					<Layers
-						className={`h-4 w-4 transition-colors ${isExpanded ? 'text-primary' : 'text-muted-foreground'}`}
+						className={`h-5 w-5 transition-colors ${isExpanded ? 'text-primary' : 'text-foreground/60'}`}
 					/>
 				</div>
 
-				{/* EXPANDABLE SECTION */}
+				{/* EXPANDABLE SECTION (Now appears to the left) */}
 				<AnimatePresence>
 					{isExpanded && (
 						<motion.div
-							initial={{ opacity: 0, width: 0 }}
-							animate={{ opacity: 1, width: 'auto' }}
-							exit={{ opacity: 0, width: 0 }}
+							initial={{ opacity: 0, width: 0, x: 20 }}
+							animate={{ opacity: 1, width: 'auto', x: 0 }}
+							exit={{ opacity: 0, width: 0, x: 20 }}
 							className="flex items-center overflow-hidden"
 						>
-							{/* Vertical Divider */}
-							<div className="w-px h-4 bg-foreground/10 mx-1" />
-
-							<div className="flex items-center gap-1 pr-1">
+							<div className="flex items-center gap-2 pl-2 border-r border-foreground/10 mr-1">
 								{Object.entries(layerConfig).map(([key, config]) => {
 									const isVisible = showLayers[key];
 									const Icon = config.icon;
@@ -58,11 +53,11 @@ export const MapLayerControls = ({ showLayers, setShowLayers }) => {
 											whileTap={{ scale: 0.9 }}
 											onClick={(e) => toggleLayer(key, e)}
 											className={`
-                        h-9 w-9 flex items-center justify-center rounded-full transition-all
-                        ${isVisible ? 'ios-icon-active' : 'bg-foreground/5 hover:bg-foreground/10'}
+                        h-10 w-10 flex items-center justify-center rounded-2xl transition-all
+                        ${isVisible ? 'bg-primary text-white shadow-lg' : 'bg-foreground/5 text-foreground/40 hover:bg-foreground/10'}
                       `}
 										>
-											<Icon className={`h-4 w-4 ${isVisible ? 'text-white' : config.color}`} />
+											<Icon className={`h-4.5 w-4.5 ${isVisible ? 'text-white' : config.color}`} />
 										</motion.button>
 									);
 								})}
