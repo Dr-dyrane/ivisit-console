@@ -28,16 +28,34 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
+  const profileRef = React.useRef(null);
+
+  // Sync ref with state
+  const setProfileState = (newProfile) => {
+    profileRef.current = newProfile;
+    setProfile(newProfile);
+  };
+
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
 
+  // Ref to track active fetch to prevent loops
+  const activeFetchRef = React.useRef(null);
+
   const fetchProfile = async (userId, email) => {
+    // Prevent concurrent fetches for same user
+    if (activeFetchRef.current === userId) {
+      console.log('[AuthContext] Fetch already in progress for this user, skipping...');
+      return;
+    }
+
     // Add timeout to prevent hanging
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Profile fetch timeout')), 15000); // Increased to 15s
+      setTimeout(() => reject(new Error('Profile fetch timeout')), 10000);
     });
 
     try {
+      activeFetchRef.current = userId;
       console.log(`[AuthContext] Fetching profile for ${email}...`);
 
       const profilePromise = supabase
@@ -52,8 +70,10 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
 
       if (data) {
         console.log('[AuthContext] Profile found:', data.role);
+
         // Check if this is the admin email and update role if needed
         if (email === 'halodyrane@gmail.com' && data.role !== 'admin') {
+          console.log('[AuthContext] Auto-elevating admin role...');
           await supabase
             .from('profiles')
             .update({ role: 'admin' })
@@ -61,18 +81,11 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
           data.role = 'admin';
         }
 
-        // NEW: Enrich with display ID
-        try {
-          const { getDisplayId } = await import('../services/displayIdService');
-          const display_id = await getDisplayId(data.id);
-          setProfile({ ...data, display_id });
-        } catch (idError) {
-          console.warn('[AuthContext] Display ID enrichment failed:', idError);
-          setProfile(data);
-        }
+        // Optimized: display_id is already in 'data' due to select('*')
+        setProfileState(data);
       } else {
-        // Create new profile if doesn't exist (Fallback for slow DB triggers)
-        console.log('[AuthContext] Profile not found, attempting creation...');
+        // Create new profile if doesn't exist
+        console.log('[AuthContext] Profile not found, attempting creation/sync...');
         const role = email === 'halodyrane@gmail.com' ? 'admin' : 'viewer';
         const newProfile = {
           id: userId,
@@ -83,7 +96,6 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
           onboarding_status: 'pending'
         };
 
-        // Use UPSERT to avoid duplicate key errors if the trigger just finished
         const { data: createdProfile, error: createError } = await supabase
           .from('profiles')
           .upsert([newProfile], { onConflict: 'id' })
@@ -92,41 +104,31 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
 
         if (createError) {
           console.error('[AuthContext] Error creating profile:', createError);
-          // If upsert failed, try one last fetch just in case the trigger finally caught up
+          // Fallback fetch
           const { data: finalProfile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', userId)
             .single();
 
-          if (finalProfile) {
-            setProfile(finalProfile);
-          } else {
-            console.warn('[AuthContext] Falling back to local profile object');
-            setProfile(newProfile); // Use local profile as fallback
-          }
+          setProfileState(finalProfile || newProfile);
         } else {
           console.log('[AuthContext] Profile successfully created/synced');
-          // NEW: Enrich with display ID
-          try {
-            const { getDisplayId } = await import('../services/displayIdService');
-            const display_id = await getDisplayId(createdProfile.id);
-            setProfile({ ...createdProfile, display_id });
-          } catch (idError) {
-            setProfile(createdProfile);
-          }
+          setProfileState(createdProfile);
         }
       }
     } catch (error) {
       console.error('[AuthContext] Error in profile flow:', error);
       // Fallback profile to prevent app from breaking
-      setProfile({
+      setProfileState({
         id: userId,
         role: email === 'halodyrane@gmail.com' ? 'admin' : 'org_admin',
         username: email?.split('@')[0] || 'User',
         email: email,
+        display_id: 'USR-OFFLINE'
       });
     } finally {
+      activeFetchRef.current = null;
       setLoading(false);
       setInitializing(false);
     }
@@ -167,7 +169,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
         } else {
           console.log('[AuthContext] No initial session');
           setUser(null);
-          setProfile(null);
+          setProfileState(null);
           setLoading(false);
           setInitializing(false);
         }
@@ -186,16 +188,25 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      console.log('[AuthContext] Auth State Change:', event);
+      console.log(`[AuthContext] Auth Event: ${event}`);
 
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
 
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || (event === 'INITIAL_SESSION' && session?.user)) {
-        if (session?.user) {
-          await fetchProfile(session.user.id, session.user.email);
+      // COORDINATION: only fetch if we don't already have the correct profile
+      if (currentUser) {
+        // Use ref for synchronous check to avoid closure staleness
+        if (profileRef.current && profileRef.current.id === currentUser.id) {
+          setLoading(false);
+          setInitializing(false);
+        } else {
+          // Need to fetch (ref check inside fetchProfile prevents loops)
+          fetchProfile(currentUser.id, currentUser.email);
         }
-      } else if (event === 'SIGNED_OUT') {
-        setProfile(null);
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setProfileState(null);
         setUser(null);
         setLoading(false);
         setInitializing(false);
@@ -242,7 +253,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     } finally {
       // Always clear local state regardless of server response
       setUser(null);
-      setProfile(null);
+      setProfileState(null);
       // Optional: Clear any other local storage items if you have custom ones
       localStorage.removeItem('supabase.auth.token'); // Fallback cleanup
     }
@@ -337,7 +348,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     try {
       if (!user) throw new Error('No user logged in');
       const data = await updateProfileService(user.id, updates);
-      setProfile(data);
+      setProfileState(data);
       return data;
     } catch (error) {
       console.error('Error updating profile:', error);

@@ -57,7 +57,7 @@ export const NotificationCenter = () => {
         variant="ghost"
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
-        className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
+        className={`${isMobile ? 'h-8 w-8' : 'h-9 w-9'} squircle hover:bg-primary/10 hover:text-primary relative`}
       >
         <Bell className={`h-4 w-4 ${isMobile ? 'text-black dark:text-white' : ''}`} />
         {unreadCount > 0 && (
@@ -70,23 +70,21 @@ export const NotificationCenter = () => {
       {/* Mobile: Sheet */}
       {isMobile ? (
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetOverlay className="bg-black/40 backdrop-blur-[2px]" />
+          <SheetOverlay className="bg-black/20 backdrop-blur-sm" />
           <SheetContent
-            side="bottom"
-            className="h-[60vh] rounded-t-[32px] border-0 p-0 overflow-hidden"
+            side="right"
+            className="w-[85%] max-w-[320px] p-0 border-0 bg-background dark:bg-background/10 backdrop-blur-md rounded-l-[40px] overflow-hidden"
           >
-            <div className="h-1.5 w-12 bg-white/20 rounded-full mx-auto mt-4 mb-6" />
-
-            <div className="px-4 mb-4">
+            <div className="px-4 mb-4 py-2">
               <div>
-                <h3 className="font-bold text-2xl tracking-tight">Notifications</h3>
+                <h3 className="font-normal text-lg tracking-tight">Notifications</h3>
                 {unreadCount > 0 && (
                   <p className="text-sm text-muted-foreground">{unreadCount} new</p>
                 )}
               </div>
             </div>
 
-            <div className="max-h-[50vh] overflow-y-auto px-4 pb-20">
+            <div className="max-h-[50vh] overflow-y-auto px-2 pb-20">
               {loading ? (
                 <div className="space-y-2">
                   {[...Array(3)].map((_, i) => (
@@ -116,7 +114,7 @@ export const NotificationCenter = () => {
             </div>
 
             {notifications.length > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10 bg-background/95 backdrop-blur-xl">
+              <div className="absolute bottom-0 left-0 right-0 p-2 border-t border-white/10 bg-background/95 backdrop-blur-xl">
                 <Button
                   variant="ghost"
                   size="sm"

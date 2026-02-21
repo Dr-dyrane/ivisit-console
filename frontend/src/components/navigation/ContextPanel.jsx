@@ -98,7 +98,7 @@ export const ContextPanel = () => {
   };
 
   const renderAccessDenied = () => (
-    <div className="p-2 md:p-6 scrollbar-hide">
+    <div className="p-0 md:p-6 scrollbar-hide">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -161,7 +161,7 @@ export const ContextPanel = () => {
         {/* Subtle service bar */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/20 via-success/20 to-primary/20" />
 
-        <div className="px-6 pt-4 pb-3 md:px-6">
+        <div className="px-0 pt-4 pb-3 md:px-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-bold text-lg tracking-tight text-foreground">{title}</h2>
@@ -200,7 +200,7 @@ export const ContextPanel = () => {
       <div className="hidden md:block">
         {renderPanelHeader()}
       </div>
-      <div className="flex-1 overflow-y-auto px-6 pb-6 md:px-6 md:pb-6">
+      <div className="flex-1 overflow-y-auto px-0 pb-6 md:px-6 md:pb-6">
         {panelContent}
       </div>
     </div>

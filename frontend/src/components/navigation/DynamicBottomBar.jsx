@@ -5,10 +5,8 @@ import { useLayout } from '../../contexts/LayoutContext';
 import { useContextAction } from '../../hooks/useContextAction';
 import { useInsurance } from '../../hooks/useInsurance';
 import { useSupportTickets } from '../../hooks/useSupportTickets';
-import { Menu, Zap, Search } from 'lucide-react';
-import { Sheet, SheetContent, SheetOverlay } from '../ui/sheet';
-import { ContextPanel } from './ContextPanel';
-import { MobileNavMenu } from './MobileNavMenu';
+import { LayoutDashboard, Map, BarChart3 } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import {
     EmergencyRequestModal,
     UserModal,
@@ -21,18 +19,16 @@ import {
     InsuranceModal,
     SubscriptionModal
 } from '../modals/index';
-import { NotificationCenter } from '../common/NotificationCenter';
-import { QuickSearch } from './QuickSearch';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSubscription } from '../../hooks/useSubscription';
+import { QuickSearch } from './QuickSearch';
 
 export const DynamicBottomBar = () => {
     const { isMobile } = useNavigation();
     const { isScrolledDown } = useLayout();
     const { theme } = useTheme();
-    const [sheetOpen, setSheetOpen] = useState(false);
+    const location = useLocation();
     const [searchOpen, setSearchOpen] = useState(false);
-    const [activeView, setActiveView] = useState('menu');
     const [modalStates, setModalStates] = useState({
         emergency: false,
         user: false,
@@ -59,7 +55,6 @@ export const DynamicBottomBar = () => {
     const { createTicket } = useSupportTickets();
     const { createSubscriber } = useSubscription();
 
-    // Constants for SupportTicketModal
     const TICKET_PRIORITIES = [
         { value: 'low', label: 'Low', color: 'blue' },
         { value: 'normal', label: 'Normal', color: 'green' },
@@ -74,151 +69,67 @@ export const DynamicBottomBar = () => {
 
     if (!isMobile) return null;
 
-    const isDark = theme === 'dark';
+    const navItems = [
+        { icon: LayoutDashboard, path: '/', label: 'Home' },
+        { icon: Map, path: '/map', label: 'Map' },
+        { icon: BarChart3, path: '/analytics', label: 'Data' }
+    ];
 
     return (
         <>
             <div
                 id="dynamic-bottom-bar"
                 className="fixed left-0 right-0 flex justify-center z-50 pointer-events-none"
-                style={{ bottom: '16px' }}
+                style={{ bottom: '24px' }}
             >
-                <motion.div
-                    initial={{ y: 100, opacity: 0 }}
-                    animate={{
-                        y: isScrolledDown ? 120 : 0,
-                        opacity: isScrolledDown ? 0 : 1,
-                        scale: isScrolledDown ? 0.95 : 1
-                    }}
-                    transition={{
-                        type: 'spring',
-                        stiffness: 300,
-                        damping: 30,
-                        mass: 0.8
-                    }}
-                    className="pointer-events-auto"
-                >
-                    <div
-                        className="flex items-center gap-1 p-1.5 rounded-full backdrop-blur-sm shadow-premium"
+                <div className="w-full px-6 flex items-center justify-between pointer-events-auto">
+                    {/* CORE NAVIGATION PILL - Lucid Design */}
+                    <motion.div
+                        initial={{ x: -50, opacity: 0 }}
+                        animate={{
+                            x: isScrolledDown ? -100 : 0,
+                            opacity: isScrolledDown ? 0 : 1,
+                        }}
+                        className="flex items-center gap-1 p-1 rounded-full bg-background/10 backdrop-blur-sm shadow-lg"
                     >
-                        {/* Menu Trigger */}
-                        <motion.button
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setSheetOpen(true)}
-                            className="w-12 h-12 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors"
-                        >
-                            <Menu className="w-6 h-6 text-black dark:text-white" />
-                        </motion.button>
+                        {navItems.map((item) => {
+                            const isActive = location.pathname === item.path;
+                            return (
+                                <Link key={item.path} to={item.path}>
+                                    <motion.div
+                                        whileTap={{ scale: 0.9 }}
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${isActive
+                                            ? 'bg-primary/20 text-primary shadow-inner'
+                                            : 'text-foreground/40 hover:text-foreground'
+                                            }`}
+                                    >
+                                        <item.icon className="w-5 h-5" />
+                                    </motion.div>
+                                </Link>
+                            );
+                        })}
+                    </motion.div>
 
-                        {/* Search */}
-                        <motion.button
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setSearchOpen(true)}
-                            className="w-12 h-12 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors"
-                        >
-                            <Search className="w-6 h-6 text-black dark:text-white" />
-                        </motion.button>
-
-
-                        {/* Notifications */}
-                        <div className="w-12 h-12 rounded-full flex items-center justify-center">
-                            <NotificationCenter />
-                        </div>
-
-
-                        {/* Context Action */}
-                        <motion.button
-                            whileTap={{ scale: 0.95 }}
-                            onClick={actionConfig.action}
-                            className="w-12 h-12 rounded-full flex items-center justify-center transition-all"
-                            style={{
-                                background: `linear-gradient(135deg, hsl(var(--${actionConfig.color})) 0%, hsl(var(--${actionConfig.color}) / 0.8) 100%)`,
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-                            }}
-                        >
-                            <actionConfig.icon className="w-6 h-6 text-white" />
-                        </motion.button>
-                    </div>
-                </motion.div>
+                    {/* CONTEXT FAB - Professional Detached Pill */}
+                    <motion.button
+                        initial={{ x: 50, opacity: 0 }}
+                        animate={{
+                            x: isScrolledDown ? 100 : 0,
+                            opacity: isScrolledDown ? 0 : 1,
+                        }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={actionConfig.action}
+                        className="w-12 h-12 flex items-center justify-center transition-all shadow-xl relative overflow-hidden rounded-[20px]"
+                        style={{
+                            background: `linear-gradient(135deg, hsl(var(--${actionConfig.color})) 0%, hsl(var(--${actionConfig.color}) / 0.8) 100%)`,
+                        }}
+                    >
+                        {/* Shimmer */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent pointer-events-none" />
+                        <actionConfig.icon className="w-6 h-6 text-white relative z-10" />
+                    </motion.button>
+                </div>
             </div>
-
-            {/* Sheet for Menu */}
-            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                <SheetOverlay className="bg-black/5 backdrop-blur-[2px]" />
-                <SheetContent
-                    side="bottom"
-                    className="h-[90vh] rounded-t-[32px] border-0 p-0 overflow-hidden  bg-background dark:bg-background/5 backdrop-blur-sm"
-                    style={{
-                        boxShadow: '0 -10px 40px rgba(0,0,0,0.2)'
-                    }}
-                >
-                    <div className="h-1.5 w-12 bg-white/20 rounded-full mx-auto mt-4 mb-6" />
-
-                    {/* View Toggle (Apple-style Segmented Control) */}
-                    <div className="px-4 mb-6">
-                        <div className="p-1 rounded-xl bg-muted/20 backdrop-blur-md flex relative">
-                            {/* Sliding Background */}
-                            <motion.div
-                                className="absolute top-1 bottom-1 bg-background shadow-sm rounded-lg"
-                                initial={false}
-                                animate={{
-                                    left: activeView === 'menu' ? '4px' : '50%',
-                                    width: 'calc(50% - 4px)',
-                                    x: activeView === 'menu' ? 0 : 0
-                                }}
-                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                            />
-
-                            <button
-                                onClick={() => setActiveView('menu')}
-                                className={`flex-1 relative z-10 py-2 text-sm font-semibold text-center transition-colors duration-200 ${activeView === 'menu' ? 'text-foreground' : 'text-muted-foreground'
-                                    }`}
-                            >
-                                Menu
-                            </button>
-                            <button
-                                onClick={() => setActiveView('context')}
-                                className={`flex-1 relative z-10 py-2 text-sm font-semibold text-center transition-colors duration-200 ${activeView === 'context' ? 'text-foreground' : 'text-muted-foreground'
-                                    }`}
-                            >
-                                Context
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="h-full overflow-y-auto px-4 pb-20 scrollbar-hide">
-                        <AnimatePresence mode="wait">
-                            {activeView === 'menu' ? (
-                                <motion.div
-                                    key="menu"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <MobileNavMenu onClose={() => setSheetOpen(false)} />
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    key="context"
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div>
-                                            <h2 className="font-bold text-2xl tracking-tight">Context</h2>
-                                            <p className="text-sm text-muted-foreground font-normal">Quick Access & Insights</p>
-                                        </div>
-                                    </div>
-                                    <ContextPanel />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-                </SheetContent>
-            </Sheet>
 
             {/* Modals */}
             <AnimatePresence>

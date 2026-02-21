@@ -76,7 +76,7 @@ export const MobileMetricRow = ({
                 </div>
 
                 <div className="flex-1 min-w-0 relative z-10">
-                    <p className="text-[10px] font-normal uppercase tracking-[0.15em] mb-0.5 truncate text-muted-foreground/50">
+                    <p className="text-[10px] font-normal uppercase tracking-[0.15em] mb-0.5 truncate text-muted-foreground/80">
                         {label}
                     </p>
                     <div className="flex items-baseline gap-1.5">

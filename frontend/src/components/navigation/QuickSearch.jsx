@@ -80,19 +80,19 @@ export const QuickSearch = ({ isOpen, onClose }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="p-0 overflow-hidden bg-transparent border-0 shadow-2xl max-w-3xl">
+      <DialogContent className="p-2 overflow-hidden bg-transparent border-0 shadow-2xl max-w-3xl">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-background/80 backdrop-blur-xl border border-white/10 rounded-3xl flex flex-col max-h-[70vh]"
+          className="bg-background dark:bg-background/10 backdrop-blur-sm rounded-3xl flex flex-col max-h-[70vh]"
         >
           {/* Header */}
-          <div className="flex items-center px-6 py-4 border-b border-white/5">
+          <div className="flex items-center px-6 py-4">
             <Search className="w-5 h-5 text-muted-foreground mr-3" />
             <input
               autoFocus
-              className="flex-1 h-12 bg-transparent border-0 outline-none text-lg placeholder:text-muted-foreground/50 font-normal"
+              className="flex-1 h-12 bg-transparent border-0 outline-none text-xs md:text-lg placeholder:text-muted-foreground/50 font-normal"
               placeholder="Search doctors, hospitals, visits, emergencies..."
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
