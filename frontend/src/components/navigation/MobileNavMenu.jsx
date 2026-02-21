@@ -214,7 +214,7 @@ export const MobileNavMenu = ({ onClose }) => {
                     </Avatar>
                     <div className="text-left flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">{profile?.full_name || profile?.username || 'User'}</p>
-                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Account Settings</p>
+                        <p className="text-[8px] font-normal text-muted-foreground uppercase tracking-wider">Account Settings</p>
                     </div>
                 </button>
             </div>

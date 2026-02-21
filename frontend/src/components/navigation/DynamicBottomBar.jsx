@@ -90,7 +90,7 @@ export const DynamicBottomBar = () => {
                             x: isScrolledDown ? -100 : 0,
                             opacity: isScrolledDown ? 0 : 1,
                         }}
-                        className="flex items-center gap-1 p-1 rounded-full bg-background/40 dark:bg-black/40 backdrop-blur-xl shadow-2xl ring-1 ring-white/10"
+                        className="flex items-center gap-1 p-1 rounded-full backdrop-blur-sm shadow-sm"
                     >
                         {navItems.map((item) => {
                             const isActive = location.pathname === item.path;
