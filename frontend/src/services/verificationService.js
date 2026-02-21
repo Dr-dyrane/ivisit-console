@@ -21,7 +21,15 @@ export async function getVerificationQueue(filters = {}) {
     const user = await getCurrentUser();
     const role = user?.role || 'viewer';
 
+    // Silent Guard: Return empty instead of throwing for unauthorized console access
     if (!['admin', 'org_admin', 'sponsor'].includes(role)) {
+      if (role === 'patient') {
+        return {
+          data: [],
+          stats: { pending: 0, approved: 0, total: 0 },
+          pagination: { page: 1, limit: 12, total: 0, totalPages: 0 }
+        };
+      }
       throw new AuthorizationError('Admin, Org Admin, or Sponsor access required for verification queue', 'verification', 'getQueue');
     }
 
@@ -190,7 +198,7 @@ const STATS_CACHE_DURATION = 10 * 1000; // 10 seconds
  */
 export async function getVerificationStats() {
   const now = Date.now();
-  
+
   // Check cache first
   if (verificationStatsCache.has('stats')) {
     const cached = verificationStatsCache.get('stats');
@@ -201,8 +209,14 @@ export async function getVerificationStats() {
   }
 
   try {
-    const adminCheck = await isAdmin();
-    if (!adminCheck) {
+    const user = await getCurrentUser();
+    const role = user?.role || 'viewer';
+
+    // Silent Guard: Return empty instead of throwing for unauthorized console access
+    if (!['admin', 'org_admin', 'sponsor', 'viewer'].includes(role)) {
+      if (role === 'patient') {
+        return { pending: 0, approved: 0, total: 0, recentSignups: 0 };
+      }
       throw new AuthorizationError('Admin access required for verification stats', 'verification', 'getStats');
     }
 

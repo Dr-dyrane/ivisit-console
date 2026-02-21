@@ -21,6 +21,12 @@ const TABLE_NAME = 'organizations';
  */
 export async function getOrganizations() {
     try {
+        const user = await getCurrentUser();
+        // RBAC: Patients should not be calling organizations (Console only)
+        if (user?.role === 'patient') {
+            return [];
+        }
+
         const [orgsRes, walletsRes] = await Promise.all([
             supabase.from(TABLE_NAME).select('*').order('name', { ascending: true }),
             supabase.from('organization_wallets').select('*')

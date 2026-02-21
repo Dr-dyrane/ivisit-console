@@ -8,6 +8,7 @@ import { getEmergencyRequests } from './emergencyService';
 import { getHospitals } from './hospitalsService';
 import { getAmbulances } from './ambulancesService';
 import { getSubscriptionAnalytics } from './subscriptionService';
+import { getCurrentUser } from './authService';
 import { supabase } from '../lib/supabase';
 
 // Cache for performance optimization
@@ -39,6 +40,17 @@ const getCachedOrFetch = async (key, fetchFunction, duration = CACHE_DURATION) =
  */
 export const getAnalyticsData = async (options = {}) => {
   try {
+    const user = await getCurrentUser();
+    // RBAC: Patients should not be accessing analytics (Console only)
+    if (user?.role === 'patient') {
+      return {
+        totalUsers: 0, totalEmergencies: 0, avgResponseTime: 0, successRate: 0,
+        totalHospitals: 0, totalAmbulances: 0, totalBeds: 0,
+        subscriptionAnalytics: { totalSubscribers: 0, activeSubscribers: 0 },
+        trends: { emergencyTrend: 0, emergencyTrendPercentage: 0, isPositiveTrend: true }
+      };
+    }
+
     const {
       timeRange = 'all',
       includeRawData = true,

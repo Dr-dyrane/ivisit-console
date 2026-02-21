@@ -103,6 +103,12 @@ async function getProfilesWithAuthData(filter) {
  */
 export async function getUserStatistics() {
   try {
+    const user = await getCurrentUser();
+    // RBAC: Patients should not be calling statistics (Console only)
+    if (user?.role === 'patient') {
+      return { totalUsers: 0, totalProfiles: 0, recentSignups: 0, roleDistribution: {} };
+    }
+
     const { data, error } = await supabase.rpc('get_user_statistics');
     if (error) throw error;
 
@@ -134,6 +140,12 @@ export async function getUserStatistics() {
  */
 export async function searchUsers(searchTerm) {
   try {
+    const user = await getCurrentUser();
+    // RBAC: Patients should not be searching users (Console only)
+    if (user?.role === 'patient') {
+      return [];
+    }
+
     const { data, error } = await supabase.rpc('search_auth_users', { search_term: searchTerm });
     if (error) throw error;
     return data;
