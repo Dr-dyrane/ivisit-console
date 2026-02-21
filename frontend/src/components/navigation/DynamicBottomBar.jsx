@@ -2,10 +2,31 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useLayout } from '../../contexts/LayoutContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useContextAction } from '../../hooks/useContextAction';
 import { useInsurance } from '../../hooks/useInsurance';
 import { useSupportTickets } from '../../hooks/useSupportTickets';
-import { LayoutDashboard, Map, BarChart3 } from 'lucide-react';
+import {
+    LayoutDashboard,
+    Map,
+    BarChart3,
+    Calendar,
+    AlertTriangle,
+    Hospital,
+    Ambulance,
+    Stethoscope,
+    Headphones,
+    Newspaper,
+    FileCheck,
+    Users,
+    Building2,
+    Mail,
+    Wallet,
+    DollarSign,
+    Shield,
+    Settings,
+    Activity
+} from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
     EmergencyRequestModal,
@@ -23,9 +44,52 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import { QuickSearch } from './QuickSearch';
 
+const PATH_ICONS = {
+    '/': LayoutDashboard,
+    '/map': Map,
+    '/analytics': BarChart3,
+    '/visits': Calendar,
+    '/emergencies': AlertTriangle,
+    '/hospitals': Hospital,
+    '/ambulances': Ambulance,
+    '/doctors': Stethoscope,
+    '/support-tickets': Headphones,
+    '/health-news': Newspaper,
+    '/verification': FileCheck,
+    '/users': Users,
+    '/organizations': Building2,
+    '/subscriptions': Mail,
+    '/wallet': Wallet,
+    '/pricing': DollarSign,
+    '/insurance': Shield,
+    '/settings': Settings
+};
+
+const SMART_RECOMMENDATIONS = {
+    '/': '/analytics',
+    '/map': '/emergencies',
+    '/analytics': '/pricing',
+    '/hospitals': '/ambulances',
+    '/ambulances': '/map',
+    '/doctors': '/visits',
+    '/visits': '/doctors',
+    '/users': '/organizations',
+    '/organizations': '/users',
+    '/emergencies': '/map',
+    '/verification': '/users',
+    '/support-tickets': '/analytics',
+    '/health-news': '/analytics',
+    '/subscriptions': '/pricing',
+    '/pricing': '/wallet',
+    '/wallet': '/analytics',
+    '/insurance': '/pricing',
+    '/settings': '/wallet'
+};
+
 export const DynamicBottomBar = () => {
     const { isMobile } = useNavigation();
     const { isScrolledDown } = useLayout();
+    const { profile } = useAuth();
     const { theme } = useTheme();
     const location = useLocation();
     const [searchOpen, setSearchOpen] = useState(false);
@@ -69,11 +133,40 @@ export const DynamicBottomBar = () => {
 
     if (!isMobile) return null;
 
-    const navItems = [
-        { icon: LayoutDashboard, path: '/', label: 'Home' },
-        { icon: Map, path: '/map', label: 'Map' },
-        { icon: BarChart3, path: '/analytics', label: 'Data' }
-    ];
+    const currentPath = location.pathname;
+
+    // Slot 1: Always Home
+    const slot1 = { path: '/', icon: LayoutDashboard, label: 'Home' };
+
+    // Slot 2: Current Page (if not home, otherwise map/analytics)
+    let slot2 = { path: currentPath, icon: PATH_ICONS[currentPath] || Activity, label: 'Current' };
+    if (currentPath === '/') {
+        slot2 = { path: '/map', icon: Map, label: 'Map' };
+    }
+
+    // Slot 3: Smart Recommendation
+    const recPath = SMART_RECOMMENDATIONS[currentPath] || '/analytics';
+    const slot3 = { path: recPath, icon: PATH_ICONS[recPath] || Activity, label: 'Next' };
+
+    // Unique nav items for the bar
+    const navItems = [slot1, slot2, slot3].reduce((acc, current) => {
+        const x = acc.find(item => item.path === current.path);
+        if (!x) return acc.concat([current]);
+        return acc;
+    }, []);
+
+    // Ensure we always have 3 items if possible for a steady UI
+    if (navItems.length < 3) {
+        const fallbacks = [
+            { path: '/analytics', icon: BarChart3, label: 'Data' },
+            { path: '/map', icon: Map, label: 'Live' }
+        ];
+        fallbacks.forEach(f => {
+            if (navItems.length < 3 && !navItems.find(n => n.path === f.path)) {
+                navItems.push(f);
+            }
+        });
+    }
 
     return (
         <>
