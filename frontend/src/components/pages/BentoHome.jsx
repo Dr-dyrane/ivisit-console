@@ -39,6 +39,7 @@ import { getWalletSummary } from '../../services/walletService';
 import { Wallet, TrendingDown as TrendingDownIcon } from 'lucide-react';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { MobileDashboard } from '../mobile/MobileDashboard';
+import { MobileDashboardSkeleton } from '../mobile/MobileSkeleton';
 // Remove incorrect StandardMap import
 
 // Responsive Grid Hook or similar logic can be added here if needed, 
@@ -666,6 +667,10 @@ export const BentoHome = () => {
   const isLoading = loading?.emergency || loading?.analytics || loading?.doctors || loading?.visits || loading?.verification;
 
   // Show role-specific skeleton layout while loading (after all hooks)
+  if (isMobile && isLoading) {
+    return <MobileDashboardSkeleton />;
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen py-6 md:py-8">

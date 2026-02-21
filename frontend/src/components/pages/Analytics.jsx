@@ -50,6 +50,9 @@ import { ReportsModal } from '../modals/ReportsModal';
 import { useSubscription } from '../../hooks/useSubscription';
 import { getFinanceAnalytics } from '../../services/walletService';
 import { Wallet } from 'lucide-react';
+import { useBreakpoint } from '../../hooks/useBreakpoint';
+import { MobileAnalytics } from '../mobile/MobileAnalytics';
+import { MobileAnalyticsSkeleton } from '../mobile/MobileSkeleton';
 
 const CHART_COLORS = {
   primary: 'hsl(var(--primary))',
@@ -432,6 +435,43 @@ export const Analytics = () => {
     }
     return null;
   };
+
+  const { isMobile } = useBreakpoint();
+
+  const roleContext = useMemo(() => ({
+    isAdmin: isAdmin(),
+    isProvider: isProvider(),
+    isPatient: isPatient(),
+    isViewer: isViewer(),
+    isSponsor: isSponsor(),
+    isOrgAdmin: isOrgAdmin(),
+    hasMinRole
+  }), [isAdmin, isProvider, isPatient, isViewer, isSponsor, isOrgAdmin, hasMinRole]);
+
+  if (isMobile && loading) {
+    return <MobileAnalyticsSkeleton />;
+  }
+
+  if (isMobile) {
+    return (
+      <MobileAnalytics
+        stats={stats}
+        subscriptionStats={subscriptionStats}
+        financeSummary={financeSummary}
+        hospitalCapacity={hospitalCapacity}
+        responseTimeData={responseTimeData}
+        requestsByStatus={requestsByStatus}
+        emergencyTypes={emergencyTypes}
+        dominantType={dominantType}
+        financeData={financeData}
+        demandHeatmap={demandHeatmap}
+        timeRange={timeRange}
+        onRefresh={fetchAnalytics}
+        handleExport={handleExport}
+        roleContext={roleContext}
+      />
+    );
+  }
 
   return (
     <>

@@ -413,8 +413,8 @@ code {
 
 	.apple-glass-heavy {
 		background: hsl(var(--muted) / 0.15);
-		backdrop-filter: saturate(150%) blur(12px);
-		-webkit-backdrop-filter: saturate(150%) blur(12px);
+		backdrop-filter: saturate(125%) blur(12px);
+		-webkit-backdrop-filter: saturate(125%) blur(12px);
 		will-change: transform;
 	}
 

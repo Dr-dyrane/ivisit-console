@@ -324,3 +324,16 @@ Following the mobile polish phase, the design system evolved from "frosted" to "
     - This creates a sharper, higher-performance lens effect that feels like polished crystal rather than frosted plastic.
 - **KPI Compression**: Summary strip removed global shadows and standardized on individual `bg-muted/30` pills for each KPI, ensuring a flush, integrated feel against the header.
 - **No-Scrollbar Standard**: All interactive panels now use `no-scrollbar` to maintain a distraction-free, native-app visual flow.
+- **Atmospheric Glow (v2)**: Featured metrics now use balanced `0.12` alpha radial glows with `70%` spread to create a soft, physical light source behind the glass, replacing neon edge accents.
+
+---
+
+### 9.8 Physicality & State: Mobile-Specific Loaders (2026-02-21)
+Following the "State Is Design" maxim (Canon #5), we transitioned from generic desktop bento skeletons to mobile-matched loaders that follow the actual spatial layout of the reinvented feed:
+
+- **Bifurcated Skeleton Logic**: 
+    - Desktop uses the "Bento Grid" skeleton with individual box blurs.
+    - Mobile uses `MobileDashboardSkeleton` and `MobileAnalyticsSkeleton`, which mirror the exact vertical feed hierarchy (KPI Strip → Hero Metric → Feed Rows).
+- **Physical Pulse Animation**: Shifted from generic gray fading to a `bg-muted/30` apple-style pulse that maintains the "Liquid Glass" transparency even during the empty state.
+- **Matched Geometry**: Skeleton shapes now precisely match the `squircle-3xl` and `rounded-2xl` tokens used in the final components, preventing layout shifts (CLS) when data arrives.
+- **Atmospheric Readiness**: Hero metric skeletons include a blurred circular pulse to ready the user's eye for the incoming "Atmospheric Glow."
