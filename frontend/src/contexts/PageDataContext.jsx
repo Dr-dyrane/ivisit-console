@@ -627,7 +627,7 @@ export const PageDataProvider = ({ children }) => {
   // Initialize all data on mount - only when user is authenticated
   useEffect(() => {
     if (!user) return;
-    
+
     // PULLBACK NOTE: Added user.id check to prevent undefined UUID errors
     // OLD: Fetch data as soon as user is available
     // NEW: Only fetch when user.id is available (after full auth)
@@ -922,9 +922,12 @@ export const PageDataProvider = ({ children }) => {
     };
   }, [insurancePolicies]);
 
+  const getEmergencyStats = useCallback(() => emergencyStats, [emergencyStats]);
+  const getInsuranceStats = useCallback(() => insuranceStats, [insuranceStats]);
+
   // PULLBACK NOTE: Optimized context value to prevent excessive re-renders
-// OLD: useMemo with 30+ dependencies causing constant re-creation
-// NEW: Split into stable data and methods to minimize dependency churn
+  // OLD: useMemo with 30+ dependencies causing constant re-creation
+  // NEW: Split into stable data and methods to minimize dependency churn
 
   // Memoize data separately from methods
   const dataValue = useMemo(() => ({
@@ -1000,6 +1003,8 @@ export const PageDataProvider = ({ children }) => {
     fetchInsurancePolicies,
     fetchActivityData,
     fetchWalletData,
+    getEmergencyStats,
+    getInsuranceStats,
     refreshAllData
   }), [
     fetchEmergencyData,
@@ -1014,6 +1019,8 @@ export const PageDataProvider = ({ children }) => {
     fetchInsurancePolicies,
     fetchActivityData,
     fetchWalletData,
+    getEmergencyStats,
+    getInsuranceStats,
     refreshAllData
   ]);
 

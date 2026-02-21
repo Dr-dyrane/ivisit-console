@@ -507,7 +507,7 @@ export const BentoHome = () => {
   // }, [emergencyStats, analyticsData, doctorsStats, visitsStats, verificationData, appStats]);
 
   // Transform activity data for display
-  const recentActivities = transformActivityData(activityData || []);
+  const recentActivities = transformActivityData(activityData || []).slice(0, 5);
 
 
   const headerActions = React.useMemo(() => (
