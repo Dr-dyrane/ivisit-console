@@ -51,7 +51,7 @@ const PWADebugTracker = () => {
 		<div className="fixed bottom-[1px] left-1/2 -translate-x-1/2 z-[9999] pointer-events-none select-none">
 			<div className="bg-white/[0.02] backdrop-blur-md px-2 py-0.5 rounded-full shadow-2xl flex items-center justify-center">
 				<span className="text-[8px] font-medium text-zinc-500/50 uppercase tracking-[0.2em] leading-none">
-					v1.0.25
+					v1.0.26
 				</span>
 			</div>
 		</div>
@@ -79,7 +79,7 @@ const AppShell = ({ children }) => {
 
 				<main
 					id="main-content"
-					className={`flex-1 bg-background dark:bg-background relative overflow-y-auto overflow-x-hidden scroll-smooth custom-scrollbar transition-all duration-300 ${!hideNav ? "pt-16" : ""}`}
+					className={`flex-1 bg-background dark:bg-background relative overflow-y-auto overflow-x-hidden scroll-smooth ${isMobile ? 'no-scrollbar' : 'custom-scrollbar'} transition-all duration-300 ${!hideNav ? "pt-16" : ""}`}
 				>
 
 					<motion.div
@@ -87,13 +87,13 @@ const AppShell = ({ children }) => {
 						initial={false}
 						animate={{
 							// Push content by Sidebar Width + 24px gap (3×8px)
-							paddingLeft: hideNav ? 16 : (window.innerWidth >= 768 ? sidebarWidth + 48 : 16),
+							paddingLeft: hideNav ? 0 : (window.innerWidth >= 768 ? sidebarWidth + 48 : 0),
 							// Right padding - 24px (3×8px) for consistency
-							paddingRight: isMobile ? 16 : 48,
+							paddingRight: isMobile ? 0 : 48,
 							// Top padding when scrolled - 16px (2×8px)
 							paddingTop: isScrolledDown ? 0 : 16,
 							// Bottom padding - Respect iOS Safe Areas + Base clearance (Stable Restore)
-							paddingBottom: 'calc(112px + var(--safe-bottom))'
+							paddingBottom: 'calc(16px + var(--safe-bottom))'
 						}}
 						transition={{ type: "spring", stiffness: 300, damping: 30 }}
 						className="relative z-10"

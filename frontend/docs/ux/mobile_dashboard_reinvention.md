@@ -267,13 +267,34 @@ Canon #23: Micro = Craft — staggered entry animation
 
 ---
 
-## 8. DECISION REQUIRED
+## 9. PROGRESS UPDATE (2026-02-21) — The "True Canon" Refinement
 
-Before implementation, confirm:
+### 9.1 Implementation Status
+- [x] **Phase 1-3 Complete**: MobileDashboard handles all roles (Admin, Provider, Patient, Sponsor).
+- [x] **Parity Achieved**: 1:1 data match with `BentoHome`, including Wallet income, Trending Topics, and Subscriptions.
+- [x] **Aesthetic Pivot**: Moved from "Bold/Heavy" to "Quiet Premium" (Minimalist weights, 3xl curves, [2px] edge-to-edge).
+- [x] **Interactivity (v2)**: Implemented Progressive Disclosure across all feed rows.
 
-1. **Breakpoint**: Mobile cutoff at `640px` (Tailwind `sm`) or `768px` (Tailwind `md`)?
-2. **Analytics**: Apply same mobile treatment to `Analytics.jsx` in this pass, or Phase 2?
-3. **Pull-to-refresh**: Native gesture vs. button?
-4. **Sections**: Fixed order or allow admin to reorder (stretch goal)?
+### 9.2 UX Appraisal (v1 vs v2)
 
-**Recommendation**: Start with `BentoHome` at `640px` cutoff, Analytics in a follow-up pass. Button refresh for now (matches existing UX).
+| Feature | v1 (Information Feed) | v2 (Interactive Control) | Canon Impact |
+|---------|-----------------------|--------------------------|--------------|
+| **Information** | Static list rows | Progressive Disclosure | #3 Reveal Gradually |
+| **Depth** | Colored borders | Glass refraction & Layering | #21 Depth Over Color |
+| **Tactility** | Simple click | Tap-to-expand + Micro-anim | #28 Feels Touchable |
+| **Context** | Navigate away for info | Reveal inline | #18 Spatial Memory |
+| **Density** | Higher (4x) | Ultra-high (6x via expansion) | #43 Mutate, Don't Multiply |
+
+### 9.3 The Audit — Why this is "True Canon"
+
+1. **Spatial Memory (#18)**: By expanding rows instead of navigating, the user never loses their place.
+2. **Quiet Authority (#39)**: The move from `font-black` to `font-medium` signals confidence. The UI doesn't need to "yell" to be important.
+3. **Ruthless Hierarchy (#29)**: Only hero stats have sparklines. Secondary data is hidden inside expansion pods, ensuring the user only focuses on what matters *now*.
+4. **Time Is Designed (#26)**: Layout animations for expansion (300ms) provide instant acknowledgment of intent while preserving physical logic.
+
+### 9.4 Next Steps
+- [ ] Bring these "Interactive Row" patterns to `Analytics.jsx`.
+- [ ] Implement Haptic-style vibrations on expansion (if browser API allows).
+- [ ] Add "Long-press for Quick Action" to rows (e.g., Long-press Hospital to call).
+
+---

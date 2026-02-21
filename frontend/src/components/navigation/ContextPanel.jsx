@@ -56,6 +56,13 @@ export const ContextPanel = () => {
 
   const emergencyStats = getEmergencyStats();
 
+  // Default filters for panels that require them
+  const filters = {
+    status: 'all',
+    role: 'all',
+    search: ''
+  };
+
   // Role-based access control for context panels
   const canAccessPanel = (panelPath) => {
     // Define role access rules for each panel

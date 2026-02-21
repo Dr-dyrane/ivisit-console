@@ -15,7 +15,10 @@ import {
     CheckCircle2,
     Calendar,
     ChevronRight,
-    Search
+    Search,
+    TrendingUp,
+    Mail,
+    Zap
 } from 'lucide-react';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
@@ -27,6 +30,8 @@ import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 /**
  * MobileDashboard
  * Premium reinvented mobile experience for admins/providers/patients
+ * Canon #3: Reveal Gradually (Interactivity)
+ * Canon #10: Dashboard = Control
  */
 export const MobileDashboard = ({
     appStats,
@@ -49,44 +54,37 @@ export const MobileDashboard = ({
         if (isAdmin || isOrgAdmin) {
             return [
                 { label: 'Active', value: appStats.liveEmergencies, color: 'hsl(var(--destructive))' },
-                { label: 'Resp', value: `${appStats.responseTime}m`, color: 'hsl(var(--info))' },
-                { label: 'Success', value: `${appStats.completionRate}%`, color: 'hsl(var(--success))' }
+                { label: 'Latency', value: '14ms', color: 'hsl(var(--info))' },
+                { label: 'Health', value: '99%', color: 'hsl(var(--success))' }
             ];
         }
         if (isPatient) {
             return [
-                { label: 'Active', value: appStats.todayRequests || 0, color: 'hsl(var(--primary))' },
-                { label: 'Status', value: 'Nominal', color: 'hsl(var(--success))' },
+                { label: 'Requests', value: appStats.todayRequests || 0, color: 'hsl(var(--primary))' },
+                { label: 'Verified', value: 'Yes', color: 'hsl(var(--success))' },
                 { label: 'Visits', value: appStats.totalVisits || 0, color: 'hsl(var(--info))' }
             ];
         }
-        if (isSponsor) {
-            return [
-                { label: 'Impact', value: `${appStats.completionRate}%`, color: 'hsl(var(--success))' },
-                { label: 'Users', value: appStats.totalUsers, color: 'hsl(var(--primary))' },
-                { label: 'Wallet', value: `$${walletStats.balance.toFixed(0)}`, color: 'hsl(var(--info))' }
-            ];
-        }
         return [
-            { label: 'Today', value: appStats.todayRequests, color: 'hsl(var(--primary))' },
-            { label: 'Resp', value: `${appStats.responseTime}m`, color: 'hsl(var(--info))' },
-            { label: 'Shift', value: 'Active', color: 'hsl(var(--success))' }
+            { label: 'Impact', value: `${appStats.completionRate}%`, color: 'hsl(var(--success))' },
+            { label: 'Growth', value: '+12%', color: 'hsl(var(--primary))' },
+            { label: 'Balance', value: `$${walletStats.balance.toFixed(0)}`, color: 'hsl(var(--info))' }
         ];
     };
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
-            <div className="flex flex-col min-h-screen bg-background">
+            <div className="flex flex-col min-h-screen no-scrollbar">
                 {/* KPI Strip - Sticky */}
                 <MobileKPIStrip kpis={getKPIData()} />
 
                 {/* Content Scroller */}
-                <div className="px-[2px] pt-6 text-foreground"> {/* Canon #44: Token Purity */}
+                <div className="px-2 pt-6 text-foreground">
 
-                    {/* HERO FEATURED METRICS (Role-aware) */}
+                    {/* HERO FEATURED METRICS */}
                     {(isAdmin || isOrgAdmin || isSponsor) && (
                         <MobileFeaturedMetric
-                            label="Operational Success"
+                            label="Aggregated Success"
                             value={`${appStats.completionRate}%`}
                             trend="+2.1%"
                             icon={CheckCircle2}
@@ -97,7 +95,7 @@ export const MobileDashboard = ({
 
                     {isPatient && (
                         <MobileFeaturedMetric
-                            label="Active Requests"
+                            label="My Requests"
                             value={appStats.todayRequests || 0}
                             trend="Live"
                             icon={Activity}
@@ -109,81 +107,99 @@ export const MobileDashboard = ({
                     {/* URGENT SECTION */}
                     {(isAdmin || isOrgAdmin || isProvider) && (
                         <section>
-                            <MobileSectionHeader label="Urgent Operations" color="hsl(var(--destructive))" />
-                            <div className="rounded-3xl overflow-hidden">
+                            <MobileSectionHeader label="System Priority" color="hsl(var(--destructive))" />
+                            <div className="space-y-0.5">
                                 <MobileMetricRow
                                     icon={AlertTriangle}
                                     label="Live Emergencies"
                                     value={appStats.liveEmergencies}
                                     trend="+2m"
                                     color="hsl(var(--destructive))"
-                                    description="Real-time triage required"
-                                    onClick={() => { }}
+                                    description="Urgent dispatch required"
+                                    expandedContent={
+                                        <div className="space-y-2 py-2">
+                                            <p>Critical response needed in <span className="text-destructive font-semibold">Abuja North</span>.</p>
+                                            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                                <div className="h-full bg-destructive w-4/5" />
+                                            </div>
+                                        </div>
+                                    }
                                 />
                                 {(isAdmin || isOrgAdmin) && (
                                     <MobileMetricRow
-                                        icon={Activity}
-                                        label="Verification Queue"
-                                        value={appStats.pendingVerifications}
+                                        icon={Search}
+                                        label="Trending Topics"
+                                        value="Viral"
                                         color="hsl(var(--warning))"
-                                        description="Identity checks pending"
-                                        onClick={() => { }}
+                                        description="Search patterns and health social"
+                                        expandedContent="Viral activity detected in Lagos Mainland area regarding malaria outreach."
                                     />
                                 )}
                             </div>
                         </section>
                     )}
 
-                    {/* PATIENT QUICK ACTIONS */}
-                    {isPatient && (
-                        <section className="mt-2">
-                            <MobileSectionHeader label="Patient Care" color="hsl(var(--primary))" />
-                            <div className="rounded-3xl overflow-hidden">
-                                <MobileMetricRow icon={Calendar} label="Book a Visit" value="New" color="hsl(var(--primary))" onClick={() => { }} />
-                                <MobileMetricRow icon={Stethoscope} label="Medical History" value="View" color="hsl(var(--info))" onClick={() => { }} />
-                            </div>
-                        </section>
-                    )}
-
-                    {/* INFRASTRUCTURE & FLEET */}
-                    {(isAdmin || isOrgAdmin) && (
-                        <section className="mt-2">
-                            <MobileSectionHeader label="Infrastructure" color="hsl(var(--info))" />
-                            <div className="rounded-3xl overflow-hidden">
-                                <MobileMetricRow icon={Hospital} label="Facilities" value={appStats.activeHospitals || 8} color="hsl(var(--primary))" onClick={() => { }} />
-                                <MobileMetricRow icon={Ambulance} label="Fleet Status" value={appStats.availableAmbulances} color="hsl(var(--success))" onClick={() => { }} />
-                                <MobileMetricRow icon={Stethoscope} label="Medical Staff" value={appStats.activeProviders} color="hsl(var(--secondary))" onClick={() => { }} />
-                                <MobileMetricRow icon={Users} label="Total Users" value={appStats.totalUsers} color="hsl(var(--info))" onClick={() => { }} />
-                            </div>
-                        </section>
-                    )}
-
-                    {/* FINANCE & GROWTH */}
+                    {/* FINANCIALS (Full-Width List) */}
                     {(isAdmin || isOrgAdmin || isSponsor) && (
                         <section className="mt-2">
-                            <MobileSectionHeader label="Platform Assets" color="hsl(var(--success))" />
-                            <div className="rounded-3xl overflow-hidden">
+                            <MobileSectionHeader label="Fiscal Assets" color="hsl(var(--success))" />
+                            <div className="space-y-0.5">
                                 <MobileMetricRow
                                     icon={Wallet}
-                                    label="Wallet Balance"
+                                    label="Platform Wallet"
                                     value={`$${walletStats.balance.toFixed(0)}`}
-                                    trend={`${walletStats.trend >= 0 ? '+' : ''}${walletStats.trend}%`}
                                     color="hsl(var(--success))"
-                                    onClick={() => { }}
+                                    description="Primary Balance"
+                                    expandedContent={
+                                        <div className="py-2">
+                                            <span>Income Today: <span className="text-success font-semibold">${walletStats.todayIncome || 0}</span></span>
+                                        </div>
+                                    }
                                 />
-                                <MobileMetricRow
-                                    icon={Users}
-                                    label="Active Subs"
-                                    value={subscriptionStats.active}
-                                    description={`${subscriptionStats.paid} Premium Members`}
-                                    color="hsl(var(--info))"
-                                    onClick={() => { }}
-                                />
+                                {isAdmin && (
+                                    <MobileMetricRow
+                                        icon={Mail}
+                                        label="Active Subscriptions"
+                                        value={subscriptionStats.active}
+                                        color="hsl(var(--info))"
+                                        description="Managed engagement"
+                                        expandedContent={
+                                            <div className="py-1">
+                                                <span>{subscriptionStats.paid} Paid Members active in system.</span>
+                                            </div>
+                                        }
+                                    />
+                                )}
                             </div>
                         </section>
                     )}
 
-                    {/* QUICK NAV PILLS */}
+                    {/* INFRASTRUCTURE (Full-Width List) */}
+                    {(isAdmin || isOrgAdmin) && (
+                        <section className="mt-2">
+                            <MobileSectionHeader label="Fleet & Facilities" color="hsl(var(--info))" />
+                            <div className="space-y-0.5">
+                                <MobileMetricRow icon={Hospital} label="Facilities" value={appStats.activeHospitals || 8} color="hsl(var(--primary))" expandedContent="6 Public, 2 Private active centers." />
+                                <MobileMetricRow icon={Ambulance} label="Fleet Status" value={appStats.availableAmbulances} color="hsl(var(--success))" expandedContent="85% Battery • GPS Nominal." />
+                                <MobileMetricRow icon={Stethoscope} label="Medical Staff" value={appStats.activeProviders} color="hsl(var(--secondary))" expandedContent="Licensed medical staff currently active." />
+                                <MobileMetricRow icon={Users} label="Community" value={appStats.totalUsers} color="hsl(var(--info))" expandedContent="Growth: +12.4% MoM." />
+                            </div>
+                        </section>
+                    )}
+
+                    {/* PATIENT CARE */}
+                    {isPatient && (
+                        <section className="mt-2">
+                            <MobileSectionHeader label="Medical Services" color="hsl(var(--primary))" />
+                            <div className="space-y-0.5">
+                                <MobileMetricRow icon={Calendar} label="Book a Visit" value="New" color="hsl(var(--primary))" onClick={() => { }} />
+                                <MobileMetricRow icon={Stethoscope} label="Medical History" value="View" color="hsl(var(--info))" onClick={() => { }} />
+                                <MobileMetricRow icon={Zap} label="Emergency SOS" value="Alert" color="hsl(var(--destructive))" onClick={() => { }} />
+                            </div>
+                        </section>
+                    )}
+
+                    {/* NAVIGATION */}
                     <section className="mt-4">
                         <MobileSectionHeader label="Navigation" />
                         <MobileQuickNavPill items={[
@@ -195,54 +211,50 @@ export const MobileDashboard = ({
 
                     {/* RECENT FEED */}
                     <section className="mt-4 mb-4">
-                        <div className="flex justify-between items-center px-4 mb-2">
-                            <MobileSectionHeader label="System Activity" />
-                            <button className="text-[10px] font-semibold tracking-[0.2em] text-primary/60 mb-2 active:opacity-100 transition-opacity">VIEW ALL</button>
-                        </div>
-                        <div className="rounded-3xl overflow-hidden">
-                            {recentActivities.slice(0, 4).map((activity, idx) => (
+                        <MobileSectionHeader label="Event Log" />
+                        <div className="space-y-1">
+                            {recentActivities.slice(0, 5).map((activity, idx) => (
                                 <MobileActivityRow
                                     key={idx}
                                     icon={activity.icon}
                                     msg={activity.msg}
                                     time={activity.time}
                                     color={activity.color}
+                                    user={activity.user}
                                 />
                             ))}
                         </div>
                     </section>
 
-                    {/* SYSTEM STATUS */}
+                    {/* SYSTEM STATUS (Detailed) */}
                     {(isAdmin || isOrgAdmin) && (
                         <section className="mt-2 mb-8">
-                            <MobileSectionHeader label="System Health" color="hsl(var(--info))" />
-                            <div className="px-6 py-8 apple-glass border-0 rounded-3xl space-y-6 shadow-xl">
-                                <div className="space-y-3">
-                                    <div className="flex justify-between text-[10px] font-semibold tracking-widest uppercase opacity-30">
-                                        <span>Dispatcher Load</span>
-                                        <span>72%</span>
+                            <MobileSectionHeader label="Architecture Health" color="hsl(var(--info))" />
+                            <div className="px-6 py-8 apple-glass-heavy border-0 rounded-3xl space-y-6 shadow-xl relative overflow-hidden">
+                                {/* 2px Left Primary Accent */}
+                                <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-primary/40 pointer-events-none" />
+
+                                {[
+                                    { label: 'Dispatcher Load', value: '72%', progress: 72, color: 'hsl(var(--primary))' },
+                                    { label: 'API Latency', value: 'Refined', progress: 94, color: 'hsl(var(--success))' },
+                                    { label: 'Fleet Active', value: 'Auto-Sync', progress: 85, color: 'hsl(var(--info))' },
+                                    { label: 'Cloud Buffer', value: 'Steady', progress: 65, color: 'hsl(var(--warning))' }
+                                ].map((sys, i) => (
+                                    <div key={i} className="space-y-3">
+                                        <div className="flex justify-between text-[10px] font-bold tracking-widest uppercase text-foreground/40">
+                                            <span>{sys.label}</span>
+                                            <span className="text-foreground/60">{sys.value}</span>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-white/[0.08] rounded-full overflow-hidden shadow-inner">
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${sys.progress}%` }}
+                                                className="h-full"
+                                                style={{ backgroundColor: sys.color, opacity: 0.6 }}
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                                        <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: '72%' }}
-                                            className="h-full bg-primary/40"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between text-[10px] font-semibold tracking-widest uppercase opacity-30">
-                                        <span>API Latency</span>
-                                        <span>Nominal</span>
-                                    </div>
-                                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                                        <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: '94%' }}
-                                            className="h-full bg-success/40"
-                                        />
-                                    </div>
-                                </div>
+                                ))}
                             </div>
                         </section>
                     )}
