@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, Check, CheckSquare, Square } from 'lucide-react';
+import { ChevronRight, Check, CheckSquare, Square, CheckCircle2, Circle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**
@@ -18,13 +18,14 @@ export const MobileSectionHeader = ({ label, color = 'hsl(var(--primary))', coun
             {onSelectAll && (
                 <button
                     onClick={onSelectAll}
-                    className="w-10 h-10 flex items-center justify-center rounded-2xl apple-glass-heavy border-0 active:scale-90 transition-all text-primary/60 hover:text-primary"
+                    className="w-8 h-8 flex items-center justify-center rounded-2xl apple-glass-heavy border-0 active:scale-90 transition-all text-primary/60 hover:text-primary"
                     aria-label={isAllSelected ? 'Deselect All' : 'Select All'}
                 >
                     {isAllSelected ? (
-                        <CheckSquare size={18} className="text-primary" />
+                        <CheckCircle2 size={16} className="text-primary" />
                     ) : (
-                        <Square size={18} className="text-primary/30" />
+                        <Circle size={16} className="text-primary/30" />
+
                     )}
                 </button>
             )}
@@ -47,6 +48,7 @@ export const MobileMetricRow = ({
     icon: Icon,
     label,
     value,
+    trend,
     statusIndicators = [], // Array of { icon, color, label }
     onClick,
     color = 'hsl(var(--primary))',
@@ -59,11 +61,21 @@ export const MobileMetricRow = ({
     onSelect,
     selectionMode
 }) => {
+    // Backward compatibility: Use internal state if controlled props not provided
+    const [internalExpanded, setInternalExpanded] = useState(false);
+    const isCurrentlyExpanded = isExpanded !== undefined ? isExpanded : internalExpanded;
+
     const handleInteraction = (e) => {
-        if (selectionMode && onSelect) {
+        if (expandedContent) {
+            if (onExpand && itemId !== undefined) {
+                // Controlled expansion (new pattern for MobileUsers/MobileVisits)
+                onExpand(itemId);
+            } else {
+                // Internal state (old pattern for MobileDashboard/MobileAnalytics)
+                setInternalExpanded(!internalExpanded);
+            }
+        } else if (selectionMode && onSelect) {
             onSelect(itemId);
-        } else if (expandedContent) {
-            onExpand?.(itemId);
         } else if (onClick) {
             onClick(e);
         }
@@ -86,7 +98,7 @@ export const MobileMetricRow = ({
                 whileTap={{ scale: 0.98 }}
                 onClick={handleInteraction}
                 onContextMenu={handleLongPress}
-                className={`w-full flex items-center gap-3 p-3 apple-glass-heavy border-0 rounded-2xl relative overflow-hidden group transition-colors ${isSelected ? 'bg-primary/10 ring-1 ring-primary/20' : isExpanded ? 'bg-muted/80' : 'bg-muted/50 active:bg-muted/70'
+                className={`w-full flex items-center gap-3 p-3 apple-glass-heavy border-0 rounded-2xl relative overflow-hidden group transition-colors ${isSelected ? 'bg-primary/10 ring-1 ring-primary/20' : isCurrentlyExpanded ? 'bg-muted/80 rounded-b-none' : 'bg-muted/50 active:bg-muted/70'
                     }`}
             >
                 {/* 2px Left Accent - The only differentiator */}
@@ -141,7 +153,7 @@ export const MobileMetricRow = ({
 
                 {(onClick || expandedContent) && (
                     <motion.div
-                        animate={{ rotate: isExpanded ? 90 : 0 }}
+                        animate={{ rotate: isCurrentlyExpanded ? 90 : 0 }}
                         className="opacity-20 group-active:opacity-40"
                     >
                         <ChevronRight size={14} />
@@ -150,7 +162,7 @@ export const MobileMetricRow = ({
             </motion.div>
 
             <AnimatePresence initial={false}>
-                {isExpanded && (
+                {isCurrentlyExpanded && (
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
@@ -159,7 +171,7 @@ export const MobileMetricRow = ({
                             height: { type: 'spring', stiffness: 300, damping: 30 },
                             opacity: { duration: 0.2 }
                         }}
-                        className="bg-primary/[0.04] overflow-hidden rounded-b-2xl -mt-2 pt-2"
+                        className="bg-primary/[0.025] overflow-hidden rounded-b-2xl -mt-2 pt-2"
                     >
                         <div className="p-3 pt-4 text-[11px] text-muted-foreground/80 tracking-tight leading-relaxed font-normal">
                             {expandedContent}
