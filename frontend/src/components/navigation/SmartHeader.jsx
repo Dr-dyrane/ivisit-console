@@ -37,7 +37,7 @@ export const SmartHeader = () => {
                 // Apple-Wordy Smart Header with glass-card design
                 className={`fixed z-40 flex items-center justify-between transition-all duration-300 ${isMobile
                     ? 'top-1 left-2 right-2 h-10 rounded-full bg-background/5 backdrop-blur-sm pointer-events-auto'
-                    : 'top-0 left-0 right-0 h-16 border-b border-border/10 bg-background/50 backdrop-blur-xl pointer-events-auto shadow-sm'
+                    : 'top-0 left-0 right-0 h-16 pointer-events-auto'
                     }`}
                 style={{
                     paddingRight: isMobile ? '8px' : '32px',
