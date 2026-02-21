@@ -1174,7 +1174,7 @@ export const BentoHome = () => {
           {/* Trending Topics - Warning Card */}
           <motion.div
             layout
-            className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-1"
+            className="hidden col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-1"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.7, ease: [0.4, 0, 0.2, 1] }}

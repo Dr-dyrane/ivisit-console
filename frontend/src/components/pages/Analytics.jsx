@@ -42,7 +42,7 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
-import { motion, LayoutGroup } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { usePageHeader } from '../../contexts/LayoutContext';
 import { ReportsModal } from '../modals/ReportsModal';
@@ -401,1324 +401,1322 @@ export const Analytics = () => {
         <div className="pt-2" />
 
         {/* Fluid Bento Grid */}
-        <LayoutGroup>
-          <motion.div
-            layout
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense"
-          >
+        <motion.div
+          layout
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 auto-rows-min grid-flow-dense"
+        >
 
-            {/* Stat Cards - Row 1 - Role-based visibility */}
-            {/* Admin see system-wide stats */}
-            {isAdmin() && [
-              { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: "up", trendValue: "+12%", color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "geo-sharp" },
-              { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: "down", trendValue: "15% faster", color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-round" },
-              { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Excellent", color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
-            ].map((stat, idx) => (
-              <motion.div
-                layout
-                key={idx}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: idx * 0.1 }}
-                className={`${stat.colSpan}`}
-              >
-                <Card className={`h-full min-h-[160px] ${stat.shape} glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group`}>
-                  {/* Apple hover glow effect */}
-                  <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.destructive ? 'destructive' : stat.color === CHART_COLORS.success ? 'success' : stat.color === CHART_COLORS.info ? 'info' : 'primary'}`} />
-                  <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
-                  <div className="relative z-10 flex flex-col justify-between h-full">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 squircle flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
-                        <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
-                      </div>
-                      {stat.trend && (
-                        <Badge className={`squircle-sm border-0 ${stat.trend === 'up' && stat.color !== CHART_COLORS.destructive ? 'bg-success/20 text-success' : 'bg-primary/20 text-primary'}`}>
-                          {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                          {stat.trendValue}
-                        </Badge>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">{stat.title}</p>
-                      <h3 className="text-4xl font-bold tracking-tighter">{stat.value}</h3>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-
-            {/* Org Admin see organization-level stats */}
-            {isOrgAdmin() && [
-              { title: "Org Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: "up", trendValue: "Your org", color: CHART_COLORS.warning, colSpan: "col-span-1 lg:col-span-2", shape: "geo-round" },
-              { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: "down", trendValue: "Org performance", color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
-              { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Org success", color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-sharp" },
-            ].map((stat, idx) => (
-              <motion.div
-                layout
-                key={`org-${idx}`}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: idx * 0.1 }}
-                className={`${stat.colSpan}`}
-              >
-                <Card className={`h-full min-h-[160px] ${stat.shape} glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group`}>
-                  <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.warning ? 'warning' : stat.color === CHART_COLORS.success ? 'success' : 'info'}`} />
-                  <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
-                  <div className="relative z-10 flex flex-col justify-between h-full">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 squircle flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
-                        <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
-                      </div>
-                      {stat.trend && (
-                        <Badge className={`squircle-sm border-0 ${stat.color === CHART_COLORS.warning ? 'bg-warning/20 text-warning' : stat.color === CHART_COLORS.success ? 'bg-success/20 text-success' : 'bg-info/20 text-info'}`}>
-                          {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                          {stat.trendValue}
-                        </Badge>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">{stat.title}</p>
-                      <h3 className="text-4xl font-bold tracking-tighter">{stat.value}</h3>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-
-            {/* Sponsor see system-wide stats */}
-            {isSponsor() && [
-              { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: "up", trendValue: "+12%", color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "geo-sharp" },
-              { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: "down", trendValue: "15% faster", color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-round" },
-              { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Excellent", color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
-            ].map((stat, idx) => (
-              <motion.div
-                layout
-                key={`sponsor-${idx}`}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: idx * 0.1 }}
-                className={`${stat.colSpan}`}
-              >
-                <Card className={`h-full min-h-[160px] ${stat.shape} glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group`}>
-                  <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.destructive ? 'destructive' : stat.color === CHART_COLORS.success ? 'success' : stat.color === CHART_COLORS.info ? 'info' : 'primary'}`} />
-                  <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
-                  <div className="relative z-10 flex flex-col justify-between h-full">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 squircle flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
-                        <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
-                      </div>
-                      {stat.trend && (
-                        <Badge className={`squircle-sm border-0 ${stat.trend === 'up' && stat.color !== CHART_COLORS.destructive ? 'bg-success/20 text-success' : 'bg-primary/20 text-primary'}`}>
-                          {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                          {stat.trendValue}
-                        </Badge>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">{stat.title}</p>
-                      <h3 className="text-4xl font-bold tracking-tighter">{stat.value}</h3>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-
-            {/* Provider-specific limited stats */}
-            {isProvider() && [
-              { title: "Your Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: "up", trendValue: "Your assigned", color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2", shape: "geo-round" },
-              { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Your performance", color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
-            ].map((stat, idx) => (
-              <motion.div
-                layout
-                key={`provider-${idx}`}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: idx * 0.1 }}
-                className={`${stat.colSpan}`}
-              >
-                <Card className={`h-full min-h-[160px] ${stat.shape} glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group`}>
-                  <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.success ? 'success' : 'info'}`} />
-                  <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
-                  <div className="relative z-10 flex flex-col justify-between h-full">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 squircle flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
-                        <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
-                      </div>
-                      {stat.trend && (
-                        <Badge className={`squircle-sm border-0 ${stat.color === CHART_COLORS.success ? 'bg-success/20 text-success' : 'bg-info/20 text-info'}`}>
-                          {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                          {stat.trendValue}
-                        </Badge>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">{stat.title}</p>
-                      <h3 className="text-4xl font-bold tracking-tighter">{stat.value}</h3>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-
-            {/* Response Time Trend - Large Chart -> GEO-SHARD (Dynamic Flow) */}
-            {/* Admin see system-wide trends */}
-            {isAdmin() && (
-              <motion.div
-                layout
-                className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-4 row-span-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Card className="h-full min-h-[400px] geo-shard glass-card shadow-2xl p-8 flex flex-col justify-between group relative overflow-hidden">
-                  {/* Subtle Grid for Context */}
-                  <div className="absolute inset-0 opacity-5"
-                    style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%', color: 'hsl(var(--primary))' }}>
-                  </div>
-
-                  <div className="flex items-center justify-between mb-6 relative z-10">
-                    <div>
-                      <h3 className="font-bold text-2xl tracking-tight">System Response Time Trend</h3>
-                      <p className="text-muted-foreground font-medium">System-wide average response time over {timeRange}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Badge className="squircle bg-success/10 text-success border-0 font-semibold px-3 py-1">
-                        <TrendingDown className="h-4 w-4 mr-1" />
-                        -2.4m avg
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 w-full min-h-[300px] min-w-[300px]">
-                    <ResponsiveContainer width="100%" height={300} minWidth={300} aspect={1}>
-                      <AreaChart data={responseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.3} />
-                            <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
-                        <XAxis
-                          dataKey="shortDay"
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          dy={10}
-                        />
-                        <YAxis
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          tickFormatter={(value) => `${value}m`}
-                        />
-                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                        <Area
-                          type="monotone"
-                          dataKey="avgTime"
-                          stroke={CHART_COLORS.primary}
-                          strokeWidth={4}
-                          fill="url(#colorTime)"
-                          name="System Avg Time (min)"
-                          animationDuration={1500}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Org Admin see organization-level trends */}
-            {isOrgAdmin() && (
-              <motion.div
-                layout
-                className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-4 row-span-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Card className="h-full min-h-[400px] geo-shard glass-card shadow-2xl p-8 flex flex-col justify-between group relative overflow-hidden">
-                  <div className="absolute inset-0 opacity-5"
-                    style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%', color: 'hsl(var(--warning))' }}>
-                  </div>
-
-                  <div className="flex items-center justify-between mb-6 relative z-10">
-                    <div>
-                      <h3 className="font-bold text-2xl tracking-tight">Organization Response Time Trend</h3>
-                      <p className="text-muted-foreground font-medium">Your organization's response time over {timeRange}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Badge className="squircle bg-warning/10 text-warning border-0 font-semibold px-3 py-1">
-                        <TrendingDown className="h-4 w-4 mr-1" />
-                        Org avg
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 w-full min-h-[300px] min-w-[300px]">
-                    <ResponsiveContainer width="100%" height={300} minWidth={300} aspect={1}>
-                      <AreaChart data={responseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorTimeOrg" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={CHART_COLORS.warning} stopOpacity={0.3} />
-                            <stop offset="95%" stopColor={CHART_COLORS.warning} stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
-                        <XAxis
-                          dataKey="shortDay"
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          dy={10}
-                        />
-                        <YAxis
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          tickFormatter={(value) => `${value}m`}
-                        />
-                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                        <Area
-                          type="monotone"
-                          dataKey="avgTime"
-                          stroke={CHART_COLORS.warning}
-                          strokeWidth={4}
-                          fill="url(#colorTimeOrg)"
-                          name="Org Response Time (min)"
-                          animationDuration={1500}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Sponsor see system-wide trends */}
-            {isSponsor() && (
-              <motion.div
-                layout
-                className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-4 row-span-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Card className="h-full min-h-[400px] geo-shard glass-card shadow-2xl p-8 flex flex-col justify-between group relative overflow-hidden">
-                  <div className="absolute inset-0 opacity-5"
-                    style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%', color: 'hsl(var(--primary))' }}>
-                  </div>
-
-                  <div className="flex items-center justify-between mb-6 relative z-10">
-                    <div>
-                      <h3 className="font-bold text-2xl tracking-tight">System Response Time Trend</h3>
-                      <p className="text-muted-foreground font-medium">System-wide average response time over {timeRange}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Badge className="squircle bg-success/10 text-success border-0 font-semibold px-3 py-1">
-                        <TrendingDown className="h-4 w-4 mr-1" />
-                        -2.4m avg
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 w-full min-h-[300px] min-w-[300px]">
-                    <ResponsiveContainer width="100%" height={300} minWidth={300} aspect={1}>
-                      <AreaChart data={responseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorTimeSponsor" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.3} />
-                            <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
-                        <XAxis
-                          dataKey="shortDay"
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          dy={10}
-                        />
-                        <YAxis
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          tickFormatter={(value) => `${value}m`}
-                        />
-                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                        <Area
-                          type="monotone"
-                          dataKey="avgTime"
-                          stroke={CHART_COLORS.primary}
-                          strokeWidth={4}
-                          fill="url(#colorTimeSponsor)"
-                          name="System Avg Time (min)"
-                          animationDuration={1500}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Provider-specific Response Time Chart */}
-            {isProvider() && (
-              <motion.div
-                layout
-                className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-4 row-span-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Card className="h-full min-h-[400px] geo-shard glass-card shadow-2xl p-8 flex flex-col justify-between group relative overflow-hidden">
-                  <div className="absolute inset-0 opacity-5"
-                    style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%', color: 'hsl(var(--info))' }}>
-                  </div>
-
-                  <div className="flex items-center justify-between mb-6 relative z-10">
-                    <div>
-                      <h3 className="font-bold text-2xl tracking-tight">Your Response Times</h3>
-                      <p className="text-muted-foreground font-medium">Your personal response time performance</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Badge className="squircle bg-info/10 text-info border-0 font-semibold px-3 py-1">
-                        <Activity className="h-4 w-4 mr-1" />
-                        Personal
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 w-full min-h-[300px] min-w-[300px]">
-                    <ResponsiveContainer width="100%" height={300} minWidth={300} aspect={1}>
-                      <AreaChart data={responseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorTimeProvider" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={CHART_COLORS.info} stopOpacity={0.3} />
-                            <stop offset="95%" stopColor={CHART_COLORS.info} stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
-                        <XAxis
-                          dataKey="shortDay"
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          dy={10}
-                        />
-                        <YAxis
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          tickFormatter={(value) => `${value}m`}
-                        />
-                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                        <Area
-                          type="monotone"
-                          dataKey="avgTime"
-                          stroke={CHART_COLORS.info}
-                          strokeWidth={4}
-                          fill="url(#colorTimeProvider)"
-                          name="Your Response Time (min)"
-                          animationDuration={1500}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Request Status Breakdown - Pie Chart -> GEO-TICKET (Rounded cutouts) */}
-            {/* Admin see system-wide status */}
-            {isAdmin() && (
-              <motion.div
-                layout
-                className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-2 row-span-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                <Card className="h-full min-h-[400px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
-                  {/* Apple hover glow effect */}
-                  <div className="hover-glow hover-glow-primary" />
-                  {/* Top Right Icon */}
-                  <div className="absolute top-0 right-0 p-6 z-20">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
-                      <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                        <Activity className="h-6 w-6 text-primary" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <h3 className="font-bold text-xl mb-1 tracking-tight">System Status</h3>
-                  <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Live distribution of all system requests</p>
-
-                  <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
-                    <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
-                      <PieChart>
-                        <Pie
-                          data={requestsByStatus}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={65}
-                          outerRadius={85}
-                          paddingAngle={2}
-                          dataKey="value"
-                          stroke="none"
-                          cornerRadius={4}
-                        >
-                          {requestsByStatus.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    {/* Center Text Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
-                      <div className="text-center">
-                        <p className="text-4xl font-bold tracking-tighter text-foreground">{stats.successRate}%</p>
-                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">SYSTEM SUCCESS</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                    {requestsByStatus.slice(0, 3).map((status, index) => (
-                      <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
-                        <span className="opacity-80">{status.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Org Admin see organization-level status */}
-            {isOrgAdmin() && (
-              <motion.div
-                layout
-                className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-2 row-span-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                <Card className="h-full min-h-[400px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
-                  <div className="hover-glow hover-glow-warning" />
-                  <div className="absolute top-0 right-0 p-6 z-20">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-warning/20 blur-xl rounded-full scale-150" />
-                      <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                        <Activity className="h-6 w-6 text-warning" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <h3 className="font-bold text-xl mb-1 tracking-tight">Organization Status</h3>
-                  <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Live distribution of your organization's requests</p>
-
-                  <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
-                    <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
-                      <PieChart>
-                        <Pie
-                          data={requestsByStatus}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={65}
-                          outerRadius={85}
-                          paddingAngle={2}
-                          dataKey="value"
-                          stroke="none"
-                          cornerRadius={4}
-                        >
-                          {requestsByStatus.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
-                      <div className="text-center">
-                        <p className="text-4xl font-bold tracking-tighter text-foreground">{stats.successRate}%</p>
-                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">ORG SUCCESS</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                    {requestsByStatus.slice(0, 3).map((status, index) => (
-                      <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
-                        <span className="opacity-80">{status.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Sponsor see system-wide status */}
-            {isSponsor() && (
-              <motion.div
-                layout
-                className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-2 row-span-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                <Card className="h-full min-h-[400px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
-                  <div className="hover-glow hover-glow-primary" />
-                  <div className="absolute top-0 right-0 p-6 z-20">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
-                      <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                        <Activity className="h-6 w-6 text-primary" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <h3 className="font-bold text-xl mb-1 tracking-tight">System Status</h3>
-                  <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Live distribution of all system requests</p>
-
-                  <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
-                    <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
-                      <PieChart>
-                        <Pie
-                          data={requestsByStatus}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={65}
-                          outerRadius={85}
-                          paddingAngle={2}
-                          dataKey="value"
-                          stroke="none"
-                          cornerRadius={4}
-                        >
-                          {requestsByStatus.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
-                      <div className="text-center">
-                        <p className="text-4xl font-bold tracking-tighter text-foreground">{stats.successRate}%</p>
-                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">SYSTEM SUCCESS</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                    {requestsByStatus.slice(0, 3).map((status, index) => (
-                      <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
-                        <span className="opacity-80">{status.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Provider-specific Status Breakdown */}
-            {isProvider() && (
-              <motion.div
-                layout
-                className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-2 row-span-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                <Card className="h-full min-h-[400px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
-                  {/* Apple hover glow effect */}
-                  <div className="hover-glow hover-glow-info" />
-                  {/* Top Right Icon */}
-                  <div className="absolute top-0 right-0 p-6 z-20">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
-                      <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                        <Activity className="h-6 w-6 text-info" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <h3 className="font-bold text-xl mb-1 tracking-tight">Your Status</h3>
-                  <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Live distribution of your requests</p>
-
-                  <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
-                    <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
-                      <PieChart>
-                        <Pie
-                          data={requestsByStatus}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={65}
-                          outerRadius={85}
-                          paddingAngle={2}
-                          dataKey="value"
-                          stroke="none"
-                          cornerRadius={4}
-                        >
-                          {requestsByStatus.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color === CHART_COLORS.primary ? CHART_COLORS.info : entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    {/* Center Text Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
-                      <div className="text-center">
-                        <p className="text-4xl font-bold tracking-tighter text-foreground">{stats.successRate}%</p>
-                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">YOUR SUCCESS</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                    {requestsByStatus.slice(0, 3).map((status, index) => (
-                      <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-info/20 text-xs font-medium">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color === CHART_COLORS.primary ? CHART_COLORS.info : status.color }} />
-                        <span className="opacity-80">{status.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Subscription Analytics Card - Admin/Sponsor Only */}
-            {(isAdmin() || isSponsor()) && (
-              <motion.div
-                layout
-                className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-2"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.45 }}
-              >
-                <Card className="h-full min-h-[350px] geo-round glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
-                  {/* Apple hover glow effect */}
-                  <div className="hover-glow hover-glow-info" />
-                  {/* Top Right Icon */}
-                  <div className="absolute top-0 right-0 p-6 z-20">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
-                      <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                        <Mail className="h-6 w-6 text-info" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mb-6 relative z-10">
-                    <h3 className="font-bold text-xl tracking-tight">Subscriptions</h3>
-                    <p className="text-sm text-muted-foreground font-medium">Community engagement overview</p>
-                  </div>
-
-                  <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
-                    <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: 'Active', value: subscriptionStats.active, fill: CHART_COLORS.success },
-                            { name: 'Inactive', value: subscriptionStats.total - subscriptionStats.active, fill: CHART_COLORS.muted },
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={65}
-                          outerRadius={85}
-                          paddingAngle={2}
-                          dataKey="value"
-                          stroke="none"
-                          cornerRadius={4}
-                        >
-                          <Cell fill={CHART_COLORS.success} />
-                          <Cell fill={CHART_COLORS.muted} />
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    {/* Center Text Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
-                      <div className="text-center">
-                        <p className="text-4xl font-bold tracking-tighter text-foreground">{subscriptionStats.total}</p>
-                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">TOTAL</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Type Pills Below */}
-                  <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                    <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-warning/20 text-xs font-medium">
-                      <div className="w-2 h-2 rounded-full bg-warning" />
-                      <span>Premium {subscriptionStats.paid}</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
-                      <div className="w-2 h-2 rounded-full bg-muted" />
-                      <span>Free {subscriptionStats.free}</span>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Small Stat Cards - Row 3 - Role-based visibility */}
-            {/* Admin/Org Admin/Sponsor see system-wide stats */}
-            {(isAdmin() || isOrgAdmin() || isSponsor()) && [
-              { title: "Total Users", value: stats.totalUsers, icon: Users, trend: "up", trendValue: "+8", color: CHART_COLORS.secondary, },
-              { title: "Hospitals", value: stats.totalHospitals, icon: Hospital, trend: null, trendValue: null, color: CHART_COLORS.info },
-              { title: "Ambulances", value: stats.totalAmbulances, icon: Ambulance, trend: null, trendValue: null, color: CHART_COLORS.success },
-            ].map((stat, idx) => (
-              <motion.div
-                layout
-                key={`small-${idx}`}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.5 + (idx * 0.1) }}
-                className="col-span-1 lg:col-span-2"
-              >
-                <Card className="h-full min-h-[140px] squircle-lg glass-card-premium p-6 hover-lift relative overflow-hidden group flex items-center justify-between">
-                  {/* Apple hover glow effect */}
-                  <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.secondary ? 'secondary' : stat.color === CHART_COLORS.info ? 'info' : 'success'}`} />
-                  {/* Top Right Icon Style Applied Here Too */}
-                  <div className="absolute -top-3 -right-3 z-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
-                    <div className="w-24 h-24 rounded-full" style={{ backgroundColor: stat.color }} />
-                  </div>
-
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-sm relative z-10">
-                        <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
-                      </div>
-                      <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{stat.title}</p>
-                    </div>
-                    <h3 className="text-3xl font-bold tracking-tighter">{stat.value}</h3>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-
-            {/* Provider-specific limited stats */}
-            {isProvider() && [
-              { title: "Your Performance", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Excellent", color: CHART_COLORS.info },
-            ].map((stat, idx) => (
-              <motion.div
-                layout
-                key={`provider-small-${idx}`}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.5 + (idx * 0.1) }}
-                className="col-span-1 lg:col-span-2"
-              >
-                <Card className="h-full min-h-[140px] squircle-lg glass-card-premium p-6 hover-lift relative overflow-hidden group flex items-center justify-between">
-                  <div className="hover-glow hover-glow-info" />
-                  <div className="absolute -top-3 -right-3 z-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
-                    <div className="w-24 h-24 rounded-full" style={{ backgroundColor: stat.color }} />
-                  </div>
-
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-sm relative z-10">
-                        <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
-                      </div>
-                      <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{stat.title}</p>
-                    </div>
-                    <h3 className="text-3xl font-bold tracking-tighter">{stat.value}</h3>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-
-            {/* Daily Volume Bar Chart - Admin/Org Admin/Sponsor Only */}
-            {(isAdmin() || isOrgAdmin() || isSponsor()) && (
-              <motion.div
-                layout
-                className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-              >
-                <Card className="h-full min-h-[350px] squircle-lg glass-card shadow-premium p-8 flex flex-col relative group">
-                  {/* Apple hover glow effect */}
-                  <div className="hover-glow hover-glow-primary" />
-                  {/* Top Right Icon */}
-                  <div className="absolute top-0 right-0 p-6 z-20">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
-                      <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                        <Calendar className="h-6 w-6 text-primary" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mb-6 relative z-10">
-                    <h3 className="font-bold text-xl tracking-tight">Daily Volume</h3>
-                    <p className="text-sm text-muted-foreground font-medium">System requests per day</p>
-                  </div>
-
-                  <div className="flex-1 w-full min-h-[250px] min-w-[300px] relative z-10">
-                    <ResponsiveContainer width="100%" height={250} minWidth={300} aspect={1.5}>
-                      <BarChart data={requestsByDay} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
-                        <XAxis
-                          dataKey="shortDay"
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          dy={10}
-                        />
-                        <YAxis
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted)/0.2)' }} />
-                        <Bar
-                          dataKey="requests"
-                          fill={CHART_COLORS.primary}
-                          radius={[4, 4, 4, 4]}
-                          name="Total Requests"
-                          barSize={24}
-                          animationDuration={1500}
-                          opacity={0.8}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Provider-specific Daily Volume */}
-            {isProvider() && (
-              <motion.div
-                layout
-                className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-              >
-                <Card className="h-full min-h-[350px] squircle-lg glass-card shadow-premium p-8 flex flex-col relative group">
-                  <div className="hover-glow hover-glow-info" />
-                  <div className="absolute top-0 right-0 p-6 z-20">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
-                      <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                        <Calendar className="h-6 w-6 text-info" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mb-6 relative z-10">
-                    <h3 className="font-bold text-xl tracking-tight">Your Daily Volume</h3>
-                    <p className="text-sm text-muted-foreground font-medium">Your requests per day</p>
-                  </div>
-
-                  <div className="flex-1 w-full min-h-[250px] min-w-[300px] relative z-10">
-                    <ResponsiveContainer width="100%" height={250} minWidth={300} aspect={1.5}>
-                      <BarChart data={requestsByDay} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
-                        <XAxis
-                          dataKey="shortDay"
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          dy={10}
-                        />
-                        <YAxis
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted)/0.2)' }} />
-                        <Bar
-                          dataKey="requests"
-                          fill={CHART_COLORS.info}
-                          radius={[4, 4, 4, 4]}
-                          name="Your Requests"
-                          barSize={24}
-                          animationDuration={1500}
-                          opacity={0.8}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Emergency Types Bar Chart - Admin/Org Admin/Sponsor Only */}
-            {(isAdmin() || isOrgAdmin() || isSponsor()) && (
-              <motion.div
-                layout
-                className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.65 }}
-              >
-                <Card className="h-full min-h-[350px] geo-round glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
-                  {/* Apple hover glow effect */}
-                  <div className="hover-glow hover-glow-destructive" />
-                  {/* Top Right Icon */}
-                  <div className="absolute top-0 right-0 p-6 z-20">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-destructive/20 blur-xl rounded-full scale-150" />
-                      <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                        <AlertTriangle className="h-6 w-6 text-destructive" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mb-2 relative z-10">
-                    <h3 className="font-bold text-xl tracking-tight">Dominant System Case</h3>
-                    {dominantType && (
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-3xl font-bold text-destructive tracking-tighter">{dominantType.name}</span>
-                        <Badge className="squircle bg-destructive/10 text-destructive border-0 font-semibold">
-                          {Math.round((dominantType.value / stats.totalEmergencies) * 100)}% of system cases
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 w-full min-h-[200px] min-w-[300px] mt-4 relative z-10">
-                    <ResponsiveContainer width="100%" height={200} minWidth={300} aspect={1.5}>
-                      <BarChart data={emergencyTypes} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
-                        <XAxis type="number" hide />
-                        <YAxis
-                          dataKey="name"
-                          type="category"
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={13}
-                          width={100}
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fontWeight: 600, fill: 'hsl(var(--foreground))' }}
-                        />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                        <Bar
-                          dataKey="value"
-                          fill={CHART_COLORS.destructive}
-                          radius={[0, 8, 8, 0]}
-                          animationDuration={1500}
-                        >
-                          {emergencyTypes.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Provider-specific Emergency Types */}
-            {isProvider() && (
-              <motion.div
-                layout
-                className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.65 }}
-              >
-                <Card className="h-full min-h-[350px] geo-round glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
-                  <div className="hover-glow hover-glow-info" />
-                  <div className="absolute top-0 right-0 p-6 z-20">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
-                      <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                        <AlertTriangle className="h-6 w-6 text-info" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mb-2 relative z-10">
-                    <h3 className="font-bold text-xl tracking-tight">Your Case Types</h3>
-                    {dominantType && (
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-3xl font-bold text-info tracking-tighter">{dominantType.name}</span>
-                        <Badge className="squircle bg-info/10 text-info border-0 font-semibold">
-                          {Math.round((dominantType.value / stats.totalEmergencies) * 100)}% of your cases
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 w-full min-h-[200px] min-w-[300px] mt-4 relative z-10">
-                    <ResponsiveContainer width="100%" height={200} minWidth={300} aspect={1.5}>
-                      <BarChart data={emergencyTypes} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
-                        <XAxis type="number" hide />
-                        <YAxis
-                          dataKey="name"
-                          type="category"
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={13}
-                          width={100}
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fontWeight: 600, fill: 'hsl(var(--foreground))' }}
-                        />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                        <Bar
-                          dataKey="value"
-                          fill={CHART_COLORS.info}
-                          radius={[0, 8, 8, 0]}
-                          animationDuration={1500}
-                        >
-                          {emergencyTypes.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color === CHART_COLORS.destructive ? CHART_COLORS.info : entry.color} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Additional Analytics Cards - Search Analytics and Performance Metrics */}
-
-            {/* Search Analytics Card */}
+          {/* Stat Cards - Row 1 - Role-based visibility */}
+          {/* Admin see system-wide stats */}
+          {isAdmin() && [
+            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: "up", trendValue: "+12%", color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "geo-sharp" },
+            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: "down", trendValue: "15% faster", color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-round" },
+            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Excellent", color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
+          ].map((stat, idx) => (
             <motion.div
               layout
-              className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
+              key={idx}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: idx * 0.1 }}
+              className={`${stat.colSpan}`}
+            >
+              <Card className={`h-full min-h-[160px] ${stat.shape} glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group`}>
+                {/* Apple hover glow effect */}
+                <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.destructive ? 'destructive' : stat.color === CHART_COLORS.success ? 'success' : stat.color === CHART_COLORS.info ? 'info' : 'primary'}`} />
+                <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
+                <div className="relative z-10 flex flex-col justify-between h-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 squircle flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
+                      <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
+                    </div>
+                    {stat.trend && (
+                      <Badge className={`squircle-sm border-0 ${stat.trend === 'up' && stat.color !== CHART_COLORS.destructive ? 'bg-success/20 text-success' : 'bg-primary/20 text-primary'}`}>
+                        {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                        {stat.trendValue}
+                      </Badge>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">{stat.title}</p>
+                    <h3 className="text-4xl font-bold tracking-tighter">{stat.value}</h3>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+
+          {/* Org Admin see organization-level stats */}
+          {isOrgAdmin() && [
+            { title: "Org Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: "up", trendValue: "Your org", color: CHART_COLORS.warning, colSpan: "col-span-1 lg:col-span-2", shape: "geo-round" },
+            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: "down", trendValue: "Org performance", color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
+            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Org success", color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-sharp" },
+          ].map((stat, idx) => (
+            <motion.div
+              layout
+              key={`org-${idx}`}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: idx * 0.1 }}
+              className={`${stat.colSpan}`}
+            >
+              <Card className={`h-full min-h-[160px] ${stat.shape} glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group`}>
+                <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.warning ? 'warning' : stat.color === CHART_COLORS.success ? 'success' : 'info'}`} />
+                <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
+                <div className="relative z-10 flex flex-col justify-between h-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 squircle flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
+                      <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
+                    </div>
+                    {stat.trend && (
+                      <Badge className={`squircle-sm border-0 ${stat.color === CHART_COLORS.warning ? 'bg-warning/20 text-warning' : stat.color === CHART_COLORS.success ? 'bg-success/20 text-success' : 'bg-info/20 text-info'}`}>
+                        {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                        {stat.trendValue}
+                      </Badge>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">{stat.title}</p>
+                    <h3 className="text-4xl font-bold tracking-tighter">{stat.value}</h3>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+
+          {/* Sponsor see system-wide stats */}
+          {isSponsor() && [
+            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: "up", trendValue: "+12%", color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "geo-sharp" },
+            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: "down", trendValue: "15% faster", color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-round" },
+            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Excellent", color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
+          ].map((stat, idx) => (
+            <motion.div
+              layout
+              key={`sponsor-${idx}`}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: idx * 0.1 }}
+              className={`${stat.colSpan}`}
+            >
+              <Card className={`h-full min-h-[160px] ${stat.shape} glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group`}>
+                <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.destructive ? 'destructive' : stat.color === CHART_COLORS.success ? 'success' : stat.color === CHART_COLORS.info ? 'info' : 'primary'}`} />
+                <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
+                <div className="relative z-10 flex flex-col justify-between h-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 squircle flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
+                      <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
+                    </div>
+                    {stat.trend && (
+                      <Badge className={`squircle-sm border-0 ${stat.trend === 'up' && stat.color !== CHART_COLORS.destructive ? 'bg-success/20 text-success' : 'bg-primary/20 text-primary'}`}>
+                        {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                        {stat.trendValue}
+                      </Badge>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">{stat.title}</p>
+                    <h3 className="text-4xl font-bold tracking-tighter">{stat.value}</h3>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+
+          {/* Provider-specific limited stats */}
+          {isProvider() && [
+            { title: "Your Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: "up", trendValue: "Your assigned", color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2", shape: "geo-round" },
+            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Your performance", color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
+          ].map((stat, idx) => (
+            <motion.div
+              layout
+              key={`provider-${idx}`}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: idx * 0.1 }}
+              className={`${stat.colSpan}`}
+            >
+              <Card className={`h-full min-h-[160px] ${stat.shape} glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group`}>
+                <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.success ? 'success' : 'info'}`} />
+                <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-10 group-hover:scale-150 transition-transform duration-700`} style={{ backgroundColor: stat.color }} />
+                <div className="relative z-10 flex flex-col justify-between h-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 squircle flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
+                      <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
+                    </div>
+                    {stat.trend && (
+                      <Badge className={`squircle-sm border-0 ${stat.color === CHART_COLORS.success ? 'bg-success/20 text-success' : 'bg-info/20 text-info'}`}>
+                        {stat.trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                        {stat.trendValue}
+                      </Badge>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">{stat.title}</p>
+                    <h3 className="text-4xl font-bold tracking-tighter">{stat.value}</h3>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+
+          {/* Response Time Trend - Large Chart -> GEO-SHARD (Dynamic Flow) */}
+          {/* Admin see system-wide trends */}
+          {isAdmin() && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-4 row-span-2"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
+              transition={{ delay: 0.4 }}
             >
-              <Card className="h-full min-h-[350px] geo-shard glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-info" />
-                {/* Search Pattern */}
+              <Card className="h-full min-h-[400px] geo-shard glass-card shadow-2xl p-8 flex flex-col justify-between group relative overflow-hidden">
+                {/* Subtle Grid for Context */}
                 <div className="absolute inset-0 opacity-5"
-                  style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--info))' }}>
+                  style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%', color: 'hsl(var(--primary))' }}>
                 </div>
 
+                <div className="flex items-center justify-between mb-6 relative z-10">
+                  <div>
+                    <h3 className="font-bold text-2xl tracking-tight">System Response Time Trend</h3>
+                    <p className="text-muted-foreground font-medium">System-wide average response time over {timeRange}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge className="squircle bg-success/10 text-success border-0 font-semibold px-3 py-1">
+                      <TrendingDown className="h-4 w-4 mr-1" />
+                      -2.4m avg
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="flex-1 w-full min-h-[300px]">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={responseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
+                      <XAxis
+                        dataKey="shortDay"
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        dy={10}
+                      />
+                      <YAxis
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => `${value}m`}
+                      />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                      <Area
+                        type="monotone"
+                        dataKey="avgTime"
+                        stroke={CHART_COLORS.primary}
+                        strokeWidth={4}
+                        fill="url(#colorTime)"
+                        name="System Avg Time (min)"
+                        animationDuration={1500}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Org Admin see organization-level trends */}
+          {isOrgAdmin() && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-4 row-span-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <Card className="h-full min-h-[400px] geo-shard glass-card shadow-2xl p-8 flex flex-col justify-between group relative overflow-hidden">
+                <div className="absolute inset-0 opacity-5"
+                  style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%', color: 'hsl(var(--warning))' }}>
+                </div>
+
+                <div className="flex items-center justify-between mb-6 relative z-10">
+                  <div>
+                    <h3 className="font-bold text-2xl tracking-tight">Organization Response Time Trend</h3>
+                    <p className="text-muted-foreground font-medium">Your organization's response time over {timeRange}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge className="squircle bg-warning/10 text-warning border-0 font-semibold px-3 py-1">
+                      <TrendingDown className="h-4 w-4 mr-1" />
+                      Org avg
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="flex-1 w-full min-h-[300px]">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={responseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorTimeOrg" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={CHART_COLORS.warning} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={CHART_COLORS.warning} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
+                      <XAxis
+                        dataKey="shortDay"
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        dy={10}
+                      />
+                      <YAxis
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => `${value}m`}
+                      />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                      <Area
+                        type="monotone"
+                        dataKey="avgTime"
+                        stroke={CHART_COLORS.warning}
+                        strokeWidth={4}
+                        fill="url(#colorTimeOrg)"
+                        name="Org Response Time (min)"
+                        animationDuration={1500}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Sponsor see system-wide trends */}
+          {isSponsor() && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-4 row-span-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <Card className="h-full min-h-[400px] geo-shard glass-card shadow-2xl p-8 flex flex-col justify-between group relative overflow-hidden">
+                <div className="absolute inset-0 opacity-5"
+                  style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%', color: 'hsl(var(--primary))' }}>
+                </div>
+
+                <div className="flex items-center justify-between mb-6 relative z-10">
+                  <div>
+                    <h3 className="font-bold text-2xl tracking-tight">System Response Time Trend</h3>
+                    <p className="text-muted-foreground font-medium">System-wide average response time over {timeRange}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge className="squircle bg-success/10 text-success border-0 font-semibold px-3 py-1">
+                      <TrendingDown className="h-4 w-4 mr-1" />
+                      -2.4m avg
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="flex-1 w-full min-h-[300px]">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={responseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorTimeSponsor" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
+                      <XAxis
+                        dataKey="shortDay"
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        dy={10}
+                      />
+                      <YAxis
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => `${value}m`}
+                      />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                      <Area
+                        type="monotone"
+                        dataKey="avgTime"
+                        stroke={CHART_COLORS.primary}
+                        strokeWidth={4}
+                        fill="url(#colorTimeSponsor)"
+                        name="System Avg Time (min)"
+                        animationDuration={1500}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Provider-specific Response Time Chart */}
+          {isProvider() && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-4 row-span-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <Card className="h-full min-h-[400px] geo-shard glass-card shadow-2xl p-8 flex flex-col justify-between group relative overflow-hidden">
+                <div className="absolute inset-0 opacity-5"
+                  style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '40px 100%', color: 'hsl(var(--info))' }}>
+                </div>
+
+                <div className="flex items-center justify-between mb-6 relative z-10">
+                  <div>
+                    <h3 className="font-bold text-2xl tracking-tight">Your Response Times</h3>
+                    <p className="text-muted-foreground font-medium">Your personal response time performance</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge className="squircle bg-info/10 text-info border-0 font-semibold px-3 py-1">
+                      <Activity className="h-4 w-4 mr-1" />
+                      Personal
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="flex-1 w-full min-h-[300px]">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={responseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorTimeProvider" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={CHART_COLORS.info} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={CHART_COLORS.info} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
+                      <XAxis
+                        dataKey="shortDay"
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        dy={10}
+                      />
+                      <YAxis
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => `${value}m`}
+                      />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                      <Area
+                        type="monotone"
+                        dataKey="avgTime"
+                        stroke={CHART_COLORS.info}
+                        strokeWidth={4}
+                        fill="url(#colorTimeProvider)"
+                        name="Your Response Time (min)"
+                        animationDuration={1500}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Request Status Breakdown - Pie Chart -> GEO-TICKET (Rounded cutouts) */}
+          {/* Admin see system-wide status */}
+          {isAdmin() && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-2 row-span-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <Card className="h-full min-h-[400px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-primary" />
+                {/* Top Right Icon */}
+                <div className="absolute top-0 right-0 p-6 z-20">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
+                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                      <Activity className="h-6 w-6 text-primary" />
+                    </div>
+                  </div>
+                </div>
+
+                <h3 className="font-bold text-xl mb-1 tracking-tight">System Status</h3>
+                <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Live distribution of all system requests</p>
+
+                <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
+                  <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
+                    <PieChart>
+                      <Pie
+                        data={requestsByStatus}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={65}
+                        outerRadius={85}
+                        paddingAngle={2}
+                        dataKey="value"
+                        stroke="none"
+                        cornerRadius={4}
+                      >
+                        {requestsByStatus.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Center Text Overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
+                    <div className="text-center">
+                      <p className="text-4xl font-bold tracking-tighter text-foreground">{stats.successRate}%</p>
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">SYSTEM SUCCESS</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                  {requestsByStatus.slice(0, 3).map((status, index) => (
+                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
+                      <span className="opacity-80">{status.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Org Admin see organization-level status */}
+          {isOrgAdmin() && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-2 row-span-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <Card className="h-full min-h-[400px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
+                <div className="hover-glow hover-glow-warning" />
+                <div className="absolute top-0 right-0 p-6 z-20">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-warning/20 blur-xl rounded-full scale-150" />
+                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                      <Activity className="h-6 w-6 text-warning" />
+                    </div>
+                  </div>
+                </div>
+
+                <h3 className="font-bold text-xl mb-1 tracking-tight">Organization Status</h3>
+                <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Live distribution of your organization's requests</p>
+
+                <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
+                  <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
+                    <PieChart>
+                      <Pie
+                        data={requestsByStatus}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={65}
+                        outerRadius={85}
+                        paddingAngle={2}
+                        dataKey="value"
+                        stroke="none"
+                        cornerRadius={4}
+                      >
+                        {requestsByStatus.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
+                    <div className="text-center">
+                      <p className="text-4xl font-bold tracking-tighter text-foreground">{stats.successRate}%</p>
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">ORG SUCCESS</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                  {requestsByStatus.slice(0, 3).map((status, index) => (
+                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
+                      <span className="opacity-80">{status.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Sponsor see system-wide status */}
+          {isSponsor() && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-2 row-span-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <Card className="h-full min-h-[400px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
+                <div className="hover-glow hover-glow-primary" />
+                <div className="absolute top-0 right-0 p-6 z-20">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
+                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                      <Activity className="h-6 w-6 text-primary" />
+                    </div>
+                  </div>
+                </div>
+
+                <h3 className="font-bold text-xl mb-1 tracking-tight">System Status</h3>
+                <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Live distribution of all system requests</p>
+
+                <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
+                  <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
+                    <PieChart>
+                      <Pie
+                        data={requestsByStatus}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={65}
+                        outerRadius={85}
+                        paddingAngle={2}
+                        dataKey="value"
+                        stroke="none"
+                        cornerRadius={4}
+                      >
+                        {requestsByStatus.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
+                    <div className="text-center">
+                      <p className="text-4xl font-bold tracking-tighter text-foreground">{stats.successRate}%</p>
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">SYSTEM SUCCESS</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                  {requestsByStatus.slice(0, 3).map((status, index) => (
+                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
+                      <span className="opacity-80">{status.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Provider-specific Status Breakdown */}
+          {isProvider() && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-2 row-span-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <Card className="h-full min-h-[400px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-info" />
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
                     <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
                     <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <TrendingUp className="h-6 w-6 text-info" />
+                      <Activity className="h-6 w-6 text-info" />
                     </div>
                   </div>
                 </div>
 
-                <div className="mb-6 relative z-10">
-                  <h3 className="font-bold text-xl tracking-tight">Search Analytics</h3>
-                  <p className="text-sm text-muted-foreground font-medium">User search patterns and trends</p>
+                <h3 className="font-bold text-xl mb-1 tracking-tight">Your Status</h3>
+                <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Live distribution of your requests</p>
+
+                <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
+                  <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
+                    <PieChart>
+                      <Pie
+                        data={requestsByStatus}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={65}
+                        outerRadius={85}
+                        paddingAngle={2}
+                        dataKey="value"
+                        stroke="none"
+                        cornerRadius={4}
+                      >
+                        {requestsByStatus.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color === CHART_COLORS.primary ? CHART_COLORS.info : entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Center Text Overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
+                    <div className="text-center">
+                      <p className="text-4xl font-bold tracking-tighter text-foreground">{stats.successRate}%</p>
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">YOUR SUCCESS</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 flex-1 relative z-10">
-                  {[
-                    { label: 'Total Searches', value: '1,284', change: '+12%', positive: true },
-                    { label: 'Success Rate', value: '87%', change: '+3%', positive: true },
-                    { label: 'Avg Time', value: '2.3s', change: '-0.5s', positive: true },
-                    { label: 'No Results', value: '8%', change: '-2%', positive: true }
-                  ].map((metric, idx) => (
-                    <div key={idx} className="p-4 geo-round bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-muted-foreground font-medium">{metric.label}</span>
-                        <Badge className={`squircle-sm ${metric.positive ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'} border-0 font-bold text-xs`}>
-                          {metric.change}
-                        </Badge>
-                      </div>
-                      <p className="text-2xl font-bold tracking-tighter">{metric.value}</p>
+                <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                  {requestsByStatus.slice(0, 3).map((status, index) => (
+                    <div key={index} className="flex items-center gap-2 px-3 py-1.5 squircle bg-info/20 text-xs font-medium">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color === CHART_COLORS.primary ? CHART_COLORS.info : status.color }} />
+                      <span className="opacity-80">{status.name}</span>
                     </div>
                   ))}
                 </div>
               </Card>
             </motion.div>
+          )}
 
-            {/* Performance Metrics Card */}
+          {/* Subscription Analytics Card - Admin/Sponsor Only */}
+          {(isAdmin() || isSponsor()) && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-2 xl:col-span-2 row-span-2"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.45 }}
+            >
+              <Card className="h-full min-h-[350px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden group">
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-info" />
+                {/* Top Right Icon */}
+                <div className="absolute top-0 right-0 p-6 z-20">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
+                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                      <Mail className="h-6 w-6 text-info" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-6 relative z-10">
+                  <h3 className="font-bold text-xl tracking-tight">Subscriptions</h3>
+                  <p className="text-sm text-muted-foreground font-medium">Community engagement overview</p>
+                </div>
+
+                <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
+                  <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Active', value: subscriptionStats.active, fill: CHART_COLORS.success },
+                          { name: 'Inactive', value: subscriptionStats.total - subscriptionStats.active, fill: CHART_COLORS.muted },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={65}
+                        outerRadius={85}
+                        paddingAngle={2}
+                        dataKey="value"
+                        stroke="none"
+                        cornerRadius={4}
+                      >
+                        <Cell fill={CHART_COLORS.success} />
+                        <Cell fill={CHART_COLORS.muted} />
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Center Text Overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
+                    <div className="text-center">
+                      <p className="text-4xl font-bold tracking-tighter text-foreground">{subscriptionStats.total}</p>
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">TOTAL</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Type Pills Below */}
+                <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                  <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-warning/20 text-xs font-medium">
+                    <div className="w-2 h-2 rounded-full bg-warning" />
+                    <span>Premium {subscriptionStats.paid}</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
+                    <div className="w-2 h-2 rounded-full bg-muted" />
+                    <span>Free {subscriptionStats.free}</span>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Small Stat Cards - Row 3 - Role-based visibility */}
+          {/* Admin/Org Admin/Sponsor see system-wide stats */}
+          {(isAdmin() || isOrgAdmin() || isSponsor()) && [
+            { title: "Total Users", value: stats.totalUsers, icon: Users, trend: "up", trendValue: "+8", color: CHART_COLORS.secondary, },
+            { title: "Hospitals", value: stats.totalHospitals, icon: Hospital, trend: null, trendValue: null, color: CHART_COLORS.info },
+            { title: "Ambulances", value: stats.totalAmbulances, icon: Ambulance, trend: null, trendValue: null, color: CHART_COLORS.success },
+          ].map((stat, idx) => (
+            <motion.div
+              layout
+              key={`small-${idx}`}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 + (idx * 0.1) }}
+              className="col-span-1 lg:col-span-2"
+            >
+              <Card className="h-full min-h-[140px] squircle-lg glass-card-premium p-6 hover-lift relative overflow-hidden group flex items-center justify-between">
+                {/* Apple hover glow effect */}
+                <div className={`hover-glow hover-glow-${stat.color === CHART_COLORS.secondary ? 'secondary' : stat.color === CHART_COLORS.info ? 'info' : 'success'}`} />
+                {/* Top Right Icon Style Applied Here Too */}
+                <div className="absolute -top-3 -right-3 z-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
+                  <div className="w-24 h-24 rounded-full" style={{ backgroundColor: stat.color }} />
+                </div>
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-sm relative z-10">
+                      <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
+                    </div>
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{stat.title}</p>
+                  </div>
+                  <h3 className="text-3xl font-bold tracking-tighter">{stat.value}</h3>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+
+          {/* Provider-specific limited stats */}
+          {isProvider() && [
+            { title: "Your Performance", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Excellent", color: CHART_COLORS.info },
+          ].map((stat, idx) => (
+            <motion.div
+              layout
+              key={`provider-small-${idx}`}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 + (idx * 0.1) }}
+              className="col-span-1 lg:col-span-2"
+            >
+              <Card className="h-full min-h-[140px] squircle-lg glass-card-premium p-6 hover-lift relative overflow-hidden group flex items-center justify-between">
+                <div className="hover-glow hover-glow-info" />
+                <div className="absolute -top-3 -right-3 z-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
+                  <div className="w-24 h-24 rounded-full" style={{ backgroundColor: stat.color }} />
+                </div>
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-sm relative z-10">
+                      <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
+                    </div>
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{stat.title}</p>
+                  </div>
+                  <h3 className="text-3xl font-bold tracking-tighter">{stat.value}</h3>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+
+          {/* Daily Volume Bar Chart - Admin/Org Admin/Sponsor Only */}
+          {(isAdmin() || isOrgAdmin() || isSponsor()) && (
             <motion.div
               layout
               className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.75 }}
+              transition={{ delay: 0.6 }}
             >
-              <Card className="h-full min-h-[350px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
+              <Card className="h-full min-h-[350px] squircle-lg glass-card shadow-premium p-8 flex flex-col relative group">
                 {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-success" />
-                {/* Performance Pattern */}
-                <div className="absolute inset-0 opacity-5"
-                  style={{ backgroundImage: 'repeating-linear-gradient(45deg, currentColor 0, currentColor 1px, transparent 0, transparent 50%)', backgroundSize: '10px 10px', color: 'hsl(var(--success))' }}>
-                </div>
-
+                <div className="hover-glow hover-glow-primary" />
                 {/* Top Right Icon */}
                 <div className="absolute top-0 right-0 p-6 z-20">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
+                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150" />
                     <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                      <Activity className="h-6 w-6 text-success" />
+                      <Calendar className="h-6 w-6 text-primary" />
                     </div>
                   </div>
                 </div>
 
                 <div className="mb-6 relative z-10">
-                  <h3 className="font-bold text-xl tracking-tight">Performance Metrics</h3>
-                  <p className="text-sm text-muted-foreground font-medium">System health and efficiency</p>
+                  <h3 className="font-bold text-xl tracking-tight">Daily Volume</h3>
+                  <p className="text-sm text-muted-foreground font-medium">System requests per day</p>
                 </div>
 
-                <div className="space-y-4 flex-1 relative z-10">
-                  {[
-                    { label: 'API Response Time', value: '142ms', target: '200ms', status: 'excellent' },
-                    { label: 'Database Query Time', value: '28ms', target: '50ms', status: 'excellent' },
-                    { label: 'Page Load Time', value: '1.2s', target: '2s', status: 'good' },
-                    { label: 'Error Rate', value: '0.12%', target: '1%', status: 'excellent' },
-                    { label: 'Uptime', value: '99.97%', target: '99.9%', status: 'excellent' }
-                  ].map((metric, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 geo-sharp bg-muted/20 hover:bg-muted/30 transition-colors">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-semibold">{metric.label}</span>
-                          <Badge className={`squircle-sm ${metric.status === 'excellent' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
-                            } border-0 font-bold text-xs`}>
-                            {metric.status}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-4 mt-1">
-                          <span className="text-lg font-bold">{metric.value}</span>
-                          <span className="text-xs text-muted-foreground">Target: {metric.target}</span>
-                        </div>
-                      </div>
-                      <div className="w-16 h-2 bg-muted/30 squircle-sm overflow-hidden">
-                        <motion.div
-                          className={`h-full ${metric.status === 'excellent' ? 'bg-success' : 'bg-warning'
-                            } squircle-sm`}
-                          initial={{ width: 0 }}
-                          animate={{
-                            width: metric.status === 'excellent'
-                              ? '90%'
-                              : metric.status === 'good'
-                                ? '75%'
-                                : '60%'
-                          }}
-                          transition={{ duration: 1, delay: 0.8 + (idx * 0.1) }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex-1 w-full min-h-[250px] min-w-[300px] relative z-10">
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={requestsByDay} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
+                      <XAxis
+                        dataKey="shortDay"
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        dy={10}
+                      />
+                      <YAxis
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted)/0.2)' }} />
+                      <Bar
+                        dataKey="requests"
+                        fill={CHART_COLORS.primary}
+                        radius={[4, 4, 4, 4]}
+                        name="Total Requests"
+                        barSize={24}
+                        animationDuration={1500}
+                        opacity={0.8}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </Card>
             </motion.div>
+          )}
 
-            {/* Financial Performance Card - Admin/Org Admin/Sponsor only */}
-            {(isAdmin() || isOrgAdmin() || isSponsor()) && (
-              <motion.div
-                layout
-                className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-              >
-                <Card className="h-full min-h-[350px] geo-shard glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
-                  <div className="hover-glow hover-glow-success" />
-
-                  {/* Top Right Icon Decoration */}
-                  <div className="absolute top-0 right-0 p-6 z-20">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
-                      <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
-                        <Wallet className="h-6 w-6 text-success" />
-                      </div>
+          {/* Provider-specific Daily Volume */}
+          {isProvider() && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              <Card className="h-full min-h-[350px] squircle-lg glass-card shadow-premium p-8 flex flex-col relative group">
+                <div className="hover-glow hover-glow-info" />
+                <div className="absolute top-0 right-0 p-6 z-20">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
+                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                      <Calendar className="h-6 w-6 text-info" />
                     </div>
                   </div>
+                </div>
 
-                  <div className="mb-6 relative z-10">
-                    <h3 className="font-bold text-xl tracking-tight">Finance Analytics</h3>
-                    <p className="text-sm text-muted-foreground font-medium">Wallet & Revenue Performance</p>
-                  </div>
+                <div className="mb-6 relative z-10">
+                  <h3 className="font-bold text-xl tracking-tight">Your Daily Volume</h3>
+                  <p className="text-sm text-muted-foreground font-medium">Your requests per day</p>
+                </div>
 
-                  <div className="grid grid-cols-2 gap-6 flex-1 relative z-10">
-                    {/* Left Side: Horizontal Bars */}
-                    <div className="space-y-4">
-                      {[
-                        { label: 'Today', value: `$${financeSummary.today.toFixed(0)}`, progress: 75, color: 'success' },
-                        { label: 'Avg/Week', value: `$${(financeSummary.weeklyAvg * 7).toFixed(0)}`, progress: 60, color: 'primary' },
-                        { label: 'Total', value: `$${financeSummary.total.toFixed(0)}`, progress: 90, color: 'info' }
-                      ].map((m, idx) => (
-                        <div key={idx} className="space-y-1.5">
-                          <div className="flex justify-between items-center px-1">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{m.label}</span>
-                            <span className="text-sm font-bold tracking-tight">{m.value}</span>
-                          </div>
-                          <div className="h-1.5 bg-muted/30 squircle-sm overflow-hidden">
-                            <motion.div
-                              className={`h-full bg-${m.color} squircle-sm`}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${m.progress}%` }}
-                              transition={{ duration: 1, delay: 0.9 + (idx * 0.1) }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                <div className="flex-1 w-full min-h-[250px] min-w-[300px] relative z-10">
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={requestsByDay} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
+                      <XAxis
+                        dataKey="shortDay"
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        dy={10}
+                      />
+                      <YAxis
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted)/0.2)' }} />
+                      <Bar
+                        dataKey="requests"
+                        fill={CHART_COLORS.info}
+                        radius={[4, 4, 4, 4]}
+                        name="Your Requests"
+                        barSize={24}
+                        animationDuration={1500}
+                        opacity={0.8}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+            </motion.div>
+          )}
 
-                    {/* Right Side: Donut & Trend Graph */}
-                    <div className="flex flex-col justify-between">
-                      {/* Mini Chart */}
-                      <div className="h-20 w-full mb-4 opacity-70">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={financeData}>
-                            <Area
-                              type="monotone"
-                              dataKey="income"
-                              stroke={CHART_COLORS.success}
-                              fill={CHART_COLORS.success}
-                              fillOpacity={0.1}
-                              strokeWidth={2}
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-
-                      {/* Status Circular Indicator */}
-                      <div className="flex items-center gap-3 p-3 geo-round bg-success/5 border border-success/10">
-                        <div className="relative w-10 h-10 flex items-center justify-center">
-                          <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-muted/20" />
-                            <circle
-                              cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="4" fill="transparent"
-                              strokeDasharray={100}
-                              strokeDashoffset={100 - financeSummary.health}
-                              className="text-success"
-                            />
-                          </svg>
-                          <span className="absolute text-[8px] font-black">{Math.round(financeSummary.health)}%</span>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-tighter">Health Score</p>
-                          <p className="text-[9px] text-muted-foreground leading-none">Vitals looking strong</p>
-                        </div>
-                      </div>
+          {/* Emergency Types Bar Chart - Admin/Org Admin/Sponsor Only */}
+          {(isAdmin() || isOrgAdmin() || isSponsor()) && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.65 }}
+            >
+              <Card className="h-full min-h-[350px] squircle-2xl glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
+                {/* Apple hover glow effect */}
+                <div className="hover-glow hover-glow-destructive" />
+                {/* Top Right Icon */}
+                <div className="absolute top-0 right-0 p-6 z-20">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-destructive/20 blur-xl rounded-full scale-150" />
+                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                      <AlertTriangle className="h-6 w-6 text-destructive" />
                     </div>
                   </div>
-                </Card>
-              </motion.div>
-            )}
+                </div>
 
+                <div className="mb-2 relative z-10">
+                  <h3 className="font-bold text-xl tracking-tight">Dominant System Case</h3>
+                  {dominantType && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-3xl font-bold text-destructive tracking-tighter">{dominantType.name}</span>
+                      <Badge className="squircle bg-destructive/10 text-destructive border-0 font-semibold">
+                        {Math.round((dominantType.value / stats.totalEmergencies) * 100)}% of system cases
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 w-full min-h-[200px] min-w-[300px] mt-4 relative z-10">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={emergencyTypes} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+                      <XAxis type="number" hide />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={13}
+                        width={100}
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fontWeight: 600, fill: 'hsl(var(--foreground))' }}
+                      />
+                      <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                      <Bar
+                        dataKey="value"
+                        fill={CHART_COLORS.destructive}
+                        radius={[0, 8, 8, 0]}
+                        animationDuration={1500}
+                      >
+                        {emergencyTypes.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Provider-specific Emergency Types */}
+          {isProvider() && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.65 }}
+            >
+              <Card className="h-full min-h-[350px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
+                <div className="hover-glow hover-glow-info" />
+                <div className="absolute top-0 right-0 p-6 z-20">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
+                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                      <AlertTriangle className="h-6 w-6 text-info" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-2 relative z-10">
+                  <h3 className="font-bold text-xl tracking-tight">Your Case Types</h3>
+                  {dominantType && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-3xl font-bold text-info tracking-tighter">{dominantType.name}</span>
+                      <Badge className="squircle bg-info/10 text-info border-0 font-semibold">
+                        {Math.round((dominantType.value / stats.totalEmergencies) * 100)}% of your cases
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 w-full min-h-[200px] mt-4 relative z-10">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={emergencyTypes} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+                      <XAxis type="number" hide />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={13}
+                        width={100}
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fontWeight: 600, fill: 'hsl(var(--foreground))' }}
+                      />
+                      <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                      <Bar
+                        dataKey="value"
+                        fill={CHART_COLORS.info}
+                        radius={[0, 8, 8, 0]}
+                        animationDuration={1500}
+                      >
+                        {emergencyTypes.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color === CHART_COLORS.destructive ? CHART_COLORS.info : entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Additional Analytics Cards - Search Analytics and Performance Metrics */}
+
+          {/* Search Analytics Card */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+          >
+            <Card className="h-full min-h-[350px] geo-shard glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-info" />
+              {/* Search Pattern */}
+              <div className="absolute inset-0 opacity-5"
+                style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px', color: 'hsl(var(--info))' }}>
+              </div>
+
+              {/* Top Right Icon */}
+              <div className="absolute top-0 right-0 p-6 z-20">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-info/20 blur-xl rounded-full scale-150" />
+                  <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                    <TrendingUp className="h-6 w-6 text-info" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6 relative z-10">
+                <h3 className="font-bold text-xl tracking-tight">Search Analytics</h3>
+                <p className="text-sm text-muted-foreground font-medium">User search patterns and trends</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 flex-1 relative z-10">
+                {[
+                  { label: 'Total Searches', value: '1,284', change: '+12%', positive: true },
+                  { label: 'Success Rate', value: '87%', change: '+3%', positive: true },
+                  { label: 'Avg Time', value: '2.3s', change: '-0.5s', positive: true },
+                  { label: 'No Results', value: '8%', change: '-2%', positive: true }
+                ].map((metric, idx) => (
+                  <div key={idx} className="p-4 geo-round bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-muted-foreground font-medium">{metric.label}</span>
+                      <Badge className={`squircle-sm ${metric.positive ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'} border-0 font-bold text-xs`}>
+                        {metric.change}
+                      </Badge>
+                    </div>
+                    <p className="text-2xl font-bold tracking-tighter">{metric.value}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
           </motion.div>
-        </LayoutGroup>
+
+          {/* Performance Metrics Card */}
+          <motion.div
+            layout
+            className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.75 }}
+          >
+            <Card className="h-full min-h-[350px] geo-ticket glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
+              {/* Apple hover glow effect */}
+              <div className="hover-glow hover-glow-success" />
+              {/* Performance Pattern */}
+              <div className="absolute inset-0 opacity-5"
+                style={{ backgroundImage: 'repeating-linear-gradient(45deg, currentColor 0, currentColor 1px, transparent 0, transparent 50%)', backgroundSize: '10px 10px', color: 'hsl(var(--success))' }}>
+              </div>
+
+              {/* Top Right Icon */}
+              <div className="absolute top-0 right-0 p-6 z-20">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
+                  <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                    <Activity className="h-6 w-6 text-success" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6 relative z-10">
+                <h3 className="font-bold text-xl tracking-tight">Performance Metrics</h3>
+                <p className="text-sm text-muted-foreground font-medium">System health and efficiency</p>
+              </div>
+
+              <div className="space-y-4 flex-1 relative z-10">
+                {[
+                  { label: 'API Response Time', value: '142ms', target: '200ms', status: 'excellent' },
+                  { label: 'Database Query Time', value: '28ms', target: '50ms', status: 'excellent' },
+                  { label: 'Page Load Time', value: '1.2s', target: '2s', status: 'good' },
+                  { label: 'Error Rate', value: '0.12%', target: '1%', status: 'excellent' },
+                  { label: 'Uptime', value: '99.97%', target: '99.9%', status: 'excellent' }
+                ].map((metric, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 geo-sharp bg-muted/20 hover:bg-muted/30 transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold">{metric.label}</span>
+                        <Badge className={`squircle-sm ${metric.status === 'excellent' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
+                          } border-0 font-bold text-xs`}>
+                          {metric.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 mt-1">
+                        <span className="text-lg font-bold">{metric.value}</span>
+                        <span className="text-xs text-muted-foreground">Target: {metric.target}</span>
+                      </div>
+                    </div>
+                    <div className="w-16 h-2 bg-muted/30 squircle-sm overflow-hidden">
+                      <motion.div
+                        className={`h-full ${metric.status === 'excellent' ? 'bg-success' : 'bg-warning'
+                          } squircle-sm`}
+                        initial={{ width: 0 }}
+                        animate={{
+                          width: metric.status === 'excellent'
+                            ? '90%'
+                            : metric.status === 'good'
+                              ? '75%'
+                              : '60%'
+                        }}
+                        transition={{ duration: 1, delay: 0.8 + (idx * 0.1) }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Financial Performance Card - Admin/Org Admin/Sponsor only */}
+          {(isAdmin() || isOrgAdmin() || isSponsor()) && (
+            <motion.div
+              layout
+              className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+            >
+              <Card className="h-full min-h-[350px] geo-shard glass-card shadow-2xl p-8 flex flex-col relative overflow-hidden">
+                <div className="hover-glow hover-glow-success" />
+
+                {/* Top Right Icon Decoration */}
+                <div className="absolute top-0 right-0 p-6 z-20">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-success/20 blur-xl rounded-full scale-150" />
+                    <div className="w-12 h-12 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10">
+                      <Wallet className="h-6 w-6 text-success" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-6 relative z-10">
+                  <h3 className="font-bold text-xl tracking-tight">Finance Analytics</h3>
+                  <p className="text-sm text-muted-foreground font-medium">Wallet & Revenue Performance</p>
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-6 flex-1 relative z-10">
+                  {/* Left Side: Horizontal Bars */}
+                  <div className="flex-1 space-y-4">
+                    {[
+                      { label: 'Today', value: `$${financeSummary.today.toFixed(0)}`, progress: 75, color: 'success' },
+                      { label: 'Avg/Week', value: `$${(financeSummary.weeklyAvg * 7).toFixed(0)}`, progress: 60, color: 'primary' },
+                      { label: 'Total', value: `$${financeSummary.total.toFixed(0)}`, progress: 90, color: 'info' }
+                    ].map((m, idx) => (
+                      <div key={idx} className="space-y-1.5">
+                        <div className="flex justify-between items-center px-1">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{m.label}</span>
+                          <span className="text-sm font-bold tracking-tight">{m.value}</span>
+                        </div>
+                        <div className="h-1.5 bg-muted/30 squircle-sm overflow-hidden">
+                          <motion.div
+                            className={`h-full bg-${m.color} squircle-sm`}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${m.progress}%` }}
+                            transition={{ duration: 1, delay: 0.9 + (idx * 0.1) }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Right Side: Donut & Trend Graph */}
+                  <div className="flex-1 flex flex-col justify-between gap-4">
+                    {/* Mini Chart */}
+                    <div className="h-24 w-full opacity-70 bg-success/5 rounded-2xl overflow-hidden p-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={financeData}>
+                          <Area
+                            type="monotone"
+                            dataKey="income"
+                            stroke={CHART_COLORS.success}
+                            fill={CHART_COLORS.success}
+                            fillOpacity={0.2}
+                            strokeWidth={2}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Status Circular Indicator */}
+                    <div className="flex items-center gap-4 p-4 squircle-xl bg-success/5 border border-success/10">
+                      <div className="relative w-12 h-12 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90">
+                          <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-muted/10" />
+                          <circle
+                            cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent"
+                            strokeDasharray={125}
+                            strokeDashoffset={125 - (financeSummary.health * 1.25)}
+                            className="text-success transition-all duration-1000"
+                          />
+                        </svg>
+                        <span className="absolute text-[10px] font-black">{Math.round(financeSummary.health)}%</span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-success">Health Score</p>
+                        <p className="text-[9px] text-muted-foreground leading-tight">System vitals are within nominal range</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+        </motion.div>
       </div>
 
       {/* Reports Modal */}
