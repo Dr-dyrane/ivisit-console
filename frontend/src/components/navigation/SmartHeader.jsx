@@ -129,7 +129,7 @@ export const SmartHeader = () => {
                                 onClick={isContextPanelOpen ? closeContextPanel : openContextPanel}
                                 className={`flex items-center justify-center h-9 w-9 rounded-xl transition-all duration-300 ${isContextPanelOpen
                                     ? 'bg-primary/20 text-primary shadow-inner'
-                                    : 'bg-black/5 dark:bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground'
+                                    : 'bg-primary/5 text-muted-foreground hover:bg-white/10 hover:text-foreground'
                                     }`}
                                 title={isContextPanelOpen ? "Close Context" : "Open Context"}
                             >
