@@ -52,7 +52,7 @@ const AppShell = ({ children }) => {
 	const isMobile = window.innerWidth < 768;
 
 	return (
-		<div className="relative h-screen w-full text-foreground overflow-hidden flex flex-col">
+		<div className="relative h-full w-full text-foreground overflow-hidden flex flex-col">
 
 			{!hideNav && <SmartHeader />}
 
@@ -79,8 +79,6 @@ const AppShell = ({ children }) => {
 							paddingRight: isMobile ? 16 : 48,
 							// Top padding when scrolled - 16px (2×8px)
 							paddingTop: isScrolledDown ? 0 : 16,
-							// Bottom padding - Respect iOS Safe Areas + Base clearance
-							paddingBottom: 'calc(112px + var(--safe-bottom))'
 						}}
 						transition={{ type: "spring", stiffness: 300, damping: 30 }}
 						className="relative z-10"

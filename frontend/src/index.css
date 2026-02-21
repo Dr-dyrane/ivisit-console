@@ -11,11 +11,9 @@
  */
 html {
 	background-color: hsl(var(--background));
-	/* Standard Viewport Fill */
+	/* Standard Viewport Fill - Rigid */
 	height: 100%;
-	height: 100vh;
-	height: 100dvh;
-	height: -webkit-fill-available;
+	width: 100%;
 	overflow: hidden;
 }
 
@@ -24,17 +22,15 @@ body {
 	font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
-	
+
 	/* Fill viewport perfectly without rubber-banding */
 	height: 100%;
-	height: 100vh;
-	height: 100dvh;
-	height: -webkit-fill-available;
-	
-	background-color: hsl(var(--background));
-	overflow: hidden;
-	position: fixed; /* Prevent pull-to-refresh and elastic bounce on iOS */
 	width: 100%;
+	overflow: hidden;
+	position: fixed;
+	/* Prevent pull-to-refresh and elastic bounce on iOS */
+
+	background-color: hsl(var(--background));
 }
 
 /* Hide scrollbars completely */
@@ -44,12 +40,19 @@ body::-webkit-scrollbar {
 
 #root {
 	height: 100%;
-	height: 100vh;
-	height: 100dvh;
-	height: -webkit-fill-available;
+	width: 100%;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
+}
+
+main#main-content {
+	height: 100%;
+	overflow-y: auto !important;
+	-webkit-overflow-scrolling: touch;
+	/* Momentum scrolling */
+	overscroll-behavior-y: none;
+	padding-bottom: var(--total-bottom-clearance) !important;
 }
 
 /* Firefox thin scrollbar - backup */
@@ -126,11 +129,9 @@ code {
 		--safe-left: env(safe-area-inset-left, 0px);
 		--safe-right: env(safe-area-inset-right, 0px);
 
-		/* Core Glass Tokens */
-		--glow-blur: 48px;
-		--glow-scale: 1.1;
-		--glow-opacity: 0.2;
-		--glow-duration: 500ms;
+		/* Unified Bottom Layout tokens */
+		--bottom-bar-height: 80px;
+		--total-bottom-clearance: calc(var(--bottom-bar-height) + var(--safe-bottom) + 32px);
 
 		/* Glass Border System */
 		--glass-border-light: hsl(var(--primary) / 0.2);
