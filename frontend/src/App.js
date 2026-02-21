@@ -76,8 +76,8 @@ const PWADebugTracker = () => {
 
 			<div className="fixed bottom-0 right-2 z-[9999] pointer-events-none select-none">
 				<div className="bg-black/95 backdrop-blur-2xl px-3 py-1.5 rounded-t-2xl border-x border-t border-white/10 shadow-2xl flex flex-col gap-0.5 items-end">
-					<span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest leading-none">
-						v1.0.7-LEGACY-UNLOCK
+					<span className="text-[9px] font-bold text-orange-500 uppercase tracking-widest leading-none">
+						v1.0.8-PURE-RESET
 					</span>
 					<div className="flex gap-2 items-center text-[10px] font-mono text-zinc-400">
 						<span>WH: <span className="text-white">{metrics.h}px</span></span>
