@@ -169,7 +169,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
             className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl"
           >
             {/* Header Area */}
-            <div className="flex items-center justify-between p-8 pb-4">
+            <div className="flex items-center justify-between p-2 md:p-8 pb-4">
               <div className="flex items-center gap-4">
                 <div className="p-2.5 bg-blue-500/20 rounded-2xl">
                   <Calendar className="h-6 w-6 text-blue-500" />
@@ -198,7 +198,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
               </Button>
             </div>
 
-            <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
+            <div className="p-2 md:p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
               <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* Participants Section */}

@@ -267,6 +267,96 @@ Canon #23: Micro = Craft — staggered entry animation
 
 ---
 
+### 10.6 Controlled Expansion UX (2026-02-21)
+**Status**: ✅ Complete
+- **Single Item Expansion**: Only one row can be expanded at a time
+- **Automatic Collapse**: Opening a new row automatically collapses the previous one
+- **Reduced Cognitive Load**: Users focus on one item's details without scrolling chaos
+- **Clean Visual State**: Clear visual hierarchy with single expanded state
+
+**Technical Implementation**:
+```javascript
+// Controlled expansion state
+const [expandedUserId, setExpandedUserId] = useState(null);
+
+// MobileMetricRow props
+<MobileMetricRow
+    isExpanded={expandedUserId === user.id}
+    onExpand={setExpandedUserId}
+    itemId={user.id}
+    expandedContent={...}
+/>
+```
+
+**UX Benefits**:
+- **Focused Attention**: Users see only relevant details
+- **Predictable Behavior**: Consistent expansion/collapse patterns
+- **Mobile Optimized**: Prevents excessive scrolling
+- **Apple-Level Polish**: Smooth animations with proper state management
+
+---
+
+## 10. MOBILE USERS PAGE REFACTORING (2026-02-21)
+
+### 10.1 Infinity Scroll Integration
+**Status**: ✅ Complete
+- **Intersection Observer**: Implemented with 100px rootMargin for early loading
+- **Loading States**: Physical pulse animation with 3-dot pattern
+- **End States**: Clear "End of user list" and "No users found" states
+- **Performance**: Optimized with proper cleanup and dependency array
+
+### 10.2 Terminology Improvements
+**Status**: ✅ Complete
+- **Technical → User-Friendly**: 
+  - "Tactical Blade" → "User Management interface"
+  - "Unified Directory" → "User Directory"  
+  - "Onboarding Pulse" → "New Signups"
+  - "Identity Integrity" → "Identity Verification"
+  - "System Profiles" → "Users"
+  - "BVN VERIFIED" → "VERIFIED"
+  - "UNVERIFIED" → "NOT VERIFIED"
+  - "ACTIVE ACCOUNT" → "ACTIVE"
+
+### 10.3 Apple-Level UI/UX Compliance
+**Status**: ✅ Complete
+- **Borderless Design**: All components use `border-0` class
+- **Glass Effects**: `apple-glass-heavy` with proper blur (12px) and saturation (125%)
+- **Typography**: 
+  - Headers: `text-[10px] font-normal uppercase tracking-[0.2em]`
+  - Labels: `text-[8px] font-thin uppercase tracking-[0.15em]`
+  - Values: `text-[14px] font-normal tracking-tight`
+- **Spacing**: 8px grid system with consistent padding
+- **Motion**: Spring animations (stiffness: 300, damping: 30)
+- **Colors**: HSL semantic tokens with proper alpha values
+
+### 10.4 Component Architecture
+**MobileUsers.jsx Features**:
+- **Progressive Disclosure**: Tap-to-expand user details
+- **KPI Strip**: Total Users, Verified, Staff Members
+- **Search**: Real-time filtering with glass input
+- **Status Indicators**: Verification and active status badges
+- **Quick Actions**: View, Edit, Delete (admin only)
+- **Responsive**: Full-width mobile layout with no horizontal scroll
+
+### 10.5 Infinity Scroll Technical Details
+```javascript
+// Intersection Observer setup
+const observer = new IntersectionObserver(
+    entries => {
+        if (entries[0].isIntersecting && hasMore) {
+            onLoadMore();
+        }
+    },
+    { threshold: 0.1, rootMargin: '100px' }
+);
+```
+
+**Loading Animation**: 3-dot physical pulse with staggered delays
+**Empty States**: Contextual messages with proper opacity
+**Performance**: Proper observer cleanup on unmount
+
+---
+
 ## 9. PROGRESS UPDATE (2026-02-21) — The "True Canon" Refinement
 
 ### 9.1 Implementation Status
@@ -337,3 +427,151 @@ Following the "State Is Design" maxim (Canon #5), we transitioned from generic d
 - **Physical Pulse Animation**: Shifted from generic gray fading to a `bg-muted/30` apple-style pulse that maintains the "Liquid Glass" transparency even during the empty state.
 - **Matched Geometry**: Skeleton shapes now precisely match the `squircle-3xl` and `rounded-2xl` tokens used in the final components, preventing layout shifts (CLS) when data arrives.
 - **Atmospheric Readiness**: Hero metric skeletons include a blurred circular pulse to ready the user's eye for the incoming "Atmospheric Glow."
+
+---
+
+## 11. MOBILE SELECTION & BULK ACTIONS REFINEMENT (2026-02-21)
+
+### 11.1 Selection Interface (Liquid Glow Standard)
+**Status**: ✅ Complete
+- **Icon Preservation**: Selection no longer replaces the item's primary icon. Instead, it enhances it.
+- **Atmospheric Ring**: Selected items gain a 1.5px semantic border (ring) and a soft radial glow matching the item's primary color (`0.4` alpha).
+- **Secondary Indicator**: A small, high-contrast `Check` icon floats in the top-right of the icon container when selected, providing clear feedback without competing with the primary imagery.
+- **Scaling Feedback**: Selected icons subtly scale up (`scale-110`) to feel more "present" and touchable (Canon #28).
+
+### 11.2 Bulk Action Integration
+**Status**: ✅ Complete
+- **Automatic Dismissal**: Resetting selection (via "Deselect All") now correctly terminates the selection mode and dismisses the `BulkActionBar` globally.
+- **Visibility Parity**: Fixed rendering bugs where the `BulkActionBar` failed to appear on specific mobile views (`VisitsPage`).
+- **Contextual Actions**: Bulk actions are role-aware, showing destructive actions (Delete) only to authorized users while maintaining the clean, floating pill aesthetic.
+
+### 11.3 Modal State Fixes
+**Status**: ✅ Complete
+- **View Mode Visibility**: Resolved a critical issue where the `UserModal` failed to open on mobile when triggered in `view` mode. The `isOpen` logic was unified across all modes (`create`, `edit`, `view`).
+- **Accordion (Blade) Toggling**: Corrected logic in `MobileUsers` and `MobileVisits` to allow manual collapsing of an expanded item. Clicking an already expanded row now correctly resets the state to `null`.
+
+---
+
+## 12. DESIGN BENCHMARK: AnalyticsModal (Pristine Standard)
+
+### 12.1 Premium Lightness (Canon #20)
+The `AnalyticsModal` stands as the current gold standard for the **Liquid Glass** aesthetic:
+- **No Borders**: Separation is achieved through soft depth and contrast gradients rather than explicit strokes (Canon #33).
+- **Glass Transparency**: Deep backdrop blur (12px) combined with low-alpha overlays creates a high-end, "sovereign" feel.
+- **Micro-Animations**: Staggered entry of data visualizations ensures the UI feels "alive" and interactive (Canon #17).
+- **Color Loyalty**: Semantic colors are used exclusively for data meaning, with white space providing the "luxury" of focus (Canon #24).
+
+---
+
+## 13. TECHNICAL CONSTRAINTS & SOLUTIONS
+
+### 13.1 Selection Identity Conflict
+- **Constraint**: The "Check" icon replacement strategy (Standard UI) was stripping items of their semantic identity (e.g., losing the 'Ambulance' or 'User' icon when selected).
+- **Solution**: Implemented the **Atmospheric Ring** pattern. Use a `1.5px` solid border and a primary radial glow (`box-shadow`) to indicate selection state, while the original icon remains visible. A micro `Check` icon is added as a secondary badge, not a replacement.
+
+### 13.2 Expansion Persistence (Blade Deadlocks)
+- **Constraint**: On mobile, once a metric row was expanded, it could only be closed by opening another row. Users couldn't "collapse for clarity" without clicking a different item.
+- **Solution**: Refactored `onExpand` to a pure toggle: `(id) => setExpandedId(prev => prev === id ? null : id)`. This respects **Canon #3 (Reveal Gradually)** by allowing users to return to a minimalist state manually.
+
+### 13.3 Desktop-to-Mobile State Synchronization
+- **Constraint**: The `BulkActionBar` was architected for desktop sidebars, leading to rendering failures or "ghost bars" on mobile pages where the hook logic wasn't perfectly aligned with the mobile component tree.
+- **Solution**: Explicitly passed selection handlers (`selectedIds`, `onSelectAll`) into mobile components and ensured the "Deselect All" action properly calls the reset function, which triggers a global state update to dismiss the bar.
+
+### 13.4 Modal Visibility Barriers
+- **Constraint**: `UserModal` and `VisitModal` logic often had legacy `isOpen={modalMode === 'create' || modalMode === 'edit'}` checks. This blocked the 'view' mode (Details) from rendering on mobile entirely.
+- **Solution**: Unified modal visibility logic under `isOpen={!!modalMode}` or explicitly including `view`. This ensures metadata-heavy views are accessible on touch devices where navigation is a high-cost action.
+
+### 13.5 Typographic Visual Noise
+- **Constraint**: High-contrast bold weights (`font-bold`) on small screens created "visual vibration," making the UI feel busy and cheap.
+- **Solution**: Pivoted to **Quiet Authority** typography. Using `font-normal` with increased tracking (`tracking-widest`) for labels and `font-semibold` only for primary values. This creates the "Underpaid Effect" (Canon #25)—premium quality that doesn't need to try too hard.
+
+---
+
+## 14. TECHNICAL AUDIT (42-FILE REFACTOR)
+
+### 14.1 Git Diff Summary (`git diff --stat`)
+The refactoring spanned **42 files**, primarily focused on migrating from "Desktop-First" grid logic to "Dynamic Bifurcated" renderers.
+
+```text
+frontend/src/components/mobile/MobileKPIStrip.jsx   |  72 +-
+frontend/src/components/mobile/MobileMetricList.jsx |  71 +-
+frontend/src/components/modals/AnalyticsModal.jsx   | 556 +++++++++++----
+frontend/src/components/pages/UsersPage.jsx         |  97 ++-
+frontend/src/components/pages/VisitsPage.jsx        | 102 ++-
+... plus 35 other files (Context Panels, Modals, Pages)
+40 files changed, 997 insertions(+), 1078 deletions(-)
+```
+
+### 14.2 Core Pattern: The Selection Ring (Diff snippet)
+Applied to `MobileMetricRow` to solve the "Identity Conflict" by using depth/glow instead of icon replacement.
+
+```diff
+- <div className="w-9 h-9 ... relative z-10 shadow-md">
++ <div className={`w-9 h-9 ... ${isSelected ? 'scale-110' : ''}`}
+    style={{
+      background: `radial-gradient(...)`,
++     boxShadow: isSelected ? `0 0 15px ${color.replace(/\)$/, ' / 0.2)')}` : 'none',
++     border: isSelected ? `1.5px solid ${color}` : 'none'
+    }}
+  >
+```
+
+### 14.3 Core Pattern: The Modal Opening Fix (Diff snippet)
+Solved the "Mobile Dead-End" where details modals wouldn't trigger on touch devices.
+
+```diff
+- <UserModal isOpen={modalMode === 'create' || modalMode === 'edit'} ... />
++ <UserModal isOpen={modalMode === 'create' || modalMode === 'edit' || modalMode === 'view'} ... />
+```
+
+### 14.4 Core Pattern: Mobile Hook Integration (Diff snippet)
+Example from `VisitsPage.jsx` showing the transition to the new `MobileVisits` component with proper state propagation.
+
+```diff
++ <MobileVisits
++   visits={visits}
++   statistics={visitsData?.stats}
++   filters={filters}
++   onSelect={handleSelect}
++   selectedIds={selectedIds}
++ />
+```
+
+### 14.5 The "Liquid Glass" Purge
+- **Removed**: `ReportsModal.jsx` (Legacy desktop-heavy implementation).
+- **Refactored**: `AnalyticsModal.jsx` (Redesigned with zero-border glass standard).
+- **Standardized**: `MobileSectionHeader` count badges and sticky KPI strip flush alignment.
+
+---
+
+## 15. TRACEABILITY & REGRESSION RECOVERY
+
+To ensure no functionality is "lost" during the bifurcated refactor, use this map to trace features back to their source logic.
+
+### 15.1 Component Mapping (The Recovery Map)
+If a feature stops working on mobile, identify the responsible component in the new hierarchy:
+
+| Feature / Logic | Desktop Source | Mobile Target (New) |
+|-----------------|----------------|----------------------|
+| Overview Stats | `BentoHome.jsx` | `MobileKPIStrip.jsx` |
+| Navigation | Sidebar / `App.js` | `MobileNavMenu.jsx` |
+| Detail Views | `Table.onClick()` | `MobileMetricRow.onExpand` |
+| Modals | `onView={handleView}` | `MobileUsers.onView` / `MobileVisits.onView` |
+| Analytics | `ReportsModal.jsx` (Deleted) | `AnalyticsModal.jsx` (Refactored) |
+
+### 15.2 Logic Preservation Checkpoints
+- **Custom Hooks**: All core business logic remains in shared hooks (e.g., `usePageData`, `useViewMode`). If mobile lacks data, check the prop-drilling in the mobile component root (e.g., `MobileVisits.jsx`).
+- **HandleView Pattern**: In `UsersPage` and `VisitsPage`, the `handleView` callback is the "source of truth" for modal data. If the modal is empty, trace from the `onView` prop in the mobile component back to the page's `handleView` definition.
+- **Bulk Selection State**: All selection logic is centralized in the parent Page hooks. Mobile components are purely *consumers* of `selectedIds` and *emitters* of `onSelect`.
+
+### 15.3 Emergency "Step Back" Guide (Git)
+If a critical logic block was accidentally purged during the **42-file migration**:
+
+1. **Find Deleted Content**: 
+   `git show HEAD:frontend/src/components/modals/ReportsModal.jsx` (To see the lost reports logic).
+2. **Trace Page Changes**:
+   `git log -p frontend/src/components/pages/UsersPage.jsx` (To see exactly how the mobile rendering fork was introduced).
+3. **Compare Logic**: 
+   Compare the desktop `<Table />` props with the new `<MobileVisits />` props to ensure 1:1 parity of event handlers.
+
+---

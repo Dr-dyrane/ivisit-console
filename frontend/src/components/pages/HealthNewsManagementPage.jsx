@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { HealthNewsModal } from '../modals/HealthNewsModal';
-import { ReportsModal } from '../modals/ReportsModal';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { BulkActionBar } from '../common/BulkActionBar';
 import { withTimeout } from '../../lib/utils';
@@ -331,12 +331,12 @@ export const HealthNewsManagementPage = () => {
 
     window.addEventListener('openFilters', handleOpenFilters);
     window.addEventListener('openHealthNewsModal', handleOpenModal);
-    window.addEventListener('openReportsModal', handleOpenAnalytics);
+    window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openFilters', handleOpenFilters);
       window.removeEventListener('openHealthNewsModal', handleOpenModal);
-      window.removeEventListener('openReportsModal', handleOpenAnalytics);
+      window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
   }, [location.search, navigate, handleCreate]);
 
@@ -874,11 +874,11 @@ export const HealthNewsManagementPage = () => {
         confirmLabel={confirmationModal.confirmLabel}
       />
 
-      <ReportsModal
+      <AnalyticsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        analyticsData={stats}
-        initialType="health-news"
+        type="news"
+        analytics={stats}
       />
 
       <BulkActionBar

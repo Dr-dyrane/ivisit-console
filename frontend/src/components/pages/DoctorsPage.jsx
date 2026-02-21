@@ -26,7 +26,7 @@ import { DoctorTableView } from '../views/DoctorTableView';
 import { withTimeout } from '../../lib/utils';
 import { SEOHead } from '../common/SEOHead';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
-import { ReportsModal } from '../modals/ReportsModal';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
 
 import { usePageData } from '../../contexts/PageDataContext';
 
@@ -196,12 +196,12 @@ export const DoctorsPage = () => {
 
     window.addEventListener('openDoctorModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
-    window.addEventListener('openReportsModal', handleOpenAnalytics);
+    window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openDoctorModal', handleOpenModal);
       window.removeEventListener('openFilters', handleOpenFilters);
-      window.removeEventListener('openReportsModal', handleOpenAnalytics);
+      window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
   }, [handleCreate]);
 
@@ -842,11 +842,11 @@ export const DoctorsPage = () => {
         confirmLabel={confirmationModal.confirmLabel}
       />
 
-      <ReportsModal
+      <AnalyticsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        analyticsData={doctorsData?.stats}
-        initialType="doctor"
+        analytics={doctorsData?.stats}
+        type="doctor"
       />
 
       <BulkActionBar

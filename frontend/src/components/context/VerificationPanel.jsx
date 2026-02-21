@@ -27,7 +27,7 @@ export const VerificationPanel = ({ verificationData, loading }) => {
   };
 
   const handleAnalytics = () => {
-    const event = new CustomEvent('openReportsModal', {
+    const event = new CustomEvent('openAnalyticsModal', {
       detail: { type: 'user' }
     });
     window.dispatchEvent(event);

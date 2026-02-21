@@ -181,7 +181,7 @@ const AnalyticsQuickCard = React.memo(({ totalVisits, completionRate }) => (
     animate={{ opacity: 1, scale: 1 }}
     transition={{ duration: 0.4, delay: 0.5, ease: [0.4, 0, 0.2, 1] }}
   >
-    <Link to="/reports" className="block h-full group">
+    <Link to="/analytics" className="block h-full group">
       <div className="h-full min-h-[320px] glass-card p-6 flex flex-col justify-between cursor-pointer relative overflow-hidden hover-lift border-info/20 hover:border-info/40 transition-colors">
         <div className="hover-glow hover-glow-info" />
         <div className="absolute inset-0 bg-gradient-to-br from-info/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -1067,7 +1067,6 @@ export const BentoHome = () => {
               {[
                 { id: 'analytics', icon: BarChart3, label: 'Analytics', sub: 'Impact metrics', color: 'success', path: '/analytics' },
                 { id: 'health-news', icon: TrendingUp, label: 'Health News', sub: 'Community updates', color: 'info', path: '/health-news' },
-                { id: 'reports', icon: FileCheck, label: 'Reports', sub: 'Monthly impact', color: 'primary', path: '/reports' },
               ].map((item, idx) => (
                 <motion.div
                   layout

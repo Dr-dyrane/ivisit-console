@@ -10,7 +10,7 @@ import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { TableSkeleton } from '../ui/skeleton';
 import { SubscriptionModal } from '../modals/SubscriptionModal';
-import { ReportsModal } from '../modals/ReportsModal';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { BulkActionBar } from '../common/BulkActionBar';
 import { FilterSheet } from '../common/FilterSheet';
@@ -95,8 +95,8 @@ export const SubscriptionManagementPage = () => {
     const handleOpenAnalytics = () => {
       setAnalyticsModalOpen(true);
     };
-    window.addEventListener('openReportsModal', handleOpenAnalytics);
-    return () => window.removeEventListener('openReportsModal', handleOpenAnalytics);
+    window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
+    return () => window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
   }, []);
 
   // Real-time listener for new subscribers
@@ -825,11 +825,11 @@ export const SubscriptionManagementPage = () => {
       />
 
       {/* Analytics Modal */}
-      <ReportsModal
+      <AnalyticsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        initialType="subscription"
-        analyticsData={{
+        type="subscription"
+        analytics={{
           total: subscribers.length,
           active: subscribers.filter(s => s.status === 'active').length,
           paid: subscribers.filter(s => s.type === 'paid').length,
@@ -840,7 +840,7 @@ export const SubscriptionManagementPage = () => {
           verified: subscribers.filter(s => s.status === 'active').length,
           premium: subscribers.filter(s => s.type === 'paid').length,
           pending: subscribers.filter(s => s.status === 'pending').length,
-          recentSubscriptions: subscribers.filter(s => {
+          recent: subscribers.filter(s => {
             const signupDate = new Date(s.created_at);
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);

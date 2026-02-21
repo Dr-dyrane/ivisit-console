@@ -74,7 +74,7 @@ export const VisitsPanel = ({ visitsData }) => {
           <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Schedule</span>
         </button>
         <button
-          onClick={() => window.dispatchEvent(new CustomEvent('openReportsModal'))}
+          onClick={() => window.dispatchEvent(new CustomEvent('openAnalyticsModal'))}
           className="flex items-center justify-center gap-3 p-4 rounded-3xl bg-info/10 hover:bg-info/20 transition-all border-0 group"
         >
           <BarChart3 className="h-5 w-5 text-info group-hover:scale-110 transition-transform" />

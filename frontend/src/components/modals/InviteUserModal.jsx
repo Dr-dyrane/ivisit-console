@@ -99,7 +99,7 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
                         className="relative z-10 w-full max-w-md bg-background rounded-3xl shadow-xl border border-border/10 overflow-hidden"
                     >
                         {/* Header */}
-                        <div className="px-6 py-5 border-b border-border/10 flex items-center justify-between bg-muted/20">
+                        <div className="px-2 md:px-6 py-3 md:py-5 border-b border-border/10 flex items-center justify-between bg-muted/20">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-xl">
                                     <Send className="w-5 h-5 text-primary" />
@@ -120,7 +120,7 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
                         </div>
 
                         {/* Content */}
-                        <div className="p-6 space-y-5">
+                        <div className="p-2 md:p-6 space-y-5">
                             <form onSubmit={handleInvite} className="space-y-5">
 
                                 <div className="space-y-2">

@@ -19,7 +19,7 @@ export const PricingContextPanel = ({ pricing = [] }) => {
     };
 
     const handleOpenAnalytics = () => {
-        const event = new CustomEvent('openReportsModal');
+        const event = new CustomEvent('openAnalyticsModal');
         window.dispatchEvent(event);
     };
 

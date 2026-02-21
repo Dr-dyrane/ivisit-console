@@ -10,7 +10,7 @@ import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { TableSkeleton } from '../ui/skeleton';
 import { InsuranceModal } from '../modals/InsuranceModal';
-import { ReportsModal } from '../modals/ReportsModal';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { BulkActionBar } from '../common/BulkActionBar';
 import { FilterSheet } from '../common/FilterSheet';
@@ -88,12 +88,12 @@ export const InsuranceManagementPage = () => {
 
     window.addEventListener('openInsuranceModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
-    window.addEventListener('openReportsModal', handleOpenAnalytics);
+    window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openInsuranceModal', handleOpenModal);
       window.removeEventListener('openFilters', handleOpenFilters);
-      window.removeEventListener('openReportsModal', handleOpenAnalytics);
+      window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
   }, []);
 
@@ -752,11 +752,11 @@ export const InsuranceManagementPage = () => {
       />
 
       {/* Analytics Modal */}
-      <ReportsModal
+      <AnalyticsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        initialType="insurance"
-        analyticsData={{
+        type="insurance"
+        analytics={{
           total: insurancePolicies.length,
           active: insurancePolicies.filter(p => p.status === 'active').length,
           verified: insurancePolicies.filter(p => p.verified).length,
@@ -771,7 +771,7 @@ export const InsuranceManagementPage = () => {
             acc[policy.provider_name] = (acc[policy.provider_name] || 0) + 1;
             return acc;
           }, {}),
-          byCoverageType: insurancePolicies.reduce((acc, policy) => {
+          byCategory: insurancePolicies.reduce((acc, policy) => {
             acc[policy.policy_type] = (acc[policy.policy_type] || 0) + 1;
             return acc;
           }, {})

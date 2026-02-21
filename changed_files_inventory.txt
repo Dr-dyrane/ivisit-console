@@ -1,0 +1,43 @@
+﻿ M frontend/docs/ux/mobile_dashboard_reinvention.md
+ M frontend/src/App.js
+ M frontend/src/components/common/FilterSheet.jsx
+ M frontend/src/components/context/AmbulancesPanel.jsx
+ M frontend/src/components/context/AnalyticsPanel.jsx
+ M frontend/src/components/context/DashboardPanel.jsx
+ M frontend/src/components/context/DoctorsPanel.jsx
+ M frontend/src/components/context/EmergencyPanel.jsx
+ M frontend/src/components/context/HealthNewsPanel.jsx
+ M frontend/src/components/context/HospitalsPanel.jsx
+ M frontend/src/components/context/InsurancePanel.jsx
+ M frontend/src/components/context/PricingContextPanel.jsx
+ M frontend/src/components/context/SubscriptionsPanel.jsx
+ M frontend/src/components/context/VerificationPanel.jsx
+ M frontend/src/components/context/VisitsPanel.jsx
+ M frontend/src/components/mobile/MobileKPIStrip.jsx
+ M frontend/src/components/mobile/MobileMetricList.jsx
+ M frontend/src/components/modals/AnalyticsModal.jsx
+ M frontend/src/components/modals/ConfirmationModal.jsx
+ M frontend/src/components/modals/InviteUserModal.jsx
+ D frontend/src/components/modals/ReportsModal.jsx
+ M frontend/src/components/modals/UserModal.jsx
+ M frontend/src/components/modals/VisitModal.jsx
+ M frontend/src/components/modals/index.js
+ M frontend/src/components/navigation/MobileNavMenu.jsx
+ M frontend/src/components/navigation/SmartHeader.jsx
+ M frontend/src/components/pages/AmbulancesPage.jsx
+ M frontend/src/components/pages/Analytics.jsx
+ M frontend/src/components/pages/BentoHome.jsx
+ M frontend/src/components/pages/DoctorsPage.jsx
+ M frontend/src/components/pages/EmergencyRequestsPage.jsx
+ M frontend/src/components/pages/HealthNewsManagementPage.jsx
+ M frontend/src/components/pages/HospitalsPage.jsx
+ M frontend/src/components/pages/InsuranceManagementPage.jsx
+ M frontend/src/components/pages/SubscriptionManagementPage.jsx
+ M frontend/src/components/pages/SupportTicketsPage.jsx
+ M frontend/src/components/pages/UsersPage.jsx
+ M frontend/src/components/pages/VerificationQueue.jsx
+ M frontend/src/components/pages/VisitsPage.jsx
+ M frontend/src/hooks/useContextAction.js
+?? changed_files_inventory.txt
+?? frontend/src/components/mobile/MobileUsers.jsx
+?? frontend/src/components/mobile/MobileVisits.jsx

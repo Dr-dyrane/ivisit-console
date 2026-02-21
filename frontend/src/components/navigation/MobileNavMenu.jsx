@@ -42,6 +42,26 @@ export const MobileNavMenu = ({ onClose }) => {
         else if (isMgmt) setActiveGroup('mgmt');
     }, [location.pathname, accessibleNav]);
 
+    // Auto-close sheet when context panel actions trigger a modal
+    // Canon #18: Preserve Spatial Memory — sheet dismisses, modal appears
+    useEffect(() => {
+        const modalEvents = [
+            'openAnalyticsModal', 'openVisitModal', 'openEmergencyModal',
+            'openDoctorModal', 'openHospitalModal', 'openHealthNewsModal',
+            'openSupportTicketModal', 'openInsuranceModal', 'openFilters',
+            'openProfileModal', 'openSecurityModal', 'openSupportModal',
+            'openSubscriptionModal', 'openEmailActionsModal', 'openPricingModal',
+            'openOrganizationModal', 'openTopUpModal', 'openWithdrawModal',
+            'openUserAnalytics', 'openVisitAnalytics',
+            'openUserModal', 'openInviteUserModal', 'exportAnalytics', 'exportLedger',
+        ];
+
+        const handleModalOpen = () => onClose();
+
+        modalEvents.forEach(evt => window.addEventListener(evt, handleModalOpen));
+        return () => modalEvents.forEach(evt => window.removeEventListener(evt, handleModalOpen));
+    }, [onClose]);
+
     const handleNavigate = (path) => {
         navigate(path);
         onClose();
@@ -68,7 +88,7 @@ export const MobileNavMenu = ({ onClose }) => {
     };
 
     return (
-        <div className="flex flex-col h-full text-foreground">
+        <div className="flex flex-col h-full text-foreground no-scrollbar">
             {/* 1. BRANDING & TOGGLE */}
             <div className="flex-shrink-0 p-2 pb-0">
                 <div className="h-14 flex items-center mb-4">
@@ -111,7 +131,7 @@ export const MobileNavMenu = ({ onClose }) => {
             </div>
 
             {/* 2. MAIN CONTENT AREA */}
-            <div className="flex-1 overflow-y-auto px-2 pb-4">
+            <div className="flex-1 overflow-y-auto px-2 pb-4 no-scrollbar">
                 <AnimatePresence mode="wait">
                     {activeTab === 'menu' ? (
                         <motion.div

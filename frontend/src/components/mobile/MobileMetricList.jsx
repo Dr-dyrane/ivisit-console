@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**
  * MobileSectionHeader
  * Minimal authority header for mobile sections
  */
-export const MobileSectionHeader = ({ label, color = 'hsl(var(--primary))', count }) => (
+export const MobileSectionHeader = ({ label, color = 'hsl(var(--primary))', count, onSelectAll, isAllSelected }) => (
     <div className="px-1 pt-6 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
             <div className="w-1 h-1 rounded-full opacity-50" style={{ backgroundColor: color }} />
@@ -14,11 +14,21 @@ export const MobileSectionHeader = ({ label, color = 'hsl(var(--primary))', coun
                 {label}
             </h5>
         </div>
-        {count !== undefined && (
-            <span className="text-[10px] font-medium text-muted-foreground/40 bg-white/5 px-1.5 py-0.5 rounded-sm">
-                {count}
-            </span>
-        )}
+        <div className="flex items-center gap-2">
+            {onSelectAll && (
+                <button
+                    onClick={onSelectAll}
+                    className="text-[9px] font-bold uppercase tracking-widest text-primary/60 hover:text-primary active:scale-95 transition-all px-2 py-1 rounded-lg apple-glass-heavy border-0"
+                >
+                    {isAllSelected ? 'Deselect All' : 'Select All'}
+                </button>
+            )}
+            {count !== undefined && (
+                <span className="text-[10px] font-medium text-muted-foreground/40 bg-white/5 px-1.5 py-0.5 rounded-sm">
+                    {count}
+                </span>
+            )}
+        </div>
     </div>
 );
 
@@ -36,15 +46,28 @@ export const MobileMetricRow = ({
     onClick,
     color = 'hsl(var(--primary))',
     description,
-    expandedContent // New prop for progressive disclosure
+    expandedContent,
+    isExpanded,
+    onExpand,
+    itemId,
+    isSelected,
+    onSelect,
+    selectionMode
 }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-
     const handleInteraction = (e) => {
-        if (expandedContent) {
-            setIsExpanded(!isExpanded);
+        if (selectionMode && onSelect) {
+            onSelect(itemId);
+        } else if (expandedContent) {
+            onExpand?.(itemId);
         } else if (onClick) {
             onClick(e);
+        }
+    };
+
+    const handleLongPress = (e) => {
+        if (onSelect) {
+            e.preventDefault();
+            onSelect(itemId);
         }
     };
 
@@ -57,7 +80,8 @@ export const MobileMetricRow = ({
             <motion.div
                 whileTap={{ scale: 0.98 }}
                 onClick={handleInteraction}
-                className={`w-full flex items-center gap-3 p-3 apple-glass-heavy border-0 rounded-2xl relative overflow-hidden group bg-muted/50 ${isExpanded ? 'bg-muted/80' : 'active:bg-muted/70'
+                onContextMenu={handleLongPress}
+                className={`w-full flex items-center gap-3 p-3 apple-glass-heavy border-0 rounded-2xl relative overflow-hidden group transition-colors ${isSelected ? 'bg-primary/10 ring-1 ring-primary/20' : isExpanded ? 'bg-muted/80' : 'bg-muted/50 active:bg-muted/70'
                     }`}
             >
                 {/* 2px Left Accent - The only differentiator */}
@@ -67,20 +91,35 @@ export const MobileMetricRow = ({
                 />
 
                 <div
-                    className="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0 relative z-10 shadow-md"
+                    className={`w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0 relative z-10 shadow-md transition-all duration-300 ${isSelected ? 'scale-110' : ''}`}
                     style={{
                         background: `radial-gradient(circle at 30% 30%, ${color.replace(/\)$/, ' / 0.2)')}, ${color.replace(/\)$/, ' / 0.1)')})`,
+                        boxShadow: isSelected ? `0 0 15px ${color.replace(/\)$/, ' / 0.4)')}` : 'none',
+                        border: isSelected ? `1.5px solid ${color}` : 'none'
                     }}
                 >
                     {Icon && <Icon size={16} className="opacity-95" style={{ color }} />}
+
+                    <AnimatePresence>
+                        {isSelected && (
+                            <motion.div
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0, opacity: 0 }}
+                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center shadow-lg border-2 border-background z-20"
+                            >
+                                <Check size={10} className="text-white stroke-[4px]" />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 <div className="flex-1 min-w-0 relative z-10">
-                    <p className="text-[10px] font-normal uppercase tracking-[0.15em] mb-0.5 truncate text-muted-foreground/80">
+                    <p className="text-[8px] font-thin uppercase tracking-[0.15em] mb-0.5 truncate text-muted-foreground/80">
                         {label}
                     </p>
                     <div className="flex items-baseline gap-1.5">
-                        <span className="text-[15px] font-semibold tracking-tight text-foreground/95">{value}</span>
+                        <span className="text-[14px] font-normal tracking-tight text-foreground/95">{value}</span>
                         {trend && (
                             <span className={`text-[8px] font-semibold px-1.5 py-0.5 rounded-full ${trend.includes('+') ? 'text-success bg-success/10' : 'text-destructive bg-destructive/10'}`}>
                                 {trend}

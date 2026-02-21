@@ -131,7 +131,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
             className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl"
           >
             {/* Header Area */}
-            <div className="flex items-center justify-between p-8 pb-4">
+            <div className="flex items-center justify-between p-2 md:p-8 pb-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16 rounded-2xl border-4 border-background shadow-xl">
                   <AvatarImage
@@ -167,7 +167,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
               </Button>
             </div>
 
-            <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
+            <div className="p-2 md:p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
               <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* Personal Information Section */}
@@ -366,7 +366,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                 </GlassCard>
 
                 {/* Footer Actions */}
-                <div className="p-4 sm:p-6 rounded-[24px] bg-muted/30  flex gap-3 justify-end">
+                <div className="p-4 rounded-[24px] bg-muted/30 flex gap-3 justify-end">
                   {!isView ? (
                     <>
                       <Button
@@ -407,7 +407,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
 
 /* Sub-components */
 const GlassCard = ({ children, title, icon }) => (
-  <div className="p-4 sm:p-6 rounded-[28px] bg-muted/30 ">
+  <div className="p-4 rounded-[28px] bg-muted/30 ">
     <div className="flex items-center gap-3 mb-4 sm:mb-6">
       <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}

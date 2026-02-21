@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { HospitalModal } from '../modals/HospitalModal';
-import { ReportsModal } from '../modals/ReportsModal';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
 import StaffSchedulingModal from '../modals/StaffSchedulingModal';
 import { withTimeout } from '../../lib/utils';
 import { ViewToggle } from '../common/ViewToggle';
@@ -139,12 +139,12 @@ export const HospitalsPage = () => {
 
     window.addEventListener('openHospitalModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
-    window.addEventListener('openReportsModal', handleOpenAnalytics);
+    window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openHospitalModal', handleOpenModal);
       window.removeEventListener('openFilters', handleOpenFilters);
-      window.removeEventListener('openReportsModal', handleOpenAnalytics);
+      window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
   }, [handleCreate]);
 
@@ -810,11 +810,11 @@ export const HospitalsPage = () => {
         isMobile={isMobile}
       />
 
-      <ReportsModal
+      <AnalyticsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        analyticsData={hospitalsData?.stats}
-        initialType="hospital"
+        analytics={hospitalsData?.stats}
+        type="hospital"
       />
 
       <StaffSchedulingModal

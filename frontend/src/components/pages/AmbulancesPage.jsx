@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { AmbulanceModal } from '../modals/AmbulanceModal';
-import { ReportsModal } from '../modals/ReportsModal';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { withTimeout } from '../../lib/utils';
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
@@ -264,12 +264,12 @@ export const AmbulancesPage = () => {
 
     window.addEventListener('openAmbulanceModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
-    window.addEventListener('openReportsModal', handleOpenAnalytics);
+    window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openAmbulanceModal', handleOpenModal);
       window.removeEventListener('openFilters', handleOpenFilters);
-      window.removeEventListener('openReportsModal', handleOpenAnalytics);
+      window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
   }, [handleCreate]);
 
@@ -886,11 +886,11 @@ export const AmbulancesPage = () => {
         isMobile={isMobile}
       />
 
-      <ReportsModal
+      <AnalyticsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        analyticsData={ambulancesData?.stats}
-        initialType="ambulance"
+        analytics={displayStats}
+        type="ambulance"
       />
     </div>
   );

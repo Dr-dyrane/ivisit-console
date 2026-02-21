@@ -31,7 +31,8 @@ import { SEOHead } from '../common/SEOHead';
 
 import { InviteUserModal } from '../modals/InviteUserModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
-import { ReportsModal } from '../modals/ReportsModal';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
+import { MobileUsers } from '../mobile/MobileUsers';
 import { CheckSquare, Archive } from 'lucide-react'; // Additional icons
 
 export const UsersPage = () => {
@@ -166,11 +167,12 @@ export const UsersPage = () => {
     fetchOrgs();
   }, []);
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (isLoadMore = false) => {
     try {
       setLoading(true);
 
       const isPrivileged = isAdmin() || isOrgAdmin();
+      // For privileged users, we load 1000 items once and handle slicing locally
       const limit = isPrivileged ? 1000 : pagination.itemsPerPage;
       const offset = isPrivileged ? 0 : pagination.paginationRange.start;
 
@@ -195,8 +197,10 @@ export const UsersPage = () => {
         const totalCount = data.length;
         pagination.setTotalCount(totalCount);
 
-        const startIndex = pagination.itemsPerPage * (pagination.currentPage - 1);
-        const paginatedData = data.slice(startIndex, startIndex + pagination.itemsPerPage);
+        // Infinite Scroll Logic for local slice:
+        // Accumulate items from page 1 up to current page
+        const visibleCount = pagination.itemsPerPage * pagination.currentPage;
+        const paginatedData = data.slice(0, visibleCount);
 
         setUsers(paginatedData);
 
@@ -251,9 +255,9 @@ export const UsersPage = () => {
           setStatistics(stats);
         }
       } else {
-        // Non-admin users get their own profile
+        // Non-admin users: Accumulate if loading more, replace if fresh fetch (page 1)
         pagination.setTotalCount(data.length);
-        setUsers(data);
+        setUsers(prev => (pagination.currentPage === 1 ? data : [...prev, ...data]));
       }
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -261,7 +265,7 @@ export const UsersPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters, isAdmin, isOrgAdmin, pagination.itemsPerPage, pagination.paginationRange.start, pagination.setTotalCount, organizationsMap]);
+  }, [filters, isAdmin, isOrgAdmin, pagination.currentPage, pagination.itemsPerPage, pagination.paginationRange.start, pagination.setTotalCount, organizationsMap]);
 
   useEffect(() => {
     fetchUsers();
@@ -617,6 +621,78 @@ export const UsersPage = () => {
       )}
     </LayoutGroup>
   ), [selectedIds, isAdmin, handleBulkDelete]);
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen">
+        <SEOHead title="Users" description="User Management Mission Control" />
+        <MobileUsers
+          users={processedUsers}
+          loading={loading}
+          statistics={statistics}
+          filters={filters}
+          setFilters={setFilters}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={confirmDelete}
+          onRefresh={fetchUsers}
+          onViewAnalytics={handleViewAnalytics}
+          isAdmin={isAdmin()}
+          isOrgAdmin={isOrgAdmin()}
+          onOpenFilters={() => setFilterSheetOpen(true)}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+          selectedIds={selectedIds}
+          onSelect={handleSelect}
+          onSelectAll={handleSelectAll}
+        />
+
+        {/* Modals & Sheets */}
+        <UserModal
+          isOpen={modalMode === 'create' || modalMode === 'edit' || modalMode === 'view'}
+          onClose={handleModalClose}
+          user={selectedUser}
+          mode={modalMode}
+          onSave={handleSaveUser}
+        />
+
+        <InviteUserModal
+          isOpen={modalMode === 'invite'}
+          onClose={handleModalClose}
+          onInvited={fetchUsers}
+        />
+
+        <FilterSheet
+          isOpen={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          filterSchema={filterSchema}
+          onApply={setFilters}
+          initialValues={filters}
+          isMobile={isMobile}
+        />
+
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          title={confirmationModal.title}
+          description={confirmationModal.description}
+          onConfirm={confirmationModal.onConfirm}
+          variant={confirmationModal.variant}
+          confirmLabel={confirmationModal.confirmLabel}
+        />
+
+        {/* Global Overlays */}
+        {BulkActionBar}
+
+        <AnalyticsModal
+          open={analyticsModalOpen}
+          onClose={() => setAnalyticsModalOpen(false)}
+          analytics={statistics}
+          type="user"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
@@ -1072,6 +1148,7 @@ export const UsersPage = () => {
                 />
               )}
 
+
               {/* Table View */}
               {viewMode === 'table' && (
                 <UserTableView
@@ -1144,11 +1221,11 @@ export const UsersPage = () => {
         )
       }
 
-      <ReportsModal
+      <AnalyticsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        analyticsData={statistics}
-        initialType="user"
+        analytics={statistics}
+        type="user"
       />
 
       <FilterSheet

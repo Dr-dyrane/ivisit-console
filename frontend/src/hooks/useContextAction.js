@@ -69,8 +69,8 @@ export const useContextAction = (openModal) => {
             label: 'Generate Report',
             color: 'primary',
             action: () => {
-                // Open reports modal via window event
-                window.dispatchEvent(new CustomEvent('openReportsModal'));
+                // Open analytics modal via window event
+                window.dispatchEvent(new CustomEvent('openAnalyticsModal'));
             }
         };
     } else if (currentPath.includes('/doctors')) {

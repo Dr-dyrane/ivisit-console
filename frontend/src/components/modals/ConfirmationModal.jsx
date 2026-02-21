@@ -59,7 +59,7 @@ export const ConfirmationModal = ({
                         aria-modal="true"
                         aria-labelledby="modal-title"
                     >
-                        <div className="p-6 flex flex-col items-center text-center">
+                        <div className="p-2 md:p-6 flex flex-col items-center text-center">
                             <div className={`p-4 rounded-full mb-4 ${variant === 'destructive' ? 'bg-destructive/10' :
                                 variant === 'warning' ? 'bg-warning/10' : 'bg-primary/10'
                                 }`}>

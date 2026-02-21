@@ -27,7 +27,7 @@ import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { withTimeout } from '../../lib/utils';
 import { toast } from 'sonner';
-import { ReportsModal } from '../modals/ReportsModal';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
 import {
   AlertTriangle,
   MapPin,
@@ -194,12 +194,12 @@ export const EmergencyRequestsPage = () => {
 
     window.addEventListener('openEmergencyModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
-    window.addEventListener('openReportsModal', handleOpenAnalytics);
+    window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openEmergencyModal', handleOpenModal);
       window.removeEventListener('openFilters', handleOpenFilters);
-      window.removeEventListener('openReportsModal', handleOpenAnalytics);
+      window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
   }, [handleCreateEmergency]);
 
@@ -998,11 +998,11 @@ export const EmergencyRequestsPage = () => {
         isMobile={isMobile}
       />
 
-      <ReportsModal
+      <AnalyticsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        analyticsData={emergencyData?.stats}
-        initialType="emergency"
+        analytics={emergencyData?.stats}
+        type="emergency"
       />
 
       <ConfirmationModal

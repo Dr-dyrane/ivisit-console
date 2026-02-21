@@ -11,4 +11,3 @@ export { SubscriptionModal } from './SubscriptionModal';
 export { AnalyticsModal } from './AnalyticsModal';
 export { BulkImportModal } from './BulkImportModal';
 export { EmergencyDetailsModal } from './EmergencyDetailsModal';
-export { ReportsModal } from './ReportsModal';

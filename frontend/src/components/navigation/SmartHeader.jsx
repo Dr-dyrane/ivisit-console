@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,6 +15,13 @@ export const SmartHeader = () => {
     const { user, profile } = useAuth();
     const [searchOpen, setSearchOpen] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+
+    // Listen for closeMobileMenu events from context panel actions
+    useEffect(() => {
+        const handleClose = () => setMenuOpen(false);
+        window.addEventListener('closeMobileMenu', handleClose);
+        return () => window.removeEventListener('closeMobileMenu', handleClose);
+    }, []);
 
     const AVATAR_URL = profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username || 'User'}&background=random`;
 

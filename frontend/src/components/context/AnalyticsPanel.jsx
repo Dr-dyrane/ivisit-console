@@ -13,7 +13,7 @@ import {
 export const AnalyticsPanel = ({ analyticsData }) => {
   const handleOpenReports = () => {
     // Trigger reports modal on analytics page
-    const event = new CustomEvent('openReportsModal');
+    const event = new CustomEvent('openAnalyticsModal');
     window.dispatchEvent(event);
   };
 

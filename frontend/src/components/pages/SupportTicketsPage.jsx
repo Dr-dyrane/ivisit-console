@@ -38,7 +38,7 @@ import { handleApiError } from "../../utils/errorHandler";
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
 import { SupportTicketModal } from '../modals/SupportTicketModal';
-import { ReportsModal } from '../modals/ReportsModal';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { BulkActionBar } from '../common/BulkActionBar';
 import { SupportTicketListView } from '../views/SupportTicketListView';
@@ -615,7 +615,7 @@ export const SupportTicketsPage = () => {
       {/* Modals ... */}
       <AnimatePresence>
         {modalMode && <SupportTicketModal ticket={selectedTicket} mode={modalMode} onClose={() => setModalMode(null)} onSave={modalMode === 'create' ? createTicket : updateTicket} priorities={PRIORITIES} categories={CATEGORIES} />}
-        <ReportsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analyticsData={analytics} initialType="support" />
+        <AnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analytics={analytics} type="support" />
       </AnimatePresence>
 
       <FilterSheet isOpen={filterSheetOpen} onOpenChange={setFilterSheetOpen} filterSchema={filterSchema} onApply={setFilters} initialValues={filters} viewToggle={isMobile ? viewToggleComponent : null} isMobile={isMobile} />

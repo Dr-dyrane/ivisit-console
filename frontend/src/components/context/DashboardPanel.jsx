@@ -70,7 +70,7 @@ export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, ver
 
   const handleExportReport = () => {
     // Open the new unified reports modal
-    const event = new CustomEvent('openReportsModal', {
+    const event = new CustomEvent('openAnalyticsModal', {
       detail: { type: 'performance' }
     });
     window.dispatchEvent(event);

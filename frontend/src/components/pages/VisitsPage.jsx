@@ -32,7 +32,8 @@ import { VisitTableView } from '../views/VisitTableView';
 import { SEOHead } from '../common/SEOHead';
 import { BulkActionBar } from '../common/BulkActionBar';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
-import { ReportsModal } from '../modals/ReportsModal';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
+import { MobileVisits } from '../mobile/MobileVisits';
 
 export const VisitsPage = () => {
   const { user, isAdmin, isOrgAdmin, isProvider, orgId } = useAuth();
@@ -44,7 +45,7 @@ export const VisitsPage = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const viewVisitId = urlParams.get('view');
-    
+
     if (viewVisitId) {
       // Fetch the specific visit and open modal
       const fetchAndOpenVisit = async () => {
@@ -60,7 +61,7 @@ export const VisitsPage = () => {
           toast.error('Failed to load clinical record');
         }
       };
-      
+
       fetchAndOpenVisit();
     }
   }, [location.search]);
@@ -271,14 +272,14 @@ export const VisitsPage = () => {
     window.addEventListener('openEmergencyDetails', handleOpenEmergency);
     window.addEventListener('openFilters', handleOpenFilters);
     window.addEventListener('openVisitAnalytics', handleOpenAnalytics);
-    window.addEventListener('openReportsModal', handleOpenAnalytics);
+    window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openVisitModal', handleOpenModal);
       window.removeEventListener('openEmergencyDetails', handleOpenEmergency);
       window.removeEventListener('openFilters', handleOpenFilters);
       window.removeEventListener('openVisitAnalytics', handleOpenAnalytics);
-      window.removeEventListener('openReportsModal', handleOpenAnalytics);
+      window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
   }, [handleCreate]);
 
@@ -497,6 +498,91 @@ export const VisitsPage = () => {
   ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
 
   usePageFooter(footerContent, 'pagination', !loading && visits.length > 0);
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen">
+        <SEOHead title="Visits" description="Clinical Encounters Mission Control" />
+        <MobileVisits
+          visits={visits}
+          loading={loading}
+          statistics={visitsData?.stats}  // ← Changed from 'stats' to 'statistics'
+          filters={filters}                // ← ADD
+          setFilters={setFilters}          // ← ADD  
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onRefresh={fetchVisits}
+          onViewAnalytics={() => setAnalyticsModalOpen(true)}
+          isAdmin={isAdmin()}
+          isOrgAdmin={isOrgAdmin()}
+          onOpenFilters={() => setFilterSheetOpen(true)}  // ← ADD
+          hasMore={pagination.hasNextPage}  // ← ADD
+          onLoadMore={pagination.nextPage}  // ← ADD
+          selectedIds={selectedIds}
+          onSelect={handleSelect}
+          onSelectAll={handleSelectAll}
+        />
+
+        {/* Modals & Sheets */}
+        {modalMode && (
+          <VisitModal
+            isOpen={!!modalMode}
+            onClose={handleModalClose}
+            visit={selectedVisit}
+            mode={modalMode}
+            onSave={handleSaveVisit}
+            users={patients}
+            hospitals={hospitals}
+          />
+        )}
+
+        <FilterSheet
+          isOpen={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          filterSchema={filterSchema}
+          onApply={setFilters}
+          initialValues={filters}
+          viewToggle={null}
+          isMobile={true}
+        />
+
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          title={confirmationModal.title}
+          description={confirmationModal.description}
+          onConfirm={confirmationModal.onConfirm}
+          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          variant={confirmationModal.variant}
+          confirmLabel={confirmationModal.confirmLabel}
+        />
+        {/* Global Overlays */}
+        <BulkActionBar
+          selectedCount={selectedIds.length}
+          onClear={() => setSelectedIds([])}
+        >
+          {(isAdmin() || isOrgAdmin() || isProvider()) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBulkDelete}
+              className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+              title="Delete Selected"
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
+          )}
+        </BulkActionBar>
+
+        <AnalyticsModal
+          open={analyticsModalOpen}
+          onClose={() => setAnalyticsModalOpen(false)}
+          analytics={visitsData?.stats}
+          type="visit"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-6 md:py-8">
@@ -965,11 +1051,11 @@ export const VisitsPage = () => {
         request={emergencyModal.request}
       />
 
-      <ReportsModal
+      <AnalyticsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        analyticsData={visitsData?.stats}
-        initialType="visit"
+        analytics={visitsData?.stats}
+        type="visit"
       />
 
       <FilterSheet

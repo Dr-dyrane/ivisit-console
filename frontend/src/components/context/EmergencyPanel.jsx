@@ -19,6 +19,10 @@ export const EmergencyPanel = ({ emergencyData = [], emergencyStats, useMockData
     window.dispatchEvent(new CustomEvent('openEmergencyModal'));
   };
 
+  const handleAnalytics = () => {
+    window.dispatchEvent(new CustomEvent('openAnalyticsModal'));
+  };
+
   return (
     <div className="space-y-4">
       {/* Data Source Indicator */}
@@ -107,7 +111,7 @@ export const EmergencyPanel = ({ emergencyData = [], emergencyStats, useMockData
               <span className="text-[8px] font-bold uppercase tracking-widest">Filter</span>
             </button>
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('openReportsModal'))}
+              onClick={() => window.dispatchEvent(new CustomEvent('openAnalyticsModal'))}
               className="flex flex-col items-center justify-center gap-2 p-3 rounded-3xl bg-primary/10 hover:bg-primary/20 transition-all border-0"
             >
               <BarChart3 className="h-4 w-4 text-primary" />

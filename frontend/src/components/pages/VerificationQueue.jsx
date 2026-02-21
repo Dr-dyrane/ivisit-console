@@ -8,7 +8,7 @@ import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { VerificationModal } from '../modals/VerificationModal';
-import { ReportsModal } from '../modals/ReportsModal';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { BulkActionBar } from '../common/BulkActionBar';
 import {
   CheckCircle,
@@ -180,13 +180,13 @@ export const VerificationQueue = () => {
     const handleOpenAnalytics = () => setAnalyticsModalOpen(true);
 
     window.addEventListener('openFilters', handleOpenFilters);
-    window.addEventListener('openReportsModal', handleOpenAnalytics);
+    window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
 
     return () => {
       if (unsubscribeProviders) unsubscribeProviders();
       if (unsubscribeOrgs) unsubscribeOrgs();
       window.removeEventListener('openFilters', handleOpenFilters);
-      window.removeEventListener('openReportsModal', handleOpenAnalytics);
+      window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
   }, [fetchVerificationData, fetchOrgVerificationData, canVerify, queueType]);
 
@@ -500,11 +500,11 @@ export const VerificationQueue = () => {
           isMobile={isMobile}
         />
 
-        <ReportsModal
+        <AnalyticsModal
           open={analyticsModalOpen}
           onClose={() => setAnalyticsModalOpen(false)}
-          analyticsData={stats}
-          initialType="verification"
+          analytics={stats}
+          type="verification"
         />
 
         <TabsContent value="providers" className="mt-0">

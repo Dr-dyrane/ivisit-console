@@ -46,7 +46,7 @@ import {
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { usePageHeader } from '../../contexts/LayoutContext';
-import { ReportsModal } from '../modals/ReportsModal';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { useSubscription } from '../../hooks/useSubscription';
 import { getFinanceAnalytics } from '../../services/walletService';
 import { Wallet } from 'lucide-react';
@@ -101,7 +101,7 @@ export const Analytics = () => {
   const [requestsByDay, setRequestsByDay] = useState([]);
   const [emergencyTypes, setEmergencyTypes] = useState([]);
   const [dominantType, setDominantType] = useState(null); // Storytelling state
-  const [reportsModalOpen, setReportsModalOpen] = useState(false);
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [demandHeatmap, setDemandHeatmap] = useState([]);
   const [hospitalCapacity, setHospitalCapacity] = useState({ total: 0, occupied: 0, icu: 0 });
 
@@ -399,19 +399,19 @@ export const Analytics = () => {
 
   // Listen for context panel events
   useEffect(() => {
-    const handleOpenReports = () => {
-      setReportsModalOpen(true);
+    const handleOpenAnalytics = () => {
+      setAnalyticsModalOpen(true);
     };
 
     const handleExportAnalytics = () => {
       handleExport();
     };
 
-    window.addEventListener('openReportsModal', handleOpenReports);
+    window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
     window.addEventListener('exportAnalytics', handleExportAnalytics);
 
     return () => {
-      window.removeEventListener('openReportsModal', handleOpenReports);
+      window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
       window.removeEventListener('exportAnalytics', handleExportAnalytics);
     };
   }, [handleExport]);
@@ -1948,12 +1948,18 @@ export const Analytics = () => {
         </motion.div>
       </div>
 
-      {/* Reports Modal */}
-      <ReportsModal
-        open={reportsModalOpen}
-        onClose={() => setReportsModalOpen(false)}
-        analyticsData={analyticsDataForReports}
-        timeRange={timeRange}
+      {/* Analytics Modal */}
+      <AnalyticsModal
+        open={analyticsModalOpen}
+        onClose={() => setAnalyticsModalOpen(false)}
+        analytics={{
+          total: stats.totalEmergencies,
+          active: stats.totalAmbulances,
+          verified: stats.totalHospitals,
+          emergency: stats.totalEmergencies,
+          ...subscriptionStats
+        }}
+        type="emergency"
       />
     </>
   );

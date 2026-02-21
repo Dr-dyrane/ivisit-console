@@ -22,7 +22,7 @@ export const AmbulancesPanel = ({ ambulancesData }) => {
   };
 
   const handleAnalytics = () => {
-    window.dispatchEvent(new CustomEvent('openReportsModal'));
+    window.dispatchEvent(new CustomEvent('openAnalyticsModal'));
   };
 
   return (

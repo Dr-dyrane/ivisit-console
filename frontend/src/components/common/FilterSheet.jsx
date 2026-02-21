@@ -4,10 +4,10 @@ import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { Slider } from '../ui/slider';
 import { Badge } from '../ui/badge';
-import { X } from 'lucide-react';
+import { X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initialValues = {}, viewToggle = null, isMobile = false }) => {
+export const FilterSheet = ({ isOpen, onOpenChange, filterSchema = [], onApply, initialValues = {}, viewToggle = null, isMobile = false }) => {
   const [filters, setFilters] = useState(initialValues);
   const prevInitialValuesRef = useRef();
 
@@ -81,15 +81,16 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
     switch (type) {
       case 'text':
         return (
-          <div key={key} className="space-y-3 px-3 py-3 rounded-lg hover:bg-white/3 transition-colors">
+          <div key={key} className="hidden lg:block space-y-3 px-3 py-3 rounded-lg hover:bg-white/3 transition-colors">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
             <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
               <input
                 type="text"
                 value={currentValue || ''}
                 onChange={(e) => handleFilterChange(key, e.target.value)}
                 placeholder={filter.placeholder || `Search ${label.toLowerCase()}...`}
-                className="w-full px-3 py-2 border border-white/10 rounded-lg bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-sm pr-8"
+                className="w-full pl-9 pr-8 py-2 border-0 rounded-lg bg-black/5 dark:bg-white/5 focus:outline-none focus:ring-1 focus:ring-primary/20 text-sm"
               />
               {currentValue && (
                 <button
@@ -108,7 +109,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
           <div key={key} className="space-y-3">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-3">{label}</p>
             <div className="space-y-2">
-              {options.map(option => (
+              {(options || []).map(option => (
                 <div key={option.value} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
                   <Checkbox
                     id={`${key}-${option.value}`}
@@ -154,7 +155,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
           <div key={key} className="space-y-3">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-3">{label}</p>
             <div className="space-y-2">
-              {options.map(option => (
+              {(options || []).map(option => (
                 <div key={option.value} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
                   <input
                     type="radio"
@@ -185,7 +186,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
                   type="date"
                   value={currentValue?.start || ''}
                   onChange={(e) => handleFilterChange(key, { ...currentValue, start: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-white/10 rounded-xl bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-sm appearance-none min-h-[44px]"
+                  className="w-full px-3 py-2.5 border-0 rounded-xl bg-black/5 dark:bg-white/5 focus:outline-none focus:ring-1 focus:ring-primary/20 text-sm appearance-none min-h-[44px]"
                 />
               </div>
               <div className="space-y-1.5">
@@ -194,7 +195,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
                   type="date"
                   value={currentValue?.end || ''}
                   onChange={(e) => handleFilterChange(key, { ...currentValue, end: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-white/10 rounded-xl bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-sm appearance-none min-h-[44px]"
+                  className="w-full px-3 py-2.5 border-0 rounded-xl bg-black/5 dark:bg-white/5 focus:outline-none focus:ring-1 focus:ring-primary/20 text-sm appearance-none min-h-[44px]"
                 />
               </div>
 
@@ -209,7 +210,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
                     key={preset.label}
                     variant="outline"
                     size="sm"
-                    className="h-8 text-[11px] font-medium rounded-lg hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all"
+                    className="h-8 text-[11px] bg-black/5 dark:bg-white/5 font-medium rounded-lg hover:bg-primary hover:text-primary-foreground transition-all border-none"
                     onClick={() => {
                       const end = new Date();
                       const start = new Date();
@@ -255,17 +256,17 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
               : "fixed top-16 left-4 right-4 z-[70] mx-auto max-w-2xl"
             }
           >
-            <div className={`bg-background/95 backdrop-blur-xl shadow-2xl p-6 ${isMobile ? 'rounded-t-[32px] border-t border-white/10 pb-8' : 'squircle-xl border border-white/10'}`}>
+            <div className={`bg-background/40 backdrop-blur-md shadow-2xl px-2 md:px-6 py-6 ${isMobile ? 'rounded-t-[48px] pb-8' : 'squircle-xl'}`}>
 
               {/* Mobile Drag Handle */}
               {isMobile && (
-                <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6 shrink-0" />
+                <div className="w-12 h-1.5 bg-black/20 dark:bg-white/20 rounded-full mx-auto mb-6 shrink-0" />
               )}
               {/* Header */}
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h2 className="text-sm font-bold uppercase tracking-widest">
-                    {isMobile ? 'View & Filters' : 'Filters'}
+                    {isMobile ? 'Filters' : 'Filters'}
                   </h2>
                 </div>
                 <div className="flex items-center gap-1">
@@ -314,7 +315,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema, onApply, initi
                 <Button
                   variant="outline"
                   onClick={handleReset}
-                  className="flex-1 squircle-lg bg-white/5 hover:bg-white/10"
+                  className="flex-1 squircle-lg bg-black/5 dark:bg-white/5 hover:bg-white/10 border-none"
                 >
                   Reset
                 </Button>
