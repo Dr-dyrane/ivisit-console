@@ -90,7 +90,7 @@ export const MapPanel = ({ emergencyStats }) => {
   // --- INSPECTOR VIEW (Selected Marker) ---
   if (selectedMarker) {
     return (
-      <div className="space-y-6 max-h-screen overflow-y-auto pr-2 custom-scrollbar">
+      <div className="space-y-6 max-h-screen overflow-y-auto no-scrollbar">
         {/* Back Navigation */}
         <Button
           variant="outline"
@@ -104,7 +104,7 @@ export const MapPanel = ({ emergencyStats }) => {
         </Button>
 
         {/* Selected Marker Details */}
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 px-0 border-0 shadow-premium">
           <div className={`h-24 relative flex items-center justify-center mb-6 ${selectedMarker.type === "emergency" ? "bg-destructive/20" :
             selectedMarker.type === "ambulance" ? "bg-success/20" : "bg-info/20"
             }`}>
@@ -197,9 +197,9 @@ export const MapPanel = ({ emergencyStats }) => {
 
   // --- DEFAULT COMMAND CENTER VIEW ---
   return (
-    <div className="p-4 space-y-6 max-h-screen overflow-y-auto pr-2 custom-scrollbar">
+    <div className="p-4 px-0 space-y-6 max-h-screen overflow-y-auto no-scrollbar">
       {/* Map Controls */}
-      <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+      <Card className="bg-background/20 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-4">
           <Settings className="h-5 w-5 text-primary" />
           <h3 className="font-bold text-sm uppercase tracking-wider">Map Controls</h3>
@@ -233,7 +233,7 @@ export const MapPanel = ({ emergencyStats }) => {
       </Card>
 
       {/* Quick Actions */}
-      <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+      <Card className="bg-background/20 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-4">
           <Zap className="h-5 w-5 text-success" />
           <h3 className="font-bold text-sm uppercase tracking-wider">Quick Actions</h3>
@@ -263,7 +263,7 @@ export const MapPanel = ({ emergencyStats }) => {
       </Card>
 
       {/* Live Statistics */}
-      <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+      <Card className="bg-background/20 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-4">
           <Shield className="h-5 w-5 text-info" />
           <h3 className="font-bold text-sm uppercase tracking-wider">Live Statistics</h3>
@@ -315,7 +315,7 @@ export const MapPanel = ({ emergencyStats }) => {
       </Card>
 
       {/* Emergency Filters */}
-      <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+      <Card className="bg-background/20 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="h-5 w-5 text-warning" />
           <h3 className="font-bold text-sm uppercase tracking-wider">Emergency Filters</h3>
@@ -353,7 +353,7 @@ export const MapPanel = ({ emergencyStats }) => {
       </Card>
 
       {/* Live Feed */}
-      <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+      <Card className="bg-background/20 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
         <div className="flex items-center gap-2 mb-4">
           <Bell className="h-5 w-5 text-destructive" />
           <h3 className="font-bold text-sm uppercase tracking-wider">Live Feed</h3>

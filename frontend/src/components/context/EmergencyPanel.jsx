@@ -35,152 +35,131 @@ export const EmergencyPanel = ({ emergencyData = [], emergencyStats, useMockData
         </motion.div>
       )}
 
-      {/* Emergency Overview */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-3"
-      >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Emergency Overview</h3>
+      <div className="space-y-3">
+        {/* Overview */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="space-y-2"
+        >
+          <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Live Status</h3>
 
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
+          <div className="bg-destructive/5 p-4 rounded-3xl flex items-center justify-between group">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-destructive/20 flex items-center justify-center">
+              <div className="w-10 h-10 bg-destructive/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                 <AlertTriangle className="h-5 w-5 text-destructive" />
               </div>
-              <span className="font-bold tracking-tight">Critical</span>
+              <span className="text-sm font-bold tracking-tight">Critical</span>
             </div>
-            <Badge className="bg-destructive/20 text-destructive border-0">{emergencyStats.critical}</Badge>
+            <Badge className="bg-destructive/20 text-destructive border-0 rounded-full">{emergencyStats.critical}</Badge>
           </div>
-        </Card>
 
-        <div className="grid grid-cols-2 gap-2">
-          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-warning/5 p-3 rounded-3xl flex items-center gap-2 group">
+              <div className="w-8 h-8 bg-warning/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                 <Clock className="h-4 w-4 text-warning" />
               </div>
               <div>
-                <p className="font-bold text-sm">{emergencyStats.pending}</p>
-                <p className="text-xs text-muted-foreground">Pending</p>
+                <p className="font-bold text-xs">{emergencyStats.pending}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Pending</p>
               </div>
             </div>
-          </Card>
 
-          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 geo-round bg-info/20 flex items-center justify-center">
+            <div className="bg-info/5 p-3 rounded-3xl flex items-center gap-2 group">
+              <div className="w-8 h-8 bg-info/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                 <Activity className="h-4 w-4 text-info" />
               </div>
               <div>
-                <p className="font-bold text-sm">{emergencyStats.active || 0}</p>
-                <p className="text-xs text-muted-foreground">Active</p>
+                <p className="font-bold text-xs">{emergencyStats.active || 0}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Active</p>
               </div>
             </div>
-          </Card>
-        </div>
-      </motion.div>
+          </div>
+        </motion.div>
 
-      {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="space-y-3"
-      >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          className="space-y-2"
+        >
+          <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Actions</h3>
+          <div className="grid grid-cols-4 gap-2">
+            <button
+              onClick={handleCreateEmergency}
+              className="flex flex-col items-center justify-center gap-2 p-3 rounded-3xl bg-destructive/10 hover:bg-destructive/20 transition-all border-0"
+            >
+              <Zap className="h-4 w-4 text-destructive" />
+              <span className="text-[8px] font-bold uppercase tracking-widest">Req</span>
+            </button>
+            <button
+              className="flex flex-col items-center justify-center gap-2 p-3 rounded-3xl bg-info/10 hover:bg-info/20 transition-all border-0"
+            >
+              <Map className="h-4 w-4 text-info" />
+              <span className="text-[8px] font-bold uppercase tracking-widest">Map</span>
+            </button>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('openFilters'))}
+              className="flex flex-col items-center justify-center gap-2 p-3 rounded-3xl bg-muted/10 hover:bg-muted/20 transition-all border-0"
+            >
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-[8px] font-bold uppercase tracking-widest">Filter</span>
+            </button>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('openReportsModal'))}
+              className="flex flex-col items-center justify-center gap-2 p-3 rounded-3xl bg-primary/10 hover:bg-primary/20 transition-all border-0"
+            >
+              <BarChart3 className="h-4 w-4 text-primary" />
+              <span className="text-[8px] font-bold uppercase tracking-widest">Data</span>
+            </button>
+          </div>
+        </motion.div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleCreateEmergency}
-            className="bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            title="New Emergency Request"
-          >
-            <Zap className="h-4 w-4" />
-            <span className="font-normal text-xs">Request</span>
-          </motion.button>
+        {/* Recent Emergencies */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-2"
+        >
+          <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Recent</h3>
 
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            title="View Live Map"
-          >
-            <Map className="h-4 w-4" />
-            <span className="font-normal text-xs">Map</span>
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => window.dispatchEvent(new CustomEvent('openFilters'))}
-            className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            title="Filter Requests"
-          >
-            <Filter className="h-4 w-4" />
-            <span className="font-normal text-xs">Filter</span>
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => window.dispatchEvent(new CustomEvent('openReportsModal'))}
-            className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            title="View Analytics"
-          >
-            <BarChart3 className="h-4 w-4" />
-            <span className="font-normal text-xs">Analytics</span>
-          </motion.button>
-        </div>
-      </motion.div>
-
-      {/* Recent Emergencies */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="space-y-3"
-      >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Recent Requests</h3>
-
-        <div className="space-y-2">
-          {((emergencyData?.recent || (Array.isArray(emergencyData) ? emergencyData : []))).slice(0, 3).map((request) => (
-            <Card key={request.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 geo-round ${
-                    request.service_type === 'critical_care' ? 'bg-destructive' :
-                    request.service_type === 'ambulance' ? 'bg-primary' :
-                    request.service_type === 'bed' ? 'bg-warning' :
-                    'bg-info'
-                  }`} />
-                  <div>
-                    <p className="font-normal text-sm truncate max-w-[120px]">
-                      {request.patient_snapshot?.fullName || request.patient_name || 'Unknown Patient'}
+          <div className="space-y-1">
+            {((emergencyData?.recent || (Array.isArray(emergencyData) ? emergencyData : []))).slice(0, 3).map((request, idx) => (
+              <div key={request.id || idx} className="bg-white/5 p-3 rounded-2xl flex items-center justify-between border-0 transition-colors hover:bg-white/10">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${request.service_type === 'critical_care' ? 'bg-destructive/20' :
+                    request.service_type === 'ambulance' ? 'bg-primary/20' :
+                      'bg-info/20'
+                    }`}>
+                    <Radio className={`h-4 w-4 ${request.service_type === 'critical_care' ? 'text-destructive' :
+                      request.service_type === 'ambulance' ? 'text-primary' :
+                        'text-info'
+                      } animate-pulse`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-xs truncate max-w-[120px]">
+                      {request.patient_snapshot?.fullName || request.patient_name || 'Patient'}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate max-w-[120px]">
-                      {request.hospital_name || (
-                        <LocationCell 
-                          location={request.patient_location} 
-                          pickupLocation={request.pickup_location}
-                          responderLocation={request.responder_location}
-                        />
-                      ) || 'Unknown location'}
+                    <p className="text-[10px] text-muted-foreground truncate max-w-[140px]">
+                      {request.id?.slice(0, 8)} • <LocationCell location={request.patient_location} pickupLocation={request.pickup_location} />
                     </p>
                   </div>
                 </div>
-                <Badge variant="outline" className="text-[10px] capitalize px-1.5 py-0.5 h-5">
-                  {request.service_type?.replace('_', ' ') || 'unknown'}
+                <Badge variant="ghost" className="text-[8px] font-bold uppercase tracking-widest p-0 h-auto opacity-60">
+                  {request.status}
                 </Badge>
               </div>
-            </Card>
-          ))}
-          {((emergencyData?.recent || (Array.isArray(emergencyData) ? emergencyData : []))).length === 0 && (
-            <div className="text-center py-4 text-sm text-muted-foreground">
-              No recent emergencies
-            </div>
-          )}
-        </div>
-      </motion.div>
+            ))}
+            {((emergencyData?.recent || (Array.isArray(emergencyData) ? emergencyData : []))).length === 0 && (
+              <div className="text-center py-4 text-xs text-muted-foreground">
+                Clear runway
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };

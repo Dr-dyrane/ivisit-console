@@ -38,178 +38,113 @@ export const SubscriptionsPanel = ({ subscribers }) => {
     <div className="space-y-4">
       {/* Subscriber Stats */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-3"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="space-y-2"
       >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Subscriber Overview</h3>
+        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Pulse Overview</h3>
 
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
-                <Users2 className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <span className="font-bold tracking-tight">Active</span>
-                <p className="text-xs text-muted-foreground">Engaged subscribers</p>
-              </div>
+        <div className="bg-success/5 p-4 rounded-3xl flex items-center justify-between group transition-all">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-success/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Users2 className="h-5 w-5 text-success" />
             </div>
-            <Badge className="bg-success/20 text-success border-0">{activeSubscribers}</Badge>
-          </div>
-        </Card>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-warning/20 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <span className="font-bold tracking-tight">Pending</span>
-                <p className="text-xs text-muted-foreground">Awaiting confirmation</p>
-              </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold tracking-tight">Active Reach</p>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Growth active</p>
             </div>
-            <Badge className="bg-warning/20 text-warning border-0">{pendingSubscribers}</Badge>
           </div>
-        </Card>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
-                <Mail className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <span className="font-bold tracking-tight">Total</span>
-                <p className="text-xs text-muted-foreground">All subscribers</p>
-              </div>
-            </div>
-            <Badge className="bg-primary/20 text-primary border-0">{subscribers.length}</Badge>
-          </div>
-        </Card>
-      </motion.div>
-
-      {/* Subscription Types */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="space-y-3"
-      >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Subscription Types</h3>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-info/20 flex items-center justify-center">
-                <UserPlus className="h-5 w-5 text-info" />
-              </div>
-              <div>
-                <span className="font-bold tracking-tight">Free Tier</span>
-                <p className="text-xs text-muted-foreground">Basic access</p>
-              </div>
-            </div>
-            <Badge className="bg-info/20 text-info border-0">{freeSubscribers}</Badge>
-          </div>
-        </Card>
-
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-purple-20 flex items-center justify-center">
-                <Shield className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <span className="font-bold tracking-tight">Premium</span>
-                <p className="text-xs text-muted-foreground">Full access</p>
-              </div>
-            </div>
-            <Badge className="bg-purple-20 text-purple-600 border-0">{paidSubscribers}</Badge>
-          </div>
-        </Card>
-      </motion.div>
-
-      {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="space-y-3"
-      >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+          <Badge className="bg-success/20 text-success border-0 rounded-full">{activeSubscribers}</Badge>
+        </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleOpenCreateSubscriber}
-            className="bg-success/10 hover:bg-success/20 text-success border border-success/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="font-normal text-xs">Add</span>
-          </motion.button>
+          <div className="bg-warning/5 p-4 rounded-3xl group transition-all">
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="h-4 w-4 text-warning group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Pending</span>
+            </div>
+            <p className="font-bold text-sm tracking-tight">{pendingSubscribers} Awaiting</p>
+          </div>
 
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleOpenAnalytics}
-            data-subscription-analytics="true"
-            className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-          >
-            <BarChart3 className="h-4 w-4" />
-            <span className="font-normal text-xs">Analytics</span>
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleOpenEmailActions}
-            className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-          >
-            <Send className="h-4 w-4" />
-            <span className="font-normal text-xs">Email</span>
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-          >
-            <UserPlus className="h-4 w-4" />
-            <span className="font-normal text-xs">Export</span>
-          </motion.button>
+          <div className="bg-primary/5 p-4 rounded-3xl group transition-all">
+            <div className="flex items-center gap-2 mb-1">
+              <Mail className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total</span>
+            </div>
+            <p className="font-bold text-sm tracking-tight">{subscribers.length} Global</p>
+          </div>
         </div>
       </motion.div>
 
-      {/* Recent Subscribers */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="space-y-3"
-      >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Recent Subscribers</h3>
+      {/* Tiers */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-info/5 p-4 rounded-3xl group">
+          <div className="flex items-center gap-2 mb-1">
+            <Shield className="h-4 w-4 text-info group-hover:scale-110 transition-transform" />
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Free Tier</span>
+          </div>
+          <p className="font-bold text-sm tracking-tight">{freeSubscribers}</p>
+        </div>
+        <div className="bg-purple-500/5 p-4 rounded-3xl group">
+          <div className="flex items-center gap-2 mb-1">
+            <Shield className="h-4 w-4 text-purple-500 group-hover:scale-110 transition-transform" />
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Premium</span>
+          </div>
+          <p className="font-bold text-sm tracking-tight text-purple-500">{paidSubscribers}</p>
+        </div>
+      </div>
 
-        <div className="space-y-2">
-          {subscribers.slice(0, 3).map((subscriber) => (
-            <Card key={subscriber.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 geo-round ${subscriber.status === 'active' ? 'bg-success' :
-                    subscriber.status === 'pending' ? 'bg-warning' : 'bg-muted'
-                    }`} />
-                  <div>
-                    <p className="font-normal text-sm truncate max-w-[120px]">{subscriber.email}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {subscriber.type} • {new Date(subscriber.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
+      {/* Operations */}
+      <div className="grid grid-cols-3 gap-2">
+        <button
+          onClick={handleOpenCreateSubscriber}
+          className="flex flex-col items-center justify-center gap-2 p-3 rounded-3xl bg-primary/10 hover:bg-primary/20 transition-all border-0 group"
+        >
+          <Plus className="h-5 w-5 text-primary group-hover:rotate-90 transition-transform" />
+          <span className="text-[8px] font-bold uppercase tracking-widest text-primary">Join</span>
+        </button>
+        <button
+          onClick={handleOpenAnalytics}
+          className="flex flex-col items-center justify-center gap-2 p-3 rounded-3xl bg-info/10 hover:bg-info/20 transition-all border-0 group"
+        >
+          <BarChart3 className="h-5 w-5 text-info group-hover:scale-110 transition-transform" />
+          <span className="text-[8px] font-bold uppercase tracking-widest text-info">Data</span>
+        </button>
+        <button
+          onClick={handleOpenEmailActions}
+          className="flex flex-col items-center justify-center gap-2 p-3 rounded-3xl bg-secondary/30 dark:bg-white/5 hover:bg-secondary/40 transition-all border-0 group"
+        >
+          <Send className="h-5 w-5 text-muted-foreground group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />
+          <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">Broadcast</span>
+        </button>
+      </div>
+
+      {/* Live Roster */}
+      <div className="space-y-2">
+        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Live Feed</h3>
+        <div className="space-y-1">
+          {subscribers.slice(0, 4).map((subscriber, idx) => (
+            <div key={subscriber.id || idx} className="bg-white/5 p-3 rounded-2xl flex items-center justify-between border-0 transition-colors hover:bg-white/10 group">
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${subscriber.status === 'active' ? 'bg-success/20' :
+                  'bg-warning/20'
+                  } group-hover:scale-105 transition-transform`}>
+                  <Users2 className={`h-4 w-4 ${subscriber.status === 'active' ? 'text-success' : 'text-warning'}`} />
                 </div>
-                <Badge variant="outline" className="text-xs">
-                  {subscriber.status}
-                </Badge>
+                <div className="min-w-0">
+                  <p className="font-bold text-xs truncate max-w-[140px] tracking-tight">{subscriber.email}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                    {subscriber.type} • {new Date(subscriber.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
               </div>
-            </Card>
+              <Badge variant="ghost" className="text-[8px] font-bold uppercase tracking-widest p-0 h-auto opacity-60">
+                {subscriber.status}
+              </Badge>
+            </div>
           ))}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

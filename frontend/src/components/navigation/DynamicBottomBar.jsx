@@ -90,7 +90,7 @@ export const DynamicBottomBar = () => {
                             x: isScrolledDown ? -100 : 0,
                             opacity: isScrolledDown ? 0 : 1,
                         }}
-                        className="flex items-center gap-1 p-1 rounded-full bg-background/10 backdrop-blur-sm shadow-lg"
+                        className="flex items-center gap-1 p-1 rounded-full bg-background/40 dark:bg-black/40 backdrop-blur-xl shadow-2xl ring-1 ring-white/10"
                     >
                         {navItems.map((item) => {
                             const isActive = location.pathname === item.path;
@@ -103,7 +103,7 @@ export const DynamicBottomBar = () => {
                                             : 'text-foreground/40 hover:text-foreground'
                                             }`}
                                     >
-                                        <item.icon className="w-5 h-5" />
+                                        <item.icon className="w-5 h-5 transition-transform group-active:scale-90" />
                                     </motion.div>
                                 </Link>
                             );
@@ -119,13 +119,13 @@ export const DynamicBottomBar = () => {
                         }}
                         whileTap={{ scale: 0.95 }}
                         onClick={actionConfig.action}
-                        className="w-12 h-12 flex items-center justify-center transition-all shadow-xl relative overflow-hidden rounded-[20px]"
+                        className="w-12 h-12 flex items-center justify-center transition-all shadow-2xl relative overflow-hidden rounded-3xl"
                         style={{
                             background: `linear-gradient(135deg, hsl(var(--${actionConfig.color})) 0%, hsl(var(--${actionConfig.color}) / 0.8) 100%)`,
                         }}
                     >
                         {/* Shimmer */}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent pointer-events-none" />
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/30 to-transparent pointer-events-none" />
                         <actionConfig.icon className="w-6 h-6 text-white relative z-10" />
                     </motion.button>
                 </div>

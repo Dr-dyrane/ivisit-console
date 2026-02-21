@@ -4,14 +4,14 @@ import { useLayout } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { QuickSearch } from './QuickSearch';
 import { NotificationCenter } from '../common/NotificationCenter';
-import { Search, Menu, X } from 'lucide-react';
+import { Search, Menu, X, PanelRightOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sheet, SheetContent, SheetOverlay } from '../ui/sheet';
 import { MobileNavMenu } from './MobileNavMenu';
 
 export const SmartHeader = () => {
     const { isMobile } = useNavigation();
-    const { isScrolledDown, headerConfig, sidebarWidth } = useLayout();
+    const { isScrolledDown, headerConfig, sidebarWidth, isContextPanelOpen, openContextPanel, closeContextPanel } = useLayout();
     const { user, profile } = useAuth();
     const [searchOpen, setSearchOpen] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -124,6 +124,17 @@ export const SmartHeader = () => {
                             </button>
                             <div className="w-px h-6 bg-border/20 mx-2" />
                             <NotificationCenter />
+                            <div className="w-px h-6 bg-border/20 mx-2" />
+                            <button
+                                onClick={isContextPanelOpen ? closeContextPanel : openContextPanel}
+                                className={`flex items-center justify-center h-9 w-9 rounded-xl transition-all duration-300 ${isContextPanelOpen
+                                    ? 'bg-primary/20 text-primary shadow-inner'
+                                    : 'bg-black/5 dark:bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground'
+                                    }`}
+                                title={isContextPanelOpen ? "Close Context" : "Open Context"}
+                            >
+                                <PanelRightOpen className="h-4 w-4" />
+                            </button>
                         </>
                     )}
                 </div>

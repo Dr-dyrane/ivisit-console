@@ -36,69 +36,61 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
   const currentFilters = filters || {};
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Quick Stats */}
-      <div className="space-y-4">
-        <h3 className="font-bold text-lg flex items-center gap-2">
-          <Activity className="h-5 w-5 text-primary" />
-          Quick Stats
-        </h3>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Card className="p-4 bg-background/50 backdrop-blur-sm border-0">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="h-4 w-4 text-primary" />
-              <span className="text-sm font-normal">Total</span>
+      <div className="space-y-2">
+        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Live Statistics</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="p-4 bg-primary/5 rounded-3xl flex flex-col gap-1 group">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Total</span>
             </div>
-            <div className="text-2xl font-semibold">{statistics?.totalUsers || users.length}</div>
-          </Card>
+            <div className="text-xl font-bold tracking-tighter">{statistics?.totalUsers || users.length}</div>
+          </div>
 
-          <Card className="p-4 bg-background/50 backdrop-blur-sm border-0">
-            <div className="flex items-center gap-2 mb-2">
-              <UserCheck className="h-4 w-4 text-success" />
-              <span className="text-sm font-normal">Verified</span>
+          <div className="p-4 bg-success/5 rounded-3xl flex flex-col gap-1 group">
+            <div className="flex items-center gap-2">
+              <UserCheck className="h-4 w-4 text-success group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-success/60">Verified</span>
             </div>
-            <div className="text-2xl font-semibold text-success">
+            <div className="text-xl font-bold tracking-tighter text-success">
               {statistics?.bvnVerifiedUsers || verifiedCount}
             </div>
-          </Card>
+          </div>
         </div>
       </div>
 
       {/* Role Distribution */}
-      <div className="space-y-4">
-        <h3 className="font-bold text-lg flex items-center gap-2">
-          <Shield className="h-5 w-5 text-primary" />
-          Role Distribution
-        </h3>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 rounded-lg bg-warning/10 border border-warning/20">
+      <div className="space-y-1.5">
+        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Roles</h3>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-warning/5 transition-colors hover:bg-warning/10">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-warning" />
-              <span className="text-sm font-normal">Admins</span>
+              <span className="text-xs font-medium">Admins</span>
             </div>
-            <Badge className="bg-warning/20 text-warning border-0 text-sm font-semibold">
+            <Badge className="bg-warning/20 text-warning border-0 rounded-full text-[10px] font-bold">
               {(statistics ? ((statistics.roleDistribution?.admin || 0) + (statistics.roleDistribution?.org_admin || 0)) : adminCount)}
             </Badge>
           </div>
 
-          <div className="flex items-center justify-between p-3 rounded-lg bg-success/10 border border-success/20">
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-success/5 transition-colors hover:bg-success/10">
             <div className="flex items-center gap-2">
               <Stethoscope className="h-4 w-4 text-success" />
-              <span className="text-sm font-normal">Providers</span>
+              <span className="text-xs font-medium">Providers</span>
             </div>
-            <Badge className="bg-success/20 text-success border-0 text-sm font-semibold">
+            <Badge className="bg-success/20 text-success border-0 rounded-full text-[10px] font-bold">
               {statistics?.roleDistribution?.provider || providerCount}
             </Badge>
           </div>
 
-          <div className="flex items-center justify-between p-3 rounded-lg bg-info/10 border border-info/20">
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-info/5 transition-colors hover:bg-info/10">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-info" />
-              <span className="text-sm font-normal">Patients</span>
+              <span className="text-xs font-medium">Patients</span>
             </div>
-            <Badge className="bg-info/20 text-info border-0 text-sm font-semibold">
+            <Badge className="bg-info/20 text-info border-0 rounded-full text-[10px] font-bold">
               {statistics?.roleDistribution?.patient || patientCount}
             </Badge>
           </div>
@@ -106,43 +98,31 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
       </div>
 
       {/* Quick Actions */}
-      <div className="space-y-4">
-        <h3 className="font-bold text-lg flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-primary" />
-          Quick Actions
-        </h3>
-
-        <div className="space-y-2">
-          {(isAdmin() || isOrgAdmin()) && (
-            <Button
-              onClick={onInviteUser}
-              className="w-full justify-start h-10 bg-muted/20 hover:bg-muted/30 border border-border/20 text-[10px] font-bold tracking-widest uppercase text-foreground"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              INVITE USER
-            </Button>
-          )}
-
-          <Button
-            onClick={onViewAnalytics}
-            className="w-full justify-start h-10 bg-primary/10 hover:bg-primary/20 border border-primary/20 text-[10px] font-bold tracking-widest uppercase text-primary"
-          >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            VIEW ANALYTICS
-          </Button>
-        </div>
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          onClick={onInviteUser}
+          className="h-12 rounded-3xl bg-secondary/30 dark:bg-white/5 border-0 hover:bg-secondary/40 flex items-center justify-center gap-2 group shadow-none"
+          variant="outline"
+        >
+          <Plus className="h-4 w-4 text-primary group-hover:rotate-90 transition-transform" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Invite</span>
+        </Button>
+        <Button
+          onClick={onViewAnalytics}
+          className="h-12 rounded-3xl bg-secondary/30 dark:bg-white/5 border-0 hover:bg-secondary/40 flex items-center justify-center gap-2 group shadow-none"
+          variant="outline"
+        >
+          <BarChart3 className="h-4 w-4 text-info group-hover:scale-110 transition-transform" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-info">Data</span>
+        </Button>
       </div>
 
       {/* Recent Activity */}
-      <div className="space-y-4">
-        <h3 className="font-bold text-lg flex items-center gap-2">
-          <Activity className="h-5 w-5 text-info" />
-          Recent Activity
-        </h3>
-
-        <div className="space-y-3">
+      <div className="space-y-2">
+        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Recent logins</h3>
+        <div className="space-y-1">
           {recentUsers.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
+            <p className="text-xs text-muted-foreground text-center py-4 bg-white/5 rounded-3xl">
               No recent activity
             </p>
           ) : (
@@ -150,34 +130,22 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
               <div
                 key={user.id}
                 onClick={() => onViewUser(user)}
-                className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-center p-3 rounded-lg
-             bg-muted/30 hover:bg-muted/40 transition-colors cursor-pointer"
+                className="flex items-center justify-between p-2 rounded-2xl bg-white/5 hover:bg-white/10 transition-all cursor-pointer group"
               >
-                {/* LEFT: Avatar + Name + Email */}
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 border border-border/20
-                    flex items-center justify-center shrink-0">
-                    <span className="text-xs font-semibold text-primary">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <span className="text-[10px] font-bold text-primary">
                       {(user.username || user.profile_username || 'U')?.[0]?.toUpperCase()}
                     </span>
                   </div>
-
                   <div className="flex flex-col min-w-0">
-                    <p className="text-sm font-normal truncate">
-                      {user.username || user.profile_username || 'Unknown User'}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {user.email}
-                    </p>
+                    <p className="text-xs font-bold truncate">{user.username || user.profile_username || 'User'}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
                   </div>
                 </div>
-
-                {/* RIGHT: Last login (fixed, never pushed) */}
-                <div className="flex flex-col items-end text-right shrink-0">
-                  <p className="text-xs text-muted-foreground">Last login</p>
-                  <p className="text-xs font-normal whitespace-nowrap">
-                    {new Date(user.last_sign_in_at).toLocaleDateString()}
-                  </p>
+                <div className="text-right shrink-0">
+                  <p className="text-[8px] font-bold uppercase tracking-tighter text-muted-foreground">Sign In</p>
+                  <p className="text-[10px] whitespace-nowrap">{new Date(user.last_sign_in_at).toLocaleDateString()}</p>
                 </div>
               </div>
             ))
@@ -185,30 +153,25 @@ export const UsersPanel = ({ users, statistics, filters, onViewUser, onCreateUse
         </div>
       </div>
 
-      {/* Verification Rate */}
+      {/* Verification Overview */}
       {statistics && (
-        <div className="space-y-4">
-          <h3 className="font-bold text-lg flex items-center gap-2">
-            <UserCheck className="h-5 w-5 text-success" />
-            Verification Overview
-          </h3>
-
-          <Card className="p-4 bg-background/50 backdrop-blur-sm border-0">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-semibold text-success mb-1">
-                  {Math.round((verifiedCount / users.length) * 100)}%
-                </div>
-                <p className="text-xs text-muted-foreground">Verification Rate</p>
+        <div className="space-y-2">
+          <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Trust Score</h3>
+          <div className="p-4 bg-success/5 rounded-3xl flex items-center justify-around">
+            <div className="text-center">
+              <div className="text-xl font-bold text-success">
+                {Math.round((verifiedCount / users.length) * 100)}%
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-semibold text-primary mb-1">
-                  {users.length - verifiedCount}
-                </div>
-                <p className="text-xs text-muted-foreground">Pending Verification</p>
-              </div>
+              <p className="text-[8px] uppercase tracking-widest text-muted-foreground">Verified</p>
             </div>
-          </Card>
+            <div className="w-px h-8 bg-white/5" />
+            <div className="text-center">
+              <div className="text-xl font-bold text-primary">
+                {users.length - verifiedCount}
+              </div>
+              <p className="text-[8px] uppercase tracking-widest text-muted-foreground">Pending</p>
+            </div>
+          </div>
         </div>
       )}
     </div>

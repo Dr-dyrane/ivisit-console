@@ -200,7 +200,7 @@ export const ContextPanel = () => {
       <div className="hidden md:block">
         {renderPanelHeader()}
       </div>
-      <div className="flex-1 overflow-y-auto px-0 pb-6 md:px-6 md:pb-6">
+      <div className="flex-1 overflow-y-auto px-0 pb-6 md:px-4 md:pb-6">
         {panelContent}
       </div>
     </div>

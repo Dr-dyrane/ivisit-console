@@ -22,146 +22,103 @@ export const VisitsPanel = ({ visitsData }) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Visit Statistics */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-3"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="space-y-2"
       >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Today's Overview</h3>
+        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Daily Pulse</h3>
 
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-primary" />
-              </div>
-              <span className="font-bold tracking-tight">Today</span>
+        <div className="bg-primary/5 p-4 rounded-3xl flex items-center justify-between group transition-all">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Calendar className="h-5 w-5 text-primary" />
             </div>
-            <Badge className="bg-primary/20 text-primary border-0">{stats.today}</Badge>
+            <span className="text-sm font-bold tracking-tight">Today's Visits</span>
           </div>
-        </Card>
+          <Badge className="bg-primary/20 text-primary border-0 rounded-full">{stats.today}</Badge>
+        </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
-                <Clock className="h-4 w-4 text-warning" />
-              </div>
-              <div>
-                <p className="font-bold text-sm">{stats.pending}</p>
-                <p className="text-xs text-muted-foreground">Pending</p>
-              </div>
+          <div className="bg-warning/5 p-3 rounded-3xl flex items-center gap-2 group">
+            <div className="w-8 h-8 bg-warning/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Clock className="h-4 w-4 text-warning" />
             </div>
-          </Card>
+            <div>
+              <p className="font-bold text-xs">{stats.pending}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Awaiting</p>
+            </div>
+          </div>
 
-          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 geo-round bg-success/20 flex items-center justify-center">
-                <CheckCircle className="h-4 w-4 text-success" />
-              </div>
-              <div>
-                <p className="font-bold text-sm">{stats.completed}</p>
-                <p className="text-xs text-muted-foreground">Done</p>
-              </div>
+          <div className="bg-success/5 p-3 rounded-3xl flex items-center gap-2 group">
+            <div className="w-8 h-8 bg-success/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <CheckCircle className="h-4 w-4 text-success" />
             </div>
-          </Card>
+            <div>
+              <p className="font-bold text-xs">{stats.completed}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Resolved</p>
+            </div>
+          </div>
         </div>
       </motion.div>
 
-      {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="space-y-3"
-      >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
-
-        <div className="grid grid-cols-2 gap-2">
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleCreateVisit}
-            className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            title="Schedule New Visit"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="font-normal text-xs">Schedule</span>
-          </motion.button>
-
-          <motion.button
-            onClick={() => window.dispatchEvent(new CustomEvent('openReportsModal'))}
-            className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            title="View Analytics"
-          >
-            <BarChart3 className="h-4 w-4" />
-            <span className="font-normal text-xs">Analytics</span>
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => window.dispatchEvent(new CustomEvent('openFilters'))}
-            className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            title="Filter Visits"
-          >
-            <Filter className="h-4 w-4" />
-            <span className="font-normal text-xs">Filter</span>
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            disabled
-            title="Export (Coming Soon)"
-          >
-            <Download className="h-4 w-4" />
-            <span className="font-normal text-xs">Export</span>
-          </motion.button>
-        </div>
-      </motion.div>
+      {/* Actions */}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={handleCreateVisit}
+          className="flex items-center justify-center gap-3 p-4 rounded-3xl bg-primary/10 hover:bg-primary/20 transition-all border-0 group"
+        >
+          <Plus className="h-5 w-5 text-primary group-hover:rotate-90 transition-transform" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Schedule</span>
+        </button>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('openReportsModal'))}
+          className="flex items-center justify-center gap-3 p-4 rounded-3xl bg-info/10 hover:bg-info/20 transition-all border-0 group"
+        >
+          <BarChart3 className="h-5 w-5 text-info group-hover:scale-110 transition-transform" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-info">Analytics</span>
+        </button>
+      </div>
 
       {/* Recent Visits */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="space-y-3"
-      >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Recent Visits</h3>
-
-        <div className="space-y-2">
-          {recent.map((visit) => (
-            <Card key={visit.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 geo-round ${visit.status === 'completed' ? 'bg-success' :
-                    visit.status === 'cancelled' ? 'bg-destructive' :
-                      visit.status === 'in_progress' ? 'bg-warning' : 'bg-info'
+      <div className="space-y-2">
+        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Live Queue</h3>
+        <div className="space-y-1">
+          {recent.map((visit, idx) => (
+            <div key={visit.id || idx} className="bg-white/5 p-3 rounded-2xl flex items-center justify-between border-0 transition-colors hover:bg-white/10 group">
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${visit.status === 'completed' ? 'bg-success/20' :
+                  visit.status === 'cancelled' ? 'bg-destructive/10' :
+                    'bg-warning/20'
+                  } group-hover:scale-105 transition-transform`}>
+                  <Calendar className={`h-4 w-4 ${visit.status === 'completed' ? 'text-success' :
+                    visit.status === 'cancelled' ? 'text-destructive' :
+                      'text-warning'
                     }`} />
-                  <div>
-                    <p className="font-normal text-sm truncate max-w-[120px]">
-                      {visit.patient_name || 'Visit #' + visit.id.substring(0, 6)}
-                    </p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="w-3 h-3" />
-                      <span>{visit.scheduled_at ? formatDate(visit.scheduled_at) : 'Not scheduled'}</span>
-                    </div>
-                  </div>
                 </div>
-                <Badge variant="outline" className="text-[10px] capitalize px-1.5 py-0.5 h-5">
-                  {visit.status}
-                </Badge>
+                <div className="min-w-0">
+                  <p className="font-bold text-xs truncate max-w-[120px]">
+                    {visit.patient_name || 'Ambulatory Care'}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {visit.scheduled_at ? formatDate(visit.scheduled_at) : 'Active Session'}
+                  </p>
+                </div>
               </div>
-            </Card>
+              <Badge variant="ghost" className="text-[8px] font-bold uppercase tracking-widest p-0 h-auto opacity-60">
+                {visit.status}
+              </Badge>
+            </div>
           ))}
           {recent.length === 0 && (
-            <div className="text-center py-4 text-sm text-muted-foreground">
-              No recent visits found
+            <div className="text-center py-4 text-xs text-muted-foreground">
+              Queue clear
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

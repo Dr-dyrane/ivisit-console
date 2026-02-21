@@ -53,85 +53,71 @@ export const SettingsPanel = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Quick Actions Grid */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-3"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="space-y-2"
       >
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Quick Actions</h3>
-        </div>
+        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Management</h3>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           {quickActions.map((action, index) => (
-            <motion.button
+            <button
               key={index}
-              whileTap={{ scale: 0.98 }}
-              whileHover={{ scale: 1.02 }}
               onClick={action.action}
-              className={`p-3 h-24 flex flex-col items-center justify-center gap-2 squircle-2xl border ${action.bg} ${action.border} hover:bg-opacity-80 transition-all`}
+              className={`p-4 flex flex-col items-center justify-center gap-2 rounded-3xl bg-white/5 hover:bg-white/10 transition-all border-0 group`}
             >
-              <action.icon className={`w-6 h-6 ${action.color}`} />
-              <span className={`text-xs font-bold ${action.color}`}>{action.label}</span>
-            </motion.button>
+              <div className={`p-2 rounded-2xl ${action.bg} group-hover:scale-110 transition-transform`}>
+                <action.icon className={`w-5 h-5 ${action.color}`} />
+              </div>
+              <span className={`text-[10px] font-bold uppercase tracking-widest ${action.color}`}>{action.label}</span>
+            </button>
           ))}
         </div>
       </motion.div>
 
-      {/* Account Health / Status */}
+      {/* Account Status */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1 }}
-        className="space-y-3"
+        className="space-y-2"
       >
-        <h3 className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Account Status</h3>
+        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Security Health</h3>
 
-        <Card className="bg-background/50 backdrop-blur-xs squircle-2xl p-4 border-0 shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-3 opacity-10">
-            <Activity className="w-12 h-12" />
+        <div className="bg-success/5 p-4 rounded-3xl flex items-center gap-4 transition-all group overflow-hidden relative">
+          <div className="w-10 h-10 bg-success/20 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+            <ShieldCheck className="w-5 h-5 text-success" />
           </div>
-
-          <div className="space-y-4 relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-success/10 rounded-full text-success">
-                <CheckCircle2 className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="font-bold text-sm">Active & Verified</p>
-                <p className="text-xs text-muted-foreground">No issues detected</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-muted rounded-full text-muted-foreground">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="font-bold text-sm">Last Synced</p>
-                <p className="text-xs text-muted-foreground">Just now</p>
-              </div>
-            </div>
+          <div className="min-w-0">
+            <p className="font-bold text-sm tracking-tight">System Guard Active</p>
+            <p className="text-[10px] text-success/60 uppercase font-black tracking-widest leading-none mt-1">Verified & Secure</p>
           </div>
-        </Card>
-      </motion.div>
+          <div className="absolute -right-4 -bottom-4 opacity-5">
+            <Activity className="w-16 h-16" />
+          </div>
+        </div>
 
-      {/* Support Snippet */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <div className="p-4 squircle-2xl bg-blue-500/5 border border-blue-500/10 flex items-start gap-3">
-          <HelpCircle className="w-5 h-5 text-blue-500 mt-0.5" />
-          <div>
-            <p className="font-bold text-sm text-blue-600">Need help?</p>
-            <p className="text-xs text-muted-foreground mt-1">Contact your administrator or create a support ticket.</p>
+        <div className="bg-white/5 p-4 rounded-3xl flex items-center gap-4 group transition-all">
+          <div className="w-10 h-10 bg-muted/20 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+            <Clock className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-bold text-sm tracking-tight text-muted-foreground">Session Update</p>
+            <p className="text-[10px] text-muted-foreground/40 uppercase font-bold tracking-widest leading-none mt-1">Just now</p>
           </div>
         </div>
       </motion.div>
+
+      {/* Help Alert */}
+      <div className="p-4 rounded-3xl bg-blue-500/5 flex items-start gap-3 mt-2">
+        <HelpCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-blue-600/60 leading-relaxed">
+          Need technical assistance? Connect with Support for priority dispatch.
+        </p>
+      </div>
     </div>
   );
 };
