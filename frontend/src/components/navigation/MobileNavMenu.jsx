@@ -67,7 +67,7 @@ export const MobileNavMenu = ({ onClose }) => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-background text-foreground">
+        <div className="flex flex-col h-full text-foreground">
             {/* 1. BRANDING & BACK ARROW */}
             <div className="h-16 flex-shrink-0 flex items-center">
                 <div className="relative flex items-center w-full">

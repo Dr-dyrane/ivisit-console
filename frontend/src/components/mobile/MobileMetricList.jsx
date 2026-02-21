@@ -67,7 +67,10 @@ export const MobileMetricRow = ({
                 />
 
                 <div
-                    className="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0 relative z-10 shadow-inner bg-primary/5"
+                    className="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0 relative z-10 shadow-md"
+                    style={{
+                        background: `radial-gradient(circle at 30% 30%, ${color.replace(/\)$/, ' / 0.2)')}, ${color.replace(/\)$/, ' / 0.1)')})`,
+                    }}
                 >
                     {Icon && <Icon size={16} className="opacity-95" style={{ color }} />}
                 </div>

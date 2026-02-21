@@ -24,8 +24,8 @@ export const MobileFeaturedMetric = ({
         >
             {/* Subtle Neon primary glow background - Reduced bleed */}
             <div
-                className="absolute -inset-10 opacity-[0.04]"
-                style={{ background: `radial-gradient(circle at 50% 50%, ${color}, transparent 60%)` }}
+                className="absolute -inset-10 opacity-[0.08]"
+                style={{ background: `radial-gradient(circle at 50% 50%, ${color.replace(/\)$/, ' / 0.5)')}, transparent 60%)` }}
             />
 
             <div className="flex justify-between items-start relative z-10">
@@ -47,8 +47,8 @@ export const MobileFeaturedMetric = ({
                 </div>
 
                 <div
-                    className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-                    style={{ background: `radial-gradient(circle at 30% 30%, ${color}15, ${color}05)` }}
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-md relative z-10"
+                    style={{ background: `radial-gradient(circle at 30% 30%, ${color.replace(/\)$/, ' / 0.2)')}, ${color.replace(/\)$/, ' / 0.1)')})` }}
                 >
                     {Icon && <Icon size={20} className="opacity-70" style={{ color }} />}
                 </div>

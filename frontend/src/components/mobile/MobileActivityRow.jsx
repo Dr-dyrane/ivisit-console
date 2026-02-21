@@ -16,11 +16,11 @@ export const MobileActivityRow = ({ icon: Icon, msg, time, color = 'hsl(var(--pr
             className={`flex flex-col apple-glass border-0 relative overflow-hidden mb-[1px] last:mb-0 ${isExpanded ? 'bg-white/[0.08]' : ''
                 }`}
         >
-            <div className="flex items-center gap-4 p-4">
+            <div className="flex items-center gap-4 p-4 rounded">
                 <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                     style={{
-                        background: `radial-gradient(circle at 30% 30%, ${color}15, ${color}05)`,
+                        background: `radial-gradient(circle at 30% 30%, ${color.replace(/\)$/, ' / 0.2)')}, ${color.replace(/\)$/, ' / 0.1)')})`,
                     }}
                 >
                     {Icon && <Icon size={14} className="opacity-70" style={{ color }} />}

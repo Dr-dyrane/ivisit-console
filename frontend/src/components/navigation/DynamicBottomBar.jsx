@@ -99,7 +99,7 @@ export const DynamicBottomBar = () => {
                     className="pointer-events-auto"
                 >
                     <div
-                        className="flex items-center gap-1 p-1.5 rounded-full bg-background/80 backdrop-blur-xl shadow-premium"
+                        className="flex items-center gap-1 p-1.5 rounded-full backdrop-blur-sm shadow-premium"
                     >
                         {/* Menu Trigger */}
                         <motion.button
@@ -110,9 +110,6 @@ export const DynamicBottomBar = () => {
                             <Menu className="w-6 h-6 text-black dark:text-white" />
                         </motion.button>
 
-                        {/* Divider */}
-                        <div className="w-px h-6 bg-white/10 mx-1" />
-
                         {/* Search */}
                         <motion.button
                             whileTap={{ scale: 0.95 }}
@@ -122,16 +119,12 @@ export const DynamicBottomBar = () => {
                             <Search className="w-6 h-6 text-black dark:text-white" />
                         </motion.button>
 
-                        {/* Divider */}
-                        <div className="w-px h-6 bg-white/10 mx-1" />
 
                         {/* Notifications */}
                         <div className="w-12 h-12 rounded-full flex items-center justify-center">
                             <NotificationCenter />
                         </div>
 
-                        {/* Divider */}
-                        <div className="w-px h-6 bg-white/10 mx-1" />
 
                         {/* Context Action */}
                         <motion.button
@@ -151,10 +144,10 @@ export const DynamicBottomBar = () => {
 
             {/* Sheet for Menu */}
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                <SheetOverlay className="bg-black/40 backdrop-blur-[2px]" />
+                <SheetOverlay className="bg-black/5 backdrop-blur-[2px]" />
                 <SheetContent
                     side="bottom"
-                    className="h-[90vh] rounded-t-[32px] border-0 p-0 overflow-hidden"
+                    className="h-[90vh] rounded-t-[32px] border-0 p-0 overflow-hidden  bg-background dark:bg-background/5 backdrop-blur-sm"
                     style={{
                         boxShadow: '0 -10px 40px rgba(0,0,0,0.2)'
                     }}

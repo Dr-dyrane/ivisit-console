@@ -205,7 +205,8 @@ export const MobileDashboard = ({
                         <MobileQuickNavPill items={[
                             { icon: MapIcon, label: 'Live Map', color: 'hsl(var(--primary))', path: '/map' },
                             { icon: BarChart3, label: 'Analytics', color: 'hsl(var(--info))', path: '/analytics' },
-                            { icon: Newspaper, label: 'News feed', color: 'hsl(var(--success))', path: '/health-news' }
+                            { icon: Newspaper, label: 'News feed', color: 'hsl(var(--success))', path: '/health-news' },
+                            { icon: Stethoscope, label: 'Medical Staff', color: 'hsl(var(--secondary))', path: '/doctors' }
                         ]} />
                     </section>
 

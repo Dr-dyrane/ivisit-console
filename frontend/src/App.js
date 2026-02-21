@@ -79,7 +79,7 @@ const AppShell = ({ children }) => {
 
 				<main
 					id="main-content"
-					className={`flex-1 bg-background dark:bg-background relative overflow-y-auto overflow-x-hidden scroll-smooth ${isMobile ? 'no-scrollbar' : 'custom-scrollbar'} transition-all duration-300 ${!hideNav ? "pt-16" : ""}`}
+					className={`flex-1 bg-background dark:bg-background relative overflow-y-auto overflow-x-hidden scroll-smooth ${isMobile ? 'no-scrollbar' : 'custom-scrollbar'} transition-all duration-300 ${!hideNav ? (isMobile ? "pt-12 md:pt-16" : "pt-16") : ""}`}
 				>
 
 					<motion.div
@@ -91,7 +91,7 @@ const AppShell = ({ children }) => {
 							// Right padding - 24px (3×8px) for consistency
 							paddingRight: isMobile ? 0 : 48,
 							// Top padding when scrolled - 16px (2×8px)
-							paddingTop: isScrolledDown ? 0 : 16,
+							paddingTop: isMobile ? 0 : (isScrolledDown ? 0 : 16),
 							// Bottom padding - Respect iOS Safe Areas + Base clearance (Stable Restore)
 							paddingBottom: 'calc(16px + var(--safe-bottom))'
 						}}

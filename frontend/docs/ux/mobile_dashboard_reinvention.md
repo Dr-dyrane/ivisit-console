@@ -272,18 +272,25 @@ Canon #23: Micro = Craft — staggered entry animation
 ### 9.1 Implementation Status
 - [x] **Phase 1-3 Complete**: MobileDashboard handles all roles (Admin, Provider, Patient, Sponsor).
 - [x] **Parity Achieved**: 1:1 data match with `BentoHome`, including Wallet income, Trending Topics, and Subscriptions.
-- [x] **Aesthetic Pivot**: Moved from "Bold/Heavy" to "Quiet Premium" (Minimalist weights, 3xl curves, [2px] edge-to-edge).
+- [x] **Aesthetic Pivot**: Moved from "Bold/Heavy" to "Quiet Authority" (Minimalist weights, 1.5rem squircle curves, [2px] edge-to-edge).
 - [x] **Interactivity (v2)**: Implemented Progressive Disclosure across all feed rows.
+- [x] **Analytical Depth**: Integrated decorative background watermarks and localized radial glows for high-impact navigation elements.
+- [x] **Typographic Normalization**: Shifted from Aggressive Bold (`font-bold/black`) to Sophisticated Normal (`font-normal/medium`) to reduce visual noise.
+- [x] **Tactile Evolution**: Shifted from depressed/inset icon wrappers to **Raised Action Nodes** with `shadow-md` and calibrated HSL alpha glows (Canon #28).
+- [x] **Immersive Tiling**: Removed vertical "dead zones" in the app shell to ensure all sticky headers (KPI Strip) sit flush against the navigation pill.
+- [x] **Bento Navigation**: Replaced the squeezed 3-up column grid with a balanced **2x2 Rectangular Bento** navigation grid.
 
 ### 9.2 UX Appraisal (v1 vs v2)
 
 | Feature | v1 (Information Feed) | v2 (Interactive Control) | Canon Impact |
 |---------|-----------------------|--------------------------|--------------|
 | **Information** | Static list rows | Progressive Disclosure | #3 Reveal Gradually |
-| **Depth** | Colored borders | Glass refraction & Layering | #21 Depth Over Color |
+| **Depth** | Colored borders | Glass-Neon edge refraction & Analytical watermarks | #21 Depth Over Color |
 | **Tactility** | Simple click | Tap-to-expand + Micro-anim | #28 Feels Touchable |
 | **Context** | Navigate away for info | Reveal inline | #18 Spatial Memory |
+| **Typography** | Aggressive Bold | Quiet Authority (Normal/Medium) | #30 Type Is Interface |
 | **Density** | Higher (4x) | Ultra-high (6x via expansion) | #43 Mutate, Don't Multiply |
+| **Elevation** | Flat/Inner shadows | Raised "Tactile Nodes" (shadow-md) | #28 Feels Touchable |
 
 ### 9.3 The Audit — Why this is "True Canon"
 
@@ -292,9 +299,17 @@ Canon #23: Micro = Craft — staggered entry animation
 3. **Ruthless Hierarchy (#29)**: Only hero stats have sparklines. Secondary data is hidden inside expansion pods, ensuring the user only focuses on what matters *now*.
 4. **Time Is Designed (#26)**: Layout animations for expansion (300ms) provide instant acknowledgment of intent while preserving physical logic.
 
-### 9.4 Next Steps
-- [ ] Bring these "Interactive Row" patterns to `Analytics.jsx`.
-- [ ] Implement Haptic-style vibrations on expansion (if browser API allows).
-- [ ] Add "Long-press for Quick Action" to rows (e.g., Long-press Hospital to call).
+### 9.5 The "Analytical Depth" Pattern (New)
+
+The navigation cards now utilize the **Analytical Depth** pattern:
+- **Bento 2x2 Layout**: Horizontal orientation (Icon left, Text right) for better thumb reach and breathing room.
+- **Decorative Watermarks**: Low-opacity icons (`0.02`) in the background provide texture without noise.
+- **Raised Action Nodes**: Icon containers use `shadow-md` and modern `hsl(var(--color) / alpha)` glows to look like floating, touchable buttons.
+- **Glass-Neon v2**: 2px edge accents and `apple-glass-heavy` surfaces for superior Z-index separation.
+
+### 9.6 Typographic Pivot: "Quiet Authority"
+
+Moving from `font-bold` to `font-normal` for labels and `font-medium` for values:
+- **Rationale**: Standard bold weights on mobile felt "unrefined" and crowded. Lighter weights combined with wider tracking (`tracking-widest`) communicate a sense of "expensive minimalism" (Canon #25).
 
 ---
