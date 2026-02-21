@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -24,17 +24,16 @@ body {
 	font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
-
+	
 	/* Fill viewport perfectly without rubber-banding */
 	height: 100%;
 	height: 100vh;
 	height: 100dvh;
 	height: -webkit-fill-available;
-
+	
 	background-color: hsl(var(--background));
 	overflow: hidden;
-	position: fixed;
-	/* Prevent pull-to-refresh and elastic bounce on iOS */
+	position: fixed; /* Prevent pull-to-refresh and elastic bounce on iOS */
 	width: 100%;
 }
 
@@ -127,11 +126,7 @@ code {
 		--safe-left: env(safe-area-inset-left, 0px);
 		--safe-right: env(safe-area-inset-right, 0px);
 
-		/* Unified Bottom Layout tokens */
-		--bottom-bar-height: 80px;
-		--total-bottom-clearance: calc(var(--bottom-bar-height) + var(--safe-bottom) + 16px);
-
-		/* Core Glass Tokens - (RESTORED) */
+		/* Core Glass Tokens */
 		--glow-blur: 48px;
 		--glow-scale: 1.1;
 		--glow-opacity: 0.2;
@@ -372,12 +367,14 @@ code {
 
 	.glass-card-premium {
 		@apply glass shadow-premium;
+		background: hsl(var(--card));
 		border: 1px solid hsl(var(--border));
 		color: hsl(var(--foreground));
 	}
 
 	.dark .glass-card-premium {
 		@apply glass shadow-premium;
+		background: hsl(var(--glass-bg));
 		border: 1px solid hsl(var(--primary) / 0.4);
 		color: hsl(var(--foreground));
 	}
