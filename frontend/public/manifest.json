@@ -67,7 +67,7 @@
     "start_url": "/",
     "display": "standalone",
     "orientation": "any",
-    "theme_color": "#86100E",
+    "theme_color": "#0a0a0a",
     "background_color": "#0a0a0a",
     "categories": [
         "medical",

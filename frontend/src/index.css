@@ -11,9 +11,12 @@
  */
 html {
 	background-color: hsl(var(--background));
-	/* Standard Viewport Fill - Rigid */
-	height: 100%;
-	width: 100%;
+	/* Sovereign Lock - Pin to physical edges */
+	position: fixed;
+	inset: 0;
+	height: 100vh !important;
+	height: 100dvh !important;
+	width: 100vw !important;
 	overflow: hidden;
 }
 
@@ -23,14 +26,16 @@ body {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 
-	/* Fill viewport perfectly without rubber-banding */
-	height: 100%;
-	width: 100%;
-	overflow: hidden;
+	/* Sovereign Lock - Inherit pinning */
 	position: fixed;
-	/* Prevent pull-to-refresh and elastic bounce on iOS */
-
+	inset: 0;
+	height: 100vh !important;
+	height: 100dvh !important;
+	width: 100vw !important;
+	overflow: hidden;
 	background-color: hsl(var(--background));
+	touch-action: none;
+	/* Prevent system gestures from interfering with app shell */
 }
 
 /* Hide scrollbars completely */
@@ -39,8 +44,11 @@ body::-webkit-scrollbar {
 }
 
 #root {
-	height: 100%;
-	width: 100%;
+	position: fixed;
+	inset: 0;
+	height: 100vh !important;
+	height: 100dvh !important;
+	width: 100vw !important;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
