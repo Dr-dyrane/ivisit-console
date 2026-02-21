@@ -13,14 +13,18 @@ import {
     Trash2,
     Activity,
     Zap,
+    ZapOff,
     Search,
     SlidersHorizontal,
     Loader2,
-    BarChart3
+    BarChart3,
+    BadgeCheck,
+    BadgeX
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
@@ -201,15 +205,29 @@ export const MobileUsers = ({
                                     // Use Avatar instead of Icon in the MetricRow context
                                     icon={() => (
                                         <Avatar className="w-9 h-9 rounded-[12px] border-0">
-                                            <AvatarImage src={user.imageuri || user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username || user.profile_username}`} />
+                                            <AvatarImage
+                                                src={getAvatarUrl(user)}
+                                                className="object-cover"
+                                            />
                                             <AvatarFallback className="bg-muted text-[10px] font-medium">
-                                                {(user.username || user.profile_username)?.[0]?.toUpperCase()}
+                                                {getAvatarFallback(user)}
                                             </AvatarFallback>
                                         </Avatar>
                                     )}
                                     label={user.role?.replace('_', ' ').toUpperCase() || 'PATIENT'}
                                     value={user.full_name || user.username || 'Unknown User'}
-                                    trend={user.bvn_verified ? 'Verified' : 'Not Verified'}
+                                    statusIndicators={[
+                                        {
+                                            icon: user.bvn_verified ? BadgeCheck : BadgeX,
+                                            color: user.bvn_verified ? 'hsl(var(--success))' : 'hsl(var(--muted-foreground)/0.4)',
+                                            label: user.bvn_verified ? 'Verified' : 'Unverified'
+                                        },
+                                        {
+                                            icon: user.is_active !== false ? Zap : ZapOff,
+                                            color: user.is_active !== false ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground)/0.4)',
+                                            label: user.is_active !== false ? 'Active' : 'Inactive'
+                                        }
+                                    ]}
                                     isExpanded={expandedUserId === user.id}
                                     onExpand={(id) => setExpandedUserId(prev => prev === id ? null : id)}
                                     itemId={user.id}

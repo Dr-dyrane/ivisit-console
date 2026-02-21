@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHospitals } from '../../services/hospitalsService';
+import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 
 export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
   const isView = mode === 'view';
@@ -49,6 +50,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
         role: user.role || 'patient',
         provider_type: user.provider_type || '',
         organization_id: user.organization_id || (isOrgAdmin() ? orgId : ''),
+        image_uri: user.image_uri || user.avatar_url, // Sync to underscored field
       }));
     } else if (isCreate) {
       // Reset for create mode
@@ -133,17 +135,17 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
             {/* Header Area */}
             <div className="flex items-center justify-between p-2 md:p-8 pb-4">
               <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16 rounded-2xl border-4 border-background shadow-xl">
+                <Avatar className="h-12 w-12 md:h-16 md:w-16 rounded-2xl border-4 border-background shadow-xl">
                   <AvatarImage
-                    src={formData.imageuri || formData.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.username || formData.profile_username}`}
+                    src={getAvatarUrl(formData)}
                     className="object-cover"
                   />
-                  <AvatarFallback className="text-2xl font-bold bg-muted text-muted-foreground rounded-2xl">
-                    {(formData.username || formData.profile_username)?.[0]?.toUpperCase() || 'U'}
+                  <AvatarFallback className="text-xl md:text-2xl font-bold bg-muted text-muted-foreground rounded-2xl">
+                    {getAvatarFallback(formData)}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
+                  <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-foreground/90">
                     {formData.username || formData.profile_username || 'New User'}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
@@ -181,7 +183,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                         value={formData.full_name || ''}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-11 md:h-12 font-medium"
                         placeholder="John Doe"
                       />
                     </div>
@@ -193,7 +195,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                         value={formData.username || ''}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-medium"
+                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-11 md:h-12 font-medium"
                         placeholder="johndoe123"
                       />
                     </div>
@@ -208,7 +210,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                           value={formData.email || ''}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-normal"
+                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-11 md:h-12 pl-10 font-normal"
                           placeholder="john@example.com"
                         />
                       </div>
@@ -223,7 +225,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                           value={formData.phone || ''}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-mono"
+                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-11 md:h-12 pl-10 font-mono"
                           placeholder="+234..."
                         />
                       </div>
@@ -239,7 +241,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                           value={formData.date_of_birth || ''}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-normal"
+                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-11 md:h-12 pl-10 font-normal"
                         />
                       </div>
                     </div>

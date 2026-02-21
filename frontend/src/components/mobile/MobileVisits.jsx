@@ -16,7 +16,10 @@ import {
     Search,
     SlidersHorizontal,
     Loader2,
-    BarChart3
+    BarChart3,
+    Siren,
+    BadgeCheck,
+    BadgeX
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -213,7 +216,18 @@ export const MobileVisits = ({
                                     color={getStatusColor(visit.status)}
                                     label={visit.visit_type?.replace('_', ' ').toUpperCase() || 'GENERAL VISIT'}
                                     value={visit.patient?.username || visit.patient?.full_name || `Patient #${visit.user_id?.slice(-4) || '??'}`}
-                                    trend={formatDate(visit.date || visit.created_at)}
+                                    statusIndicators={[
+                                        {
+                                            icon: visit.visit_type?.includes('emergency') || visit.type?.includes('emergency') ? Siren : Stethoscope,
+                                            color: visit.visit_type?.includes('emergency') || visit.type?.includes('emergency') ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground)/0.4)',
+                                            label: visit.visit_type || 'Routine'
+                                        },
+                                        {
+                                            icon: getStatusIcon(visit.status),
+                                            color: getStatusColor(visit.status),
+                                            label: visit.status
+                                        }
+                                    ]}
                                     isExpanded={expandedVisitId === visit.id}
                                     onExpand={(id) => setExpandedVisitId(prev => prev === id ? null : id)}
                                     itemId={visit.id}

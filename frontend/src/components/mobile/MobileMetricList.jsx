@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, Check } from 'lucide-react';
+import { ChevronRight, Check, CheckSquare, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**
@@ -18,13 +18,18 @@ export const MobileSectionHeader = ({ label, color = 'hsl(var(--primary))', coun
             {onSelectAll && (
                 <button
                     onClick={onSelectAll}
-                    className="text-[9px] font-bold uppercase tracking-widest text-primary/60 hover:text-primary active:scale-95 transition-all px-2 py-1 rounded-lg apple-glass-heavy border-0"
+                    className="w-10 h-10 flex items-center justify-center rounded-2xl apple-glass-heavy border-0 active:scale-90 transition-all text-primary/60 hover:text-primary"
+                    aria-label={isAllSelected ? 'Deselect All' : 'Select All'}
                 >
-                    {isAllSelected ? 'Deselect All' : 'Select All'}
+                    {isAllSelected ? (
+                        <CheckSquare size={18} className="text-primary" />
+                    ) : (
+                        <Square size={18} className="text-primary/30" />
+                    )}
                 </button>
             )}
             {count !== undefined && (
-                <span className="text-[10px] font-medium text-muted-foreground/40 bg-white/5 px-1.5 py-0.5 rounded-sm">
+                <span className="text-[10px] font-medium text-muted-foreground/40 bg-white/5 px-2 py-1 rounded-lg">
                     {count}
                 </span>
             )}
@@ -42,7 +47,7 @@ export const MobileMetricRow = ({
     icon: Icon,
     label,
     value,
-    trend,
+    statusIndicators = [], // Array of { icon, color, label }
     onClick,
     color = 'hsl(var(--primary))',
     description,
@@ -118,13 +123,19 @@ export const MobileMetricRow = ({
                     <p className="text-[8px] font-thin uppercase tracking-[0.15em] mb-0.5 truncate text-muted-foreground/80">
                         {label}
                     </p>
-                    <div className="flex items-baseline gap-1.5">
-                        <span className="text-[14px] font-normal tracking-tight text-foreground/95">{value}</span>
-                        {trend && (
-                            <span className={`text-[8px] font-semibold px-1.5 py-0.5 rounded-full ${trend.includes('+') ? 'text-success bg-success/10' : 'text-destructive bg-destructive/10'}`}>
-                                {trend}
-                            </span>
-                        )}
+                    <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-normal tracking-tight text-foreground/95 truncate">{value}</span>
+                        <div className="flex items-center gap-2 ml-auto">
+                            {statusIndicators.map((indicator, idx) => (
+                                <div
+                                    key={idx}
+                                    title={indicator.label}
+                                    className="flex items-center justify-center transition-all"
+                                >
+                                    {indicator.icon && <indicator.icon size={16} style={{ color: indicator.color || 'white' }} className="opacity-95" />}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

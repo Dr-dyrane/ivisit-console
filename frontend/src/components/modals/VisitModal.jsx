@@ -171,11 +171,11 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
             {/* Header Area */}
             <div className="flex items-center justify-between p-2 md:p-8 pb-4">
               <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-blue-500/20 rounded-2xl">
-                  <Calendar className="h-6 w-6 text-blue-500" />
+                <div className="p-2 md:p-3 bg-blue-500/20 rounded-2xl">
+                  <Calendar className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
+                  <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-foreground/90">
                     {formData.visit_type ? formData.visit_type.charAt(0).toUpperCase() + formData.visit_type.slice(1) : 'New Visit'}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
@@ -258,7 +258,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                             (typeof formData.doctor === 'string' ? formData.doctor : 'Unassigned')
                           }
                           disabled
-                          className="rounded-2xl bg-muted/30 border-0 h-14 font-normal"
+                          className="rounded-2xl bg-muted/30 border-0 h-12 md:h-14 font-normal"
                         />
                       </div>
                     )}
@@ -267,7 +267,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     <div className="space-y-2">
                       <Label htmlFor="hospital_id" className="text-xs font-semibold text-muted-foreground uppercase">Facility</Label>
                       {isView && visitContext?.hospital ? (
-                        <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border-0 h-14">
+                        <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border-0 h-12 md:h-14">
                           <Hospital className="w-5 h-5 text-muted-foreground" />
                           <div className="flex-1">
                             <p className="font-medium text-sm">
@@ -279,7 +279,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           </div>
                         </div>
                       ) : isView && !formData.hospital_id && formData.hospital ? (
-                        <div className="flex items-center h-14 w-full rounded-2xl border border-input bg-muted/30 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50">
+                        <div className="flex items-center h-12 md:h-14 w-full rounded-2xl border border-input bg-muted/30 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50">
                           <span className="flex items-center gap-2">
                             <Hospital className="w-4 h-4 text-muted-foreground" />
                             {formData.hospital}
@@ -291,7 +291,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                           onValueChange={(value) => setFormData(prev => ({ ...prev, hospital_id: value }))}
                           disabled={isView}
                         >
-                          <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-14 font-normal">
+                          <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 md:h-14 font-normal">
                             <SelectValue placeholder="Select facility" />
                           </SelectTrigger>
                           <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
