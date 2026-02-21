@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { usePageHeader, usePageFooter, useLayout } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPricing, saveServicePricing, saveRoomPricing, deleteServicePricing, deleteRoomPricing } from '../../services/pricingService';
+import { PaginationControls } from '../ui/PaginationControls';
 import {
     DollarSign,
     Search,
@@ -23,7 +24,7 @@ import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -42,8 +43,9 @@ export const PricingManagementPage = () => {
     const [pricing, setPricing] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('services'); // 'services' | 'rooms'
+    const [kpiFilter, setKpiFilter] = useState('all'); // 'all' | 'global' | 'override'
     const { viewMode, setViewMode } = useViewMode('pricing', 'grid');
-    const { currentPage, goToPage, itemsPerPage, setTotalCount } = usePagination(12);
+    const pagination = usePagination(12);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -69,14 +71,14 @@ export const PricingManagementPage = () => {
             const orgId = isOrgAdmin() ? profile.organization_id : null;
             const data = await getPricing(activeTab, orgId);
             setPricing(data || []);
-            setTotalCount(data?.length || 0);
+            pagination.setTotalCount(data?.length || 0);
         } catch (error) {
             console.error('Error fetching pricing:', error);
             toast.error('Failed to load pricing data');
         } finally {
             setLoading(false);
         }
-    }, [activeTab, isOrgAdmin, profile.organization_id, setTotalCount]);
+    }, [activeTab, isOrgAdmin, profile.organization_id, pagination.setTotalCount]);
 
     useEffect(() => {
         fetchPricing();
@@ -178,66 +180,79 @@ export const PricingManagementPage = () => {
     };
 
     const filteredPricing = useMemo(() => {
+        let result = pricing;
+
+        // Apply KPI Filter
+        if (kpiFilter === 'global') {
+            result = result.filter(item => !item.organization_id && !item.hospital_id);
+        } else if (kpiFilter === 'override') {
+            result = result.filter(item => item.organization_id || item.hospital_id);
+        }
+
         const term = searchTerm.toLowerCase();
-        return pricing.filter(item =>
-            (item.service_name || item.room_name || '').toLowerCase().includes(term) ||
-            (item.service_type || item.room_type || '').toLowerCase().includes(term)
-        );
-    }, [pricing, searchTerm]);
+        if (term) {
+            result = result.filter(item =>
+                (item.service_name || item.room_name || '').toLowerCase().includes(term) ||
+                (item.service_type || item.room_type || '').toLowerCase().includes(term)
+            );
+        }
+        return result;
+    }, [pricing, searchTerm, kpiFilter]);
 
     const paginatedPricing = useMemo(() => {
-        const start = (currentPage - 1) * itemsPerPage;
-        return filteredPricing.slice(start, start + itemsPerPage);
-    }, [filteredPricing, currentPage, itemsPerPage]);
+        pagination.setTotalCount(filteredPricing.length);
+        const start = (pagination.currentPage - 1) * pagination.itemsPerPage;
+        return filteredPricing.slice(start, start + pagination.itemsPerPage);
+    }, [filteredPricing, pagination]);
 
     // Header & Footer
     const headerActions = useMemo(() => (
-        <div className="flex items-center gap-2">
-            <div className="flex bg-muted/20 p-1 rounded-xl mr-2">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setViewMode('grid')}
-                    className={`h-8 w-8 rounded-lg ${viewMode === 'grid' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
-                >
-                    <LayoutGrid className="h-4 w-4" />
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setViewMode('list')}
-                    className={`h-8 w-8 rounded-lg ${viewMode === 'list' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
-                >
-                    <ListIcon className="h-4 w-4" />
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setViewMode('table')}
-                    className={`h-8 w-8 rounded-lg ${viewMode === 'table' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
-                >
-                    <TableIcon className="h-4 w-4" />
-                </Button>
-            </div>
-            <Button onClick={() => openModal()} className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Pricing
+        <Button onClick={() => openModal()} className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Pricing
+        </Button>
+    ), []);
+
+    const viewToggle = useMemo(() => (
+        <div className="flex bg-muted/20 p-1 rounded-xl mr-2">
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewMode('grid')}
+                className={`h-8 w-8 rounded-lg ${viewMode === 'grid' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+            >
+                <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewMode('list')}
+                className={`h-8 w-8 rounded-lg ${viewMode === 'list' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+            >
+                <ListIcon className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewMode('table')}
+                className={`h-8 w-8 rounded-lg ${viewMode === 'table' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+            >
+                <TableIcon className="h-4 w-4" />
             </Button>
         </div>
     ), [viewMode, setViewMode]);
 
-    usePageHeader('Pricing Engine', headerActions);
+    usePageHeader('Pricing Engine', headerActions, viewToggle);
 
     const footerContent = useMemo(() => (
         <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
-                <div className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-zinc-500 animate-pulse' : 'bg-success shadow-glow-success'}`} />
-                <span>{pricing.length} Active Rules • {viewMode.toUpperCase()} View</span>
+                <span>Page {pagination.currentPage} of {pagination.totalPages} • {filteredPricing.length} Rules</span>
             </div>
         </div>
-    ), [pricing.length, loading, viewMode]);
+    ), [pagination.currentPage, pagination.totalPages, filteredPricing.length]);
 
-    usePageFooter(footerContent, 'status', true);
+    usePageFooter(footerContent, 'pagination', !loading && pricing.length > 0);
 
     /**
      * NOTE (2026-02-16): Removed initial context panel auto-open and 
@@ -258,65 +273,125 @@ export const PricingManagementPage = () => {
     return (
         <div className="min-h-screen py-8">
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8">
-                <Card className="col-span-1 geo-block glass-card p-6 flex items-center gap-4 relative overflow-hidden group hover-lift transition-all border-0 shadow-premium">
-                    <div className="absolute inset-0 dot-grid" />
-                    <div className="p-3 bg-primary/20 rounded-2xl relative z-10">
-                        <BadgeDollarSign className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="relative z-10">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active Points</p>
-                        <h3 className="text-2xl font-black">{pricing.length}</h3>
-                    </div>
-                </Card>
+            <LayoutGroup>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8">
+                    <motion.div layout className="col-span-1">
+                        <Card
+                            className={`h-full min-h-[140px] geo-block glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 border-0 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
+                            onClick={() => setKpiFilter('all')}
+                        >
+                            <div className="hover-glow hover-glow-primary" />
+                            <div className="absolute top-0 right-0 p-4 z-20">
+                                <div className="relative">
+                                    <div className={`absolute inset-0 ${kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                                        <BadgeDollarSign className={`h-5 w-5 ${kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'}`} />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active Points</p>
+                                    {kpiFilter === 'all' && <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />}
+                                </div>
+                                <h3 className="text-3xl font-black">{pricing.length}</h3>
+                                <div className="flex items-center gap-2 mt-2">
+                                    <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-[8px] uppercase tracking-tighter">
+                                        {kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
+                                    </Badge>
+                                </div>
+                            </div>
+                        </Card>
+                    </motion.div>
 
-                <Card className="col-span-1 geo-shard glass-card-premium p-6 flex flex-col gap-3 group hover-lift transition-all border-0">
-                    <div className="flex items-center justify-between">
-                        <div className="p-2 bg-success/20 rounded-xl">
-                            <TrendingUp className="h-5 w-5 text-success" />
-                        </div>
-                        <Badge className="bg-success text-white border-0 text-[8px] font-black tracking-tighter uppercase px-2 py-0.5 shadow-glow-success">Healthy</Badge>
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Avg Base Cost</p>
-                        <h3 className="text-xl font-bold flex items-center gap-2">
-                            ${avgPrice.toFixed(2)}
-                        </h3>
-                    </div>
-                </Card>
+                    <motion.div layout className="col-span-1">
+                        <Card
+                            className={`h-full min-h-[140px] geo-shard glass-card-premium shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 border-0 ${kpiFilter === 'override' ? 'ring-2 ring-success shadow-lg' : ''}`}
+                            onClick={() => setKpiFilter('override')}
+                        >
+                            <div className="hover-glow hover-glow-success" />
+                            <div className="absolute top-0 right-0 p-4 z-20">
+                                <div className="relative">
+                                    <div className={`absolute inset-0 ${kpiFilter === 'override' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                                        <TrendingUp className={`h-5 w-5 ${kpiFilter === 'override' ? 'text-success' : 'text-muted-foreground'}`} />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Avg Base Cost</p>
+                                    {kpiFilter === 'override' && <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />}
+                                </div>
+                                <h3 className="text-3xl font-bold flex items-center gap-2">
+                                    ${(pricing.reduce((acc, curr) => acc + (curr.base_price || curr.price_per_night || 0), 0) / (pricing.length || 1)).toFixed(2)}
+                                </h3>
+                                <div className="flex items-center gap-2 mt-2">
+                                    <Badge className={`geo-sharp border-0 font-bold text-[8px] uppercase tracking-tighter ${kpiFilter === 'override' ? 'bg-success/20 text-success' : 'bg-muted/10 text-muted-foreground'}`}>
+                                        {kpiFilter === 'override' ? 'FILTERED' : 'OVERRIDE'}
+                                    </Badge>
+                                </div>
+                            </div>
+                        </Card>
+                    </motion.div>
 
-                <Card className="col-span-1 geo-round glass-card p-6 flex items-center gap-4 relative overflow-hidden hover-lift transition-all border-0 shadow-premium">
-                    <div className="absolute inset-0 dot-grid" />
-                    <div className="p-3 bg-info/20 rounded-full border border-info/30 relative z-10">
-                        <Globe className="h-6 w-6 text-info" />
-                    </div>
-                    <div className="relative z-10">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Global coverage</p>
-                        <h3 className="text-2xl font-black">
-                            {pricing.filter(p => !p.organization_id).length} <span className="text-[10px] text-muted-foreground font-medium uppercase font-sans">Rules</span>
-                        </h3>
-                    </div>
-                </Card>
+                    <motion.div layout className="col-span-1">
+                        <Card
+                            className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 border-0 ${kpiFilter === 'global' ? 'ring-2 ring-info shadow-lg' : ''}`}
+                            onClick={() => setKpiFilter('global')}
+                        >
+                            <div className="hover-glow hover-glow-info" />
+                            <div className="absolute top-0 right-0 p-4 z-20">
+                                <div className="relative">
+                                    <div className={`absolute inset-0 ${kpiFilter === 'global' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                                        <Globe className={`h-5 w-5 ${kpiFilter === 'global' ? 'text-info' : 'text-muted-foreground'}`} />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Global Coverage</p>
+                                    {kpiFilter === 'global' && <div className="h-1.5 w-1.5 rounded-full bg-info animate-pulse" />}
+                                </div>
+                                <h3 className="text-3xl font-black">
+                                    {pricing.filter(p => !p.organization_id).length} <span className="text-[10px] text-muted-foreground font-medium uppercase font-sans">Rules</span>
+                                </h3>
+                                <div className="flex items-center gap-2 mt-2">
+                                    <Badge className={`geo-sharp border-0 font-bold text-[8px] uppercase tracking-tighter ${kpiFilter === 'global' ? 'bg-info/20 text-info' : 'bg-muted/10 text-muted-foreground'}`}>
+                                        {kpiFilter === 'global' ? 'FILTERED' : 'UNIFY'}
+                                    </Badge>
+                                </div>
+                            </div>
+                        </Card>
+                    </motion.div>
 
-                <Card className="col-span-1 geo-block glass-card p-6 flex items-center gap-4 relative overflow-hidden group hover-lift transition-all border-0 shadow-premium">
-                    <div className="absolute inset-0 dot-grid opacity-5" />
-                    <div className="p-3 bg-white/10 rounded-2xl relative z-10">
-                        <DollarSign className="h-6 w-6 text-white/50" />
-                    </div>
-                    <div className="relative z-10">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Revenue Unit</p>
-                        <h3 className="text-2xl font-black">Admin</h3>
-                    </div>
-                </Card>
+                    <motion.div layout className="col-span-1">
+                        <Card className="h-full min-h-[140px] geo-block glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group border-0">
+                            <div className="absolute inset-0 dot-grid opacity-5" />
+                            <div className="absolute top-0 right-0 p-4 z-20">
+                                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                                    <DollarSign className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                            </div>
+                            <div className="relative z-10">
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Revenue Unit</p>
+                                <h3 className="text-3xl font-black">Admin</h3>
+                            </div>
+                        </Card>
+                    </motion.div>
 
-                <Card className="col-span-1 geo-sharp glass-card-premium p-6 flex flex-col justify-center items-center gap-1 group hover-lift transition-all border-0">
-                    <div className="p-2 bg-primary/10 rounded-full mb-1">
-                        <Activity className="h-4 w-4 text-primary" />
-                    </div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Efficiency</p>
-                    <h3 className="text-xl font-black">94%</h3>
-                </Card>
-            </div>
+                    <motion.div layout className="col-span-1">
+                        <Card className="h-full min-h-[140px] geo-sharp glass-card-premium shadow-2xl p-6 hover-lift relative overflow-hidden group border-0 text-center flex flex-col items-center justify-center">
+                            <div className="p-3 bg-primary/10 rounded-full mb-2">
+                                <Activity className="h-5 w-5 text-primary" />
+                            </div>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Efficiency</p>
+                            <h3 className="text-2xl font-black">94%</h3>
+                        </Card>
+                    </motion.div>
+                </div>
+            </LayoutGroup>
 
             {/* Controls */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -391,12 +466,19 @@ export const PricingManagementPage = () => {
                 )}
             </div>
 
+            {/* Pagination Controls */}
+            <PaginationControls
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                onPrevPage={pagination.prevPage}
+                onNextPage={pagination.nextPage}
+                hasPrevPage={pagination.hasPrevPage}
+                hasNextPage={pagination.hasNextPage}
+                loading={loading}
+            />
+
             {/* Pagination Placeholder */}
-            {filteredPricing.length > itemsPerPage && (
-                <div className="mt-8 flex justify-center gap-2">
-                    {/* Add pagination UI here if needed */}
-                </div>
-            )}
+            {/* pass pagination to smart footer like other pages do */}
 
             {/* Pricing Modal */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
