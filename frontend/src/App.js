@@ -49,7 +49,7 @@ import "./App.css";
 const PWADebugTracker = () => {
 	return (
 		<div className="fixed bottom-1 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none select-none">
-			<div className="bg-white/[0.02] backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5 shadow-2xl flex items-center justify-center">
+			<div className="bg-white/[0.02] backdrop-blur-md px-2 py-0.5 rounded-full shadow-2xl flex items-center justify-center">
 				<span className="text-[8px] font-medium text-zinc-500/50 uppercase tracking-[0.2em] leading-none">
 					v1.0.10
 				</span>
