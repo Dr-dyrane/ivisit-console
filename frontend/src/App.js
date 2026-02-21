@@ -47,48 +47,14 @@ import "./App.css";
 
 // --- PWA DEBUG TRACKER ---
 const PWADebugTracker = () => {
-	const [metrics, setMetrics] = React.useState({ h: 0, safeB: 0 });
-	const probeRef = React.useRef(null);
-
-	React.useLayoutEffect(() => {
-		const update = () => {
-			if (probeRef.current) {
-				const style = window.getComputedStyle(probeRef.current);
-				setMetrics({
-					h: window.innerHeight,
-					safeB: parseInt(style.paddingBottom) || 0
-				});
-			}
-		};
-		window.addEventListener('resize', update);
-		update();
-		return () => window.removeEventListener('resize', update);
-	}, []);
-
 	return (
-		<>
-			{/* Hidden probe to measure CSS environment variables */}
-			<div
-				ref={probeRef}
-				className="fixed -z-50 pointer-events-none opacity-0"
-				style={{ paddingBottom: 'var(--safe-bottom)' }}
-			/>
-
-			<div className="fixed bottom-0 right-2 z-[9999] pointer-events-none select-none">
-				<div className="bg-black/95 backdrop-blur-2xl px-3 py-1.5 rounded-t-2xl border-x border-t border-white/10 shadow-2xl flex flex-col gap-0.5 items-end">
-					<span className="text-[9px] font-bold text-red-500 uppercase tracking-widest leading-none">
-						v1.0.10-REVERT-TO-V8
-					</span>
-					<div className="flex gap-2 items-center text-[10px] font-mono text-zinc-400">
-						<span>WH: <span className="text-white">{metrics.h}px</span></span>
-						<span className="w-px h-2 bg-white/10" />
-						<span>SH: <span className="text-white">{window.screen.height}px</span></span>
-						<span className="w-px h-2 bg-white/10" />
-						<span>SB: <span className="text-white">{metrics.safeB}px</span></span>
-					</div>
-				</div>
+		<div className="fixed bottom-1 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none select-none">
+			<div className="bg-white/[0.02] backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5 shadow-2xl flex items-center justify-center">
+				<span className="text-[8px] font-medium text-zinc-500/50 uppercase tracking-[0.2em] leading-none">
+					v1.0.10
+				</span>
 			</div>
-		</>
+		</div>
 	);
 };
 

@@ -142,7 +142,7 @@ code {
 
 		/* Unified Bottom Layout tokens */
 		--bottom-bar-height: 80px;
-		--total-bottom-clearance: calc(var(--bottom-bar-height) + var(--safe-bottom) + 32px);
+		--total-bottom-clearance: calc(var(--bottom-bar-height) + var(--safe-bottom) + 16px);
 
 		/* Glass Border System */
 		--glass-border-light: hsl(var(--primary) / 0.2);
