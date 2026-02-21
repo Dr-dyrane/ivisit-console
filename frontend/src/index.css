@@ -16,6 +16,7 @@ html {
 	inset: 0;
 	height: 100vh !important;
 	height: 100dvh !important;
+	height: -webkit-fill-available !important;
 	width: 100vw !important;
 	overflow: hidden;
 }
@@ -31,6 +32,7 @@ body {
 	inset: 0;
 	height: 100vh !important;
 	height: 100dvh !important;
+	height: -webkit-fill-available !important;
 	width: 100vw !important;
 	overflow: hidden;
 	background-color: hsl(var(--background));
@@ -48,6 +50,7 @@ body::-webkit-scrollbar {
 	inset: 0;
 	height: 100vh !important;
 	height: 100dvh !important;
+	height: -webkit-fill-available !important;
 	width: 100vw !important;
 	display: flex;
 	flex-direction: column;
