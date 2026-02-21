@@ -37,6 +37,8 @@ import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { SEOHead } from '../common/SEOHead';
 import { getWalletSummary } from '../../services/walletService';
 import { Wallet, TrendingDown as TrendingDownIcon } from 'lucide-react';
+import { useBreakpoint } from '../../hooks/useBreakpoint';
+import { MobileDashboard } from '../mobile/MobileDashboard';
 // Remove incorrect StandardMap import
 
 // Responsive Grid Hook or similar logic can be added here if needed, 
@@ -431,8 +433,11 @@ export const BentoHome = () => {
     userData,
     loading,
     fetchActivityData,
-    refreshAllData
+    refreshAllData,
+    refreshAllData: refreshAction
   } = usePageData();
+
+  const { isMobile } = useBreakpoint();
 
   // Use subscription hook for real data
   const { fetchAnalytics: fetchSubscriptionAnalytics } = useSubscription();
@@ -740,6 +745,28 @@ export const BentoHome = () => {
     );
   }
 
+  // REINVENTED MOBILE EXPERIENCE
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <SEOHead title="Dashboard" description="Emergency operations mobile dashboard." />
+        <MobileDashboard
+          appStats={appStats}
+          walletStats={walletStats}
+          subscriptionStats={subscriptionStats}
+          recentActivities={recentActivities}
+          onRefresh={refreshAction || fetchActivityData}
+          roleContext={{
+            isAdmin: isAdmin(),
+            isProvider: isProvider(),
+            isPatient: isPatient(),
+            isOrgAdmin: isOrgAdmin(),
+            isSponsor: isSponsor()
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-6 md:py-8">
