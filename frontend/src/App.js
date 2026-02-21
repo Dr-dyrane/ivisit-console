@@ -79,8 +79,8 @@ const AppShell = ({ children }) => {
 							paddingRight: isMobile ? 16 : 48,
 							// Top padding when scrolled - 16px (2×8px)
 							paddingTop: isScrolledDown ? 0 : 16,
-							// Bottom padding - 96px (12×8px) for footer/FAB clearance
-							paddingBottom: 96
+							// Bottom padding - Respect iOS Safe Areas + Base clearance
+							paddingBottom: 'calc(112px + var(--safe-bottom))'
 						}}
 						transition={{ type: "spring", stiffness: 300, damping: 30 }}
 						className="relative z-10"
