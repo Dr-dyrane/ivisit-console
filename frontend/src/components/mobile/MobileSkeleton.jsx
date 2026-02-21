@@ -13,7 +13,7 @@ const SkeletonPulse = ({ className }) => (
  * Mobile KPI Strip Skeleton
  */
 export const MobileKPIStripSkeleton = () => (
-    <div className="sticky top-0 z-50 apple-glass-heavy border-b border-white/[0.05] px-4 py-3 flex gap-2">
+    <div className="sticky top-0 z-50 apple-glass-heavy px-4 py-3 flex gap-2">
         <SkeletonPulse className="flex-1 h-12" />
         <SkeletonPulse className="flex-1 h-12" />
         <SkeletonPulse className="flex-1 h-12" />

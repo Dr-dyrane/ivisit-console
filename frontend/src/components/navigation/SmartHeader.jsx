@@ -81,11 +81,6 @@ export const SmartHeader = () => {
                     {/* MOBILE SPECIFIC RIGHT ACTIONS */}
                     {isMobile ? (
                         <div className="flex items-center gap-2 bg-primary/5 backdrop-blur-sm rounded-full px-2 py-1">
-                            {headerConfig.actions && (
-                                <div className="flex items-center gap-1.5 mr-1 border-r border-border/10 pr-1.5">
-                                    {headerConfig.actions}
-                                </div>
-                            )}
                             <button
                                 onClick={() => setSearchOpen(true)}
                                 className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
