@@ -45,6 +45,51 @@ import ErrorBoundary from "./components/common/ErrorBoundary";
 import { PWAProvider } from "./contexts/PWAContext";
 import "./App.css";
 
+// --- PWA DEBUG TRACKER ---
+const PWADebugTracker = () => {
+	const [metrics, setMetrics] = React.useState({ h: 0, safeB: 0 });
+	const probeRef = React.useRef(null);
+
+	React.useLayoutEffect(() => {
+		const update = () => {
+			if (probeRef.current) {
+				const style = window.getComputedStyle(probeRef.current);
+				setMetrics({
+					h: window.innerHeight,
+					safeB: parseInt(style.paddingBottom) || 0
+				});
+			}
+		};
+		window.addEventListener('resize', update);
+		update();
+		return () => window.removeEventListener('resize', update);
+	}, []);
+
+	return (
+		<>
+			{/* Hidden probe to measure CSS environment variables */}
+			<div
+				ref={probeRef}
+				className="fixed -z-50 pointer-events-none opacity-0"
+				style={{ paddingBottom: 'var(--safe-bottom)' }}
+			/>
+
+			<div className="fixed bottom-2 right-2 z-[9999] pointer-events-none select-none opacity-80">
+				<div className="bg-black/95 backdrop-blur-2xl px-3 py-1.5 rounded-2xl border border-white/10 shadow-2xl flex flex-col gap-0.5 items-end">
+					<span className="text-[9px] font-bold text-red-500 uppercase tracking-widest leading-none">
+						v1.0.2-GEOMETRIC-DEBUG
+					</span>
+					<div className="flex gap-2 items-center text-[10px] font-mono text-zinc-400">
+						<span>WH: <span className="text-white">{metrics.h}px</span></span>
+						<span className="w-px h-2 bg-white/10" />
+						<span>SB: <span className="text-white">{metrics.safeB}px</span></span>
+					</div>
+				</div>
+			</div>
+		</>
+	);
+};
+
 const AppShell = ({ children }) => {
 	const location = useLocation();
 	const { isScrolledDown, sidebarWidth, isContextPanelOpen } = useLayout();
@@ -167,17 +212,9 @@ function App() {
 					<Router>
 						<AppRoutes />
 						<Toaster position="top-right" richColors />
-						{/* PWA Version Tracker - Temporary for Validation */}
-						<div
-							className="fixed bottom-2 right-2 z-[9999] pointer-events-none select-none opacity-50"
-							style={{ paddingBottom: 'var(--safe-bottom)' }}
-						>
-							<div className="bg-black/80 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 shadow-2xl">
-								<span className="text-[10px] font-mono text-zinc-500 uppercase tracking-tighter">
-									v1.0.1-PWA-GEOMETRIC-LOCK
-								</span>
-							</div>
-						</div>
+
+						{/* PWA Debug Tracker */}
+						<PWADebugTracker />
 					</Router>
 				</PWAProvider>
 			</ThemeProvider>
