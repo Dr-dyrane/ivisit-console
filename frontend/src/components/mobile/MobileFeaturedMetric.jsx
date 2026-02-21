@@ -22,10 +22,10 @@ export const MobileFeaturedMetric = ({
             onClick={onClick}
             className="w-full p-6 apple-glass-heavy border-0 flex flex-col justify-between relative overflow-hidden group min-h-[160px] rounded-3xl mb-4 shadow-xl"
         >
-            {/* Subtle Neon primary glow background - Reduced bleed */}
+            {/* Enhanced Neon primary glow background - Slightly more presence */}
             <div
-                className="absolute -inset-10 opacity-[0.08]"
-                style={{ background: `radial-gradient(circle at 50% 50%, ${color.replace(/\)$/, ' / 0.5)')}, transparent 60%)` }}
+                className="absolute -inset-10 opacity-[0.12]"
+                style={{ background: `radial-gradient(circle at 50% 50%, ${color.replace(/\)$/, ' / 0.6)')}, transparent 70%)` }}
             />
 
             <div className="flex justify-between items-start relative z-10">

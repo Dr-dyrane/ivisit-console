@@ -57,7 +57,7 @@ export const MobileMetricRow = ({
             <motion.div
                 whileTap={{ scale: 0.98 }}
                 onClick={handleInteraction}
-                className={`w-full flex items-center gap-3 p-3 apple-glass-heavy border-0 rounded-2xl relative overflow-hidden group bg-white/[0.01] ${isExpanded ? 'bg-white/[0.12]' : 'active:bg-white/[0.06]'
+                className={`w-full flex items-center gap-3 p-3 apple-glass-heavy border-0 rounded-2xl relative overflow-hidden group bg-muted/50 ${isExpanded ? 'bg-muted/80' : 'active:bg-muted/70'
                     }`}
             >
                 {/* 2px Left Accent - The only differentiator */}
@@ -109,7 +109,7 @@ export const MobileMetricRow = ({
                             height: { type: 'spring', stiffness: 300, damping: 30 },
                             opacity: { duration: 0.2 }
                         }}
-                        className="bg-white/[0.04] overflow-hidden rounded-b-2xl -mt-2 pt-2"
+                        className="bg-primary/[0.04] overflow-hidden rounded-b-2xl -mt-2 pt-2"
                     >
                         <div className="p-3 pt-4 text-[11px] text-muted-foreground/80 tracking-tight leading-relaxed font-normal">
                             {expandedContent}

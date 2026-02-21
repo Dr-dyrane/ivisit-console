@@ -176,7 +176,7 @@ code {
 		--secondary: 357 74% 36%;
 		/* brandSecondary #B71C1C */
 		--secondary-foreground: 0 0% 100%;
-		--muted: 0 0% 98%;
+		--muted: 210 30% 92%;
 		/* Very light gray, subtle */
 		--muted-foreground: 0 0% 35%;
 		/* Softer muted text */
@@ -247,7 +247,7 @@ code {
 		/* brandSecondary #B71C1C */
 		--secondary-foreground: 0 0% 100%;
 		/* textLight */
-		--muted: 217 38% 4%;
+		--muted: 224 41% 14%;
 		/* bgDark */
 		--muted-foreground: 0 0% 69%;
 		/* textMutedDark */
@@ -412,18 +412,9 @@ code {
 	}
 
 	.apple-glass-heavy {
-		background: hsl(var(--background) / 0.95);
-		backdrop-filter: saturate(200%) blur(40px);
-		-webkit-backdrop-filter: saturate(200%) blur(40px);
-		will-change: transform;
-	}
-
-	.glass-neon {
-		background: hsl(var(--background) / 0.92);
-		backdrop-filter: saturate(200%) blur(40px);
-		-webkit-backdrop-filter: saturate(200%) blur(40px);
-		box-shadow: 0 0 0 1px hsl(var(--primary) / 0.05),
-			0 8px 32px -8px hsl(var(--primary) / 0.15);
+		background: hsl(var(--muted) / 0.15);
+		backdrop-filter: saturate(150%) blur(12px);
+		-webkit-backdrop-filter: saturate(150%) blur(12px);
 		will-change: transform;
 	}
 

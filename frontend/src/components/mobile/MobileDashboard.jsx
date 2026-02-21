@@ -231,7 +231,7 @@ export const MobileDashboard = ({
                     {(isAdmin || isOrgAdmin) && (
                         <section className="mt-2 mb-8">
                             <MobileSectionHeader label="Architecture Health" color="hsl(var(--info))" />
-                            <div className="px-6 py-8 apple-glass-heavy border-0 rounded-3xl space-y-6 shadow-xl relative overflow-hidden">
+                            <div className="px-6 py-8 bg-muted/40 apple-glass-heavy border-0 rounded-3xl space-y-6 shadow-xl relative overflow-hidden">
                                 {/* 2px Left Primary Accent */}
                                 <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-primary/40 pointer-events-none" />
 

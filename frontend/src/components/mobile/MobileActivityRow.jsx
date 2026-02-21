@@ -13,7 +13,7 @@ export const MobileActivityRow = ({ icon: Icon, msg, time, color = 'hsl(var(--pr
         <motion.div
             layout
             onClick={() => setIsExpanded(!isExpanded)}
-            className={`flex flex-col apple-glass border-0 relative overflow-hidden mb-[1px] last:mb-0 ${isExpanded ? 'bg-white/[0.08]' : ''
+            className={`flex flex-col apple-glass border-0 relative overflow-hidden mb-[1px] last:mb-0 bg-muted/30 ${isExpanded ? 'bg-muted/60' : ''
                 }`}
         >
             <div className="flex items-center gap-4 p-4 rounded">

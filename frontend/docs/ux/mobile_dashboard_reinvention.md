@@ -305,7 +305,6 @@ The navigation cards now utilize the **Analytical Depth** pattern:
 - **Bento 2x2 Layout**: Horizontal orientation (Icon left, Text right) for better thumb reach and breathing room.
 - **Decorative Watermarks**: Low-opacity icons (`0.02`) in the background provide texture without noise.
 - **Raised Action Nodes**: Icon containers use `shadow-md` and modern `hsl(var(--color) / alpha)` glows to look like floating, touchable buttons.
-- **Glass-Neon v2**: 2px edge accents and `apple-glass-heavy` surfaces for superior Z-index separation.
 
 ### 9.6 Typographic Pivot: "Quiet Authority"
 
@@ -313,3 +312,15 @@ Moving from `font-bold` to `font-normal` for labels and `font-medium` for values
 - **Rationale**: Standard bold weights on mobile felt "unrefined" and crowded. Lighter weights combined with wider tracking (`tracking-widest`) communicate a sense of "expensive minimalism" (Canon #25).
 
 ---
+
+### 9.7 The "Liquid Glass" Refinement (2026-02-21)
+Following the mobile polish phase, the design system evolved from "frosted" to "liquid":
+
+- **Semantic Depth Over Borders**: Completely purged all explicit borders (e.g., `border-white/5`). Separation is now achieved purely through HSL contrast shifting:
+    - **Muted Surface tokens**: Light mode shifted to `-6%` lightness gap, Dark mode to `+7%` gap relative to background.
+    - **Nesting logic**: Expanded pods and sub-sections use `bg-primary/[0.04]` or `bg-muted/[alpha]` for subtle color anchoring instead of generic whites/blacks.
+- **Crystal Clarity (Glass v3)**: 
+    - `apple-glass-heavy` was re-engineered: Background switched from `bg-background` to `hsl(var(--muted) / 0.15)` with blur reduced from `40px` to `12px`. 
+    - This creates a sharper, higher-performance lens effect that feels like polished crystal rather than frosted plastic.
+- **KPI Compression**: Summary strip removed global shadows and standardized on individual `bg-muted/30` pills for each KPI, ensuring a flush, integrated feel against the header.
+- **No-Scrollbar Standard**: All interactive panels now use `no-scrollbar` to maintain a distraction-free, native-app visual flow.
