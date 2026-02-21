@@ -11,13 +11,10 @@
  */
 html {
 	background-color: hsl(var(--background));
-	/* Sovereign Lock - Pin to physical edges */
-	position: fixed;
-	inset: 0;
-	height: 100vh !important;
-	height: 100dvh !important;
-	height: -webkit-fill-available !important;
-	width: 100vw !important;
+	/* Geometric Fluidity - Stretch to fill */
+	height: 100%;
+	width: 100%;
+	height: -webkit-fill-available;
 	overflow: hidden;
 }
 
@@ -27,17 +24,14 @@ body {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 
-	/* Sovereign Lock - Inherit pinning */
-	position: fixed;
-	inset: 0;
-	height: 100vh !important;
-	height: 100dvh !important;
-	height: -webkit-fill-available !important;
-	width: 100vw !important;
+	/* Geometric Fluidity - Scale with parent */
+	height: 100%;
+	width: 100%;
+	height: -webkit-fill-available;
 	overflow: hidden;
 	background-color: hsl(var(--background));
-	touch-action: none;
-	/* Prevent system gestures from interfering with app shell */
+	/* overscroll-behavior: none prevents the elastic bounce without killing hover */
+	overscroll-behavior: none;
 }
 
 /* Hide scrollbars completely */
@@ -46,12 +40,9 @@ body::-webkit-scrollbar {
 }
 
 #root {
-	position: fixed;
-	inset: 0;
-	height: 100vh !important;
-	height: 100dvh !important;
-	height: -webkit-fill-available !important;
-	width: 100vw !important;
+	height: 100%;
+	width: 100%;
+	height: -webkit-fill-available;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
