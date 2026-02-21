@@ -259,23 +259,23 @@ export const PricingManagementPage = () => {
         <div className="min-h-screen py-8">
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8">
-                <Card className="col-span-1 geo-block glass-card p-6 flex items-center gap-4 border-l-4 border-l-primary/50 relative overflow-hidden group hover-lift transition-all">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-110" />
+                <Card className="col-span-1 geo-block glass-card p-6 flex items-center gap-4 relative overflow-hidden group hover-lift transition-all border-0 shadow-premium">
+                    <div className="absolute inset-0 dot-grid" />
                     <div className="p-3 bg-primary/20 rounded-2xl relative z-10">
                         <BadgeDollarSign className="h-6 w-6 text-primary" />
                     </div>
                     <div className="relative z-10">
-                        <p className="text-[10px] font-bold text-primary/60 uppercase tracking-widest">Active Points</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active Points</p>
                         <h3 className="text-2xl font-black">{pricing.length}</h3>
                     </div>
                 </Card>
 
-                <Card className="col-span-1 geo-sharp glass-card-premium p-6 flex flex-col gap-3 group hover-lift transition-all">
+                <Card className="col-span-1 geo-shard glass-card-premium p-6 flex flex-col gap-3 group hover-lift transition-all border-0">
                     <div className="flex items-center justify-between">
                         <div className="p-2 bg-success/20 rounded-xl">
                             <TrendingUp className="h-5 w-5 text-success" />
                         </div>
-                        <Badge className="bg-success text-white border-0 text-[8px] font-black tracking-tighter uppercase px-2 py-0.5">Healthy</Badge>
+                        <Badge className="bg-success text-white border-0 text-[8px] font-black tracking-tighter uppercase px-2 py-0.5 shadow-glow-success">Healthy</Badge>
                     </div>
                     <div>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Avg Base Cost</p>
@@ -285,28 +285,31 @@ export const PricingManagementPage = () => {
                     </div>
                 </Card>
 
-                <Card className="col-span-1 geo-round glass-card p-6 flex items-center gap-4 bg-gradient-to-br from-info/5 to-transparent border-info/20 overflow-hidden hover-lift transition-all shadow-premium">
-                    <div className="p-3 bg-info/20 rounded-full border border-info/30">
+                <Card className="col-span-1 geo-round glass-card p-6 flex items-center gap-4 relative overflow-hidden hover-lift transition-all border-0 shadow-premium">
+                    <div className="absolute inset-0 dot-grid" />
+                    <div className="p-3 bg-info/20 rounded-full border border-info/30 relative z-10">
                         <Globe className="h-6 w-6 text-info" />
                     </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-info/60 uppercase tracking-widest">Global coverage</p>
+                    <div className="relative z-10">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Global coverage</p>
                         <h3 className="text-2xl font-black">
                             {pricing.filter(p => !p.organization_id).length} <span className="text-[10px] text-muted-foreground font-medium uppercase font-sans">Rules</span>
                         </h3>
                     </div>
                 </Card>
-                <Card className="col-span-1 geo-block glass-card p-6 flex items-center gap-4 bg-white/5 border-dashed hover-lift transition-all">
-                    <div className="p-3 bg-white/10 rounded-2xl">
+
+                <Card className="col-span-1 geo-block glass-card p-6 flex items-center gap-4 relative overflow-hidden group hover-lift transition-all border-0 shadow-premium">
+                    <div className="absolute inset-0 dot-grid opacity-5" />
+                    <div className="p-3 bg-white/10 rounded-2xl relative z-10">
                         <DollarSign className="h-6 w-6 text-white/50" />
                     </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Revenue</p>
+                    <div className="relative z-10">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Revenue Unit</p>
                         <h3 className="text-2xl font-black">Admin</h3>
                     </div>
                 </Card>
 
-                <Card className="col-span-1 geo-sharp glass-card-premium p-6 flex flex-col justify-center items-center gap-1 border-t-2 border-t-primary/50 group hover-lift transition-all">
+                <Card className="col-span-1 geo-sharp glass-card-premium p-6 flex flex-col justify-center items-center gap-1 group hover-lift transition-all border-0">
                     <div className="p-2 bg-primary/10 rounded-full mb-1">
                         <Activity className="h-4 w-4 text-primary" />
                     </div>
@@ -317,28 +320,32 @@ export const PricingManagementPage = () => {
 
             {/* Controls */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div className="flex bg-muted/20 p-1 rounded-2xl w-full md:w-fit gap-1">
+                <div className="flex bg-muted/10 backdrop-blur-md p-1 rounded-2xl w-full md:w-fit gap-1 border border-white/5">
                     <button
                         onClick={() => setActiveTab('services')}
-                        className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-xs font-bold tracking-wider uppercase transition-all ${activeTab === 'services' ? 'bg-background shadow-lg text-primary scale-105' : 'text-muted-foreground hover:text-foreground'
+                        className={`flex-1 md:flex-none px-8 py-2.5 rounded-xl text-[10px] font-black tracking-[0.2em] uppercase transition-all duration-300 ${activeTab === 'services'
+                            ? 'bg-primary text-white shadow-glow-primary scale-[1.02]'
+                            : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
                         Services
                     </button>
                     <button
                         onClick={() => setActiveTab('rooms')}
-                        className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-xs font-bold tracking-wider uppercase transition-all ${activeTab === 'rooms' ? 'bg-background shadow-lg text-primary scale-105' : 'text-muted-foreground hover:text-foreground'
+                        className={`flex-1 md:flex-none px-8 py-2.5 rounded-xl text-[10px] font-black tracking-[0.2em] uppercase transition-all duration-300 ${activeTab === 'rooms'
+                            ? 'bg-primary text-white shadow-glow-primary scale-[1.02]'
+                            : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
                         Rooms
                     </button>
                 </div>
 
-                <div className="relative w-full md:w-72">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="relative w-full md:w-80 group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <input
-                        placeholder="Filter price points..."
-                        className="w-full h-11 bg-muted/20 border-0 rounded-2xl pl-12 pr-6 text-xs font-medium focus:ring-2 ring-primary/20 transition-all outline-none"
+                        placeholder="Filter configuration registry..."
+                        className="w-full h-12 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 text-[10px] font-bold uppercase tracking-widest focus:ring-2 ring-primary/20 transition-all outline-none placeholder:text-muted-foreground/40"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -393,85 +400,88 @@ export const PricingManagementPage = () => {
 
             {/* Pricing Modal */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="sm:max-w-[425px] rounded-[32px] glass-card shadow-2xl border border-white/10 dark:ios-material overflow-hidden">
+                <DialogContent className="sm:max-w-[425px] rounded-[32px] glass-card shadow-2xl border border-white/5 overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1.5 bg-primary/20">
-                        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} className="h-full bg-primary origin-left" />
+                        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} className="h-full bg-primary origin-left shadow-glow-primary" />
                     </div>
 
-                    <DialogHeader className="pt-4">
+                    <DialogHeader className="pt-6">
                         <DialogTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
-                            <div className="p-2 bg-primary/10 rounded-xl">
+                            <div className="p-2.5 bg-primary/20 rounded-2xl shadow-glow-primary/20">
                                 <Plus className="h-5 w-5 text-primary" />
                             </div>
-                            {editingItem ? 'Edit Configuration' : 'System Provisioning'}
+                            <div className="flex flex-col">
+                                <span className="leading-tight">{editingItem ? 'Entity Config' : 'Item Provisioning'}</span>
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-0.5">Economic_Module</span>
+                            </div>
                         </DialogTitle>
                     </DialogHeader>
 
-                    <div className="space-y-5 py-6">
-                        <div className="space-y-1.5">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Identity_Core</Label>
+                    <div className="space-y-6 py-8">
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-4 opacity-70">Identity_Core</Label>
                             <Input
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 placeholder={activeTab === 'services' ? "e.g. Advanced Life Support" : "e.g. ICU Suite"}
-                                className="rounded-2xl bg-muted/20 border-0 h-12 focus:ring-2 ring-primary/20 font-bold px-5"
+                                className="ios-input-well rounded-2xl h-12 focus:ring-2 ring-primary/20 font-bold px-6 border-0"
                             />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
+                            <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Reference_Type</Label>
                                 <Input
                                     value={formData.type}
                                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                                     placeholder={activeTab === 'services' ? "ambulance" : "ward"}
-                                    className="rounded-2xl bg-muted/20 border-0 h-12 px-5 text-xs font-mono"
+                                    className="ios-input-well rounded-2xl h-12 px-6 text-xs font-mono border-0"
                                 />
                             </div>
-                            <div className="space-y-1.5">
+                            <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Unit_Base</Label>
                                 <Input
                                     value={formData.unit}
                                     onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                                     placeholder="Unit"
-                                    className="rounded-2xl bg-muted/20 border-0 h-12 px-5 text-xs"
+                                    className="ios-input-well rounded-2xl h-12 px-6 text-[10px] font-bold uppercase tracking-widest border-0"
                                 />
                             </div>
                         </div>
 
-                        <div className="space-y-1.5">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Economic_Value (USD)</Label>
-                            <div className="relative">
-                                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground font-black">$</span>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-4 opacity-70">Economic_Value (USD)</Label>
+                            <div className="relative group">
+                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-primary font-black group-focus-within:scale-125 transition-transform text-lg">$</span>
                                 <Input
                                     type="number"
                                     value={formData.price}
                                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                                     placeholder="0.00"
-                                    className="rounded-2xl bg-muted/20 border-0 h-12 pl-10 pr-5 font-black text-xl tracking-tighter"
+                                    className="ios-input-well rounded-2xl h-14 pl-12 pr-6 font-black text-2xl tracking-tighter border-0"
                                 />
                             </div>
                         </div>
 
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Technical_Documentation</Label>
                             <textarea
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 placeholder="Describe the service capabilities or room features..."
-                                className="w-full rounded-2xl bg-muted/20 border-0 p-5 min-h-[100px] text-sm focus:ring-2 ring-primary/20 outline-none transition-all"
+                                className="ios-input-well w-full rounded-2xl p-6 min-h-[120px] text-sm focus:ring-2 ring-primary/20 outline-none transition-all border-0 resize-none"
                             />
                         </div>
-
-                        {!isAdmin() && isOrgAdmin() && !editingItem && (
-                            <div className="p-4 bg-success/10 rounded-2xl border border-success/20">
-                                <p className="text-[10px] font-bold text-success uppercase tracking-widest leading-relaxed">
-                                    <Building2 className="w-3 h-3 inline mr-1 mb-0.5" />
-                                    This will create a local override for your organization.
-                                </p>
-                            </div>
-                        )}
                     </div>
+
+                    {!isAdmin() && isOrgAdmin() && !editingItem && (
+                        <div className="p-4 bg-success/10 rounded-2xl border border-success/20">
+                            <p className="text-[10px] font-bold text-success uppercase tracking-widest leading-relaxed">
+                                <Building2 className="w-3 h-3 inline mr-1 mb-0.5" />
+                                This will create a local override for your organization.
+                            </p>
+                        </div>
+                    )}
 
                     <DialogFooter className="gap-3 pt-2">
                         <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="rounded-2xl font-bold uppercase tracking-widest text-[10px] h-12 px-8">Return</Button>
@@ -490,6 +500,6 @@ export const PricingManagementPage = () => {
                 onConfirm={confirmationModal.onConfirm}
                 variant="destructive"
             />
-        </div>
+        </div >
     );
 };

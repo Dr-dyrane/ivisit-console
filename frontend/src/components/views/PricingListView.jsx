@@ -43,17 +43,18 @@ export const PricingListView = ({ pricing, onView, onEdit, onDelete, canEdit }) 
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
                     >
-                        <Card className="h-full squircle-xl glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col">
+                        <Card className="h-full squircle-xl glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col border-0">
+                            <div className="absolute inset-0 dot-grid opacity-10" />
                             <div className={`hover-glow ${isGlobal ? 'hover-glow-primary' : 'hover-glow-success'}`} />
 
                             <div className="flex justify-between items-start mb-6 relative z-10 transition-colors duration-300">
-                                <Badge className={`geo-sharp border-0 px-2.5 py-1 ${isGlobal ? 'bg-primary/20 text-primary' : 'bg-success/20 text-success'}`}>
+                                <Badge className={`geo-sharp border-0 px-2.5 py-1 shadow-sm ${isGlobal ? 'bg-primary/20 text-primary shadow-glow-primary/10' : 'bg-success/20 text-success shadow-glow-success/10'}`}>
                                     <div className="flex items-center gap-1.5 uppercase tracking-tighter font-black text-[9px]">
                                         {isGlobal ? <Globe className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
                                         {isGlobal ? 'GLOBAL' : 'OVERRIDE'}
                                     </div>
                                 </Badge>
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 shadow-inner shadow-primary/5 transition-transform duration-300">
                                     {getTypeIcon(item.service_type || item.room_type)}
                                 </div>
                             </div>
