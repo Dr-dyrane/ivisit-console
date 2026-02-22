@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
@@ -12,10 +12,29 @@ import { mobileMotion } from './mobileMotion';
  * Canon #29: Ruthless Hierarchy
  */
 export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi }) => {
-    const compactKpis = (kpis || []).slice(0, 4);
-    const cols = Math.min(Math.max(compactKpis.length, 1), 4);
+    const reduceMotion = useReducedMotion();
+    const [isScrolling, setIsScrolling] = useState(false);
+    const scrollTimerRef = useRef(null);
+    const scrollCooldownMs = 180;
+
+    useEffect(() => () => {
+        if (scrollTimerRef.current) {
+            clearTimeout(scrollTimerRef.current);
+        }
+    }, []);
+
+    const handleScrollActivity = () => {
+        setIsScrolling(true);
+        if (scrollTimerRef.current) {
+            clearTimeout(scrollTimerRef.current);
+        }
+        scrollTimerRef.current = setTimeout(() => {
+            setIsScrolling(false);
+        }, scrollCooldownMs);
+    };
+    const allKpis = kpis || [];
     const { triggerFromEvent } = useFeedback();
-    const hasAllOption = compactKpis.some((kpi) => kpi.id === 'all');
+    const hasAllOption = allKpis.some((kpi) => kpi.id === 'all');
 
     const handleKpiClick = (event, kpi) => {
         const isReapply = activeKpi === kpi.id;
@@ -38,77 +57,84 @@ export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi }) => {
             initial={{ y: -6, opacity: 0.98 }}
             animate={{ y: 0, opacity: 1 }}
             transition={mobileMotion.reveal}
-            className="sticky top-0 z-40 w-full px-2 py-3 border-0 shadow-none grid gap-2 relative"
-            style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+            className="sticky top-0 z-40 w-full px-2 py-3 border-0 shadow-none relative overflow-hidden"
         >
-            {compactKpis.map((kpi, idx) => {
-                const isActive = activeKpi === kpi.id;
-                return (
-                    <React.Fragment key={kpi.id || idx}>
-                        <motion.button
-                            whileTap={{ scale: 0.985 }}
-                            transition={mobileMotion.quick}
-                            onClick={(event) => handleKpiClick(event, kpi)}
-                            aria-pressed={isActive}
-                            className={`relative flex-1 flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-[14px] border-0 transition-[background,transform,box-shadow,outline] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden ${isActive
-                                ? 'bg-background/80 dark:bg-muted/40'
-                                : 'bg-muted/20'
-                                }`}
-                            style={{
-                                WebkitTapHighlightColor: 'transparent',
-                                ...(isActive ? {
-                                    boxShadow: `0 0 0 0.5px ${(kpi.color || 'hsl(var(--primary))').replace(')', ' / 0.25)')}, 0 2px 12px -4px ${(kpi.color || 'hsl(var(--primary))').replace(')', ' / 0.15)')}`
-                                } : null)
-                            }}
-                        >
-                            {/* 1. Spotlight Effect (Canon #20) */}
-                            {isActive && (
-                                <motion.div
-                                    layoutId="kpi-spotlight"
-                                    className="absolute inset-0"
-                                    style={{ background: 'linear-gradient(180deg, hsl(var(--spark) / 0.08) 0%, transparent 60%)' }}
-                                />
-                            )}
-
-                            {/* 2. Breathing Lens (Status Dot) */}
-                            <div className="relative flex items-center justify-center">
-                                <div
-                                    className="w-1.5 h-1.5 rounded-full relative z-10 transition-transform duration-500"
-                                    style={{
-                                        backgroundColor: kpi.color || 'hsl(var(--primary))',
-                                        boxShadow: isActive ? `0 0 10px ${kpi.color}` : `0 0 4px ${kpi.color}33`
-                                    }}
-                                />
+            {/* Rail: overflow-x, hidden scrollbars, same height */}
+            <div
+                className="flex gap-2 overflow-x-auto no-scrollbar"
+                onScroll={handleScrollActivity}
+                onTouchMove={handleScrollActivity}
+            >
+                {allKpis.map((kpi, idx) => {
+                    const isActive = activeKpi === kpi.id;
+                    return (
+                        <React.Fragment key={kpi.id || idx}>
+                            <motion.button
+                                whileTap={{ scale: 0.985 }}
+                                transition={mobileMotion.quick}
+                                onClick={isScrolling ? undefined : (event) => handleKpiClick(event, kpi)}
+                                aria-pressed={isActive}
+                                className={`relative shrink-0 flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-[14px] border-0 transition-[background,transform,box-shadow,outline] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden kpi-rail ${isActive
+                                    ? 'bg-background/80 dark:bg-muted/40'
+                                    : 'bg-muted/20'
+                                    }`}
+                                style={{
+                                    minWidth: allKpis.length <= 4 ? `calc((100% - ${(allKpis.length - 1) * 8}px) / ${allKpis.length})` : 'auto',
+                                    WebkitTapHighlightColor: 'transparent',
+                                    ...(isActive ? {
+                                        boxShadow: `0 0 0 0.5px ${(kpi.color || 'hsl(var(--primary))').replace(')', ' / 0.25)')}, 0 2px 12px -4px ${(kpi.color || 'hsl(var(--primary))').replace(')', ' / 0.15)')}`
+                                    } : null)
+                                }}
+                            >
+                                {/* 1. Spotlight Effect (Canon #20) */}
                                 {isActive && (
                                     <motion.div
-                                        animate={{ scale: [1, 2.5], opacity: [0.3, 0] }}
-                                        transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-                                        className="absolute w-1.5 h-1.5 rounded-full"
-                                        style={{ backgroundColor: kpi.color }}
+                                        layoutId="kpi-spotlight"
+                                        className="absolute inset-0"
+                                        style={{ background: 'linear-gradient(180deg, hsl(var(--spark) / 0.08) 0%, transparent 60%)' }}
                                     />
                                 )}
-                            </div>
 
-                            {/* 3. Micro-Typography (Canon #30) */}
-                            <div className="flex flex-col min-w-0 text-left relative z-10">
-                                <span className={`text-[12px] tracking-tight leading-none truncate transition-colors duration-300 font-dashboard-numbers ${isActive ? 'text-foreground font-semibold neon-accent-text' : 'text-foreground/75 font-medium'}`}>
-                                    {kpi.value}
-                                </span>
-                                <span className={`text-[7px] uppercase tracking-[0.2em] leading-none truncate mt-1 transition-colors duration-300 ${isActive ? 'text-foreground/55 font-semibold' : 'text-muted-foreground/35 font-normal'}`}>
-                                    {kpi.label}
-                                </span>
-                                {Boolean(kpi.delta) && (
-                                    <span className={`mt-1 inline-flex items-center gap-1 w-fit text-[7px] leading-none px-1.5 py-0.5 rounded-full font-semibold tracking-[0.12em] ${kpi.direction === 'up' ? 'text-success bg-success/10' : kpi.direction === 'down' ? 'text-destructive bg-destructive/10' : 'text-[hsl(var(--spark)/0.92)] bg-[hsl(var(--spark)/0.08)]'}`}>
-                                        {kpi.direction === 'up' && <TrendingUp size={8} />}
-                                        {kpi.direction === 'down' && <TrendingDown size={8} />}
-                                        {kpi.delta}
+                                {/* 2. Breathing Lens (Status Dot) */}
+                                <div className="relative flex items-center justify-center">
+                                    <div
+                                        className="w-1.5 h-1.5 rounded-full relative z-10 transition-transform duration-500"
+                                        style={{
+                                            backgroundColor: kpi.color || 'hsl(var(--primary))',
+                                            boxShadow: isActive ? `0 0 10px ${kpi.color}` : `0 0 4px ${kpi.color}33`
+                                        }}
+                                    />
+                                    {isActive && !reduceMotion && (
+                                        <motion.div
+                                            animate={{ scale: [1, 2.5], opacity: [0.3, 0] }}
+                                            transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+                                            className="absolute w-1.5 h-1.5 rounded-full"
+                                            style={{ backgroundColor: kpi.color }}
+                                        />
+                                    )}
+                                </div>
+
+                                {/* 3. Micro-Typography (Canon #30) */}
+                                <div className="flex flex-col min-w-0 text-left relative z-10">
+                                    <span className={`text-[12px] tracking-tight leading-none truncate transition-colors duration-300 font-dashboard-numbers ${isActive ? 'text-foreground font-semibold neon-accent-text' : 'text-foreground/75 font-medium'}`}>
+                                        {kpi.value}
                                     </span>
-                                )}
-                            </div>
-                        </motion.button>
-                    </React.Fragment>
-                );
-            })}
-        </motion.div >
+                                    <span className={`text-[7px] uppercase tracking-[0.2em] leading-none truncate mt-1 transition-colors duration-300 ${isActive ? 'text-foreground/55 font-semibold' : 'text-muted-foreground/35 font-normal'}`}>
+                                        {kpi.label}
+                                    </span>
+                                    {Boolean(kpi.delta) && (
+                                        <span className={`mt-1 inline-flex items-center gap-1 w-fit text-[7px] leading-none px-1.5 py-0.5 rounded-full font-semibold tracking-[0.12em] ${kpi.direction === 'up' ? 'text-success bg-success/10' : kpi.direction === 'down' ? 'text-destructive bg-destructive/10' : 'text-[hsl(var(--spark)/0.92)] bg-[hsl(var(--spark)/0.08)]'}`}>
+                                            {kpi.direction === 'up' && <TrendingUp size={8} />}
+                                            {kpi.direction === 'down' && <TrendingDown size={8} />}
+                                            {kpi.delta}
+                                        </span>
+                                    )}
+                                </div>
+                            </motion.button>
+                        </React.Fragment>
+                    );
+                })}
+            </div>
+        </motion.div>
     );
 };

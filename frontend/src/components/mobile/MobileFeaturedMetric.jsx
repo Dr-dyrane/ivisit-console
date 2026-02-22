@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { ChevronRight } from 'lucide-react';
 
@@ -8,6 +8,8 @@ import { ChevronRight } from 'lucide-react';
  * High-impact hero metric for mobile dashboards (Success Rate, Active Requests)
  */
 export const MobileFeaturedMetric = ({
+    items,
+    // Legacy single-item props (preserved for backward compatibility)
     label,
     value,
     trend,
@@ -16,65 +18,145 @@ export const MobileFeaturedMetric = ({
     color = 'hsl(var(--primary))',
     onClick
 }) => {
-    return (
-        <motion.div
-            whileTap={{ scale: 0.98 }}
-            onClick={onClick}
-            className="w-full p-6 apple-glass-heavy border-0 flex flex-col justify-between relative overflow-hidden group min-h-[160px] rounded-3xl mb-4 shadow-xl"
-        >
-            {/* Enhanced Neon primary glow background - Slightly more presence */}
-            <div
-                className="absolute -inset-10 opacity-[0.12]"
-                style={{ background: `radial-gradient(circle at 50% 50%, ${color.replace(/\)$/, ' / 0.6)')}, transparent 70%)` }}
-            />
+    const reduceMotion = useReducedMotion();
+    const [isScrolling, setIsScrolling] = useState(false);
+    const scrollTimerRef = useRef(null);
+    const scrollCooldownMs = 180;
 
-            <div className="flex justify-between items-start relative z-10">
-                <div className="space-y-1">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/70">
-                        {label}
-                    </p>
-                    <div className="flex items-baseline gap-2">
-                        <h2 className="text-4xl font-semibold tracking-tighter text-foreground/95 font-dashboard-numbers">
-                            {value}
-                        </h2>
-                        {trend && (
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${trend.includes('+') ? 'text-success bg-success/10' : 'text-destructive bg-destructive/10'
-                                }`}>
-                                {trend}
-                            </span>
-                        )}
+    useEffect(() => () => {
+        if (scrollTimerRef.current) {
+            clearTimeout(scrollTimerRef.current);
+        }
+    }, []);
+
+    const handleScrollActivity = () => {
+        setIsScrolling(true);
+        if (scrollTimerRef.current) {
+            clearTimeout(scrollTimerRef.current);
+        }
+        scrollTimerRef.current = setTimeout(() => {
+            setIsScrolling(false);
+        }, scrollCooldownMs);
+    };
+    // Adapter: if items array provided, use it. Otherwise wrap legacy props into array.
+    const data = items && items.length > 0
+        ? items
+        : (label ? [{ label, value, trend, chartData, icon: Icon, color, onClick }] : []);
+
+    if (data.length === 0) return null;
+
+    // Render a single billboard card (identical to original)
+    const renderCard = (item, idx) => {
+        const ItemIcon = item.icon;
+        const c = item.color || 'hsl(var(--primary))';
+        const series = Array.isArray(item.chartData) ? item.chartData : [];
+        const shouldAnimate = !reduceMotion && data.length <= 1;
+        return (
+            <motion.div
+                key={idx}
+                whileTap={{ scale: 0.98 }}
+                onClick={isScrolling ? undefined : item.onClick}
+                className="p-6 apple-glass-heavy border-0 flex flex-col justify-between relative overflow-hidden group min-h-[160px] shadow-md rounded-3xl"
+                style={data.length > 1 ? { minWidth: '92%', flexShrink: 0 } : undefined}
+            >
+                {/* Enhanced Neon primary glow background - Slightly more presence */}
+                <div
+                    className="absolute -inset-10 opacity-[0.12]"
+                    style={{ background: `radial-gradient(circle at 50% 50%, ${c.replace(/\)$/, ' / 0.6)')}, transparent 70%)` }}
+                />
+
+                {/* Optional background image layer */}
+                {item.image && (
+                    <div className="absolute inset-0 z-0">
+                        <img
+                            src={item.image}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            fetchpriority="low"
+                            className="w-full h-full object-cover opacity-20 grayscale-[0.6]"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/30" />
+                    </div>
+                )}
+
+                <div className="flex justify-between items-start relative z-10">
+                    <div className="space-y-1">
+                        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/70">
+                            {item.label}
+                        </p>
+                        <div className="flex items-baseline gap-2">
+                            <h2 className="text-4xl font-semibold tracking-tighter text-foreground/95 font-dashboard-numbers">
+                                {item.value}
+                            </h2>
+                            {item.trend && (
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${String(item.trend).includes('+') ? 'text-success bg-success/10' : String(item.trend).includes('-') ? 'text-destructive bg-destructive/10' : 'text-[hsl(var(--spark)/0.92)] bg-[hsl(var(--spark)/0.08)]'
+                                    }`}>
+                                    {item.trend}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    <div
+                        className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-md relative z-10"
+                        style={{ background: `radial-gradient(circle at 30% 30%, ${c.replace(/\)$/, ' / 0.2)')}, ${c.replace(/\)$/, ' / 0.1)')})` }}
+                    >
+                        {ItemIcon && <ItemIcon size={20} className="opacity-70" style={{ color: c }} />}
                     </div>
                 </div>
 
-                <div
-                    className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-md relative z-10"
-                    style={{ background: `radial-gradient(circle at 30% 30%, ${color.replace(/\)$/, ' / 0.2)')}, ${color.replace(/\)$/, ' / 0.1)')})` }}
-                >
-                    {Icon && <Icon size={20} className="opacity-70" style={{ color }} />}
+                {/* Sparkline */}
+                <div className="h-14 w-full -mx-4 mt-4 relative z-10 opacity-30">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={series}>
+                            <Area
+                                type="monotone"
+                                dataKey="value"
+                                stroke={c}
+                                strokeWidth={2}
+                                fill="transparent"
+                                isAnimationActive={shouldAnimate}
+                                animationDuration={shouldAnimate ? 1200 : 0}
+                                animationEasing="ease-out"
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
                 </div>
-            </div>
 
-            {/* Sparkline */}
-            <div className="h-14 w-full -mx-4 mt-4 relative z-10 opacity-30">
-                <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
-                        <Area
-                            type="monotone"
-                            dataKey="value"
-                            stroke={color}
-                            strokeWidth={2}
-                            fill="transparent"
-                            isAnimationActive={true}
-                        />
-                    </AreaChart>
-                </ResponsiveContainer>
-            </div>
+                {item.onClick && (
+                    <div className="absolute bottom-6 right-6 w-8 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-10 transition-all duration-300">
+                        <ChevronRight size={16} className="text-foreground" />
+                    </div>
+                )}
+            </motion.div>
+        );
+    };
 
-            {onClick && (
-                <div className="absolute bottom-6 right-6 w-8 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-10 transition-all duration-300">
-                    <ChevronRight size={16} className="text-foreground" />
-                </div>
-            )}
-        </motion.div>
+    // Single item: render exactly as before, no rail wrapper
+    if (data.length === 1) {
+        return <div className="mb-4">{renderCard(data[0], 0)}</div>;
+    }
+
+    // Multiple items: one card per screen, scroll naturally to next
+    // -m-2 p-2: shadow breathing room so overflow-x doesn't clip shadow-xl
+    return (
+        <div
+            className="relative mb-4 -m-2 p-2 overflow-x-auto overflow-y-visible no-scrollbar"
+            onScroll={handleScrollActivity}
+            onTouchMove={handleScrollActivity}
+        >
+            <div className="flex gap-3">
+                {data.map((item, idx) => renderCard(item, idx))}
+                <div className="shrink-0 w-3" />
+            </div>
+            {/* Subtle premium framing: soft top/bottom fade + inner shadow */}
+            <div className="pointer-events-none absolute left-2 right-2 top-1 h-4 bg-gradient-to-b from-background/50 to-transparent" />
+            <div className="pointer-events-none absolute left-2 right-2 bottom-1 h-4 bg-gradient-to-t from-background/50 to-transparent" />
+            <div className="pointer-events-none absolute inset-2 rounded-3xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),inset_0_-1px_0_0_rgba(0,0,0,0.25)]" />
+            {/* Edge masks to hint overflow */}
+            <div className="pointer-events-none absolute left-2 top-2 bottom-2 w-6 bg-gradient-to-r from-background/70 to-transparent" />
+            <div className="pointer-events-none absolute right-2 top-2 bottom-2 w-6 bg-gradient-to-l from-background/70 to-transparent" />
+        </div>
     );
 };

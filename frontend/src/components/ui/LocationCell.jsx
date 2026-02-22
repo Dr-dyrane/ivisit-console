@@ -12,7 +12,7 @@ export const LocationCell = ({ location, pickupLocation, responderLocation }) =>
     const formatLocation = () => {
       // Check patient_location first, then responder_location, then pickup_location
       const locationToUse = location || responderLocation || pickupLocation;
-      
+
       if (!locationToUse) {
         setAddress('Location shared');
         return;
@@ -21,7 +21,7 @@ export const LocationCell = ({ location, pickupLocation, responderLocation }) =>
       // If location is already a string (address)
       if (typeof locationToUse === 'string') {
         // Check if it's PostGIS geometry
-        if (locationToUse.startsWith('0101')) {
+        if (typeof locationToUse === 'string' && locationToUse.startsWith('0101')) {
           const coords = decodePostGISGeometry(locationToUse);
           if (coords) {
             // Try to get address from Google API
@@ -77,25 +77,25 @@ export const LocationCell = ({ location, pickupLocation, responderLocation }) =>
 const fetchGoogleAddress = async (lat, lng) => {
   try {
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
-    
+
     if (!apiKey || apiKey === 'YOUR_GOOGLE_API_KEY') {
       throw new Error('No API key');
     }
-    
+
     const response = await fetch(
       `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`
     );
-    
+
     if (!response.ok) {
       throw new Error('Geocoding request failed');
     }
 
     const data = await response.json();
-    
+
     if (data.status === 'OK' && data.results?.length > 0) {
       return data.results[0].formatted_address;
     }
-    
+
     throw new Error('No results found');
   } catch (error) {
     console.error('Error reverse geocoding:', error);

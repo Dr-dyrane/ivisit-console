@@ -4,28 +4,33 @@ import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 
 export const MobileListLoadingMore = ({ label = 'Loading more' }) => (
-    <div className="flex flex-col items-center gap-2">
-        <div className="flex gap-1">
+    <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className="flex flex-col items-center gap-2"
+    >
+        <div className="flex gap-1.5">
             {[0, 1, 2].map((i) => (
                 <motion.div
                     key={i}
                     animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.3, 1, 0.3],
+                        opacity: [0.2, 0.6, 0.2],
                     }}
                     transition={{
-                        duration: 1,
+                        duration: 1.4,
                         repeat: Infinity,
-                        delay: i * 0.2,
+                        delay: i * 0.15,
+                        ease: 'easeInOut',
                     }}
-                    className="w-1.5 h-1.5 rounded-full bg-primary/40"
+                    className="w-1 h-1 rounded-full bg-primary/30"
                 />
             ))}
         </div>
         <span className="text-[8px] font-medium uppercase tracking-[0.2em] text-muted-foreground/40">
             {label}
         </span>
-    </div>
+    </motion.div>
 );
 
 export const MobileListEnd = ({ label = 'End of list' }) => (

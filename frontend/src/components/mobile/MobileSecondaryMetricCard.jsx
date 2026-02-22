@@ -106,3 +106,55 @@ export const MobileSecondaryMetricCard = ({
 };
 
 export default MobileSecondaryMetricCard;
+
+/**
+ * MobileSecondaryMetricRail
+ * Horizontal snap-scroll rail for secondary metric cards.
+ * ≤2 items: standard 2-col grid (backward compatible).
+ * >2 items: horizontal rail with hidden scrollbars + edge masks.
+ *
+ * Canon #3  – Reveal Gradually (swipe for more)
+ * Canon #24 – White Space Is Luxury (horizontal depth, not vertical noise)
+ */
+export const MobileSecondaryMetricRail = ({
+    items = [],
+    variant = 'compact',
+    className = ''
+}) => {
+    if (items.length === 0) return null;
+
+    // Standard 2-col grid for ≤2 items (existing behavior)
+    if (items.length <= 2) {
+        return (
+            <div className={`grid grid-cols-2 gap-3 ${className}`}>
+                {items.map((item, idx) => (
+                    <MobileSecondaryMetricCard key={idx} variant={variant} {...item} />
+                ))}
+            </div>
+        );
+    }
+
+    // Horizontal snap-scroll rail for >2 items
+    return (
+        <div className={`relative ${className}`}>
+            <div
+                className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1 no-scrollbar"
+            >
+                {items.map((item, idx) => (
+                    <div
+                        key={idx}
+                        className="snap-start shrink-0"
+                        style={{ width: 'calc(50% - 6px)' }}
+                    >
+                        <MobileSecondaryMetricCard variant={variant} {...item} />
+                    </div>
+                ))}
+                {/* End spacer */}
+                <div className="shrink-0 w-3" />
+            </div>
+            {/* Edge masks */}
+            <div className="absolute left-0 top-0 bottom-1 w-4 pointer-events-none bg-gradient-to-r from-background to-transparent z-10" />
+            <div className="absolute right-0 top-0 bottom-1 w-4 pointer-events-none bg-gradient-to-l from-background to-transparent z-10" />
+        </div>
+    );
+};
