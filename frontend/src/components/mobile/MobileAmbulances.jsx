@@ -296,8 +296,10 @@ export const MobileAmbulances = ({
                                     rightBlade={{
                                         badge: getAvailabilityLabel(status),
                                         direction: status === 'available' ? 'up' : status === 'busy' ? 'down' : 'flat',
-                                        label: 'ETA',
-                                        value: String(ambulance.eta || 'N/A'),
+                                        label: status === 'on_route' || status === 'en_route' ? 'ETA' : 'Vehicle',
+                                        value: status === 'on_route' || status === 'en_route'
+                                            ? String(ambulance.eta || 'N/A')
+                                            : (ambulance.vehicle_number || 'N/A'),
                                         color
                                     }}
                                     statusIndicators={[

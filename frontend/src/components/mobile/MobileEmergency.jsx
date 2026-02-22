@@ -276,8 +276,8 @@ export const MobileEmergency = ({
                                     rightBlade={{
                                         badge: emergency.status === 'active' ? 'LIVE' : emergency.status === 'responding' ? 'ENROUTE' : 'RESOLVED',
                                         direction: emergency.status === 'resolved' ? 'up' : emergency.status === 'active' ? 'down' : 'flat',
-                                        label: 'Status',
-                                        value: emergency.status?.replace('_', ' ').toUpperCase() || 'PENDING',
+                                        label: 'Priority',
+                                        value: String(emergency.priority || 'normal').toUpperCase(),
                                         color: getStatusColor(emergency.status)
                                     }}
                                     isExpanded={expandedEmergencyId === emergency.id}

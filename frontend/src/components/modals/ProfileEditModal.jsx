@@ -73,7 +73,7 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[120] flex items-end md:items-center justify-center p-2 md:p-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -87,9 +87,9 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="relative z-10 w-full max-w-xl bg-background/95 backdrop-blur-xl rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+                        className="relative z-10 w-full max-w-xl bg-background/95 backdrop-blur-xl rounded-[24px] md:rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-5rem)] md:max-h-[85vh]"
                     >
-                        <div className="p-6 border-b border-border/10 flex justify-between items-center shrink-0">
+                        <div className="p-3 md:p-6 border-b border-border/10 flex justify-between items-center shrink-0">
                             <h2 className="text-xl font-bold tracking-tight">Edit Profile</h2>
                             <Button
                                 variant="ghost"
@@ -101,7 +101,7 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                         </div>
 
                         <div className="flex-1 overflow-y-auto">
-                            <form id="profile-edit-form" onSubmit={handleSubmit} className="p-6 space-y-6">
+                            <form id="profile-edit-form" onSubmit={handleSubmit} className="p-3 md:p-6 space-y-4 md:space-y-6">
                                 {/* Avatar Section */}
                                 <div className="flex flex-col items-center gap-4">
                                     <div className="relative group cursor-pointer">

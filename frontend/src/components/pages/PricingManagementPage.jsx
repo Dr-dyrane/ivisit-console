@@ -1,22 +1,20 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { usePageHeader, usePageFooter, useLayout } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { getPricing, saveServicePricing, saveRoomPricing, deleteServicePricing, deleteRoomPricing } from '../../services/pricingService';
 import { PaginationControls } from '../ui/PaginationControls';
 import {
     DollarSign,
     Search,
     Plus,
-    Filter,
+    Trash2,
     LayoutGrid,
     List as ListIcon,
     Table as TableIcon,
-    ArrowUpDown,
-    Download,
     TrendingUp,
     Globe,
     Building2,
-    Calendar,
     BadgeDollarSign,
     Activity
 } from 'lucide-react';
@@ -24,21 +22,23 @@ import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { motion, LayoutGroup } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { PricingTableView } from '../views/PricingTableView';
 import { PricingListView } from '../views/PricingListView';
-import { PricingContextPanel } from '../context/PricingContextPanel';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { Skeleton } from '../ui/skeleton';
+import { MobilePricing } from '../mobile/MobilePricing';
 
 export const PricingManagementPage = () => {
     const { profile, isAdmin, isOrgAdmin } = useAuth();
-    const { openContextPanel, closeContextPanel } = useLayout();
+    const { isMobile } = useNavigation();
     const [loading, setLoading] = useState(true);
     const [pricing, setPricing] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -64,6 +64,8 @@ export const PricingManagementPage = () => {
         description: '',
         onConfirm: null
     });
+    const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+    const [selectedIds, setSelectedIds] = useState([]);
 
     const fetchPricing = useCallback(async () => {
         setLoading(true);
@@ -199,6 +201,22 @@ export const PricingManagementPage = () => {
         return result;
     }, [pricing, searchTerm, kpiFilter]);
 
+    const handleSelect = useCallback((id, checked) => {
+        if (checked) {
+            setSelectedIds(prev => [...prev, id]);
+        } else {
+            setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
+        }
+    }, []);
+
+    const handleSelectAll = useCallback((checked, sourceItems = filteredPricing) => {
+        if (checked) {
+            setSelectedIds(sourceItems.map(item => item.id));
+        } else {
+            setSelectedIds([]);
+        }
+    }, [filteredPricing]);
+
     const paginatedPricing = useMemo(() => {
         pagination.setTotalCount(filteredPricing.length);
         const start = (pagination.currentPage - 1) * pagination.itemsPerPage;
@@ -242,7 +260,7 @@ export const PricingManagementPage = () => {
         </div>
     ), [viewMode, setViewMode]);
 
-    usePageHeader('Pricing Engine', headerActions, viewToggle);
+    usePageHeader('Pricing Engine', headerActions, !isMobile ? viewToggle : null);
 
     const footerContent = useMemo(() => (
         <div className="flex items-center gap-4">
@@ -266,9 +284,165 @@ export const PricingManagementPage = () => {
         return () => window.removeEventListener('openPricingModal', handleOpenAdd);
     }, []);
 
-    const avgPrice = pricing.length > 0
-        ? pricing.reduce((acc, curr) => acc + (curr.base_price || curr.price_per_night || 0), 0) / pricing.length
-        : 0;
+    if (isMobile) {
+        return (
+            <div className="min-h-screen">
+                <MobilePricing
+                    pricing={paginatedPricing}
+                    allPricing={pricing}
+                    loading={loading}
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    kpiFilter={kpiFilter}
+                    setKpiFilter={setKpiFilter}
+                    onView={openModal}
+                    onEdit={openModal}
+                    onDelete={handleDelete}
+                    onRefresh={fetchPricing}
+                    canEdit={canEdit}
+                    onViewAnalytics={() => setAnalyticsModalOpen(true)}
+                    selectedIds={selectedIds}
+                    onSelect={handleSelect}
+                    onSelectAll={(checked) => handleSelectAll(checked, paginatedPricing)}
+                />
+
+                <PaginationControls
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    onPrevPage={pagination.prevPage}
+                    onNextPage={pagination.nextPage}
+                    hasPrevPage={pagination.hasPrevPage}
+                    hasNextPage={pagination.hasNextPage}
+                    loading={loading}
+                />
+
+                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                    <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-[425px] rounded-[24px] md:rounded-[32px] glass-card shadow-2xl border border-white/5 overflow-hidden max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-y-auto mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))] p-2 md:p-6">
+                        <div className="absolute top-0 left-0 w-full h-1.5 bg-primary/20">
+                            <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} className="h-full bg-primary origin-left shadow-glow-primary" />
+                        </div>
+
+                        <DialogHeader className="pt-5 md:pt-6">
+                            <DialogTitle className="text-xl md:text-2xl font-black tracking-tight md:tracking-tighter flex items-center gap-2.5 md:gap-3">
+                                <div className="p-2 md:p-2.5 bg-primary/20 rounded-2xl shadow-glow-primary/20">
+                                    <Plus className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="leading-tight">{editingItem ? 'Entity Config' : 'Item Provisioning'}</span>
+                                    <span className="text-[9px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-0.5">Economic_Module</span>
+                                </div>
+                            </DialogTitle>
+                        </DialogHeader>
+
+                        <div className="space-y-4 md:space-y-6 py-5 md:py-8">
+                            <div className="space-y-2">
+                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-primary ml-1 md:ml-4 opacity-70">Identity_Core</Label>
+                                <Input
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    placeholder={activeTab === 'services' ? 'e.g. Advanced Life Support' : 'e.g. ICU Suite'}
+                                    className="ios-input-well rounded-2xl h-11 md:h-12 focus:ring-2 ring-primary/20 font-semibold md:font-bold px-4 md:px-6 border-0 text-[12px] md:text-[13px]"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 md:ml-4 opacity-50">Reference_Type</Label>
+                                    <Input
+                                        value={formData.type}
+                                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                        placeholder={activeTab === 'services' ? 'ambulance' : 'ward'}
+                                        className="ios-input-well rounded-2xl h-11 md:h-12 px-4 md:px-6 text-[11px] md:text-xs font-mono border-0"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 md:ml-4 opacity-50">Unit_Base</Label>
+                                    <Input
+                                        value={formData.unit}
+                                        onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                                        placeholder="Unit"
+                                        className="ios-input-well rounded-2xl h-11 md:h-12 px-4 md:px-6 text-[9px] md:text-[10px] font-bold uppercase tracking-widest border-0"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-primary ml-1 md:ml-4 opacity-70">Economic_Value (USD)</Label>
+                                <div className="relative group">
+                                    <span className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-primary font-black group-focus-within:scale-125 transition-transform text-base md:text-lg">$</span>
+                                    <Input
+                                        type="number"
+                                        value={formData.price}
+                                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                        placeholder="0.00"
+                                        className="ios-input-well rounded-2xl h-12 md:h-14 pl-9 md:pl-12 pr-4 md:pr-6 font-black text-xl md:text-2xl tracking-tight md:tracking-tighter border-0"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 md:ml-4 opacity-50">Technical_Documentation</Label>
+                                <textarea
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    placeholder="Describe the service capabilities or room features..."
+                                    className="ios-input-well w-full rounded-2xl p-4 md:p-6 min-h-[110px] md:min-h-[120px] text-[12px] md:text-sm focus:ring-2 ring-primary/20 outline-none transition-all border-0 resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        {!isAdmin() && isOrgAdmin() && !editingItem && (
+                            <div className="p-3 md:p-4 bg-success/10 rounded-2xl border border-success/20">
+                                <p className="text-[9px] md:text-[10px] font-bold text-success uppercase tracking-widest leading-relaxed">
+                                    <Building2 className="w-3 h-3 inline mr-1 mb-0.5" />
+                                    This will create a local override for your organization.
+                                </p>
+                            </div>
+                        )}
+
+                        <DialogFooter className="gap-2 md:gap-3 pt-2 flex-col sm:flex-row">
+                            <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto rounded-2xl font-bold uppercase tracking-widest text-[9px] md:text-[10px] h-11 md:h-12 px-6 md:px-8">Return</Button>
+                            <Button onClick={handleSave} className="w-full sm:w-auto rounded-2xl bg-primary text-white font-bold uppercase tracking-[0.2em] text-[9px] md:text-[10px] h-11 md:h-12 px-8 md:px-10 shadow-xl shadow-primary/20">
+                                Apply Changes
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <ConfirmationModal
+                    isOpen={confirmationModal.isOpen}
+                    onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+                    title={confirmationModal.title}
+                    description={confirmationModal.description}
+                    onConfirm={confirmationModal.onConfirm}
+                    variant="destructive"
+                />
+
+                <AnalyticsModal
+                    open={analyticsModalOpen}
+                    onClose={() => setAnalyticsModalOpen(false)}
+                    type="generic"
+                    analytics={{
+                        total: pricing.length,
+                        active: pricing.length,
+                        recent: pricing.filter(item => {
+                            if (!item.updated_at) return false;
+                            const d = new Date(item.updated_at);
+                            const cutoff = new Date();
+                            cutoff.setDate(cutoff.getDate() - 30);
+                            return d >= cutoff;
+                        }).length,
+                        byCategory: {
+                            global: pricing.filter(item => !item.organization_id && !item.hospital_id).length,
+                            override: pricing.filter(item => item.organization_id || item.hospital_id).length
+                        }
+                    }}
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen py-8">
@@ -450,9 +624,9 @@ export const PricingManagementPage = () => {
                         onView={openModal}
                         onEdit={openModal}
                         onDelete={handleDelete}
-                        selectedIds={[]}
-                        onSelect={() => { }}
-                        onSelectAll={() => { }}
+                        selectedIds={selectedIds}
+                        onSelect={handleSelect}
+                        onSelectAll={(checked) => handleSelectAll(checked, paginatedPricing)}
                         canEdit={canEdit}
                     />
                 ) : (
@@ -482,92 +656,92 @@ export const PricingManagementPage = () => {
 
             {/* Pricing Modal */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="sm:max-w-[425px] rounded-[32px] glass-card shadow-2xl border border-white/5 overflow-hidden">
+                <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-[425px] rounded-[24px] md:rounded-[32px] glass-card shadow-2xl border border-white/5 overflow-hidden max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-y-auto mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))] p-2 md:p-6">
                     <div className="absolute top-0 left-0 w-full h-1.5 bg-primary/20">
                         <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} className="h-full bg-primary origin-left shadow-glow-primary" />
                     </div>
 
-                    <DialogHeader className="pt-6">
-                        <DialogTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
-                            <div className="p-2.5 bg-primary/20 rounded-2xl shadow-glow-primary/20">
-                                <Plus className="h-5 w-5 text-primary" />
+                    <DialogHeader className="pt-5 md:pt-6">
+                        <DialogTitle className="text-xl md:text-2xl font-black tracking-tight md:tracking-tighter flex items-center gap-2.5 md:gap-3">
+                            <div className="p-2 md:p-2.5 bg-primary/20 rounded-2xl shadow-glow-primary/20">
+                                <Plus className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                             </div>
                             <div className="flex flex-col">
                                 <span className="leading-tight">{editingItem ? 'Entity Config' : 'Item Provisioning'}</span>
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-0.5">Economic_Module</span>
+                                <span className="text-[9px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-0.5">Economic_Module</span>
                             </div>
                         </DialogTitle>
                     </DialogHeader>
 
-                    <div className="space-y-6 py-8">
+                    <div className="space-y-4 md:space-y-6 py-5 md:py-8">
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-4 opacity-70">Identity_Core</Label>
+                            <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-primary ml-1 md:ml-4 opacity-70">Identity_Core</Label>
                             <Input
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 placeholder={activeTab === 'services' ? "e.g. Advanced Life Support" : "e.g. ICU Suite"}
-                                className="ios-input-well rounded-2xl h-12 focus:ring-2 ring-primary/20 font-bold px-6 border-0"
+                                className="ios-input-well rounded-2xl h-11 md:h-12 focus:ring-2 ring-primary/20 font-semibold md:font-bold px-4 md:px-6 border-0 text-[12px] md:text-[13px]"
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Reference_Type</Label>
+                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 md:ml-4 opacity-50">Reference_Type</Label>
                                 <Input
                                     value={formData.type}
                                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                                     placeholder={activeTab === 'services' ? "ambulance" : "ward"}
-                                    className="ios-input-well rounded-2xl h-12 px-6 text-xs font-mono border-0"
+                                    className="ios-input-well rounded-2xl h-11 md:h-12 px-4 md:px-6 text-[11px] md:text-xs font-mono border-0"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Unit_Base</Label>
+                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 md:ml-4 opacity-50">Unit_Base</Label>
                                 <Input
                                     value={formData.unit}
                                     onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                                     placeholder="Unit"
-                                    className="ios-input-well rounded-2xl h-12 px-6 text-[10px] font-bold uppercase tracking-widest border-0"
+                                    className="ios-input-well rounded-2xl h-11 md:h-12 px-4 md:px-6 text-[9px] md:text-[10px] font-bold uppercase tracking-widest border-0"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-4 opacity-70">Economic_Value (USD)</Label>
+                            <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-primary ml-1 md:ml-4 opacity-70">Economic_Value (USD)</Label>
                             <div className="relative group">
-                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-primary font-black group-focus-within:scale-125 transition-transform text-lg">$</span>
+                                <span className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-primary font-black group-focus-within:scale-125 transition-transform text-base md:text-lg">$</span>
                                 <Input
                                     type="number"
                                     value={formData.price}
                                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                                     placeholder="0.00"
-                                    className="ios-input-well rounded-2xl h-14 pl-12 pr-6 font-black text-2xl tracking-tighter border-0"
+                                    className="ios-input-well rounded-2xl h-12 md:h-14 pl-9 md:pl-12 pr-4 md:pr-6 font-black text-xl md:text-2xl tracking-tight md:tracking-tighter border-0"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Technical_Documentation</Label>
+                            <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 md:ml-4 opacity-50">Technical_Documentation</Label>
                             <textarea
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 placeholder="Describe the service capabilities or room features..."
-                                className="ios-input-well w-full rounded-2xl p-6 min-h-[120px] text-sm focus:ring-2 ring-primary/20 outline-none transition-all border-0 resize-none"
+                                className="ios-input-well w-full rounded-2xl p-4 md:p-6 min-h-[110px] md:min-h-[120px] text-[12px] md:text-sm focus:ring-2 ring-primary/20 outline-none transition-all border-0 resize-none"
                             />
                         </div>
                     </div>
 
                     {!isAdmin() && isOrgAdmin() && !editingItem && (
-                        <div className="p-4 bg-success/10 rounded-2xl border border-success/20">
-                            <p className="text-[10px] font-bold text-success uppercase tracking-widest leading-relaxed">
+                        <div className="p-3 md:p-4 bg-success/10 rounded-2xl border border-success/20">
+                            <p className="text-[9px] md:text-[10px] font-bold text-success uppercase tracking-widest leading-relaxed">
                                 <Building2 className="w-3 h-3 inline mr-1 mb-0.5" />
                                 This will create a local override for your organization.
                             </p>
                         </div>
                     )}
 
-                    <DialogFooter className="gap-3 pt-2">
-                        <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="rounded-2xl font-bold uppercase tracking-widest text-[10px] h-12 px-8">Return</Button>
-                        <Button onClick={handleSave} className="rounded-2xl bg-primary text-white font-bold uppercase tracking-[0.2em] text-[10px] h-12 px-10 shadow-xl shadow-primary/20">
+                    <DialogFooter className="gap-2 md:gap-3 pt-2 flex-col sm:flex-row">
+                        <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto rounded-2xl font-bold uppercase tracking-widest text-[9px] md:text-[10px] h-11 md:h-12 px-6 md:px-8">Return</Button>
+                        <Button onClick={handleSave} className="w-full sm:w-auto rounded-2xl bg-primary text-white font-bold uppercase tracking-[0.2em] text-[9px] md:text-[10px] h-11 md:h-12 px-8 md:px-10 shadow-xl shadow-primary/20">
                             Apply Changes
                         </Button>
                     </DialogFooter>
@@ -582,6 +756,68 @@ export const PricingManagementPage = () => {
                 onConfirm={confirmationModal.onConfirm}
                 variant="destructive"
             />
+
+            <AnalyticsModal
+                open={analyticsModalOpen}
+                onClose={() => setAnalyticsModalOpen(false)}
+                type="generic"
+                analytics={{
+                    total: pricing.length,
+                    active: pricing.length,
+                    recent: pricing.filter(item => {
+                        if (!item.updated_at) return false;
+                        const d = new Date(item.updated_at);
+                        const cutoff = new Date();
+                        cutoff.setDate(cutoff.getDate() - 30);
+                        return d >= cutoff;
+                    }).length,
+                    byCategory: {
+                        global: pricing.filter(item => !item.organization_id && !item.hospital_id).length,
+                        override: pricing.filter(item => item.organization_id || item.hospital_id).length
+                    }
+                }}
+            />
+
+            <BulkActionBar
+                selectedCount={selectedIds.length}
+                onClear={() => setSelectedIds([])}
+            >
+                {(isAdmin() || isOrgAdmin()) && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                            setConfirmationModal({
+                                isOpen: true,
+                                title: 'Delete Selected Pricing Rules',
+                                description: `Are you sure you want to delete ${selectedIds.length} pricing rules? This action cannot be undone.`,
+                                onConfirm: async () => {
+                                    try {
+                                        const selectedItems = filteredPricing.filter(item => selectedIds.includes(item.id));
+                                        await Promise.all(selectedItems.map(item => (
+                                            activeTab === 'services'
+                                                ? deleteServicePricing(item.id)
+                                                : deleteRoomPricing(item.id)
+                                        )));
+                                        toast.success(`${selectedIds.length} pricing rules deleted`);
+                                        setSelectedIds([]);
+                                        fetchPricing();
+                                        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+                                    } catch (error) {
+                                        toast.error(error.message || 'Failed to delete selected pricing rules');
+                                    }
+                                },
+                                variant: 'destructive',
+                                confirmLabel: 'Delete All'
+                            });
+                        }}
+                        className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+                        title="Delete Selected"
+                    >
+                        <Trash2 className="h-5 w-5" />
+                    </Button>
+                )}
+            </BulkActionBar>
         </div >
     );
 };

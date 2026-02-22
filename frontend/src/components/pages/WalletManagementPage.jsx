@@ -1,20 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { supabase } from '../../lib/supabase';
 import {
-    Wallet,
     ArrowUpRight,
     ArrowDownLeft,
     Clock,
-    Filter,
-    Download,
     CreditCard,
     Building,
     ShieldCheck,
     MoreVertical,
-    ExternalLink,
-    ChevronRight,
     TrendingUp,
     History,
     RefreshCw
@@ -41,10 +37,13 @@ import {
 } from "../ui/dialog";
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MobileWallet } from '../mobile/MobileWallet';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
 
 
 export const WalletManagementPage = () => {
     const { profile, isAdmin, isOrgAdmin } = useAuth();
+    const { isMobile } = useNavigation();
     const [loading, setLoading] = useState(true);
     const [wallet, setWallet] = useState(null);
     const [ledger, setLedger] = useState([]);
@@ -54,6 +53,7 @@ export const WalletManagementPage = () => {
     const [payments, setPayments] = useState([]);
     const [selectedPayment, setSelectedPayment] = useState(null);
     const [activeTab, setActiveTab] = useState('ledger');
+    const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -304,6 +304,147 @@ export const WalletManagementPage = () => {
         }
     }, [isOrgAdmin, backfillLedger]);
 
+    if (isMobile) {
+        return (
+            <div className="min-h-screen">
+                <MobileWallet
+                    loading={loading}
+                    wallet={wallet}
+                    projection={projection}
+                    paymentMethods={paymentMethods}
+                    ledger={ledger}
+                    payments={payments}
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    onRefresh={fetchData}
+                    onTopUp={handleTopUpTrigger}
+                    onWithdraw={handleWithdrawTrigger}
+                    onOpenBilling={() => window.dispatchEvent(new CustomEvent('openBillingModal'))}
+                    onOpenPayment={setSelectedPayment}
+                    onViewAnalytics={() => setAnalyticsModalOpen(true)}
+                    formatCurrency={formatCurrency}
+                    isAdmin={isAdmin()}
+                    isOrgAdmin={isOrgAdmin()}
+                />
+
+                <AnimatePresence>
+                    {selectedPayment && (
+                        <Dialog open={!!selectedPayment} onOpenChange={() => setSelectedPayment(null)}>
+                            <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-[425px] glass-card-premium border-none p-0 overflow-hidden max-h-[calc(100dvh-5rem)] md:max-h-[85vh] overflow-y-auto no-scrollbar rounded-[24px] md:rounded-[32px] mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                                <div className="bg-gradient-to-br from-primary/20 via-primary/5 to-transparent p-5 md:p-6 flex flex-col items-center justify-center border-b border-border/10">
+                                    <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg mb-4">
+                                        <ShieldCheck className="w-7 h-7 md:w-8 md:h-8 text-primary" />
+                                    </div>
+                                    <DialogTitle className="text-xl md:text-2xl font-black tracking-tight md:tracking-tighter text-center">Payment Complete</DialogTitle>
+                                    <DialogDescription className="text-center font-mono text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
+                                        Transaction ID: {selectedPayment.id?.slice(0, 12)}
+                                    </DialogDescription>
+                                    <h2 className="text-3xl md:text-4xl font-black tracking-tight md:tracking-tighter mt-4">
+                                        {formatCurrency(selectedPayment.amount)}
+                                    </h2>
+                                </div>
+
+                                <div className="p-4 md:p-6 space-y-5 md:space-y-6">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground">Date</Label>
+                                            <p className="font-bold text-xs md:text-sm">
+                                                {new Date(selectedPayment.created_at).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground">Time</Label>
+                                            <p className="font-bold text-xs md:text-sm">
+                                                {new Date(selectedPayment.created_at).toLocaleTimeString()}
+                                            </p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground">Method</Label>
+                                            <div className="flex items-center gap-2">
+                                                <CreditCard className="w-3 h-3 text-muted-foreground" />
+                                                <p className="font-bold text-xs md:text-sm capitalize">{selectedPayment.payment_method_id}</p>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground">Status</Label>
+                                            <Badge variant="outline" className="bg-success/10 text-success border-success/20 uppercase tracking-widest text-[9px] md:text-[10px]">
+                                                {selectedPayment.status}
+                                            </Badge>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/10" />
+
+                                    {selectedPayment.user_details && (
+                                        <div className="space-y-3">
+                                            <Label className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground mb-2 block">Patient / Payer</Label>
+                                            <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/5">
+                                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                                                    {selectedPayment.user_details.first_name?.[0]}{selectedPayment.user_details.last_name?.[0]}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-xs md:text-sm">{selectedPayment.user_details.first_name} {selectedPayment.user_details.last_name}</p>
+                                                    <p className="text-xs text-muted-foreground">{selectedPayment.user_details.phone || selectedPayment.user_details.email}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-3">
+                                        <Label className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground mb-2 block">Service Details</Label>
+                                        <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/5">
+                                            <Building className="w-4 h-4 text-muted-foreground mt-1" />
+                                            <div>
+                                                <p className="font-bold text-xs md:text-sm capitalize mb-0.5">
+                                                    {selectedPayment.emergency_requests?.service_type?.replace(/_/g, ' ') || 'Emergency Service'}
+                                                </p>
+                                                <p className="text-xs font-medium text-foreground/80">{selectedPayment.emergency_requests?.hospitals?.name || 'Unknown Hospital'}</p>
+                                                <p className="text-[10px] text-muted-foreground mt-0.5">{selectedPayment.emergency_requests?.hospitals?.address || 'Location Unavailable'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-muted/30 -mx-4 md:-mx-6 -mb-4 md:-mb-6 p-4 md:p-6 mt-4 border-t border-border/10">
+                                        <div className="flex justify-between items-center text-xs text-muted-foreground mb-2">
+                                            <span>Subtotal</span>
+                                            <span>{formatCurrency(selectedPayment.amount)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                            <span>Platform Fee (2.5%)</span>
+                                            <span>Included</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    )}
+                </AnimatePresence>
+
+                <AnalyticsModal
+                    open={analyticsModalOpen}
+                    onClose={() => setAnalyticsModalOpen(false)}
+                    type="generic"
+                    analytics={{
+                        total: ledger.length + payments.length,
+                        active: (wallet?.balance || 0) > 0 ? 1 : 0,
+                        recent: payments.filter(p => {
+                            if (!p.created_at) return false;
+                            const d = new Date(p.created_at);
+                            const cutoff = new Date();
+                            cutoff.setDate(cutoff.getDate() - 30);
+                            return d >= cutoff;
+                        }).length,
+                        byCategory: {
+                            ledger: ledger.length,
+                            payments: payments.length,
+                            methods: paymentMethods.length
+                        }
+                    }}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen py-6 md:py-8">
             <div className="pt-2" />
@@ -529,44 +670,44 @@ export const WalletManagementPage = () => {
             <AnimatePresence>
                 {selectedPayment && (
                     <Dialog open={!!selectedPayment} onOpenChange={() => setSelectedPayment(null)}>
-                        <DialogContent className="glass-card-premium border-none p-0 overflow-hidden sm:max-w-[425px] max-h-[85vh] overflow-y-auto no-scrollbar">
-                            <div className="bg-gradient-to-br from-primary/20 via-primary/5 to-transparent p-6 flex flex-col items-center justify-center border-b border-border/10">
-                                <div className="w-16 h-16 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg mb-4">
-                                    <ShieldCheck className="w-8 h-8 text-primary" />
+                        <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-[425px] glass-card-premium border-none p-0 overflow-hidden max-h-[calc(100dvh-5rem)] md:max-h-[85vh] overflow-y-auto no-scrollbar rounded-[24px] md:rounded-[32px] mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                            <div className="bg-gradient-to-br from-primary/20 via-primary/5 to-transparent p-5 md:p-6 flex flex-col items-center justify-center border-b border-border/10">
+                                <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center shadow-lg mb-4">
+                                    <ShieldCheck className="w-7 h-7 md:w-8 md:h-8 text-primary" />
                                 </div>
-                                <DialogTitle className="text-2xl font-black tracking-tighter text-center">Payment Complete</DialogTitle>
-                                <DialogDescription className="text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
+                                <DialogTitle className="text-xl md:text-2xl font-black tracking-tight md:tracking-tighter text-center">Payment Complete</DialogTitle>
+                                <DialogDescription className="text-center font-mono text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
                                     Transaction ID: {selectedPayment.id?.slice(0, 12)}
                                 </DialogDescription>
-                                <h2 className="text-4xl font-black tracking-tighter mt-4">
+                                <h2 className="text-3xl md:text-4xl font-black tracking-tight md:tracking-tighter mt-4">
                                     {formatCurrency(selectedPayment.amount)}
                                 </h2>
                             </div>
 
-                            <div className="p-6 space-y-6">
+                            <div className="p-4 md:p-6 space-y-5 md:space-y-6">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1">
-                                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Date</Label>
-                                        <p className="font-bold text-sm">
+                                        <Label className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground">Date</Label>
+                                        <p className="font-bold text-xs md:text-sm">
                                             {new Date(selectedPayment.created_at).toLocaleDateString()}
                                         </p>
                                     </div>
                                     <div className="space-y-1">
-                                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Time</Label>
-                                        <p className="font-bold text-sm">
+                                        <Label className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground">Time</Label>
+                                        <p className="font-bold text-xs md:text-sm">
                                             {new Date(selectedPayment.created_at).toLocaleTimeString()}
                                         </p>
                                     </div>
                                     <div className="space-y-1">
-                                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Method</Label>
+                                        <Label className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground">Method</Label>
                                         <div className="flex items-center gap-2">
                                             <CreditCard className="w-3 h-3 text-muted-foreground" />
-                                            <p className="font-bold text-sm capitalize">{selectedPayment.payment_method_id}</p>
+                                            <p className="font-bold text-xs md:text-sm capitalize">{selectedPayment.payment_method_id}</p>
                                         </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Status</Label>
-                                        <Badge variant="outline" className="bg-success/10 text-success border-success/20 uppercase tracking-widest text-[10px]">
+                                        <Label className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground">Status</Label>
+                                        <Badge variant="outline" className="bg-success/10 text-success border-success/20 uppercase tracking-widest text-[9px] md:text-[10px]">
                                             {selectedPayment.status}
                                         </Badge>
                                     </div>
@@ -577,13 +718,13 @@ export const WalletManagementPage = () => {
                                 {/* User Details Section */}
                                 {selectedPayment.user_details && (
                                     <div className="space-y-3">
-                                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 block">Patient / Payer</Label>
+                                        <Label className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground mb-2 block">Patient / Payer</Label>
                                         <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/5">
                                             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                                                 {selectedPayment.user_details.first_name?.[0]}{selectedPayment.user_details.last_name?.[0]}
                                             </div>
                                             <div>
-                                                <p className="font-bold text-sm">{selectedPayment.user_details.first_name} {selectedPayment.user_details.last_name}</p>
+                                                <p className="font-bold text-xs md:text-sm">{selectedPayment.user_details.first_name} {selectedPayment.user_details.last_name}</p>
                                                 <p className="text-xs text-muted-foreground">{selectedPayment.user_details.phone || selectedPayment.user_details.email}</p>
                                             </div>
                                         </div>
@@ -591,11 +732,11 @@ export const WalletManagementPage = () => {
                                 )}
 
                                 <div className="space-y-3">
-                                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 block">Service Details</Label>
+                                    <Label className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground mb-2 block">Service Details</Label>
                                     <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/5">
                                         <Building className="w-4 h-4 text-muted-foreground mt-1" />
                                         <div>
-                                            <p className="font-bold text-sm capitalize mb-0.5">
+                                            <p className="font-bold text-xs md:text-sm capitalize mb-0.5">
                                                 {selectedPayment.emergency_requests?.service_type?.replace(/_/g, ' ') || 'Emergency Service'}
                                             </p>
                                             <p className="text-xs font-medium text-foreground/80">{selectedPayment.emergency_requests?.hospitals?.name || 'Unknown Hospital'}</p>
@@ -604,7 +745,7 @@ export const WalletManagementPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="bg-muted/30 -mx-6 -mb-6 p-6 mt-4 border-t border-border/10">
+                                <div className="bg-muted/30 -mx-4 md:-mx-6 -mb-4 md:-mb-6 p-4 md:p-6 mt-4 border-t border-border/10">
                                     <div className="flex justify-between items-center text-xs text-muted-foreground mb-2">
                                         <span>Subtotal</span>
                                         <span>{formatCurrency(selectedPayment.amount)}</span>
@@ -619,6 +760,28 @@ export const WalletManagementPage = () => {
                     </Dialog>
                 )}
             </AnimatePresence>
+
+            <AnalyticsModal
+                open={analyticsModalOpen}
+                onClose={() => setAnalyticsModalOpen(false)}
+                type="generic"
+                analytics={{
+                    total: ledger.length + payments.length,
+                    active: (wallet?.balance || 0) > 0 ? 1 : 0,
+                    recent: payments.filter(p => {
+                        if (!p.created_at) return false;
+                        const d = new Date(p.created_at);
+                        const cutoff = new Date();
+                        cutoff.setDate(cutoff.getDate() - 30);
+                        return d >= cutoff;
+                    }).length,
+                    byCategory: {
+                        ledger: ledger.length,
+                        payments: payments.length,
+                        methods: paymentMethods.length
+                    }
+                }}
+            />
         </div>
     );
 };

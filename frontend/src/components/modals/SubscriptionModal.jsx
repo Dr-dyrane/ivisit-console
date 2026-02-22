@@ -240,7 +240,7 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
+      <div className="fixed inset-0 z-[120] flex items-end md:items-center justify-center p-2 md:p-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {/* Backdrop: Ultra-saturated blur focus */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -256,11 +256,11 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 100 }}
           transition={{ type: "spring", damping: 30, stiffness: 350 }}
-          className={`ios-material ios-sheet relative z-10 w-full ${mode === 'bulk' ? 'max-w-5xl' : 'max-w-lg'} md:rounded-[40px] shadow-2xl border border-foreground/10 overflow-scroll no-scrollbar`}
+          className={`ios-material ios-sheet relative z-10 w-full ${mode === 'bulk' ? 'max-w-5xl' : 'max-w-lg'} max-h-[calc(100dvh-5rem)] md:max-h-[90vh] md:rounded-[40px] shadow-2xl border border-foreground/10 overflow-y-auto no-scrollbar`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 md:p-10 pb-4">
+          <div className="flex items-center justify-between p-2 md:p-10 pb-2 md:pb-4">
             <div className="flex items-center gap-4">
               <div className="p-2.5 bg-primary/15 rounded-2xl ios-bubble border-none">
                 {mode === 'bulk' ? (
@@ -299,7 +299,7 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
               onSave(formData);
               onClose();
             }
-          }} className="p-6 md:p-10 pt-2 space-y-6">
+          }} className="p-2 md:p-10 pt-1 md:pt-2 space-y-4 md:space-y-6">
 
             {mode === 'bulk' ? (
               <>

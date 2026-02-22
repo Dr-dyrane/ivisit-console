@@ -38,6 +38,7 @@ import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
 import { VerificationQueueListView } from '../views/VerificationQueueListView';
 import { VerificationQueueTableView } from '../views/VerificationQueueTableView';
+import { MobileVerification } from '../mobile/MobileVerification';
 
 /**
  * Verification Queue Page
@@ -211,6 +212,11 @@ export const VerificationQueue = () => {
     setPagination(prev => ({ ...prev, currentPage: 1 }));
   }, []);
 
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
+    setSelectedIds([]);
+  }, [queueType]);
+
   const viewToggleComponent = useMemo(() => (
     <ViewToggle value={viewMode} onChange={setViewMode} />
   ), [viewMode, setViewMode]);
@@ -255,12 +261,13 @@ export const VerificationQueue = () => {
   }, []);
 
   const handleSelectAll = useCallback((checked) => {
+    const activeItems = queueType === 'providers' ? providers : organizations;
     if (checked) {
-      setSelectedIds(providers.map(p => p.id));
+      setSelectedIds(activeItems.map(item => item.id));
     } else {
       setSelectedIds([]);
     }
-  }, [providers]);
+  }, [queueType, providers, organizations]);
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -305,6 +312,70 @@ export const VerificationQueue = () => {
       ]
     }
   ], []);
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen">
+        <MobileVerification
+          queueType={queueType}
+          setQueueType={setQueueType}
+          providers={providers}
+          organizations={organizations}
+          stats={stats}
+          orgStats={orgStats}
+          filters={filters}
+          setFilters={(updater) => {
+            setFilters(prev => (typeof updater === 'function' ? updater(prev) : updater));
+            setPagination(prev => ({ ...prev, currentPage: 1 }));
+          }}
+          onViewProvider={setSelectedProvider}
+          onVerifyProvider={handleVerify}
+          onVerifyOrganization={handleVerifyOrg}
+          onRefresh={queueType === 'providers' ? fetchVerificationData : fetchOrgVerificationData}
+          onOpenFilters={() => setFilterSheetOpen(true)}
+          onViewAnalytics={() => setAnalyticsModalOpen(true)}
+          selectedIds={selectedIds}
+          onSelect={handleSelect}
+          onSelectAll={handleSelectAll}
+        />
+
+        <PaginationControls
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          onPrevPage={() => setPagination(prev => ({ ...prev, currentPage: Math.max(prev.currentPage - 1, 1) }))}
+          onNextPage={() => setPagination(prev => ({ ...prev, currentPage: Math.min(prev.currentPage + 1, prev.totalPages || prev.currentPage + 1) }))}
+          hasPrevPage={pagination.currentPage > 1}
+          hasNextPage={pagination.currentPage < pagination.totalPages}
+          loading={loading}
+        />
+
+        <FilterSheet
+          isOpen={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          initialValues={filters}
+          onApply={handleApplyFilters}
+          filterSchema={filterSchema}
+          viewToggle={null}
+          isMobile={true}
+        />
+
+        <AnalyticsModal
+          open={analyticsModalOpen}
+          onClose={() => setAnalyticsModalOpen(false)}
+          analytics={queueType === 'providers' ? stats : orgStats}
+          type="verification"
+        />
+
+        <VerificationModal
+          isOpen={!!selectedProvider}
+          provider={selectedProvider}
+          mode="view"
+          onClose={() => setSelectedProvider(null)}
+          onVerify={handleVerify}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">

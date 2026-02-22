@@ -282,8 +282,8 @@ export const MobileHospitals = ({
                                     rightBlade={{
                                         badge: hospital.verified ? 'VERIFIED' : 'UNVERIFIED',
                                         direction: hospital.verified ? 'up' : 'flat',
-                                        label: 'Capacity',
-                                        value: `${beds} beds`,
+                                        label: 'Fleet',
+                                        value: `${fleet} units`,
                                         color: statusColor
                                     }}
                                     statusIndicators={[

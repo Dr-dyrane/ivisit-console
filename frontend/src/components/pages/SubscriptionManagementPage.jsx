@@ -17,6 +17,7 @@ import { FilterSheet } from '../common/FilterSheet';
 import { ViewToggle } from '../common/ViewToggle';
 import { SubscriptionListView } from '../views/SubscriptionListView';
 import { SubscriptionTableView } from '../views/SubscriptionTableView';
+import { MobileSubscriptions } from '../mobile/MobileSubscriptions';
 import {
   Users,
   Plus,
@@ -221,6 +222,11 @@ export const SubscriptionManagementPage = () => {
     return filteredSubscribers.slice(start, start + pagination.itemsPerPage);
   }, [filteredSubscribers, pagination]);
 
+  const mobileVisibleSubscribers = useMemo(() => {
+    const visibleCount = pagination.currentPage * pagination.itemsPerPage;
+    return filteredSubscribers.slice(0, visibleCount);
+  }, [filteredSubscribers, pagination.currentPage, pagination.itemsPerPage]);
+
   // Handlers
   const handleCreate = useCallback(() => {
     setSelectedSubscriber(null);
@@ -418,6 +424,71 @@ export const SubscriptionManagementPage = () => {
       ]
     }
   ], []);
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen">
+        <MobileSubscriptions
+          subscribers={mobileVisibleSubscribers}
+          filters={filters}
+          setFilters={setFilters}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onRefresh={fetchSubscribers}
+          canManage={isAdmin()}
+          loading={loading}
+          onOpenFilters={() => setFilterSheetOpen(true)}
+          onViewAnalytics={handleViewAnalytics}
+          selectedIds={selectedIds}
+          onSelect={handleSelect}
+          onSelectAll={handleSelectAll}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+        />
+
+        <SubscriptionModal
+          isOpen={!!modalMode}
+          onClose={() => setModalMode(null)}
+          subscriber={selectedSubscriber}
+          mode={modalMode}
+          onSave={handleSave}
+        />
+
+        <AnalyticsModal
+          open={analyticsModalOpen}
+          onClose={() => setAnalyticsModalOpen(false)}
+          type="subscription"
+          analytics={{
+            total: subscribers.length,
+            active: subscribers.filter(s => s.status === 'active').length,
+            paid: subscribers.filter(s => s.type === 'paid').length,
+            free: subscribers.filter(s => s.type === 'free').length
+          }}
+        />
+
+        <FilterSheet
+          isOpen={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          filterSchema={filterSchema}
+          onApply={setFilters}
+          initialValues={filters}
+          viewToggle={null}
+          isMobile={true}
+        />
+
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={confirmationModal.onConfirm}
+          title={confirmationModal.title}
+          description={confirmationModal.description}
+          variant={confirmationModal.variant}
+          confirmLabel={confirmationModal.confirmLabel}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">

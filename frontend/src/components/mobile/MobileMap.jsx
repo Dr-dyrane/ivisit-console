@@ -63,16 +63,19 @@ export const MobileMap = ({
     // Contextual KPIs for the Map Strip
     const mapKPIs = useMemo(() => [
         {
+            id: 'all',
             label: 'Emergencies',
             value: filteredRequests.length,
             color: 'hsl(var(--destructive))'
         },
         {
+            id: 'ambulance',
             label: 'Units Ready',
             value: processedAmbulances.filter(a => a.status === 'available').length,
             color: 'hsl(var(--success))'
         },
         {
+            id: 'bed',
             label: 'Hospitals',
             value: processedHospitals.length,
             color: 'hsl(var(--info))'
@@ -85,7 +88,11 @@ export const MobileMap = ({
     return (
         <div className="fixed inset-0 z-[20] bg-background overflow-hidden flex flex-col pt-12">
             {/* 1. Tactical KPI Strip */}
-            <MobileKPIStrip kpis={mapKPIs} />
+            <MobileKPIStrip
+                kpis={mapKPIs}
+                activeKpi={mapData?.filter || 'all'}
+                onKpiClick={(id) => setFilter?.(id || 'all')}
+            />
 
             {/* 2. Main Map Layer */}
             <div className="flex-1 relative">

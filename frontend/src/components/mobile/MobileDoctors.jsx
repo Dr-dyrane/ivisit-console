@@ -273,8 +273,8 @@ export const MobileDoctors = ({
                                     rightBlade={{
                                         badge: status.replace('_', ' ').toUpperCase(),
                                         direction: status === 'available' ? 'up' : status === 'busy' ? 'down' : 'flat',
-                                        label: 'Rating',
-                                        value: Number(doctor.rating || 0).toFixed(1),
+                                        label: 'Hospital',
+                                        value: doctor.hospitals?.name || 'Unassigned',
                                         color
                                     }}
                                     statusIndicators={[

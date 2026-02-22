@@ -27,6 +27,7 @@ import { FilterSheet } from '../common/FilterSheet';
 import { HealthNewsListView } from '../views/HealthNewsListView';
 import { HealthNewsTableView } from '../views/HealthNewsTableView';
 import { SEOHead } from '../common/SEOHead';
+import { MobileHealthNews } from '../mobile/MobileHealthNews';
 
 const HEALTH_ICONS = [
   { value: 'medical-outline', label: 'Medical', icon: '🏥' },
@@ -52,6 +53,7 @@ export const HealthNewsManagementPage = () => {
   const { isAdmin, isOrgAdmin, isSponsor } = useAuth();
   const { isMobile } = useNavigation();
   const [healthNews, setHealthNews] = useState([]);
+  const [mobileNewsFeed, setMobileNewsFeed] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedNews, setSelectedNews] = useState(null);
   const [modalMode, setModalMode] = useState(null);
@@ -157,14 +159,27 @@ export const HealthNewsManagementPage = () => {
       );
 
       if (error) throw error;
-      setHealthNews(data || []);
+      const pageData = data || [];
+      setHealthNews(pageData);
+      if (isMobile) {
+        setMobileNewsFeed(prev =>
+          pagination.currentPage === 1
+            ? pageData
+            : [...prev, ...pageData.filter(item => !prev.some(existing => existing.id === item.id))]
+        );
+      }
     } catch (error) {
       console.error('Error fetching health news:', error);
       handleApiError(error, 'fetch');
     } finally {
       setLoading(false);
     }
-  }, [pagination, filters]);
+  }, [pagination, filters, isMobile]);
+
+  useEffect(() => {
+    setMobileNewsFeed([]);
+    pagination.resetPagination();
+  }, [filters.kpiFilter, filters.search, filters.published, filters.category, filters.source, pagination.resetPagination]);
 
   useEffect(() => {
     fetchHealthNews();
@@ -437,6 +452,71 @@ export const HealthNewsManagementPage = () => {
   ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
 
   usePageFooter(footerContent, 'pagination', !loading && healthNews.length > 0);
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen">
+        <SEOHead title="Health News" description="Manage health news, updates, and announcements." />
+        <MobileHealthNews
+          articles={mobileNewsFeed}
+          stats={stats}
+          filters={filters}
+          setFilters={setFilters}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onTogglePublish={handleTogglePublish}
+          onRefresh={fetchHealthNews}
+          canManage={isAdmin() || isOrgAdmin() || isSponsor()}
+          loading={loading}
+          onOpenFilters={() => setFilterSheetOpen(true)}
+          onViewAnalytics={() => setAnalyticsModalOpen(true)}
+          selectedIds={selectedIds}
+          onSelect={handleSelect}
+          onSelectAll={handleSelectAll}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+        />
+
+        {modalMode && (
+          <HealthNewsModal
+            isOpen={!!modalMode}
+            onClose={handleModalClose}
+            news={selectedNews}
+            mode={modalMode}
+            onSave={handleSave}
+          />
+        )}
+
+        <FilterSheet
+          isOpen={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          filterSchema={filterSchema}
+          onApply={setFilters}
+          initialValues={filters}
+          viewToggle={null}
+          isMobile={true}
+        />
+
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={confirmationModal.onConfirm}
+          title={confirmationModal.title}
+          description={confirmationModal.description}
+          variant={confirmationModal.variant}
+          confirmLabel={confirmationModal.confirmLabel}
+        />
+
+        <AnalyticsModal
+          open={analyticsModalOpen}
+          onClose={() => setAnalyticsModalOpen(false)}
+          type="news"
+          analytics={stats}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">

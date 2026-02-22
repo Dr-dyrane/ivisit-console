@@ -199,7 +199,7 @@ export const SecurityModal = ({ isOpen, onClose }) => {
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[120] flex items-end md:items-center justify-center p-2 md:p-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -213,9 +213,9 @@ export const SecurityModal = ({ isOpen, onClose }) => {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto no-scrollbar bg-background/95 backdrop-blur-xl rounded-[32px] shadow-2xl"
+                        className="relative z-10 w-full max-w-md max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-y-auto no-scrollbar bg-background/95 backdrop-blur-xl rounded-[24px] md:rounded-[32px] shadow-2xl"
                     >
-                        <div className="p-6 border-b border-border/10 flex justify-between items-center bg-muted/20">
+                        <div className="p-3 md:p-6 border-b border-border/10 flex justify-between items-center bg-muted/20">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-xl text-primary">
                                     <ShieldCheck className="h-5 w-5" />
@@ -231,7 +231,7 @@ export const SecurityModal = ({ isOpen, onClose }) => {
                             </Button>
                         </div>
 
-                        <div className="p-6 space-y-6">
+                        <div className="p-3 md:p-6 space-y-4 md:space-y-6">
 
                             {/* Password Change Section */}
                             <form onSubmit={handleSubmit} className="space-y-4">

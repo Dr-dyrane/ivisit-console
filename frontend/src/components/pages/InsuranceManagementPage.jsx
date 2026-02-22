@@ -17,6 +17,7 @@ import { FilterSheet } from '../common/FilterSheet';
 import { ViewToggle } from '../common/ViewToggle';
 import { InsuranceListView } from '../views/InsuranceListView';
 import { InsuranceTableView } from '../views/InsuranceTableView';
+import { MobileInsurance } from '../mobile/MobileInsurance';
 import {
   Shield,
   Plus,
@@ -157,6 +158,11 @@ export const InsuranceManagementPage = () => {
     const start = (pagination.currentPage - 1) * pagination.itemsPerPage;
     return filteredPolicies.slice(start, start + pagination.itemsPerPage);
   }, [filteredPolicies, pagination]);
+
+  const mobileVisiblePolicies = useMemo(() => {
+    const visibleCount = pagination.currentPage * pagination.itemsPerPage;
+    return filteredPolicies.slice(0, visibleCount);
+  }, [filteredPolicies, pagination.currentPage, pagination.itemsPerPage]);
 
   // Handlers
   const handleCreate = useCallback(() => {
@@ -351,6 +357,72 @@ export const InsuranceManagementPage = () => {
       ]
     }
   ], []);
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen">
+        <MobileInsurance
+          policies={mobileVisiblePolicies}
+          filters={filters}
+          setFilters={setFilters}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onVerify={handleVerify}
+          onRefresh={fetchInsurancePolicies}
+          canManage={isAdmin()}
+          loading={loading}
+          onOpenFilters={() => setFilterSheetOpen(true)}
+          onViewAnalytics={handleViewAnalytics}
+          selectedIds={selectedIds}
+          onSelect={handleSelect}
+          onSelectAll={handleSelectAll}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+        />
+
+        <InsuranceModal
+          isOpen={!!modalMode}
+          onClose={() => setModalMode(null)}
+          policy={selectedPolicy}
+          mode={modalMode}
+          onSave={handleSave}
+        />
+
+        <AnalyticsModal
+          open={analyticsModalOpen}
+          onClose={() => setAnalyticsModalOpen(false)}
+          type="insurance"
+          analytics={{
+            total: insurancePolicies.length,
+            active: insurancePolicies.filter(p => p.status === 'active').length,
+            verified: insurancePolicies.filter(p => p.verified).length,
+            expired: insurancePolicies.filter(p => p.status === 'expired').length
+          }}
+        />
+
+        <FilterSheet
+          isOpen={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          filterSchema={filterSchema}
+          onApply={setFilters}
+          initialValues={filters}
+          viewToggle={null}
+          isMobile={true}
+        />
+
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={confirmationModal.onConfirm}
+          title={confirmationModal.title}
+          description={confirmationModal.description}
+          variant={confirmationModal.variant}
+          confirmLabel={confirmationModal.confirmLabel}
+        />
+      </div>
+    );
+  }
 
 
   return (

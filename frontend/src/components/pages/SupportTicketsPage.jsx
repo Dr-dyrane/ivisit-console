@@ -44,6 +44,7 @@ import { BulkActionBar } from '../common/BulkActionBar';
 import { SupportTicketListView } from '../views/SupportTicketListView';
 import { SupportTicketTableView } from '../views/SupportTicketTableView';
 import { SEOHead } from '../common/SEOHead';
+import { MobileSupportTickets } from '../mobile/MobileSupportTickets';
 
 const PRIORITIES = [
   { value: 'low', label: 'Low', color: 'blue' },
@@ -99,6 +100,10 @@ export const SupportTicketsPage = () => {
 
   const { viewMode, setViewMode } = useViewMode('support-tickets-page', 'grid');
   const pagination = usePagination(20);
+  const mobileVisibleTickets = useMemo(() => {
+    const visibleCount = pagination.currentPage * pagination.itemsPerPage;
+    return supportTickets.slice(0, visibleCount);
+  }, [supportTickets, pagination.currentPage, pagination.itemsPerPage]);
 
   // Apply filters and fetch logic
   useEffect(() => {
@@ -312,6 +317,77 @@ export const SupportTicketsPage = () => {
 
   if (loading && supportTickets.length === 0 && !analytics) {
     return <TableSkeleton />;
+  }
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen">
+        <SEOHead title="Support Tickets" description="Track and resolve customer support inquiries." />
+
+        <MobileSupportTickets
+          tickets={mobileVisibleTickets}
+          analytics={analytics}
+          filters={filters}
+          setFilters={setFilters}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onAssign={handleAssign}
+          onRefresh={() => {
+            const queryFilters = { ...filters };
+            if (filters.kpiFilter && filters.kpiFilter !== 'all' && filters.kpiFilter !== 'avg') {
+              queryFilters.status = [filters.kpiFilter];
+            }
+            delete queryFilters.kpiFilter;
+            fetchSupportTickets(queryFilters);
+          }}
+          canManage={isAdmin() || isOrgAdmin()}
+          canAssign={isProvider()}
+          loading={loading}
+          onOpenFilters={() => setFilterSheetOpen(true)}
+          onViewAnalytics={() => setAnalyticsModalOpen(true)}
+          selectedIds={selectedIds}
+          onSelect={handleSelect}
+          onSelectAll={handleSelectAll}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+        />
+
+        <AnimatePresence>
+          {modalMode && (
+            <SupportTicketModal
+              ticket={selectedTicket}
+              mode={modalMode}
+              onClose={() => setModalMode(null)}
+              onSave={modalMode === 'create' ? createTicket : updateTicket}
+              priorities={PRIORITIES}
+              categories={CATEGORIES}
+            />
+          )}
+          <AnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analytics={analytics} type="support" />
+        </AnimatePresence>
+
+        <FilterSheet
+          isOpen={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          filterSchema={filterSchema}
+          onApply={setFilters}
+          initialValues={filters}
+          viewToggle={null}
+          isMobile={true}
+        />
+
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={confirmationModal.onConfirm}
+          title={confirmationModal.title}
+          description={confirmationModal.description}
+          variant={confirmationModal.variant}
+          confirmLabel={confirmationModal.confirmLabel}
+        />
+      </div>
+    );
   }
 
   return (

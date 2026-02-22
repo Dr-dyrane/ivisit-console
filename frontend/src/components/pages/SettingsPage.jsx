@@ -2,11 +2,12 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { getDisplayId } from '../../services/displayIdService';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { User, Mail, Shield, LogOut, Moon, Sun, Bell, Lock, Smartphone, Globe, CreditCard, ChevronRight, Laptop, Key, HelpCircle } from 'lucide-react';
+import { Mail, Shield, LogOut, Moon, Sun, Bell, Smartphone, Globe, CreditCard, ChevronRight, Laptop, Key, HelpCircle } from 'lucide-react';
 import { Switch } from '../ui/switch';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
@@ -20,9 +21,11 @@ import { SupportModal } from '../modals/SupportModal';
 import { DoctorModal } from '../modals/DoctorModal';
 import { DoctorProfileCard } from '../views/DoctorProfileCard';
 import { useDoctorProfile } from '../../hooks/useDoctorProfile';
+import { MobileSettings } from '../mobile/MobileSettings';
 
 export const SettingsPage = () => {
     const { user, profile, signOut, isAdmin, isSponsor, isProvider } = useAuth();
+    const { isMobile } = useNavigation();
     const { doctorProfile } = useDoctorProfile();
     const [displayId, setDisplayId] = useState(null);
     const [darkMode, setDarkMode] = useState(document.documentElement.classList.contains('dark'));
@@ -116,6 +119,49 @@ export const SettingsPage = () => {
         };
         return styles[role] || styles.viewer;
     };
+
+    if (isMobile) {
+        return (
+            <div className="min-h-screen">
+                <MobileSettings
+                    profile={profile}
+                    user={user}
+                    avatarUrl={avatarUrl}
+                    avatarFallback={avatarFallback}
+                    displayId={displayId}
+                    darkMode={darkMode}
+                    onToggleDarkMode={toggleDarkMode}
+                    onEditProfile={() => setIsProfileModalOpen(true)}
+                    onOpenSecurity={() => setIsSecurityModalOpen(true)}
+                    onOpenSupport={() => setIsSupportModalOpen(true)}
+                    onSignOut={handleSignOut}
+                    isProvider={isProvider()}
+                    onOpenDoctor={() => setIsDoctorModalOpen(true)}
+                />
+
+                <ProfileEditModal
+                    isOpen={isProfileModalOpen}
+                    onClose={() => setIsProfileModalOpen(false)}
+                />
+                <SecurityModal
+                    isOpen={isSecurityModalOpen}
+                    onClose={() => setIsSecurityModalOpen(false)}
+                />
+                <SupportModal
+                    isOpen={isSupportModalOpen}
+                    onClose={() => setIsSupportModalOpen(false)}
+                />
+                {isProvider() && doctorProfile && (
+                    <DoctorModal
+                        isOpen={isDoctorModalOpen}
+                        onClose={() => setIsDoctorModalOpen(false)}
+                        doctor={doctorProfile}
+                        mode="view"
+                    />
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen py-6 md:py-8 space-y-8 animate-in fade-in duration-500">
