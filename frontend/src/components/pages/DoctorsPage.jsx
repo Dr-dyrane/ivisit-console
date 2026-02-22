@@ -27,6 +27,7 @@ import { withTimeout } from '../../lib/utils';
 import { SEOHead } from '../common/SEOHead';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
+import { MobileDoctors } from '../mobile/MobileDoctors';
 
 import { usePageData } from '../../contexts/PageDataContext';
 
@@ -122,6 +123,14 @@ export const DoctorsPage = () => {
     if (isAdmin() || isOrgAdmin()) {
       const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
       return processedDoctors.slice(startIndex, startIndex + pagination.itemsPerPage);
+    }
+    return processedDoctors;
+  }, [processedDoctors, pagination.currentPage, pagination.itemsPerPage, isAdmin, isOrgAdmin]);
+
+  const mobileVisibleDoctors = useMemo(() => {
+    if (isAdmin() || isOrgAdmin()) {
+      const visibleCount = pagination.currentPage * pagination.itemsPerPage;
+      return processedDoctors.slice(0, visibleCount);
     }
     return processedDoctors;
   }, [processedDoctors, pagination.currentPage, pagination.itemsPerPage, isAdmin, isOrgAdmin]);
@@ -248,12 +257,18 @@ export const DoctorsPage = () => {
 
   // Selection Handlers
   const handleSelect = useCallback((id, checked) => {
-    setSelectedIds(prev => checked ? [...prev, id] : prev.filter(did => did !== id));
+    setSelectedIds(prev => {
+      if (checked === undefined) {
+        return prev.includes(id) ? prev.filter(did => did !== id) : [...prev, id];
+      }
+      return checked ? [...prev, id] : prev.filter(did => did !== id);
+    });
   }, []);
 
-  const handleSelectAll = useCallback((checked) => {
+  const handleSelectAll = useCallback((checked, source = paginatedDoctors) => {
+    const ids = Array.isArray(source) ? source.map(d => d.id) : [];
     if (checked) {
-      setSelectedIds(paginatedDoctors.map(d => d.id));
+      setSelectedIds(ids);
     } else {
       setSelectedIds([]);
     }
@@ -409,6 +424,71 @@ export const DoctorsPage = () => {
   ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
 
   usePageFooter(footerContent, 'pagination', !loading && doctors.length > 0);
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen">
+        <SEOHead title="Medical Staff" description="Manage doctors, specialists, and medical personnel." />
+
+        <MobileDoctors
+          doctors={mobileVisibleDoctors}
+          loading={loading}
+          statistics={doctorsData?.stats}
+          filters={filters}
+          setFilters={setFilters}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={confirmDelete}
+          onRefresh={fetchDoctors}
+          onViewAnalytics={() => setAnalyticsModalOpen(true)}
+          isAdmin={isAdmin()}
+          isOrgAdmin={isOrgAdmin()}
+          onOpenFilters={() => setFilterSheetOpen(true)}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+          selectedIds={selectedIds}
+          onSelect={handleSelect}
+          onSelectAll={handleSelectAll}
+        />
+
+        {modalMode && (
+          <DoctorModal
+            isOpen={!!modalMode}
+            onClose={handleModalClose}
+            doctor={selectedDoctor}
+            mode={modalMode}
+          />
+        )}
+
+        <FilterSheet
+          isOpen={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          filterSchema={filterSchema}
+          onApply={setFilters}
+          initialValues={filters}
+          viewToggle={null}
+          isMobile={true}
+        />
+
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          title={confirmationModal.title}
+          description={confirmationModal.description}
+          onConfirm={confirmationModal.onConfirm}
+          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          variant={confirmationModal.variant}
+          confirmLabel={confirmationModal.confirmLabel}
+        />
+
+        <AnalyticsModal
+          open={analyticsModalOpen}
+          onClose={() => setAnalyticsModalOpen(false)}
+          analytics={doctorsData?.stats}
+          type="doctor"
+        />
+      </div>
+    );
+  }
 
 
 
