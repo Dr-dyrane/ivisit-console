@@ -28,6 +28,7 @@ import { AmbulanceTableView } from '../views/AmbulanceTableView';
 import { SEOHead } from '../common/SEOHead';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { BulkActionBar } from '../common/BulkActionBar';
+import { MobileAmbulances } from '../mobile/MobileAmbulances';
 
 import { usePageData } from '../../contexts/PageDataContext';
 
@@ -219,6 +220,11 @@ export const AmbulancesPage = () => {
     return processedAmbulances.slice(startIndex, startIndex + pagination.itemsPerPage);
   }, [processedAmbulances, pagination.currentPage, pagination.itemsPerPage]);
 
+  const mobileVisibleAmbulances = useMemo(() => {
+    const visibleCount = pagination.currentPage * pagination.itemsPerPage;
+    return processedAmbulances.slice(0, visibleCount);
+  }, [processedAmbulances, pagination.currentPage, pagination.itemsPerPage]);
+
   const handleSort = useCallback((key) => {
     setSortConfig(prev => {
       if (prev.key === key && prev.direction === 'desc') {
@@ -232,12 +238,18 @@ export const AmbulancesPage = () => {
   }, []);
 
   const handleSelect = useCallback((id, checked) => {
-    setSelectedIds(prev => checked ? [...prev, id] : prev.filter(mid => mid !== id));
+    setSelectedIds(prev => {
+      if (checked === undefined) {
+        return prev.includes(id) ? prev.filter(mid => mid !== id) : [...prev, id];
+      }
+      return checked ? [...prev, id] : prev.filter(mid => mid !== id);
+    });
   }, []);
 
-  const handleSelectAll = useCallback((checked) => {
+  const handleSelectAll = useCallback((checked, source = paginatedAmbulances) => {
+    const ids = Array.isArray(source) ? source.map(m => m.id) : [];
     if (checked) {
-      setSelectedIds(paginatedAmbulances.map(m => m.id));
+      setSelectedIds(ids);
     } else {
       setSelectedIds([]);
     }
@@ -462,6 +474,73 @@ export const AmbulancesPage = () => {
   ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
 
   usePageFooter(footerContent, 'pagination', !loading && ambulances.length > 0);
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen">
+        <SEOHead title="Fleet Management" description="Manage ambulance fleet, status, and live tracking." />
+
+        <MobileAmbulances
+          ambulances={mobileVisibleAmbulances}
+          loading={loading}
+          statistics={displayStats}
+          filters={filters}
+          setFilters={setFilters}
+          kpiFilter={kpiFilter}
+          setKpiFilter={setKpiFilter}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={confirmDelete}
+          onRefresh={fetchAmbulances}
+          onViewAnalytics={() => setAnalyticsModalOpen(true)}
+          isAdmin={isAdmin()}
+          isOrgAdmin={isOrgAdmin()}
+          onOpenFilters={() => setFilterSheetOpen(true)}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+          selectedIds={selectedIds}
+          onSelect={handleSelect}
+          onSelectAll={handleSelectAll}
+        />
+
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          title={confirmationModal.title}
+          description={confirmationModal.description}
+          onConfirm={confirmationModal.onConfirm}
+          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          variant={confirmationModal.variant}
+          confirmLabel={confirmationModal.confirmLabel}
+        />
+
+        {modalMode && (
+          <AmbulanceModal
+            isOpen={!!modalMode}
+            onClose={handleModalClose}
+            ambulance={selectedAmbulance}
+            mode={modalMode}
+          />
+        )}
+
+        <FilterSheet
+          isOpen={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          filterSchema={filterSchema}
+          onApply={setFilters}
+          initialValues={filters}
+          viewToggle={null}
+          isMobile={true}
+        />
+
+        <AnalyticsModal
+          open={analyticsModalOpen}
+          onClose={() => setAnalyticsModalOpen(false)}
+          analytics={displayStats}
+          type="ambulance"
+        />
+      </div>
+    );
+  }
 
   const renderGridView = () => (
     <LayoutGroup>

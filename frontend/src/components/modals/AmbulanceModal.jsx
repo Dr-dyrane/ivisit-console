@@ -79,6 +79,21 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
     }
   }, [isCreate, isEdit]);
 
+  // Keep mobile bottom bar from overlapping the modal layer.
+  useEffect(() => {
+    const bottomBar = document.getElementById('dynamic-bottom-bar');
+    if (!bottomBar) return undefined;
+
+    const previousDisplay = bottomBar.style.display;
+    if (isOpen) {
+      bottomBar.style.display = 'none';
+    }
+
+    return () => {
+      bottomBar.style.display = previousDisplay;
+    };
+  }, [isOpen]);
+
   // Load driver assignments when modal opens in view mode
   useEffect(() => {
     if (isOpen && ambulance && isView) {
@@ -256,7 +271,13 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4"
+          style={{
+            paddingTop: 'max(12px, var(--safe-top, 0px))',
+            paddingBottom: 'max(12px, calc(var(--safe-bottom, 0px) + 12px))'
+          }}
+        >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -270,23 +291,26 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl"
+            className="relative z-10 w-full max-w-5xl max-h-[92dvh] overflow-hidden rounded-[32px] shadow-2xl"
+            style={{
+              maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 24px)'
+            }}
           >
             {/* Header Area */}
-            <div className="flex items-center justify-between p-8 pb-4">
+            <div className="flex items-center justify-between p-2 md:p-8 pb-4">
               <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-green-500/20 rounded-2xl">
-                  <Ambulance className="h-6 w-6 text-green-500" />
+                <div className="p-2 md:p-2.5 bg-green-500/20 rounded-2xl">
+                  <Ambulance className="h-5 w-5 md:h-6 md:w-6 text-green-500" />
                 </div>
                 <div className="hidden sm:block">
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
+                  <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-foreground/90">
                     {formData.call_sign || 'Fleet Management'}
                   </h2>
-                  <p className="text-sm text-muted-foreground">Emergency response vehicle configuration</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Emergency response vehicle configuration</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Badge className={`rounded-full px-4 py-1 border-0 ${formData.status === 'available' ? 'bg-green-500/10 text-green-500' :
+                <Badge className={`rounded-full px-3 md:px-4 py-1 text-xs border-0 ${formData.status === 'available' ? 'bg-green-500/10 text-green-500' :
                   'bg-orange-500/10 text-orange-500'
                   }`}>
                   {formData.status?.toUpperCase()}
@@ -294,36 +318,41 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                 <Button
                   variant="ghost"
                   onClick={() => onClose(false)}
-                  className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                  className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
                 >
                   <X className="h-5 w-5" />
                 </Button>
               </div>
             </div>
 
-            <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
+            <div
+              className="p-2 md:p-8 pt-2 overflow-y-auto space-y-6 no-scrollbar"
+              style={{
+                maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 170px)'
+              }}
+            >
 
               {/* Vehicle Summary Bubbles */}
               <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
+                <div className="p-3 md:p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
                   <div className="flex justify-center mb-1">
                     <Zap className="w-5 h-5 text-primary opacity-60" />
                   </div>
-                  <p className="text-xl font-semibold">{formData.type === 'critical' ? 'ALS' : 'BLS'}</p>
+                  <p className="text-lg md:text-xl font-semibold">{formData.type === 'critical' ? 'ALS' : 'BLS'}</p>
                   <p className="text-[10px] uppercase tracking-widest opacity-50">Configuration</p>
                 </div>
-                <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
+                <div className="p-3 md:p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
                   <div className="flex justify-center mb-1">
                     <Star className="w-5 h-5 text-yellow-500 opacity-60 fill-yellow-500/20" />
                   </div>
-                  <p className="text-xl font-semibold">{formData.rating}</p>
+                  <p className="text-lg md:text-xl font-semibold">{formData.rating}</p>
                   <p className="text-[10px] uppercase tracking-widest opacity-50">Crew Rank</p>
                 </div>
-                <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
+                <div className="p-3 md:p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
                   <div className="flex justify-center mb-1">
                     <Shield className="w-5 h-5 text-blue-500 opacity-60" />
                   </div>
-                  <p className="text-xl font-semibold truncate px-1">{formData.vehicle_number || '---'}</p>
+                  <p className="text-lg md:text-xl font-semibold truncate px-1">{formData.vehicle_number || '---'}</p>
                   <p className="text-[10px] uppercase tracking-widest opacity-50">Registry</p>
                 </div>
               </div>
@@ -764,7 +793,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                     type="button"
                     variant="ghost"
                     onClick={() => onClose(false)}
-                    className="rounded-full px-8 h-12 font-semibold"
+                    className="rounded-full px-6 md:px-8 h-11 md:h-12 font-semibold"
                   >
                     {isView ? 'Close' : 'Cancel'}
                   </Button>
@@ -772,7 +801,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="rounded-full px-12 h-12 bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg shadow-primary/20"
+                      className="rounded-full px-8 md:px-12 h-11 md:h-12 bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg shadow-primary/20"
                     >
                       {loading ? 'Processing...' : (isCreate ? 'Add Unit' : 'Save Configuration')}
                     </Button>

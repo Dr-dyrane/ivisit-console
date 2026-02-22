@@ -309,31 +309,31 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header Area */}
-            <div className="flex items-center justify-between p-8 pb-4">
+            <div className="flex items-center justify-between p-2 md:p-8 pb-4">
               <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-purple-500/20 rounded-2xl">
-                  <CalendarDays className="h-6 w-6 text-purple-500" />
+                <div className="p-2 md:p-2.5 bg-purple-500/20 rounded-2xl">
+                  <CalendarDays className="h-5 w-5 md:h-6 md:w-6 text-purple-500" />
                 </div>
-                <div className="hidden sm:block">
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
+                <div>
+                  <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-foreground/90">
                     Staff Scheduling
                   </h2>
-                  <p className="text-sm text-muted-foreground">Manage staff shifts and schedules</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Manage staff shifts and schedules</p>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 onClick={onClose}
-                className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
               >
                 <X className="h-5 w-5" />
               </Button>
             </div>
 
             {/* Glassmorphic Tabs */}
-            <div className="flex gap-1 p-8 pt-2">
+            <div className="flex gap-1 p-2 md:p-8 pt-2">
               <button
-                className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl transition-all ${
+                className={`flex items-center gap-2 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-medium rounded-xl transition-all ${
                   activeTab === 'overview'
                     ? 'bg-primary/20 text-primary border border-primary/30'
                     : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground border border-transparent'
@@ -344,7 +344,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                 Overview
               </button>
               <button
-                className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl transition-all ${
+                className={`flex items-center gap-2 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-medium rounded-xl transition-all ${
                   activeTab === 'add'
                     ? 'bg-primary/20 text-primary border border-primary/30'
                     : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground border border-transparent'
@@ -356,7 +356,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
               </button>
               {activeTab === 'edit' && (
                 <button
-                  className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl transition-all bg-primary/20 text-primary border border-primary/30`}
+                  className={`flex items-center gap-2 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-medium rounded-xl transition-all bg-primary/20 text-primary border border-primary/30`}
                 >
                   <Edit className="w-4 h-4" />
                   Edit Shift
@@ -365,7 +365,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
             </div>
 
             <div
-              className="p-8 pt-2 overflow-y-auto space-y-6 no-scrollbar"
+              className="p-2 md:p-8 pt-2 overflow-y-auto space-y-6 no-scrollbar"
               style={{
                 maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 240px)'
               }}
@@ -382,7 +382,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                           <Users className="w-6 h-6 text-blue-500 opacity-60" />
                         )}
                       </div>
-                      <p className="text-2xl font-bold">{staffList.length}</p>
+                      <p className="text-xl md:text-2xl font-bold">{staffList.length}</p>
                       <p className="text-[10px] uppercase tracking-widest opacity-50">Total Staff</p>
                     </div>
                     <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
@@ -393,7 +393,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                           <CheckCircle className="w-6 h-6 text-green-500 opacity-60" />
                         )}
                       </div>
-                      <p className="text-2xl font-bold text-green-400">
+                      <p className="text-xl md:text-2xl font-bold text-green-400">
                         {stats?.scheduled_today || 0}
                       </p>
                       <p className="text-[10px] uppercase tracking-widest opacity-50">Scheduled Today</p>
@@ -406,7 +406,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                           <Calendar className="w-6 h-6 text-purple-500 opacity-60" />
                         )}
                       </div>
-                      <p className="text-2xl font-bold text-purple-400">{stats?.this_week || 0}</p>
+                      <p className="text-xl md:text-2xl font-bold text-purple-400">{stats?.this_week || 0}</p>
                       <p className="text-[10px] uppercase tracking-widest opacity-50">This Week</p>
                     </div>
                   </div>

@@ -283,20 +283,20 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
             }}
           >
             {/* Header Area */}
-            <div className="flex items-center justify-between p-8 pb-4">
+            <div className="flex items-center justify-between p-2 md:p-8 pb-4">
               <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-blue-500/20 rounded-2xl">
-                  <Hospital className="h-6 w-6 text-blue-500" />
+                <div className="p-2 md:p-2.5 bg-blue-500/20 rounded-2xl">
+                  <Hospital className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
+                  <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-foreground/90">
                     {formData.name || 'New Facility'}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-[10px] uppercase tracking-wider ${formData.status === 'available' ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
+                    <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs uppercase tracking-wider ${formData.status === 'available' ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
                       {formData.status || 'AVAILABLE'}
                     </Badge>
-                    <Badge className="rounded-full bg-white/10 border-0 font-semibold px-3 py-0.5 text-[10px] uppercase tracking-wider text-blue-400">
+                    <Badge className="rounded-full bg-white/10 border-0 font-semibold px-3 py-0.5 text-xs uppercase tracking-wider text-blue-400">
                       {formData.type}
                     </Badge>
                   </div>
@@ -305,14 +305,14 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
               <Button
                 variant="ghost"
                 onClick={() => onClose(false)}
-                className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
               >
                 <X className="h-5 w-5" />
               </Button>
             </div>
 
             <div
-              className="p-8 pt-2 overflow-y-auto space-y-6 no-scrollbar"
+              className="p-2 md:p-8 pt-2 overflow-y-auto space-y-6 no-scrollbar"
               style={{
                 maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 170px)'
               }}
@@ -395,7 +395,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         value={formData.name}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-semibold text-lg"
+                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-11 md:h-12 font-semibold text-base md:text-lg"
                         placeholder="General Hospital..."
                       />
                     </div>
@@ -798,21 +798,21 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                 </GlassCard>
 
                 {/* Footer Actions */}
-                <div className="p-4 sm:p-6 rounded-[24px] bg-white/5 border border-white/10 flex gap-3 justify-end">
+                <div className="p-3 md:p-4 rounded-[24px] bg-white/5 border border-white/10 flex gap-3 justify-end">
                   {!isView ? (
                     <>
                       <Button
                         type="button"
                         variant="ghost"
                         onClick={() => onClose(false)}
-                        className="rounded-2xl font-semibold text-muted-foreground hover:bg-white/10"
+                        className="rounded-2xl h-11 md:h-12 font-semibold text-muted-foreground hover:bg-white/10"
                         disabled={loading}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
-                        className="rounded-2xl bg-primary hover:bg-primary/90 font-semibold px-8 shadow-lg shadow-primary/20"
+                        className="rounded-2xl h-11 md:h-12 bg-primary hover:bg-primary/90 font-semibold px-6 md:px-8 shadow-lg shadow-primary/20"
                         disabled={loading}
                       >
                         {loading ? 'Saving...' : (isCreate ? 'Add Facility' : 'Save Changes')}
@@ -822,7 +822,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                     <Button
                       type="button"
                       onClick={() => onClose(false)}
-                      className="rounded-2xl bg-white/10 text-foreground hover:bg-white/20 font-semibold px-8"
+                      className="rounded-2xl h-11 md:h-12 bg-white/10 text-foreground hover:bg-white/20 font-semibold px-6 md:px-8"
                     >
                       Close
                     </Button>
