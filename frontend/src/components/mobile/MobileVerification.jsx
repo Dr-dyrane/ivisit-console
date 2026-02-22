@@ -10,6 +10,8 @@ import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty } from './MobileListStates';
+import { useFeedback } from '../../hooks/useFeedback';
+import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 
 export const MobileVerification = ({
   queueType = 'providers',
@@ -32,6 +34,7 @@ export const MobileVerification = ({
 }) => {
   const [expandedId, setExpandedId] = useState(null);
   const selectionMode = selectedIds.length > 0;
+  const { triggerFromEvent } = useFeedback();
 
   const activeStats = queueType === 'providers' ? stats : orgStats;
   const items = queueType === 'providers' ? providers : organizations;
@@ -59,6 +62,7 @@ export const MobileVerification = ({
     }
     return result;
   }, [filters, items, queueType]);
+  const hasActiveRecovery = Boolean(filters?.search) || String(filters?.status || 'all') !== 'all';
 
   const periodTrends = useMemo(() => {
     const periodMs = 30 * 24 * 60 * 60 * 1000;
@@ -196,7 +200,10 @@ export const MobileVerification = ({
           {onOpenFilters && (
             <motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={() => onOpenFilters()}
+              onClick={(event) => {
+                onOpenFilters?.();
+                triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
+              }}
               className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 border-0"
               aria-label="Open filters"
             >
@@ -206,7 +213,10 @@ export const MobileVerification = ({
           {onViewAnalytics && (
             <motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={() => onViewAnalytics()}
+              onClick={(event) => {
+                onViewAnalytics?.();
+                triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
+              }}
               className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 border-0 shadow-sm"
               aria-label="Open analytics"
             >
@@ -297,7 +307,20 @@ export const MobileVerification = ({
             })}
           </AnimatePresence>
 
-          {filteredItems.length === 0 && <MobileListEmpty icon={Shield} label="No verification items found" />}
+          {filteredItems.length === 0 && (
+            <MobileListEmpty
+              icon={Shield}
+              label="No verification items found"
+              reason={filters?.search ? 'search' : hasActiveRecovery ? 'filtered' : 'empty'}
+              hint={filters?.search
+                ? `No ${queueType} matches "${filters.search}".`
+                : hasActiveRecovery
+                  ? 'Try clearing status filters to recover queue visibility.'
+                  : 'New verification items will appear here as they arrive.'}
+              onRecover={hasActiveRecovery ? () => setFilters(prev => ({ ...prev, search: '', status: 'all' })) : undefined}
+              recoverLabel={filters?.search ? 'Clear Search' : hasActiveRecovery ? 'Reset Filters' : undefined}
+            />
+          )}
         </div>
       </MobilePageShell>
     </PullToRefresh>

@@ -22,6 +22,7 @@ import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty } from './MobileListStates';
+import { MobileActionRail } from './MobileActionRail';
 
 export const MobileWallet = ({
   loading,
@@ -99,6 +100,45 @@ export const MobileWallet = ({
     { id: 'projection', label: '30d', value: formatCurrency(projection || 0), color: 'hsl(var(--success))', delta: 'LIVE', direction: 'up' },
     { id: 'methods', label: 'Cards', value: paymentMethods.length, color: 'hsl(var(--info))', delta: 'LIVE', direction: 'flat' }
   ], [wallet?.balance, projection, paymentMethods.length, formatCurrency]);
+
+  const railActions = useMemo(() => {
+    const actions = [];
+    if (isOrgAdmin || isAdmin) {
+      actions.push({
+        id: 'topup',
+        label: isAdmin ? 'Credit Main' : 'Top Up',
+        icon: ArrowDownLeft,
+        onClick: onTopUp,
+        tone: 'success',
+        color: 'hsl(var(--success))'
+      });
+    }
+    actions.push({
+      id: 'withdraw',
+      label: 'Withdraw',
+      icon: ArrowUpRight,
+      onClick: onWithdraw,
+      tone: 'neutral'
+    });
+    actions.push({
+      id: 'billing',
+      label: paymentMethods.length > 0 ? 'Billing' : 'Link Card',
+      icon: CreditCard,
+      onClick: onOpenBilling,
+      tone: 'neutral'
+    });
+    if (onViewAnalytics) {
+      actions.push({
+        id: 'analytics',
+        label: 'Analytics',
+        icon: BarChart3,
+        onClick: onViewAnalytics,
+        tone: 'spark',
+        color: 'hsl(var(--spark))'
+      });
+    }
+    return actions;
+  }, [isOrgAdmin, isAdmin, onTopUp, onWithdraw, paymentMethods.length, onOpenBilling, onViewAnalytics]);
 
   return (
     <PullToRefresh onRefresh={onRefresh}>
@@ -186,48 +226,7 @@ export const MobileWallet = ({
           </div>
         </section>
 
-        <div className="mb-3 px-1">
-          <div className="apple-glass-heavy rounded-2xl p-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
-            {(isOrgAdmin || isAdmin) && (
-              <Button
-                onClick={onTopUp}
-                size="sm"
-                className="h-9 rounded-xl bg-success/20 text-success border border-success/30 text-[9px] uppercase tracking-[0.14em] whitespace-nowrap px-3"
-              >
-                <ArrowDownLeft className="h-3.5 w-3.5 mr-1.5" />
-                {isAdmin ? 'Credit Main' : 'Top Up'}
-              </Button>
-            )}
-            <Button
-              onClick={onWithdraw}
-              size="sm"
-              className="h-9 rounded-xl text-[9px] uppercase tracking-[0.14em] whitespace-nowrap px-3"
-            >
-              <ArrowUpRight className="h-3.5 w-3.5 mr-1.5" />
-              Withdraw
-            </Button>
-            <Button
-              onClick={onOpenBilling}
-              size="sm"
-              variant="outline"
-              className="h-9 rounded-xl text-[9px] uppercase tracking-[0.14em] whitespace-nowrap px-3"
-            >
-              <CreditCard className="h-3.5 w-3.5 mr-1.5" />
-              {paymentMethods.length > 0 ? 'Billing' : 'Link Card'}
-            </Button>
-            {onViewAnalytics && (
-              <Button
-                onClick={onViewAnalytics}
-                size="sm"
-                variant="ghost"
-                className="h-9 rounded-xl text-[9px] uppercase tracking-[0.14em] whitespace-nowrap px-3 text-[hsl(var(--spark)/0.85)] hover:text-[hsl(var(--spark)/0.95)]"
-              >
-                <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-                Analytics
-              </Button>
-            )}
-          </div>
-        </div>
+        <MobileActionRail actions={railActions} />
 
         <div className="flex items-center gap-2 mb-3 px-1">
           <div className="p-1 rounded-xl bg-muted/20 backdrop-blur-md flex relative w-full">

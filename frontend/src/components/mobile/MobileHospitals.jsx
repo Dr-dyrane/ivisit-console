@@ -25,6 +25,8 @@ import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
+import { useFeedback } from '../../hooks/useFeedback';
+import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 
 export const MobileHospitals = ({
     hospitals,
@@ -50,6 +52,7 @@ export const MobileHospitals = ({
     const observerTarget = useRef(null);
     const [expandedHospitalId, setExpandedHospitalId] = useState(null);
     const selectionMode = selectedIds.length > 0;
+    const { triggerFromEvent } = useFeedback();
 
     const formatSignedPercent = (value) => {
         if (!Number.isFinite(value)) return null;
@@ -236,7 +239,10 @@ export const MobileHospitals = ({
                     </div>
                     <motion.button
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => onOpenFilters?.()}
+                        onClick={(event) => {
+                            onOpenFilters?.();
+                            triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
+                        }}
                         className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0"
                     >
                         <SlidersHorizontal size={18} />
@@ -244,7 +250,10 @@ export const MobileHospitals = ({
                     {canManage && (
                         <motion.button
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => onViewAnalytics?.()}
+                            onClick={(event) => {
+                                onViewAnalytics?.();
+                                triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
+                            }}
                             className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0 shadow-sm"
                         >
                             <BarChart3 size={18} />

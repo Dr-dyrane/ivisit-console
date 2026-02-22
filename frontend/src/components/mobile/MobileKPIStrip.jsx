@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
+import { mobileMotion } from './mobileMotion';
 
 /**
  * MobileKPIStrip
@@ -14,11 +15,15 @@ export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi }) => {
     const compactKpis = (kpis || []).slice(0, 4);
     const cols = Math.min(Math.max(compactKpis.length, 1), 4);
     const { triggerFromEvent } = useFeedback();
+    const hasAllOption = compactKpis.some((kpi) => kpi.id === 'all');
 
     const handleKpiClick = (event, kpi) => {
         const isReapply = activeKpi === kpi.id;
         const hasHandler = typeof onKpiClick === 'function';
-        if (hasHandler) onKpiClick(kpi.id);
+        if (hasHandler) {
+            if (isReapply && hasAllOption && kpi.id !== 'all') onKpiClick('all');
+            else onKpiClick(kpi.id);
+        }
         if (!hasHandler) return;
         triggerFromEvent(event, {
             variant: isReapply ? FEEDBACK_TYPES.INFO : FEEDBACK_TYPES.SUCCESS,
@@ -32,8 +37,8 @@ export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi }) => {
         <motion.div
             initial={{ y: -6, opacity: 0.98 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="sticky top-0 z-40 w-full px-2 py-3 border-0 shadow-none grid gap-2"
+            transition={mobileMotion.reveal}
+            className="sticky top-0 z-40 w-full px-2 py-3 border-0 shadow-none grid gap-2 relative"
             style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
         >
             {compactKpis.map((kpi, idx) => {
@@ -42,21 +47,27 @@ export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi }) => {
                     <React.Fragment key={kpi.id || idx}>
                         <motion.button
                             whileTap={{ scale: 0.985 }}
-                            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                            transition={mobileMotion.quick}
                             onClick={(event) => handleKpiClick(event, kpi)}
                             aria-pressed={isActive}
-                            className={`relative flex-1 flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-[14px] transition-[background,transform,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden ${isActive
+                            className={`relative flex-1 flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-[14px] border border-transparent transition-[background,transform,box-shadow,outline,border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden ${isActive
                                 ? 'bg-muted/30'
                                 : 'bg-muted/20'
                                 }`}
-                            style={{ WebkitTapHighlightColor: 'transparent' }}
+                            style={{
+                                WebkitTapHighlightColor: 'transparent',
+                                ...(isActive ? {
+                                    borderColor: 'hsl(var(--primary) / 0.10)',
+                                    boxShadow: '0 0 0 1px hsl(var(--spark) / 0.06) inset, 0 0 0 1px hsl(var(--primary) / 0.06)'
+                                } : null)
+                            }}
                         >
                             {/* 1. Spotlight Effect (Canon #20) */}
                             {isActive && (
                                 <motion.div
                                     layoutId="kpi-spotlight"
                                     className="absolute inset-0"
-                                    style={{ background: 'radial-gradient(circle at 50% 0%, hsl(var(--spark) / 0.12), transparent 72%)' }}
+                                    style={{ background: 'radial-gradient(circle at 50% 0%, hsl(var(--spark) / 0.10), transparent 72%)' }}
                                 />
                             )}
 

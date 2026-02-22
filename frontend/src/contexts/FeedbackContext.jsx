@@ -68,6 +68,22 @@ const getSheenGradient = (variant) => {
     }
 };
 
+const createBurstParticles = (variant, baseColor) => {
+    const palette = [baseColor, ...(FEEDBACK_VARIANTS[variant]?.colors || FEEDBACK_VARIANTS.click.colors)].filter(Boolean);
+    return Array.from({ length: 22 }).map((_, i) => {
+        const angle = (i / 22) * Math.PI * 2 + ((i % 3) * Math.PI) / 24;
+        const distance = 18 + (i % 6) * 5.2;
+        return {
+            id: i,
+            dx: Math.cos(angle) * distance,
+            dy: Math.sin(angle) * distance - 8,
+            rotate: 90 + i * 10,
+            color: palette[i % palette.length],
+            size: i % 4 === 0 ? 2.4 : 1.6
+        };
+    });
+};
+
 const playSoftPop = (variant = 'click') => {
     if (typeof window === 'undefined') return;
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -134,7 +150,8 @@ export const FeedbackProvider = ({ children }) => {
             color,
             variant,
             focusRect: options.focusRect || null,
-            focusRadius: options.focusRadius || 18
+            focusRadius: options.focusRadius || 18,
+            particles: createBurstParticles(variant, color)
         };
         setBursts((prev) => [...prev, burst]);
 
@@ -229,6 +246,25 @@ export const FeedbackProvider = ({ children }) => {
                                 className="absolute -left-7 -top-7 h-14 w-14 rounded-full"
                                 style={{ boxShadow: `0 0 24px 3px ${burst.color}22 inset` }}
                             />
+                            {burst.particles.map((particle) => (
+                                <motion.span
+                                    key={`${burst.id}-p-${particle.id}`}
+                                    initial={{ x: 0, y: 0, scale: 0.8, opacity: 0.82, rotate: 0 }}
+                                    animate={{ x: particle.dx, y: particle.dy, scale: 0, opacity: 0, rotate: particle.rotate }}
+                                    transition={{
+                                        duration: 0.56,
+                                        delay: (particle.id % 5) * 0.015,
+                                        ease: [0.16, 1, 0.3, 1]
+                                    }}
+                                    className="absolute rounded-[3px]"
+                                    style={{
+                                        width: particle.size,
+                                        height: particle.size,
+                                        background: particle.color,
+                                        boxShadow: `0 0 7px ${particle.color}`
+                                    }}
+                                />
+                            ))}
                         </motion.div>
                     ))}
                 </AnimatePresence>

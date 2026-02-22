@@ -1,20 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { QuickSearch } from './QuickSearch';
 import { NotificationCenter } from '../common/NotificationCenter';
-import { Search, Menu, X, PanelRightOpen } from 'lucide-react';
+import { Search, Menu, X, PanelRightOpen, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sheet, SheetContent, SheetOverlay } from '../ui/sheet';
 import { MobileNavMenu } from './MobileNavMenu';
 
 export const SmartHeader = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
     const { isMobile } = useNavigation();
     const { isScrolledDown, headerConfig, sidebarWidth, isContextPanelOpen, openContextPanel, closeContextPanel } = useLayout();
     const { user, profile } = useAuth();
     const [searchOpen, setSearchOpen] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [previousPath, setPreviousPath] = useState(null);
+    const historyRef = useRef([]);
 
     // Listen for closeMobileMenu events from context panel actions
     useEffect(() => {
@@ -23,7 +28,43 @@ export const SmartHeader = () => {
         return () => window.removeEventListener('closeMobileMenu', handleClose);
     }, []);
 
+    useEffect(() => {
+        const path = location.pathname;
+        if (!path) return;
+        const last = historyRef.current[historyRef.current.length - 1];
+        if (last !== path) {
+            historyRef.current.push(path);
+            if (historyRef.current.length > 24) historyRef.current.shift();
+        }
+        setPreviousPath(historyRef.current[historyRef.current.length - 2] || null);
+    }, [location.pathname]);
+
     const AVATAR_URL = profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username || 'User'}&background=random`;
+    const isHome = location.pathname === '/';
+
+    const getRouteLabel = (pathname) => {
+        if (!pathname) return 'Home';
+        if (pathname === '/') return 'Home';
+        if (pathname.startsWith('/map')) return 'Map';
+        if (pathname.startsWith('/analytics')) return 'Analytics';
+        if (pathname.startsWith('/hospitals')) return 'Hospitals';
+        if (pathname.startsWith('/ambulances')) return 'Ambulances';
+        if (pathname.startsWith('/doctors')) return 'Doctors';
+        if (pathname.startsWith('/visits')) return 'Visits';
+        if (pathname.startsWith('/emergencies')) return 'Emergency';
+        if (pathname.startsWith('/verification')) return 'Verification';
+        if (pathname.startsWith('/users')) return 'Users';
+        if (pathname.startsWith('/organizations')) return 'Organizations';
+        if (pathname.startsWith('/settings')) return 'Settings';
+        if (pathname.startsWith('/health-news')) return 'Health News';
+        if (pathname.startsWith('/support-tickets')) return 'Support';
+        if (pathname.startsWith('/insurance')) return 'Insurance';
+        if (pathname.startsWith('/subscriptions')) return 'Subscriptions';
+        if (pathname.startsWith('/wallet')) return 'Wallet';
+        if (pathname.startsWith('/pricing')) return 'Pricing';
+        return 'Back';
+    };
+    const currentPageLabel = headerConfig?.title || getRouteLabel(location.pathname);
 
     return (
         <>
@@ -53,12 +94,25 @@ export const SmartHeader = () => {
             >
                 {/* MOBILE: LEFT - Avatar Trigger */}
                 {isMobile ? (
-                    <button
-                        onClick={() => setMenuOpen(true)}
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 transition-transform active:scale-95 overflow-hidden border-0 shadow-sm shrink-0"
-                    >
-                        <img src={AVATAR_URL} alt="User" className="w-full h-full object-cover" />
-                    </button>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        {!isHome && (
+                            <motion.button
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => navigate(-1)}
+                                className="h-6 max-w-[112px] px-1.5 rounded-full border-0 inline-flex items-center gap-1 text-[8px] font-semibold tracking-[0.05em] text-foreground/75 truncate bg-[hsl(var(--spark)/0.12)] hover:bg-[hsl(var(--spark)/0.16)] transition-colors"
+                                aria-label="Go back"
+                            >
+                                <Play className="h-3 w-3 rotate-180 text-[hsl(var(--spark)/0.88)] fill-current stroke-0 shrink-0" />
+                                <span className="truncate">{getRouteLabel(previousPath)}</span>
+                            </motion.button>
+                        )}
+                        <button
+                            onClick={() => setMenuOpen(true)}
+                            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 transition-transform active:scale-95 overflow-hidden border-0 shadow-sm shrink-0"
+                        >
+                            <img src={AVATAR_URL} alt="User" className="w-full h-full object-cover" />
+                        </button>
+                    </div>
                 ) : (
                     <div className="flex items-center gap-2 md:gap-0 overflow-hidden h-full">
                         {/* Desktop Title Zone */}
@@ -80,6 +134,24 @@ export const SmartHeader = () => {
                                 </motion.h1>
                             )}
                         </AnimatePresence>
+                    </div>
+                )}
+
+                {isMobile && isHome && (
+                    <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-full backdrop-blur-xl bg-[linear-gradient(135deg,hsl(var(--spark)/0.14),hsl(var(--primary)/0.08))] shadow-[0_4px_14px_-10px_hsl(var(--spark)/0.32)] pointer-events-none select-none">
+                        <img src="/logo.png" alt="iVisit" className="h-4 w-4 object-contain opacity-90" />
+                        <span className="text-[13px] font-semibold tracking-tight text-foreground/88 inline-flex items-center">
+                            iVisit
+                            <span className="-ml-[1px] text-primary leading-none">.</span>
+                        </span>
+                    </div>
+                )}
+                {isMobile && !isHome && (
+                    <div className="absolute left-1/2 -translate-x-1/2 max-w-[46vw] flex items-center px-2.5 py-1 rounded-full backdrop-blur-xl bg-[linear-gradient(135deg,hsl(var(--spark)/0.14),hsl(var(--primary)/0.08))] shadow-[0_4px_14px_-10px_hsl(var(--spark)/0.32)] pointer-events-none select-none">
+                        <span className="text-[12px] font-semibold tracking-tight text-foreground/85 inline-flex items-center min-w-0">
+                            <span className="truncate">{currentPageLabel}</span>
+                            <span className="-ml-[1px] text-primary leading-none">.</span>
+                        </span>
                     </div>
                 )}
 

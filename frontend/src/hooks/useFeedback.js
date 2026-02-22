@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useFeedbackContext } from '../contexts/FeedbackContext';
+import { FEEDBACK_TYPES } from '../contexts/FeedbackContext';
 
 export const useFeedback = () => {
     const { triggerFeedback } = useFeedbackContext();
@@ -45,7 +46,39 @@ export const useFeedback = () => {
         triggerFeedback(normalized);
     }, [triggerFeedback]);
 
-    return { triggerFeedback, triggerFromEvent };
+    const triggerTyped = useCallback((variant, options = {}) => {
+        triggerFeedback({ ...options, variant });
+    }, [triggerFeedback]);
+
+    const triggerClick = useCallback((options = {}) => {
+        triggerTyped(FEEDBACK_TYPES.CLICK, options);
+    }, [triggerTyped]);
+
+    const triggerSuccess = useCallback((options = {}) => {
+        triggerTyped(FEEDBACK_TYPES.SUCCESS, options);
+    }, [triggerTyped]);
+
+    const triggerInfo = useCallback((options = {}) => {
+        triggerTyped(FEEDBACK_TYPES.INFO, options);
+    }, [triggerTyped]);
+
+    const triggerWarning = useCallback((options = {}) => {
+        triggerTyped(FEEDBACK_TYPES.WARNING, options);
+    }, [triggerTyped]);
+
+    const triggerError = useCallback((options = {}) => {
+        triggerTyped(FEEDBACK_TYPES.DESTRUCTIVE, options);
+    }, [triggerTyped]);
+
+    return {
+        triggerFeedback,
+        triggerFromEvent,
+        triggerClick,
+        triggerSuccess,
+        triggerInfo,
+        triggerWarning,
+        triggerError
+    };
 };
 
 export default useFeedback;

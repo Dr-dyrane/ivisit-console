@@ -23,6 +23,8 @@ import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty } from './MobileListStates';
+import { useFeedback } from '../../hooks/useFeedback';
+import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 
 export const MobilePricing = ({
   pricing = [],
@@ -46,6 +48,7 @@ export const MobilePricing = ({
 }) => {
   const [expandedId, setExpandedId] = useState(null);
   const selectionMode = selectedIds.length > 0;
+  const { triggerFromEvent } = useFeedback();
 
   const avgPrice = useMemo(() => {
     if (!allPricing.length) return 0;
@@ -69,6 +72,7 @@ export const MobilePricing = ({
   const getItemType = (item) => item.service_type || item.room_type || 'general';
   const getItemPrice = (item) => Number(item.base_price || item.price_per_night || 0);
   const isGlobal = (item) => !item.organization_id && !item.hospital_id;
+  const hasActiveRecovery = Boolean(searchTerm) || kpiFilter !== 'all';
 
   const periodTrends = useMemo(() => {
     const periodMs = 30 * 24 * 60 * 60 * 1000;
@@ -213,7 +217,10 @@ export const MobilePricing = ({
             <Button
               variant="ghost"
               className="w-11 h-11 rounded-2xl apple-glass-heavy border-0 flex items-center justify-center text-[hsl(var(--spark)/0.78)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
-              onClick={onViewAnalytics}
+              onClick={(event) => {
+                onViewAnalytics?.();
+                triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
+              }}
               aria-label="Open analytics"
             >
               <BarChart3 size={18} />
@@ -310,7 +317,21 @@ export const MobilePricing = ({
           </AnimatePresence>
 
           {!loading && pricing.length === 0 && (
-            <MobileListEmpty icon={BadgeDollarSign} label="No pricing rules found" />
+            <MobileListEmpty
+              icon={BadgeDollarSign}
+              label="No pricing rules found"
+              reason={searchTerm ? 'search' : hasActiveRecovery ? 'filtered' : 'empty'}
+              hint={searchTerm
+                ? `No pricing matches "${searchTerm}".`
+                : hasActiveRecovery
+                  ? 'Try resetting filters to view all pricing rules.'
+                  : 'Pricing rules will appear here once configured.'}
+              onRecover={hasActiveRecovery ? () => {
+                if (searchTerm) setSearchTerm('');
+                if (kpiFilter !== 'all') setKpiFilter('all');
+              } : undefined}
+              recoverLabel={searchTerm ? 'Clear Search' : hasActiveRecovery ? 'Reset Filters' : undefined}
+            />
           )}
         </div>
       </MobilePageShell>
