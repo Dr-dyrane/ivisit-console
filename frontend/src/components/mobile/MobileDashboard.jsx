@@ -44,6 +44,26 @@ export const MobileDashboard = ({
 }) => {
     const { isAdmin, isProvider, isPatient, isOrgAdmin, isSponsor } = roleContext;
 
+    const formatSignedPercent = (value) => {
+        if (!Number.isFinite(value)) return null;
+        const rounded = Math.abs(value) >= 10 ? value.toFixed(0) : value.toFixed(1);
+        return `${value > 0 ? '+' : ''}${rounded}%`;
+    };
+
+    const calcDeltaPercent = (current, previous) => {
+        const c = Number(current);
+        const p = Number(previous);
+        if (!Number.isFinite(c) || !Number.isFinite(p) || p === 0) return null;
+        return ((c - p) / Math.abs(p)) * 100;
+    };
+
+    const demandDelta = calcDeltaPercent(appStats.todayRequests || 0, appStats.yesterdayRequests || 0);
+    const walletDelta = Number.isFinite(Number(walletStats?.trend)) ? Number(walletStats.trend) : null;
+    const completionVsTarget = Number.isFinite(Number(appStats.completionRate))
+        ? Number(appStats.completionRate) - 90
+        : null;
+    const fleetLoadDelta = calcDeltaPercent(appStats.availableAmbulances || 0, appStats.liveEmergencies || 1);
+
     // Standardized chart data for sparklines if none provided
     const defaultChartData = useMemo(() => [
         { value: 40 }, { value: 65 }, { value: 45 }, { value: 90 }, { value: 75 }, { value: 95 }
@@ -51,24 +71,29 @@ export const MobileDashboard = ({
 
     // Role-based KPI Strip
     const getKPIData = () => {
+        const responseDelta = Number.isFinite(Number(appStats.responseTime))
+            ? (5 - Number(appStats.responseTime)) * 8
+            : null;
+
         if (isAdmin || isOrgAdmin) {
             return [
-                { label: 'Active', value: appStats.liveEmergencies, color: 'hsl(var(--destructive))' },
-                { label: 'Latency', value: '14ms', color: 'hsl(var(--info))' },
-                { label: 'Health', value: '99%', color: 'hsl(var(--success))' }
+                { label: 'Active', value: appStats.liveEmergencies, color: 'hsl(var(--destructive))', delta: formatSignedPercent(demandDelta) || 'LIVE', direction: Number(demandDelta) > 0 ? 'up' : Number(demandDelta) < 0 ? 'down' : 'flat' },
+                { label: 'Response', value: `${appStats.responseTime || 0}m`, color: 'hsl(var(--info))', delta: formatSignedPercent(responseDelta) || 'LIVE', direction: Number(responseDelta) > 0 ? 'up' : Number(responseDelta) < 0 ? 'down' : 'flat' },
+                { label: 'Success', value: `${appStats.completionRate || 0}%`, color: 'hsl(var(--success))', delta: formatSignedPercent(completionVsTarget) || 'LIVE', direction: Number(completionVsTarget) >= 0 ? 'up' : 'down' },
+                { label: 'Fleet', value: appStats.availableAmbulances || 0, color: 'hsl(var(--primary))', delta: formatSignedPercent(fleetLoadDelta) || 'LIVE', direction: Number(fleetLoadDelta) > 0 ? 'up' : Number(fleetLoadDelta) < 0 ? 'down' : 'flat' }
             ];
         }
         if (isPatient) {
             return [
-                { label: 'Requests', value: appStats.todayRequests || 0, color: 'hsl(var(--primary))' },
-                { label: 'Verified', value: 'Yes', color: 'hsl(var(--success))' },
-                { label: 'Visits', value: appStats.totalVisits || 0, color: 'hsl(var(--info))' }
+                { label: 'Requests', value: appStats.todayRequests || 0, color: 'hsl(var(--primary))', delta: formatSignedPercent(demandDelta) || 'LIVE', direction: Number(demandDelta) > 0 ? 'up' : Number(demandDelta) < 0 ? 'down' : 'flat' },
+                { label: 'Success', value: `${appStats.completionRate || 0}%`, color: 'hsl(var(--success))', delta: formatSignedPercent(completionVsTarget) || 'LIVE', direction: Number(completionVsTarget) >= 0 ? 'up' : 'down' },
+                { label: 'Visits', value: appStats.totalVisits || 0, color: 'hsl(var(--info))', delta: 'LIVE', direction: 'flat' }
             ];
         }
         return [
-            { label: 'Impact', value: `${appStats.completionRate}%`, color: 'hsl(var(--success))' },
-            { label: 'Growth', value: '+12%', color: 'hsl(var(--primary))' },
-            { label: 'Balance', value: `$${walletStats.balance.toFixed(0)}`, color: 'hsl(var(--info))' }
+            { label: 'Impact', value: `${appStats.completionRate}%`, color: 'hsl(var(--success))', delta: formatSignedPercent(completionVsTarget) || 'LIVE', direction: Number(completionVsTarget) >= 0 ? 'up' : 'down' },
+            { label: 'Requests', value: appStats.todayRequests || 0, color: 'hsl(var(--primary))', delta: formatSignedPercent(demandDelta) || 'LIVE', direction: Number(demandDelta) > 0 ? 'up' : Number(demandDelta) < 0 ? 'down' : 'flat' },
+            { label: 'Balance', value: `$${walletStats.balance.toFixed(0)}`, color: 'hsl(var(--info))', delta: formatSignedPercent(walletDelta) || 'LIVE', direction: Number(walletDelta) > 0 ? 'up' : Number(walletDelta) < 0 ? 'down' : 'flat' }
         ];
     };
 
@@ -114,6 +139,13 @@ export const MobileDashboard = ({
                                     label="Live Emergencies"
                                     value={appStats.liveEmergencies}
                                     trend="+2m"
+                                    rightBlade={{
+                                        badge: formatSignedPercent(demandDelta) || 'LIVE',
+                                        direction: Number(demandDelta) > 0 ? 'up' : Number(demandDelta) < 0 ? 'down' : 'flat',
+                                        label: 'Demand',
+                                        value: `${appStats.todayRequests || 0} today`,
+                                        color: 'hsl(var(--destructive))',
+                                    }}
                                     color="hsl(var(--destructive))"
                                     description="Urgent dispatch required"
                                     expandedContent={
@@ -130,6 +162,13 @@ export const MobileDashboard = ({
                                         icon={Search}
                                         label="Trending Topics"
                                         value="Viral"
+                                        rightBlade={{
+                                            badge: formatSignedPercent(demandDelta) || 'LIVE',
+                                            direction: Number(demandDelta) > 0 ? 'up' : Number(demandDelta) < 0 ? 'down' : 'flat',
+                                            label: 'Signal',
+                                            value: demandDelta === null ? 'Live feed' : (Number(demandDelta) >= 0 ? 'Rising' : 'Cooling'),
+                                            color: 'hsl(var(--warning))'
+                                        }}
                                         color="hsl(var(--warning))"
                                         description="Search patterns and health social"
                                         expandedContent="Viral activity detected in Lagos Mainland area regarding malaria outreach."
@@ -148,6 +187,13 @@ export const MobileDashboard = ({
                                     icon={Wallet}
                                     label="Platform Wallet"
                                     value={`$${walletStats.balance.toFixed(0)}`}
+                                    rightBlade={{
+                                        badge: formatSignedPercent(walletDelta) || 'LIVE',
+                                        direction: Number(walletDelta) > 0 ? 'up' : Number(walletDelta) < 0 ? 'down' : 'flat',
+                                        label: 'Today',
+                                        value: `$${walletStats.todayIncome || 0}`,
+                                        color: 'hsl(var(--success))'
+                                    }}
                                     color="hsl(var(--success))"
                                     description="Primary Balance"
                                     expandedContent={
@@ -161,6 +207,13 @@ export const MobileDashboard = ({
                                         icon={Mail}
                                         label="Active Subscriptions"
                                         value={subscriptionStats.active}
+                                        rightBlade={{
+                                            badge: `${((subscriptionStats.paid / Math.max(subscriptionStats.active || 0, 1)) * 100).toFixed(1)}%`,
+                                            direction: subscriptionStats.paid >= ((subscriptionStats.active || 0) * 0.5) ? 'up' : 'down',
+                                            label: 'Paid Mix',
+                                            value: `${subscriptionStats.paid || 0}/${subscriptionStats.active || 0}`,
+                                            color: 'hsl(var(--info))'
+                                        }}
                                         color="hsl(var(--info))"
                                         description="Managed engagement"
                                         expandedContent={
@@ -179,10 +232,10 @@ export const MobileDashboard = ({
                         <section className="mt-2">
                             <MobileSectionHeader label="Fleet & Facilities" color="hsl(var(--info))" />
                             <div className="space-y-0.5">
-                                <MobileMetricRow icon={Hospital} label="Facilities" value={appStats.activeHospitals || 8} color="hsl(var(--primary))" expandedContent="6 Public, 2 Private active centers." />
-                                <MobileMetricRow icon={Ambulance} label="Fleet Status" value={appStats.availableAmbulances} color="hsl(var(--success))" expandedContent="85% Battery • GPS Nominal." />
-                                <MobileMetricRow icon={Stethoscope} label="Medical Staff" value={appStats.activeProviders} color="hsl(var(--secondary))" expandedContent="Licensed medical staff currently active." />
-                                <MobileMetricRow icon={Users} label="Community" value={appStats.totalUsers} color="hsl(var(--info))" expandedContent="Growth: +12.4% MoM." />
+                                <MobileMetricRow icon={Hospital} label="Facilities" value={appStats.activeHospitals || 0} rightBlade={{ badge: `${appStats.activeHospitals || 0}`, direction: 'flat', label: 'Sites', value: 'Live', color: 'hsl(var(--primary))' }} color="hsl(var(--primary))" expandedContent="6 Public, 2 Private active centers." />
+                                <MobileMetricRow icon={Ambulance} label="Fleet Status" value={appStats.availableAmbulances} rightBlade={{ badge: formatSignedPercent(fleetLoadDelta) || 'LIVE', direction: Number(fleetLoadDelta) > 0 ? 'up' : Number(fleetLoadDelta) < 0 ? 'down' : 'flat', label: 'Load', value: `${appStats.liveEmergencies || 0} active`, color: 'hsl(var(--success))' }} color="hsl(var(--success))" expandedContent="85% Battery • GPS Nominal." />
+                                <MobileMetricRow icon={Stethoscope} label="Medical Staff" value={appStats.activeProviders} rightBlade={{ badge: `${Math.round(((appStats.activeProviders || 0) / Math.max(appStats.todayRequests || 0, 1)) * 100)}%`, direction: (appStats.activeProviders || 0) >= (appStats.todayRequests || 0) ? 'up' : 'down', label: 'Coverage', value: 'Provider/Req', color: 'hsl(var(--secondary))' }} color="hsl(var(--secondary))" expandedContent="Licensed medical staff currently active." />
+                                <MobileMetricRow icon={Users} label="Community" value={appStats.totalUsers} rightBlade={{ badge: formatSignedPercent(completionVsTarget) || 'LIVE', direction: Number(completionVsTarget) >= 0 ? 'up' : 'down', label: 'Success', value: `${appStats.completionRate || 0}%`, color: 'hsl(var(--info))' }} color="hsl(var(--info))" expandedContent="Growth and platform adoption." />
                             </div>
                         </section>
                     )}
@@ -192,9 +245,9 @@ export const MobileDashboard = ({
                         <section className="mt-2">
                             <MobileSectionHeader label="Medical Services" color="hsl(var(--primary))" />
                             <div className="space-y-0.5">
-                                <MobileMetricRow icon={Calendar} label="Book a Visit" value="New" color="hsl(var(--primary))" onClick={() => { }} />
-                                <MobileMetricRow icon={Stethoscope} label="Medical History" value="View" color="hsl(var(--info))" onClick={() => { }} />
-                                <MobileMetricRow icon={Zap} label="Emergency SOS" value="Alert" color="hsl(var(--destructive))" onClick={() => { }} />
+                                <MobileMetricRow icon={Calendar} label="Book a Visit" value="New" rightBlade={{ badge: formatSignedPercent(demandDelta) || 'LIVE', direction: Number(demandDelta) > 0 ? 'up' : Number(demandDelta) < 0 ? 'down' : 'flat', label: 'Demand', value: `${appStats.todayRequests || 0} today`, color: 'hsl(var(--primary))' }} color="hsl(var(--primary))" onClick={() => { }} />
+                                <MobileMetricRow icon={Stethoscope} label="Medical History" value="View" rightBlade={{ badge: `${appStats.completionRate || 0}%`, direction: Number(completionVsTarget) >= 0 ? 'up' : 'down', label: 'Success', value: 'Records', color: 'hsl(var(--info))' }} color="hsl(var(--info))" onClick={() => { }} />
+                                <MobileMetricRow icon={Zap} label="Emergency SOS" value="Alert" rightBlade={{ badge: `${appStats.liveEmergencies || 0}`, direction: (appStats.liveEmergencies || 0) > 0 ? 'up' : 'flat', label: 'Active', value: 'Live', color: 'hsl(var(--destructive))' }} color="hsl(var(--destructive))" onClick={() => { }} />
                             </div>
                         </section>
                     )}
@@ -242,9 +295,9 @@ export const MobileDashboard = ({
                                     { label: 'Cloud Buffer', value: 'Steady', progress: 65, color: 'hsl(var(--warning))' }
                                 ].map((sys, i) => (
                                     <div key={i} className="space-y-3">
-                                        <div className="flex justify-between text-[10px] font-normal tracking-widest uppercase text-foreground/40">
+                                        <div className="flex justify-between text-[10px] font-medium tracking-widest uppercase text-foreground/40">
                                             <span>{sys.label}</span>
-                                            <span className="text-foreground/50 font-medium">{sys.value}</span>
+                                            <span className="text-foreground/60 font-semibold">{sys.value}</span>
                                         </div>
                                         <div className="h-1.5 w-full bg-white/[0.08] rounded-full overflow-hidden shadow-inner">
                                             <motion.div

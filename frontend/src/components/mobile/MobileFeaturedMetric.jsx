@@ -30,11 +30,11 @@ export const MobileFeaturedMetric = ({
 
             <div className="flex justify-between items-start relative z-10">
                 <div className="space-y-1">
-                    <p className="text-[10px] font-normal uppercase tracking-[0.2em] text-muted-foreground/60">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/70">
                         {label}
                     </p>
                     <div className="flex items-baseline gap-2">
-                        <h2 className="text-4xl font-medium tracking-tighter text-foreground/90">
+                        <h2 className="text-4xl font-semibold tracking-tighter text-foreground/95 font-dashboard-numbers">
                             {value}
                         </h2>
                         {trend && (

@@ -148,7 +148,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -162,10 +162,10 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl"
+            className="relative z-10 w-full h-[100dvh] sm:h-auto sm:max-w-5xl sm:max-h-[90vh] overflow-hidden rounded-none sm:rounded-[32px] shadow-2xl"
           >
             {/* Header Area */}
-            <div className="flex items-center justify-between p-8 pb-4">
+            <div className="flex items-center justify-between p-4 sm:p-8 pb-3 sm:pb-4">
               <div className="flex items-center gap-4">
                 <div className={`p-2.5 rounded-2xl ${getPriorityBg(formData.priority)} ${getPriorityColor(formData.priority)}`}>
                   <Siren className="h-6 w-6" />
@@ -191,7 +191,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
               </div>
             </div>
 
-            <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
+            <div className="p-4 sm:p-8 pt-1 sm:pt-2 overflow-y-auto h-[calc(100dvh-88px)] sm:max-h-[calc(90vh-120px)] space-y-5 sm:space-y-6 no-scrollbar">
               <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* Status Bar */}
@@ -351,7 +351,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                 </div>
 
                 {/* Footer Actions */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
+                <div className="sticky bottom-0 z-10 flex items-center justify-end gap-3 pt-4 pb-2 border-t border-white/5 bg-background/70 backdrop-blur-sm">
                   <Button
                     type="button"
                     variant="ghost"

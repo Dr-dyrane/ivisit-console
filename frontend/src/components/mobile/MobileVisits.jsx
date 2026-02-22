@@ -59,6 +59,24 @@ export const MobileVisits = ({
     const [expandedVisitId, setExpandedVisitId] = useState(null);
     const selectionMode = selectedIds.length > 0;
 
+    const formatSignedPercent = (value) => {
+        if (!Number.isFinite(value)) return null;
+        const rounded = Math.abs(value) >= 10 ? value.toFixed(0) : value.toFixed(1);
+        return `${value > 0 ? '+' : ''}${rounded}%`;
+    };
+
+    const calcDeltaPercent = (current, previous) => {
+        const c = Number(current);
+        const p = Number(previous);
+        if (!Number.isFinite(c) || !Number.isFinite(p) || p === 0) return null;
+        return ((c - p) / Math.abs(p)) * 100;
+    };
+
+    const toDeltaBadge = (value) => ({
+        delta: formatSignedPercent(value) || 'LIVE',
+        direction: Number.isFinite(value) ? (value > 0 ? 'up' : value < 0 ? 'down' : 'flat') : 'flat'
+    });
+
     useEffect(() => {
         if (!hasMore || loading) return;
 
@@ -77,31 +95,62 @@ export const MobileVisits = ({
 
         return () => observer.disconnect();
     }, [hasMore, loading, onLoadMore]);
-    // User-friendly KPIs with clear labels
+    const scheduledCount = Number(statistics?.scheduled) || visits.filter(v => v.status === 'scheduled').length;
+    const activeCount = Number(statistics?.inProgress) || visits.filter(v => v.status === 'in_progress').length;
+    const completedCount = Number(statistics?.completed) || visits.filter(v => v.status === 'completed').length;
+    const cancelledCount = Number(statistics?.cancelled) || visits.filter(v => v.status === 'cancelled').length;
+
+    const scheduledTrend = toDeltaBadge(calcDeltaPercent(scheduledCount, statistics?.previous?.scheduled ?? statistics?.previousScheduled));
+    const activeTrend = toDeltaBadge(calcDeltaPercent(activeCount, statistics?.previous?.inProgress ?? statistics?.previousInProgress));
+    const completedTrend = toDeltaBadge(calcDeltaPercent(completedCount, statistics?.previous?.completed ?? statistics?.previousCompleted));
+    const cancelledTrend = toDeltaBadge(calcDeltaPercent(cancelledCount, statistics?.previous?.cancelled ?? statistics?.previousCancelled));
+
+    // Visit KPIs with tiny live deltas and adaptive 3/4 packing
     const visitKPIs = [
         {
             id: 'scheduled',
             label: 'Scheduled',
-            value: statistics?.scheduled || visits.filter(v => v.status === 'scheduled').length,
-            color: 'hsl(var(--info))'
+            value: scheduledCount,
+            color: 'hsl(var(--info))',
+            delta: scheduledTrend.delta,
+            direction: scheduledTrend.direction
         },
         {
             id: 'active',
             label: 'Active',
-            value: statistics?.inProgress || visits.filter(v => v.status === 'in_progress').length,
-            color: 'hsl(var(--warning))'
+            value: activeCount,
+            color: 'hsl(var(--warning))',
+            delta: activeTrend.delta,
+            direction: activeTrend.direction
         },
         {
             id: 'completed',
-            label: 'Completed',
-            value: statistics?.completed || visits.filter(v => v.status === 'completed').length,
-            color: 'hsl(var(--success))'
-        }
+            label: 'Done',
+            value: completedCount,
+            color: 'hsl(var(--success))',
+            delta: completedTrend.delta,
+            direction: completedTrend.direction
+        },
+        ...((isAdmin || isOrgAdmin) ? [{
+            id: 'cancelled',
+            label: 'Cancelled',
+            value: cancelledCount,
+            color: 'hsl(var(--spark))',
+            delta: cancelledTrend.delta,
+            direction: cancelledTrend.direction
+        }] : [])
     ];
 
     const growthData = useMemo(() => [
         { value: 25 }, { value: 40 }, { value: 55 }, { value: 45 }, { value: 65 }, { value: 80 }
     ], []);
+
+    const todayCount = visits.filter(v => {
+        const today = new Date().toDateString();
+        const visitDate = new Date(v.date || v.created_at).toDateString();
+        return today === visitDate;
+    }).length;
+    const completionRate = visits.length ? (completedCount / visits.length) * 100 : 0;
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -131,39 +180,49 @@ export const MobileVisits = ({
                     onKpiClick={(id) => setFilters?.(prev => ({ ...prev, kpiFilter: id }))}
                 />
 
-                <div className="px-2 pt-6 text-foreground">
+                <div className="px-2 pt-4 text-foreground">
                     {/* B. TODAY'S APPOINTMENTS */}
                     <MobileFeaturedMetric
                         label="Today's Appointments"
-                        value={visits.filter(v => {
-                            const today = new Date().toDateString();
-                            const visitDate = new Date(v.date || v.created_at).toDateString();
-                            return today === visitDate;
-                        }).length}
-                        trend="+8%"
+                        value={todayCount}
+                        trend={formatSignedPercent(completionRate - 50) || 'LIVE'}
                         icon={Calendar}
                         color="hsl(var(--info))"
                         chartData={growthData}
                     />
 
-                    {/* C. RECENT ACTIVITY */}
-                    <section className="mb-6">
+                    {/* C. VISIT VELOCITY */}
+                    <section className="mb-3">
                         <MobileSectionHeader
-                            label="Recent Activity"
-                            count={visits.filter(v => v.status === 'completed').length}
+                            label="Visit Velocity"
+                            count={completedCount}
                             color="hsl(var(--success))"
                         />
-                        <div className="p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-success/5 flex items-center justify-center">
-                                    <Activity className="text-success w-5 h-5 opacity-70" />
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-success/5 flex items-center justify-center">
+                                        <Activity className="text-success w-5 h-5 opacity-70" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[11px] font-medium tracking-tight">Completed Today</span>
+                                        <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Last 24h</span>
+                                    </div>
                                 </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[11px] font-medium tracking-tight">Completed Today</span>
-                                    <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Last 24 hours</span>
-                                </div>
+                                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">{completedCount}</span>
                             </div>
-                            <span className="text-xl font-normal tracking-tighter">{visits.filter(v => v.status === 'completed').length}</span>
+                            <div className="p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-info/5 flex items-center justify-center">
+                                        <CheckCircle2 className="text-info w-5 h-5 opacity-70" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[11px] font-medium tracking-tight">Completion</span>
+                                        <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Current ratio</span>
+                                    </div>
+                                </div>
+                                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">{Math.round(completionRate)}%</span>
+                            </div>
                         </div>
                     </section>
 
@@ -182,7 +241,7 @@ export const MobileVisits = ({
                         <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={() => onOpenFilters?.()}
-                            className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-primary transition-colors border-0"
+                            className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0"
                         >
                             <SlidersHorizontal size={18} />
                         </motion.button>
@@ -191,7 +250,7 @@ export const MobileVisits = ({
                             <motion.button
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => onViewAnalytics?.()}
-                                className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-primary/60 active:text-primary transition-colors border-0 shadow-sm"
+                                className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.64)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0 shadow-sm"
                             >
                                 <BarChart3 size={18} />
                             </motion.button>
@@ -216,6 +275,13 @@ export const MobileVisits = ({
                                     color={getStatusColor(visit.status)}
                                     label={visit.visit_type?.replace('_', ' ').toUpperCase() || 'GENERAL VISIT'}
                                     value={visit.patient?.username || visit.patient?.full_name || `Patient #${visit.user_id?.slice(-4) || '??'}`}
+                                    rightBlade={{
+                                        badge: visit.status === 'completed' ? 'DONE' : visit.status === 'in_progress' ? 'LIVE' : 'SCHED',
+                                        direction: visit.status === 'completed' ? 'up' : visit.status === 'cancelled' ? 'down' : 'flat',
+                                        label: 'Visit',
+                                        value: visit.status?.replace('_', ' ').toUpperCase() || 'PENDING',
+                                        color: getStatusColor(visit.status)
+                                    }}
                                     statusIndicators={[
                                         {
                                             icon: visit.visit_type?.includes('emergency') || visit.type?.includes('emergency') ? Siren : Stethoscope,
@@ -278,7 +344,7 @@ export const MobileVisits = ({
                                             <div className="flex gap-2 pt-2">
                                                 <Button
                                                     variant="ghost"
-                                                    className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                                                    className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                     onClick={() => onView(visit)}
                                                 >
                                                     <Eye size={16} className="text-primary/60" />
@@ -288,7 +354,7 @@ export const MobileVisits = ({
                                                     <>
                                                         <Button
                                                             variant="ghost"
-                                                            className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                                                            className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                             onClick={() => onEdit(visit)}
                                                         >
                                                             <Edit size={16} className="text-warning/60" />
@@ -296,7 +362,7 @@ export const MobileVisits = ({
                                                         </Button>
                                                         <Button
                                                             variant="ghost"
-                                                            className="w-12 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center active:scale-95 transition-transform"
+                                                            className="w-12 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-destructive/10 active:bg-destructive/15 hover:text-destructive"
                                                             onClick={() => onDelete(visit)}
                                                         >
                                                             <Trash2 size={16} className="text-destructive/60" />

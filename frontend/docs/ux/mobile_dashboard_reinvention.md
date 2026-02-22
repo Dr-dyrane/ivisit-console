@@ -267,6 +267,87 @@ Canon #23: Micro = Craft — staggered entry animation
 
 ---
 
+### 10.8 MobileEmergency Page Implementation (2026-02-21)
+**Status**: ✅ Complete
+- **Emergency-Centric Design**: Optimized for critical incident management
+- **Real-Time Indicators**: Live emergency counts with severity-based KPIs
+- **Response Metrics**: Average response time and success rate tracking
+- **Medical Context**: Patient info, ambulance tracking, hospital coordination
+- **Urgency Visuals**: Destructive/warning colors for critical information
+- **Apple-Level Polish**: Glass effects, motion discipline, accessibility
+
+**Technical Implementation**:
+```javascript
+// Emergency KPIs with medical urgency indicators
+const emergencyKPIs = [
+    {
+        id: 'critical',
+        label: 'Critical',
+        value: statistics?.critical || emergencies.filter(e => e.severity === 'critical').length,
+        color: 'hsl(var(--destructive))'
+    },
+    {
+        id: 'active', 
+        label: 'Active',
+        value: statistics?.active || emergencies.filter(e => e.status === 'active').length,
+        color: 'hsl(var(--warning))'
+    },
+    {
+        id: 'responding',
+        label: 'Responding', 
+        value: statistics?.responding || emergencies.filter(e => e.status === 'responding').length,
+        color: 'hsl(var(--info))'
+    }
+];
+```
+
+**Emergency-Specific Features**:
+- **Severity-Based Styling**: Critical (destructive), High (warning), Medium (info)
+- **Live Tracking**: Ambulance ETA, hospital assignments, patient location
+- **Quick Actions**: Navigate to emergency, view details, admin controls
+- **Response Metrics**: Real-time response time and success rate displays
+- **Emergency ID**: Truncated emergency identifiers for quick reference
+
+**Medical Emergency Context**:
+- **Patient Information**: Name, contact, location tracking
+- **Resource Coordination**: Ambulance dispatch, hospital assignment
+- **Status Management**: Active → Responding → Resolved workflow
+- **Critical Alerts**: Visual hierarchy prioritizes life-threatening situations
+
+**UI/UX Excellence**:
+- **Clarity Under Pressure**: Simple, unambiguous interface for stress situations
+- **Touch Optimization**: Large tap targets for emergency scenarios
+- **Real-Time Updates**: Live emergency counts and status changes
+- **Accessibility**: Screen reader support for critical medical information
+
+**Page Integration**:
+- **EmergencyRequestsPage**: Mobile conditional added with full prop mapping
+- **Modal Compatibility**: EmergencyDetailsModal and EmergencyRequestModal work seamlessly
+- **Filter Integration**: FilterSheet integration for mobile emergency filtering
+- **Analytics Modal**: Emergency analytics accessible from mobile view
+- **Infinite Scroll**: Pagination integration for large emergency datasets
+
+**Props Mapping**:
+```javascript
+<MobileEmergency
+  emergencies={requests}
+  loading={loading}
+  statistics={emergencyData?.stats}
+  filters={filters}
+  setFilters={setFilters}
+  onView={handleViewDetails}
+  onEdit={handleDispatch}
+  onDelete={handleDelete}
+  onRefresh={fetchRequests}
+  isAdmin={isAdmin()}
+  onOpenFilters={() => setFilterSheetOpen(true)}
+  hasMore={pagination.hasNextPage}
+  onLoadMore={pagination.nextPage}
+/>
+```
+
+---
+
 ### 10.7 MobileMetricRow Backward Compatibility (2026-02-21)
 **Status**: ✅ Complete
 - **Dual Pattern Support**: Works with both old and new expansion patterns
@@ -307,6 +388,7 @@ const handleInteraction = (e) => {
 - ✅ **MobileAnalytics**: Expansion works with internal state  
 - ✅ **MobileUsers**: Single-item expansion with controlled state
 - ✅ **MobileVisits**: Single-item expansion with controlled state
+- ✅ **MobileEmergency**: Single-item expansion with controlled state
 
 ---
 
@@ -354,11 +436,12 @@ const [expandedUserId, setExpandedUserId] = useState(null);
 #### **Page Implementations**
 - **MobileUsers**: Complete with infinity scroll, search, filters
 - **MobileVisits**: Complete with infinity scroll, search, filters  
+- **MobileEmergency**: Complete with real-time emergencies, response metrics
 - **MobileDashboard**: Working with internal expansion state
 - **MobileAnalytics**: Working with internal expansion state
 
 #### **UX Excellence**
-- **Controlled Expansion**: Single-item expansion (Users/Visits)
+- **Controlled Expansion**: Single-item expansion (Users/Visits/Emergency)
 - **Backward Compatibility**: Internal expansion (Dashboard/Analytics)
 - **Apple-Level UI**: Glass effects, borderless design, proper typography
 - **Motion Discipline**: Spring animations, smooth transitions
@@ -667,3 +750,328 @@ If a critical logic block was accidentally purged during the **42-file migration
    Compare the desktop `<Table />` props with the new `<MobileVisits />` props to ensure 1:1 parity of event handlers.
 
 ---
+
+## 16. 2026-02-22 Update - Neon Blade + Live Trend System
+
+### 16.1 Visual System Upgrade (Mobile)
+- Added a compact right-side "Blade" metric artifact to `MobileMetricRow` for high-density scanning.
+- Blade uses horizontal space (not vertical), no explicit borders, and seamless glass-neon blending.
+- Added directional trend imagery (`TrendingUp` / `TrendingDown`) in blade badges.
+- Upgraded shared mobile type hierarchy by one weight level for labels/values and section authority.
+
+### 16.2 Dashboard Number Typography
+- Introduced dashboard numeric font token and utility:
+  - `--font-dashboard-numbers`
+  - `.font-dashboard-numbers` with tabular numerals.
+- Applied to hero metrics, row values, blade values, and KPI strip values.
+- Goal: stronger "instrument panel" readability similar to Aero number treatment.
+
+### 16.3 Neon Accent Strategy
+- Neon glow remains semantic-by-metric (primary/success/warning/info/destructive) to preserve data meaning.
+- Added global token for fast tuning:
+  - `--mobile-neon-accent` in `index.css`.
+- Current behavior: blade glow derives from each row's semantic `color`; active KPI value remains primary-led.
+
+### 16.4 Live Data Compliance (No Mock Trend Strings)
+- Replaced hardcoded blade percentages with live-derived trend signals in:
+  - `MobileDashboard.jsx`
+  - `MobileAnalytics.jsx`
+  - `MobileEmergency.jsx`
+  - `MobileVisits.jsx`
+  - `MobileUsers.jsx`
+- Replaced random activity artifact in `MobileActivityRow.jsx`:
+  - Removed `Math.random()` log IDs
+  - Added deterministic event identifier from message/time context.
+
+### 16.5 Analytics Source Correction
+- Removed random chart/stat generation from `pages/Analytics.jsx`.
+- Mobile analytics trend and blade data now derive from request aggregates:
+  - daily request buckets
+  - status counts
+  - emergency type counts
+  - hourly heatmap
+  - response-time extraction from available timestamps/fields.
+
+### 16.6 Updated Component Surface Area
+- Shared primitives:
+  - `frontend/src/components/mobile/MobileMetricList.jsx`
+  - `frontend/src/components/mobile/MobileFeaturedMetric.jsx`
+  - `frontend/src/components/mobile/MobileKPIStrip.jsx`
+  - `frontend/src/components/mobile/MobileActivityRow.jsx`
+- Page artifacts:
+  - `frontend/src/components/mobile/MobileDashboard.jsx`
+  - `frontend/src/components/mobile/MobileAnalytics.jsx`
+  - `frontend/src/components/mobile/MobileEmergency.jsx`
+  - `frontend/src/components/mobile/MobileVisits.jsx`
+  - `frontend/src/components/mobile/MobileUsers.jsx`
+- Data pipeline:
+  - `frontend/src/components/pages/Analytics.jsx`
+
+### 16.7 Canon Alignment (Post-Update)
+- Canon #24 (White Space Is Luxury): blade system increases horizontal information density.
+- Canon #29 (Ruthless Hierarchy): value-first scanning with right-side trend confirmation.
+- Canon #30 (Type Is Interface): dashboard-number typography improves operational legibility.
+- Canon #10 (Dashboard = Control): trend direction and KPI state are visible at first glance.
+
+### 16.8 Modal + Disclosure Reliability Fixes
+- Fixed mobile analytics modal mounting in `pages/Analytics.jsx`:
+  - mobile route now renders `AnalyticsModal` (FAB/event path works on mobile).
+- Fixed emergency mobile modal/filter mounting in `pages/EmergencyRequestsPage.jsx`:
+  - mobile route now mounts `FilterSheet`, `AnalyticsModal`, `EmergencyDetailsModal`, `EmergencyRequestModal`, and `ConfirmationModal`.
+- Improved expanded-state disclosure framing in `MobileMetricList.jsx`:
+  - added compact "Detail Layer" header and stronger content framing for progressive disclosure clarity.
+- Improved density balance in `MobileActivityRow.jsx`:
+  - added right-side signal capsule to prevent left-heavy rows.
+
+---
+
+## 17. 2026-02-22 Update - Adaptive KPI + Predictive Analytics Pass
+
+### 17.1 KPI Delta System (Tiny Live Badges)
+- Added tiny delta chips (`up/down +%`) directly in `MobileKPIStrip`.
+- Extended delta logic into module strips:
+  - `MobileEmergency.jsx`
+  - `MobileUsers.jsx`
+  - `MobileVisits.jsx`
+  - `MobileAnalytics.jsx`
+- Delta source prefers real previous-interval fields if present (`statistics.previous.*` / `previous*`), falls back to `LIVE` when unavailable.
+
+### 17.2 Adaptive 3-or-4 KPI Packing by Role
+- `MobileKPIStrip` already supports 1-4 columns via dynamic CSS grid.
+- Role-based 4th KPI now enabled where needed:
+  - Emergency: adds `Active` for admin context.
+  - Users: adds `Active` for admin/org admin.
+  - Visits: adds `Cancelled` for admin/org admin.
+- Non-admin contexts remain compact 3-card strips.
+
+### 17.3 Native Interaction Motion (No Delay / No Glitch)
+- Standardized interaction curve to iOS-like easing:
+  - `cubic-bezier(0.22, 1, 0.36, 1)`
+- Applied to:
+  - KPI pill taps
+  - `MobileMetricRow` expansion chevrons and disclosure opacity
+  - Expanded action buttons in Users/Visits/Emergency rows
+- Added `WebkitTapHighlightColor: transparent` on touch surfaces for cleaner native feel.
+
+### 17.4 Expanded-State UI Bleed Fixes
+- Resolved default ghost-button hover bleed on icon actions in expanded rows.
+- Action buttons now use contained hover/active surfaces (`hover:bg-white/[0.06]`, `active:bg-white/[0.12]`) and destructive-specific hover for delete actions.
+- Result: icons remain readable and no primary-color overpaint.
+
+### 17.5 Emergency Mobile Filter UX
+- Removed `viewToggle` from emergency filter sheet in mobile flows.
+- `FilterSheet` now receives `viewToggle={null}` in mobile emergency rendering paths.
+
+### 17.6 Predictive Analytics Fallback (When DB Returns Empty/Zero)
+- Added deterministic predictive fallback generation in `pages/Analytics.jsx`:
+  - response-time timeline
+  - status distribution
+  - emergency-type mix
+  - demand heatmap
+- Fallback is stable and non-random, intended only for empty/null/zero windows.
+- `MobileAnalytics.jsx` now resolves a `resolvedStats` model from available series so top KPIs do not collapse to all-zero states.
+
+### 17.7 Accent Evolution
+- Primary accent extension remains `--spark` (cyan family):
+  - light: `182 92% 48%`
+  - dark: `182 95% 58%`
+- Applied to mobile interaction points (filter/analytics icons, active/flat KPI chip states) to break red/white monotony while preserving semantic colors.
+
+---
+
+## 18. Mobile Page Replication Blueprint (Plug-and-Play)
+
+This section is the canonical instruction set for reproducing a full mobile page reinvention without losing any desktop functionality.
+
+Use it exactly, in order.
+
+### 18.1 Objective
+- Build a dedicated mobile renderer for an existing page.
+- Keep 100% functional parity with desktop logic.
+- Improve density, interaction quality, and state reliability for touch.
+- Preserve all RBAC rules, data flows, modals, filters, and actions.
+
+### 18.2 Required Architecture Pattern
+1. Keep the existing page component as the orchestration layer.
+2. Add a dedicated mobile component under `frontend/src/components/mobile/`.
+3. Use a hard render fork at page level:
+   - `if (isMobile) return <MobileX ... />`
+   - else keep current desktop/table/list logic.
+4. Do not duplicate API calls across desktop/mobile branches.
+5. Keep data fetching, RBAC, and business actions in the page container.
+6. Pass only computed props + handlers into mobile component.
+
+### 18.3 File Creation and Wiring Template
+1. Create `frontend/src/components/mobile/Mobile<Page>.jsx`.
+2. In `frontend/src/components/pages/<Page>.jsx`:
+   - import `Mobile<Page>`
+   - map all existing handlers into mobile props
+   - keep desktop branch untouched
+3. Ensure mobile branch mounts required overlays inside same return tree:
+   - details modal
+   - create/edit modal
+   - analytics modal
+   - filter sheet
+   - confirmation modal
+4. Ensure FAB/context events can still open the same modals on mobile.
+
+### 18.4 Functional Parity Contract (Must Not Break)
+For each page, verify all of the following are preserved:
+1. `fetch` and refresh behavior.
+2. RBAC visibility and role actions.
+3. Search, filter, sort, and KPI filter behavior.
+4. Pagination or infinite-load behavior.
+5. Bulk selection and bulk actions.
+6. View/detail/edit/delete/dispatch/complete actions.
+7. Export/report actions if present.
+8. Empty/loading/error states.
+9. Real-time/subscription updates if present.
+10. All desktop custom events (`openAnalyticsModal`, `openFilters`, etc.).
+
+### 18.5 Mobile UI Composition Standard
+Use this composition order for every mobile page:
+1. `MobileKPIStrip` (sticky, 3-or-4 adaptive columns).
+2. `MobileFeaturedMetric` (single hero value).
+3. Dense section summaries (2-up compact cards where applicable).
+4. Search + compact action buttons (filter + analytics if allowed).
+5. Main directory list using `MobileMetricRow`.
+6. Progressive disclosure inside each row (expanded details + actions).
+7. Infinite sentinel / end-of-list marker.
+
+### 18.6 KPI Strip and Delta Rules
+1. KPI count:
+   - 3 by default
+   - 4 for elevated roles (admin/org/sponsor) when useful.
+2. Each KPI should include:
+   - `id`, `label`, `value`, `color`
+   - tiny `delta` chip and `direction` if available
+3. Delta source priority:
+   - previous interval fields from backend (`previous.*` or `previousX`)
+   - derived period comparison
+   - fallback to `LIVE` + `flat`
+4. Avoid random/mocked percentages.
+
+### 18.7 Accent, Color, and Typography Rules
+1. Use semantic colors for data meaning:
+   - success, warning, info, destructive, primary
+2. Use accent token only for intent/highlight:
+   - `--spark` (currently premium gold)
+3. Keep accent subtle:
+   - low-alpha backgrounds and restrained glow
+4. Use dashboard number font utility for key numeric values:
+   - `.font-dashboard-numbers`
+5. No hardcoded hex scatter in components when token exists.
+
+### 18.8 Touch and Motion Rules (Native Feel)
+1. Use one easing system consistently:
+   - `cubic-bezier(0.22, 1, 0.36, 1)`
+2. Use short transitions (about 160-220ms) for taps and icon state.
+3. Remove tap highlight:
+   - `WebkitTapHighlightColor: transparent`
+4. Avoid delayed stagger on core interactions.
+5. Keep expansion animations spring-based but controlled.
+
+### 18.9 Expanded-State and Action Surface Rules
+1. Expanded areas must not feel disconnected from row container.
+2. Keep action buttons borderless and contained.
+3. Prevent hover bleed over icons:
+   - contained hover/active surfaces (`hover:bg-white/[0.06]`, `active:bg-white/[0.12]`)
+4. Keep destructive action visually distinct.
+5. Ensure expanded rows can both open and collapse on repeated tap.
+
+### 18.10 Filters, View Toggles, and Mobile Constraints
+1. Mobile filter sheets should not include desktop-only controls unless explicitly required.
+2. If view toggles reduce clarity on mobile, pass `viewToggle={null}`.
+3. Keep search always visible and one-tap accessible.
+4. Keep filter state unified with desktop page state object.
+
+### 18.11 Data Safety and Predictive Fallback Rules
+1. Never use random chart generation for production pages.
+2. If DB returns null/undefined/zero across a range:
+   - produce deterministic predictive fallback data
+   - mark as stable synthetic shape (not random)
+3. Fallback should cover:
+   - top stats
+   - timeline series
+   - status/type breakdown
+   - heatmap or demand map
+4. Switch back automatically when live data exists.
+
+### 18.12 Modal and Overlay Reliability Checklist
+For every page with mobile branch, verify:
+1. `DetailsModal` opens from list item tap/actions.
+2. `Create/EditModal` opens from header/FAB/events.
+3. `AnalyticsModal` opens from FAB/events/buttons.
+4. `FilterSheet` opens and applies.
+5. `ConfirmationModal` opens for destructive actions.
+6. Closing modals can optionally refresh source data.
+
+### 18.13 Implementation Steps (Execution Order)
+1. Add mobile component shell.
+2. Wire page-level branch and prop contract.
+3. Wire KPI strip and filters.
+4. Wire list rows + expanded content.
+5. Wire all actions and modals.
+6. Remove mobile-inappropriate desktop controls.
+7. Add delta logic and accent tuning.
+8. Add deterministic fallback handling for empty analytics.
+9. Run manual parity checks against desktop feature list.
+10. Update this doc with page-specific notes and decisions.
+
+### 18.14 QA Matrix (Required Before Sign-off)
+Run this matrix manually for each replicated page:
+1. Roles:
+   - Admin
+   - Org Admin
+   - Provider
+   - Patient/Viewer (if applicable)
+2. Data states:
+   - populated
+   - empty
+   - loading
+   - error
+   - zeroed analytics window
+3. Interaction states:
+   - collapsed row
+   - expanded row
+   - select mode on/off
+   - modal open/close
+4. Device widths:
+   - 360px
+   - 390px
+   - 430px
+   - tablet breakpoint edge
+5. Event paths:
+   - direct button
+   - custom event trigger
+   - FAB trigger
+
+### 18.15 Plug-and-Play Handoff Template
+When completing a new mobile page, append this to the PR/notes:
+1. Page:
+2. Mobile component path:
+3. Desktop page path:
+4. Modal inventory wired:
+5. KPI set and role differences:
+6. Delta sources:
+7. Filters removed/kept on mobile:
+8. Predictive fallback added:
+9. Known constraints:
+10. QA matrix result:
+
+### 18.16 Current Gold-Reference Components
+Use these as baseline implementation references:
+1. `frontend/src/components/mobile/MobileDashboard.jsx`
+2. `frontend/src/components/mobile/MobileAnalytics.jsx`
+3. `frontend/src/components/mobile/MobileEmergency.jsx`
+4. `frontend/src/components/mobile/MobileUsers.jsx`
+5. `frontend/src/components/mobile/MobileVisits.jsx`
+6. `frontend/src/components/mobile/MobileMetricList.jsx`
+7. `frontend/src/components/mobile/MobileKPIStrip.jsx`
+
+### 18.17 Non-Negotiables
+1. No functionality regression from desktop.
+2. No duplicated business logic across desktop/mobile.
+3. No random or mock production analytics.
+4. No modal path left unmounted on mobile.
+5. No touch interactions with delayed or glitchy motion.

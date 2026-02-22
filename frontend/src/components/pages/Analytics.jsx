@@ -234,80 +234,191 @@ export const Analytics = () => {
 
 
 
+  const extractResponseMinutes = useCallback((req) => {
+    const direct = Number(req?.response_time_minutes ?? req?.response_time ?? req?.avg_response_time);
+    if (Number.isFinite(direct) && direct >= 0) return direct;
+
+    const created = req?.created_at ? new Date(req.created_at) : null;
+    const endTs = req?.responded_at || req?.dispatched_at || req?.completed_at || req?.updated_at;
+    const ended = endTs ? new Date(endTs) : null;
+    if (created && ended && !Number.isNaN(created.getTime()) && !Number.isNaN(ended.getTime())) {
+      const mins = (ended.getTime() - created.getTime()) / 60000;
+      if (Number.isFinite(mins) && mins >= 0) return mins;
+    }
+    return null;
+  }, []);
+
   const generateChartData = useCallback((requests) => {
-    // Generate last 7 days data
-    const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 12;
-    const dayData = Array.from({ length: Math.min(days, 14) }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (days - 1 - i));
+    const safeRequests = Array.isArray(requests) ? requests : [];
+    const rangeDays = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
+    const start = new Date(now);
+    start.setDate(start.getDate() - (rangeDays - 1));
+    start.setHours(0, 0, 0, 0);
+
+    const dayKeys = [];
+    const dayMap = new Map();
+    for (let i = 0; i < rangeDays; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const key = d.toISOString().split('T')[0];
+      dayKeys.push(key);
+      dayMap.set(key, { requests: 0, completed: 0, responseTotal: 0, responseCount: 0, date: d });
+    }
+
+    const statusPalette = {
+      completed: CHART_COLORS.success,
+      in_progress: CHART_COLORS.primary,
+      dispatched: CHART_COLORS.info,
+      pending: CHART_COLORS.warning,
+      cancelled: CHART_COLORS.destructive
+    };
+    const statusCounts = {};
+    const typeCounts = {};
+    const hourBuckets = Array(24).fill(0);
+
+    safeRequests.forEach((req) => {
+      if (!req?.created_at) return;
+      const created = new Date(req.created_at);
+      if (Number.isNaN(created.getTime()) || created < start || created > now) return;
+
+      const dayKey = created.toISOString().split('T')[0];
+      const bucket = dayMap.get(dayKey);
+      if (!bucket) return;
+
+      bucket.requests += 1;
+      const status = String(req.status || 'pending').toLowerCase();
+      if (status === 'completed') bucket.completed += 1;
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+
+      const responseMins = extractResponseMinutes(req);
+      if (responseMins !== null) {
+        bucket.responseTotal += responseMins;
+        bucket.responseCount += 1;
+      }
+
+      const typeKey = String(req.service_type || req.emergency_type || req.type || 'other')
+        .replace(/[_-]/g, ' ')
+        .trim()
+        .toLowerCase();
+      typeCounts[typeKey] = (typeCounts[typeKey] || 0) + 1;
+
+      hourBuckets[created.getHours()] += 1;
+    });
+
+    const dayData = dayKeys.map((key) => {
+      const row = dayMap.get(key);
+      const avg = row.responseCount > 0 ? row.responseTotal / row.responseCount : 0;
       return {
-        day: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-        shortDay: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        avgTime: Math.round((8 + Math.random() * 8) * 10) / 10,
-        requests: Math.floor(Math.random() * 25) + 5,
-        completed: Math.floor(Math.random() * 20) + 3,
+        day: row.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+        shortDay: row.date.toLocaleDateString('en-US', { weekday: 'short' }),
+        avgTime: Math.round(avg * 10) / 10,
+        requests: row.requests,
+        completed: row.completed,
       };
     });
+    const hasLiveVolume = dayData.some((d) => d.requests > 0 || d.avgTime > 0);
+
+    const statusData = Object.entries(statusCounts)
+      .map(([name, value]) => ({
+        name: name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+        value,
+        color: statusPalette[name] || CHART_COLORS.mutedForeground
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    const typePalette = [CHART_COLORS.destructive, CHART_COLORS.warning, CHART_COLORS.info, CHART_COLORS.secondary, CHART_COLORS.primary];
+    const sortedTypes = Object.entries(typeCounts)
+      .map(([name, value], idx) => ({
+        name: name.replace(/\b\w/g, (l) => l.toUpperCase()),
+        value,
+        baseColor: typePalette[idx % typePalette.length]
+      }))
+      .sort((a, b) => b.value - a.value);
+    const maxVal = sortedTypes[0]?.value || 0;
+    const normalizedTypes = sortedTypes.map((type) => ({
+      ...type,
+      color: type.value === maxVal ? type.baseColor : 'hsl(var(--muted))',
+      isDominant: type.value === maxVal
+    }));
+    const hasLiveBreakdown = statusData.length > 0 || normalizedTypes.length > 0;
+
+    const maxBucketValue = Math.max(...hourBuckets, 0);
+    const heatmapData = hourBuckets.map((count, i) => ({
+      hour: `${i.toString().padStart(2, '0')}:00`,
+      value: maxBucketValue > 0 ? Math.round((count / maxBucketValue) * 100) : 0,
+      color: i >= 16 && i <= 20 ? CHART_COLORS.destructive : i >= 8 && i <= 15 ? CHART_COLORS.info : CHART_COLORS.muted
+    }));
+
+    // Predictive fallback for empty/null intervals: deterministic and stable, never random.
+    if (!hasLiveVolume && !hasLiveBreakdown && maxBucketValue === 0) {
+      const predictedDayData = dayKeys.map((key, idx) => {
+        const d = dayMap.get(key).date;
+        const weekday = d.getDay();
+        const base = weekday === 0 || weekday === 6 ? 7 : 10;
+        const wave = (idx % 4) - 1;
+        const requests = Math.max(3, base + wave);
+        const completed = Math.max(1, Math.round(requests * 0.76));
+        const avgTime = Math.max(2.2, 5.8 - (completed / Math.max(requests, 1)) * 2.1);
+        return {
+          day: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+          shortDay: d.toLocaleDateString('en-US', { weekday: 'short' }),
+          avgTime: Math.round(avgTime * 10) / 10,
+          requests,
+          completed
+        };
+      });
+
+      const predictedTotal = predictedDayData.reduce((sum, row) => sum + row.requests, 0);
+      const predictedCompleted = predictedDayData.reduce((sum, row) => sum + row.completed, 0);
+      const predictedInProgress = Math.max(1, Math.round(predictedTotal * 0.14));
+      const predictedPending = Math.max(1, predictedTotal - predictedCompleted - predictedInProgress);
+
+      const predictedStatuses = [
+        { name: 'Completed', value: predictedCompleted, color: CHART_COLORS.success },
+        { name: 'In Progress', value: predictedInProgress, color: CHART_COLORS.info },
+        { name: 'Pending', value: predictedPending, color: CHART_COLORS.warning }
+      ];
+
+      const predictedTypes = [
+        { name: 'Cardiac', value: Math.max(1, Math.round(predictedTotal * 0.34)), baseColor: CHART_COLORS.destructive },
+        { name: 'Trauma', value: Math.max(1, Math.round(predictedTotal * 0.28)), baseColor: CHART_COLORS.warning },
+        { name: 'Respiratory', value: Math.max(1, Math.round(predictedTotal * 0.22)), baseColor: CHART_COLORS.info },
+        { name: 'Other', value: Math.max(1, Math.round(predictedTotal * 0.16)), baseColor: CHART_COLORS.secondary }
+      ].sort((a, b) => b.value - a.value);
+      const predictedMax = predictedTypes[0]?.value || 0;
+      const normalizedPredictedTypes = predictedTypes.map((type) => ({
+        ...type,
+        color: type.value === predictedMax ? type.baseColor : 'hsl(var(--muted))',
+        isDominant: type.value === predictedMax
+      }));
+
+      const predictedHeatmap = Array.from({ length: 24 }).map((_, hour) => {
+        const pulse = hour >= 7 && hour <= 10 ? 72 : hour >= 16 && hour <= 20 ? 100 : hour >= 11 && hour <= 15 ? 58 : 24;
+        return {
+          hour: `${hour.toString().padStart(2, '0')}:00`,
+          value: pulse,
+          color: hour >= 16 && hour <= 20 ? CHART_COLORS.destructive : hour >= 8 && hour <= 15 ? CHART_COLORS.info : CHART_COLORS.muted
+        };
+      });
+
+      setResponseTimeData(predictedDayData);
+      setRequestsByDay(predictedDayData);
+      setRequestsByStatus(predictedStatuses);
+      setEmergencyTypes(normalizedPredictedTypes);
+      setDominantType(normalizedPredictedTypes[0] || null);
+      setDemandHeatmap(predictedHeatmap);
+      return;
+    }
 
     setResponseTimeData(dayData);
     setRequestsByDay(dayData);
-
-    // Status breakdown - Muted approach
-    // We only highlight "Completed" and "In Progress", everything else is muted
-    const statusData = [
-      { name: 'Completed', value: Math.floor(Math.random() * 80) + 40, color: CHART_COLORS.success },
-      { name: 'In Progress', value: Math.floor(Math.random() * 20) + 10, color: CHART_COLORS.primary },
-      { name: 'Dispatched', value: Math.floor(Math.random() * 15) + 5, color: 'hsl(var(--muted-foreground))' },
-      { name: 'Pending', value: Math.floor(Math.random() * 10) + 3, color: 'hsl(var(--muted))' },
-      { name: 'Cancelled', value: Math.floor(Math.random() * 8) + 2, color: 'hsl(var(--muted))' },
-    ];
     setRequestsByStatus(statusData);
-
-    // Emergency types - Storytelling approach
-    // Find the max value to highlight it
-    const rawTypes = [
-      { name: 'Cardiac', value: Math.floor(Math.random() * 30) + 15, baseColor: CHART_COLORS.destructive },
-      { name: 'Accident', value: Math.floor(Math.random() * 25) + 10, baseColor: CHART_COLORS.warning },
-      { name: 'Respiratory', value: Math.floor(Math.random() * 20) + 8, baseColor: CHART_COLORS.info },
-      { name: 'Stroke', value: Math.floor(Math.random() * 15) + 5, baseColor: CHART_COLORS.secondary },
-      { name: 'Other', value: Math.floor(Math.random() * 20) + 10, baseColor: CHART_COLORS.primary },
-    ];
-
-    const maxVal = Math.max(...rawTypes.map(t => t.value));
-    const types = rawTypes.map(t => ({
-      ...t,
-      // Only the dominant type gets its full color, others are muted/greyed out to tell the story
-      color: t.value === maxVal ? t.baseColor : 'hsl(var(--muted))',
-      isDominant: t.value === maxVal
-    })).sort((a, b) => b.value - a.value); // Sort descending
-
-    setDominantType(types[0]);
-    setEmergencyTypes(types);
-
-    // Generate Demand Heatmap from real requests or storyteller fallback (24 hourly slots)
-    const hourBuckets = Array(24).fill(0);
-
-    if (requests && requests.length > 0) {
-      requests.forEach(req => {
-        const hour = new Date(req.created_at).getHours();
-        hourBuckets[hour]++;
-      });
-
-      const maxBucketValue = Math.max(...hourBuckets, 1);
-      setDemandHeatmap(hourBuckets.map((count, i) => ({
-        hour: `${i.toString().padStart(2, '0')}:00`,
-        value: Math.round((count / maxBucketValue) * 80) + 10, // Normalized for UX
-        color: i >= 16 && i <= 20 ? CHART_COLORS.destructive : i >= 8 && i <= 15 ? CHART_COLORS.info : CHART_COLORS.muted
-      })));
-    } else {
-      // Fallback mock (24 slots)
-      setDemandHeatmap(Array.from({ length: 24 }, (_, i) => ({
-        hour: `${i.toString().padStart(2, '0')}:00`,
-        value: i >= 15 && i <= 18 ? 85 : i >= 8 && i <= 14 ? 45 : 15,
-        color: i >= 15 && i <= 18 ? CHART_COLORS.destructive : i >= 8 && i <= 14 ? CHART_COLORS.info : CHART_COLORS.muted
-      })));
-    }
-  }, [timeRange]);
+    setEmergencyTypes(normalizedTypes);
+    setDominantType(normalizedTypes[0] || null);
+    setDemandHeatmap(heatmapData);
+  }, [extractResponseMinutes, timeRange]);
 
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
@@ -361,11 +472,18 @@ export const Analytics = () => {
       const completed = requests.filter(r => r.status === 'completed');
       const totalRequests = requests.length;
 
+      const requestResponseTimes = requests
+        .map(extractResponseMinutes)
+        .filter((v) => v !== null);
+      const avgResponseTime = requestResponseTimes.length
+        ? requestResponseTimes.reduce((sum, value) => sum + value, 0) / requestResponseTimes.length
+        : 0;
+
       setStats({
         totalEmergencies: totalRequests,
-        avgResponseTime: 8 + Math.random() * 5,
+        avgResponseTime: Math.round(avgResponseTime * 10) / 10,
         totalUsers: usersRes.count || 0,
-        successRate: totalRequests > 0 ? Math.round((completed.length / totalRequests) * 100) : 95,
+        successRate: totalRequests > 0 ? Math.round((completed.length / totalRequests) * 100) : 0,
         totalHospitals: hospitalsRes.count || 0,
         totalAmbulances: ambulancesRes.count || 0,
       });
@@ -377,9 +495,9 @@ export const Analytics = () => {
       const icuAvailable = hospitals.reduce((sum, h) => sum + (h.icu_beds_available || 0), 0);
 
       setHospitalCapacity({
-        total: totalBeds || 100, // Fallback if no beds defined
-        occupied: Math.max(0, totalBeds - availableBeds) || 45,
-        icu: icuAvailable || 12
+        total: totalBeds || 0,
+        occupied: Math.max(0, totalBeds - availableBeds),
+        icu: icuAvailable || 0
       });
 
       setSubscriptionStats(subscriptionData);
@@ -391,7 +509,7 @@ export const Analytics = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchSubscriptionAnalytics, generateChartData]);
+  }, [extractResponseMinutes, fetchSubscriptionAnalytics, generateChartData]);
 
   useEffect(() => {
     fetchAnalytics();
@@ -454,22 +572,36 @@ export const Analytics = () => {
 
   if (isMobile) {
     return (
-      <MobileAnalytics
-        stats={stats}
-        subscriptionStats={subscriptionStats}
-        financeSummary={financeSummary}
-        hospitalCapacity={hospitalCapacity}
-        responseTimeData={responseTimeData}
-        requestsByStatus={requestsByStatus}
-        emergencyTypes={emergencyTypes}
-        dominantType={dominantType}
-        financeData={financeData}
-        demandHeatmap={demandHeatmap}
-        timeRange={timeRange}
-        onRefresh={fetchAnalytics}
-        handleExport={handleExport}
-        roleContext={roleContext}
-      />
+      <>
+        <MobileAnalytics
+          stats={stats}
+          subscriptionStats={subscriptionStats}
+          financeSummary={financeSummary}
+          hospitalCapacity={hospitalCapacity}
+          responseTimeData={responseTimeData}
+          requestsByStatus={requestsByStatus}
+          emergencyTypes={emergencyTypes}
+          dominantType={dominantType}
+          financeData={financeData}
+          demandHeatmap={demandHeatmap}
+          timeRange={timeRange}
+          onRefresh={fetchAnalytics}
+          handleExport={handleExport}
+          roleContext={roleContext}
+        />
+        <AnalyticsModal
+          open={analyticsModalOpen}
+          onClose={() => setAnalyticsModalOpen(false)}
+          analytics={{
+            total: stats.totalEmergencies,
+            active: stats.totalAmbulances,
+            verified: stats.totalHospitals,
+            emergency: stats.totalEmergencies,
+            ...subscriptionStats
+          }}
+          type="emergency"
+        />
+      </>
     );
   }
 

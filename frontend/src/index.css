@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -201,6 +201,9 @@ code {
 		--chart-5: 15 80% 50%;
 		--radius: 1.75rem;
 		--squircle: 1.75rem;
+		--font-dashboard-numbers: "JetBrains Mono", "Geist Mono", "SF Mono", "Roboto Mono", monospace;
+		--mobile-neon-accent: var(--primary);
+		--spark: 43 92% 52%;
 
 		/* Enhanced Premium Effects */
 		--glass-bg: 0 0% 100% / 0.92;
@@ -301,6 +304,7 @@ code {
 		/* Cards/panels - clear lift */
 		--surface-border: 0 0% 16%;
 		/* Subtle divider */
+		--spark: 45 96% 64%;
 	}
 }
 
@@ -563,6 +567,21 @@ code {
 		-webkit-background-clip: text;
 		-webkit-text-fill-color: transparent;
 		background-clip: text;
+	}
+
+	.font-dashboard-numbers {
+		font-family: var(--font-dashboard-numbers);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.neon-accent-text {
+		color: hsl(var(--mobile-neon-accent));
+		text-shadow: 0 0 16px hsl(var(--mobile-neon-accent) / 0.35);
+	}
+
+	.spark-accent-text {
+		color: hsl(var(--spark));
+		text-shadow: 0 0 10px hsl(var(--spark) / 0.22);
 	}
 
 	/* Apple surface utilities - Pure white hierarchy */

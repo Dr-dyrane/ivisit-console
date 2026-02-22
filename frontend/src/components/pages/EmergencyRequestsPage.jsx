@@ -56,6 +56,7 @@ import { FilterSheet } from '../common/FilterSheet';
 
 import { EmergencyRequestListView } from '../views/EmergencyRequestListView';
 import { EmergencyRequestTableView } from '../views/EmergencyRequestTableView';
+import { MobileEmergency } from '../mobile/MobileEmergency';
 import { usePageData } from '../../contexts/PageDataContext';
 import { SEOHead } from '../common/SEOHead';
 
@@ -457,14 +458,89 @@ export const EmergencyRequestsPage = () => {
   }, [handleCreateEmergency]);
 
   return (
-    <div className="min-h-screen py-6 md:py-8 pt-6">
+    <div className="min-h-screen">
       <SEOHead title="Emergency Requests" description="Monitor and respond to critical emergency requests in real-time." />
 
-      {loading ? (
-        <TableSkeleton rows={8} />
+      {isMobile ? (
+        <>
+          <MobileEmergency
+            emergencies={requests}
+            loading={loading}
+            statistics={emergencyData?.stats}
+            filters={filters}
+            setFilters={setFilters}
+            onView={handleViewDetails}
+            onEdit={handleDispatch}
+            onDelete={handleDelete}
+            onRefresh={fetchRequests}
+            onViewAnalytics={() => setAnalyticsModalOpen(true)}
+            isAdmin={isAdmin() || isOrgAdmin()}
+            onOpenFilters={() => setFilterSheetOpen(true)}
+            hasMore={pagination.hasNextPage}
+            onLoadMore={pagination.nextPage}
+            kpiFilter={kpiFilter}
+            setKpiFilter={setKpiFilter}
+          />
+
+          <EmergencyDetailsModal
+            isOpen={isDetailsModalOpen}
+            onClose={(shouldRefresh) => {
+              setIsDetailsModalOpen(false);
+              setSelectedRequest(null);
+              if (shouldRefresh === true) {
+                fetchRequests();
+              }
+            }}
+            request={selectedRequest}
+          />
+
+          <EmergencyRequestModal
+            isOpen={isEmergencyModalOpen}
+            onClose={handleCloseEmergencyModal}
+            request={selectedRequest}
+            mode="create"
+          />
+
+          <FilterSheet
+            isOpen={filterSheetOpen}
+            onOpenChange={setFilterSheetOpen}
+            filterSchema={filterSchema}
+            onApply={setFilters}
+            initialValues={filters}
+            viewToggle={null}
+            isMobile
+          />
+
+          <AnalyticsModal
+            open={analyticsModalOpen}
+            onClose={() => setAnalyticsModalOpen(false)}
+            analytics={emergencyData?.stats || {
+              total: requests.length,
+              active: requests.filter(r => r.status === 'active' || r.status === 'in_progress').length,
+              pending: requests.filter(r => r.status === 'pending' || r.status === 'pending_approval').length,
+              critical: requests.filter(r => r.priority === 'critical').length,
+              avgResponseTime: 0
+            }}
+            type="emergency"
+          />
+
+          <ConfirmationModal
+            isOpen={confirmationModal.isOpen}
+            onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+            onConfirm={confirmationModal.onConfirm}
+            title={confirmationModal.title}
+            description={confirmationModal.description}
+            variant={confirmationModal.variant}
+            confirmLabel={confirmationModal.confirmLabel}
+          />
+        </>
       ) : (
         <>
-          {/* Bento Overview Cards - Always visible */}
+          {loading ? (
+            <TableSkeleton rows={8} />
+          ) : (
+            <>
+              {/* Bento Overview Cards - Always visible */}
           <AnimatePresence>
             {selectedIds.length > 0 && (
               <motion.div
@@ -994,7 +1070,7 @@ export const EmergencyRequestsPage = () => {
         filterSchema={filterSchema}
         onApply={setFilters}
         initialValues={filters}
-        viewToggle={isMobile ? viewToggleComponent : null}
+        viewToggle={null}
         isMobile={isMobile}
       />
 
@@ -1015,6 +1091,8 @@ export const EmergencyRequestsPage = () => {
         confirmLabel={confirmationModal.confirmLabel}
       />
 
+        </>
+      )}
     </div>
   );
 };

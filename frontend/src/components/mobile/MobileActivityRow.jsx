@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
  */
 export const MobileActivityRow = ({ icon: Icon, msg, time, color = 'hsl(var(--primary))', user }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const derivedEventId = `${String(time || '').replace(/\s+/g, '').slice(0, 6)}-${String(msg || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase()}`;
 
     return (
         <motion.div
@@ -33,6 +34,15 @@ export const MobileActivityRow = ({ icon: Icon, msg, time, color = 'hsl(var(--pr
                         {time}
                     </p>
                 </div>
+                <div
+                    className="min-w-[74px] rounded-lg px-2 py-1 text-right"
+                    style={{
+                        background: `linear-gradient(120deg, ${color.replace(/\)$/, ' / 0.16)')}, ${color.replace(/\)$/, ' / 0.04)')})`,
+                    }}
+                >
+                    <p className="text-[7px] uppercase tracking-[0.14em] text-foreground/60 font-medium">Signal</p>
+                    <p className="text-[10px] font-semibold font-dashboard-numbers text-foreground/90 truncate">{time}</p>
+                </div>
             </div>
 
             <AnimatePresence initial={false}>
@@ -47,17 +57,17 @@ export const MobileActivityRow = ({ icon: Icon, msg, time, color = 'hsl(var(--pr
                         }}
                         className="px-4 pb-4"
                     >
-                        <div className="pt-3 border-t border-white/5 flex flex-col gap-1.5">
+                        <div className="pt-3 border-t border-white/5 flex flex-col gap-2">
                             {user && (
                                 <p className="text-[11px] text-muted-foreground tracking-tight font-normal">
                                     Triggered by <span className="text-foreground/70 font-medium">{user}</span>
                                 </p>
                             )}
-                            <div className="flex items-center justify-between">
-                                <p className="text-[9px] text-muted-foreground/40 tracking-wider uppercase font-normal">
-                                    Log ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}
+                            <div className="flex items-center justify-between p-2 rounded-xl bg-white/[0.02]">
+                                <p className="text-[9px] text-muted-foreground/40 tracking-wider uppercase font-medium">
+                                    Event: {derivedEventId || 'LIVE'}
                                 </p>
-                                <p className="text-[9px] text-success/60 font-medium uppercase tracking-widest">
+                                <p className="text-[9px] text-success/70 font-semibold uppercase tracking-widest">
                                     Verified
                                 </p>
                             </div>

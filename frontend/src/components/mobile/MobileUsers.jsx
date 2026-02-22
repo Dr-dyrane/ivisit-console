@@ -60,6 +60,24 @@ export const MobileUsers = ({
     const [expandedUserId, setExpandedUserId] = useState(null);
     const selectionMode = selectedIds.length > 0;
 
+    const formatSignedPercent = (value) => {
+        if (!Number.isFinite(value)) return null;
+        const rounded = Math.abs(value) >= 10 ? value.toFixed(0) : value.toFixed(1);
+        return `${value > 0 ? '+' : ''}${rounded}%`;
+    };
+
+    const calcDeltaPercent = (current, previous) => {
+        const c = Number(current);
+        const p = Number(previous);
+        if (!Number.isFinite(c) || !Number.isFinite(p) || p === 0) return null;
+        return ((c - p) / Math.abs(p)) * 100;
+    };
+
+    const toDeltaBadge = (value) => ({
+        delta: formatSignedPercent(value) || 'LIVE',
+        direction: Number.isFinite(value) ? (value > 0 ? 'up' : value < 0 ? 'down' : 'flat') : 'flat'
+    });
+
     useEffect(() => {
         if (!hasMore || loading) return;
 
@@ -79,31 +97,58 @@ export const MobileUsers = ({
         return () => observer.disconnect();
     }, [hasMore, loading, onLoadMore]);
 
-    // User-friendly KPIs with clear labels
+    const totalUsers = Number(statistics?.totalUsers) || users.length;
+    const verifiedUsersCount = Number(statistics?.bvnVerifiedUsers) || users.filter(u => u.bvn_verified).length;
+    const staffMembers = (statistics?.roleDistribution?.admin || 0) + (statistics?.roleDistribution?.provider || 0) + (statistics?.roleDistribution?.org_admin || 0);
+    const activeUsers = users.filter(u => u.is_active !== false).length;
+
+    const totalTrend = toDeltaBadge(calcDeltaPercent(totalUsers, statistics?.previous?.totalUsers ?? statistics?.previousTotalUsers));
+    const verifiedTrend = toDeltaBadge(calcDeltaPercent(verifiedUsersCount, statistics?.previous?.bvnVerifiedUsers ?? statistics?.previousBvnVerifiedUsers));
+    const staffTrend = toDeltaBadge(calcDeltaPercent(staffMembers, statistics?.previous?.staffMembers ?? statistics?.previousStaffMembers));
+    const activeTrend = toDeltaBadge(calcDeltaPercent(activeUsers, statistics?.previous?.activeUsers ?? statistics?.previousActiveUsers));
+
+    // User-friendly KPIs with clear labels and tiny live deltas
     const userKPIs = [
         {
             id: 'all',
             label: 'Total Users',
-            value: statistics?.totalUsers || users.length,
-            color: 'hsl(var(--primary))'
+            value: totalUsers,
+            color: 'hsl(var(--primary))',
+            delta: totalTrend.delta,
+            direction: totalTrend.direction
         },
         {
             id: 'verified',
             label: 'Verified',
-            value: statistics?.bvnVerifiedUsers || users.filter(u => u.bvn_verified).length,
-            color: 'hsl(var(--success))'
+            value: verifiedUsersCount,
+            color: 'hsl(var(--success))',
+            delta: verifiedTrend.delta,
+            direction: verifiedTrend.direction
         },
         {
             id: 'staff',
-            label: 'Staff Members',
-            value: (statistics?.roleDistribution?.admin || 0) + (statistics?.roleDistribution?.provider || 0) + (statistics?.roleDistribution?.org_admin || 0),
-            color: 'hsl(var(--warning))'
-        }
+            label: 'Staff',
+            value: staffMembers,
+            color: 'hsl(var(--warning))',
+            delta: staffTrend.delta,
+            direction: staffTrend.direction
+        },
+        ...((isAdmin || isOrgAdmin) ? [{
+            id: 'active',
+            label: 'Active',
+            value: activeUsers,
+            color: 'hsl(var(--spark))',
+            delta: activeTrend.delta,
+            direction: activeTrend.direction
+        }] : [])
     ];
 
     const growthData = useMemo(() => [
         { value: 30 }, { value: 45 }, { value: 60 }, { value: 55 }, { value: 75 }, { value: 85 }
     ], []);
+
+    const verifiedUsers = users.filter(u => u.bvn_verified).length;
+    const verificationRate = users.length ? (verifiedUsers / users.length) * 100 : 0;
 
     const getRoleColor = (role) => {
         switch (role) {
@@ -124,35 +169,49 @@ export const MobileUsers = ({
                     onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
                 />
 
-                <div className="px-2 pt-6 text-foreground">
+                <div className="px-2 pt-4 text-foreground">
                     {/* B. ACTIVE USERS */}
                     <MobileFeaturedMetric
                         label="Active Users"
-                        value={users.filter(u => u.is_active !== false).length}
-                        trend="+12%"
+                        value={activeUsers}
+                        trend={formatSignedPercent(verificationRate - 50) || 'LIVE'}
                         icon={Activity}
                         color="hsl(var(--success))"
                         chartData={growthData}
                     />
 
-                    {/* C. NEW SIGNUPS */}
-                    <section className="mb-6">
+                    {/* C. USER VELOCITY */}
+                    <section className="mb-3">
                         <MobileSectionHeader
-                            label="New Signups"
+                            label="User Velocity"
                             count={statistics?.recentSignups}
                             color="hsl(var(--info))"
                         />
-                        <div className="p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-info/5 flex items-center justify-center">
-                                    <Activity className="text-info w-5 h-5 opacity-70" />
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-info/5 flex items-center justify-center">
+                                        <Activity className="text-info w-5 h-5 opacity-70" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[11px] font-medium tracking-tight">Recent Signups</span>
+                                        <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Last 30 days</span>
+                                    </div>
                                 </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[11px] font-medium tracking-tight">Recent Signups</span>
-                                    <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Last 30 days</span>
-                                </div>
+                                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">{statistics?.recentSignups || 0}</span>
                             </div>
-                            <span className="text-xl font-normal tracking-tighter">{statistics?.recentSignups || 0}</span>
+                            <div className="p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-success/5 flex items-center justify-center">
+                                        <BadgeCheck className="text-success w-5 h-5 opacity-70" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[11px] font-medium tracking-tight">Verification</span>
+                                        <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Current ratio</span>
+                                    </div>
+                                </div>
+                                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">{Math.round(verificationRate)}%</span>
+                            </div>
                         </div>
                     </section>
 
@@ -171,7 +230,7 @@ export const MobileUsers = ({
                         <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={() => onOpenFilters?.()}
-                            className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-primary transition-colors border-0"
+                            className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0"
                         >
                             <SlidersHorizontal size={18} />
                         </motion.button>
@@ -180,7 +239,7 @@ export const MobileUsers = ({
                             <motion.button
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => onViewAnalytics?.()}
-                                className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-primary/60 active:text-primary transition-colors border-0 shadow-sm"
+                                className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.64)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0 shadow-sm"
                             >
                                 <BarChart3 size={18} />
                             </motion.button>
@@ -216,6 +275,13 @@ export const MobileUsers = ({
                                     )}
                                     label={user.role?.replace('_', ' ').toUpperCase() || 'PATIENT'}
                                     value={user.full_name || user.username || 'Unknown User'}
+                                    rightBlade={{
+                                        badge: user.bvn_verified ? 'KYC' : 'PENDING',
+                                        direction: user.bvn_verified ? 'up' : 'down',
+                                        label: user.is_active !== false ? 'Active' : 'Inactive',
+                                        value: (user.role || 'user').replace('_', ' ').toUpperCase(),
+                                        color: user.bvn_verified ? 'hsl(var(--success))' : 'hsl(var(--warning))'
+                                    }}
                                     statusIndicators={[
                                         {
                                             icon: user.bvn_verified ? BadgeCheck : BadgeX,
@@ -269,7 +335,7 @@ export const MobileUsers = ({
                                             <div className="flex gap-2 pt-2">
                                                 <Button
                                                     variant="ghost"
-                                                    className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                                                    className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                     onClick={() => onView(user)}
                                                 >
                                                     <Eye size={16} className="text-primary/60" />
@@ -277,7 +343,7 @@ export const MobileUsers = ({
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
-                                                    className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                                                    className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                     onClick={() => onEdit(user)}
                                                 >
                                                     <Edit size={16} className="text-warning/60" />
@@ -286,7 +352,7 @@ export const MobileUsers = ({
                                                 {isAdmin && (
                                                     <Button
                                                         variant="ghost"
-                                                        className="w-12 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center active:scale-95 transition-transform"
+                                                        className="w-12 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-destructive/10 active:bg-destructive/15 hover:text-destructive"
                                                         onClick={() => onDelete(user)}
                                                     >
                                                         <Trash2 size={16} className="text-destructive/60" />
