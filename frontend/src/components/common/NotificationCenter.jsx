@@ -57,9 +57,12 @@ export const NotificationCenter = () => {
         variant="ghost"
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
-        className={`${isMobile ? 'h-8 w-8' : 'h-9 w-9'} squircle hover:bg-primary/10 hover:text-primary relative`}
+        className={`${isMobile
+          ? 'h-8 w-8 rounded-full hover:bg-[hsl(var(--spark)/0.08)] hover:text-[hsl(var(--spark)/0.92)]'
+          : 'h-9 w-9 squircle hover:bg-primary/10 hover:text-primary'
+          } relative transition-[color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]`}
       >
-        <Bell className={`h-4 w-4 ${isMobile ? 'text-black dark:text-white' : ''}`} />
+        <Bell className={`h-4 w-4 ${isMobile ? 'text-foreground/80' : ''}`} />
         {unreadCount > 0 && (
           <Badge className="absolute -top-2 -right-2 squircle-full h-5 w-5 p-0 flex items-center justify-center text-[10px] font-bold bg-destructive text-destructive-foreground">
             {unreadCount > 9 ? '9+' : unreadCount}
@@ -70,12 +73,12 @@ export const NotificationCenter = () => {
       {/* Mobile: Sheet */}
       {isMobile ? (
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetOverlay className="bg-black/20 backdrop-blur-sm" />
+          <SheetOverlay className="bg-black/15 backdrop-blur-xs" />
           <SheetContent
             side="right"
-            className="w-[85%] max-w-[320px] p-0 border-0 bg-background dark:bg-background/10 backdrop-blur-md rounded-l-[40px] overflow-hidden"
+            className="w-[88%] max-w-[340px] p-0 border-0 bg-background/95 dark:bg-background/30 backdrop-blur-xl rounded-l-[36px] overflow-hidden shadow-2xl"
           >
-            <div className="px-4 mb-4 py-2">
+            <div className="px-4 pt-3 pb-2">
               <div>
                 <h3 className="font-normal text-lg tracking-tight">Notifications</h3>
                 {unreadCount > 0 && (
@@ -84,7 +87,7 @@ export const NotificationCenter = () => {
               </div>
             </div>
 
-            <div className="max-h-[50vh] overflow-y-auto px-2 pb-20">
+            <div className="max-h-[68vh] overflow-y-auto px-2 pb-20 no-scrollbar">
               {loading ? (
                 <div className="space-y-2">
                   {[...Array(3)].map((_, i) => (
@@ -114,11 +117,11 @@ export const NotificationCenter = () => {
             </div>
 
             {notifications.length > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 p-2 border-t border-white/10 bg-background/95 backdrop-blur-xl">
+              <div className="absolute bottom-0 left-0 right-0 p-2 bg-background/70 backdrop-blur-xl">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full text-xs"
+                  className="w-full text-xs rounded-2xl hover:bg-[hsl(var(--spark)/0.08)] hover:text-[hsl(var(--spark)/0.92)]"
                   onClick={() => {
                     notifications
                       .filter(n => !n.read)

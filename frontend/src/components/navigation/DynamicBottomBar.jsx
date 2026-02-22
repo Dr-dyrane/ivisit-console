@@ -173,7 +173,7 @@ export const DynamicBottomBar = () => {
             <div
                 id="dynamic-bottom-bar"
                 className="fixed left-0 right-0 flex justify-center z-50 pointer-events-none"
-                style={{ bottom: '24px' }}
+                style={{ bottom: 'calc(var(--safe-bottom, 0px) + 14px)' }}
             >
                 <div className="w-full px-6 flex items-center justify-between pointer-events-auto">
                     {/* CORE NAVIGATION PILL - Lucid Design */}
@@ -183,7 +183,7 @@ export const DynamicBottomBar = () => {
                             x: isScrolledDown ? -100 : 0,
                             opacity: isScrolledDown ? 0 : 1,
                         }}
-                        className="flex items-center gap-1 p-1 rounded-full backdrop-blur-sm shadow-sm"
+                        className="flex items-center gap-1 p-1 rounded-full apple-glass-heavy shadow-sm"
                     >
                         {navItems.map((item) => {
                             const isActive = location.pathname === item.path;
@@ -192,8 +192,8 @@ export const DynamicBottomBar = () => {
                                     <motion.div
                                         whileTap={{ scale: 0.9 }}
                                         className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${isActive
-                                            ? 'bg-primary/20 text-primary shadow-inner'
-                                            : 'text-foreground/40 hover:text-foreground'
+                                            ? 'bg-[hsl(var(--spark)/0.12)] text-[hsl(var(--spark)/0.92)] shadow-inner'
+                                            : 'text-foreground/45 hover:text-foreground'
                                             }`}
                                     >
                                         <item.icon className="w-5 h-5 transition-transform group-active:scale-90" />
@@ -214,7 +214,7 @@ export const DynamicBottomBar = () => {
                         onClick={actionConfig.action}
                         className="w-12 h-12 flex items-center justify-center transition-all shadow-2xl relative overflow-hidden rounded-3xl"
                         style={{
-                            background: `linear-gradient(135deg, hsl(var(--${actionConfig.color})) 0%, hsl(var(--${actionConfig.color}) / 0.8) 100%)`,
+                            background: `linear-gradient(135deg, hsl(var(--${actionConfig.color})) 0%, hsl(var(--${actionConfig.color}) / 0.86) 100%)`,
                         }}
                     >
                         {/* Shimmer */}

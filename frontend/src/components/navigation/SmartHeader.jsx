@@ -43,7 +43,7 @@ export const SmartHeader = () => {
                 }}
                 // Apple-Wordy Smart Header with glass-card design
                 className={`fixed z-40 flex items-center justify-between transition-all duration-300 ${isMobile
-                    ? 'top-1 left-2 right-2 h-10 rounded-full bg-background/5 backdrop-blur-sm pointer-events-auto'
+                    ? 'top-2 left-2 right-2 h-11 rounded-full apple-glass-heavy pointer-events-auto'
                     : 'top-0 left-0 right-0 h-16 pointer-events-auto'
                     }`}
                 style={{
@@ -55,7 +55,7 @@ export const SmartHeader = () => {
                 {isMobile ? (
                     <button
                         onClick={() => setMenuOpen(true)}
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 backdrop-blur-md transition-transform active:scale-95 overflow-hidden border border-white/10 shadow-sm shrink-0"
+                        className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 transition-transform active:scale-95 overflow-hidden border-0 shadow-sm shrink-0"
                     >
                         <img src={AVATAR_URL} alt="User" className="w-full h-full object-cover" />
                     </button>
@@ -87,12 +87,12 @@ export const SmartHeader = () => {
                 <div className="flex items-center gap-1.5 md:gap-3 ml-auto">
                     {/* MOBILE SPECIFIC RIGHT ACTIONS */}
                     {isMobile ? (
-                        <div className="flex items-center gap-2 bg-primary/5 backdrop-blur-sm rounded-full px-2 py-1">
+                        <div className="flex items-center gap-1.5 rounded-full px-1.5 py-1 bg-white/[0.03]">
                             <button
                                 onClick={() => setSearchOpen(true)}
-                                className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                                className="w-8 h-8 rounded-full flex items-center justify-center transition-[color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] text-muted-foreground/75 hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
                             >
-                                <Search className="h-4 w-4 text-foreground/80" />
+                                <Search className="h-4 w-4" />
                             </button>
                             <NotificationCenter />
                         </div>
@@ -149,10 +149,10 @@ export const SmartHeader = () => {
 
             {/* Mobile Nav Sheet (Left to Right) */}
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-                <SheetOverlay className="bg-black/20 backdrop-blur-sm" />
+                <SheetOverlay className="bg-black/15 backdrop-blur-xs" />
                 <SheetContent
                     side="left"
-                    className="w-[85%] max-w-[320px] p-0 border-0 bg-background dark:bg-background/20 backdrop-blur-sm rounded-r-[40px] overflow-hidden"
+                    className="w-[88%] max-w-[340px] p-0 border-0 bg-background/95 dark:bg-background/30 backdrop-blur-xl rounded-r-[36px] overflow-hidden shadow-2xl"
                 >
                     <MobileNavMenu onClose={() => setMenuOpen(false)} />
                 </SheetContent>

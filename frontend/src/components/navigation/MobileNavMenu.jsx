@@ -105,7 +105,7 @@ export const MobileNavMenu = ({ onClose }) => {
                 {/* TAB TOGGLE (Subtle Segmented Control) */}
                 <div className="p-1 rounded-xl bg-muted/20 backdrop-blur-md flex relative mb-4">
                     <motion.div
-                        className="absolute top-1 bottom-1 bg-primary/5 shadow-sm rounded-lg"
+                        className="absolute top-1 bottom-1 bg-[hsl(var(--spark)/0.10)] shadow-sm rounded-lg"
                         initial={false}
                         animate={{
                             left: activeTab === 'menu' ? '4px' : '50%',
@@ -115,14 +115,14 @@ export const MobileNavMenu = ({ onClose }) => {
                     />
                     <button
                         onClick={() => setActiveTab('menu')}
-                        className={`flex-1 relative z-10 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-center transition-colors duration-200 ${activeTab === 'menu' ? 'text-primary' : 'text-muted-foreground/50'
+                        className={`flex-1 relative z-10 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-center transition-colors duration-200 ${activeTab === 'menu' ? 'text-[hsl(var(--spark)/0.92)]' : 'text-muted-foreground/50'
                             }`}
                     >
                         Menu
                     </button>
                     <button
                         onClick={() => setActiveTab('context')}
-                        className={`flex-1 relative z-10 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-center transition-colors duration-200 ${activeTab === 'context' ? 'text-primary' : 'text-muted-foreground/50'
+                        className={`flex-1 relative z-10 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-center transition-colors duration-200 ${activeTab === 'context' ? 'text-[hsl(var(--spark)/0.92)]' : 'text-muted-foreground/50'
                             }`}
                     >
                         Context
@@ -210,7 +210,7 @@ export const MobileNavMenu = ({ onClose }) => {
                 <div className="flex gap-2">
                     <button
                         onClick={toggleTheme}
-                        className="flex-1 flex items-center justify-center h-12 rounded-2xl bg-black/5 dark:bg-white/5 text-muted-foreground transition-colors active:bg-white/10"
+                        className="flex-1 flex items-center justify-center h-12 rounded-2xl bg-black/5 dark:bg-white/5 text-muted-foreground transition-[background,color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] active:bg-white/10 hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
                     >
                         {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                     </button>
