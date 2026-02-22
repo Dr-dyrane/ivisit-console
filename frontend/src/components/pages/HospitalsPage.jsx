@@ -27,6 +27,7 @@ import { HospitalListView } from '../views/HospitalListView';
 import { HospitalTableView } from '../views/HospitalTableView';
 import { SEOHead } from '../common/SEOHead';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
+import { MobileHospitals } from '../mobile/MobileHospitals';
 
 import { usePageData } from '../../contexts/PageDataContext';
 
@@ -357,6 +358,83 @@ export const HospitalsPage = () => {
   ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
 
   usePageFooter(footerContent, 'pagination', !loading && hospitals.length > 0);
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen">
+        <SEOHead title="Medical Facilities" description="Manage network hospitals, bed capacity, and facility status." />
+
+        <MobileHospitals
+          hospitals={hospitals}
+          loading={loading}
+          statistics={hospitalsData?.stats}
+          filters={filters}
+          setFilters={setFilters}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onSchedule={(hospital) => {
+            setSelectedHospital(hospital);
+            setSchedulingModalOpen(true);
+          }}
+          onRefresh={fetchHospitals}
+          onViewAnalytics={() => setAnalyticsModalOpen(true)}
+          isAdmin={isAdmin()}
+          isOrgAdmin={isOrgAdmin()}
+          onOpenFilters={() => setFilterSheetOpen(true)}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+          selectedIds={selectedIds}
+          onSelect={handleSelect}
+          onSelectAll={handleSelectAll}
+        />
+
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          title={confirmationModal.title}
+          description={confirmationModal.description}
+          onConfirm={confirmationModal.onConfirm}
+          variant={confirmationModal.variant}
+          confirmLabel={confirmationModal.confirmLabel}
+        />
+
+        {modalMode && (
+          <HospitalModal
+            isOpen={!!modalMode}
+            onClose={handleModalClose}
+            hospital={selectedHospital}
+            mode={modalMode}
+            onSave={handleSave}
+          />
+        )}
+
+        <FilterSheet
+          isOpen={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          filterSchema={filterSchema}
+          onApply={setFilters}
+          initialValues={filters}
+          viewToggle={null}
+          isMobile={true}
+        />
+
+        <AnalyticsModal
+          open={analyticsModalOpen}
+          onClose={() => setAnalyticsModalOpen(false)}
+          analytics={hospitalsData?.stats}
+          type="hospital"
+        />
+
+        <StaffSchedulingModal
+          isOpen={schedulingModalOpen}
+          onClose={() => setSchedulingModalOpen(false)}
+          hospitalId={selectedHospital?.id}
+          existingStaff={[]}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-6 md:py-8">

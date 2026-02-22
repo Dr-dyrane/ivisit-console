@@ -55,6 +55,21 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
     }
   }, [isOpen, hospitalId]);
 
+  // Keep mobile bottom bar from overlapping the modal layer.
+  useEffect(() => {
+    const bottomBar = document.getElementById('dynamic-bottom-bar');
+    if (!bottomBar) return undefined;
+
+    const previousDisplay = bottomBar.style.display;
+    if (isOpen) {
+      bottomBar.style.display = 'none';
+    }
+
+    return () => {
+      bottomBar.style.display = previousDisplay;
+    };
+  }, [isOpen]);
+
   const loadSchedulingData = async () => {
     try {
       setLoading(true);
@@ -267,7 +282,13 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4"
+          style={{
+            paddingTop: 'max(12px, var(--safe-top, 0px))',
+            paddingBottom: 'max(12px, calc(var(--safe-bottom, 0px) + 12px))'
+          }}
+        >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -281,7 +302,10 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl"
+            className="relative z-10 w-full max-w-5xl max-h-[92dvh] overflow-hidden rounded-[32px] shadow-2xl"
+            style={{
+              maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 24px)'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header Area */}
@@ -340,7 +364,12 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
               )}
             </div>
 
-            <div className="p-8 pt-2 overflow-y-auto max-h-[calc(90vh-200px)] space-y-6 no-scrollbar">
+            <div
+              className="p-8 pt-2 overflow-y-auto space-y-6 no-scrollbar"
+              style={{
+                maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 240px)'
+              }}
+            >
               {activeTab === 'overview' && (
                 <div className="space-y-6">
                   {/* Stats Cards */}
