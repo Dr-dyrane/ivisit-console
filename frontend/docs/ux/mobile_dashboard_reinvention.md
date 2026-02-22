@@ -897,9 +897,12 @@ Use it exactly, in order.
 3. Use a hard render fork at page level:
    - `if (isMobile) return <MobileX ... />`
    - else keep current desktop/table/list logic.
-4. Do not duplicate API calls across desktop/mobile branches.
-5. Keep data fetching, RBAC, and business actions in the page container.
-6. Pass only computed props + handlers into mobile component.
+4. Wrap all mobile pages with shared shell:
+   - `MobilePageShell` for unified KPI+content rhythm.
+   - Standard content class: `px-2 pt-4 pb-4 text-foreground`.
+5. Do not duplicate API calls across desktop/mobile branches.
+6. Keep data fetching, RBAC, and business actions in the page container.
+7. Pass only computed props + handlers into mobile component.
 
 ### 18.3 File Creation and Wiring Template
 1. Create `frontend/src/components/mobile/Mobile<Page>.jsx`.
@@ -937,6 +940,17 @@ Use this composition order for every mobile page:
 5. Main directory list using `MobileMetricRow`.
 6. Progressive disclosure inside each row (expanded details + actions).
 7. Infinite sentinel / end-of-list marker.
+
+Layout rhythm baseline:
+1. Use `MobilePageShell`.
+2. Search/action row spacing should default to `mb-3`.
+3. Summary sections before search should default to compact 2-up cards.
+4. Avoid page-specific top padding overrides unless required for a hard content case.
+5. Use shared list-state primitives for parity:
+   - `MobileListLoadingMore`
+   - `MobileListEnd`
+   - `MobileListEmpty`
+6. Skeleton pages should use same shell rhythm (`px-2 pt-4 pb-4`) to avoid perceived jump on load.
 
 ### 18.6 KPI Strip and Delta Rules
 1. KPI count:
@@ -1068,6 +1082,9 @@ Use these as baseline implementation references:
 5. `frontend/src/components/mobile/MobileVisits.jsx`
 6. `frontend/src/components/mobile/MobileMetricList.jsx`
 7. `frontend/src/components/mobile/MobileKPIStrip.jsx`
+8. `frontend/src/components/mobile/MobilePageShell.jsx`
+9. `frontend/src/components/mobile/MobileListStates.jsx`
+10. `frontend/src/components/mobile/MobileSkeleton.jsx`
 
 ### 18.17 Non-Negotiables
 1. No functionality regression from desktop.

@@ -26,6 +26,7 @@ import { MobileQuickNavPill } from './MobileQuickNavPill';
 import { MobileActivityRow } from './MobileActivityRow';
 import { PullToRefresh } from './PullToRefresh';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
+import { MobilePageShell } from './MobilePageShell';
 
 /**
  * MobileDashboard
@@ -99,12 +100,10 @@ export const MobileDashboard = ({
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
-            <div className="flex flex-col min-h-screen no-scrollbar">
-                {/* KPI Strip - Sticky */}
-                <MobileKPIStrip kpis={getKPIData()} />
-
-                {/* Content Scroller */}
-                <div className="px-2 pt-6 text-foreground">
+            <MobilePageShell
+                kpiStrip={<MobileKPIStrip kpis={getKPIData()} />}
+                contentClassName="px-2 pt-4 pb-4 text-foreground"
+            >
 
                     {/* HERO FEATURED METRICS */}
                     {(isAdmin || isOrgAdmin || isSponsor) && (
@@ -253,7 +252,7 @@ export const MobileDashboard = ({
                     )}
 
                     {/* NAVIGATION */}
-                    <section className="mt-4">
+                    <section className="mt-3">
                         <MobileSectionHeader label="Navigation" />
                         <MobileQuickNavPill items={[
                             { icon: MapIcon, label: 'Live Map', color: 'hsl(var(--primary))', path: '/map' },
@@ -264,7 +263,7 @@ export const MobileDashboard = ({
                     </section>
 
                     {/* RECENT FEED */}
-                    <section className="mt-4 mb-4">
+                    <section className="mt-3 mb-3">
                         <MobileSectionHeader label="Event Log" />
                         <div className="space-y-1">
                             {recentActivities.slice(0, 5).map((activity, idx) => (
@@ -282,7 +281,7 @@ export const MobileDashboard = ({
 
                     {/* SYSTEM STATUS (Detailed) */}
                     {(isAdmin || isOrgAdmin) && (
-                        <section className="mt-2 mb-8">
+                        <section className="mt-2 mb-6">
                             <MobileSectionHeader label="Architecture Health" color="hsl(var(--info))" />
                             <div className="px-6 py-8 bg-muted/40 apple-glass-heavy border-0 rounded-3xl space-y-6 shadow-xl relative overflow-hidden">
                                 {/* 2px Left Primary Accent */}
@@ -312,8 +311,7 @@ export const MobileDashboard = ({
                             </div>
                         </section>
                     )}
-                </div>
-            </div>
+            </MobilePageShell>
         </PullToRefresh>
     );
 };

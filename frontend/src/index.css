@@ -203,7 +203,9 @@ code {
 		--squircle: 1.75rem;
 		--font-dashboard-numbers: "JetBrains Mono", "Geist Mono", "SF Mono", "Roboto Mono", monospace;
 		--mobile-neon-accent: var(--primary);
-		--spark: 43 92% 52%;
+		/* Light mode: darker premium gold for proper contrast on white */
+		--spark: 41 100% 30%;
+		--spark-ink: 41 100% 24%;
 
 		/* Enhanced Premium Effects */
 		--glass-bg: 0 0% 100% / 0.92;
@@ -304,7 +306,9 @@ code {
 		/* Cards/panels - clear lift */
 		--surface-border: 0 0% 16%;
 		/* Subtle divider */
-		--spark: 45 96% 64%;
+		/* Dark mode: neon gold for high-energy highlights */
+		--spark: 47 100% 68%;
+		--spark-ink: 47 100% 78%;
 	}
 }
 
@@ -580,8 +584,13 @@ code {
 	}
 
 	.spark-accent-text {
+		color: hsl(var(--spark-ink));
+		text-shadow: 0 0 8px hsl(var(--spark) / 0.18);
+	}
+
+	.dark .spark-accent-text {
 		color: hsl(var(--spark));
-		text-shadow: 0 0 10px hsl(var(--spark) / 0.22);
+		text-shadow: 0 0 14px hsl(var(--spark) / 0.34);
 	}
 
 	/* Apple surface utilities - Pure white hierarchy */

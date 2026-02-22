@@ -21,6 +21,7 @@ import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { PullToRefresh } from './PullToRefresh';
+import { MobilePageShell } from './MobilePageShell';
 
 /**
  * MobileAnalytics
@@ -131,11 +132,10 @@ export const MobileAnalytics = ({
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
-            <div className="flex flex-col min-h-screen no-scrollbar">
-                {/* KPI Strip - Sticky */}
-                <MobileKPIStrip kpis={getKPIData()} />
-
-                <div className="px-2 pt-6 text-foreground">
+            <MobilePageShell
+                kpiStrip={<MobileKPIStrip kpis={getKPIData()} />}
+                contentClassName="px-2 pt-4 pb-4 text-foreground"
+            >
                     {/* HERO FEATURED METRICS */}
                     <MobileFeaturedMetric
                         label={isProvider ? "Personal Performance" : "Impact Velocity"}
@@ -225,7 +225,7 @@ export const MobileAnalytics = ({
 
                     {/* PEAK DEMAND HEATMAP (Admin/Org Admin/Sponsor) */}
                     {(isAdmin || isOrgAdmin || isSponsor) && (
-                        <section className="mt-4">
+                        <section className="mt-3">
                             <MobileSectionHeader label="Demand Velocity" color="hsl(var(--destructive))" />
                             <div className="px-6 py-8 apple-glass-heavy bg-muted/30 rounded-3xl relative overflow-hidden shadow-xl border-0">
                                 <div className="absolute top-0 right-0 p-4 opacity-10">
@@ -280,7 +280,7 @@ export const MobileAnalytics = ({
 
                     {/* INFRASTRUCTURE CAPACITY */}
                     {(isAdmin || isOrgAdmin || isSponsor) && (
-                        <section className="mt-4">
+                        <section className="mt-3">
                             <MobileSectionHeader label="Strategic Assets" color="hsl(var(--info))" />
                             <div className="space-y-0.5">
                                 <MobileMetricRow
@@ -365,7 +365,7 @@ export const MobileAnalytics = ({
                     )}
 
                     {/* SYSTEM PERFORMANCE & SEARCH (Reveal Gradually) */}
-                    <section className="mt-2">
+                    <section className="mt-3">
                         <MobileSectionHeader label="System Health" color="hsl(var(--secondary))" />
                         <div className="space-y-0.5">
                             <MobileMetricRow
@@ -443,7 +443,7 @@ export const MobileAnalytics = ({
 
                     {/* FISCAL PERFORMANCE (Admin/Org Admin/Sponsor) */}
                     {(isAdmin || isOrgAdmin || isSponsor) && (
-                        <section className="mt-4">
+                        <section className="mt-3">
                             <MobileSectionHeader label="Fiscal Trajectory" color="hsl(var(--warning))" />
                             <div className="px-6 py-8 apple-glass-heavy bg-muted/30 rounded-3xl relative overflow-hidden shadow-xl border-0">
                                 <div className="absolute top-0 right-0 p-4 opacity-5">
@@ -506,7 +506,7 @@ export const MobileAnalytics = ({
                     )}
 
                     {/* EXPORT ACTION PILL */}
-                    <section className="mt-8 mb-16 p-4">
+                    <section className="mt-6 mb-12 p-3">
                         <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={handleExport}
@@ -520,8 +520,7 @@ export const MobileAnalytics = ({
                             Sovereign Data • Refined {new Date().toLocaleDateString()}
                         </p>
                     </section>
-                </div>
-            </div>
+            </MobilePageShell>
         </PullToRefresh>
     );
 };

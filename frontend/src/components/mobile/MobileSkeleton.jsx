@@ -60,7 +60,7 @@ export const MobileMetricRowSkeleton = () => (
 export const MobileDashboardSkeleton = () => (
     <div className="flex flex-col min-h-screen no-scrollbar overflow-hidden">
         <MobileKPIStripSkeleton />
-        <div className="px-2 pt-6">
+        <div className="px-2 pt-4 pb-4">
             <MobileFeaturedMetricSkeleton />
             <div className="px-2 mb-4">
                 <SkeletonPulse className="h-4 w-32 mb-4" />
@@ -85,7 +85,7 @@ export const MobileDashboardSkeleton = () => (
 export const MobileAnalyticsSkeleton = () => (
     <div className="flex flex-col min-h-screen no-scrollbar overflow-hidden">
         <MobileKPIStripSkeleton />
-        <div className="px-2 pt-6">
+        <div className="px-2 pt-4 pb-4">
             <MobileFeaturedMetricSkeleton />
             <div className="px-2 mb-6">
                 <SkeletonPulse className="h-4 w-32 mb-4" />

@@ -51,7 +51,7 @@ const PWADebugTracker = () => {
 		<div className="fixed bottom-[1px] left-1/2 -translate-x-1/2 z-[9999] pointer-events-none select-none">
 			<div className="bg-white/[0.02] backdrop-blur-md px-2 py-0.5 rounded-full shadow-2xl flex items-center justify-center">
 				<span className="text-[8px] font-medium text-zinc-500/50 uppercase tracking-[0.2em] leading-none">
-					v1.0.32
+					v1.0.33
 				</span>
 			</div>
 		</div>

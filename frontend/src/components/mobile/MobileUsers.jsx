@@ -29,6 +29,8 @@ import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { PullToRefresh } from './PullToRefresh';
+import { MobilePageShell } from './MobilePageShell';
+import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
 
 /**
  * MobileUsers
@@ -161,15 +163,16 @@ export const MobileUsers = ({
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
-            <div className="flex flex-col min-h-screen no-scrollbar">
-                {/* A. USER KPI STRIP */}
-                <MobileKPIStrip
-                    kpis={userKPIs}
-                    activeKpi={filters.kpiFilter || 'all'}
-                    onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
-                />
-
-                <div className="px-2 pt-4 text-foreground">
+            <MobilePageShell
+                kpiStrip={(
+                    <MobileKPIStrip
+                        kpis={userKPIs}
+                        activeKpi={filters.kpiFilter || 'all'}
+                        onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
+                    />
+                )}
+                contentClassName="px-2 pt-4 pb-4 text-foreground"
+            >
                     {/* B. ACTIVE USERS */}
                     <MobileFeaturedMetric
                         label="Active Users"
@@ -216,7 +219,7 @@ export const MobileUsers = ({
                     </section>
 
                     {/* D. SEARCH & FILTER */}
-                    <div className="flex items-center gap-2 mb-4 px-1">
+                    <div className="flex items-center gap-2 mb-3 px-1">
                         <div className="flex-1 relative group">
                             <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
                             <input
@@ -239,7 +242,7 @@ export const MobileUsers = ({
                             <motion.button
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => onViewAnalytics?.()}
-                                className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.64)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0 shadow-sm"
+                                className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0 shadow-sm"
                             >
                                 <BarChart3 size={18} />
                             </motion.button>
@@ -368,45 +371,18 @@ export const MobileUsers = ({
                         {/* Infinite Scroll Sentinel */}
                         <div ref={observerTarget} className="h-20 flex items-center justify-center">
                             {hasMore && (
-                                <div className="flex flex-col items-center gap-2">
-                                    <div className="flex gap-1">
-                                        {[0, 1, 2].map((i) => (
-                                            <motion.div
-                                                key={i}
-                                                animate={{
-                                                    scale: [1, 1.2, 1],
-                                                    opacity: [0.3, 1, 0.3],
-                                                }}
-                                                transition={{
-                                                    duration: 1,
-                                                    repeat: Infinity,
-                                                    delay: i * 0.2,
-                                                }}
-                                                className="w-1.5 h-1.5 rounded-full bg-primary/40"
-                                            />
-                                        ))}
-                                    </div>
-                                    <span className="text-[8px] font-medium uppercase tracking-[0.2em] text-muted-foreground/40">Loading more users</span>
-                                </div>
+                                <MobileListLoadingMore label="Loading more users" />
                             )}
                             {!hasMore && users.length > 0 && (
-                                <p className="text-[8px] font-normal text-muted-foreground uppercase tracking-[0.4em] opacity-20 py-8">End of user list</p>
+                                <MobileListEnd label="End of user list" />
                             )}
                         </div>
 
                         {users.length === 0 && !loading && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="py-24 text-center"
-                            >
-                                <Users className="h-10 w-10 mx-auto mb-4 text-muted-foreground/10" />
-                                <p className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.4em] opacity-30">No users found</p>
-                            </motion.div>
+                            <MobileListEmpty icon={Users} label="No users found" />
                         )}
                     </div>
-                </div>
-            </div>
+            </MobilePageShell>
         </PullToRefresh>
     );
 };
