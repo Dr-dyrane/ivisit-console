@@ -1,4 +1,4 @@
-# Contributing to iVisit
+# Contributing to iVisit.
 
 Migration workflow, service patterns, and scalability rules for both codebases.
 
