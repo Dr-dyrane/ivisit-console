@@ -43,6 +43,7 @@ import { GlobalFinancialModals } from "./components/modals/GlobalFinancialModals
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { PWAProvider } from "./contexts/PWAContext";
+import { FeedbackProvider } from "./contexts/FeedbackContext";
 import "./App.css";
 
 // --- PWA DEBUG TRACKER ---
@@ -179,13 +180,15 @@ function App() {
 		<ErrorBoundary>
 			<ThemeProvider>
 				<PWAProvider>
-					<Router>
-						<AppRoutes />
-						<Toaster position="top-right" richColors />
+					<FeedbackProvider>
+						<Router>
+							<AppRoutes />
+							<Toaster position="top-right" richColors />
 
-						{/* PWA Debug Tracker */}
-						<PWADebugTracker />
-					</Router>
+							{/* PWA Debug Tracker */}
+							<PWADebugTracker />
+						</Router>
+					</FeedbackProvider>
 				</PWAProvider>
 			</ThemeProvider>
 		</ErrorBoundary>

@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { useFeedback } from '../../hooks/useFeedback';
+import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 
 /**
  * MobileKPIStrip
@@ -11,6 +13,20 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi }) => {
     const compactKpis = (kpis || []).slice(0, 4);
     const cols = Math.min(Math.max(compactKpis.length, 1), 4);
+    const { triggerFromEvent } = useFeedback();
+
+    const handleKpiClick = (event, kpi) => {
+        const isReapply = activeKpi === kpi.id;
+        const hasHandler = typeof onKpiClick === 'function';
+        if (hasHandler) onKpiClick(kpi.id);
+        if (!hasHandler) return;
+        triggerFromEvent(event, {
+            variant: isReapply ? FEEDBACK_TYPES.INFO : FEEDBACK_TYPES.SUCCESS,
+            color: kpi.color || 'hsl(var(--spark))',
+            haptic: true,
+            sound: true
+        });
+    };
 
     return (
         <motion.div
@@ -27,7 +43,8 @@ export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi }) => {
                         <motion.button
                             whileTap={{ scale: 0.985 }}
                             transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                            onClick={() => onKpiClick?.(kpi.id)}
+                            onClick={(event) => handleKpiClick(event, kpi)}
+                            aria-pressed={isActive}
                             className={`relative flex-1 flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-[14px] transition-[background,transform,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden ${isActive
                                 ? 'bg-muted/30'
                                 : 'bg-muted/20'
