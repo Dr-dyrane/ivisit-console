@@ -17,7 +17,7 @@ import { Badge } from '../ui/badge';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
-import { MobileSecondaryMetricCard } from './MobileSecondaryMetricCard';
+import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty } from './MobileListStates';
@@ -128,28 +128,30 @@ export const MobilePricing = ({
             count={counts.all}
             color="hsl(var(--info))"
           />
-          <div className="grid grid-cols-2 gap-3">
-            <MobileSecondaryMetricCard
-              icon={Globe}
-              title="Global Ratio"
-              subtitle="System baseline"
-              value={`${Math.round((counts.global / (counts.all || 1)) * 100)}%`}
-              color="hsl(var(--primary))"
-              trendDirection={periodTrends.globalRatio.direction}
-              trendText={periodTrends.globalRatio.deltaText}
-              onClick={onViewAnalytics}
-            />
-            <MobileSecondaryMetricCard
-              icon={Building2}
-              title="Override Load"
-              subtitle="Local adjustments"
-              value={`${Math.round((counts.override / (counts.all || 1)) * 100)}%`}
-              color="hsl(var(--primary))"
-              trendDirection={periodTrends.overrideLoad.direction}
-              trendText={periodTrends.overrideLoad.deltaText}
-              onClick={onViewAnalytics}
-            />
-          </div>
+          <MobileSecondaryMetricRail
+            items={[
+              {
+                icon: Globe,
+                title: 'Global Ratio',
+                subtitle: 'System baseline',
+                value: `${Math.round((counts.global / (counts.all || 1)) * 100)}%`,
+                color: 'hsl(var(--primary))',
+                trendDirection: periodTrends.globalRatio.direction,
+                trendText: periodTrends.globalRatio.deltaText,
+                onClick: onViewAnalytics
+              },
+              {
+                icon: Building2,
+                title: 'Override Load',
+                subtitle: 'Local adjustments',
+                value: `${Math.round((counts.override / (counts.all || 1)) * 100)}%`,
+                color: 'hsl(var(--primary))',
+                trendDirection: periodTrends.overrideLoad.direction,
+                trendText: periodTrends.overrideLoad.deltaText,
+                onClick: onViewAnalytics
+              }
+            ]}
+          />
         </section>
 
         <div className="flex items-center gap-2 mb-3 px-1">

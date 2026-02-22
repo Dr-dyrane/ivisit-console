@@ -27,7 +27,7 @@ import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
-import { MobileSecondaryMetricCard } from './MobileSecondaryMetricCard';
+import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
@@ -201,28 +201,29 @@ export const MobileEmergency = ({
                         count={statistics?.responseTime || '2.3min'}
                         color="hsl(var(--warning))"
                     />
-                    <div className="grid grid-cols-2 gap-3">
-                        <MobileSecondaryMetricCard
-                            variant="icon"
-                            icon={Clock}
-                            title="Avg Response"
-                            subtitle="Last 24h"
-                            value={statistics?.avgResponseTime || '2.3m'}
-                            color="hsl(var(--warning))"
-                            iconColorClass="text-warning"
-                            iconBgClass="bg-warning/5"
-                        />
-                        <MobileSecondaryMetricCard
-                            variant="icon"
-                            icon={TrendingUp}
-                            title="Success Rate"
-                            subtitle="This month"
-                            value={statistics?.successRate || '0%'}
-                            color="hsl(var(--success))"
-                            iconColorClass="text-success"
-                            iconBgClass="bg-success/5"
-                        />
-                    </div>
+                    <MobileSecondaryMetricRail
+                        variant="icon"
+                        items={[
+                            {
+                                icon: Clock,
+                                title: 'Avg Response',
+                                subtitle: 'Last 24h',
+                                value: statistics?.avgResponseTime || '2.3m',
+                                color: 'hsl(var(--warning))',
+                                iconColorClass: 'text-warning',
+                                iconBgClass: 'bg-warning/5'
+                            },
+                            {
+                                icon: TrendingUp,
+                                title: 'Success Rate',
+                                subtitle: 'This month',
+                                value: statistics?.successRate || '0%',
+                                color: 'hsl(var(--success))',
+                                iconColorClass: 'text-success',
+                                iconBgClass: 'bg-success/5'
+                            }
+                        ]}
+                    />
                 </section>
 
                 {/* D. SEARCH & FILTER */}

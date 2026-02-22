@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
-import { MobileSecondaryMetricCard } from './MobileSecondaryMetricCard';
+import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty } from './MobileListStates';
@@ -121,30 +121,32 @@ export const MobileVerification = ({
             count={activeStats?.total || items.length}
             color="hsl(var(--info))"
           />
-          <div className="grid grid-cols-2 gap-3">
-            <MobileSecondaryMetricCard
-              icon={CheckCircle}
-              title="Approval Rate"
-              subtitle="Trust score"
-              value={`${Math.round((((queueType === 'providers' ? activeStats?.approved : activeStats?.verified) || 0) / ((activeStats?.total || 1))) * 100)}%`}
-              color="hsl(var(--primary))"
-              trendDirection={periodTrends.approvalRate.direction}
-              trendText={periodTrends.approvalRate.deltaText}
-              onClick={onViewAnalytics}
-            />
-            <MobileSecondaryMetricCard
-              icon={Shield}
-              title="Pending Load"
-              subtitle="Review queue"
-              value={activeStats?.pending || 0}
-              color="hsl(var(--primary))"
-              trendDirection={periodTrends.pendingLoad.direction}
-              trendText={periodTrends.pendingLoad.deltaText}
-              trendUpClass="text-warning"
-              trendDownClass="text-success"
-              onClick={onViewAnalytics}
-            />
-          </div>
+          <MobileSecondaryMetricRail
+            items={[
+              {
+                icon: CheckCircle,
+                title: 'Approval Rate',
+                subtitle: 'Trust score',
+                value: `${Math.round((((queueType === 'providers' ? activeStats?.approved : activeStats?.verified) || 0) / ((activeStats?.total || 1))) * 100)}%`,
+                color: 'hsl(var(--primary))',
+                trendDirection: periodTrends.approvalRate.direction,
+                trendText: periodTrends.approvalRate.deltaText,
+                onClick: onViewAnalytics
+              },
+              {
+                icon: Shield,
+                title: 'Pending Load',
+                subtitle: 'Review queue',
+                value: activeStats?.pending || 0,
+                color: 'hsl(var(--primary))',
+                trendDirection: periodTrends.pendingLoad.direction,
+                trendText: periodTrends.pendingLoad.deltaText,
+                trendUpClass: 'text-warning',
+                trendDownClass: 'text-success',
+                onClick: onViewAnalytics
+              }
+            ]}
+          />
         </section>
 
         <div className="p-1 rounded-xl bg-muted/20 backdrop-blur-md flex relative mb-3 mx-1">

@@ -1,7 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { ChevronRight } from 'lucide-react';
+import { useScrollCooldown } from './useScrollCooldown';
+import { useFeedback } from '../../hooks/useFeedback';
+import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 
 /**
  * MobileFeaturedMetric
@@ -19,25 +22,8 @@ export const MobileFeaturedMetric = ({
     onClick
 }) => {
     const reduceMotion = useReducedMotion();
-    const [isScrolling, setIsScrolling] = useState(false);
-    const scrollTimerRef = useRef(null);
-    const scrollCooldownMs = 180;
-
-    useEffect(() => () => {
-        if (scrollTimerRef.current) {
-            clearTimeout(scrollTimerRef.current);
-        }
-    }, []);
-
-    const handleScrollActivity = () => {
-        setIsScrolling(true);
-        if (scrollTimerRef.current) {
-            clearTimeout(scrollTimerRef.current);
-        }
-        scrollTimerRef.current = setTimeout(() => {
-            setIsScrolling(false);
-        }, scrollCooldownMs);
-    };
+    const { isScrolling, bind } = useScrollCooldown(180);
+    const { triggerFromEvent } = useFeedback();
     // Adapter: if items array provided, use it. Otherwise wrap legacy props into array.
     const data = items && items.length > 0
         ? items
@@ -51,11 +37,22 @@ export const MobileFeaturedMetric = ({
         const c = item.color || 'hsl(var(--primary))';
         const series = Array.isArray(item.chartData) ? item.chartData : [];
         const shouldAnimate = !reduceMotion && data.length <= 1;
+        const handleClick = (event) => {
+            if (isScrolling) return;
+            item.onClick?.(event);
+            triggerFromEvent(event, {
+                variant: FEEDBACK_TYPES.CLICK,
+                color: item.color || 'hsl(var(--primary))',
+                haptic: true,
+                sound: true
+            });
+        };
+
         return (
             <motion.div
                 key={idx}
                 whileTap={{ scale: 0.98 }}
-                onClick={isScrolling ? undefined : item.onClick}
+                onClick={item.onClick ? handleClick : undefined}
                 className="p-6 apple-glass-heavy border-0 flex flex-col justify-between relative overflow-hidden group min-h-[160px] shadow-md rounded-3xl"
                 style={data.length > 1 ? { minWidth: '92%', flexShrink: 0 } : undefined}
             >
@@ -143,8 +140,7 @@ export const MobileFeaturedMetric = ({
     return (
         <div
             className="relative mb-4 -m-2 p-2 overflow-x-auto overflow-y-visible no-scrollbar"
-            onScroll={handleScrollActivity}
-            onTouchMove={handleScrollActivity}
+            {...bind}
         >
             <div className="flex gap-3">
                 {data.map((item, idx) => renderCard(item, idx))}

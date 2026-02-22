@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { mobileMotion } from './mobileMotion';
+import { useScrollCooldown } from './useScrollCooldown';
 
 const toneClasses = {
     neutral: 'text-foreground/75 hover:text-foreground',
@@ -23,12 +24,13 @@ const toneVariant = (tone) => {
 
 export const MobileActionRail = ({ actions = [], className = '' }) => {
     const { triggerFromEvent } = useFeedback();
+    const { isScrolling, bind } = useScrollCooldown(180);
 
     if (!actions.length) return null;
 
     return (
         <div className={`mb-3 px-1 ${className}`}>
-            <div className="apple-glass-heavy rounded-2xl p-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <div className="relative apple-glass-heavy rounded-2xl p-2 flex items-center gap-2 overflow-x-auto no-scrollbar" {...bind}>
                 {actions.map((action) => {
                     const Icon = action.icon;
                     const tone = action.tone || 'neutral';
@@ -39,6 +41,7 @@ export const MobileActionRail = ({ actions = [], className = '' }) => {
                             whileTap={mobileMotion.tap}
                             disabled={action.disabled}
                             onClick={(event) => {
+                                if (isScrolling) return;
                                 action.onClick?.(event);
                                 triggerFromEvent(event, {
                                     variant: toneVariant(tone),
@@ -54,6 +57,10 @@ export const MobileActionRail = ({ actions = [], className = '' }) => {
                         </motion.button>
                     );
                 })}
+                <div className="shrink-0 w-2" />
+                {/* Edge masks */}
+                <div className="pointer-events-none absolute left-2 top-2 bottom-2 w-6 bg-gradient-to-r from-background/70 to-transparent" />
+                <div className="pointer-events-none absolute right-2 top-2 bottom-2 w-6 bg-gradient-to-l from-background/70 to-transparent" />
             </div>
         </div>
     );

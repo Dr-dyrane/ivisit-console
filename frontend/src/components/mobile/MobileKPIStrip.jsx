@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { mobileMotion } from './mobileMotion';
+import { useScrollCooldown } from './useScrollCooldown';
 
 /**
  * MobileKPIStrip
@@ -13,25 +14,7 @@ import { mobileMotion } from './mobileMotion';
  */
 export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi }) => {
     const reduceMotion = useReducedMotion();
-    const [isScrolling, setIsScrolling] = useState(false);
-    const scrollTimerRef = useRef(null);
-    const scrollCooldownMs = 180;
-
-    useEffect(() => () => {
-        if (scrollTimerRef.current) {
-            clearTimeout(scrollTimerRef.current);
-        }
-    }, []);
-
-    const handleScrollActivity = () => {
-        setIsScrolling(true);
-        if (scrollTimerRef.current) {
-            clearTimeout(scrollTimerRef.current);
-        }
-        scrollTimerRef.current = setTimeout(() => {
-            setIsScrolling(false);
-        }, scrollCooldownMs);
-    };
+    const { isScrolling, bind } = useScrollCooldown(180);
     const allKpis = kpis || [];
     const { triggerFromEvent } = useFeedback();
     const hasAllOption = allKpis.some((kpi) => kpi.id === 'all');
@@ -62,8 +45,7 @@ export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi }) => {
             {/* Rail: overflow-x, hidden scrollbars, same height */}
             <div
                 className="flex gap-2 overflow-x-auto no-scrollbar"
-                onScroll={handleScrollActivity}
-                onTouchMove={handleScrollActivity}
+                {...bind}
             >
                 {allKpis.map((kpi, idx) => {
                     const isActive = activeKpi === kpi.id;

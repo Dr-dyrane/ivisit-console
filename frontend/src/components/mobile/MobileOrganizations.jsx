@@ -20,7 +20,7 @@ import { Badge } from '../ui/badge';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
-import { MobileSecondaryMetricCard } from './MobileSecondaryMetricCard';
+import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
@@ -162,28 +162,30 @@ export const MobileOrganizations = ({
             count={organizations.length}
             color="hsl(var(--info))"
           />
-          <div className="grid grid-cols-2 gap-3">
-            <MobileSecondaryMetricCard
-              icon={Building2}
-              title="Active Ratio"
-              subtitle="Node health"
-              value={`${Math.round((activeCount / (organizations.length || 1)) * 100)}%`}
-              color="hsl(var(--primary))"
-              trendDirection={periodTrends.activeRatio.direction}
-              trendText={periodTrends.activeRatio.deltaText}
-              onClick={onViewAnalytics}
-            />
-            <MobileSecondaryMetricCard
-              icon={DollarSign}
-              title="Avg Fee"
-              subtitle="Revenue share"
-              value={`${avgFee.toFixed(1)}%`}
-              color="hsl(var(--primary))"
-              trendDirection={periodTrends.avgFee.direction}
-              trendText={periodTrends.avgFee.deltaText}
-              onClick={onViewAnalytics}
-            />
-          </div>
+          <MobileSecondaryMetricRail
+            items={[
+              {
+                icon: Building2,
+                title: 'Active Ratio',
+                subtitle: 'Node health',
+                value: `${Math.round((activeCount / (organizations.length || 1)) * 100)}%`,
+                color: 'hsl(var(--primary))',
+                trendDirection: periodTrends.activeRatio.direction,
+                trendText: periodTrends.activeRatio.deltaText,
+                onClick: onViewAnalytics
+              },
+              {
+                icon: DollarSign,
+                title: 'Avg Fee',
+                subtitle: 'Revenue share',
+                value: `${avgFee.toFixed(1)}%`,
+                color: 'hsl(var(--primary))',
+                trendDirection: periodTrends.avgFee.direction,
+                trendText: periodTrends.avgFee.deltaText,
+                onClick: onViewAnalytics
+              }
+            ]}
+          />
         </section>
 
         <div className="flex items-center gap-2 mb-3 px-1">

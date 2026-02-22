@@ -26,7 +26,7 @@ import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
-import { MobileSecondaryMetricCard } from './MobileSecondaryMetricCard';
+import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
@@ -205,30 +205,33 @@ export const MobileVisits = ({
                         count={completedCount}
                         color="hsl(var(--success))"
                     />
-                    <div className="grid grid-cols-2 gap-3">
-                        <MobileSecondaryMetricCard
-                            variant="icon"
-                            icon={Activity}
-                            title="Completed Today"
-                            subtitle="Last 24h"
-                            value={completedCount}
-                            color="hsl(var(--success))"
-                            iconColorClass="text-success"
-                            iconBgClass="bg-success/5"
-                            onClick={onViewAnalytics}
-                        />
-                        <MobileSecondaryMetricCard
-                            variant="icon"
-                            icon={CheckCircle2}
-                            title="Completion"
-                            subtitle="Current ratio"
-                            value={`${Math.round(completionRate)}%`}
-                            color="hsl(var(--info))"
-                            iconColorClass="text-info"
-                            iconBgClass="bg-info/5"
-                            onClick={onViewAnalytics}
-                        />
-                    </div>
+                    <MobileSecondaryMetricRail
+                        variant="icon"
+                        items={[
+                            {
+                                variant: 'icon',
+                                icon: Activity,
+                                title: 'Completed Today',
+                                subtitle: 'Last 24h',
+                                value: completedCount,
+                                color: 'hsl(var(--success))',
+                                iconColorClass: 'text-success',
+                                iconBgClass: 'bg-success/5',
+                                onClick: onViewAnalytics
+                            },
+                            {
+                                variant: 'icon',
+                                icon: CheckCircle2,
+                                title: 'Completion',
+                                subtitle: 'Current ratio',
+                                value: `${Math.round(completionRate)}%`,
+                                color: 'hsl(var(--info))',
+                                iconColorClass: 'text-info',
+                                iconBgClass: 'bg-info/5',
+                                onClick: onViewAnalytics
+                            }
+                        ]}
+                    />
                 </section>
 
                 {/* D. SEARCH & FILTER */}

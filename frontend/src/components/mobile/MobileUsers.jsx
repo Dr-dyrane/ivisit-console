@@ -28,7 +28,7 @@ import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
-import { MobileSecondaryMetricCard } from './MobileSecondaryMetricCard';
+import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
@@ -194,30 +194,31 @@ export const MobileUsers = ({
                         count={statistics?.recentSignups}
                         color="hsl(var(--info))"
                     />
-                    <div className="grid grid-cols-2 gap-3">
-                        <MobileSecondaryMetricCard
-                            variant="icon"
-                            icon={Activity}
-                            title="Recent Signups"
-                            subtitle="Last 30 days"
-                            value={statistics?.recentSignups || 0}
-                            color="hsl(var(--info))"
-                            iconColorClass="text-info"
-                            iconBgClass="bg-info/5"
-                            onClick={onViewAnalytics}
-                        />
-                        <MobileSecondaryMetricCard
-                            variant="icon"
-                            icon={BadgeCheck}
-                            title="Verification"
-                            subtitle="Current ratio"
-                            value={`${Math.round(verificationRate)}%`}
-                            color="hsl(var(--success))"
-                            iconColorClass="text-success"
-                            iconBgClass="bg-success/5"
-                            onClick={onViewAnalytics}
-                        />
-                    </div>
+                    <MobileSecondaryMetricRail
+                        variant="icon"
+                        items={[
+                            {
+                                icon: Activity,
+                                title: 'Recent Signups',
+                                subtitle: 'Last 30 days',
+                                value: statistics?.recentSignups || 0,
+                                color: 'hsl(var(--info))',
+                                iconColorClass: 'text-info',
+                                iconBgClass: 'bg-info/5',
+                                onClick: onViewAnalytics
+                            },
+                            {
+                                icon: BadgeCheck,
+                                title: 'Verification',
+                                subtitle: 'Current ratio',
+                                value: `${Math.round(verificationRate)}%`,
+                                color: 'hsl(var(--success))',
+                                iconColorClass: 'text-success',
+                                iconBgClass: 'bg-success/5',
+                                onClick: onViewAnalytics
+                            }
+                        ]}
+                    />
                 </section>
 
                 {/* D. SEARCH & FILTER */}

@@ -1,31 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { useScrollCooldown } from './useScrollCooldown';
 
 /**
  * MobileQuickNavPill
  * 3-up icon grid for secondary mobile navigation
  */
 export const MobileQuickNavPill = ({ items }) => {
-    const [isScrolling, setIsScrolling] = useState(false);
-    const scrollTimerRef = useRef(null);
-    const scrollCooldownMs = 180;
-
-    useEffect(() => () => {
-        if (scrollTimerRef.current) {
-            clearTimeout(scrollTimerRef.current);
-        }
-    }, []);
-
-    const handleScrollActivity = () => {
-        setIsScrolling(true);
-        if (scrollTimerRef.current) {
-            clearTimeout(scrollTimerRef.current);
-        }
-        scrollTimerRef.current = setTimeout(() => {
-            setIsScrolling(false);
-        }, scrollCooldownMs);
-    };
+    const { isScrolling, bind } = useScrollCooldown(180);
     // Chunk items into pages of 4 for 2x2 grids
     const pages = [];
     for (let i = 0; i < items.length; i += 4) {
@@ -89,8 +72,7 @@ export const MobileQuickNavPill = ({ items }) => {
     return (
         <div
             className="relative -m-2 p-2 overflow-x-auto no-scrollbar"
-            onScroll={handleScrollActivity}
-            onTouchMove={handleScrollActivity}
+            {...bind}
         >
             <div className="flex">
                 {pages.map((pageItems, pageIdx) => (

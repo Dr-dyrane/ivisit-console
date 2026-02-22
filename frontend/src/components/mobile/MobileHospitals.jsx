@@ -22,7 +22,7 @@ import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
-import { MobileSecondaryMetricCard } from './MobileSecondaryMetricCard';
+import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
@@ -197,30 +197,31 @@ export const MobileHospitals = ({
                         count={hospitalTotals.available}
                         color="hsl(var(--success))"
                     />
-                    <div className="grid grid-cols-2 gap-3">
-                        <MobileSecondaryMetricCard
-                            variant="icon"
-                            icon={Hospital}
-                            title="Available Sites"
-                            subtitle="Live status"
-                            value={hospitalTotals.available}
-                            color="hsl(var(--success))"
-                            iconColorClass="text-success"
-                            iconBgClass="bg-success/5"
-                            onClick={onViewAnalytics}
-                        />
-                        <MobileSecondaryMetricCard
-                            variant="icon"
-                            icon={Star}
-                            title="Avg Rating"
-                            subtitle="Quality signal"
-                            value={averageRating > 0 ? averageRating.toFixed(1) : '0.0'}
-                            color="hsl(var(--warning))"
-                            iconColorClass="text-warning"
-                            iconBgClass="bg-warning/5"
-                            onClick={onViewAnalytics}
-                        />
-                    </div>
+                    <MobileSecondaryMetricRail
+                        variant="icon"
+                        items={[
+                            {
+                                icon: Hospital,
+                                title: 'Available Sites',
+                                subtitle: 'Live status',
+                                value: hospitalTotals.available,
+                                color: 'hsl(var(--success))',
+                                iconColorClass: 'text-success',
+                                iconBgClass: 'bg-success/5',
+                                onClick: onViewAnalytics
+                            },
+                            {
+                                icon: Star,
+                                title: 'Avg Rating',
+                                subtitle: 'Quality signal',
+                                value: averageRating > 0 ? averageRating.toFixed(1) : '0.0',
+                                color: 'hsl(var(--warning))',
+                                iconColorClass: 'text-warning',
+                                iconBgClass: 'bg-warning/5',
+                                onClick: onViewAnalytics
+                            }
+                        ]}
+                    />
                 </section>
 
                 <div className="flex items-center gap-2 mb-3 px-1">
