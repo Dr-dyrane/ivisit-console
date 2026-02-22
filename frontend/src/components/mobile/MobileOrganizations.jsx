@@ -13,16 +13,14 @@ import {
   CreditCard,
   CheckCircle2,
   SlidersHorizontal,
-  BarChart3,
-  ArrowUpRight,
-  ArrowDownRight,
-  Minus
+  BarChart3
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
+import { MobileSecondaryMetricCard } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
@@ -165,42 +163,26 @@ export const MobileOrganizations = ({
             color="hsl(var(--info))"
           />
           <div className="grid grid-cols-2 gap-3">
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <Building2 className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Active Ratio</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Node health</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {Math.round((activeCount / (organizations.length || 1)) * 100)}%
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.activeRatio.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-success" />}
-                  {periodTrends.activeRatio.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  {periodTrends.activeRatio.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.activeRatio.deltaText}
-                </span>
-              </div>
-            </div>
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <DollarSign className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Avg Fee</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Revenue share</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {avgFee.toFixed(1)}%
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.avgFee.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-success" />}
-                  {periodTrends.avgFee.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  {periodTrends.avgFee.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.avgFee.deltaText}
-                </span>
-              </div>
-            </div>
+            <MobileSecondaryMetricCard
+              icon={Building2}
+              title="Active Ratio"
+              subtitle="Node health"
+              value={`${Math.round((activeCount / (organizations.length || 1)) * 100)}%`}
+              color="hsl(var(--primary))"
+              trendDirection={periodTrends.activeRatio.direction}
+              trendText={periodTrends.activeRatio.deltaText}
+              onClick={onViewAnalytics}
+            />
+            <MobileSecondaryMetricCard
+              icon={DollarSign}
+              title="Avg Fee"
+              subtitle="Revenue share"
+              value={`${avgFee.toFixed(1)}%`}
+              color="hsl(var(--primary))"
+              trendDirection={periodTrends.avgFee.direction}
+              trendText={periodTrends.avgFee.deltaText}
+              onClick={onViewAnalytics}
+            />
           </div>
         </section>
 

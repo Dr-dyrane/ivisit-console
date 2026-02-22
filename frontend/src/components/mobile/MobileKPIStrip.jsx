@@ -50,15 +50,14 @@ export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi }) => {
                             transition={mobileMotion.quick}
                             onClick={(event) => handleKpiClick(event, kpi)}
                             aria-pressed={isActive}
-                            className={`relative flex-1 flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-[14px] border border-transparent transition-[background,transform,box-shadow,outline,border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden ${isActive
-                                ? 'bg-muted/30'
+                            className={`relative flex-1 flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-[14px] border-0 transition-[background,transform,box-shadow,outline] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden ${isActive
+                                ? 'bg-background/80 dark:bg-muted/40'
                                 : 'bg-muted/20'
                                 }`}
                             style={{
                                 WebkitTapHighlightColor: 'transparent',
                                 ...(isActive ? {
-                                    borderColor: 'hsl(var(--primary) / 0.10)',
-                                    boxShadow: '0 0 0 1px hsl(var(--spark) / 0.06) inset, 0 0 0 1px hsl(var(--primary) / 0.06)'
+                                    boxShadow: `0 0 0 0.5px ${(kpi.color || 'hsl(var(--primary))').replace(')', ' / 0.25)')}, 0 2px 12px -4px ${(kpi.color || 'hsl(var(--primary))').replace(')', ' / 0.15)')}`
                                 } : null)
                             }}
                         >
@@ -67,7 +66,7 @@ export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi }) => {
                                 <motion.div
                                     layoutId="kpi-spotlight"
                                     className="absolute inset-0"
-                                    style={{ background: 'radial-gradient(circle at 50% 0%, hsl(var(--spark) / 0.10), transparent 72%)' }}
+                                    style={{ background: 'linear-gradient(180deg, hsl(var(--spark) / 0.08) 0%, transparent 60%)' }}
                                 />
                             )}
 
@@ -110,6 +109,6 @@ export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi }) => {
                     </React.Fragment>
                 );
             })}
-        </motion.div>
+        </motion.div >
     );
 };

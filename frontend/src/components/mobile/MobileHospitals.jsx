@@ -22,6 +22,7 @@ import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
+import { MobileSecondaryMetricCard } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
@@ -197,32 +198,28 @@ export const MobileHospitals = ({
                         color="hsl(var(--success))"
                     />
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-success/5 flex items-center justify-center">
-                                    <Hospital className="text-success w-5 h-5 opacity-70" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[11px] font-medium tracking-tight">Available Sites</span>
-                                    <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Live status</span>
-                                </div>
-                            </div>
-                            <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">{hospitalTotals.available}</span>
-                        </div>
-                        <div className="p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-warning/5 flex items-center justify-center">
-                                    <Star className="text-warning w-5 h-5 opacity-70" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[11px] font-medium tracking-tight">Avg Rating</span>
-                                    <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Quality signal</span>
-                                </div>
-                            </div>
-                            <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                                {averageRating > 0 ? averageRating.toFixed(1) : '0.0'}
-                            </span>
-                        </div>
+                        <MobileSecondaryMetricCard
+                            variant="icon"
+                            icon={Hospital}
+                            title="Available Sites"
+                            subtitle="Live status"
+                            value={hospitalTotals.available}
+                            color="hsl(var(--success))"
+                            iconColorClass="text-success"
+                            iconBgClass="bg-success/5"
+                            onClick={onViewAnalytics}
+                        />
+                        <MobileSecondaryMetricCard
+                            variant="icon"
+                            icon={Star}
+                            title="Avg Rating"
+                            subtitle="Quality signal"
+                            value={averageRating > 0 ? averageRating.toFixed(1) : '0.0'}
+                            color="hsl(var(--warning))"
+                            iconColorClass="text-warning"
+                            iconBgClass="bg-warning/5"
+                            onClick={onViewAnalytics}
+                        />
                     </div>
                 </section>
 

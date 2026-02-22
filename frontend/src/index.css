@@ -203,9 +203,9 @@ code {
 		--squircle: 1.75rem;
 		--font-dashboard-numbers: "JetBrains Mono", "Geist Mono", "SF Mono", "Roboto Mono", monospace;
 		--mobile-neon-accent: var(--primary);
-		/* Light mode: darker premium gold for proper contrast on white */
-		--spark: 41 100% 30%;
-		--spark-ink: 41 100% 24%;
+		/* Harmonized Copper Gold for Light Mode */
+		--spark: 28 60% 45%;
+		--spark-ink: 28 65% 30%;
 
 		/* Enhanced Premium Effects */
 		--glass-bg: 0 0% 100% / 0.92;
@@ -306,9 +306,9 @@ code {
 		/* Cards/panels - clear lift */
 		--surface-border: 0 0% 16%;
 		/* Subtle divider */
-		/* Dark mode: neon gold for high-energy highlights */
-		--spark: 47 100% 68%;
-		--spark-ink: 47 100% 78%;
+		/* Glowing Ember for Dark Mode */
+		--spark: 32 90% 70%;
+		--spark-ink: 32 100% 85%;
 	}
 }
 
@@ -424,6 +424,12 @@ code {
 		backdrop-filter: saturate(125%) blur(12px);
 		-webkit-backdrop-filter: saturate(125%) blur(12px);
 		will-change: transform;
+	}
+
+	.dark .apple-glass-heavy {
+		background: hsl(var(--muted) / 0.15);
+		backdrop-filter: saturate(125%) blur(12px);
+		-webkit-backdrop-filter: saturate(125%) blur(12px);
 	}
 
 	/* Optimized Background Orbs (No Blur Property) */

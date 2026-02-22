@@ -4,6 +4,19 @@ import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 
+/**
+ * MobileSecondaryMetricCard
+ * Unified secondary KPI card with integrated feedback + optional analytics drill-in.
+ *
+ * Canon #4  – One screen, one action
+ * Canon #6  – Calm feedback
+ * Canon #22 – Touch feels equal
+ * Canon #28 – Feels touchable
+ *
+ * Two layout variants controlled via `variant` prop:
+ *  - "icon"    → Large icon circle on the left, label + subtitle stacked, value right (matches Users / Hospitals / Doctors pattern)
+ *  - "compact" → Small icon top-right, label + subtitle left column, value + trend right column (default, matches Verification / Pricing / Orgs pattern)
+ */
 export const MobileSecondaryMetricCard = ({
     icon: Icon,
     title,
@@ -15,6 +28,9 @@ export const MobileSecondaryMetricCard = ({
     trendUpClass = 'text-success',
     trendDownClass = 'text-destructive',
     trendFlatClass = 'text-muted-foreground/60',
+    variant = 'compact',
+    iconColorClass,
+    iconBgClass,
     onClick
 }) => {
     const { triggerFromEvent } = useFeedback();
@@ -32,6 +48,37 @@ export const MobileSecondaryMetricCard = ({
         });
     };
 
+    // ── Icon variant (icon-circle + text + value) ──────────────────
+    if (variant === 'icon') {
+        return (
+            <Comp
+                {...(isInteractive ? { whileTap: { scale: 0.985 } } : {})}
+                onClick={handleClick}
+                className={`p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 text-left ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] cursor-pointer' : ''}`}
+            >
+                <div className="flex items-center gap-3">
+                    {Icon && (
+                        <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center ${iconBgClass || ''}`}
+                            style={!iconBgClass ? { backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)` } : undefined}
+                        >
+                            <Icon
+                                className={`w-5 h-5 opacity-70 ${iconColorClass || ''}`}
+                                style={!iconColorClass ? { color } : undefined}
+                            />
+                        </div>
+                    )}
+                    <div className="flex flex-col">
+                        <span className="text-[11px] font-medium tracking-tight">{title}</span>
+                        <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">{subtitle}</span>
+                    </div>
+                </div>
+                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">{value}</span>
+            </Comp>
+        );
+    }
+
+    // ── Compact variant (icon top-right, text left, value+trend right) ──
     return (
         <Comp
             {...(isInteractive ? { whileTap: { scale: 0.985 } } : {})}

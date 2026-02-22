@@ -293,7 +293,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
             {Object.entries(dataSet)
               .sort(([, a], [, b]) => b - a)
               .map(([key, count]) => (
-                <div key={key} className="p-3 rounded-2xl bg-white/[0.02] flex flex-col items-center text-center group active:scale-[0.98] transition-transform">
+                <div key={key} className="p-3 rounded-2xl bg-foreground/[0.03] flex flex-col items-center text-center group active:scale-[0.98] transition-transform">
                   <span className="text-[7px] font-bold uppercase tracking-[0.15em] opacity-30 mb-1 truncate w-full px-1 capitalize tracking-widest">{key.replace('_', ' ')}</span>
                   <span className="text-[16px] font-normal tracking-tighter tabular-nums">{count}</span>
                   <span className="text-[8px] font-medium text-primary/40 mt-0.5">
@@ -321,7 +321,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            className="absolute inset-0 bg-black/25 dark:bg-black/60 backdrop-blur-md"
             onClick={handleClose}
           />
 
@@ -330,7 +330,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ type: "spring", damping: 25, stiffness: 350 }}
-            className="relative z-10 w-full max-w-[400px] max-h-[85vh] overflow-hidden rounded-[32px] flex flex-col apple-glass-heavy border-0 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]"
+            className="relative z-10 w-full max-w-[400px] max-h-[85vh] overflow-hidden rounded-[32px] flex flex-col bg-background/90 dark:bg-transparent apple-glass-heavy border-0 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]"
           >
             {/* Header (Canon #30, #39) */}
             <div className="flex items-center justify-between p-6 pb-2">
@@ -428,7 +428,7 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
 const StatNode = ({ label, value, trend, icon: Icon, color }) => (
   <motion.div
     whileTap={{ scale: 0.98 }}
-    className="p-3.5 rounded-[22px] apple-glass-heavy border-0 relative overflow-hidden group active:bg-muted/40 transition-colors"
+    className="p-3.5 rounded-[22px] bg-foreground/[0.04] dark:bg-transparent apple-glass-heavy border-0 relative overflow-hidden group active:bg-muted/40 transition-colors"
   >
     {/* Raised Action Node (Canon #369) */}
     <div className="flex justify-between items-start mb-2.5">

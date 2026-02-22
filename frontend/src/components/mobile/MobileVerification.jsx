@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Shield, Search, Eye, CheckCircle, Ban, Building2, User, SlidersHorizontal, BarChart3, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { Shield, Search, Eye, CheckCircle, Ban, Building2, User, SlidersHorizontal, BarChart3 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { motion } from 'framer-motion';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
+import { MobileSecondaryMetricCard } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty } from './MobileListStates';
@@ -121,42 +122,28 @@ export const MobileVerification = ({
             color="hsl(var(--info))"
           />
           <div className="grid grid-cols-2 gap-3">
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <CheckCircle className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Approval Rate</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Trust score</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {Math.round((((queueType === 'providers' ? activeStats?.approved : activeStats?.verified) || 0) / ((activeStats?.total || 1))) * 100)}%
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.approvalRate.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-success" />}
-                  {periodTrends.approvalRate.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  {periodTrends.approvalRate.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.approvalRate.deltaText}
-                </span>
-              </div>
-            </div>
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <Shield className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Pending Load</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Review queue</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {activeStats?.pending || 0}
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.pendingLoad.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-warning" />}
-                  {periodTrends.pendingLoad.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-success" />}
-                  {periodTrends.pendingLoad.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.pendingLoad.deltaText}
-                </span>
-              </div>
-            </div>
+            <MobileSecondaryMetricCard
+              icon={CheckCircle}
+              title="Approval Rate"
+              subtitle="Trust score"
+              value={`${Math.round((((queueType === 'providers' ? activeStats?.approved : activeStats?.verified) || 0) / ((activeStats?.total || 1))) * 100)}%`}
+              color="hsl(var(--primary))"
+              trendDirection={periodTrends.approvalRate.direction}
+              trendText={periodTrends.approvalRate.deltaText}
+              onClick={onViewAnalytics}
+            />
+            <MobileSecondaryMetricCard
+              icon={Shield}
+              title="Pending Load"
+              subtitle="Review queue"
+              value={activeStats?.pending || 0}
+              color="hsl(var(--primary))"
+              trendDirection={periodTrends.pendingLoad.direction}
+              trendText={periodTrends.pendingLoad.deltaText}
+              trendUpClass="text-warning"
+              trendDownClass="text-success"
+              onClick={onViewAnalytics}
+            />
           </div>
         </section>
 

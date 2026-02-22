@@ -10,16 +10,14 @@ import {
   Globe,
   CalendarDays,
   Layers,
-  BarChart3,
-  ArrowUpRight,
-  ArrowDownRight,
-  Minus
+  BarChart3
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
+import { MobileSecondaryMetricCard } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty } from './MobileListStates';
@@ -131,42 +129,26 @@ export const MobilePricing = ({
             color="hsl(var(--info))"
           />
           <div className="grid grid-cols-2 gap-3">
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <Globe className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Global Ratio</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">System baseline</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {Math.round((counts.global / (counts.all || 1)) * 100)}%
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.globalRatio.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-success" />}
-                  {periodTrends.globalRatio.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  {periodTrends.globalRatio.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.globalRatio.deltaText}
-                </span>
-              </div>
-            </div>
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <Building2 className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Override Load</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Local adjustments</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {Math.round((counts.override / (counts.all || 1)) * 100)}%
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.overrideLoad.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-success" />}
-                  {periodTrends.overrideLoad.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  {periodTrends.overrideLoad.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.overrideLoad.deltaText}
-                </span>
-              </div>
-            </div>
+            <MobileSecondaryMetricCard
+              icon={Globe}
+              title="Global Ratio"
+              subtitle="System baseline"
+              value={`${Math.round((counts.global / (counts.all || 1)) * 100)}%`}
+              color="hsl(var(--primary))"
+              trendDirection={periodTrends.globalRatio.direction}
+              trendText={periodTrends.globalRatio.deltaText}
+              onClick={onViewAnalytics}
+            />
+            <MobileSecondaryMetricCard
+              icon={Building2}
+              title="Override Load"
+              subtitle="Local adjustments"
+              value={`${Math.round((counts.override / (counts.all || 1)) * 100)}%`}
+              color="hsl(var(--primary))"
+              trendDirection={periodTrends.overrideLoad.direction}
+              trendText={periodTrends.overrideLoad.deltaText}
+              onClick={onViewAnalytics}
+            />
           </div>
         </section>
 

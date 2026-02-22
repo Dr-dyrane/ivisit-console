@@ -76,7 +76,7 @@ export const NotificationCenter = () => {
           <SheetOverlay className="bg-black/15 backdrop-blur-xs" />
           <SheetContent
             side="right"
-            className="w-[88%] max-w-[340px] p-0 border-0 bg-background/95 dark:bg-background/30 backdrop-blur-xl rounded-l-[36px] overflow-hidden shadow-2xl"
+            className="w-[88%] max-w-[385px] p-0 border-0 bg-background/95 dark:bg-muted/50 backdrop-blur-sm rounded-l-[36px] overflow-hidden shadow-2xl"
           >
             <div className="px-4 pt-3 pb-2">
               <div>
