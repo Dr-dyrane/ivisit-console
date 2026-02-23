@@ -34,7 +34,8 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
     eta: 'N/A',
     rating: 4.5,
     last_maintenance: '',
-    profile_id: '',
+    profile_id: ambulance?.profile_id || ambulance?.driver_id || '',
+    driver_id: ambulance?.driver_id || ambulance?.profile_id || '',
     ...ambulance
   });
 
@@ -60,6 +61,8 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
       setFormData(prev => ({
         ...prev,
         ...ambulance,
+        profile_id: ambulance.profile_id || ambulance.driver_id || '',
+        driver_id: ambulance.driver_id || ambulance.profile_id || '',
         // Ensure proper fallbacks for select fields
         type: ambulance.type || 'basic',
         status: ambulance.status || 'available',
@@ -153,11 +156,11 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
         : profiles;
 
       // Get existing ambulances to check driver assignments
-      const { data: existingAmbulances } = await supabase.from('ambulances').select('driver_id');
-      const assignedDriverIds = new Set(existingAmbulances?.map(a => a.driver_id).filter(Boolean) || []);
+      const { data: existingAmbulances } = await supabase.from('ambulances').select('profile_id');
+      const assignedDriverIds = new Set(existingAmbulances?.map(a => a.profile_id || a.driver_id).filter(Boolean) || []);
 
       // In EDIT mode, include current ambulance's driver in available options
-      const currentDriverId = ambulance?.driver_id;
+      const currentDriverId = ambulance?.profile_id || ambulance?.driver_id;
 
       const available = orgScopedProfiles.filter(p => {
         const isAlreadyAssigned = assignedDriverIds.has(p.id);
@@ -180,6 +183,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
     if (profile) {
       setFormData(prev => ({
         ...prev,
+        profile_id: profile.id,
         driver_id: profile.id,
         call_sign: prev.call_sign || profile.username,
         hospital_id: profile.organization_id || prev.hospital_id,
@@ -381,7 +385,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                           onClick={() => {
                             setLinkingExisting(!linkingExisting);
                             if (linkingExisting) {
-                              setFormData(prev => ({ ...prev, profile_id: '' }));
+                              setFormData(prev => ({ ...prev, profile_id: '', driver_id: '' }));
                             }
                           }}
                           className="rounded-xl border-dashed"
@@ -396,7 +400,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                             {isCreate ? 'Select Driver' : 'Change Driver'}
                           </Label>
                           <Select
-                            value={formData.driver_id || ''}
+                            value={formData.profile_id || formData.driver_id || ''}
                             onValueChange={handleProfileSelect}
                           >
                             <SelectTrigger className="rounded-xl bg-background/50 border-white/10 h-12 shadow-inner">
@@ -426,13 +430,13 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                       )}
 
                       {/* Show current driver assignment in EDIT mode */}
-                      {isEdit && formData.driver_id && !linkingExisting && (
+                      {isEdit && (formData.profile_id || formData.driver_id) && !linkingExisting && (
                         <div className="space-y-1.5">
                           <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Currently Assigned Driver</Label>
                           <div className="p-3 bg-white/5 rounded-xl border border-white/10">
                             <div className="flex items-center justify-between">
                               <div>
-                                <div className="font-semibold">{formData.driver_id}</div>
+                                <div className="font-semibold">{formData.profile_id || formData.driver_id}</div>
                                 <div className="text-xs text-muted-foreground">Driver ID</div>
                               </div>
                               <Button

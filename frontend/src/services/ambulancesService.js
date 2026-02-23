@@ -22,7 +22,7 @@ export async function getAmbulances(filter = {}) {
     // Apply RBAC Scoping
     if (user?.role === 'provider' && user?.provider_type === 'driver') {
       // Drivers see only their assigned ambulance
-      query = query.eq('driver_id', user.id);
+      query = query.eq('profile_id', user.id);
     } else {
       // Apply standard RBAC for other roles
       query = applyAuthFilter(query, user, {
@@ -106,13 +106,14 @@ export async function createAmbulance(input) {
     if (input.location) payload.location = input.location;
     if (input.eta) payload.eta = input.eta;
     if (input.crew) payload.crew = input.crew;
-    if (input.hospital) payload.hospital = input.hospital;
     if (input.hospital_id && input.hospital_id !== '') payload.hospital_id = input.hospital_id;
+    if (input.organization_id && input.organization_id !== '') payload.organization_id = input.organization_id;
     if (input.vehicle_number) payload.vehicle_number = input.vehicle_number;
-    if (input.last_maintenance) payload.last_maintenance = input.last_maintenance;
-    if (input.rating != null) payload.rating = input.rating;
+    if (input.license_plate) payload.license_plate = input.license_plate;
+    if (input.base_price != null) payload.base_price = input.base_price;
     if (input.current_call) payload.current_call = input.current_call;
-    if (input.driver_id) payload.driver_id = input.driver_id;
+    if (input.profile_id) payload.profile_id = input.profile_id;
+    if (input.driver_id) payload.profile_id = input.driver_id;
 
     payload.created_at = new Date().toISOString();
     payload.updated_at = new Date().toISOString();
@@ -140,22 +141,24 @@ export async function updateAmbulance(ambulanceId, input) {
     // Whitelist of valid ambulance table columns to prevent PGRST204 errors
     const VALID_COLUMNS = [
       'call_sign', 'type', 'status', 'vehicle_number',
-      'hospital_id', 'hospital', 'location', 'eta', 'crew',
-      'rating', 'last_maintenance', 'current_call',
-      'driver_id', 'profile_id', 'organization_id',
-      'base_price', 'currency'
+      'hospital_id', 'location', 'eta', 'crew',
+      'current_call', 'profile_id', 'organization_id',
+      'base_price', 'license_plate'
     ];
 
     const payload = {};
     for (const key of VALID_COLUMNS) {
       if (key in input) {
         // Sanitize empty strings to null for UUID/FK fields
-        if (['hospital_id', 'driver_id', 'profile_id', 'organization_id'].includes(key)) {
+        if (['hospital_id', 'profile_id', 'organization_id'].includes(key)) {
           payload[key] = input[key] === '' ? null : input[key];
         } else {
           payload[key] = input[key];
         }
       }
+    }
+    if ('driver_id' in input && !('profile_id' in payload)) {
+      payload.profile_id = input.driver_id === '' ? null : input.driver_id;
     }
 
     payload.updated_at = new Date().toISOString();
@@ -185,7 +188,7 @@ export async function assignDriverToAmbulance(ambulanceId, driverId) {
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .update({
-        driver_id: driverId,
+        profile_id: driverId,
         updated_at: new Date().toISOString()
       })
       .eq('id', ambulanceId)
@@ -208,8 +211,8 @@ export async function updateAmbulanceLocation(ambulanceId, location) {
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .update({
-        driver_location: location,
-        last_location_update: new Date().toISOString()
+        location,
+        updated_at: new Date().toISOString()
       })
       .eq('id', ambulanceId)
       .select()
@@ -231,7 +234,7 @@ export async function getDriverAmbulance(driverId) {
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
-      .eq('driver_id', driverId)
+      .eq('profile_id', driverId)
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
@@ -270,7 +273,7 @@ export async function getAvailableDrivers() {
       .from('profiles')
       .select('*')
       .eq('provider_type', 'driver')
-      .is('driver_id', 'is', null)
+      .is('assigned_ambulance_id', null)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -326,7 +329,7 @@ export async function getHospitalAmbulances(hospitalId) {
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
-      .eq('hospital', hospitalId)
+      .eq('hospital_id', hospitalId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;

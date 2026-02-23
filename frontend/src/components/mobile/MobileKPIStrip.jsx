@@ -12,7 +12,7 @@ import { useScrollCooldown } from './useScrollCooldown';
  * Canon #10: Dashboard = Control
  * Canon #29: Ruthless Hierarchy
  */
-export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi }) => {
+export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi, animateOnMount = true }) => {
     const reduceMotion = useReducedMotion();
     const { isScrolling, bind } = useScrollCooldown(180);
     const allKpis = kpis || [];
@@ -35,11 +35,17 @@ export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi }) => {
         });
     };
 
+    const mountMotion = !animateOnMount
+        ? { initial: false, animate: { opacity: 1, y: 0 }, transition: { duration: 0 } }
+        : reduceMotion
+        ? { initial: false, animate: { opacity: 1, y: 0 }, transition: { duration: 0 } }
+        : { initial: { opacity: 0.98, y: -4 }, animate: { opacity: 1, y: 0 }, transition: mobileMotion.reveal };
+
     return (
         <motion.div
-            initial={{ y: -6, opacity: 0.98 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={mobileMotion.reveal}
+            initial={mountMotion.initial}
+            animate={mountMotion.animate}
+            transition={mountMotion.transition}
             className="sticky top-0 z-40 w-full px-2 py-3 border-0 shadow-none relative overflow-hidden"
         >
             {/* Rail: overflow-x, hidden scrollbars, same height */}

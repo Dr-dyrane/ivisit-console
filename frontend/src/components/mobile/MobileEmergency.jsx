@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     AlertTriangle,
     Activity,
@@ -173,8 +173,10 @@ export const MobileEmergency = ({
     return (
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
+                animatePageLoad={false}
                 kpiStrip={(
                     <MobileKPIStrip
+                        animateOnMount={false}
                         kpis={emergencyKPIs}
                         activeKpi={kpiFilter || 'all'}
                         onKpiClick={(id) => setKpiFilter?.(id)}
@@ -315,27 +317,27 @@ export const MobileEmergency = ({
                 />
 
                 <div className="space-y-1">
-                    <AnimatePresence mode="popLayout">
-                        {displayEmergencies.map((emergency) => (
-                            <MobileMetricRow
-                                key={emergency.id}
-                                icon={getStatusIcon(emergency.status)}
-                                color={getSeverityColor(emergency.service_type)}
-                                label={emergency.service_type?.replace('_', ' ').toUpperCase() || 'MEDICAL EMERGENCY'}
-                                value={emergency.patient_name || emergency.patient?.name || `Patient #${emergency.id?.slice(-4) || '??'}`}
-                                trend={formatDate(emergency.created_at)}
-                                rightBlade={{
-                                    badge: emergency.status === 'active' ? 'LIVE' : emergency.status === 'responding' ? 'ENROUTE' : 'RESOLVED',
-                                    direction: emergency.status === 'resolved' ? 'up' : emergency.status === 'active' ? 'down' : 'flat',
-                                    label: 'Priority',
-                                    value: String(emergency.priority || 'normal').toUpperCase(),
-                                    color: getStatusColor(emergency.status)
-                                }}
-                                isExpanded={expandedEmergencyId === emergency.id}
-                                onExpand={setExpandedEmergencyId}
-                                itemId={emergency.id}
-                                expandedContent={
-                                    <div className="space-y-4 py-3">
+                    {displayEmergencies.map((emergency) => (
+                        <MobileMetricRow
+                            key={emergency.id}
+                            layoutEnabled={false}
+                            icon={getStatusIcon(emergency.status)}
+                            color={getSeverityColor(emergency.service_type)}
+                            label={emergency.service_type?.replace('_', ' ').toUpperCase() || 'MEDICAL EMERGENCY'}
+                            value={emergency.patient_name || emergency.patient?.name || `Patient #${emergency.id?.slice(-4) || '??'}`}
+                            trend={formatDate(emergency.created_at)}
+                            rightBlade={{
+                                badge: emergency.status === 'active' ? 'LIVE' : emergency.status === 'responding' ? 'ENROUTE' : 'RESOLVED',
+                                direction: emergency.status === 'resolved' ? 'up' : emergency.status === 'active' ? 'down' : 'flat',
+                                label: 'Priority',
+                                value: String(emergency.priority || 'normal').toUpperCase(),
+                                color: getStatusColor(emergency.status)
+                            }}
+                            isExpanded={expandedEmergencyId === emergency.id}
+                            onExpand={setExpandedEmergencyId}
+                            itemId={emergency.id}
+                            expandedContent={
+                                <div className="space-y-4 py-3">
                                         {/* Emergency Details */}
                                         <div className="grid grid-cols-1 gap-2">
                                             <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
@@ -415,11 +417,10 @@ export const MobileEmergency = ({
                                                 </>
                                             )}
                                         </div>
-                                    </div>
-                                }
-                            />
-                        ))}
-                    </AnimatePresence>
+                                </div>
+                            }
+                        />
+                    ))}
 
                     {/* Infinite Scroll Sentinel */}
                     <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">

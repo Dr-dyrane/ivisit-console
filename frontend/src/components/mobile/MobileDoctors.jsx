@@ -176,6 +176,7 @@ export const MobileDoctors = ({
     return (
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
+                animatePageLoad={false}
                 kpiStrip={(
                     <MobileKPIStrip
                         kpis={doctorKpis}

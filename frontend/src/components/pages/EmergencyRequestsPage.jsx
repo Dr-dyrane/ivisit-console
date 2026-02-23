@@ -97,6 +97,13 @@ export const EmergencyRequestsPage = () => {
   const { viewMode, setViewMode } = useViewMode('emergency-requests-page', 'grid');
   const pagination = usePagination(20);
 
+  const getEmergencyLabel = useCallback((request) => (
+    request?.display_id ||
+    request?.hospital_name ||
+    request?.service_type ||
+    'selected emergency request'
+  ), []);
+
   const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
@@ -118,8 +125,8 @@ export const EmergencyRequestsPage = () => {
         query = query.in('status', filters.status);
       }
       if (filters.search) {
-        // Search by location or service_type
-        query = query.or(`location.ilike.%${filters.search}%,service_type.ilike.%${filters.search}%`);
+        const term = filters.search.replace(/,/g, ' ').trim();
+        query = query.or(`display_id.ilike.%${term}%,service_type.ilike.%${term}%,hospital_name.ilike.%${term}%,responder_name.ilike.%${term}%`);
       }
 
       // Apply KPI Filter to count query
@@ -149,7 +156,8 @@ export const EmergencyRequestsPage = () => {
         dataQuery = dataQuery.in('status', filters.status);
       }
       if (filters.search) {
-        dataQuery = dataQuery.or(`location.ilike.%${filters.search}%,service_type.ilike.%${filters.search}%`);
+        const term = filters.search.replace(/,/g, ' ').trim();
+        dataQuery = dataQuery.or(`display_id.ilike.%${term}%,service_type.ilike.%${term}%,hospital_name.ilike.%${term}%,responder_name.ilike.%${term}%`);
       }
 
       // Apply KPI Filter to data query
@@ -209,7 +217,7 @@ export const EmergencyRequestsPage = () => {
       key: 'search',
       type: 'text',
       label: 'Search Requests',
-      placeholder: 'Search by location or type...'
+      placeholder: 'Search by request ID, hospital, responder, or type...'
     },
     {
       key: 'status',
@@ -297,11 +305,11 @@ export const EmergencyRequestsPage = () => {
 
   usePageFooter(footerContent, 'status', !loading && requests.length > 0);
 
-  const handleDelete = async (request) => {
+  const handleDelete = useCallback(async (request) => {
     setConfirmationModal({
       isOpen: true,
       title: 'Delete Emergency Request',
-      description: `Are you sure you want to delete this emergency request at ${request.location}? This action cannot be undone.`,
+      description: `Are you sure you want to delete ${getEmergencyLabel(request)}? This action cannot be undone.`,
       onConfirm: async () => {
         try {
           const { error } = await supabase
@@ -328,7 +336,7 @@ export const EmergencyRequestsPage = () => {
       variant: 'destructive',
       confirmLabel: 'Delete Request'
     });
-  };
+  }, [fetchRequests, getEmergencyLabel]);
 
   const handleViewDetails = (request) => {
     setSelectedRequest(request);
@@ -894,7 +902,7 @@ export const EmergencyRequestsPage = () => {
                                 size="sm"
                                 onClick={() => handleViewDetails(req)}
                                 className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-colors"
-                                aria-label={`View details for emergency at ${req.location}`}
+                                  aria-label={`View details for ${getEmergencyLabel(req)}`}
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -964,7 +972,7 @@ export const EmergencyRequestsPage = () => {
                                   size="sm"
                                   onClick={() => handleDelete(req)}
                                   className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
-                                  aria-label={`Delete emergency request at ${req.location}`}
+                                  aria-label={`Delete ${getEmergencyLabel(req)}`}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>

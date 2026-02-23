@@ -15,16 +15,17 @@ export const MobileQuickNavPill = ({ items }) => {
         pages.push(items.slice(i, i + 4));
     }
 
-    const renderCard = (item, idx) => (
-        <Link
-            key={idx}
-            to={item.path}
-            className={`block h-full ${isScrolling ? 'pointer-events-none' : ''}`}
-        >
-            <motion.div
-                whileTap={{ scale: 0.96 }}
-                className="flex items-center gap-4 p-4 rounded-2xl apple-glass-heavy border-0 active:bg-white/[0.05] transition-all duration-300 relative overflow-hidden group shadow-sm h-full min-h-[72px]"
+    const renderCard = (item, idx) => {
+        return (
+            <Link
+                key={idx}
+                to={item.path}
+                className={`block h-full ${isScrolling ? 'pointer-events-none' : ''}`}
             >
+                <motion.div
+                    whileTap={{ scale: 0.96 }}
+                    className="flex items-center gap-4 p-4 rounded-2xl apple-glass-heavy border-0 active:bg-white/[0.05] transition-all duration-300 relative overflow-hidden group shadow-sm h-full min-h-[72px]"
+                >
                 {/* Background Analytical Glow */}
                 <div
                     className="absolute -top-6 -right-6 w-20 h-20 rounded-full opacity-[0.12] group-active:scale-125 transition-transform duration-700"
@@ -55,9 +56,10 @@ export const MobileQuickNavPill = ({ items }) => {
                         Exploration
                     </span>
                 </div>
-            </motion.div>
-        </Link>
-    );
+                </motion.div>
+            </Link>
+        );
+    };
 
     // Single page: render exact original 2x2 grid
     if (pages.length <= 1) {
@@ -78,6 +80,7 @@ export const MobileQuickNavPill = ({ items }) => {
                 {pages.map((pageItems, pageIdx) => (
                     <div key={pageIdx} className="min-w-full grid grid-cols-2 gap-3 px-1 py-1 shrink-0">
                         {pageItems.map((item, idx) => renderCard(item, idx))}
+
                         {/* Fill empty slots to maintain 2x2 shape */}
                         {pageItems.length < 4 && Array.from({ length: 4 - pageItems.length }).map((_, i) => (
                             <div key={`pad-${i}`} className="min-h-[72px]" />

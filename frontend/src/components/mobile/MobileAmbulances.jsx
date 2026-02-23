@@ -192,6 +192,7 @@ export const MobileAmbulances = ({
     return (
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
+                animatePageLoad={false}
                 kpiStrip={(
                     <MobileKPIStrip
                         kpis={ambulanceKPIs}

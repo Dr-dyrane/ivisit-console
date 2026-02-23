@@ -103,6 +103,7 @@ export const MobileVerification = ({
   return (
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
+        animatePageLoad={false}
         kpiStrip={<MobileKPIStrip kpis={kpis} activeKpi={filters?.status || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, status: id }))} />}
         contentClassName="pt-4 pb-4 text-foreground"
       >

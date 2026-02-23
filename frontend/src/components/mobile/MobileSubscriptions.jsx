@@ -110,6 +110,7 @@ export const MobileSubscriptions = ({
   return (
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
+        animatePageLoad={false}
         kpiStrip={<MobileKPIStrip kpis={kpis} activeKpi={filters?.kpiFilter || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))} />}
         contentClassName="pt-4 pb-4 text-foreground"
       >

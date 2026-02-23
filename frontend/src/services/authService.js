@@ -140,19 +140,23 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
     }
   } else if (role === 'provider' || role === 'doctor') {
     // Provider/Doctor sees only records assigned to them
+    const hospitalIds = user?.hospital_ids;
+    const isHospitalScoped = orgIdField === 'hospital_id';
 
     // For visits and emergencies, prioritizing hospital-based scoping
     if (resourceType === 'visit') {
-      // Visits: Filter by hospital organization first, then doctor name as fallback
-      if (orgId && orgIdField) {
-        query = query.eq(orgIdField, orgId);
+      // Visits: scope by hospital_ids when available, then doctor assignment.
+      if (isHospitalScoped && hospitalIds?.length) {
+        query = hospitalIds.length > 1 ? query.in(orgIdField, hospitalIds) : query.eq(orgIdField, hospitalIds[0]);
       } else if (providerIdField && user?.full_name) {
         query = query.eq(providerIdField, user.full_name);
+      } else if (userId) {
+        query = query.eq(userIdField, userId);
       }
     } else if (resourceType === 'emergency') {
-      // Emergencies: Filter by hospital org_id first, then responder_id for assigned emergencies
-      if (orgId && orgIdField) {
-        query = query.eq(orgIdField, orgId);
+      // Emergencies: scope by hospital_ids when available, otherwise assigned responder.
+      if (isHospitalScoped && hospitalIds?.length) {
+        query = hospitalIds.length > 1 ? query.in(orgIdField, hospitalIds) : query.eq(orgIdField, hospitalIds[0]);
       } else if (providerIdField && userId) {
         // For emergencies, providerIdField should be 'responder_id' and userId is the provider's UUID
         query = query.eq(providerIdField, userId);

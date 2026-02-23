@@ -144,6 +144,7 @@ export const MobileOrganizations = ({
   return (
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
+        animatePageLoad={false}
         kpiStrip={(
           <MobileKPIStrip
             kpis={kpis}

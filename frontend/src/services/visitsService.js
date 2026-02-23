@@ -10,6 +10,72 @@ import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'visits';
 
+const VISIT_COLUMNS = new Set([
+  'id',
+  'user_id',
+  'hospital_id',
+  'request_id',
+  'hospital_name',
+  'doctor_name',
+  'specialty',
+  'date',
+  'time',
+  'type',
+  'status',
+  'notes',
+  'cost',
+  'lifecycle_state',
+  'lifecycle_updated_at',
+  'rating',
+  'rating_comment',
+  'rated_at',
+  'display_id',
+  'created_at',
+  'updated_at'
+]);
+
+function normalizeVisitForUI(visit) {
+  if (!visit) return visit;
+  return {
+    ...visit,
+    doctor: visit.doctor ?? visit.doctor_name ?? null,
+    visit_type: visit.visit_type ?? visit.type ?? null,
+    room_number: visit.room_number ?? null
+  };
+}
+
+function buildVisitWritePayload(input = {}, { includeCreateDefaults = false } = {}) {
+  const payload = {};
+
+  const aliases = {
+    visit_date: 'date',
+    visit_type: 'type',
+    doctor: 'doctor_name'
+  };
+
+  for (const [key, value] of Object.entries(input)) {
+    if (value === undefined) continue;
+    const targetKey = aliases[key] || key;
+
+    if (!VISIT_COLUMNS.has(targetKey) || targetKey === 'id') continue;
+    payload[targetKey] = value;
+  }
+
+  if (includeCreateDefaults) {
+    if (!payload.date && input.date) payload.date = input.date;
+    if (!payload.date && input.visit_date) payload.date = input.visit_date;
+    if (!payload.type && input.type) payload.type = input.type;
+    if (!payload.type && input.visit_type) payload.type = input.visit_type;
+    if (!payload.doctor_name && input.doctor_name) payload.doctor_name = input.doctor_name;
+    if (!payload.doctor_name && input.doctor) payload.doctor_name = input.doctor;
+    if (!payload.status) payload.status = 'scheduled';
+    payload.created_at = new Date().toISOString();
+  }
+
+  payload.updated_at = new Date().toISOString();
+  return payload;
+}
+
 /**
  * Get all visits with optional filters
  * Admin users can see all visits, others see only their own
@@ -34,7 +100,7 @@ export async function getVisits(filter = {}) {
     query = applyAuthFilter(query, user, {
       userIdField: 'user_id',
       orgIdField: 'hospital_id', // Org admins see visits at their hospital
-      providerIdField: 'doctor', // Providers see only their assigned visits (doctor field is text)
+      providerIdField: 'doctor_name', // Providers may match by display name fallback
       resourceType: 'visit' // Enables provider-specific logic
     });
 
@@ -43,7 +109,10 @@ export async function getVisits(filter = {}) {
       query = query.eq('user_id', filter.user_id);
     }
     if (filter?.doctor) {
-      query = query.eq('doctor', filter.doctor);
+      query = query.eq('doctor_name', filter.doctor);
+    }
+    if (filter?.doctor_name) {
+      query = query.eq('doctor_name', filter.doctor_name);
     }
     if (filter?.hospital_id) {
       query = query.eq('hospital_id', filter.hospital_id);
@@ -55,7 +124,7 @@ export async function getVisits(filter = {}) {
       query = query.eq('type', filter.type);
     }
     if (filter?.visit_type) {
-      query = query.eq('visit_type', filter.visit_type);
+      query = query.eq('type', filter.visit_type);
     }
 
     if (filter?.date_from) {
@@ -80,7 +149,7 @@ export async function getVisits(filter = {}) {
     if (error) throw error;
 
     // Transform data to include nested patient info
-    return (data || []).map(visit => ({
+    return (data || []).map(visit => normalizeVisitForUI({
       ...visit,
       patient: visit.profiles, // Map profiles to patient for consistency
       profiles: undefined, // Remove original profiles to avoid confusion
@@ -123,7 +192,7 @@ export async function getVisit(visitId) {
     // Transform data to include nested patient info
     if (data) {
       return {
-        ...data,
+        ...normalizeVisitForUI(data),
         patient: data.profiles, // Map profiles to patient for consistency
         profiles: undefined // Remove original profiles to avoid confusion
       };
@@ -141,27 +210,7 @@ export async function getVisit(visitId) {
  */
 export async function createVisit(input) {
   try {
-    const payload = {
-      user_id: input.user_id,
-      doctor: input.doctor, // Fixed: use 'doctor' field instead of 'doctor_id'
-      hospital_id: input.hospital_id,
-      date: input.visit_date || input.date,
-      visit_type: input.visit_type,
-      notes: input.notes,
-      status: input.status || 'scheduled',
-      prescription: input.prescription,
-      room_number: input.room_number,
-      estimated_duration: input.estimated_duration,
-      preparation: input.preparation,
-      cost: input.cost,
-      insurance_covered: input.insurance_covered,
-      summary: input.summary,
-      prescriptions: input.prescriptions,
-      next_visit: input.next_visit,
-      request_id: input.request_id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const payload = buildVisitWritePayload(input, { includeCreateDefaults: true });
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -171,7 +220,7 @@ export async function createVisit(input) {
 
     if (error) throw error;
 
-    return data;
+    return normalizeVisitForUI(data);
   } catch (error) {
     console.error('Error creating visit:', error);
     throw error;
@@ -183,10 +232,7 @@ export async function createVisit(input) {
  */
 export async function updateVisit(visitId, input) {
   try {
-    const payload = {
-      ...input,
-      updated_at: new Date().toISOString(),
-    };
+    const payload = buildVisitWritePayload(input);
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -197,7 +243,7 @@ export async function updateVisit(visitId, input) {
 
     if (error) throw error;
 
-    return data;
+    return normalizeVisitForUI(data);
   } catch (error) {
     console.error(`Error updating visit ${visitId}:`, error);
     throw error;
@@ -309,7 +355,7 @@ export async function getUserVisits(userId) {
 
     if (error) throw error;
 
-    return data || [];
+    return (data || []).map(normalizeVisitForUI);
   } catch (error) {
     console.error(`Error fetching visits for user ${userId}:`, error);
     throw error;
@@ -332,7 +378,7 @@ export async function getUserUpcomingVisits(userId) {
 
     if (error) throw error;
 
-    return data || [];
+    return (data || []).map(normalizeVisitForUI);
   } catch (error) {
     console.error(`Error fetching upcoming visits for user ${userId}:`, error);
     throw error;
@@ -353,7 +399,7 @@ export async function getUserCompletedVisits(userId) {
 
     if (error) throw error;
 
-    return data || [];
+    return (data || []).map(normalizeVisitForUI);
   } catch (error) {
     console.error(`Error fetching completed visits for user ${userId}:`, error);
     throw error;
@@ -368,12 +414,12 @@ export async function getDoctorVisits(doctorId) {
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
-      .eq('doctor', doctorId) // Fixed: use 'doctor' field instead of 'doctor_id'
+      .eq('doctor_name', doctorId)
       .order('date', { ascending: false });
 
     if (error) throw error;
 
-    return data || [];
+    return (data || []).map(normalizeVisitForUI);
   } catch (error) {
     console.error(`Error fetching visits for doctor ${doctorId}:`, error);
     throw error;
@@ -393,7 +439,7 @@ export async function getHospitalVisits(hospitalId) {
 
     if (error) throw error;
 
-    return data || [];
+    return (data || []).map(normalizeVisitForUI);
   } catch (error) {
     console.error(`Error fetching visits for hospital ${hospitalId}:`, error);
     throw error;

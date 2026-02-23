@@ -104,6 +104,7 @@ export const MobilePricing = ({
   return (
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
+        animatePageLoad={false}
         kpiStrip={(
           <MobileKPIStrip
             kpis={kpis}

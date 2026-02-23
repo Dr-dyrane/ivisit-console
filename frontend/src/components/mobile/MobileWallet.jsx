@@ -145,6 +145,7 @@ export const MobileWallet = ({
   return (
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
+        animatePageLoad={false}
         kpiStrip={<MobileKPIStrip kpis={kpis} activeKpi="balance" onKpiClick={() => { }} />}
         contentClassName="pt-4 pb-4 text-foreground"
       >

@@ -170,6 +170,7 @@ export const MobileUsers = ({
     return (
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
+                animatePageLoad={false}
                 kpiStrip={(
                     <MobileKPIStrip
                         kpis={userKPIs}

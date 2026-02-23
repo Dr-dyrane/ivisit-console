@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
@@ -36,7 +35,7 @@ export const MobileSecondaryMetricCard = ({
 }) => {
     const { triggerFromEvent } = useFeedback();
     const isInteractive = typeof onClick === 'function';
-    const Comp = isInteractive ? motion.button : 'div';
+    const Comp = isInteractive ? 'button' : 'div';
 
     const handleClick = (event) => {
         if (!isInteractive) return;
@@ -53,9 +52,9 @@ export const MobileSecondaryMetricCard = ({
     if (variant === 'icon') {
         return (
             <Comp
-                {...(isInteractive ? { whileTap: { scale: 0.985 } } : {})}
+                type={isInteractive ? 'button' : undefined}
                 onClick={handleClick}
-                className={`p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 text-left ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] cursor-pointer' : ''}`}
+                className={`p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 text-left ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] active:scale-[0.985] cursor-pointer transform-gpu' : ''}`}
             >
                 <div className="flex items-center gap-3">
                     {Icon && (
@@ -82,9 +81,9 @@ export const MobileSecondaryMetricCard = ({
     // ── Compact variant (icon top-right, text left, value+trend right) ──
     return (
         <Comp
-            {...(isInteractive ? { whileTap: { scale: 0.985 } } : {})}
+            type={isInteractive ? 'button' : undefined}
             onClick={handleClick}
-            className={`relative w-full p-4 apple-glass-heavy rounded-2xl border-0 overflow-hidden text-left flex items-center justify-between ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] cursor-pointer' : ''}`}
+            className={`relative w-full p-4 apple-glass-heavy rounded-2xl border-0 overflow-hidden text-left flex items-center justify-between ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] active:scale-[0.985] cursor-pointer transform-gpu' : ''}`}
         >
             {Icon && <Icon className="absolute top-3 right-3 h-4 w-4 text-primary/30" />}
             <div className="flex flex-col pr-6">
@@ -143,7 +142,7 @@ export const MobileSecondaryMetricRail = ({
                 {items.map((item, idx) => (
                     <div
                         key={idx}
-                        className={`shrink-0 ${isScrolling ? 'pointer-events-none' : ''}`}
+                        className={`shrink-0 ${variant === 'icon' ? 'w-[min(84vw,20rem)]' : 'w-[min(80vw,19rem)]'} ${isScrolling ? 'pointer-events-none' : ''}`}
                     >
                         <MobileSecondaryMetricCard variant={variant} {...item} />
                     </div>

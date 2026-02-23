@@ -94,6 +94,13 @@ export const VisitsPage = () => {
   const { viewMode, setViewMode } = useViewMode('visits-page', 'grid');
   const pagination = usePagination(20);
 
+  const mapVisitSortKey = useCallback((key) => {
+    if (key === 'visit_type') return 'type';
+    if (key === 'room_number') return 'hospital_name';
+    if (key === 'doctor' || key === 'doctor_id') return 'doctor_name';
+    return key;
+  }, []);
+
   const fetchVisits = useCallback(async () => {
     try {
       setLoading(true);
@@ -107,7 +114,7 @@ export const VisitsPage = () => {
       query = applyAuthFilter(query, currentUser, {
         userIdField: 'user_id',
         orgIdField: 'hospital_id',
-        providerIdField: 'doctor_id',
+        providerIdField: 'doctor_name',
         resourceType: 'visit'
       });
 
@@ -115,7 +122,7 @@ export const VisitsPage = () => {
         query = query.in('status', filters.status);
       }
       if (filters.visit_type && filters.visit_type.length > 0) {
-        query = query.in('visit_type', filters.visit_type);
+        query = query.in('type', filters.visit_type);
       }
       if (filters.date) {
         if (filters.date.start) query = query.gte('date', filters.date.start);
@@ -139,13 +146,13 @@ export const VisitsPage = () => {
         .from('visits')
         .select('*')
         .range(pagination.paginationRange.start, pagination.paginationRange.end)
-        .order(sortConfig.key || 'date', { ascending: sortConfig.direction === 'asc' });
+        .order(mapVisitSortKey(sortConfig.key || 'date'), { ascending: sortConfig.direction === 'asc' });
 
       // Apply RBAC filter to data query using centralized service
       dataQuery = applyAuthFilter(dataQuery, currentUser, {
         userIdField: 'user_id',
         orgIdField: 'hospital_id',
-        providerIdField: 'doctor_id',
+        providerIdField: 'doctor_name',
         resourceType: 'visit'
       });
 
@@ -153,7 +160,7 @@ export const VisitsPage = () => {
         dataQuery = dataQuery.in('status', filters.status);
       }
       if (filters.visit_type && filters.visit_type.length > 0) {
-        dataQuery = dataQuery.in('visit_type', filters.visit_type);
+        dataQuery = dataQuery.in('type', filters.visit_type);
       }
       if (filters.date) {
         if (filters.date.start) dataQuery = dataQuery.gte('date', filters.date.start);
@@ -185,17 +192,22 @@ export const VisitsPage = () => {
 
         const profilesMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
 
-        const { data: doctors } = await supabase
-          .from('doctors')
-          .select('id, name')
-          .in('id', doctorIds);
+        let doctorsMap = {};
+        if (doctorIds.length > 0) {
+          const { data: doctors } = await supabase
+            .from('doctors')
+            .select('id, name')
+            .in('id', doctorIds);
 
-        const doctorsMap = (doctors || []).reduce((acc, d) => ({ ...acc, [d.id]: d }), {});
+          doctorsMap = (doctors || []).reduce((acc, d) => ({ ...acc, [d.id]: d }), {});
+        }
 
         visitsData = visitsData.map(visit => ({
           ...visit,
+          visit_type: visit.visit_type || visit.type || null,
+          doctor_name: visit.doctor_name || null,
           patient: profilesMap[visit.user_id] || null,
-          doctor: doctorsMap[visit.doctor_id] || null
+          doctor: doctorsMap[visit.doctor_id] || visit.doctor || visit.doctor_name || null
         }));
       }
 
@@ -206,7 +218,7 @@ export const VisitsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination, filters, kpiFilter, sortConfig]);
+  }, [pagination, filters, kpiFilter, sortConfig, mapVisitSortKey]);
 
   useEffect(() => {
     fetchVisits();

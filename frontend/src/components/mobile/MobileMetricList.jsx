@@ -124,7 +124,8 @@ export const MobileMetricRow = ({
     isSelected,
     onSelect,
     selectionMode,
-    rightBlade
+    rightBlade,
+    layoutEnabled = true
 }) => {
     const { triggerFromEvent } = useFeedback();
     // Backward compatibility: Use internal state if controlled props not provided
@@ -253,7 +254,7 @@ export const MobileMetricRow = ({
 
     return (
         <motion.div
-            layout
+            layout={layoutEnabled}
             initial={false}
             className="w-full flex flex-col mb-2 last:mb-0"
         >

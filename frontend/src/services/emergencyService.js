@@ -10,6 +10,66 @@ import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'emergency_requests';
 
+function parsePointInput(input) {
+  if (!input) return null;
+
+  if (typeof input === 'object') {
+    if (typeof input.lat === 'number' && typeof input.lng === 'number') {
+      return { lat: input.lat, lng: input.lng };
+    }
+    if (typeof input.latitude === 'number' && typeof input.longitude === 'number') {
+      return { lat: input.latitude, lng: input.longitude };
+    }
+    if (
+      input.type === 'Point' &&
+      Array.isArray(input.coordinates) &&
+      input.coordinates.length >= 2
+    ) {
+      const [lng, lat] = input.coordinates;
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return { lat, lng };
+      }
+    }
+    return null;
+  }
+
+  if (typeof input === 'string') {
+    const match = input.match(/POINT\s*\(\s*([-.\d]+)\s+([-.\d]+)\s*\)/i);
+    if (match) {
+      const lng = Number(match[1]);
+      const lat = Number(match[2]);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return { lat, lng };
+      }
+    }
+  }
+
+  return null;
+}
+
+function buildLegacyEmergencyPayload(input) {
+  const payload = {
+    user_id: input.user_id,
+    service_type: input.service_type,
+    specialty: input.specialty,
+    pickup_location: input.pickup_location,
+    destination_location: input.destination_location,
+    patient_snapshot: input.patient_snapshot,
+    hospital_id: input.hospital_id,
+    hospital_name: input.hospital_name,
+    ambulance_type: input.ambulance_type,
+    payment_status: input.payment_status,
+    total_cost: input.total_cost,
+    status: input.status || 'in_progress',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  // Strip undefined to avoid invalid column writes and let DB defaults apply.
+  Object.keys(payload).forEach((key) => payload[key] === undefined && delete payload[key]);
+  return payload;
+}
+
 /**
  * Calculate response time in minutes
  */
@@ -110,23 +170,61 @@ export async function getEmergencyRequest(requestId) {
  */
 export async function createEmergencyRequest(input) {
   try {
-    const payload = {
-      user_id: input.user_id,
-      service_type: input.service_type,
-      specialty: input.specialty,
-      pickup_location: input.pickup_location,
-      destination_location: input.destination_location,
-      patient_snapshot: input.patient_snapshot,
-      shared_data_snapshot: input.shared_data_snapshot,
-      estimated_arrival: input.estimated_arrival,
-      status: 'in_progress',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const normalizedPatientLocation =
+      parsePointInput(input.patient_location) ||
+      parsePointInput(input.pickup_location);
 
-    const { data, error } = await supabase.from(TABLE_NAME).insert([payload]).select().single();
+    const canUseAtomicRpc = Boolean(
+      input?.user_id &&
+      input?.hospital_id &&
+      input?.service_type &&
+      normalizedPatientLocation
+    );
 
-    if (error) throw error;
+    let data;
+
+    if (canUseAtomicRpc) {
+      const requestData = {
+        hospital_id: input.hospital_id,
+        hospital_name: input.hospital_name,
+        service_type: input.service_type,
+        specialty: input.specialty,
+        ambulance_type: input.ambulance_type,
+        patient_snapshot: input.patient_snapshot || {},
+        patient_location: normalizedPatientLocation
+      };
+
+      const paymentMethod = input.payment_method || input.payment_method_id || null;
+      const paymentData = paymentMethod ? {
+        method: paymentMethod,
+        method_id: input.payment_method_id || null,
+        total_amount: input.total_cost ?? input.amount ?? 0,
+        fee_amount: input.ivisit_fee_amount ?? null,
+        currency: input.currency || 'USD'
+      } : null;
+
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('create_emergency_v4', {
+        p_user_id: input.user_id,
+        p_request_data: requestData,
+        p_payment_data: paymentData
+      });
+
+      if (rpcError) throw rpcError;
+      if (!rpcResult?.success || !rpcResult?.request_id) {
+        throw new Error(rpcResult?.error || 'Emergency creation RPC returned an invalid result');
+      }
+
+      data = await getEmergencyRequest(rpcResult.request_id);
+      if (!data) {
+        throw new Error('Emergency created but could not be reloaded');
+      }
+    } else {
+      // Legacy fallback for incomplete admin-created records; keep writes to canonical columns only.
+      const payload = buildLegacyEmergencyPayload(input);
+      const { data: inserted, error } = await supabase.from(TABLE_NAME).insert([payload]).select().single();
+      if (error) throw error;
+      data = inserted;
+    }
 
     // Log activity
     try {
@@ -422,11 +520,11 @@ export async function updateResponderLocation(requestId, location, heading) {
  */
 export async function updatePatientLocation(requestId, location, heading) {
   try {
+    void heading;
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .update({
         patient_location: location,
-        patient_heading: heading,
         updated_at: new Date().toISOString(),
       })
       .eq('id', requestId)

@@ -246,7 +246,7 @@ const GodModeMapContent = () => {
 			// LEG 1: Ambulance -> Patient
 			if (emergency.responder_id || emergency.ambulance_id) {
 				const ambulance = processedAmbulances.find(a =>
-					a.id === emergency.ambulance_id || a.driver_id === emergency.responder_id
+					a.id === emergency.ambulance_id || (a.profile_id || a.driver_id) === emergency.responder_id
 				);
 
 				if (ambulance) {

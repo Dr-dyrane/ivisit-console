@@ -204,6 +204,7 @@ export const MobileVisits = ({
     return (
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
+                animatePageLoad={false}
                 kpiStrip={(
                     <MobileKPIStrip
                         kpis={visitKPIs}

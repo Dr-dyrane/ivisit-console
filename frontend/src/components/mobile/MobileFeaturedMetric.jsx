@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { useReducedMotion } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { ChevronRight } from 'lucide-react';
 import { useScrollCooldown } from './useScrollCooldown';
@@ -36,7 +36,7 @@ export const MobileFeaturedMetric = ({
         const ItemIcon = item.icon;
         const c = item.color || 'hsl(var(--primary))';
         const series = Array.isArray(item.chartData) ? item.chartData : [];
-        const shouldAnimate = !reduceMotion && data.length <= 1;
+        const shouldAnimate = false;
         const handleClick = (event) => {
             if (isScrolling) return;
             item.onClick?.(event);
@@ -47,13 +47,14 @@ export const MobileFeaturedMetric = ({
                 sound: true
             });
         };
+        const Comp = item.onClick ? 'button' : 'div';
 
         return (
-            <motion.div
+            <Comp
                 key={idx}
-                whileTap={{ scale: 0.98 }}
+                type={item.onClick ? 'button' : undefined}
                 onClick={item.onClick ? handleClick : undefined}
-                className="p-6 apple-glass-heavy border-0 flex flex-col justify-between relative overflow-hidden group min-h-[160px] shadow-md rounded-3xl"
+                className={`p-6 apple-glass-heavy border-0 flex flex-col justify-between relative overflow-hidden group min-h-[160px] shadow-md rounded-3xl ${item.onClick ? 'text-left active:scale-[0.985] transition-transform duration-150 transform-gpu' : ''}`}
                 style={data.length > 1 ? { minWidth: '92%', flexShrink: 0 } : undefined}
             >
                 {/* Enhanced Neon primary glow background - Slightly more presence */}
@@ -126,7 +127,7 @@ export const MobileFeaturedMetric = ({
                         <ChevronRight size={16} className="text-foreground" />
                     </div>
                 )}
-            </motion.div>
+            </Comp>
         );
     };
 
