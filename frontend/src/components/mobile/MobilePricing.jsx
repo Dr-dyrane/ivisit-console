@@ -111,15 +111,43 @@ export const MobilePricing = ({
             onKpiClick={setKpiFilter}
           />
         )}
-        contentClassName="px-2 pt-4 pb-4 text-foreground"
+        contentClassName="pt-4 pb-4 text-foreground"
       >
         <MobileFeaturedMetric
-          label={activeTab === 'services' ? 'Average Service Price' : 'Average Room Price'}
-          value={`$${avgPrice.toFixed(2)}`}
-          trend="LIVE"
-          icon={BadgeDollarSign}
-          color="hsl(var(--primary))"
-          chartData={[{ value: 20 }, { value: 24 }, { value: 21 }, { value: 31 }, { value: 28 }, { value: 35 }]}
+          items={[
+            {
+              label: activeTab === 'services' ? 'Average Service Price' : 'Average Room Price',
+              value: `$${avgPrice.toFixed(2)}`,
+              trend: 'LIVE',
+              icon: BadgeDollarSign,
+              color: 'hsl(var(--primary))',
+              chartData: [{ value: 20 }, { value: 24 }, { value: 21 }, { value: 31 }, { value: 28 }, { value: 35 }]
+            },
+            {
+              label: 'Global Ratio',
+              value: `${Math.round((counts.global / (counts.all || 1)) * 100)}%`,
+              trend: periodTrends.globalRatio.deltaText,
+              icon: Globe,
+              color: 'hsl(var(--info))',
+              chartData: [{ value: 18 }, { value: 25 }, { value: 22 }, { value: 30 }, { value: 27 }, { value: 34 }]
+            },
+            {
+              label: 'Override Load',
+              value: `${Math.round((counts.override / (counts.all || 1)) * 100)}%`,
+              trend: periodTrends.overrideLoad.deltaText,
+              icon: Building2,
+              color: 'hsl(var(--warning))',
+              chartData: [{ value: 16 }, { value: 20 }, { value: 19 }, { value: 26 }, { value: 24 }, { value: 29 }]
+            },
+            {
+              label: 'Total Items',
+              value: counts.all,
+              trend: 'LIVE',
+              icon: Layers,
+              color: 'hsl(var(--secondary))',
+              chartData: [{ value: 10 }, { value: 14 }, { value: 17 }, { value: 20 }, { value: 23 }, { value: 28 }]
+            }
+          ]}
         />
 
         <section className="mb-3">
@@ -148,6 +176,26 @@ export const MobilePricing = ({
                 color: 'hsl(var(--primary))',
                 trendDirection: periodTrends.overrideLoad.direction,
                 trendText: periodTrends.overrideLoad.deltaText,
+                onClick: onViewAnalytics
+              },
+              {
+                icon: BadgeDollarSign,
+                title: 'Avg Price',
+                subtitle: 'Current mean',
+                value: `$${avgPrice.toFixed(2)}`,
+                color: 'hsl(var(--info))',
+                trendDirection: 'flat',
+                trendText: 'LIVE',
+                onClick: onViewAnalytics
+              },
+              {
+                icon: Layers,
+                title: 'Total',
+                subtitle: 'Items',
+                value: counts.all,
+                color: 'hsl(var(--secondary))',
+                trendDirection: 'flat',
+                trendText: 'LIVE',
                 onClick: onViewAnalytics
               }
             ]}
@@ -322,3 +370,4 @@ export const MobilePricing = ({
     </PullToRefresh>
   );
 };
+

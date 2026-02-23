@@ -31,9 +31,11 @@ import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
+import { useStableList } from './useStableList';
+import { useLoadMoreControl } from './useLoadMoreControl';
 
 /**
  * MobileUsers
@@ -84,16 +86,15 @@ export const MobileUsers = ({
         direction: Number.isFinite(value) ? (value > 0 ? 'up' : value < 0 ? 'down' : 'flat') : 'flat'
     });
 
-    useEffect(() => {
-        if (!hasMore || loading) return;
+    const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 
+    useEffect(() => {
+        if (!hasMore) return;
         const observer = new IntersectionObserver(
             entries => {
-                if (entries[0].isIntersecting && hasMore) {
-                    onLoadMore();
-                }
+                if (entries[0].isIntersecting) triggerLoad();
             },
-            { threshold: 0.1, rootMargin: '100px' }
+            { threshold: 0.1, rootMargin: '120px' }
         );
 
         if (observerTarget.current) {
@@ -101,7 +102,7 @@ export const MobileUsers = ({
         }
 
         return () => observer.disconnect();
-    }, [hasMore, loading, onLoadMore]);
+    }, [hasMore, triggerLoad]);
 
     const totalUsers = Number(statistics?.totalUsers) || users.length;
     const verifiedUsersCount = Number(statistics?.bvnVerifiedUsers) || users.filter(u => u.bvn_verified).length;
@@ -155,6 +156,7 @@ export const MobileUsers = ({
 
     const verifiedUsers = users.filter(u => u.bvn_verified).length;
     const verificationRate = users.length ? (verifiedUsers / users.length) * 100 : 0;
+    const { displayItems: displayUsers, isBuffering } = useStableList(users, loading);
 
     const getRoleColor = (role) => {
         switch (role) {
@@ -175,16 +177,44 @@ export const MobileUsers = ({
                         onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
                     />
                 )}
-                contentClassName="px-2 pt-4 pb-4 text-foreground"
+                contentClassName="pt-4 pb-4 text-foreground"
             >
                 {/* B. ACTIVE USERS */}
                 <MobileFeaturedMetric
-                    label="Active Users"
-                    value={activeUsers}
-                    trend={formatSignedPercent(verificationRate - 50) || 'LIVE'}
-                    icon={Activity}
-                    color="hsl(var(--success))"
-                    chartData={growthData}
+                    items={[
+                        {
+                            label: 'Active Users',
+                            value: activeUsers,
+                            trend: formatSignedPercent(verificationRate - 50) || 'LIVE',
+                            icon: Activity,
+                            color: 'hsl(var(--success))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Total Users',
+                            value: totalUsers,
+                            trend: totalTrend.delta,
+                            icon: Users,
+                            color: 'hsl(var(--primary))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Verified',
+                            value: verifiedUsersCount,
+                            trend: verifiedTrend.delta,
+                            icon: BadgeCheck,
+                            color: 'hsl(var(--info))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Staff',
+                            value: staffMembers,
+                            trend: staffTrend.delta,
+                            icon: Shield,
+                            color: 'hsl(var(--warning))',
+                            chartData: growthData
+                        }
+                    ]}
                 />
 
                 {/* C. USER VELOCITY */}
@@ -215,6 +245,26 @@ export const MobileUsers = ({
                                 color: 'hsl(var(--success))',
                                 iconColorClass: 'text-success',
                                 iconBgClass: 'bg-success/5',
+                                onClick: onViewAnalytics
+                            },
+                            {
+                                icon: Users,
+                                title: 'Total Users',
+                                subtitle: 'Registered',
+                                value: totalUsers,
+                                color: 'hsl(var(--primary))',
+                                iconColorClass: 'text-primary',
+                                iconBgClass: 'bg-primary/5',
+                                onClick: onViewAnalytics
+                            },
+                            {
+                                icon: Shield,
+                                title: 'Staff',
+                                subtitle: 'Admins/providers',
+                                value: staffMembers,
+                                color: 'hsl(var(--warning))',
+                                iconColorClass: 'text-warning',
+                                iconBgClass: 'bg-warning/5',
                                 onClick: onViewAnalytics
                             }
                         ]}
@@ -261,17 +311,17 @@ export const MobileUsers = ({
                 {/* E. USER DIRECTORY */}
                 <MobileSectionHeader
                     label="User Directory"
-                    count={users.length}
+                    count={displayUsers.length}
                     color="hsl(var(--primary))"
                     selectionMode={selectionMode}
                     selectedCount={selectedIds.length}
-                    onSelectAll={users.length > 0 ? () => onSelectAll?.(users) : null}
-                    isAllSelected={users.length > 0 && selectedIds.length === users.length}
+                    onSelectAll={displayUsers.length > 0 ? () => onSelectAll?.(displayUsers) : null}
+                    isAllSelected={displayUsers.length > 0 && selectedIds.length === displayUsers.length}
                 />
 
                 <div className="space-y-1">
                     <AnimatePresence mode="popLayout">
-                        {users.map((user) => (
+                        {displayUsers.map((user) => (
                             <MobileMetricRow
                                 key={user.id}
                                 color={getRoleColor(user.role)}
@@ -380,16 +430,15 @@ export const MobileUsers = ({
                     </AnimatePresence>
 
                     {/* Infinite Scroll Sentinel */}
-                    <div ref={observerTarget} className="h-20 flex items-center justify-center">
-                        {hasMore && (
-                            <MobileListLoadingMore label="Loading more users" />
-                        )}
-                        {!hasMore && users.length > 0 && (
+                    <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
+                        {loading && <MobileListSkeletonRows />}
+                        {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+                        {!loading && !hasMore && displayUsers.length > 0 && (
                             <MobileListEnd label="End of user list" />
                         )}
                     </div>
 
-                    {users.length === 0 && !loading && (
+                    {displayUsers.length === 0 && !loading && (
                         <MobileListEmpty icon={Users} label="No users found" />
                     )}
                 </div>
@@ -397,3 +446,5 @@ export const MobileUsers = ({
         </PullToRefresh>
     );
 };
+
+

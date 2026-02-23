@@ -1,14 +1,17 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Users, Search, Eye, Edit, Trash2, Mail, Clock, Crown, SlidersHorizontal, BarChart3, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { Users, Search, Eye, Edit, Trash2, Mail, Clock, Crown, BadgeCheck, SlidersHorizontal, BarChart3, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { motion } from 'framer-motion';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
+import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
+import { useStableList } from './useStableList';
+import { useLoadMoreControl } from './useLoadMoreControl';
 
 export const MobileSubscriptions = ({
   subscribers = [],
@@ -32,17 +35,19 @@ export const MobileSubscriptions = ({
   const observerTarget = useRef(null);
   const selectionMode = selectedIds.length > 0;
 
+  const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
+
   useEffect(() => {
-    if (!hasMore || loading || !onLoadMore) return;
+    if (!hasMore) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) onLoadMore();
+        if (entries[0].isIntersecting) triggerLoad();
       },
-      { threshold: 0.1, rootMargin: '100px' }
+      { threshold: 0.1, rootMargin: '120px' }
     );
     if (observerTarget.current) observer.observe(observerTarget.current);
     return () => observer.disconnect();
-  }, [hasMore, loading, onLoadMore]);
+  }, [hasMore, triggerLoad]);
 
   const counts = useMemo(() => ({
     total: subscribers.length,
@@ -64,6 +69,7 @@ export const MobileSubscriptions = ({
 
     return result;
   }, [subscribers, filters]);
+  const { displayItems: displaySubscribers, isBuffering } = useStableList(filteredSubscribers, loading);
 
   const kpis = [
     { id: 'all', label: 'Subscribers', value: counts.total, color: 'hsl(var(--primary))', delta: 'LIVE', direction: 'flat' },
@@ -105,15 +111,43 @@ export const MobileSubscriptions = ({
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         kpiStrip={<MobileKPIStrip kpis={kpis} activeKpi={filters?.kpiFilter || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))} />}
-        contentClassName="px-2 pt-4 pb-4 text-foreground"
+        contentClassName="pt-4 pb-4 text-foreground"
       >
         <MobileFeaturedMetric
-          label="Paid Conversion"
-          value={`${counts.total ? Math.round((counts.paid / counts.total) * 100) : 0}%`}
-          trend="LIVE"
-          icon={Crown}
-          color="hsl(var(--warning))"
-          chartData={[{ value: 24 }, { value: 30 }, { value: 36 }, { value: 44 }, { value: 46 }, { value: 53 }]}
+          items={[
+            {
+              label: 'Paid Conversion',
+              value: `${counts.total ? Math.round((counts.paid / counts.total) * 100) : 0}%`,
+              trend: periodTrends.paidMix.deltaText,
+              icon: Crown,
+              color: 'hsl(var(--warning))',
+              chartData: [{ value: 24 }, { value: 30 }, { value: 36 }, { value: 44 }, { value: 46 }, { value: 53 }]
+            },
+            {
+              label: 'Active Mix',
+              value: `${Math.round(((counts.active || 0) / (counts.total || 1)) * 100)}%`,
+              trend: periodTrends.activeMix.deltaText,
+              icon: Users,
+              color: 'hsl(var(--info))',
+              chartData: [{ value: 22 }, { value: 27 }, { value: 33 }, { value: 39 }, { value: 43 }, { value: 48 }]
+            },
+            {
+              label: 'Total Subs',
+              value: counts.total,
+              trend: 'LIVE',
+              icon: Mail,
+              color: 'hsl(var(--primary))',
+              chartData: [{ value: 14 }, { value: 18 }, { value: 22 }, { value: 26 }, { value: 30 }, { value: 34 }]
+            },
+            {
+              label: 'Paid Subscribers',
+              value: counts.paid,
+              trend: 'LIVE',
+              icon: BadgeCheck,
+              color: 'hsl(var(--success))',
+              chartData: [{ value: 12 }, { value: 16 }, { value: 19 }, { value: 23 }, { value: 27 }, { value: 31 }]
+            }
+          ]}
         />
 
         <section className="mb-3">
@@ -122,44 +156,46 @@ export const MobileSubscriptions = ({
             count={counts.total}
             color="hsl(var(--warning))"
           />
-          <div className="grid grid-cols-2 gap-3">
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <Crown className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Paid Mix</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Monetization</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {Math.round(((counts.paid || 0) / (counts.total || 1)) * 100)}%
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.paidMix.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-success" />}
-                  {periodTrends.paidMix.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  {periodTrends.paidMix.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.paidMix.deltaText}
-                </span>
-              </div>
-            </div>
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <Users className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Active Mix</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Engagement</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {Math.round(((counts.active || 0) / (counts.total || 1)) * 100)}%
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.activeMix.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-success" />}
-                  {periodTrends.activeMix.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  {periodTrends.activeMix.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.activeMix.deltaText}
-                </span>
-              </div>
-            </div>
-          </div>
+          <MobileSecondaryMetricRail
+            items={[
+              {
+                icon: Crown,
+                title: 'Paid Mix',
+                subtitle: 'Monetization',
+                value: `${Math.round(((counts.paid || 0) / (counts.total || 1)) * 100)}%`,
+                color: 'hsl(var(--warning))',
+                trendDirection: periodTrends.paidMix.direction,
+                trendText: periodTrends.paidMix.deltaText
+              },
+              {
+                icon: Users,
+                title: 'Active Mix',
+                subtitle: 'Engagement',
+                value: `${Math.round(((counts.active || 0) / (counts.total || 1)) * 100)}%`,
+                color: 'hsl(var(--info))',
+                trendDirection: periodTrends.activeMix.direction,
+                trendText: periodTrends.activeMix.deltaText
+              },
+              {
+                icon: Mail,
+                title: 'Total Subs',
+                subtitle: 'Registry',
+                value: counts.total,
+                color: 'hsl(var(--primary))',
+                trendDirection: 'flat',
+                trendText: 'LIVE'
+              },
+              {
+                icon: BadgeCheck,
+                title: 'Paid',
+                subtitle: 'Subscribers',
+                value: counts.paid,
+                color: 'hsl(var(--success))',
+                trendDirection: 'flat',
+                trendText: 'LIVE'
+              }
+            ]}
+          />
         </section>
 
         <div className="flex items-center gap-2 mb-3 px-1">
@@ -197,15 +233,15 @@ export const MobileSubscriptions = ({
 
         <MobileSectionHeader
           label="Subscriber Registry"
-          count={filteredSubscribers.length}
+          count={displaySubscribers.length}
           color="hsl(var(--primary))"
-          onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== filteredSubscribers.length) : null}
-          isAllSelected={filteredSubscribers.length > 0 && selectedIds.length === filteredSubscribers.length}
+          onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== displaySubscribers.length) : null}
+          isAllSelected={displaySubscribers.length > 0 && selectedIds.length === displaySubscribers.length}
         />
 
         <div className="space-y-1">
           <AnimatePresence mode="popLayout">
-            {filteredSubscribers.map((sub) => {
+            {displaySubscribers.map((sub) => {
               const active = sub.status === 'active';
               const paid = sub.type === 'paid';
               return (
@@ -263,14 +299,17 @@ export const MobileSubscriptions = ({
             })}
           </AnimatePresence>
 
-          {filteredSubscribers.length === 0 && <MobileListEmpty icon={Users} label="No subscribers found" />}
+          {displaySubscribers.length === 0 && <MobileListEmpty icon={Users} label="No subscribers found" />}
 
-          <div ref={observerTarget} className="h-20 flex items-center justify-center">
-            {hasMore && <MobileListLoadingMore label="Loading more subscribers" />}
-            {!hasMore && filteredSubscribers.length > 0 && <MobileListEnd label="End of subscriber list" />}
+          <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
+            {loading && <MobileListSkeletonRows />}
+            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+            {!loading && !hasMore && displaySubscribers.length > 0 && <MobileListEnd label="End of subscriber list" />}
           </div>
         </div>
       </MobilePageShell>
     </PullToRefresh>
   );
 };
+
+

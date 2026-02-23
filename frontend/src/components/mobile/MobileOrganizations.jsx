@@ -12,6 +12,7 @@ import {
   Mail,
   CreditCard,
   CheckCircle2,
+  Users,
   SlidersHorizontal,
   BarChart3
 } from 'lucide-react';
@@ -23,7 +24,9 @@ import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
+import { useStableList } from './useStableList';
+import { useLoadMoreControl } from './useLoadMoreControl';
 
 export const MobileOrganizations = ({
   organizations = [],
@@ -50,17 +53,19 @@ export const MobileOrganizations = ({
   const observerTarget = useRef(null);
   const selectionMode = selectedIds.length > 0;
 
+  const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
+
   useEffect(() => {
-    if (!hasMore || loading || !onLoadMore) return;
+    if (!hasMore) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) onLoadMore();
+        if (entries[0].isIntersecting) triggerLoad();
       },
-      { threshold: 0.1, rootMargin: '100px' }
+      { threshold: 0.1, rootMargin: '120px' }
     );
     if (observerTarget.current) observer.observe(observerTarget.current);
     return () => observer.disconnect();
-  }, [hasMore, loading, onLoadMore]);
+  }, [hasMore, triggerLoad]);
 
   const totalWallet = useMemo(
     () => organizations.reduce((acc, curr) => acc + (Number(curr.wallet_balance) || 0), 0),
@@ -70,6 +75,7 @@ export const MobileOrganizations = ({
     () => organizations.filter(o => o.is_active).length,
     [organizations]
   );
+  const { displayItems: displayOrganizations, isBuffering } = useStableList(organizations, loading);
   const avgFee = useMemo(() => {
     if (!organizations.length) return 0;
     return organizations.reduce((acc, o) => acc + (Number(o.ivisit_fee_percentage) || 0), 0) / organizations.length;
@@ -145,15 +151,43 @@ export const MobileOrganizations = ({
             onKpiClick={(id) => setKpiFilter?.(id)}
           />
         )}
-        contentClassName="px-2 pt-4 pb-4 text-foreground"
+        contentClassName="pt-4 pb-4 text-foreground"
       >
         <MobileFeaturedMetric
-          label="Average Fee"
-          value={`${avgFee.toFixed(1)}%`}
-          trend="LIVE"
-          icon={DollarSign}
-          color="hsl(var(--warning))"
-          chartData={[{ value: 32 }, { value: 45 }, { value: 41 }, { value: 54 }, { value: 57 }, { value: 60 }]}
+          items={[
+            {
+              label: 'Average Fee',
+              value: `${avgFee.toFixed(1)}%`,
+              trend: periodTrends.avgFee.deltaText,
+              icon: DollarSign,
+              color: 'hsl(var(--warning))',
+              chartData: [{ value: 32 }, { value: 45 }, { value: 41 }, { value: 54 }, { value: 57 }, { value: 60 }]
+            },
+            {
+              label: 'Active Ratio',
+              value: `${Math.round((activeCount / (organizations.length || 1)) * 100)}%`,
+              trend: periodTrends.activeRatio.deltaText,
+              icon: Building2,
+              color: 'hsl(var(--primary))',
+              chartData: [{ value: 20 }, { value: 35 }, { value: 30 }, { value: 42 }, { value: 48 }, { value: 55 }]
+            },
+            {
+              label: 'Total Orgs',
+              value: organizations.length,
+              trend: 'LIVE',
+              icon: Users,
+              color: 'hsl(var(--info))',
+              chartData: [{ value: 12 }, { value: 18 }, { value: 24 }, { value: 28 }, { value: 31 }, { value: 36 }]
+            },
+            {
+              label: 'Paid Mix',
+              value: `${Math.round(((activeCount || 0) / Math.max(organizations.length || 1, 1)) * 100)}%`,
+              trend: 'LIVE',
+              icon: CheckCircle2,
+              color: 'hsl(var(--success))',
+              chartData: [{ value: 28 }, { value: 40 }, { value: 44 }, { value: 52 }, { value: 60 }, { value: 66 }]
+            }
+          ]}
         />
 
         <section className="mb-3">
@@ -182,6 +216,26 @@ export const MobileOrganizations = ({
                 color: 'hsl(var(--primary))',
                 trendDirection: periodTrends.avgFee.direction,
                 trendText: periodTrends.avgFee.deltaText,
+                onClick: onViewAnalytics
+              },
+              {
+                icon: Users,
+                title: 'Total Orgs',
+                subtitle: 'Registered',
+                value: organizations.length,
+                color: 'hsl(var(--info))',
+                trendDirection: 'flat',
+                trendText: 'LIVE',
+                onClick: onViewAnalytics
+              },
+              {
+                icon: CheckCircle2,
+                title: 'Active Count',
+                subtitle: 'Live nodes',
+                value: activeCount,
+                color: 'hsl(var(--success))',
+                trendDirection: 'up',
+                trendText: 'LIVE',
                 onClick: onViewAnalytics
               }
             ]}
@@ -233,15 +287,15 @@ export const MobileOrganizations = ({
 
         <MobileSectionHeader
           label="Organization Registry"
-          count={organizations.length}
+          count={displayOrganizations.length}
           color="hsl(var(--primary))"
-          onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== organizations.length) : null}
-          isAllSelected={organizations.length > 0 && selectedIds.length === organizations.length}
+          onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== displayOrganizations.length) : null}
+          isAllSelected={displayOrganizations.length > 0 && selectedIds.length === displayOrganizations.length}
         />
 
         <div className="space-y-1">
           <AnimatePresence mode="popLayout">
-            {organizations.map((org) => {
+            {displayOrganizations.map((org) => {
               const isActive = !!org.is_active;
               return (
                 <MobileMetricRow
@@ -332,16 +386,19 @@ export const MobileOrganizations = ({
             })}
           </AnimatePresence>
 
-          {organizations.length === 0 && (
+          {displayOrganizations.length === 0 && (
             <MobileListEmpty icon={Building2} label="No organizations found" />
           )}
 
-          <div ref={observerTarget} className="h-20 flex items-center justify-center">
-            {hasMore && <MobileListLoadingMore label="Loading more organizations" />}
-            {!hasMore && organizations.length > 0 && <MobileListEnd label="End of organization list" />}
+          <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
+            {loading && <MobileListSkeletonRows />}
+            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+            {!loading && !hasMore && displayOrganizations.length > 0 && <MobileListEnd label="End of organization list" />}
           </div>
         </div>
       </MobilePageShell>
     </PullToRefresh>
   );
 };
+
+

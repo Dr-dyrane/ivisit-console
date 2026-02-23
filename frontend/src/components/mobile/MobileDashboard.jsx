@@ -107,7 +107,7 @@ export const MobileDashboard = ({
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
                 kpiStrip={<MobileKPIStrip kpis={getKPIData()} />}
-                contentClassName="px-2 pt-4 pb-4 text-foreground"
+                contentClassName="pt-4 pb-4 text-foreground"
             >
 
                 {/* HERO FEATURED METRICS — Billboard Rail */}
@@ -137,6 +137,14 @@ export const MobileDashboard = ({
                                 icon: TrendingUp,
                                 color: 'hsl(var(--primary))',
                                 chartData: defaultChartData
+                            },
+                            {
+                                label: 'Fleet Coverage',
+                                value: appStats.availableAmbulances || 0,
+                                trend: formatSignedPercent(fleetLoadDelta) || 'LIVE',
+                                icon: Ambulance,
+                                color: 'hsl(var(--secondary))',
+                                chartData: defaultChartData
                             }
                         ]}
                     />
@@ -159,6 +167,22 @@ export const MobileDashboard = ({
                                 trend: formatSignedPercent(completionVsTarget) || 'LIVE',
                                 icon: CheckCircle2,
                                 color: 'hsl(var(--success))',
+                                chartData: defaultChartData
+                            },
+                            {
+                                label: 'Visits',
+                                value: appStats.totalVisits || 0,
+                                trend: 'LIVE',
+                                icon: Calendar,
+                                color: 'hsl(var(--info))',
+                                chartData: defaultChartData
+                            },
+                            {
+                                label: 'Balance',
+                                value: walletBalanceText,
+                                trend: formatSignedPercent(walletDelta) || 'LIVE',
+                                icon: Wallet,
+                                color: 'hsl(var(--warning))',
                                 chartData: defaultChartData
                             }
                         ]}
@@ -361,3 +385,4 @@ export const MobileDashboard = ({
         </PullToRefresh>
     );
 };
+

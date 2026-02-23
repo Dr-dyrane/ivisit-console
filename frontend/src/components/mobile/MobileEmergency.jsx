@@ -30,10 +30,12 @@ import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { formatDate } from '../../lib/utils';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
+import { useStableList } from './useStableList';
+import { useLoadMoreControl } from './useLoadMoreControl';
 
 /**
  * MobileEmergency
@@ -64,6 +66,7 @@ export const MobileEmergency = ({
     const observerTarget = useRef(null);
     const [expandedEmergencyId, setExpandedEmergencyId] = useState(null);
     const { triggerFromEvent } = useFeedback();
+    const { displayItems: displayEmergencies, isBuffering } = useStableList(emergencies, loading);
 
     const formatSignedPercent = (value) => {
         if (!Number.isFinite(value)) return null;
@@ -83,24 +86,19 @@ export const MobileEmergency = ({
         direction: Number.isFinite(value) ? (value > 0 ? 'up' : value < 0 ? 'down' : 'flat') : 'flat'
     });
 
-    useEffect(() => {
-        if (!hasMore || loading) return;
+    const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 
+    useEffect(() => {
+        if (!hasMore) return;
         const observer = new IntersectionObserver(
             entries => {
-                if (entries[0].isIntersecting && hasMore) {
-                    onLoadMore();
-                }
+                if (entries[0].isIntersecting) triggerLoad();
             },
-            { threshold: 0.1, rootMargin: '100px' }
+            { threshold: 0.1, rootMargin: '120px' }
         );
-
-        if (observerTarget.current) {
-            observer.observe(observerTarget.current);
-        }
-
+        if (observerTarget.current) observer.observe(observerTarget.current);
         return () => observer.disconnect();
-    }, [hasMore, loading, onLoadMore]);
+    }, [hasMore, triggerLoad]);
 
     const totals = {
         all: Number(statistics?.total) || emergencies.length,
@@ -182,16 +180,44 @@ export const MobileEmergency = ({
                         onKpiClick={(id) => setKpiFilter?.(id)}
                     />
                 )}
-                contentClassName="px-2 pt-4 pb-4 text-foreground"
+                contentClassName="pt-4 pb-4 text-foreground"
             >
                 {/* B. LIVE EMERGENCIES */}
                 <MobileFeaturedMetric
-                    label="Live Emergencies"
-                    value={activeCount}
-                    trend={trendBadge}
-                    icon={AlertTriangle}
-                    color="hsl(var(--destructive))"
-                    chartData={growthData}
+                    items={[
+                        {
+                            label: 'Live Emergencies',
+                            value: activeCount,
+                            trend: trendBadge,
+                            icon: AlertTriangle,
+                            color: 'hsl(var(--destructive))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Total Requests',
+                            value: totals.all,
+                            trend: formatSignedPercent(calcDeltaPercent(totals.all, previous.all)) || 'LIVE',
+                            icon: Activity,
+                            color: 'hsl(var(--primary))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Ambulance Calls',
+                            value: totals.ambulance,
+                            trend: formatSignedPercent(calcDeltaPercent(totals.ambulance, previous.ambulance)) || 'LIVE',
+                            icon: Ambulance,
+                            color: 'hsl(var(--warning))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Bed Requests',
+                            value: totals.bed,
+                            trend: formatSignedPercent(calcDeltaPercent(totals.bed, previous.bed)) || 'LIVE',
+                            icon: Hospital,
+                            color: 'hsl(var(--info))',
+                            chartData: growthData
+                        }
+                    ]}
                 />
 
                 {/* C. RESPONSE METRICS */}
@@ -221,6 +247,24 @@ export const MobileEmergency = ({
                                 color: 'hsl(var(--success))',
                                 iconColorClass: 'text-success',
                                 iconBgClass: 'bg-success/5'
+                            },
+                            {
+                                icon: Shield,
+                                title: 'Active',
+                                subtitle: 'Live queue',
+                                value: totals.active,
+                                color: 'hsl(var(--destructive))',
+                                iconColorClass: 'text-destructive',
+                                iconBgClass: 'bg-destructive/5'
+                            },
+                            {
+                                icon: AlertCircle,
+                                title: 'Total',
+                                subtitle: 'All requests',
+                                value: totals.all,
+                                color: 'hsl(var(--info))',
+                                iconColorClass: 'text-info',
+                                iconBgClass: 'bg-info/5'
                             }
                         ]}
                     />
@@ -266,13 +310,13 @@ export const MobileEmergency = ({
                 {/* E. EMERGENCY DIRECTORY */}
                 <MobileSectionHeader
                     label="Emergency Directory"
-                    count={emergencies.length}
+                    count={displayEmergencies.length}
                     color="hsl(var(--destructive))"
                 />
 
                 <div className="space-y-1">
                     <AnimatePresence mode="popLayout">
-                        {emergencies.map((emergency) => (
+                        {displayEmergencies.map((emergency) => (
                             <MobileMetricRow
                                 key={emergency.id}
                                 icon={getStatusIcon(emergency.status)}
@@ -378,16 +422,15 @@ export const MobileEmergency = ({
                     </AnimatePresence>
 
                     {/* Infinite Scroll Sentinel */}
-                    <div ref={observerTarget} className="h-20 flex items-center justify-center">
-                        {hasMore && (
-                            <MobileListLoadingMore label="Loading more emergencies" />
-                        )}
-                        {!hasMore && emergencies.length > 0 && (
+                    <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
+                        {loading && <MobileListSkeletonRows />}
+                        {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+                        {!loading && !hasMore && displayEmergencies.length > 0 && (
                             <MobileListEnd label="End of emergency list" />
                         )}
                     </div>
 
-                    {emergencies.length === 0 && !loading && (
+                    {displayEmergencies.length === 0 && !loading && (
                         <MobileListEmpty icon={AlertTriangle} label="No active emergencies" />
                     )}
                 </div>
@@ -395,3 +438,5 @@ export const MobileEmergency = ({
         </PullToRefresh>
     );
 };
+
+

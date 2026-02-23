@@ -29,10 +29,12 @@ import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { formatDate } from '../../lib/utils';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
+import { useStableList } from './useStableList';
+import { useLoadMoreControl } from './useLoadMoreControl';
 
 /**
  * MobileVisits
@@ -83,16 +85,15 @@ export const MobileVisits = ({
         direction: Number.isFinite(value) ? (value > 0 ? 'up' : value < 0 ? 'down' : 'flat') : 'flat'
     });
 
-    useEffect(() => {
-        if (!hasMore || loading) return;
+    const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 
+    useEffect(() => {
+        if (!hasMore) return;
         const observer = new IntersectionObserver(
             entries => {
-                if (entries[0].isIntersecting && hasMore) {
-                    onLoadMore();
-                }
+                if (entries[0].isIntersecting) triggerLoad();
             },
-            { threshold: 0.1, rootMargin: '100px' }
+            { threshold: 0.1, rootMargin: '120px' }
         );
 
         if (observerTarget.current) {
@@ -100,7 +101,7 @@ export const MobileVisits = ({
         }
 
         return () => observer.disconnect();
-    }, [hasMore, loading, onLoadMore]);
+    }, [hasMore, triggerLoad]);
     const scheduledCount = Number(statistics?.scheduled) || visits.filter(v => v.status === 'scheduled').length;
     const activeCount = Number(statistics?.inProgress) || visits.filter(v => v.status === 'in_progress').length;
     const completedCount = Number(statistics?.completed) || visits.filter(v => v.status === 'completed').length;
@@ -157,6 +158,30 @@ export const MobileVisits = ({
         return today === visitDate;
     }).length;
     const completionRate = visits.length ? (completedCount / visits.length) * 100 : 0;
+    const filteredVisits = useMemo(() => {
+        let result = Array.isArray(visits) ? [...visits] : [];
+        const search = String(filters?.search || '').trim().toLowerCase();
+        const kpi = String(filters?.kpiFilter || 'all');
+
+        if (search) {
+            result = result.filter(v => {
+                const name = String(v?.patient_name || v?.patient?.name || '').toLowerCase();
+                const service = String(v?.service_type || '').toLowerCase();
+                const location = String(v?.location || v?.patient_location || '').toLowerCase();
+                return name.includes(search) || service.includes(search) || location.includes(search);
+            });
+        }
+
+        if (kpi !== 'all') {
+            if (kpi === 'scheduled') result = result.filter(v => v.status === 'scheduled');
+            if (kpi === 'active') result = result.filter(v => v.status === 'in_progress');
+            if (kpi === 'completed') result = result.filter(v => v.status === 'completed');
+            if (kpi === 'cancelled') result = result.filter(v => v.status === 'cancelled');
+        }
+
+        return result;
+    }, [visits, filters]);
+    const { displayItems: displayVisits, isBuffering } = useStableList(filteredVisits, loading);
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -186,16 +211,44 @@ export const MobileVisits = ({
                         onKpiClick={(id) => setFilters?.(prev => ({ ...prev, kpiFilter: id }))}
                     />
                 )}
-                contentClassName="px-2 pt-4 pb-4 text-foreground"
+                contentClassName="pt-4 pb-4 text-foreground"
             >
                 {/* B. TODAY'S APPOINTMENTS */}
                 <MobileFeaturedMetric
-                    label="Today's Appointments"
-                    value={todayCount}
-                    trend={formatSignedPercent(completionRate - 50) || 'LIVE'}
-                    icon={Calendar}
-                    color="hsl(var(--info))"
-                    chartData={growthData}
+                    items={[
+                        {
+                            label: "Today's Appointments",
+                            value: todayCount,
+                            trend: formatSignedPercent(completionRate - 50) || 'LIVE',
+                            icon: Calendar,
+                            color: 'hsl(var(--info))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Completed Today',
+                            value: completedCount,
+                            trend: formatSignedPercent(completionRate - 50) || 'LIVE',
+                            icon: CheckCircle2,
+                            color: 'hsl(var(--success))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Completion Rate',
+                            value: `${Math.round(completionRate)}%`,
+                            trend: 'LIVE',
+                            icon: Activity,
+                            color: 'hsl(var(--primary))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Active Queue',
+                            value: filteredVisits.length,
+                            trend: 'LIVE',
+                            icon: Clock,
+                            color: 'hsl(var(--warning))',
+                            chartData: growthData
+                        }
+                    ]}
                 />
 
                 {/* C. VISIT VELOCITY */}
@@ -228,6 +281,28 @@ export const MobileVisits = ({
                                 color: 'hsl(var(--info))',
                                 iconColorClass: 'text-info',
                                 iconBgClass: 'bg-info/5',
+                                onClick: onViewAnalytics
+                            },
+                            {
+                                variant: 'icon',
+                                icon: Calendar,
+                                title: 'Scheduled',
+                                subtitle: 'Upcoming',
+                                value: scheduledCount,
+                                color: 'hsl(var(--primary))',
+                                iconColorClass: 'text-primary',
+                                iconBgClass: 'bg-primary/5',
+                                onClick: onViewAnalytics
+                            },
+                            {
+                                variant: 'icon',
+                                icon: Clock,
+                                title: 'Active',
+                                subtitle: 'In progress',
+                                value: activeCount,
+                                color: 'hsl(var(--warning))',
+                                iconColorClass: 'text-warning',
+                                iconBgClass: 'bg-warning/5',
                                 onClick: onViewAnalytics
                             }
                         ]}
@@ -274,15 +349,15 @@ export const MobileVisits = ({
                 {/* E. VISIT DIRECTORY */}
                 <MobileSectionHeader
                     label="Visit Directory"
-                    count={visits.length}
+                    count={displayVisits.length}
                     color="hsl(var(--primary))"
-                    onSelectAll={visits.length > 0 ? () => onSelectAll?.(visits) : null}
-                    isAllSelected={visits.length > 0 && selectedIds.length === visits.length}
+                    onSelectAll={displayVisits.length > 0 ? () => onSelectAll?.(displayVisits) : null}
+                    isAllSelected={displayVisits.length > 0 && selectedIds.length === displayVisits.length}
                 />
 
                 <div className="space-y-1">
                     <AnimatePresence mode="popLayout">
-                        {visits.map((visit) => (
+                        {displayVisits.map((visit) => (
                             <MobileMetricRow
                                 key={visit.id}
                                 icon={getStatusIcon(visit.status)}
@@ -391,16 +466,15 @@ export const MobileVisits = ({
                     </AnimatePresence>
 
                     {/* Infinite Scroll Sentinel */}
-                    <div ref={observerTarget} className="h-20 flex items-center justify-center">
-                        {hasMore && (
-                            <MobileListLoadingMore label="Loading more visits" />
-                        )}
-                        {!hasMore && visits.length > 0 && (
+                    <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
+                        {loading && <MobileListSkeletonRows />}
+                        {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+                        {!loading && !hasMore && displayVisits.length > 0 && (
                             <MobileListEnd label="End of visit list" />
                         )}
                     </div>
 
-                    {visits.length === 0 && !loading && (
+                    {displayVisits.length === 0 && !loading && (
                         <MobileListEmpty icon={Calendar} label="No visits found" />
                     )}
                 </div>
@@ -408,3 +482,5 @@ export const MobileVisits = ({
         </PullToRefresh>
     );
 };
+
+

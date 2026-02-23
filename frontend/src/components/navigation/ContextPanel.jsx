@@ -46,6 +46,7 @@ export const ContextPanel = () => {
     userData,
     insurance,
     hospitalsData,
+    ambulancesData,
     organizationsData,
     servicePricing,
     roomPricing,

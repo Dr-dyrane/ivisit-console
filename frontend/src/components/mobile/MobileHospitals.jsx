@@ -25,9 +25,11 @@ import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
+import { useStableList } from './useStableList';
+import { useLoadMoreControl } from './useLoadMoreControl';
 
 export const MobileHospitals = ({
     hospitals,
@@ -73,24 +75,19 @@ export const MobileHospitals = ({
         direction: Number.isFinite(value) ? (value > 0 ? 'up' : value < 0 ? 'down' : 'flat') : 'flat'
     });
 
-    useEffect(() => {
-        if (!hasMore || loading) return;
+    const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 
+    useEffect(() => {
+        if (!hasMore) return;
         const observer = new IntersectionObserver(
             entries => {
-                if (entries[0].isIntersecting && hasMore) {
-                    onLoadMore();
-                }
+                if (entries[0].isIntersecting) triggerLoad();
             },
-            { threshold: 0.1, rootMargin: '100px' }
+            { threshold: 0.1, rootMargin: '120px' }
         );
-
-        if (observerTarget.current) {
-            observer.observe(observerTarget.current);
-        }
-
+        if (observerTarget.current) observer.observe(observerTarget.current);
         return () => observer.disconnect();
-    }, [hasMore, loading, onLoadMore]);
+    }, [hasMore, triggerLoad]);
 
     const getHospitalStatus = (hospital) => String(hospital?.verification_status || hospital?.status || 'available').toLowerCase();
 
@@ -160,6 +157,7 @@ export const MobileHospitals = ({
 
         return result;
     }, [hospitals, filters]);
+    const { displayItems: displayHospitals, isBuffering } = useStableList(filteredHospitals, loading);
 
     const canManage = isAdmin || isOrgAdmin;
     const averageRating = filteredHospitals.length > 0
@@ -180,15 +178,43 @@ export const MobileHospitals = ({
                         onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
                     />
                 )}
-                contentClassName="px-2 pt-4 pb-4 text-foreground"
+                contentClassName="pt-4 pb-4 text-foreground"
             >
                 <MobileFeaturedMetric
-                    label="Network Capacity"
-                    value={hospitalTotals.beds}
-                    trend={formatSignedPercent(averageRating - 3.5) || 'LIVE'}
-                    icon={Bed}
-                    color="hsl(var(--info))"
-                    chartData={growthData}
+                    items={[
+                        {
+                            label: 'Network Capacity',
+                            value: hospitalTotals.beds,
+                            trend: formatSignedPercent(averageRating - 3.5) || 'LIVE',
+                            icon: Bed,
+                            color: 'hsl(var(--info))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Available Sites',
+                            value: hospitalTotals.available,
+                            trend: availableTrend.delta,
+                            icon: Hospital,
+                            color: 'hsl(var(--success))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Avg Rating',
+                            value: averageRating > 0 ? averageRating.toFixed(1) : '0.0',
+                            trend: 'LIVE',
+                            icon: Star,
+                            color: 'hsl(var(--warning))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Fleet Coverage',
+                            value: hospitalTotals.fleet,
+                            trend: fleetTrend.delta,
+                            icon: Ambulance,
+                            color: 'hsl(var(--primary))',
+                            chartData: growthData
+                        }
+                    ]}
                 />
 
                 <section className="mb-3">
@@ -218,6 +244,26 @@ export const MobileHospitals = ({
                                 color: 'hsl(var(--warning))',
                                 iconColorClass: 'text-warning',
                                 iconBgClass: 'bg-warning/5',
+                                onClick: onViewAnalytics
+                            },
+                            {
+                                icon: Bed,
+                                title: 'Total Beds',
+                                subtitle: 'Capacity',
+                                value: hospitalTotals.beds,
+                                color: 'hsl(var(--info))',
+                                iconColorClass: 'text-info',
+                                iconBgClass: 'bg-info/5',
+                                onClick: onViewAnalytics
+                            },
+                            {
+                                icon: Ambulance,
+                                title: 'Fleet',
+                                subtitle: 'Units linked',
+                                value: hospitalTotals.fleet,
+                                color: 'hsl(var(--primary))',
+                                iconColorClass: 'text-primary',
+                                iconBgClass: 'bg-primary/5',
                                 onClick: onViewAnalytics
                             }
                         ]}
@@ -261,15 +307,15 @@ export const MobileHospitals = ({
 
                 <MobileSectionHeader
                     label="Facility Directory"
-                    count={filteredHospitals.length}
+                    count={displayHospitals.length}
                     color="hsl(var(--primary))"
-                    onSelectAll={filteredHospitals.length > 0 ? () => onSelectAll?.(filteredHospitals) : null}
-                    isAllSelected={filteredHospitals.length > 0 && selectedIds.length === filteredHospitals.length}
+                    onSelectAll={displayHospitals.length > 0 ? () => onSelectAll?.(displayHospitals) : null}
+                    isAllSelected={displayHospitals.length > 0 && selectedIds.length === displayHospitals.length}
                 />
 
                 <div className="space-y-1">
                     <AnimatePresence mode="popLayout">
-                        {filteredHospitals.map((hospital) => {
+                        {displayHospitals.map((hospital) => {
                             const status = getHospitalStatus(hospital);
                             const statusColor = status === 'available' || status === 'verified'
                                 ? 'hsl(var(--success))'
@@ -393,12 +439,13 @@ export const MobileHospitals = ({
                         })}
                     </AnimatePresence>
 
-                    <div ref={observerTarget} className="h-20 flex items-center justify-center">
-                        {hasMore && <MobileListLoadingMore label="Loading more hospitals" />}
-                        {!hasMore && filteredHospitals.length > 0 && <MobileListEnd label="End of hospital list" />}
+                    <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
+                        {loading && <MobileListSkeletonRows />}
+                        {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+                        {!loading && !hasMore && displayHospitals.length > 0 && <MobileListEnd label="End of hospital list" />}
                     </div>
 
-                    {filteredHospitals.length === 0 && !loading && (
+                    {displayHospitals.length === 0 && !loading && (
                         <MobileListEmpty icon={Hospital} label="No hospitals found" />
                     )}
                 </div>
@@ -406,3 +453,5 @@ export const MobileHospitals = ({
         </PullToRefresh>
     );
 };
+
+

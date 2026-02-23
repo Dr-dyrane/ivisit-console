@@ -98,8 +98,10 @@ export const MobileWallet = ({
   const kpis = useMemo(() => [
     { id: 'balance', label: 'Balance', value: formatCurrency(wallet?.balance || 0), color: 'hsl(var(--primary))', delta: 'LIVE', direction: 'flat' },
     { id: 'projection', label: '30d', value: formatCurrency(projection || 0), color: 'hsl(var(--success))', delta: 'LIVE', direction: 'up' },
-    { id: 'methods', label: 'Cards', value: paymentMethods.length, color: 'hsl(var(--info))', delta: 'LIVE', direction: 'flat' }
-  ], [wallet?.balance, projection, paymentMethods.length, formatCurrency]);
+    { id: 'credits', label: 'Credits', value: creditEntries, color: 'hsl(var(--info))', delta: periodTrends.inflowRatio.deltaText, direction: periodTrends.inflowRatio.direction },
+    { id: 'payments', label: 'Paid', value: completedPayments, color: 'hsl(var(--warning))', delta: periodTrends.paymentSuccess.deltaText, direction: periodTrends.paymentSuccess.direction },
+    { id: 'methods', label: 'Cards', value: paymentMethods.length, color: 'hsl(var(--secondary))', delta: 'LIVE', direction: 'flat' }
+  ], [wallet?.balance, projection, paymentMethods.length, formatCurrency, creditEntries, completedPayments, periodTrends]);
 
   const railActions = useMemo(() => {
     const actions = [];
@@ -144,7 +146,7 @@ export const MobileWallet = ({
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         kpiStrip={<MobileKPIStrip kpis={kpis} activeKpi="balance" onKpiClick={() => { }} />}
-        contentClassName="px-2 pt-4 pb-4 text-foreground"
+        contentClassName="pt-4 pb-4 text-foreground"
       >
         <section className="mb-4 px-1">
           <div className="relative overflow-hidden rounded-3xl p-6 min-h-[160px] flex flex-col justify-between bg-[linear-gradient(135deg,hsl(var(--primary)/0.14)_0%,hsl(var(--spark)/0.12)_35%,hsl(var(--background)/0.96)_100%)] shadow-xl">
@@ -335,3 +337,4 @@ export const MobileWallet = ({
     </PullToRefresh>
   );
 };
+

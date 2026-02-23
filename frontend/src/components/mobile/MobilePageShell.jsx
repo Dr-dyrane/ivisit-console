@@ -1,4 +1,5 @@
 import React from 'react';
+import { MobileErrorBoundary } from './MobileErrorBoundary';
 
 /**
  * MobilePageShell
@@ -9,15 +10,16 @@ import React from 'react';
 export const MobilePageShell = ({
     kpiStrip,
     children,
-    contentClassName = 'px-2 pt-4 pb-4 text-foreground'
+    contentClassName = 'pt-4 pb-4 text-foreground'
 }) => {
     return (
         <div className="flex flex-col min-h-screen no-scrollbar">
             {kpiStrip}
-            <div className={contentClassName}>
-                {children}
+            <div className={`px-1 text-[13px] ${contentClassName}`}>
+                <MobileErrorBoundary>
+                    {children}
+                </MobileErrorBoundary>
             </div>
         </div>
     );
 };
-

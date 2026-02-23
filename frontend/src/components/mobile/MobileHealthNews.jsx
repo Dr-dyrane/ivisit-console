@@ -1,15 +1,18 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Newspaper, Search, Eye, Edit, Trash2, FileCheck, File, Tag, Globe, Clock, SlidersHorizontal, BarChart3, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { Newspaper, Search, Eye, Edit, Trash2, FileCheck, File, Tag, BookOpen, Globe, Clock, SlidersHorizontal, BarChart3, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
+import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
+import { useStableList } from './useStableList';
+import { useLoadMoreControl } from './useLoadMoreControl';
 
 export const MobileHealthNews = ({
   articles = [],
@@ -35,23 +38,35 @@ export const MobileHealthNews = ({
   const observerTarget = useRef(null);
   const selectionMode = selectedIds.length > 0;
 
+  const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
+
   useEffect(() => {
-    if (!hasMore || loading || !onLoadMore) return;
+    if (!hasMore) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) onLoadMore();
+        if (entries[0].isIntersecting) triggerLoad();
       },
-      { threshold: 0.1, rootMargin: '100px' }
+      { threshold: 0.1, rootMargin: '120px' }
     );
     if (observerTarget.current) observer.observe(observerTarget.current);
     return () => observer.disconnect();
-  }, [hasMore, loading, onLoadMore]);
+  }, [hasMore, triggerLoad]);
 
-  const kpis = useMemo(() => [
-    { id: 'all', label: 'Articles', value: stats?.total || articles.length, color: 'hsl(var(--primary))', delta: 'LIVE', direction: 'flat' },
-    { id: 'published', label: 'Published', value: stats?.published || 0, color: 'hsl(var(--success))', delta: 'LIVE', direction: 'flat' },
-    { id: 'draft', label: 'Drafts', value: stats?.draft || 0, color: 'hsl(var(--warning))', delta: 'LIVE', direction: 'flat' }
-  ], [articles.length, stats]);
+  const kpis = useMemo(() => {
+    const total = stats?.total || articles.length;
+    const published = stats?.published || 0;
+    const draft = stats?.draft || Math.max(total - published, 0);
+    const medical = stats?.medical || articles.filter(a => String(a.category || '').toLowerCase() === 'medical').length;
+    const recentCutoff = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    const recent = stats?.recent || articles.filter(a => new Date(a.created_at || 0).getTime() >= recentCutoff).length;
+    return [
+      { id: 'all', label: 'Articles', value: total, color: 'hsl(var(--primary))', delta: 'LIVE', direction: 'flat' },
+      { id: 'published', label: 'Published', value: published, color: 'hsl(var(--success))', delta: 'LIVE', direction: 'flat' },
+      { id: 'draft', label: 'Drafts', value: draft, color: 'hsl(var(--warning))', delta: 'LIVE', direction: 'flat' },
+      { id: 'medical', label: 'Medical', value: medical, color: 'hsl(var(--info))', delta: 'LIVE', direction: 'flat' },
+      { id: 'recent', label: 'Recent', value: recent, color: 'hsl(var(--secondary))', delta: 'LIVE', direction: 'flat' }
+    ];
+  }, [articles, stats]);
 
   const filteredArticles = useMemo(() => {
     let result = Array.isArray(articles) ? [...articles] : [];
@@ -75,6 +90,7 @@ export const MobileHealthNews = ({
 
     return result;
   }, [articles, filters]);
+  const { displayItems: displayArticles, isBuffering } = useStableList(filteredArticles, loading);
 
   const periodTrends = useMemo(() => {
     const periodMs = 30 * 24 * 60 * 60 * 1000;
@@ -130,15 +146,43 @@ export const MobileHealthNews = ({
             onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
           />
         )}
-        contentClassName="px-2 pt-4 pb-4 text-foreground"
+        contentClassName="pt-4 pb-4 text-foreground"
       >
         <MobileFeaturedMetric
-          label="Recent Articles"
-          value={stats?.recent || 0}
-          trend="LIVE"
-          icon={Newspaper}
-          color="hsl(var(--info))"
-          chartData={[{ value: 32 }, { value: 45 }, { value: 41 }, { value: 50 }, { value: 58 }, { value: 63 }]}
+          items={[
+            {
+              label: 'Recent Articles',
+              value: stats?.recent || 0,
+              trend: 'LIVE',
+              icon: Newspaper,
+              color: 'hsl(var(--info))',
+              chartData: [{ value: 32 }, { value: 45 }, { value: 41 }, { value: 50 }, { value: 58 }, { value: 63 }]
+            },
+            {
+              label: 'Published Ratio',
+              value: `${Math.round(((stats?.published || 0) / ((stats?.total || 1))) * 100)}%`,
+              trend: periodTrends.publishedRatio.deltaText,
+              icon: FileCheck,
+              color: 'hsl(var(--success))',
+              chartData: [{ value: 40 }, { value: 46 }, { value: 50 }, { value: 55 }, { value: 60 }, { value: 66 }]
+            },
+            {
+              label: 'Medical Share',
+              value: `${Math.round(((stats?.medical || 0) / ((stats?.total || 1))) * 100)}%`,
+              trend: periodTrends.medicalRatio.deltaText,
+              icon: Tag,
+              color: 'hsl(var(--warning))',
+              chartData: [{ value: 26 }, { value: 32 }, { value: 38 }, { value: 44 }, { value: 49 }, { value: 53 }]
+            },
+            {
+              label: 'Total Articles',
+              value: stats?.total || articles.length,
+              trend: 'LIVE',
+              icon: BookOpen,
+              color: 'hsl(var(--primary))',
+              chartData: [{ value: 20 }, { value: 28 }, { value: 33 }, { value: 39 }, { value: 45 }, { value: 50 }]
+            }
+          ]}
         />
 
         <section className="mb-3">
@@ -147,44 +191,46 @@ export const MobileHealthNews = ({
             count={stats?.total || articles.length}
             color="hsl(var(--info))"
           />
-          <div className="grid grid-cols-2 gap-3">
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <FileCheck className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Published Ratio</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Live status</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {Math.round(((stats?.published || 0) / ((stats?.total || 1))) * 100)}%
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.publishedRatio.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-success" />}
-                  {periodTrends.publishedRatio.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  {periodTrends.publishedRatio.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.publishedRatio.deltaText}
-                </span>
-              </div>
-            </div>
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <Tag className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Medical Share</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Category mix</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {Math.round(((stats?.medical || 0) / ((stats?.total || 1))) * 100)}%
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.medicalRatio.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-success" />}
-                  {periodTrends.medicalRatio.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  {periodTrends.medicalRatio.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.medicalRatio.deltaText}
-                </span>
-              </div>
-            </div>
-          </div>
+          <MobileSecondaryMetricRail
+            items={[
+              {
+                icon: FileCheck,
+                title: 'Published Ratio',
+                subtitle: 'Live status',
+                value: `${Math.round(((stats?.published || 0) / ((stats?.total || 1))) * 100)}%`,
+                color: 'hsl(var(--success))',
+                trendDirection: periodTrends.publishedRatio.direction,
+                trendText: periodTrends.publishedRatio.deltaText
+              },
+              {
+                icon: Tag,
+                title: 'Medical Share',
+                subtitle: 'Category mix',
+                value: `${Math.round(((stats?.medical || 0) / ((stats?.total || 1))) * 100)}%`,
+                color: 'hsl(var(--warning))',
+                trendDirection: periodTrends.medicalRatio.direction,
+                trendText: periodTrends.medicalRatio.deltaText
+              },
+              {
+                icon: BookOpen,
+                title: 'Total Articles',
+                subtitle: 'Registry',
+                value: stats?.total || articles.length,
+                color: 'hsl(var(--primary))',
+                trendDirection: 'flat',
+                trendText: 'LIVE'
+              },
+              {
+                icon: Newspaper,
+                title: 'Drafts',
+                subtitle: 'In review',
+                value: Math.max((stats?.total || articles.length) - (stats?.published || 0), 0),
+                color: 'hsl(var(--info))',
+                trendDirection: 'flat',
+                trendText: 'LIVE'
+              }
+            ]}
+          />
         </section>
 
         <div className="flex items-center gap-2 mb-3 px-1">
@@ -222,15 +268,15 @@ export const MobileHealthNews = ({
 
         <MobileSectionHeader
           label="News Registry"
-          count={filteredArticles.length}
+          count={displayArticles.length}
           color="hsl(var(--primary))"
-          onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== filteredArticles.length) : null}
-          isAllSelected={filteredArticles.length > 0 && selectedIds.length === filteredArticles.length}
+          onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== displayArticles.length) : null}
+          isAllSelected={displayArticles.length > 0 && selectedIds.length === displayArticles.length}
         />
 
         <div className="space-y-1">
           <AnimatePresence mode="popLayout">
-            {filteredArticles.map((article) => {
+            {displayArticles.map((article) => {
               const published = !!article.published;
               return (
                 <MobileMetricRow
@@ -295,16 +341,19 @@ export const MobileHealthNews = ({
             })}
           </AnimatePresence>
 
-          {filteredArticles.length === 0 && (
+          {displayArticles.length === 0 && (
             <MobileListEmpty icon={Newspaper} label="No articles found" />
           )}
 
-          <div ref={observerTarget} className="h-20 flex items-center justify-center">
-            {hasMore && <MobileListLoadingMore label="Loading more articles" />}
-            {!hasMore && filteredArticles.length > 0 && <MobileListEnd label="End of article list" />}
+          <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
+            {loading && <MobileListSkeletonRows />}
+            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+            {!loading && !hasMore && displayArticles.length > 0 && <MobileListEnd label="End of article list" />}
           </div>
         </div>
       </MobilePageShell>
     </PullToRefresh>
   );
 };
+
+

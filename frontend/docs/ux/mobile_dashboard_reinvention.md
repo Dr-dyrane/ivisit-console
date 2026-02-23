@@ -899,7 +899,7 @@ Use it exactly, in order.
    - else keep current desktop/table/list logic.
 4. Wrap all mobile pages with shared shell:
    - `MobilePageShell` for unified KPI+content rhythm.
-   - Standard content class: `px-2 pt-4 pb-4 text-foreground`.
+   - Standard content class: `pt-4 pb-4 text-foreground` (shell owns horizontal padding + baseline mobile type scale).
 5. Do not duplicate API calls across desktop/mobile branches.
 6. Keep data fetching, RBAC, and business actions in the page container.
 7. Pass only computed props + handlers into mobile component.
@@ -947,10 +947,14 @@ Layout rhythm baseline:
 3. Summary sections before search should default to compact 2-up cards.
 4. Avoid page-specific top padding overrides unless required for a hard content case.
 5. Use shared list-state primitives for parity:
-   - `MobileListLoadingMore`
+   - `MobileListSkeletonRows`
+   - `MobileListLoadMore`
    - `MobileListEnd`
    - `MobileListEmpty`
-6. Skeleton pages should use same shell rhythm (`px-2 pt-4 pb-4`) to avoid perceived jump on load.
+6. Pair list pages with shared pagination/stability hooks:
+   - `useLoadMoreControl` (hybrid armed CTA + observer trigger)
+   - `useStableList` (buffer rendered list until load completes)
+7. Skeleton pages should use same shell rhythm (`pt-4 pb-4`) to avoid perceived jump on load.
 
 ### 18.6 KPI Strip and Delta Rules
 1. KPI count:
@@ -1092,3 +1096,82 @@ Use these as baseline implementation references:
 3. No random or mock production analytics.
 4. No modal path left unmounted on mobile.
 5. No touch interactions with delayed or glitchy motion.
+
+---
+
+## 19. 2026-02-23 Update - Dashboard Reinvention Pattern (Rail Stability + Modular Pagination)
+
+This update captures the production-ready interaction patterns extracted from the mobile dashboard reinvention and applied across mobile pages.
+
+### 19.1 Featured Metric Rail (Premium Scroll, No Snap Glitch)
+- `MobileFeaturedMetric` now supports `items[]` (multi-card billboard rail) in addition to legacy single-card props.
+- Horizontal rail behavior intentionally avoids hard snap to remove jitter/glitch during touch momentum.
+- Cards use "peek to reveal" framing (edge hints/masks) so overflow is discoverable without adding explicit scroll UI.
+- Scroll/tap conflict mitigation uses `useScrollCooldown(180)` (iOS-like cooldown) to suppress accidental card taps during swipe.
+
+### 19.2 Secondary Metric Rail (Flow, Not Paged)
+- `MobileSecondaryMetricRail` now follows the same native-feel rail behavior as KPI/featured patterns.
+- Removed rigid "2 per page" / width constraints; cards flow naturally based on intrinsic width.
+- Pointer interactions are temporarily quieted while the rail is actively scrolling to reduce accidental taps on live cards.
+- Goal: preserve density while keeping the surface calm and premium.
+
+### 19.3 Shared Mobile Shell Contract (Dashboard Baseline for All Pages)
+- `MobilePageShell` is now the canonical wrapper for mobile pages.
+- Shell now provides baseline mobile density and typography:
+  - horizontal padding (`px-1`)
+  - base text scale (`text-[13px]`)
+- Page components should pass vertical rhythm only:
+  - `contentClassName=\"pt-4 pb-4 text-foreground\"`
+- This keeps dashboard and non-dashboard pages visually aligned and reduces page-specific spacing drift.
+
+### 19.4 Mobile Error Isolation (Page-Local Recovery)
+- Added `MobileErrorBoundary` and wired it inside `MobilePageShell`.
+- A broken mobile page no longer takes down the full shell experience; users get an in-context reload action.
+- This is especially important while expanding the reinvention pattern to many pages in parallel.
+
+### 19.5 Stable Pagination UX (Hybrid Load More + Skeleton)
+- Infinite scroll auto-trigger alone was too unstable (jumping UI, accidental loads, blade popping).
+- New shared pattern:
+  1. User taps `Load More` (intentional arming step)
+  2. CTA changes to `Scroll To Load`
+  3. Sentinel intersection triggers actual pagination only when armed
+- Implemented in shared hook: `useLoadMoreControl`.
+- Loading visual is now skeleton-first (`MobileListSkeletonRows`) instead of a minimal spinner-only footer for paginated additions.
+- Existing rendered list remains visible while loading next page; skeleton placeholders occupy the incoming zone to reduce layout shock.
+
+### 19.6 Stable List Buffering (No Visual Jump While Loading)
+- Added shared hook: `useStableList(items, loading)`.
+- Pattern:
+  - keep current rendered list while `loading === true`
+  - swap to new list only when loading completes
+- This prevents the "blade/cards jumping in" effect during pagination/filter transitions.
+- Important implementation rule: buffer the filtered list, not the raw dataset, when the page supports search/KPI filters.
+
+### 19.7 Primary Action Feedback Rule (Mobile)
+- Feedback/haptics should apply to primary actions, not every basic link.
+- Shared `MobileListLoadMore` now emits feedback/haptic via the existing feedback system.
+- This keeps touch surfaces responsive without creating noise on simple navigation links.
+
+### 19.8 Applied Shared Primitives (Current Reinvention Set)
+- `frontend/src/components/mobile/MobileFeaturedMetric.jsx`
+- `frontend/src/components/mobile/MobileSecondaryMetricCard.jsx` (`MobileSecondaryMetricRail`)
+- `frontend/src/components/mobile/MobilePageShell.jsx`
+- `frontend/src/components/mobile/MobileErrorBoundary.jsx`
+- `frontend/src/components/mobile/MobileListStates.jsx`
+- `frontend/src/components/mobile/useLoadMoreControl.js`
+- `frontend/src/components/mobile/useStableList.js`
+
+### 19.9 QA Additions (Required for Each Mobile Page Adoption)
+When rolling the dashboard reinvention pattern to a new mobile page, add these checks to the QA matrix:
+1. Swipe on featured/secondary rails does not trigger card actions.
+2. Card actions work after cooldown expires (post-swipe).
+3. `Load More` requires intentional arm step before pagination triggers.
+4. Skeleton footer appears during paginated load and does not replace already-rendered rows.
+5. Search/KPI filters still apply correctly after buffering (`useStableList` must wrap filtered output).
+6. Mobile page crash is contained by `MobileErrorBoundary` and recoverable via reload CTA.
+
+### 19.10 Rollout Guidance (All Mobile Pages)
+- Treat `MobileDashboard.jsx` as the interaction gold reference for rail behavior and density.
+- Replicate the shared primitives first, then page-specific data cards.
+- Prefer extending shared components/hooks over page-specific one-off fixes.
+- Do not push before page-level review and parity check.

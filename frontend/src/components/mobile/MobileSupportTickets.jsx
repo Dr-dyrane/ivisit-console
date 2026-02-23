@@ -1,14 +1,17 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Headphones, Search, Eye, Edit, Trash2, User, Calendar, AlertTriangle, CheckCircle, SlidersHorizontal, BarChart3, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { Headphones, Search, Eye, Edit, Trash2, User, Calendar, AlertTriangle, CheckCircle, Ticket, Clock, SlidersHorizontal, BarChart3, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { motion } from 'framer-motion';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
+import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
+import { useStableList } from './useStableList';
+import { useLoadMoreControl } from './useLoadMoreControl';
 
 export const MobileSupportTickets = ({
   tickets = [],
@@ -35,17 +38,19 @@ export const MobileSupportTickets = ({
   const observerTarget = useRef(null);
   const selectionMode = selectedIds.length > 0;
 
+  const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
+
   useEffect(() => {
-    if (!hasMore || loading || !onLoadMore) return;
+    if (!hasMore) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) onLoadMore();
+        if (entries[0].isIntersecting) triggerLoad();
       },
-      { threshold: 0.1, rootMargin: '100px' }
+      { threshold: 0.1, rootMargin: '120px' }
     );
     if (observerTarget.current) observer.observe(observerTarget.current);
     return () => observer.disconnect();
-  }, [hasMore, loading, onLoadMore]);
+  }, [hasMore, triggerLoad]);
 
   const counts = useMemo(() => ({
     total: analytics?.total || tickets.length,
@@ -75,6 +80,7 @@ export const MobileSupportTickets = ({
     if (kpi !== 'all' && kpi !== 'avg') result = result.filter(t => t.status === kpi);
     return result;
   }, [tickets, filters]);
+  const { displayItems: displayTickets, isBuffering } = useStableList(filteredTickets, loading);
 
   const periodTrends = useMemo(() => {
     const periodMs = 30 * 24 * 60 * 60 * 1000;
@@ -113,15 +119,43 @@ export const MobileSupportTickets = ({
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         kpiStrip={<MobileKPIStrip kpis={kpis} activeKpi={filters?.kpiFilter || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))} />}
-        contentClassName="px-2 pt-4 pb-4 text-foreground"
+        contentClassName="pt-4 pb-4 text-foreground"
       >
         <MobileFeaturedMetric
-          label="Avg Resolution"
-          value={`${analytics?.averageResolutionTime || 0}h`}
-          trend="LIVE"
-          icon={Headphones}
-          color="hsl(var(--info))"
-          chartData={[{ value: 60 }, { value: 56 }, { value: 51 }, { value: 46 }, { value: 42 }, { value: 38 }]}
+          items={[
+            {
+              label: 'Avg Resolution',
+              value: `${analytics?.averageResolutionTime || 0}h`,
+              trend: 'LIVE',
+              icon: Headphones,
+              color: 'hsl(var(--info))',
+              chartData: [{ value: 60 }, { value: 56 }, { value: 51 }, { value: 46 }, { value: 42 }, { value: 38 }]
+            },
+            {
+              label: 'Resolution Rate',
+              value: `${Math.round(((counts.resolved || 0) / (counts.total || 1)) * 100)}%`,
+              trend: periodTrends.resolutionRate.deltaText,
+              icon: CheckCircle,
+              color: 'hsl(var(--success))',
+              chartData: [{ value: 42 }, { value: 46 }, { value: 50 }, { value: 54 }, { value: 58 }, { value: 62 }]
+            },
+            {
+              label: 'Active Queue',
+              value: counts.open + counts.inProgress,
+              trend: periodTrends.queueLoad.deltaText,
+              icon: AlertTriangle,
+              color: 'hsl(var(--warning))',
+              chartData: [{ value: 34 }, { value: 38 }, { value: 42 }, { value: 45 }, { value: 41 }, { value: 36 }]
+            },
+            {
+              label: 'Total Tickets',
+              value: counts.total,
+              trend: 'LIVE',
+              icon: Ticket,
+              color: 'hsl(var(--primary))',
+              chartData: [{ value: 22 }, { value: 28 }, { value: 31 }, { value: 36 }, { value: 40 }, { value: 45 }]
+            }
+          ]}
         />
 
         <section className="mb-3">
@@ -130,44 +164,46 @@ export const MobileSupportTickets = ({
             count={counts.total}
             color="hsl(var(--info))"
           />
-          <div className="grid grid-cols-2 gap-3">
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <CheckCircle className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Resolution Rate</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Service quality</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {Math.round(((counts.resolved || 0) / (counts.total || 1)) * 100)}%
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.resolutionRate.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-success" />}
-                  {periodTrends.resolutionRate.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  {periodTrends.resolutionRate.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.resolutionRate.deltaText}
-                </span>
-              </div>
-            </div>
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <AlertTriangle className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Active Queue</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Open + In Progress</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {counts.open + counts.inProgress}
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.queueLoad.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-warning" />}
-                  {periodTrends.queueLoad.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-success" />}
-                  {periodTrends.queueLoad.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.queueLoad.deltaText}
-                </span>
-              </div>
-            </div>
-          </div>
+          <MobileSecondaryMetricRail
+            items={[
+              {
+                icon: CheckCircle,
+                title: 'Resolution Rate',
+                subtitle: 'Service quality',
+                value: `${Math.round(((counts.resolved || 0) / (counts.total || 1)) * 100)}%`,
+                color: 'hsl(var(--success))',
+                trendDirection: periodTrends.resolutionRate.direction,
+                trendText: periodTrends.resolutionRate.deltaText
+              },
+              {
+                icon: AlertTriangle,
+                title: 'Active Queue',
+                subtitle: 'Open + In Progress',
+                value: counts.open + counts.inProgress,
+                color: 'hsl(var(--warning))',
+                trendDirection: periodTrends.queueLoad.direction,
+                trendText: periodTrends.queueLoad.deltaText
+              },
+              {
+                icon: Ticket,
+                title: 'Total Tickets',
+                subtitle: 'Registry',
+                value: counts.total,
+                color: 'hsl(var(--primary))',
+                trendDirection: 'flat',
+                trendText: 'LIVE'
+              },
+              {
+                icon: Clock,
+                title: 'Avg Resolution',
+                subtitle: 'Hours',
+                value: `${analytics?.averageResolutionTime || 0}h`,
+                color: 'hsl(var(--info))',
+                trendDirection: 'flat',
+                trendText: 'LIVE'
+              }
+            ]}
+          />
         </section>
 
         <div className="flex items-center gap-2 mb-3 px-1">
@@ -205,15 +241,15 @@ export const MobileSupportTickets = ({
 
         <MobileSectionHeader
           label="Support Queue"
-          count={filteredTickets.length}
+          count={displayTickets.length}
           color="hsl(var(--primary))"
-          onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== filteredTickets.length) : null}
-          isAllSelected={filteredTickets.length > 0 && selectedIds.length === filteredTickets.length}
+          onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== displayTickets.length) : null}
+          isAllSelected={displayTickets.length > 0 && selectedIds.length === displayTickets.length}
         />
 
         <div className="space-y-1">
           <AnimatePresence mode="popLayout">
-            {filteredTickets.map((ticket) => {
+            {displayTickets.map((ticket) => {
               const urgent = ticket.priority === 'urgent' || ticket.priority === 'high';
               const resolved = ticket.status === 'resolved' || ticket.status === 'closed';
               const color = resolved ? 'hsl(var(--success))' : urgent ? 'hsl(var(--warning))' : 'hsl(var(--primary))';
@@ -278,14 +314,17 @@ export const MobileSupportTickets = ({
             })}
           </AnimatePresence>
 
-          {filteredTickets.length === 0 && <MobileListEmpty icon={Headphones} label="No tickets found" />}
+          {displayTickets.length === 0 && <MobileListEmpty icon={Headphones} label="No tickets found" />}
 
-          <div ref={observerTarget} className="h-20 flex items-center justify-center">
-            {hasMore && <MobileListLoadingMore label="Loading more tickets" />}
-            {!hasMore && filteredTickets.length > 0 && <MobileListEnd label="End of ticket list" />}
+          <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
+            {loading && <MobileListSkeletonRows />}
+            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+            {!loading && !hasMore && displayTickets.length > 0 && <MobileListEnd label="End of ticket list" />}
           </div>
         </div>
       </MobilePageShell>
     </PullToRefresh>
   );
 };
+
+

@@ -110,7 +110,7 @@ Metadata:
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4 overflow-hidden">
+        <div className="min-h-screen bg-background flex items-center justify-center p-2 md:p-4 overflow-auto">
           <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
             <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-destructive/5 rounded-full blur-[120px]" />
             <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-warning/5 rounded-full blur-[100px]" />
@@ -122,7 +122,7 @@ Metadata:
             transition={{ duration: 0.4, type: 'spring', stiffness: 200 }}
             className="relative z-10 w-full max-w-2xl"
           >
-            <div className="squircle-2xl bg-background/50 backdrop-blur-xs shadow-2xl p-8 border-0 overflow-hidden relative">
+            <div className="squircle-2xl bg-background/50 backdrop-blur-xs shadow-2xl p-2 md:p-8 border-0 overflow-auto max-h-[85vh] relative">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-destructive/50 via-warning/50 to-destructive/50" />
 
               {/* Copy Button - Top Right */}

@@ -120,13 +120,17 @@ export const MobileAnalytics = ({
                 { label: 'Success', value: `${resolvedStats.successRate}%`, color: 'hsl(var(--success))', delta: formatSignedPercent(successDelta) || 'LIVE', direction: Number(successDelta) >= 0 ? 'up' : 'down' },
                 { label: 'Avg Time', value: `${resolvedStats.avgResponseTime.toFixed(1)}m`, color: 'hsl(var(--info))', delta: responseTrend.badge, direction: responseTrend.direction },
                 { label: 'Total', value: resolvedStats.totalEmergencies, color: 'hsl(var(--destructive))', delta: demandTrend.badge, direction: demandTrend.direction },
-                { label: 'Fleet', value: resolvedStats.totalAmbulances, color: 'hsl(var(--primary))', delta: `${Math.round((Math.floor(resolvedStats.totalAmbulances * 0.7) / Math.max(resolvedStats.totalAmbulances || 0, 1)) * 100)}%`, direction: 'up' }
+                { label: 'Fleet', value: resolvedStats.totalAmbulances, color: 'hsl(var(--primary))', delta: `${Math.round((Math.floor(resolvedStats.totalAmbulances * 0.7) / Math.max(resolvedStats.totalAmbulances || 0, 1)) * 100)}%`, direction: 'up' },
+                { label: 'Hospitals', value: resolvedStats.totalHospitals, color: 'hsl(var(--secondary))', delta: 'LIVE', direction: 'flat' },
+                { label: 'Subs', value: subscriptionStats?.active || 0, color: 'hsl(var(--info))', delta: 'LIVE', direction: 'flat' }
             ];
         }
         return [
             { label: 'My Success', value: `${resolvedStats.successRate}%`, color: 'hsl(var(--success))', delta: formatSignedPercent(successDelta) || 'LIVE', direction: Number(successDelta) >= 0 ? 'up' : 'down' },
             { label: 'Responses', value: resolvedStats.totalEmergencies, color: 'hsl(var(--primary))', delta: demandTrend.badge, direction: demandTrend.direction },
-            { label: 'Avg Time', value: `${resolvedStats.avgResponseTime.toFixed(1)}m`, color: 'hsl(var(--info))', delta: responseTrend.badge, direction: responseTrend.direction }
+            { label: 'Avg Time', value: `${resolvedStats.avgResponseTime.toFixed(1)}m`, color: 'hsl(var(--info))', delta: responseTrend.badge, direction: responseTrend.direction },
+            { label: 'Hospitals', value: resolvedStats.totalHospitals, color: 'hsl(var(--secondary))', delta: 'LIVE', direction: 'flat' },
+            { label: 'Fleet', value: resolvedStats.totalAmbulances, color: 'hsl(var(--primary))', delta: 'LIVE', direction: 'flat' }
         ];
     };
 
@@ -134,16 +138,44 @@ export const MobileAnalytics = ({
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
                 kpiStrip={<MobileKPIStrip kpis={getKPIData()} />}
-                contentClassName="px-2 pt-4 pb-4 text-foreground"
+                contentClassName="pt-4 pb-4 text-foreground"
             >
                     {/* HERO FEATURED METRICS */}
                     <MobileFeaturedMetric
-                        label={isProvider ? "Personal Performance" : "Impact Velocity"}
-                        value={isProvider ? `${resolvedStats.successRate}%` : `${resolvedStats.avgResponseTime.toFixed(1)}m`}
-                        trend={resolvedStats.avgResponseTime < 10 ? 'Nominal' : 'Stable'}
-                        icon={isProvider ? Activity : Clock}
-                        color={isProvider ? "hsl(var(--success))" : "hsl(var(--info))"}
-                        chartData={sparklineData}
+                        items={[
+                            {
+                                label: isProvider ? 'Personal Performance' : 'Impact Velocity',
+                                value: isProvider ? `${resolvedStats.successRate}%` : `${resolvedStats.avgResponseTime.toFixed(1)}m`,
+                                trend: resolvedStats.avgResponseTime < 10 ? 'Nominal' : 'Stable',
+                                icon: isProvider ? Activity : Clock,
+                                color: isProvider ? 'hsl(var(--success))' : 'hsl(var(--info))',
+                                chartData: sparklineData
+                            },
+                            {
+                                label: 'System Success',
+                                value: `${resolvedStats.successRate}%`,
+                                trend: formatSignedPercent(successDelta) || 'LIVE',
+                                icon: CheckCircle2,
+                                color: 'hsl(var(--success))',
+                                chartData: sparklineData
+                            },
+                            {
+                                label: 'Live Demand',
+                                value: resolvedStats.totalEmergencies,
+                                trend: demandTrend.badge,
+                                icon: AlertTriangle,
+                                color: 'hsl(var(--destructive))',
+                                chartData: defaultChartData
+                            },
+                            {
+                                label: 'Network Capacity',
+                                value: resolvedStats.totalHospitals,
+                                trend: 'LIVE',
+                                icon: Hospital,
+                                color: 'hsl(var(--info))',
+                                chartData: defaultChartData
+                            }
+                        ]}
                     />
 
                     {/* IMPACT SUMMARY */}
@@ -524,3 +556,4 @@ export const MobileAnalytics = ({
         </PullToRefresh>
     );
 };
+

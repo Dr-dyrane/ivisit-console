@@ -139,7 +139,7 @@ export const MobileFeaturedMetric = ({
     // -m-2 p-2: shadow breathing room so overflow-x doesn't clip shadow-xl
     return (
         <div
-            className="relative mb-4 -m-2 p-2 overflow-x-auto overflow-y-visible no-scrollbar"
+            className="relative -m-2 p-2 overflow-x-auto overflow-y-visible no-scrollbar"
             {...bind}
         >
             <div className="flex gap-3">

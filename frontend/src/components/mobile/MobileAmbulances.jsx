@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Ambulance,
     Activity,
+    AlertTriangle,
     MapPin,
     Star,
     Eye,
@@ -22,9 +23,11 @@ import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
+import { useStableList } from './useStableList';
+import { useLoadMoreControl } from './useLoadMoreControl';
 
 export const MobileAmbulances = ({
     ambulances,
@@ -72,24 +75,19 @@ export const MobileAmbulances = ({
         direction: Number.isFinite(value) ? (value > 0 ? 'up' : value < 0 ? 'down' : 'flat') : 'flat'
     });
 
-    useEffect(() => {
-        if (!hasMore || loading) return;
+    const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 
+    useEffect(() => {
+        if (!hasMore) return;
         const observer = new IntersectionObserver(
             entries => {
-                if (entries[0].isIntersecting && hasMore) {
-                    onLoadMore();
-                }
+                if (entries[0].isIntersecting) triggerLoad();
             },
-            { threshold: 0.1, rootMargin: '100px' }
+            { threshold: 0.1, rootMargin: '120px' }
         );
-
-        if (observerTarget.current) {
-            observer.observe(observerTarget.current);
-        }
-
+        if (observerTarget.current) observer.observe(observerTarget.current);
         return () => observer.disconnect();
-    }, [hasMore, loading, onLoadMore]);
+    }, [hasMore, triggerLoad]);
 
     const getStatus = (a) => String(a?.status || 'available').toLowerCase();
 
@@ -166,6 +164,7 @@ export const MobileAmbulances = ({
 
         return result;
     }, [ambulances, filters, kpiFilter]);
+    const { displayItems: displayAmbulances, isBuffering } = useStableList(filteredAmbulances, loading);
 
     const growthData = useMemo(() => [
         { value: 26 }, { value: 38 }, { value: 54 }, { value: 48 }, { value: 66 }, { value: 72 }
@@ -200,15 +199,43 @@ export const MobileAmbulances = ({
                         onKpiClick={(id) => setKpiFilter?.(id)}
                     />
                 )}
-                contentClassName="px-2 pt-4 pb-4 text-foreground"
+                contentClassName="pt-4 pb-4 text-foreground"
             >
                 <MobileFeaturedMetric
-                    label="Fleet Response"
-                    value={totals.available}
-                    trend={formatSignedPercent(avgRating - 4) || 'LIVE'}
-                    icon={Ambulance}
-                    color="hsl(var(--success))"
-                    chartData={growthData}
+                    items={[
+                        {
+                            label: 'Fleet Response',
+                            value: totals.available,
+                            trend: formatSignedPercent(avgRating - 4) || 'LIVE',
+                            icon: Ambulance,
+                            color: 'hsl(var(--success))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'On Route',
+                            value: totals.onRoute,
+                            trend: onRouteTrend.delta,
+                            icon: Activity,
+                            color: 'hsl(var(--warning))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Avg Rating',
+                            value: avgRating > 0 ? avgRating.toFixed(1) : '0.0',
+                            trend: 'LIVE',
+                            icon: Star,
+                            color: 'hsl(var(--info))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Busy Units',
+                            value: totals.busy,
+                            trend: busyTrend.delta,
+                            icon: AlertTriangle,
+                            color: 'hsl(var(--destructive))',
+                            chartData: growthData
+                        }
+                    ]}
                 />
 
                 <section className="mb-3">
@@ -238,6 +265,26 @@ export const MobileAmbulances = ({
                                 color: 'hsl(var(--info))',
                                 iconColorClass: 'text-info',
                                 iconBgClass: 'bg-info/5',
+                                onClick: onViewAnalytics
+                            },
+                            {
+                                icon: Ambulance,
+                                title: 'Available',
+                                subtitle: 'Ready now',
+                                value: totals.available,
+                                color: 'hsl(var(--success))',
+                                iconColorClass: 'text-success',
+                                iconBgClass: 'bg-success/5',
+                                onClick: onViewAnalytics
+                            },
+                            {
+                                icon: AlertTriangle,
+                                title: 'Busy',
+                                subtitle: 'Active load',
+                                value: totals.busy,
+                                color: 'hsl(var(--destructive))',
+                                iconColorClass: 'text-destructive',
+                                iconBgClass: 'bg-destructive/5',
                                 onClick: onViewAnalytics
                             }
                         ]}
@@ -282,15 +329,15 @@ export const MobileAmbulances = ({
 
                 <MobileSectionHeader
                     label="Fleet Directory"
-                    count={filteredAmbulances.length}
+                    count={displayAmbulances.length}
                     color="hsl(var(--primary))"
-                    onSelectAll={filteredAmbulances.length > 0 ? () => onSelectAll?.(selectedIds.length !== filteredAmbulances.length, filteredAmbulances) : null}
-                    isAllSelected={filteredAmbulances.length > 0 && selectedIds.length === filteredAmbulances.length}
+                    onSelectAll={displayAmbulances.length > 0 ? () => onSelectAll?.(selectedIds.length !== displayAmbulances.length, displayAmbulances) : null}
+                    isAllSelected={displayAmbulances.length > 0 && selectedIds.length === displayAmbulances.length}
                 />
 
                 <div className="space-y-1">
                     <AnimatePresence mode="popLayout">
-                        {filteredAmbulances.map((ambulance) => {
+                        {displayAmbulances.map((ambulance) => {
                             const status = getStatus(ambulance);
                             const color = getStatusColor(status);
                             return (
@@ -401,12 +448,13 @@ export const MobileAmbulances = ({
                         })}
                     </AnimatePresence>
 
-                    <div ref={observerTarget} className="h-20 flex items-center justify-center">
-                        {hasMore && <MobileListLoadingMore label="Loading more ambulances" />}
-                        {!hasMore && filteredAmbulances.length > 0 && <MobileListEnd label="End of fleet list" />}
+                    <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
+                        {loading && <MobileListSkeletonRows />}
+                        {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+                        {!loading && !hasMore && displayAmbulances.length > 0 && <MobileListEnd label="End of fleet list" />}
                     </div>
 
-                    {filteredAmbulances.length === 0 && !loading && (
+                    {displayAmbulances.length === 0 && !loading && (
                         <MobileListEmpty icon={Ambulance} label="No ambulances found" />
                     )}
                 </div>
@@ -414,3 +462,5 @@ export const MobileAmbulances = ({
         </PullToRefresh>
     );
 };
+
+

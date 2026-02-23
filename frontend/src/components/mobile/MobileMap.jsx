@@ -79,8 +79,20 @@ export const MobileMap = ({
             label: 'Hospitals',
             value: processedHospitals.length,
             color: 'hsl(var(--info))'
+        },
+        {
+            id: 'routes',
+            label: 'Routes',
+            value: activeRoutes.length,
+            color: 'hsl(var(--primary))'
+        },
+        {
+            id: 'markers',
+            label: 'Markers',
+            value: allMarkers.length,
+            color: 'hsl(var(--secondary))'
         }
-    ], [filteredRequests, processedAmbulances, processedHospitals]);
+    ], [filteredRequests, processedAmbulances, processedHospitals, activeRoutes.length, allMarkers.length]);
 
     // Format selected marker for the sheet
     const patientData = selectedMarker?.type === "emergency" ? getStandardizedPatient(selectedMarker.data) : null;

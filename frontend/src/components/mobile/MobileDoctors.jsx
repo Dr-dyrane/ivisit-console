@@ -22,9 +22,11 @@ import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
+import { useStableList } from './useStableList';
+import { useLoadMoreControl } from './useLoadMoreControl';
 
 export const MobileDoctors = ({
     doctors,
@@ -70,17 +72,19 @@ export const MobileDoctors = ({
         direction: Number.isFinite(value) ? (value > 0 ? 'up' : value < 0 ? 'down' : 'flat') : 'flat'
     });
 
+    const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
+
     useEffect(() => {
-        if (!hasMore || loading) return;
+        if (!hasMore) return;
         const observer = new IntersectionObserver(
             entries => {
-                if (entries[0].isIntersecting && hasMore) onLoadMore();
+                if (entries[0].isIntersecting) triggerLoad();
             },
-            { threshold: 0.1, rootMargin: '100px' }
+            { threshold: 0.1, rootMargin: '120px' }
         );
         if (observerTarget.current) observer.observe(observerTarget.current);
         return () => observer.disconnect();
-    }, [hasMore, loading, onLoadMore]);
+    }, [hasMore, triggerLoad]);
 
     const getStatus = (doctor) => String(doctor?.status || 'available').toLowerCase();
 
@@ -151,6 +155,7 @@ export const MobileDoctors = ({
 
         return result;
     }, [doctors, filters]);
+    const { displayItems: displayDoctors, isBuffering } = useStableList(filteredDoctors, loading);
 
     const avgRating = filteredDoctors.length
         ? filteredDoctors.reduce((sum, d) => sum + (Number(d.rating) || 0), 0) / filteredDoctors.length
@@ -178,15 +183,43 @@ export const MobileDoctors = ({
                         onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
                     />
                 )}
-                contentClassName="px-2 pt-4 pb-4 text-foreground"
+                contentClassName="pt-4 pb-4 text-foreground"
             >
                 <MobileFeaturedMetric
-                    label="Clinical Readiness"
-                    value={totals.available}
-                    trend={formatSignedPercent(avgRating - 4) || 'LIVE'}
-                    icon={Stethoscope}
-                    color="hsl(var(--success))"
-                    chartData={growthData}
+                    items={[
+                        {
+                            label: 'Clinical Readiness',
+                            value: totals.available,
+                            trend: formatSignedPercent(avgRating - 4) || 'LIVE',
+                            icon: Stethoscope,
+                            color: 'hsl(var(--success))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'On Call Pulse',
+                            value: totals.onCall,
+                            trend: onCallTrend.delta,
+                            icon: Phone,
+                            color: 'hsl(var(--info))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Avg Rating',
+                            value: avgRating > 0 ? avgRating.toFixed(1) : '0.0',
+                            trend: 'LIVE',
+                            icon: Star,
+                            color: 'hsl(var(--warning))',
+                            chartData: growthData
+                        },
+                        {
+                            label: 'Busy Coverage',
+                            value: totals.busy,
+                            trend: busyTrend.delta,
+                            icon: BadgeX,
+                            color: 'hsl(var(--destructive))',
+                            chartData: growthData
+                        }
+                    ]}
                 />
 
                 <section className="mb-3">
@@ -216,6 +249,26 @@ export const MobileDoctors = ({
                                 color: 'hsl(var(--warning))',
                                 iconColorClass: 'text-warning',
                                 iconBgClass: 'bg-warning/5',
+                                onClick: onViewAnalytics
+                            },
+                            {
+                                icon: BadgeCheck,
+                                title: 'Available',
+                                subtitle: 'Ready now',
+                                value: totals.available,
+                                color: 'hsl(var(--success))',
+                                iconColorClass: 'text-success',
+                                iconBgClass: 'bg-success/5',
+                                onClick: onViewAnalytics
+                            },
+                            {
+                                icon: BadgeX,
+                                title: 'Busy',
+                                subtitle: 'Active load',
+                                value: totals.busy,
+                                color: 'hsl(var(--destructive))',
+                                iconColorClass: 'text-destructive',
+                                iconBgClass: 'bg-destructive/5',
                                 onClick: onViewAnalytics
                             }
                         ]}
@@ -259,15 +312,15 @@ export const MobileDoctors = ({
 
                 <MobileSectionHeader
                     label="Doctor Directory"
-                    count={filteredDoctors.length}
+                    count={displayDoctors.length}
                     color="hsl(var(--primary))"
-                    onSelectAll={filteredDoctors.length > 0 ? () => onSelectAll?.(selectedIds.length !== filteredDoctors.length, filteredDoctors) : null}
-                    isAllSelected={filteredDoctors.length > 0 && selectedIds.length === filteredDoctors.length}
+                    onSelectAll={displayDoctors.length > 0 ? () => onSelectAll?.(selectedIds.length !== displayDoctors.length, displayDoctors) : null}
+                    isAllSelected={displayDoctors.length > 0 && selectedIds.length === displayDoctors.length}
                 />
 
                 <div className="space-y-1">
                     <AnimatePresence mode="popLayout">
-                        {filteredDoctors.map((doctor) => {
+                        {displayDoctors.map((doctor) => {
                             const status = getStatus(doctor);
                             const color = getStatusColor(status);
                             return (
@@ -368,12 +421,13 @@ export const MobileDoctors = ({
                         })}
                     </AnimatePresence>
 
-                    <div ref={observerTarget} className="h-20 flex items-center justify-center">
-                        {hasMore && <MobileListLoadingMore label="Loading more doctors" />}
-                        {!hasMore && filteredDoctors.length > 0 && <MobileListEnd label="End of doctor list" />}
+                    <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
+                        {loading && <MobileListSkeletonRows />}
+                        {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+                        {!loading && !hasMore && displayDoctors.length > 0 && <MobileListEnd label="End of doctor list" />}
                     </div>
 
-                    {filteredDoctors.length === 0 && !loading && (
+                    {displayDoctors.length === 0 && !loading && (
                         <MobileListEmpty icon={Stethoscope} label="No doctors found" />
                     )}
                 </div>
@@ -381,3 +435,5 @@ export const MobileDoctors = ({
         </PullToRefresh>
     );
 };
+
+

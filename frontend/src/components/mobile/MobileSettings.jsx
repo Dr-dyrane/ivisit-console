@@ -33,7 +33,7 @@ export const MobileSettings = ({
   const roleLabel = profile?.role?.replace('_', ' ').toUpperCase() || 'VIEWER';
 
   return (
-    <MobilePageShell contentClassName="px-2 pt-4 pb-4 text-foreground">
+    <MobilePageShell contentClassName="pt-4 pb-4 text-foreground">
       <section className="mb-3 px-1">
         <div className="apple-glass-heavy rounded-3xl p-4 border-0">
           <div className="flex items-center gap-3 mb-3">
@@ -141,3 +141,4 @@ export const MobileSettings = ({
     </MobilePageShell>
   );
 };
+

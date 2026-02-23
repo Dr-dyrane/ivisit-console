@@ -1,14 +1,17 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Shield, Search, Eye, Edit, Trash2, CheckCircle, Calendar, DollarSign, SlidersHorizontal, BarChart3, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { Shield, ShieldCheck, Search, Eye, Edit, Trash2, CheckCircle, FileCheck, Calendar, DollarSign, SlidersHorizontal, BarChart3, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
+import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListLoadingMore, MobileListEnd, MobileListEmpty } from './MobileListStates';
+import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
+import { useStableList } from './useStableList';
+import { useLoadMoreControl } from './useLoadMoreControl';
 
 export const MobileInsurance = ({
   policies = [],
@@ -33,17 +36,19 @@ export const MobileInsurance = ({
   const observerTarget = useRef(null);
   const selectionMode = selectedIds.length > 0;
 
+  const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
+
   useEffect(() => {
-    if (!hasMore || loading || !onLoadMore) return;
+    if (!hasMore) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) onLoadMore();
+        if (entries[0].isIntersecting) triggerLoad();
       },
-      { threshold: 0.1, rootMargin: '100px' }
+      { threshold: 0.1, rootMargin: '120px' }
     );
     if (observerTarget.current) observer.observe(observerTarget.current);
     return () => observer.disconnect();
-  }, [hasMore, loading, onLoadMore]);
+  }, [hasMore, triggerLoad]);
 
   const counts = useMemo(() => ({
     total: policies.length,
@@ -78,6 +83,7 @@ export const MobileInsurance = ({
 
     return result;
   }, [policies, filters]);
+  const { displayItems: displayPolicies, isBuffering } = useStableList(filteredPolicies, loading);
 
   const periodTrends = useMemo(() => {
     const periodMs = 30 * 24 * 60 * 60 * 1000;
@@ -112,15 +118,43 @@ export const MobileInsurance = ({
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         kpiStrip={<MobileKPIStrip kpis={kpis} activeKpi={filters?.kpiFilter || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))} />}
-        contentClassName="px-2 pt-4 pb-4 text-foreground"
+        contentClassName="pt-4 pb-4 text-foreground"
       >
         <MobileFeaturedMetric
-          label="Active Coverage"
-          value={counts.active}
-          trend="LIVE"
-          icon={Shield}
-          color="hsl(var(--success))"
-          chartData={[{ value: 28 }, { value: 35 }, { value: 40 }, { value: 44 }, { value: 52 }, { value: 57 }]}
+          items={[
+            {
+              label: 'Active Coverage',
+              value: counts.active,
+              trend: periodTrends.activeLoad.deltaText,
+              icon: Shield,
+              color: 'hsl(var(--success))',
+              chartData: [{ value: 28 }, { value: 35 }, { value: 40 }, { value: 44 }, { value: 52 }, { value: 57 }]
+            },
+            {
+              label: 'Verification Rate',
+              value: `${Math.round(((policies.filter(p => p.verified).length || 0) / (counts.total || 1)) * 100)}%`,
+              trend: periodTrends.verificationRate.deltaText,
+              icon: CheckCircle,
+              color: 'hsl(var(--info))',
+              chartData: [{ value: 32 }, { value: 38 }, { value: 44 }, { value: 49 }, { value: 54 }, { value: 60 }]
+            },
+            {
+              label: 'Total Policies',
+              value: counts.total,
+              trend: 'LIVE',
+              icon: FileCheck,
+              color: 'hsl(var(--primary))',
+              chartData: [{ value: 18 }, { value: 24 }, { value: 29 }, { value: 34 }, { value: 38 }, { value: 42 }]
+            },
+            {
+              label: 'Active Ratio',
+              value: `${Math.round(((counts.active || 0) / (counts.total || 1)) * 100)}%`,
+              trend: periodTrends.activeLoad.deltaText,
+              icon: ShieldCheck,
+              color: 'hsl(var(--warning))',
+              chartData: [{ value: 22 }, { value: 28 }, { value: 32 }, { value: 37 }, { value: 41 }, { value: 45 }]
+            }
+          ]}
         />
 
         <section className="mb-3">
@@ -129,44 +163,46 @@ export const MobileInsurance = ({
             count={counts.total}
             color="hsl(var(--info))"
           />
-          <div className="grid grid-cols-2 gap-3">
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <CheckCircle className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Verification Rate</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Trust score</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {Math.round(((policies.filter(p => p.verified).length || 0) / (counts.total || 1)) * 100)}%
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.verificationRate.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-success" />}
-                  {periodTrends.verificationRate.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  {periodTrends.verificationRate.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.verificationRate.deltaText}
-                </span>
-              </div>
-            </div>
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <Shield className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Active Load</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Portfolio</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {Math.round(((counts.active || 0) / (counts.total || 1)) * 100)}%
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.activeLoad.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-success" />}
-                  {periodTrends.activeLoad.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  {periodTrends.activeLoad.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.activeLoad.deltaText}
-                </span>
-              </div>
-            </div>
-          </div>
+          <MobileSecondaryMetricRail
+            items={[
+              {
+                icon: CheckCircle,
+                title: 'Verification Rate',
+                subtitle: 'Trust score',
+                value: `${Math.round(((policies.filter(p => p.verified).length || 0) / (counts.total || 1)) * 100)}%`,
+                color: 'hsl(var(--info))',
+                trendDirection: periodTrends.verificationRate.direction,
+                trendText: periodTrends.verificationRate.deltaText
+              },
+              {
+                icon: Shield,
+                title: 'Active Load',
+                subtitle: 'Portfolio',
+                value: `${Math.round(((counts.active || 0) / (counts.total || 1)) * 100)}%`,
+                color: 'hsl(var(--success))',
+                trendDirection: periodTrends.activeLoad.direction,
+                trendText: periodTrends.activeLoad.deltaText
+              },
+              {
+                icon: FileCheck,
+                title: 'Total Policies',
+                subtitle: 'Registry',
+                value: counts.total,
+                color: 'hsl(var(--primary))',
+                trendDirection: 'flat',
+                trendText: 'LIVE'
+              },
+              {
+                icon: ShieldCheck,
+                title: 'Active',
+                subtitle: 'Verified',
+                value: counts.active,
+                color: 'hsl(var(--warning))',
+                trendDirection: 'flat',
+                trendText: 'LIVE'
+              }
+            ]}
+          />
         </section>
 
         <div className="flex items-center gap-2 mb-3 px-1">
@@ -204,15 +240,15 @@ export const MobileInsurance = ({
 
         <MobileSectionHeader
           label="Insurance Policies"
-          count={filteredPolicies.length}
+          count={displayPolicies.length}
           color="hsl(var(--primary))"
-          onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== filteredPolicies.length) : null}
-          isAllSelected={filteredPolicies.length > 0 && selectedIds.length === filteredPolicies.length}
+          onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== displayPolicies.length) : null}
+          isAllSelected={displayPolicies.length > 0 && selectedIds.length === displayPolicies.length}
         />
 
         <div className="space-y-1">
           <AnimatePresence mode="popLayout">
-            {filteredPolicies.map((policy) => {
+            {displayPolicies.map((policy) => {
               const isActive = policy.status === 'active';
               const isPending = policy.status === 'pending';
               const color = isActive ? 'hsl(var(--success))' : isPending ? 'hsl(var(--warning))' : 'hsl(var(--destructive))';
@@ -277,14 +313,17 @@ export const MobileInsurance = ({
             })}
           </AnimatePresence>
 
-          {filteredPolicies.length === 0 && <MobileListEmpty icon={Shield} label="No policies found" />}
+          {displayPolicies.length === 0 && <MobileListEmpty icon={Shield} label="No policies found" />}
 
-          <div ref={observerTarget} className="h-20 flex items-center justify-center">
-            {hasMore && <MobileListLoadingMore label="Loading more policies" />}
-            {!hasMore && filteredPolicies.length > 0 && <MobileListEnd label="End of policy list" />}
+          <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
+            {loading && <MobileListSkeletonRows />}
+            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+            {!loading && !hasMore && displayPolicies.length > 0 && <MobileListEnd label="End of policy list" />}
           </div>
         </div>
       </MobilePageShell>
     </PullToRefresh>
   );
 };
+
+

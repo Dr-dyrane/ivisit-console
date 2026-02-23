@@ -137,24 +137,18 @@ export const MobileSecondaryMetricRail = ({
     return (
         <div className={`relative ${className}`}>
             <div
-                className="flex gap-3 overflow-x-auto pb-1 no-scrollbar"
+                className="flex gap-2 overflow-x-auto pb-1 no-scrollbar"
                 {...bind}
             >
                 {items.map((item, idx) => (
                     <div
                         key={idx}
                         className={`shrink-0 ${isScrolling ? 'pointer-events-none' : ''}`}
-                        style={{ width: '92%' }}
                     >
                         <MobileSecondaryMetricCard variant={variant} {...item} />
                     </div>
                 ))}
-                {/* End spacer */}
-                <div className="shrink-0 w-3" />
             </div>
-            {/* Edge masks */}
-            <div className="absolute left-0 top-0 bottom-1 w-6 pointer-events-none bg-gradient-to-r from-background/70 to-transparent z-10" />
-            <div className="absolute right-0 top-0 bottom-1 w-6 pointer-events-none bg-gradient-to-l from-background/70 to-transparent z-10" />
         </div>
     );
 };

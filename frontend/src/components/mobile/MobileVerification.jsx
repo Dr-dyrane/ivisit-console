@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Shield, Search, Eye, CheckCircle, Ban, Building2, User, SlidersHorizontal, BarChart3 } from 'lucide-react';
+import { Shield, Search, Eye, CheckCircle, Ban, Building2, User, Users, SlidersHorizontal, BarChart3 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { motion } from 'framer-motion';
@@ -104,15 +104,43 @@ export const MobileVerification = ({
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         kpiStrip={<MobileKPIStrip kpis={kpis} activeKpi={filters?.status || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, status: id }))} />}
-        contentClassName="px-2 pt-4 pb-4 text-foreground"
+        contentClassName="pt-4 pb-4 text-foreground"
       >
         <MobileFeaturedMetric
-          label={queueType === 'providers' ? 'Provider Queue' : 'Organization Queue'}
-          value={filteredItems.length}
-          trend="LIVE"
-          icon={Shield}
-          color="hsl(var(--primary))"
-          chartData={[{ value: 60 }, { value: 55 }, { value: 52 }, { value: 49 }, { value: 47 }, { value: 45 }]}
+          items={[
+            {
+              label: queueType === 'providers' ? 'Provider Queue' : 'Organization Queue',
+              value: filteredItems.length,
+              trend: 'LIVE',
+              icon: Shield,
+              color: 'hsl(var(--primary))',
+              chartData: [{ value: 60 }, { value: 55 }, { value: 52 }, { value: 49 }, { value: 47 }, { value: 45 }]
+            },
+            {
+              label: 'Approval Rate',
+              value: `${Math.round((((queueType === 'providers' ? activeStats?.approved : activeStats?.verified) || 0) / ((activeStats?.total || 1))) * 100)}%`,
+              trend: periodTrends.approvalRate.deltaText,
+              icon: CheckCircle,
+              color: 'hsl(var(--success))',
+              chartData: [{ value: 38 }, { value: 44 }, { value: 47 }, { value: 53 }, { value: 58 }, { value: 62 }]
+            },
+            {
+              label: 'Pending Load',
+              value: activeStats?.pending || 0,
+              trend: periodTrends.pendingLoad.deltaText,
+              icon: Shield,
+              color: 'hsl(var(--warning))',
+              chartData: [{ value: 42 }, { value: 48 }, { value: 46 }, { value: 51 }, { value: 49 }, { value: 45 }]
+            },
+            {
+              label: 'Total',
+              value: activeStats?.total || items.length,
+              trend: 'LIVE',
+              icon: Users,
+              color: 'hsl(var(--info))',
+              chartData: [{ value: 24 }, { value: 30 }, { value: 36 }, { value: 40 }, { value: 44 }, { value: 48 }]
+            }
+          ]}
         />
 
         <section className="mb-3">
@@ -143,6 +171,26 @@ export const MobileVerification = ({
                 trendText: periodTrends.pendingLoad.deltaText,
                 trendUpClass: 'text-warning',
                 trendDownClass: 'text-success',
+                onClick: onViewAnalytics
+              },
+              {
+                icon: Users,
+                title: 'Total',
+                subtitle: 'Queue size',
+                value: activeStats?.total || items.length,
+                color: 'hsl(var(--info))',
+                trendDirection: 'flat',
+                trendText: 'LIVE',
+                onClick: onViewAnalytics
+              },
+              {
+                icon: Shield,
+                title: 'Filtered',
+                subtitle: 'Current view',
+                value: filteredItems.length,
+                color: 'hsl(var(--warning))',
+                trendDirection: 'flat',
+                trendText: 'LIVE',
                 onClick: onViewAnalytics
               }
             ]}
@@ -315,3 +363,4 @@ export const MobileVerification = ({
     </PullToRefresh>
   );
 };
+
