@@ -67,6 +67,7 @@ export const MobileEmergency = ({
     const [expandedEmergencyId, setExpandedEmergencyId] = useState(null);
     const { triggerFromEvent } = useFeedback();
     const { displayItems: displayEmergencies, isBuffering } = useStableList(emergencies, loading);
+  const showTopSectionLoading = loading && displayEmergencies.length === 0;
 
     const formatSignedPercent = (value) => {
         if (!Number.isFinite(value)) return null;
@@ -176,6 +177,7 @@ export const MobileEmergency = ({
                 animatePageLoad={false}
                 kpiStrip={(
                     <MobileKPIStrip
+            loading={showTopSectionLoading}
                         animateOnMount={false}
                         kpis={emergencyKPIs}
                         activeKpi={kpiFilter || 'all'}
@@ -186,6 +188,7 @@ export const MobileEmergency = ({
             >
                 {/* B. LIVE EMERGENCIES */}
                 <MobileFeaturedMetric
+          loading={showTopSectionLoading}
                     items={[
                         {
                             label: 'Live Emergencies',
@@ -230,6 +233,7 @@ export const MobileEmergency = ({
                         color="hsl(var(--warning))"
                     />
                     <MobileSecondaryMetricRail
+            loading={showTopSectionLoading}
                         variant="icon"
                         items={[
                             {

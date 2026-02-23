@@ -76,6 +76,7 @@ export const MobileOrganizations = ({
     [organizations]
   );
   const { displayItems: displayOrganizations, isBuffering } = useStableList(organizations, loading);
+  const showTopSectionLoading = loading && displayOrganizations.length === 0;
   const avgFee = useMemo(() => {
     if (!organizations.length) return 0;
     return organizations.reduce((acc, o) => acc + (Number(o.ivisit_fee_percentage) || 0), 0) / organizations.length;
@@ -147,6 +148,7 @@ export const MobileOrganizations = ({
         animatePageLoad={false}
         kpiStrip={(
           <MobileKPIStrip
+            loading={showTopSectionLoading}
             kpis={kpis}
             activeKpi={kpiFilter}
             onKpiClick={(id) => setKpiFilter?.(id)}
@@ -155,6 +157,7 @@ export const MobileOrganizations = ({
         contentClassName="pt-4 pb-4 text-foreground"
       >
         <MobileFeaturedMetric
+          loading={showTopSectionLoading}
           items={[
             {
               label: 'Average Fee',
@@ -198,6 +201,7 @@ export const MobileOrganizations = ({
             color="hsl(var(--info))"
           />
           <MobileSecondaryMetricRail
+            loading={showTopSectionLoading}
             items={[
               {
                 icon: Building2,

@@ -81,6 +81,7 @@ export const MobileSupportTickets = ({
     return result;
   }, [tickets, filters]);
   const { displayItems: displayTickets, isBuffering } = useStableList(filteredTickets, loading);
+  const showTopSectionLoading = loading && displayTickets.length === 0;
 
   const periodTrends = useMemo(() => {
     const periodMs = 30 * 24 * 60 * 60 * 1000;
@@ -119,10 +120,12 @@ export const MobileSupportTickets = ({
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         animatePageLoad={false}
-        kpiStrip={<MobileKPIStrip kpis={kpis} activeKpi={filters?.kpiFilter || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))} />}
+        kpiStrip={<MobileKPIStrip
+            loading={showTopSectionLoading} kpis={kpis} activeKpi={filters?.kpiFilter || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))} />}
         contentClassName="pt-4 pb-4 text-foreground"
       >
         <MobileFeaturedMetric
+          loading={showTopSectionLoading}
           items={[
             {
               label: 'Avg Resolution',
@@ -166,6 +169,7 @@ export const MobileSupportTickets = ({
             color="hsl(var(--info))"
           />
           <MobileSecondaryMetricRail
+            loading={showTopSectionLoading}
             items={[
               {
                 icon: CheckCircle,

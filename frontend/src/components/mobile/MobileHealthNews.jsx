@@ -91,6 +91,7 @@ export const MobileHealthNews = ({
     return result;
   }, [articles, filters]);
   const { displayItems: displayArticles, isBuffering } = useStableList(filteredArticles, loading);
+  const showTopSectionLoading = loading && displayArticles.length === 0;
 
   const periodTrends = useMemo(() => {
     const periodMs = 30 * 24 * 60 * 60 * 1000;
@@ -141,6 +142,7 @@ export const MobileHealthNews = ({
       <MobilePageShell
         kpiStrip={(
           <MobileKPIStrip
+            loading={showTopSectionLoading}
             kpis={kpis}
             activeKpi={filters?.kpiFilter || 'all'}
             onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
@@ -149,6 +151,7 @@ export const MobileHealthNews = ({
         contentClassName="pt-4 pb-4 text-foreground"
       >
         <MobileFeaturedMetric
+          loading={showTopSectionLoading}
           items={[
             {
               label: 'Recent Articles',
@@ -192,6 +195,7 @@ export const MobileHealthNews = ({
             color="hsl(var(--info))"
           />
           <MobileSecondaryMetricRail
+            loading={showTopSectionLoading}
             items={[
               {
                 icon: FileCheck,

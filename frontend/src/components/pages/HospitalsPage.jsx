@@ -23,6 +23,7 @@ import StaffSchedulingModal from '../modals/StaffSchedulingModal';
 import { withTimeout } from '../../lib/utils';
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
+import { BulkActionBar } from '../common/BulkActionBar';
 import { HospitalListView } from '../views/HospitalListView';
 import { HospitalTableView } from '../views/HospitalTableView';
 import { SEOHead } from '../common/SEOHead';
@@ -432,6 +433,23 @@ export const HospitalsPage = () => {
           hospitalId={selectedHospital?.id}
           existingStaff={[]}
         />
+
+        <BulkActionBar
+          selectedCount={selectedIds.length}
+          onClear={() => setSelectedIds([])}
+        >
+          {(isAdmin() || isProvider()) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBulkDelete}
+              className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+              title="Delete Selected"
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
+          )}
+        </BulkActionBar>
       </div>
     );
   }

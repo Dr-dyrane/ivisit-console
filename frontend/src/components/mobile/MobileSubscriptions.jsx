@@ -70,6 +70,7 @@ export const MobileSubscriptions = ({
     return result;
   }, [subscribers, filters]);
   const { displayItems: displaySubscribers, isBuffering } = useStableList(filteredSubscribers, loading);
+  const showTopSectionLoading = loading && displaySubscribers.length === 0;
 
   const kpis = [
     { id: 'all', label: 'Subscribers', value: counts.total, color: 'hsl(var(--primary))', delta: 'LIVE', direction: 'flat' },
@@ -111,10 +112,12 @@ export const MobileSubscriptions = ({
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         animatePageLoad={false}
-        kpiStrip={<MobileKPIStrip kpis={kpis} activeKpi={filters?.kpiFilter || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))} />}
+        kpiStrip={<MobileKPIStrip
+            loading={showTopSectionLoading} kpis={kpis} activeKpi={filters?.kpiFilter || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))} />}
         contentClassName="pt-4 pb-4 text-foreground"
       >
         <MobileFeaturedMetric
+          loading={showTopSectionLoading}
           items={[
             {
               label: 'Paid Conversion',
@@ -158,6 +161,7 @@ export const MobileSubscriptions = ({
             color="hsl(var(--warning))"
           />
           <MobileSecondaryMetricRail
+            loading={showTopSectionLoading}
             items={[
               {
                 icon: Crown,

@@ -83,34 +83,54 @@ export const createNotification = async (type, action, targetId, metadata = {}) 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    const { data, error } = await supabase
+    const now = new Date().toISOString();
+    const basePayload = {
+      user_id: user.id,
+      type,
+      action_type: action,
+      title: config.label,
+      message: metadata.message || `${config.label} - ${targetId}`,
+      icon: config.icon,
+      color: config.color,
+      priority: metadata.priority || 'normal',
+      action_data: metadata.actionData || null,
+      metadata: {
+        ...metadata,
+        ...(targetId ? { targetId } : null)
+      },
+      read: false,
+      created_at: now,
+    };
+
+    const richPayload = {
+      ...basePayload,
+      ...(targetId ? { target_id: targetId } : null),
+      timestamp: now
+    };
+
+    let { data, error } = await supabase
       .from('notifications')
-      .insert([
-        {
-          user_id: user.id,
-          type,
-          action_type: action, // Add action_type field
-          target_id: targetId,
-          title: config.label,
-          message: metadata.message || `${config.label} - ${targetId}`,
-          icon: config.icon,
-          color: config.color,
-          priority: metadata.priority || 'normal', // Add priority field
-          action_data: metadata.actionData || null, // Add action_data field
-          metadata,
-          read: false,
-          timestamp: new Date().toISOString(), // Add timestamp field
-          created_at: new Date().toISOString(),
-        }
-      ])
+      .insert([richPayload])
       .select();
+
+    // Backward/forward compatibility: if some environments still expect
+    // optional columns, retry once with a smaller payload.
+    if (error && error.code === 'PGRST204') {
+      const fallbackPayload = { ...basePayload };
+      delete fallbackPayload.action_data;
+      ({ data, error } = await supabase.from('notifications').insert([fallbackPayload]).select());
+    }
 
     if (error) {
       console.error('Error creating notification:', error);
       return null;
     }
 
-    return data?.[0] || null;
+    const created = data?.[0] || null;
+    if (created && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('notifications:changed', { detail: { type: 'insert', notification: created } }));
+    }
+    return created;
   } catch (error) {
     console.error('Error in createNotification:', error);
     return null;
@@ -172,7 +192,14 @@ export const getNotifications = async (userId, limit = 50, read = null) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    console.error('Error fetching notifications:', {
+      userId,
+      message: error?.message,
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint,
+      error
+    });
     return [];
   }
 };

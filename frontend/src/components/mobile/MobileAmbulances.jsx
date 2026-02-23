@@ -165,6 +165,7 @@ export const MobileAmbulances = ({
         return result;
     }, [ambulances, filters, kpiFilter]);
     const { displayItems: displayAmbulances, isBuffering } = useStableList(filteredAmbulances, loading);
+  const showTopSectionLoading = loading && displayAmbulances.length === 0;
 
     const growthData = useMemo(() => [
         { value: 26 }, { value: 38 }, { value: 54 }, { value: 48 }, { value: 66 }, { value: 72 }
@@ -195,6 +196,7 @@ export const MobileAmbulances = ({
                 animatePageLoad={false}
                 kpiStrip={(
                     <MobileKPIStrip
+            loading={showTopSectionLoading}
                         kpis={ambulanceKPIs}
                         activeKpi={kpiFilter || 'all'}
                         onKpiClick={(id) => setKpiFilter?.(id)}
@@ -203,6 +205,7 @@ export const MobileAmbulances = ({
                 contentClassName="pt-4 pb-4 text-foreground"
             >
                 <MobileFeaturedMetric
+          loading={showTopSectionLoading}
                     items={[
                         {
                             label: 'Fleet Response',
@@ -246,6 +249,7 @@ export const MobileAmbulances = ({
                         color="hsl(var(--warning))"
                     />
                     <MobileSecondaryMetricRail
+            loading={showTopSectionLoading}
                         variant="icon"
                         items={[
                             {

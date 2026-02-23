@@ -358,17 +358,17 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                       </Select>
                     </div>
 
-                    <div className="col-span-1 md:col-span-2 space-y-2">
+                    <div className="col-span-1 md:col-span-2 space-y-2 min-w-0">
                       <Label htmlFor="date" className="text-xs font-semibold text-muted-foreground uppercase">Date & Time</Label>
-                      <Input
-                        id="date"
-                        name="date"
-                        type="datetime-local"
-                        value={formData.date || ''}
-                        onChange={handleChange}
-                        disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-mono"
-                      />
+                        <Input
+                          id="date"
+                          name="date"
+                          type="datetime-local"
+                          value={formData.date || ''}
+                          onChange={handleChange}
+                          disabled={isView}
+                          className="w-full min-w-0 max-w-full rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 text-sm md:text-base font-normal md:font-mono"
+                        />
                     </div>
 
                     <div className="col-span-1 md:col-span-2 space-y-2">

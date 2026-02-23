@@ -53,6 +53,7 @@ export const UsersPage = () => {
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
+    isLoading: false,
     title: '',
     description: '',
     onConfirm: () => { },
@@ -347,18 +348,36 @@ export const UsersPage = () => {
       // because the FOR ALL RLS policy using get_current_user_role() doesn't match
       // rows for DELETE operations even when the caller IS admin.
       // SECURITY DEFINER RPC bypasses RLS entirely. See migration 20260216070500.
-      const { error } = await supabase.rpc('delete_user_by_admin', { target_user_id: targetId });
+      const displayName =
+        user.full_name ||
+        user.username ||
+        user.profile_username ||
+        user.email ||
+        'user';
+
+      const { data, error } = await supabase.rpc('delete_user_by_admin', { target_user_id: targetId });
       if (error) throw error;
+      if (data && data.success === false) throw new Error(data.error || 'User deletion failed');
 
       await createNotification(
         NotificationTypes.USER,
         NotificationActions.DELETED,
         targetId,
-        { message: `User ${user.username} has been removed from the system` }
+        {
+          message: `User ${displayName} has been removed from the system`,
+          targetName: displayName
+        }
       );
 
       // Optimistic removal for instant UX
       setUsers(prev => prev.filter(u => u.id !== targetId));
+      setSelectedIds(prev => prev.filter(id => id !== targetId));
+      setSelectedUser(prev => {
+        if (!prev) return prev;
+        const prevId = prev.id || prev.user_id;
+        return prevId === targetId ? null : prev;
+      });
+      setModalMode(prev => (prev === 'view' || prev === 'edit') ? null : prev);
       if (statistics) {
         setStatistics(prev => prev ? {
           ...prev,
@@ -371,9 +390,11 @@ export const UsersPage = () => {
 
       // Background sync to ensure consistency
       fetchUsers();
+      return true;
     } catch (error) {
       console.error('Error deleting user:', error);
       handleApiError(error, 'delete');
+      return false;
     }
   }, [fetchUsers, statistics]);
 
@@ -411,17 +432,27 @@ export const UsersPage = () => {
   const confirmDelete = useCallback((user) => {
     setConfirmationModal({
       isOpen: true,
+      isLoading: false,
       title: 'Delete User',
-      description: `Are you sure you want to delete ${user.full_name || user.username}? This action cannot be undone.`,
+      description: `Are you sure you want to delete ${user.full_name || user.username || user.email || 'this user'}? This action cannot be undone.`,
       variant: 'destructive',
       confirmLabel: 'Delete',
-      onConfirm: () => handleDelete(user)
+      onConfirm: async () => {
+        setConfirmationModal(prev => ({ ...prev, isLoading: true }));
+        const ok = await handleDelete(user);
+        if (ok) {
+          setConfirmationModal(prev => ({ ...prev, isOpen: false, isLoading: false }));
+        } else {
+          setConfirmationModal(prev => ({ ...prev, isLoading: false }));
+        }
+      }
     });
   }, [handleDelete]);
 
   const handleBulkDelete = useCallback(() => {
     setConfirmationModal({
       isOpen: true,
+      isLoading: false,
       title: 'Delete Selected Users',
       description: `Are you sure you want to delete ${selectedIds.length} users? This action cannot be undone.`,
       variant: 'destructive',
@@ -429,18 +460,29 @@ export const UsersPage = () => {
       onConfirm: async () => {
         // Logic to delete multiple
         try {
-          // In a real app, use a bulk delete API. Here we assume one by one or loop.
-          // Supabase 'in' query is better.
-          const { error } = await supabase.from('profiles').delete().in('id', selectedIds);
-          if (error) throw error;
+          setConfirmationModal(prev => ({ ...prev, isLoading: true }));
+
+          const failedIds = [];
+          for (const targetId of selectedIds) {
+            const { data, error } = await supabase.rpc('delete_user_by_admin', { target_user_id: targetId });
+            if (error || (data && data.success === false)) {
+              failedIds.push(targetId);
+            }
+          }
+
+          if (failedIds.length > 0) {
+            throw new Error(`Failed to delete ${failedIds.length} of ${selectedIds.length} users`);
+          }
+
           toast.success(`${selectedIds.length} users deleted successfully`);
+          setUsers(prev => prev.filter(u => !selectedIds.includes(u.id)));
           setSelectedIds([]);
           fetchUsers();
         } catch (err) {
           console.error("Bulk delete failed", err);
           handleApiError(err, 'delete');
         }
-        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        setConfirmationModal(prev => ({ ...prev, isOpen: false, isLoading: false }));
       }
     });
   }, [selectedIds, fetchUsers]);
@@ -679,6 +721,7 @@ export const UsersPage = () => {
           onConfirm={confirmationModal.onConfirm}
           variant={confirmationModal.variant}
           confirmLabel={confirmationModal.confirmLabel}
+          isLoading={confirmationModal.isLoading}
         />
 
         {/* Global Overlays */}
@@ -1186,14 +1229,12 @@ export const UsersPage = () => {
       <ConfirmationModal
         isOpen={confirmationModal.isOpen}
         onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={() => {
-          confirmationModal.onConfirm();
-          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-        }}
+        onConfirm={confirmationModal.onConfirm}
         title={confirmationModal.title}
         description={confirmationModal.description}
         variant={confirmationModal.variant}
         confirmLabel={confirmationModal.confirmLabel}
+        isLoading={confirmationModal.isLoading}
       />
 
       {

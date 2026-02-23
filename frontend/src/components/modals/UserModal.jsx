@@ -230,9 +230,9 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                         />
                       </div>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 min-w-0">
                       <Label htmlFor="date_of_birth" className="text-xs font-semibold text-muted-foreground uppercase">Date of Birth</Label>
-                      <div className="relative">
+                      <div className="relative min-w-0">
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                           id="date_of_birth"
@@ -241,7 +241,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                           value={formData.date_of_birth || ''}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-11 md:h-12 pl-10 font-normal"
+                          className="w-full min-w-0 max-w-full rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-11 md:h-12 pl-10 pr-2 text-sm md:text-base font-normal"
                         />
                       </div>
                     </div>

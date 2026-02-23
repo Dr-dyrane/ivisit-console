@@ -1,5 +1,10 @@
 import { cn } from "@/lib/utils"
 
+const isMobileViewport = () => {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  return window.matchMedia("(max-width: 1024px)").matches;
+};
+
 export const Skeleton = ({ className, ...props }) => {
   return (
     <div
@@ -220,7 +225,70 @@ export const MapLayoutSkeleton = () => {
 };
 
 export const DynamicAuthSkeleton = ({ pathname = "/" }) => {
+  const MobileAppSplash = () => (
+    <div className="min-h-screen bg-background overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,hsl(var(--primary)/0.12),transparent_42%),radial-gradient(circle_at_84%_18%,hsl(var(--spark)/0.09),transparent_45%),radial-gradient(circle_at_50%_88%,hsl(var(--secondary)/0.08),transparent_58%)]" />
+        <div className="absolute inset-0 opacity-50 [mask-image:linear-gradient(to_bottom,black,transparent_82%)] bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_28%,rgba(255,255,255,0.015)_58%,transparent)]" />
+        <div className="absolute inset-0 opacity-40 [mask-image:radial-gradient(circle_at_50%_45%,black,transparent_68%)] bg-[conic-gradient(from_210deg_at_50%_45%,transparent_0deg,hsl(var(--primary)/0.06)_70deg,transparent_130deg,hsl(var(--spark)/0.05)_220deg,transparent_300deg)]" />
+      </div>
+
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-5">
+        <div className="w-full max-w-sm text-center">
+          <div className="relative mx-auto w-36 h-36 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full opacity-70 blur-2xl bg-[radial-gradient(circle,hsl(var(--primary)/0.22),transparent_70%)]" />
+            <div className="absolute inset-2 rounded-full opacity-40 blur-xl bg-[radial-gradient(circle,hsl(var(--spark)/0.20),transparent_72%)]" />
+
+            <div className="relative w-28 h-28">
+              <img
+                src="/icon.png"
+                alt="iVisit"
+                className="absolute inset-0 z-10 w-full h-full object-contain select-none drop-shadow-[0_8px_24px_rgba(0,0,0,0.22)]"
+                draggable="false"
+              />
+              <img
+                src="/icon.png"
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 z-20 w-full h-full object-contain select-none grayscale contrast-125 brightness-95 opacity-80"
+                draggable="false"
+              />
+
+              <img
+                src="/icon.png"
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 z-[25] w-full h-full object-contain select-none shimmer opacity-70"
+                draggable="false"
+                style={{
+                  WebkitMaskImage: 'linear-gradient(115deg, transparent 2%, black 34%, black 66%, transparent 98%)',
+                  maskImage: 'linear-gradient(115deg, transparent 2%, black 34%, black 66%, transparent 98%)'
+                }}
+              />
+
+              <div className="absolute inset-0 z-30 pointer-events-none shimmer opacity-45 [mask-image:linear-gradient(115deg,transparent_10%,black_42%,black_58%,transparent_90%)] bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.9),transparent)]" />
+              <div className="absolute inset-0 z-[5] opacity-18 [mask-image:radial-gradient(circle_at_50%_45%,black,transparent_70%)] bg-white" />
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-2">
+            <div className="h-5 w-28 mx-auto rounded-md bg-muted/20 shimmer" />
+            <div className="h-3 w-40 mx-auto rounded-md bg-muted/15 shimmer" />
+          </div>
+
+          <div className="mt-6 w-full h-1.5 rounded-full bg-muted/15 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
+            <div className="h-full w-1/2 rounded-full shimmer bg-[linear-gradient(90deg,hsl(var(--primary)/0.22),hsl(var(--spark)/0.18))]" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const getSkeletonForPath = () => {
+    if (isMobileViewport() && !["/login", "/unauthorized"].includes(pathname)) {
+      return <MobileAppSplash />;
+    }
+
     if (pathname === "/login" || pathname === "/unauthorized") {
       return <AuthSkeleton />;
     }

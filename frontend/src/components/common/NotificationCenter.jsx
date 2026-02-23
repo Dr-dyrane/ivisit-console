@@ -40,6 +40,14 @@ export const NotificationCenter = () => {
     return () => unsubscribe();
   }, [user?.id]);
 
+  useEffect(() => {
+    const handleNotificationsChanged = () => {
+      fetchNotifications();
+    };
+    window.addEventListener('notifications:changed', handleNotificationsChanged);
+    return () => window.removeEventListener('notifications:changed', handleNotificationsChanged);
+  }, [fetchNotifications]);
+
   const handleDismiss = useCallback((notificationId) => {
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
   }, []);
@@ -56,7 +64,11 @@ export const NotificationCenter = () => {
       <Button
         variant="ghost"
         size="icon"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          const nextOpen = !isOpen;
+          setIsOpen(nextOpen);
+          if (nextOpen) fetchNotifications();
+        }}
         className={`${isMobile
           ? 'h-8 w-8 rounded-full hover:bg-[hsl(var(--spark)/0.08)] hover:text-[hsl(var(--spark)/0.92)]'
           : 'h-9 w-9 squircle hover:bg-primary/10 hover:text-primary'
@@ -76,7 +88,7 @@ export const NotificationCenter = () => {
           <SheetOverlay className="bg-black/15 backdrop-blur-xs" />
           <SheetContent
             side="right"
-            className="w-[88%] max-w-[385px] p-0 border-0 bg-background/95 dark:bg-muted/50 backdrop-blur-sm rounded-l-[36px] overflow-hidden shadow-2xl"
+            className="w-[88%] max-w-[385px] px-2 border-0 bg-background/95 dark:bg-muted/50 backdrop-blur-sm rounded-l-[36px] overflow-hidden shadow-2xl"
           >
             <div className="px-4 pt-3 pb-2">
               <div>

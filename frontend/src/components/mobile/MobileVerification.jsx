@@ -19,6 +19,7 @@ export const MobileVerification = ({
   setQueueType,
   providers = [],
   organizations = [],
+  loading = false,
   stats,
   orgStats,
   filters,
@@ -63,6 +64,7 @@ export const MobileVerification = ({
     }
     return result;
   }, [filters, items, queueType]);
+  const showTopSectionLoading = loading && filteredItems.length === 0;
   const hasActiveRecovery = Boolean(filters?.search) || String(filters?.status || 'all') !== 'all';
 
   const periodTrends = useMemo(() => {
@@ -104,10 +106,11 @@ export const MobileVerification = ({
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         animatePageLoad={false}
-        kpiStrip={<MobileKPIStrip kpis={kpis} activeKpi={filters?.status || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, status: id }))} />}
+        kpiStrip={<MobileKPIStrip loading={showTopSectionLoading} kpis={kpis} activeKpi={filters?.status || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, status: id }))} />}
         contentClassName="pt-4 pb-4 text-foreground"
       >
         <MobileFeaturedMetric
+          loading={showTopSectionLoading}
           items={[
             {
               label: queueType === 'providers' ? 'Provider Queue' : 'Organization Queue',
@@ -151,6 +154,7 @@ export const MobileVerification = ({
             color="hsl(var(--info))"
           />
           <MobileSecondaryMetricRail
+            loading={showTopSectionLoading}
             items={[
               {
                 icon: CheckCircle,

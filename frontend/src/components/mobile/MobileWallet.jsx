@@ -45,6 +45,7 @@ export const MobileWallet = ({
 }) => {
   const [expandedId, setExpandedId] = useState(null);
   const [showBalance, setShowBalance] = useState(true);
+  const showTopSectionLoading = loading && !wallet && ledger.length === 0 && payments.length === 0;
   const items = activeTab === 'ledger' ? ledger : payments;
   const creditEntries = useMemo(
     () => ledger.filter(entry => entry.transaction_type === 'credit').length,
@@ -146,10 +147,22 @@ export const MobileWallet = ({
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         animatePageLoad={false}
-        kpiStrip={<MobileKPIStrip kpis={kpis} activeKpi="balance" onKpiClick={() => { }} />}
+        kpiStrip={<MobileKPIStrip loading={showTopSectionLoading} kpis={kpis} activeKpi="balance" onKpiClick={() => { }} />}
         contentClassName="pt-4 pb-4 text-foreground"
       >
         <section className="mb-4 px-1">
+          {showTopSectionLoading ? (
+            <div className="rounded-3xl apple-glass-heavy p-6 min-h-[160px] space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-2 min-w-0 flex-1">
+                  <div className="h-3 w-24 rounded bg-muted/20 shimmer" />
+                  <div className="h-10 w-36 rounded bg-muted/20 shimmer" />
+                </div>
+                <div className="w-9 h-9 rounded-xl bg-muted/20 shimmer" />
+              </div>
+              <div className="h-8 w-36 rounded-full bg-muted/15 shimmer" />
+            </div>
+          ) : (
           <div className="relative overflow-hidden rounded-3xl p-6 min-h-[160px] flex flex-col justify-between bg-[linear-gradient(135deg,hsl(var(--primary)/0.14)_0%,hsl(var(--spark)/0.12)_35%,hsl(var(--background)/0.96)_100%)] shadow-xl">
             <div className="absolute -top-14 -right-8 h-32 w-32 rounded-full bg-[hsl(var(--spark)/0.16)] blur-3xl" />
             <div className="absolute -bottom-12 -left-10 h-32 w-32 rounded-full bg-[hsl(var(--primary)/0.14)] blur-3xl" />
@@ -181,6 +194,7 @@ export const MobileWallet = ({
               </span>
             </div>
           </div>
+          )}
         </section>
 
         <section className="mb-3">
@@ -189,6 +203,12 @@ export const MobileWallet = ({
             count={ledger.length}
             color="hsl(var(--info))"
           />
+          {showTopSectionLoading ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="h-[88px] rounded-2xl bg-muted/20 shimmer" />
+              <div className="h-[88px] rounded-2xl bg-muted/20 shimmer" />
+            </div>
+          ) : (
           <div className="grid grid-cols-2 gap-3">
             <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
               <ArrowDownLeft className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
@@ -227,9 +247,20 @@ export const MobileWallet = ({
               </div>
             </div>
           </div>
+          )}
         </section>
 
-        <MobileActionRail actions={railActions} />
+        {showTopSectionLoading ? (
+          <div className="mb-3 px-1">
+            <div className="flex gap-2 overflow-hidden">
+              <div className="h-12 flex-1 rounded-2xl bg-muted/20 shimmer" />
+              <div className="h-12 flex-1 rounded-2xl bg-muted/20 shimmer" />
+              <div className="h-12 flex-1 rounded-2xl bg-muted/20 shimmer" />
+            </div>
+          </div>
+        ) : (
+          <MobileActionRail actions={railActions} />
+        )}
 
         <div className="flex items-center gap-2 mb-3 px-1">
           <div className="p-1 rounded-xl bg-muted/20 backdrop-blur-md flex relative w-full">

@@ -321,6 +321,7 @@ export const VerificationQueue = () => {
           setQueueType={setQueueType}
           providers={providers}
           organizations={organizations}
+          loading={loading}
           stats={stats}
           orgStats={orgStats}
           filters={filters}

@@ -158,6 +158,7 @@ export const MobileHospitals = ({
         return result;
     }, [hospitals, filters]);
     const { displayItems: displayHospitals, isBuffering } = useStableList(filteredHospitals, loading);
+  const showTopSectionLoading = loading && displayHospitals.length === 0;
 
     const canManage = isAdmin || isOrgAdmin;
     const averageRating = filteredHospitals.length > 0
@@ -174,6 +175,7 @@ export const MobileHospitals = ({
                 animatePageLoad={false}
                 kpiStrip={(
                     <MobileKPIStrip
+            loading={showTopSectionLoading}
                         kpis={kpis}
                         activeKpi={filters?.kpiFilter || 'all'}
                         onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
@@ -182,6 +184,7 @@ export const MobileHospitals = ({
                 contentClassName="pt-4 pb-4 text-foreground"
             >
                 <MobileFeaturedMetric
+          loading={showTopSectionLoading}
                     items={[
                         {
                             label: 'Network Capacity',
@@ -225,6 +228,7 @@ export const MobileHospitals = ({
                         color="hsl(var(--success))"
                     />
                     <MobileSecondaryMetricRail
+            loading={showTopSectionLoading}
                         variant="icon"
                         items={[
                             {

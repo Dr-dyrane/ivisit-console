@@ -71,6 +71,7 @@ export const MobilePricing = ({
   const getItemPrice = (item) => Number(item.base_price || item.price_per_night || 0);
   const isGlobal = (item) => !item.organization_id && !item.hospital_id;
   const hasActiveRecovery = Boolean(searchTerm) || kpiFilter !== 'all';
+  const showTopSectionLoading = loading && pricing.length === 0 && allPricing.length === 0;
 
   const periodTrends = useMemo(() => {
     const periodMs = 30 * 24 * 60 * 60 * 1000;
@@ -107,6 +108,7 @@ export const MobilePricing = ({
         animatePageLoad={false}
         kpiStrip={(
           <MobileKPIStrip
+            loading={showTopSectionLoading}
             kpis={kpis}
             activeKpi={kpiFilter}
             onKpiClick={setKpiFilter}
@@ -115,6 +117,7 @@ export const MobilePricing = ({
         contentClassName="pt-4 pb-4 text-foreground"
       >
         <MobileFeaturedMetric
+          loading={showTopSectionLoading}
           items={[
             {
               label: activeTab === 'services' ? 'Average Service Price' : 'Average Room Price',
@@ -158,6 +161,7 @@ export const MobilePricing = ({
             color="hsl(var(--info))"
           />
           <MobileSecondaryMetricRail
+            loading={showTopSectionLoading}
             items={[
               {
                 icon: Globe,

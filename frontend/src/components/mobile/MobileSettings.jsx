@@ -16,6 +16,7 @@ import { MobilePageShell } from './MobilePageShell';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 
 export const MobileSettings = ({
+  loading = false,
   profile,
   user,
   avatarUrl,
@@ -35,6 +36,19 @@ export const MobileSettings = ({
   return (
     <MobilePageShell contentClassName="pt-4 pb-4 text-foreground">
       <section className="mb-3 px-1">
+        {loading ? (
+          <div className="apple-glass-heavy rounded-3xl p-4 border-0">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-16 w-16 rounded-2xl bg-muted/20 shimmer" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-5 w-32 rounded bg-muted/20 shimmer" />
+                <div className="h-3 w-44 rounded bg-muted/15 shimmer" />
+                <div className="h-5 w-24 rounded-full bg-muted/15 shimmer" />
+              </div>
+            </div>
+            <div className="h-8 w-full rounded-xl bg-muted/15 shimmer" />
+          </div>
+        ) : (
         <div className="apple-glass-heavy rounded-3xl p-4 border-0">
           <div className="flex items-center gap-3 mb-3">
             <Avatar className="h-16 w-16 rounded-2xl border border-white/10">
@@ -64,6 +78,7 @@ export const MobileSettings = ({
             </div>
           )}
         </div>
+        )}
       </section>
 
       <MobileSectionHeader label="Account" color="hsl(var(--primary))" />

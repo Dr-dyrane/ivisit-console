@@ -157,6 +157,7 @@ export const MobileUsers = ({
     const verifiedUsers = users.filter(u => u.bvn_verified).length;
     const verificationRate = users.length ? (verifiedUsers / users.length) * 100 : 0;
     const { displayItems: displayUsers, isBuffering } = useStableList(users, loading);
+    const showInitialScaffoldLoading = loading && displayUsers.length === 0;
 
     const getRoleColor = (role) => {
         switch (role) {
@@ -172,60 +173,70 @@ export const MobileUsers = ({
             <MobilePageShell
                 animatePageLoad={false}
                 kpiStrip={(
-                    <MobileKPIStrip
-                        kpis={userKPIs}
-                        activeKpi={filters.kpiFilter || 'all'}
-                        onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
-                    />
+                    <div>
+                        <MobileKPIStrip
+                            loading={showInitialScaffoldLoading}
+                            kpis={userKPIs}
+                            activeKpi={filters.kpiFilter || 'all'}
+                            onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
+                        />
+                    </div>
                 )}
                 contentClassName="pt-4 pb-4 text-foreground"
             >
                 {/* B. ACTIVE USERS */}
-                <MobileFeaturedMetric
-                    items={[
-                        {
-                            label: 'Active Users',
-                            value: activeUsers,
-                            trend: formatSignedPercent(verificationRate - 50) || 'LIVE',
-                            icon: Activity,
-                            color: 'hsl(var(--success))',
-                            chartData: growthData
-                        },
-                        {
-                            label: 'Total Users',
-                            value: totalUsers,
-                            trend: totalTrend.delta,
-                            icon: Users,
-                            color: 'hsl(var(--primary))',
-                            chartData: growthData
-                        },
-                        {
-                            label: 'Verified',
-                            value: verifiedUsersCount,
-                            trend: verifiedTrend.delta,
-                            icon: BadgeCheck,
-                            color: 'hsl(var(--info))',
-                            chartData: growthData
-                        },
-                        {
-                            label: 'Staff',
-                            value: staffMembers,
-                            trend: staffTrend.delta,
-                            icon: Shield,
-                            color: 'hsl(var(--warning))',
-                            chartData: growthData
-                        }
-                    ]}
-                />
+                <div>
+                    <MobileFeaturedMetric
+                        loading={showInitialScaffoldLoading}
+                        items={[
+                            {
+                                label: 'Active Users',
+                                value: activeUsers,
+                                trend: formatSignedPercent(verificationRate - 50) || 'LIVE',
+                                icon: Activity,
+                                color: 'hsl(var(--success))',
+                                chartData: growthData
+                            },
+                            {
+                                label: 'Total Users',
+                                value: totalUsers,
+                                trend: totalTrend.delta,
+                                icon: Users,
+                                color: 'hsl(var(--primary))',
+                                chartData: growthData
+                            },
+                            {
+                                label: 'Verified',
+                                value: verifiedUsersCount,
+                                trend: verifiedTrend.delta,
+                                icon: BadgeCheck,
+                                color: 'hsl(var(--info))',
+                                chartData: growthData
+                            },
+                            {
+                                label: 'Staff',
+                                value: staffMembers,
+                                trend: staffTrend.delta,
+                                icon: Shield,
+                                color: 'hsl(var(--warning))',
+                                chartData: growthData
+                            }
+                        ]}
+                    />
+                </div>
 
                 {/* C. USER VELOCITY */}
                 <section className="mb-3">
-                    <MobileSectionHeader
-                        label="User Velocity"
-                        count={statistics?.recentSignups}
-                        color="hsl(var(--info))"
-                    />
+                    {!showInitialScaffoldLoading && (
+                        <MobileSectionHeader
+                            label="User Velocity"
+                            count={statistics?.recentSignups}
+                            color="hsl(var(--info))"
+                        />
+                    )}
                     <MobileSecondaryMetricRail
+                        loading={showInitialScaffoldLoading}
+                        loadingCount={2}
                         variant="icon"
                         items={[
                             {
@@ -273,39 +284,49 @@ export const MobileUsers = ({
                 </section>
 
                 {/* D. SEARCH & FILTER */}
-                <div className="flex items-center gap-2 mb-3 px-1">
-                    <div className="flex-1 relative group">
-                        <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Search users..."
-                            value={filters.search || ''}
-                            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                            className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy border-0 text-[12px] font-normal placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary/20 outline-none transition-all"
-                        />
-                    </div>
-                    <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={(event) => {
-                            onOpenFilters?.();
-                            triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
-                        }}
-                        className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0"
-                    >
-                        <SlidersHorizontal size={18} />
-                    </motion.button>
-
-                    {(isAdmin || isOrgAdmin) && (
+                <div className="mb-3">
+                    {showInitialScaffoldLoading ? (
+                        <div className="flex items-center gap-2 px-1">
+                            <div className="h-11 flex-1 rounded-2xl bg-muted/20" />
+                            <div className="w-11 h-11 rounded-2xl bg-muted/20 shrink-0" />
+                            {(isAdmin || isOrgAdmin) && <div className="w-11 h-11 rounded-2xl bg-muted/20 shrink-0" />}
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 px-1">
+                        <div className="flex-1 relative group">
+                            <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
+                            <input
+                                type="text"
+                                placeholder="Search users..."
+                                value={filters.search || ''}
+                                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                                className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy border-0 text-[12px] font-normal placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary/20 outline-none transition-all"
+                            />
+                        </div>
                         <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={(event) => {
-                                onViewAnalytics?.();
-                                triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
+                                onOpenFilters?.();
+                                triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
                             }}
-                            className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0 shadow-sm"
+                            className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0"
                         >
-                            <BarChart3 size={18} />
+                            <SlidersHorizontal size={18} />
                         </motion.button>
+
+                        {(isAdmin || isOrgAdmin) && (
+                            <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={(event) => {
+                                    onViewAnalytics?.();
+                                    triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
+                                }}
+                                className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0 shadow-sm"
+                            >
+                                <BarChart3 size={18} />
+                            </motion.button>
+                        )}
+                        </div>
                     )}
                 </div>
 

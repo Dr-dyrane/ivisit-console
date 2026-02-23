@@ -12,7 +12,14 @@ import { useScrollCooldown } from './useScrollCooldown';
  * Canon #10: Dashboard = Control
  * Canon #29: Ruthless Hierarchy
  */
-export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi, animateOnMount = true }) => {
+export const MobileKPIStrip = ({
+    kpis,
+    onKpiClick,
+    activeKpi,
+    animateOnMount = true,
+    loading = false,
+    loadingCount = 4
+}) => {
     const reduceMotion = useReducedMotion();
     const { isScrolling, bind } = useScrollCooldown(180);
     const allKpis = kpis || [];
@@ -40,6 +47,24 @@ export const MobileKPIStrip = ({ kpis, onKpiClick, activeKpi, animateOnMount = t
         : reduceMotion
         ? { initial: false, animate: { opacity: 1, y: 0 }, transition: { duration: 0 } }
         : { initial: { opacity: 0.98, y: -4 }, animate: { opacity: 1, y: 0 }, transition: mobileMotion.reveal };
+
+    if (loading) {
+        return (
+            <div className="sticky top-0 z-40 w-full px-2 py-3 border-0 shadow-none relative overflow-hidden">
+                <div className="flex gap-2 overflow-hidden">
+                    {Array.from({ length: Math.max(1, loadingCount) }).map((_, idx) => (
+                        <div
+                            key={idx}
+                            className="h-12 flex-1 rounded-[14px] bg-muted/20 shrink-0"
+                            style={{
+                                minWidth: loadingCount <= 4 ? `calc((100% - ${(loadingCount - 1) * 8}px) / ${loadingCount})` : 'auto'
+                            }}
+                        />
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <motion.div

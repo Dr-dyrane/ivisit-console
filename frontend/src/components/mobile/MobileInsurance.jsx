@@ -84,6 +84,7 @@ export const MobileInsurance = ({
     return result;
   }, [policies, filters]);
   const { displayItems: displayPolicies, isBuffering } = useStableList(filteredPolicies, loading);
+  const showTopSectionLoading = loading && displayPolicies.length === 0;
 
   const periodTrends = useMemo(() => {
     const periodMs = 30 * 24 * 60 * 60 * 1000;
@@ -117,10 +118,12 @@ export const MobileInsurance = ({
   return (
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
-        kpiStrip={<MobileKPIStrip kpis={kpis} activeKpi={filters?.kpiFilter || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))} />}
+        kpiStrip={<MobileKPIStrip
+            loading={showTopSectionLoading} kpis={kpis} activeKpi={filters?.kpiFilter || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))} />}
         contentClassName="pt-4 pb-4 text-foreground"
       >
         <MobileFeaturedMetric
+          loading={showTopSectionLoading}
           items={[
             {
               label: 'Active Coverage',
@@ -164,6 +167,7 @@ export const MobileInsurance = ({
             color="hsl(var(--info))"
           />
           <MobileSecondaryMetricRail
+            loading={showTopSectionLoading}
             items={[
               {
                 icon: CheckCircle,

@@ -54,9 +54,9 @@ export const MobileSecondaryMetricCard = ({
             <Comp
                 type={isInteractive ? 'button' : undefined}
                 onClick={handleClick}
-                className={`p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 text-left ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] active:scale-[0.985] cursor-pointer transform-gpu' : ''}`}
+                className={`w-full min-w-0 p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 text-left ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] active:scale-[0.985] cursor-pointer transform-gpu' : ''}`}
             >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                     {Icon && (
                         <div
                             className={`w-10 h-10 rounded-full flex items-center justify-center ${iconBgClass || ''}`}
@@ -68,12 +68,12 @@ export const MobileSecondaryMetricCard = ({
                             />
                         </div>
                     )}
-                    <div className="flex flex-col">
-                        <span className="text-[11px] font-medium tracking-tight">{title}</span>
-                        <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">{subtitle}</span>
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-[11px] font-medium tracking-tight truncate">{title}</span>
+                        <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50 truncate">{subtitle}</span>
                     </div>
                 </div>
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">{value}</span>
+                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers shrink-0 pl-2">{value}</span>
             </Comp>
         );
     }
@@ -83,17 +83,17 @@ export const MobileSecondaryMetricCard = ({
         <Comp
             type={isInteractive ? 'button' : undefined}
             onClick={handleClick}
-            className={`relative w-full p-4 apple-glass-heavy rounded-2xl border-0 overflow-hidden text-left flex items-center justify-between ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] active:scale-[0.985] cursor-pointer transform-gpu' : ''}`}
+            className={`relative w-full min-w-0 p-4 apple-glass-heavy rounded-2xl border-0 overflow-hidden text-left flex items-center justify-between ${isInteractive ? 'transition-[transform,background-color,box-shadow] duration-200 hover:bg-white/[0.04] active:bg-white/[0.06] active:scale-[0.985] cursor-pointer transform-gpu' : ''}`}
         >
             {Icon && <Icon className="absolute top-3 right-3 h-4 w-4 text-primary/30" />}
-            <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">{title}</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">{subtitle}</span>
+            <div className="flex flex-col pr-6 min-w-0 flex-1">
+                <span className="text-[11px] font-medium tracking-tight truncate">{title}</span>
+                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50 truncate">{subtitle}</span>
             </div>
-            <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">{value}</span>
+            <div className="flex flex-col items-end shrink-0 pl-2">
+                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers whitespace-nowrap">{value}</span>
                 {trendText ? (
-                    <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+                    <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70 whitespace-nowrap">
                         {trendDirection === 'up' && <ArrowUpRight className={`h-3 w-3 ${trendUpClass}`} />}
                         {trendDirection === 'down' && <ArrowDownRight className={`h-3 w-3 ${trendDownClass}`} />}
                         {(!trendDirection || trendDirection === 'flat') && <Minus className={`h-3 w-3 ${trendFlatClass}`} />}
@@ -118,10 +118,45 @@ export default MobileSecondaryMetricCard;
 export const MobileSecondaryMetricRail = ({
     items = [],
     variant = 'compact',
-    className = ''
+    className = '',
+    loading = false,
+    loadingCount = 2
 }) => {
+    if (loading) {
+        const skeletonItems = Array.from({ length: Math.max(1, loadingCount) });
+        return (
+            <div className={`relative ${className}`}>
+                <div className="flex gap-2 overflow-hidden px-0.5">
+                    {skeletonItems.map((_, idx) => (
+                        <div
+                            key={idx}
+                            className="shrink-0"
+                            style={{ flex: '0 0 calc((100% - 8px) / 2)', maxWidth: 'calc((100% - 8px) / 2)' }}
+                        >
+                            <div className="h-[88px] rounded-2xl bg-muted/20" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     if (items.length === 0) return null;
     const { isScrolling, bind } = useScrollCooldown(180);
+    const gapPx = 8; // gap-2
+
+    const getCardBasis = () => {
+        // Single item remains full-width.
+        if (items.length === 1) {
+            return '100%';
+        }
+
+        // Two-up rail (KPI-like simplicity): always fit two cards per viewport,
+        // while still allowing horizontal scroll for 3+ items.
+        return `calc((100% - ${gapPx}px) / 2)`;
+    };
+
+    const cardBasis = getCardBasis();
 
     // Single item: render full-width card
     if (items.length === 1) {
@@ -136,13 +171,17 @@ export const MobileSecondaryMetricRail = ({
     return (
         <div className={`relative ${className}`}>
             <div
-                className="flex gap-2 overflow-x-auto pb-1 no-scrollbar"
+                className="flex gap-2 overflow-x-auto pb-1 no-scrollbar px-0.5"
                 {...bind}
             >
                 {items.map((item, idx) => (
                     <div
                         key={idx}
-                        className={`shrink-0 ${variant === 'icon' ? 'w-[min(84vw,20rem)]' : 'w-[min(80vw,19rem)]'} ${isScrolling ? 'pointer-events-none' : ''}`}
+                        className={`shrink-0 min-w-0 ${isScrolling ? 'pointer-events-none' : ''}`}
+                        style={{
+                            flex: `0 0 ${cardBasis}`,
+                            maxWidth: cardBasis
+                        }}
                     >
                         <MobileSecondaryMetricCard variant={variant} {...item} />
                     </div>

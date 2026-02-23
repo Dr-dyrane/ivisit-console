@@ -182,6 +182,7 @@ export const MobileVisits = ({
         return result;
     }, [visits, filters]);
     const { displayItems: displayVisits, isBuffering } = useStableList(filteredVisits, loading);
+  const showTopSectionLoading = loading && displayVisits.length === 0;
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -207,6 +208,7 @@ export const MobileVisits = ({
                 animatePageLoad={false}
                 kpiStrip={(
                     <MobileKPIStrip
+            loading={showTopSectionLoading}
                         kpis={visitKPIs}
                         activeKpi={filters?.kpiFilter || 'all'}
                         onKpiClick={(id) => setFilters?.(prev => ({ ...prev, kpiFilter: id }))}
@@ -216,6 +218,7 @@ export const MobileVisits = ({
             >
                 {/* B. TODAY'S APPOINTMENTS */}
                 <MobileFeaturedMetric
+          loading={showTopSectionLoading}
                     items={[
                         {
                             label: "Today's Appointments",
@@ -260,6 +263,7 @@ export const MobileVisits = ({
                         color="hsl(var(--success))"
                     />
                     <MobileSecondaryMetricRail
+            loading={showTopSectionLoading}
                         variant="icon"
                         items={[
                             {

@@ -12,6 +12,7 @@ import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
  */
 export const MobileFeaturedMetric = ({
     items,
+    loading = false,
     // Legacy single-item props (preserved for backward compatibility)
     label,
     value,
@@ -28,6 +29,23 @@ export const MobileFeaturedMetric = ({
     const data = items && items.length > 0
         ? items
         : (label ? [{ label, value, trend, chartData, icon: Icon, color, onClick }] : []);
+
+    if (loading) {
+        return (
+            <div className="mb-4 px-1">
+                <div className="rounded-3xl apple-glass-heavy p-4 sm:p-5 space-y-4 min-h-[160px]">
+                    <div className="flex justify-between items-start gap-3">
+                        <div className="space-y-2 min-w-0 flex-1">
+                            <div className="h-3 w-24 rounded bg-muted/20" />
+                            <div className="h-9 w-32 rounded bg-muted/20" />
+                        </div>
+                        <div className="w-10 h-10 rounded-2xl bg-muted/20 shrink-0" />
+                    </div>
+                    <div className="h-14 rounded-xl bg-muted/20" />
+                </div>
+            </div>
+        );
+    }
 
     if (data.length === 0) return null;
 

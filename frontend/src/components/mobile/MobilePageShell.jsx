@@ -17,10 +17,10 @@ export const MobilePageShell = ({
 }) => {
     const reduceMotion = useReducedMotion();
     const pageLoadMotion = reduceMotion
-        ? { initial: false, animate: { opacity: 1, scale: 1 }, transition: { duration: 0 } }
+        ? { initial: false, animate: { opacity: 1 }, transition: { duration: 0 } }
         : {
-            initial: { opacity: 0, scale: 0.985 },
-            animate: { opacity: 1, scale: 1 },
+            initial: { opacity: 0 },
+            animate: { opacity: 1 },
             transition: { duration: 0.2, ease: mobileMotion.reveal.ease }
         };
 
@@ -35,8 +35,8 @@ export const MobilePageShell = ({
                             animate={pageLoadMotion.animate}
                             transition={pageLoadMotion.transition}
                             style={{
-                                willChange: reduceMotion ? 'auto' : 'opacity, transform',
-                                transformOrigin: '50% 12%'
+                                //  willChange: reduceMotion ? 'auto' : 'opacity, transform',
+                                // transformOrigin: '50% 12%'
                             }}
                         >
                             {children}

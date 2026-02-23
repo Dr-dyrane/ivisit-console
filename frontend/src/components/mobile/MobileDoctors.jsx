@@ -156,6 +156,7 @@ export const MobileDoctors = ({
         return result;
     }, [doctors, filters]);
     const { displayItems: displayDoctors, isBuffering } = useStableList(filteredDoctors, loading);
+  const showTopSectionLoading = loading && displayDoctors.length === 0;
 
     const avgRating = filteredDoctors.length
         ? filteredDoctors.reduce((sum, d) => sum + (Number(d.rating) || 0), 0) / filteredDoctors.length
@@ -179,6 +180,7 @@ export const MobileDoctors = ({
                 animatePageLoad={false}
                 kpiStrip={(
                     <MobileKPIStrip
+            loading={showTopSectionLoading}
                         kpis={doctorKpis}
                         activeKpi={filters?.kpiFilter || 'all'}
                         onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
@@ -187,6 +189,7 @@ export const MobileDoctors = ({
                 contentClassName="pt-4 pb-4 text-foreground"
             >
                 <MobileFeaturedMetric
+          loading={showTopSectionLoading}
                     items={[
                         {
                             label: 'Clinical Readiness',
@@ -230,6 +233,7 @@ export const MobileDoctors = ({
                         color="hsl(var(--info))"
                     />
                     <MobileSecondaryMetricRail
+            loading={showTopSectionLoading}
                         variant="icon"
                         items={[
                             {

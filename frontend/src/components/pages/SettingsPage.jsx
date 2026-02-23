@@ -24,7 +24,7 @@ import { useDoctorProfile } from '../../hooks/useDoctorProfile';
 import { MobileSettings } from '../mobile/MobileSettings';
 
 export const SettingsPage = () => {
-    const { user, profile, signOut, isAdmin, isSponsor, isProvider } = useAuth();
+    const { user, profile, signOut, isAdmin, isSponsor, isProvider, loading } = useAuth();
     const { isMobile } = useNavigation();
     const { doctorProfile } = useDoctorProfile();
     const [displayId, setDisplayId] = useState(null);
@@ -124,6 +124,7 @@ export const SettingsPage = () => {
         return (
             <div className="min-h-screen">
                 <MobileSettings
+                    loading={loading}
                     profile={profile}
                     user={user}
                     avatarUrl={avatarUrl}
