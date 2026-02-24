@@ -173,11 +173,14 @@ export const HospitalsPage = () => {
           // because the FOR ALL RLS policy using get_current_user_role() doesn't match
           // rows for DELETE operations even when the caller IS admin.
           // SECURITY DEFINER RPC bypasses RLS entirely. See migration 20260216070700.
-          const { error } = await supabase.rpc('delete_hospital_by_admin', {
+          const { data, error } = await supabase.rpc('delete_hospital_by_admin', {
             target_hospital_id: hospital.id
           });
 
           if (error) throw error;
+          if (data && data.success === false) {
+            throw new Error(data.error || 'Hospital deletion failed');
+          }
 
           await createNotification(
             NotificationTypes.HOSPITAL,

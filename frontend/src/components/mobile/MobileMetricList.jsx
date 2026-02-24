@@ -125,7 +125,8 @@ export const MobileMetricRow = ({
     onSelect,
     selectionMode,
     rightBlade,
-    layoutEnabled = true
+    layoutEnabled = true,
+    attentionPulse = false
 }) => {
     const { triggerFromEvent } = useFeedback();
     // Backward compatibility: Use internal state if controlled props not provided
@@ -298,10 +299,20 @@ export const MobileMetricRow = ({
                 </AnimatePresence>
 
                 {/* 2px Left Accent - The only differentiator */}
-                <div
-                    className="absolute left-0 top-0 bottom-0 w-[2px] opacity-60"
-                    style={{ backgroundColor: color }}
-                />
+                {attentionPulse ? (
+                    <motion.div
+                        initial={false}
+                        animate={{ opacity: [0.45, 1, 0.45] }}
+                        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                        className="absolute left-0 top-0 bottom-0 w-[3px]"
+                        style={{ backgroundColor: color }}
+                    />
+                ) : (
+                    <div
+                        className="absolute left-0 top-0 bottom-0 w-[2px] opacity-60"
+                        style={{ backgroundColor: color }}
+                    />
+                )}
 
                 <div
                     className={`w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0 relative z-10 shadow-md transition-all duration-300 ${isSelected ? 'scale-110' : ''}`}

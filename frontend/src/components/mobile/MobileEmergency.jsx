@@ -171,6 +171,10 @@ export const MobileEmergency = ({
         }
     };
 
+    const needsApproval = (emergency) =>
+        emergency?.status === 'pending_approval' ||
+        (emergency?.payment_method_id === 'cash' && emergency?.payment_status && emergency.payment_status !== 'completed');
+
     return (
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
@@ -322,26 +326,60 @@ export const MobileEmergency = ({
 
                 <div className="space-y-1">
                     {displayEmergencies.map((emergency) => (
+                        (() => {
+                            const approvalNeeded = needsApproval(emergency);
+                            const rowColor = approvalNeeded ? 'hsl(var(--warning))' : getSeverityColor(emergency.service_type);
+                            const blade = approvalNeeded
+                                ? {
+                                    badge: 'APPROVAL',
+                                    direction: 'flat',
+                                    label: 'Cash Gate',
+                                    value: String(emergency.payment_status || 'pending').toUpperCase(),
+                                    color: 'hsl(var(--warning))'
+                                }
+                                : {
+                                    badge: emergency.status === 'active' ? 'LIVE' : emergency.status === 'responding' ? 'ENROUTE' : 'RESOLVED',
+                                    direction: emergency.status === 'resolved' ? 'up' : emergency.status === 'active' ? 'down' : 'flat',
+                                    label: 'Priority',
+                                    value: String(emergency.priority || 'normal').toUpperCase(),
+                                    color: getStatusColor(emergency.status)
+                                };
+                            return (
                         <MobileMetricRow
                             key={emergency.id}
                             layoutEnabled={false}
                             icon={getStatusIcon(emergency.status)}
-                            color={getSeverityColor(emergency.service_type)}
+                            color={rowColor}
+                            attentionPulse={approvalNeeded}
                             label={emergency.service_type?.replace('_', ' ').toUpperCase() || 'MEDICAL EMERGENCY'}
                             value={emergency.patient_name || emergency.patient?.name || `Patient #${emergency.id?.slice(-4) || '??'}`}
                             trend={formatDate(emergency.created_at)}
-                            rightBlade={{
-                                badge: emergency.status === 'active' ? 'LIVE' : emergency.status === 'responding' ? 'ENROUTE' : 'RESOLVED',
-                                direction: emergency.status === 'resolved' ? 'up' : emergency.status === 'active' ? 'down' : 'flat',
-                                label: 'Priority',
-                                value: String(emergency.priority || 'normal').toUpperCase(),
-                                color: getStatusColor(emergency.status)
-                            }}
+                            statusIndicators={approvalNeeded ? [{
+                                icon: AlertCircle,
+                                color: 'hsl(var(--warning))',
+                                label: 'Approval Needed'
+                            }] : []}
+                            rightBlade={blade}
                             isExpanded={expandedEmergencyId === emergency.id}
                             onExpand={setExpandedEmergencyId}
                             itemId={emergency.id}
                             expandedContent={
                                 <div className="space-y-4 py-3">
+                                        {approvalNeeded && (
+                                            <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-warning/10 border border-warning/15">
+                                                <div className="min-w-0">
+                                                    <div className="text-[9px] uppercase tracking-[0.18em] font-semibold text-warning/90">Approval Needed</div>
+                                                    <div className="text-xs font-semibold text-foreground truncate">Cash payment awaiting verification</div>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="shrink-0 h-10 px-3 rounded-xl bg-warning/15 hover:bg-warning/20 text-warning border-0 active:scale-95"
+                                                    onClick={() => onView(emergency)}
+                                                >
+                                                    <span className="text-[9px] uppercase font-semibold tracking-[0.18em]">Review</span>
+                                                </Button>
+                                            </div>
+                                        )}
                                         {/* Emergency Details */}
                                         <div className="grid grid-cols-1 gap-2">
                                             <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
@@ -397,17 +435,21 @@ export const MobileEmergency = ({
                                                 onClick={() => onView(emergency)}
                                             >
                                                 <Eye size={16} className="text-primary/60" />
-                                                <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Details</span>
+                                                <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">{approvalNeeded ? 'Review' : 'Details'}</span>
                                             </Button>
-                                            {(isAdmin || emergency.status === 'active') && (
+                                            {(isAdmin || emergency.status === 'active' || approvalNeeded) && (
                                                 <>
                                                     <Button
                                                         variant="ghost"
                                                         className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
-                                                        onClick={() => onEdit(emergency)}
+                                                        onClick={() => approvalNeeded ? onView(emergency) : onEdit(emergency)}
                                                     >
-                                                        <Navigation size={16} className="text-warning/60" />
-                                                        <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Navigate</span>
+                                                        {approvalNeeded ? (
+                                                            <CheckCircle2 size={16} className="text-warning/70" />
+                                                        ) : (
+                                                            <Navigation size={16} className="text-warning/60" />
+                                                        )}
+                                                        <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">{approvalNeeded ? 'Approve' : 'Navigate'}</span>
                                                     </Button>
                                                     {isAdmin && (
                                                         <Button
@@ -424,6 +466,8 @@ export const MobileEmergency = ({
                                 </div>
                             }
                         />
+                            );
+                        })()
                     ))}
 
                     {/* Infinite Scroll Sentinel */}

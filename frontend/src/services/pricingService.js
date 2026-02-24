@@ -7,29 +7,62 @@ import { supabase } from '../lib/supabase';
 
 export const getPricing = async (type = 'services', organizationId = null) => {
     const table = type === 'services' ? 'service_pricing' : 'room_pricing';
+    const [{ data: hospitals, error: hospitalsError }, { data, error }] = await Promise.all([
+        supabase.from('hospitals').select('id, organization_id'),
+        supabase.from(table).select('*').order('updated_at', { ascending: false })
+    ]);
 
-    let query = supabase.from(table).select('*');
+    if (hospitalsError) throw hospitalsError;
+    if (error) throw error;
+
+    const hospitalOrgMap = new Map((hospitals || []).map(h => [h.id, h.organization_id]));
+    let normalized = (data || []).map(item => ({
+        ...item,
+        organization_id: item.organization_id ?? (item.hospital_id ? hospitalOrgMap.get(item.hospital_id) || null : null)
+    }));
 
     if (organizationId) {
-        // Return items that are global OR specifically for this organization
-        query = query.or(`organization_id.eq.${organizationId},and(organization_id.is.null)`);
+        // Return items that are global OR mapped to this organization (hospital-scoped pricing)
+        normalized = normalized.filter(item => !item.hospital_id || item.organization_id === organizationId);
     }
 
-    const { data, error } = await query.order('updated_at', { ascending: false });
+    return normalized;
+};
+
+const resolveHospitalIdForPricing = async (item) => {
+    if (item.hospital_id) return item.hospital_id;
+
+    if (!item.organization_id) return null; // global pricing
+
+    const { data, error } = await supabase
+        .from('hospitals')
+        .select('id')
+        .eq('organization_id', item.organization_id)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
     if (error) throw error;
-    return data;
+    if (!data?.id) {
+        throw new Error('No hospital found for the selected organization. Create a hospital first to manage organization pricing.');
+    }
+
+    return data.id;
 };
 
 export const saveServicePricing = async (item) => {
+    const hospitalId = await resolveHospitalIdForPricing(item);
+    const payload = {
+        id: item.id || null,
+        hospital_id: hospitalId,
+        service_type: item.service_type || item.category,
+        service_name: item.service_name,
+        base_price: item.base_price,
+        description: item.description ?? item.metadata?.description ?? null
+    };
+
     const { data, error } = await supabase.rpc('upsert_service_pricing', {
-        p_id: item.id || null,
-        p_service_name: item.service_name,
-        p_base_price: item.base_price,
-        p_unit: item.unit,
-        p_category: item.category || item.service_type,
-        p_organization_id: item.organization_id || null,
-        p_metadata: item.metadata || {}
+        payload
     });
 
     if (error) throw error;
@@ -39,7 +72,7 @@ export const saveServicePricing = async (item) => {
 
 export const deleteServicePricing = async (id) => {
     const { data, error } = await supabase.rpc('delete_service_pricing', {
-        p_id: id
+        target_id: id
     });
 
     if (error) throw error;
@@ -48,14 +81,18 @@ export const deleteServicePricing = async (id) => {
 };
 
 export const saveRoomPricing = async (item) => {
+    const hospitalId = await resolveHospitalIdForPricing(item);
+    const payload = {
+        id: item.id || null,
+        hospital_id: hospitalId,
+        room_name: item.room_name,
+        room_type: item.room_type,
+        price_per_night: item.price_per_night,
+        description: item.description || null
+    };
+
     const { data, error } = await supabase.rpc('upsert_room_pricing', {
-        p_id: item.id || null,
-        p_room_name: item.room_name,
-        p_room_type: item.room_type,
-        p_price_per_night: item.price_per_night,
-        p_currency: item.currency || 'USD',
-        p_description: item.description || null,
-        p_organization_id: item.organization_id || null
+        payload
     });
 
     if (error) throw error;
@@ -65,7 +102,7 @@ export const saveRoomPricing = async (item) => {
 
 export const deleteRoomPricing = async (id) => {
     const { data, error } = await supabase.rpc('delete_room_pricing', {
-        p_id: id
+        target_id: id
     });
 
     if (error) throw error;

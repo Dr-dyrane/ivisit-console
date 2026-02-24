@@ -24,49 +24,47 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
   const { isAdmin, isOrgAdmin, orgId } = useAuth();
   const [hospitals, setHospitals] = useState([]);
 
-  const [formData, setFormData] = useState({
-    username: '',
-    full_name: '',
-    email: '',
-    phone: '',
-    role: 'patient',
-    provider_type: '',
-    gender: '',
-    date_of_birth: '',
-    address: '',
-    bvn_verified: false,
-    organization_id: isOrgAdmin() ? orgId : '', // Auto-set for OrgAdmin
-    ...user
+  const inferRole = (u) => {
+    if (!u) return 'patient';
+    if (u.role) return u.role;
+    if (u.profile_role) return u.profile_role;
+    if (u.provider_type) return 'provider';
+    return 'patient';
+  };
+
+  const getInitialFormState = (sourceUser) => ({
+    ...(sourceUser || {}),
+    username: sourceUser?.username || sourceUser?.profile_username || '',
+    full_name: sourceUser?.full_name || '',
+    email: sourceUser?.email || '',
+    phone: sourceUser?.phone || '',
+    role: inferRole(sourceUser),
+    provider_type: sourceUser?.provider_type || '',
+    gender: sourceUser?.gender || '',
+    date_of_birth: sourceUser?.date_of_birth || '',
+    address: sourceUser?.address || '',
+    bvn_verified: !!sourceUser?.bvn_verified,
+    organization_id: sourceUser?.organization_id || (isOrgAdmin() ? orgId : ''),
+    image_uri: sourceUser?.image_uri || sourceUser?.avatar_url || '',
   });
+
+  const [formData, setFormData] = useState(getInitialFormState(user));
 
   // Sync user prop to state when it changes
   useEffect(() => {
     if (user) {
       setFormData(prev => ({
         ...prev,
-        ...user,
-        username: user.username || user.profile_username || '', // Handle varied naming
-        full_name: user.full_name || '',
-        role: user.role || 'patient',
+        ...getInitialFormState(user),
+        // Ensure normalized values win over raw source strings.
+        role: inferRole(user),
         provider_type: user.provider_type || '',
         organization_id: user.organization_id || (isOrgAdmin() ? orgId : ''),
-        image_uri: user.image_uri || user.avatar_url, // Sync to underscored field
+        image_uri: user.image_uri || user.avatar_url || '',
       }));
     } else if (isCreate) {
       // Reset for create mode
-      setFormData({
-        username: '',
-        full_name: '',
-        email: '',
-        phone: '',
-        role: 'patient',
-        provider_type: '',
-        gender: '',
-        date_of_birth: '',
-        address: '',
-        bvn_verified: false,
-        organization_id: isOrgAdmin() ? orgId : '',
-      })
+      setFormData(getInitialFormState(null))
     }
   }, [user, isCreate, isOrgAdmin, orgId]);
 
@@ -96,11 +94,49 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const normalizedRole = typeof formData.role === 'string' ? formData.role.trim() : formData.role;
+    const normalizedProviderType = typeof formData.provider_type === 'string' ? formData.provider_type.trim() : formData.provider_type;
+    const normalizedFullName = typeof formData.full_name === 'string' ? formData.full_name.trim() : formData.full_name;
+    const normalizedEmail = typeof formData.email === 'string' ? formData.email.trim() : formData.email;
+
+    if (!normalizedFullName) {
+      toast.error('Full name is required');
+      return;
+    }
+
+    if (!normalizedEmail) {
+      toast.error('Email is required');
+      return;
+    }
+
+    if (!normalizedRole) {
+      toast.error('Please select a system role');
+      return;
+    }
+
+    if (normalizedRole === 'provider' && !normalizedProviderType) {
+      toast.error('Please select a provider type');
+      return;
+    }
+
+    if ((normalizedRole === 'provider' || normalizedRole === 'org_admin') && !formData.organization_id) {
+      toast.error('Please select an organization');
+      return;
+    }
+
     setLoading(true);
 
     try {
+      const payload = {
+        ...formData,
+        role: normalizedRole,
+        provider_type: normalizedRole === 'provider' ? normalizedProviderType : '',
+        full_name: normalizedFullName,
+        email: normalizedEmail,
+      };
+
       if (onSave) {
-        await onSave(formData);
+        await onSave(payload);
       }
       toast.success(isCreate ? 'User created successfully' : 'User updated successfully');
       onClose(true);
@@ -254,7 +290,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                     <div className="space-y-2">
                       <Label htmlFor="role" className="text-xs font-semibold text-muted-foreground uppercase">System Role</Label>
                       <Select
-                        value={formData.role}
+                        value={formData.role || undefined}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
                         disabled={isView}
                       >
@@ -315,7 +351,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                       <div className="space-y-2">
                         <Label htmlFor="provider_type" className="text-xs font-semibold text-muted-foreground uppercase">Provider Type</Label>
                         <Select
-                          value={formData.provider_type}
+                          value={formData.provider_type || undefined}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, provider_type: value }))}
                           disabled={isView}
                         >

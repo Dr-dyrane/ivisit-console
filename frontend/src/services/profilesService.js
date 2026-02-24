@@ -267,22 +267,23 @@ export async function getProfile(profileId) {
  */
 export async function createProfile(input) {
   try {
+    const normalizeString = (value) => typeof value === 'string' ? value.trim() : value;
     const payload = {
       id: input.id,
-      email: input.email,
-      phone: input.phone,
-      username: input.username,
-      first_name: input.first_name,
-      last_name: input.last_name,
-      full_name: input.full_name,
+      email: normalizeString(input.email),
+      phone: normalizeString(input.phone) || null,
+      username: normalizeString(input.username) || null,
+      first_name: normalizeString(input.first_name) || null,
+      last_name: normalizeString(input.last_name) || null,
+      full_name: normalizeString(input.full_name),
       image_uri: input.image_uri || input.avatar_url,
-      role: input.role,
+      role: normalizeString(input.role) || 'patient',
       organization_id: input.organization_id === '' ? null : input.organization_id || null,
-      provider_type: input.provider_type,
+      provider_type: normalizeString(input.provider_type) || null,
       bvn_verified: input.bvn_verified || false,
-      address: input.address,
-      gender: input.gender,
-      date_of_birth: input.date_of_birth,
+      address: normalizeString(input.address) || null,
+      gender: normalizeString(input.gender) || null,
+      date_of_birth: normalizeString(input.date_of_birth) || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -325,6 +326,13 @@ export async function updateProfile(profileId, input) {
     ];
 
     const payload = {};
+    const nullableStringFields = new Set([
+      'phone', 'username', 'first_name', 'last_name', 'address', 'gender', 'date_of_birth'
+    ]);
+    const enumFields = new Set(['role', 'provider_type']);
+
+    const normalizeString = (value) => typeof value === 'string' ? value.trim() : value;
+
     allowedFields.forEach(field => {
       if (input[field] !== undefined) {
         if (field === 'avatar_url' && !payload.image_uri) {
@@ -332,11 +340,31 @@ export async function updateProfile(profileId, input) {
         } else if (field === 'organization_id') {
           // Convert empty string to null for UUID fields
           payload[field] = input[field] === '' ? null : input[field];
+        } else if (typeof input[field] === 'string') {
+          const normalized = normalizeString(input[field]);
+
+          // Empty enum values should not overwrite existing valid DB values.
+          if (enumFields.has(field) && normalized === '') {
+            return;
+          }
+
+          // Optional text/date fields should store null instead of empty strings.
+          if (nullableStringFields.has(field) && normalized === '') {
+            payload[field] = null;
+            return;
+          }
+
+          payload[field] = normalized;
         } else {
           payload[field] = input[field];
         }
       }
     });
+
+    // Guard provider consistency on update. If provider type is set but role is omitted/empty, preserve provider.
+    if (payload.provider_type && !payload.role) {
+      payload.role = 'provider';
+    }
 
     payload.updated_at = new Date().toISOString();
 

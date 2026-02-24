@@ -89,6 +89,7 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
         .update({
           status: 'dispatched',
           current_call: emergencyId,
+          eta: updateData.estimated_arrival || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', assignedAmbulance.id);
@@ -217,6 +218,7 @@ export async function completeEmergency(emergencyId) {
         .update({
           status: 'available',
           current_call: null,
+          eta: null,
           updated_at: new Date().toISOString()
         })
         .eq('id', data.ambulance_id);

@@ -122,6 +122,8 @@ export const MobileSecondaryMetricRail = ({
     loading = false,
     loadingCount = 2
 }) => {
+    const { isScrolling, bind } = useScrollCooldown(180);
+
     if (loading) {
         const skeletonItems = Array.from({ length: Math.max(1, loadingCount) });
         return (
@@ -142,7 +144,6 @@ export const MobileSecondaryMetricRail = ({
     }
 
     if (items.length === 0) return null;
-    const { isScrolling, bind } = useScrollCooldown(180);
     const gapPx = 8; // gap-2
 
     const getCardBasis = () => {
