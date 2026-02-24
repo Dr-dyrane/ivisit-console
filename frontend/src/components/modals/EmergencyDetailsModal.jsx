@@ -35,9 +35,24 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
   const [loadingOutcome, setLoadingOutcome] = React.useState(false);
   const [paymentData, setPaymentData] = React.useState(null);
   const [isProcessingApproval, setIsProcessingApproval] = React.useState(false);
+  const normalizedStatus = request?.status === 'pending' ? 'pending_approval' : request?.status;
+  const isApprovalPending = normalizedStatus === 'pending_approval';
+  const showCashApprovalCard = isApprovalPending && (
+    request?.status === 'pending_approval' ||
+    request?.payment_status === 'pending' ||
+    Boolean(paymentData)
+  );
 
   const handleApprove = async () => {
-    if (!paymentData || !request) return;
+    if (!request) return;
+    if (!paymentData) {
+      console.warn('[EmergencyDetailsModal] Cannot approve: payment record unavailable', {
+        requestId: request?.id,
+        requestStatus: request?.status,
+      });
+      toast.error('Payment record unavailable for this request. This is usually a finance RLS visibility issue for org admins.');
+      return;
+    }
     setIsProcessingApproval(true);
     try {
       await approveCashPayment(paymentData.id, request.id);
@@ -51,7 +66,15 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
   };
 
   const handleDecline = async () => {
-    if (!paymentData || !request) return;
+    if (!request) return;
+    if (!paymentData) {
+      console.warn('[EmergencyDetailsModal] Cannot decline: payment record unavailable', {
+        requestId: request?.id,
+        requestStatus: request?.status,
+      });
+      toast.error('Payment record unavailable for this request. This is usually a finance RLS visibility issue for org admins.');
+      return;
+    }
     setIsProcessingApproval(true);
     try {
       await declineCashPayment(paymentData.id, request.id);
@@ -76,7 +99,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
       setVisitOutcome(null);
     }
 
-    if (request?.id && request.status === 'pending_approval') {
+    if (request?.id && isApprovalPending) {
       fetchPaymentData(request.id);
     } else {
       setPaymentData(null);
@@ -85,7 +108,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
     if (!request && isOpen) {
       // console.log('🔍 EmergencyDetailsModal - No request data provided');
     }
-  }, [request, isOpen]);
+  }, [request, isOpen, isApprovalPending]);
 
   const fetchPaymentData = async (requestId) => {
     try {
@@ -95,9 +118,35 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
         .eq('emergency_request_id', requestId)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (data) setPaymentData(data);
+      if (error) {
+        console.error('[EmergencyDetailsModal] Error fetching payment data:', {
+          requestId,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+        throw error;
+      }
+
+      if (!data) {
+        console.warn('[EmergencyDetailsModal] No payment row visible for pending approval request', {
+          requestId,
+          hint: 'Likely RLS policy missing for org admins on payments',
+        });
+        setPaymentData(null);
+        return;
+      }
+
+      console.log('[EmergencyDetailsModal] Loaded payment row for approval', {
+        requestId,
+        paymentId: data.id,
+        status: data.status,
+        organizationId: data.organization_id,
+      });
+      setPaymentData(data);
     } catch (e) {
       console.error('Error fetching payment data:', e);
     }
@@ -230,7 +279,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
               </div>
 
               {/* Cash Payment Approval Action */}
-              {request.status === 'pending_approval' && (
+              {showCashApprovalCard && (
                 <div className="p-6 rounded-3xl bg-orange-500/10 border border-orange-500/20 space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-orange-500/20 rounded-xl">
@@ -242,31 +291,36 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10">
-                    <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
+                    <div className="min-w-0">
                       <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Fee Amount</p>
                       <p className="text-xl font-bold">
                         {paymentData?.amount || request.fee_amount || '0.00'} {paymentData?.currency || 'USD'}
                       </p>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                       <Button
                         variant="outline"
                         onClick={handleDecline}
-                        disabled={isProcessingApproval}
-                        className="rounded-xl border-red-500/20 hover:bg-red-500/10 text-red-500"
+                        disabled={isProcessingApproval || !paymentData}
+                        className="w-full sm:w-auto rounded-xl border-red-500/20 hover:bg-red-500/10 text-red-500"
                       >
                         Decline
                       </Button>
                       <Button
                         onClick={handleApprove}
-                        disabled={isProcessingApproval}
-                        className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white px-6"
+                        disabled={isProcessingApproval || !paymentData}
+                        className="w-full sm:w-auto rounded-xl bg-orange-500 hover:bg-orange-600 text-white px-6"
                       >
                         {isProcessingApproval ? 'Processing...' : 'Approve & Dispatch'}
                       </Button>
                     </div>
                   </div>
+                  {!paymentData && (
+                    <p className="text-xs text-orange-300/80">
+                      Waiting for payment row visibility. If this persists for org admins, apply the finance RLS visibility migration.
+                    </p>
+                  )}
                 </div>
               )}
 

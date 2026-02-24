@@ -126,6 +126,10 @@ CREATE POLICY "Users see own payments"
 ON public.payments FOR SELECT
 USING (auth.uid() = user_id OR public.p_is_admin());
 
+CREATE POLICY "Org Admins see org payments"
+ON public.payments FOR SELECT
+USING (organization_id = public.p_get_current_org_id() OR public.p_is_admin());
+
 CREATE POLICY "Users manage own payment methods"
 ON public.payment_methods FOR ALL
 USING (auth.uid() = user_id);
@@ -161,6 +165,23 @@ USING (auth.uid() = user_id);
 CREATE POLICY "Public read for ambulances"
 ON public.ambulances FOR SELECT
 USING (true);
+
+CREATE POLICY "Org Admins manage ambulances"
+ON public.ambulances FOR ALL
+USING (
+    organization_id = public.p_get_current_org_id()
+    OR hospital_id IN (
+        SELECT id FROM public.hospitals WHERE organization_id = public.p_get_current_org_id()
+    )
+    OR public.p_is_admin()
+)
+WITH CHECK (
+    organization_id = public.p_get_current_org_id()
+    OR hospital_id IN (
+        SELECT id FROM public.hospitals WHERE organization_id = public.p_get_current_org_id()
+    )
+    OR public.p_is_admin()
+);
 
 CREATE POLICY "Users see own visits"
 ON public.visits FOR SELECT
@@ -199,6 +220,26 @@ USING (
 
 -- Wallet Ledger: admins + org admins see relevant entries
 CREATE POLICY "Admins see all ledger" ON public.wallet_ledger FOR SELECT USING (public.p_is_admin());
+
+CREATE POLICY "Users see own patient ledger" ON public.wallet_ledger FOR SELECT
+USING (
+    wallet_id IN (
+        SELECT pw.id
+        FROM public.patient_wallets pw
+        WHERE pw.user_id = auth.uid()
+    )
+    OR public.p_is_admin()
+);
+
+CREATE POLICY "Org Admins see own org ledger" ON public.wallet_ledger FOR SELECT
+USING (
+    wallet_id IN (
+        SELECT ow.id
+        FROM public.organization_wallets ow
+        WHERE ow.organization_id = public.p_get_current_org_id()
+    )
+    OR public.p_is_admin()
+);
 
 -- Support Tickets: users manage own, admins see all
 CREATE POLICY "Users manage own tickets" ON public.support_tickets FOR ALL
