@@ -13,6 +13,28 @@ import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
+import { createEmergencyRequest, updateEmergencyRequest } from '../../services/emergencyService';
+
+const STATUS_STEPS = ['pending_approval', 'in_progress', 'accepted', 'arrived', 'completed'];
+const STATUS_LABELS = {
+  pending_approval: 'pending',
+  in_progress: 'in progress',
+  accepted: 'en route',
+  arrived: 'arrived',
+  completed: 'completed',
+};
+
+const STATUS_ALIAS_TO_DB = {
+  pending: 'pending_approval',
+  dispatched: 'in_progress',
+  en_route: 'accepted',
+};
+
+const normalizeEmergencyStatus = (value, fallback = 'pending_approval') => {
+  const status = String(value || '').toLowerCase();
+  if (!status) return fallback;
+  return STATUS_ALIAS_TO_DB[status] || status;
+};
 
 export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
   const isView = mode === 'view';
@@ -24,7 +46,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
     user_id: '',
     emergency_type: '',
     priority: 'medium',
-    status: 'pending',
+    status: 'pending_approval',
     location: '',
     latitude: null,
     longitude: null,
@@ -45,7 +67,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
         ...request, // ✅ Merge new
         // Explicit fallbacks for Selects
         priority: request.priority || prev.priority || 'medium',
-        status: request.status || prev.status || 'pending',
+        status: normalizeEmergencyStatus(request.status || prev.status || 'pending_approval'),
         user_id: request.user_id || prev.user_id || '',
         emergency_type: request.emergency_type || prev.emergency_type || ''
       }));
@@ -76,16 +98,37 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
     try {
       const submitData = { ...formData };
       delete submitData.profiles;
+      const normalizedStatus = submitData.status
+        ? normalizeEmergencyStatus(submitData.status)
+        : undefined;
+      const payload = {
+        user_id: submitData.user_id || undefined,
+        service_type: submitData.service_type || submitData.emergency_type || 'ambulance',
+        specialty: submitData.specialty || submitData.emergency_type || undefined,
+        status: normalizedStatus || undefined,
+        hospital_id: submitData.hospital_id || undefined,
+        hospital_name: submitData.hospital_name || undefined,
+        ambulance_type: submitData.ambulance_type || undefined,
+        bed_number: submitData.bed_number || undefined,
+        total_cost: submitData.total_cost ?? undefined,
+        payment_status: submitData.payment_status || undefined,
+        patient_snapshot: {
+          priority: submitData.priority || undefined,
+          location_text: submitData.location || undefined,
+          description: submitData.description || undefined,
+        },
+        patient_location:
+          submitData.latitude !== null &&
+          submitData.latitude !== undefined &&
+          submitData.longitude !== null &&
+          submitData.longitude !== undefined
+            ? { latitude: Number(submitData.latitude), longitude: Number(submitData.longitude) }
+            : undefined,
+      };
 
       if (isCreate) {
-        const { data, error } = await supabase
-          .from('emergency_requests')
-          .insert([submitData])
-          .select();
-
-        if (error) throw error;
-
-        const createdId = data?.[0]?.id;
+        const created = await createEmergencyRequest(payload);
+        const createdId = created?.id;
         if (createdId) {
           await createNotification(
             NotificationTypes.EMERGENCY,
@@ -97,18 +140,13 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
 
         toast.success('Emergency request created successfully');
       } else if (isEdit) {
-        const { error } = await supabase
-          .from('emergency_requests')
-          .update(submitData)
-          .eq('id', request.id);
-
-        if (error) throw error;
+        await updateEmergencyRequest(request.id, payload);
 
         await createNotification(
           NotificationTypes.EMERGENCY,
           NotificationActions.UPDATED,
           request.id,
-          { message: `Emergency request updated - Status: ${submitData.status}` }
+          { message: `Emergency request updated - Status: ${normalizedStatus || submitData.status}` }
         );
 
         toast.success('Incident report updated');
@@ -144,6 +182,8 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
   };
 
   const selectedUser = users.find(u => u.id === formData.user_id);
+  const currentStatus = normalizeEmergencyStatus(formData.status);
+  const currentStepIndex = STATUS_STEPS.indexOf(currentStatus);
 
   return (
     <AnimatePresence>
@@ -196,9 +236,9 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
 
                 {/* Status Bar */}
                 <div className="p-1.5 rounded-[20px] bg-white/5 border border-white/10 flex items-center justify-between gap-2">
-                  {['pending', 'dispatched', 'en_route', 'arrived', 'completed'].map((step, i, arr) => {
-                    const isCurrent = formData.status === step;
-                    const isPast = arr.indexOf(formData.status) > i;
+                  {STATUS_STEPS.map((step, i) => {
+                    const isCurrent = currentStatus === step;
+                    const isPast = currentStepIndex > i;
                     return (
                       <button
                         key={step}
@@ -208,7 +248,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                           isPast ? 'text-primary/70 bg-primary/5' : 'text-muted-foreground/40'
                           }`}
                       >
-                        {step.replace('_', ' ')}
+                        {STATUS_LABELS[step] || step.replace(/_/g, ' ')}
                       </button>
                     );
                   })}

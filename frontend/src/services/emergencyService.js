@@ -219,11 +219,33 @@ export async function createEmergencyRequest(input) {
         throw new Error('Emergency created but could not be reloaded');
       }
     } else {
-      // Legacy fallback for incomplete admin-created records; keep writes to canonical columns only.
+      // Fallback path for console-created records with incomplete payment context.
       const payload = buildLegacyEmergencyPayload(input);
-      const { data: inserted, error } = await supabase.from(TABLE_NAME).insert([payload]).select().single();
-      if (error) throw error;
-      data = inserted;
+      const fallbackPayload = {
+        ...payload,
+        latitude:
+          input?.latitude ??
+          input?.pickup_location?.latitude ??
+          input?.pickup_location?.lat ??
+          null,
+        longitude:
+          input?.longitude ??
+          input?.pickup_location?.longitude ??
+          input?.pickup_location?.lng ??
+          null,
+        description: input?.description ?? null,
+      };
+
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('console_create_emergency_request', {
+        p_payload: fallbackPayload,
+      });
+
+      if (rpcError) throw rpcError;
+      if (!rpcResult?.success || !rpcResult?.request) {
+        throw new Error(rpcResult?.error || 'Console emergency creation failed');
+      }
+
+      data = rpcResult.request;
     }
 
     // Log activity
@@ -259,14 +281,15 @@ export async function updateEmergencyRequest(requestId, input) {
       updated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update(payload)
-      .eq('id', requestId)
-      .select()
-      .single();
-
+    const { data: rpcResult, error } = await supabase.rpc('console_update_emergency_request', {
+      p_request_id: requestId,
+      p_payload: payload,
+    });
     if (error) throw error;
+    if (!rpcResult?.success || !rpcResult?.request) {
+      throw new Error(rpcResult?.error || 'Emergency update failed');
+    }
+    const data = rpcResult.request;
 
     // Log activity for completed emergencies
     if (input.status === 'completed') {
@@ -317,23 +340,20 @@ export async function acceptEmergencyRequest(
   responderPhone
 ) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        status: 'accepted',
-        ambulance_id: ambulanceId,
-        responder_id: responderId,
-        responder_name: responderName,
-        responder_phone: responderPhone,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', requestId)
-      .select()
-      .single();
+    void responderId;
+    const { data: rpcResult, error } = await supabase.rpc('console_dispatch_emergency', {
+      p_request_id: requestId,
+      p_ambulance_id: ambulanceId,
+      p_responder_name: responderName || null,
+      p_responder_phone: responderPhone || null,
+    });
 
     if (error) throw error;
+    if (!rpcResult?.success || !rpcResult?.request) {
+      throw new Error(rpcResult?.error || 'Emergency dispatch failed');
+    }
 
-    return data;
+    return rpcResult.request;
   } catch (error) {
     console.error(`Error accepting emergency request ${requestId}:`, error);
     throw error;
@@ -345,20 +365,14 @@ export async function acceptEmergencyRequest(
  */
 export async function completeEmergencyRequest(requestId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', requestId)
-      .select()
-      .single();
-
+    const { data: rpcResult, error } = await supabase.rpc('console_complete_emergency', {
+      p_request_id: requestId,
+    });
     if (error) throw error;
-
-    return data;
+    if (!rpcResult?.success) {
+      throw new Error(rpcResult?.error || 'Emergency completion failed');
+    }
+    return rpcResult.request || null;
   } catch (error) {
     console.error(`Error completing emergency request ${requestId}:`, error);
     throw error;
@@ -370,20 +384,15 @@ export async function completeEmergencyRequest(requestId) {
  */
 export async function cancelEmergencyRequest(requestId, reason) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        status: 'cancelled',
-        cancelled_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', requestId)
-      .select()
-      .single();
-
+    const { data: rpcResult, error } = await supabase.rpc('console_cancel_emergency', {
+      p_request_id: requestId,
+      p_reason: reason || null,
+    });
     if (error) throw error;
-
-    return data;
+    if (!rpcResult?.success) {
+      throw new Error(rpcResult?.error || 'Emergency cancellation failed');
+    }
+    return rpcResult.request || null;
   } catch (error) {
     console.error(`Error cancelling emergency request ${requestId}:`, error);
     throw error;
@@ -521,20 +530,16 @@ export async function getHospitalEmergencyRequests(hospitalId) {
  */
 export async function updateResponderLocation(requestId, location, heading) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        responder_location: location,
-        responder_heading: heading,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', requestId)
-      .select()
-      .single();
-
+    const { data: rpcResult, error } = await supabase.rpc('console_update_responder_location', {
+      p_request_id: requestId,
+      p_location: location,
+      p_heading: heading ?? null,
+    });
     if (error) throw error;
-
-    return data;
+    if (!rpcResult?.success) {
+      throw new Error(rpcResult?.error || 'Responder location update failed');
+    }
+    return rpcResult;
   } catch (error) {
     console.error(`Error updating responder location for ${requestId}:`, error);
     throw error;
@@ -547,19 +552,17 @@ export async function updateResponderLocation(requestId, location, heading) {
 export async function updatePatientLocation(requestId, location, heading) {
   try {
     void heading;
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
+    const { data: rpcResult, error } = await supabase.rpc('console_update_emergency_request', {
+      p_request_id: requestId,
+      p_payload: {
         patient_location: location,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', requestId)
-      .select()
-      .single();
-
+      },
+    });
     if (error) throw error;
-
-    return data;
+    if (!rpcResult?.success || !rpcResult?.request) {
+      throw new Error(rpcResult?.error || 'Patient location update failed');
+    }
+    return rpcResult.request;
   } catch (error) {
     console.error(`Error updating patient location for ${requestId}:`, error);
     throw error;

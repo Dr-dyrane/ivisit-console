@@ -120,11 +120,12 @@ export const bedManagementService = {
    */
   async dischargePatient(requestId) {
     try {
-      const { data, error } = await supabase.rpc('discharge_patient', {
-        request_uuid: requestId
+      const { data, error } = await supabase.rpc('console_complete_emergency', {
+        p_request_id: requestId
       });
 
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to complete reservation');
 
       toast.success('Patient discharged - Bed count updated automatically');
       return data;
@@ -140,12 +141,13 @@ export const bedManagementService = {
    */
   async cancelBedReservation(requestId, reason = null) {
     try {
-      const { data, error } = await supabase.rpc('cancel_bed_reservation', {
-        request_uuid: requestId,
-        reason: reason
+      const { data, error } = await supabase.rpc('console_cancel_emergency', {
+        p_request_id: requestId,
+        p_reason: reason
       });
 
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to cancel reservation');
 
       toast.success('Bed reservation cancelled - Bed count updated automatically');
       return data;
@@ -165,9 +167,13 @@ export const bedManagementService = {
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'active_bed_reservations',
+        table: 'emergency_requests',
         filter: hospitalId ? `hospital_id=eq.${hospitalId}` : undefined
-      }, callback)
+      }, (payload) => {
+        if (payload.new?.service_type === 'bed' || payload.old?.service_type === 'bed') {
+          callback(payload);
+        }
+      })
       .subscribe();
 
     return () => supabase.removeChannel(channel);
@@ -232,7 +238,7 @@ export const bedManagementService = {
       case 'in_progress':
         actions.push({
           label: 'Cancel Reservation',
-          action: () => this.cancelReservation(reservation.id),
+          action: () => this.cancelBedReservation(reservation.id),
           variant: 'destructive',
           icon: 'X'
         });
@@ -265,15 +271,15 @@ export const bedManagementService = {
    */
   async updateReservationStatus(requestId, newStatus) {
     try {
-      const { error } = await supabase
-        .from('emergency_requests')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', requestId);
+      const { data, error } = await supabase.rpc('console_update_emergency_request', {
+        p_request_id: requestId,
+        p_payload: {
+          status: newStatus
+        }
+      });
 
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Status update failed');
 
       toast.success(`Status updated to ${newStatus}`);
       return true;

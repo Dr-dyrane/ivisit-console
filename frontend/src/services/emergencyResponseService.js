@@ -18,14 +18,24 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
   try {
     const user = await getCurrentUser();
     if (!user) throw new Error('Authentication required');
+    const serviceType = String(
+      emergencyDetails?.service_type ||
+      emergencyDetails?.serviceType ||
+      emergencyDetails?.emergency_type ||
+      'ambulance'
+    ).toLowerCase();
+    const isBedFlow = serviceType === 'bed';
 
-    // 1. Find nearest available ambulance
-    const ambulances = await getAvailableAmbulances();
-    const assignedAmbulance = await findBestAmbulance(
-      ambulances,
-      emergencyDetails.pickup_location,
-      emergencyDetails.ambulance_type
-    );
+    // 1. Find nearest available ambulance (ambulance-only dispatch path).
+    let assignedAmbulance = null;
+    if (!isBedFlow) {
+      const ambulances = await getAvailableAmbulances();
+      assignedAmbulance = await findBestAmbulance(
+        ambulances,
+        emergencyDetails.pickup_location,
+        emergencyDetails.ambulance_type
+      );
+    }
 
     // 2. Find suitable hospital if not assigned
     let targetHospital = null;
@@ -47,7 +57,7 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
       );
     }
 
-    // 4. Reserve bed if needed
+    // 4. Reserve bed if needed.
     let assignedBed = null;
     if (emergencyDetails.bed_type && targetHospital) {
       assignedBed = await reserveBed(
@@ -56,48 +66,50 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
       );
     }
 
-    // 5. Update emergency request with assignments
-    const updateData = {
-      status: 'accepted',
-      ambulance_id: assignedAmbulance?.id,
-      responder_id: assignedAmbulance?.profile_id,
-      responder_name: assignedAmbulance?.crew?.[0]?.name || 'EMS Team',
-      responder_phone: assignedAmbulance?.phone || 'N/A',
-      responder_vehicle_type: assignedAmbulance?.type,
-      responder_vehicle_plate: assignedAmbulance?.vehicle_number,
-      hospital_id: targetHospital?.id,
-      hospital_name: targetHospital?.name,
-      bed_number: assignedBed?.bedNumber,
-      bed_type: assignedBed?.bedType,
-      estimated_arrival: calculateETA(emergencyDetails.pickup_location, targetHospital?.coordinates),
-      updated_at: new Date().toISOString()
-    };
+    if (!isBedFlow && !assignedAmbulance?.id) {
+      throw new Error('No available ambulance to dispatch');
+    }
 
-    const { data, error } = await supabase
-      .from('emergency_requests')
-      .update(updateData)
-      .eq('id', emergencyId)
-      .select()
-      .single();
+    // 5. Dispatch through canonical RPC boundary.
+    let dispatchedEmergency = null;
+    if (isBedFlow) {
+      const { data: updateResult, error } = await supabase.rpc('console_update_emergency_request', {
+        p_request_id: emergencyId,
+        p_payload: {
+          status: 'accepted',
+          hospital_id: targetHospital?.id || null,
+          hospital_name: targetHospital?.name || null,
+          bed_number: assignedBed?.bedNumber || null,
+        },
+      });
+      if (error) throw error;
+      if (!updateResult?.success || !updateResult?.request) {
+        throw new Error(updateResult?.error || 'Bed dispatch update failed');
+      }
+      dispatchedEmergency = updateResult.request;
+    } else {
+      const { data: dispatchResult, error } = await supabase.rpc('console_dispatch_emergency', {
+        p_request_id: emergencyId,
+        p_ambulance_id: assignedAmbulance.id,
+        p_hospital_id: targetHospital?.id || null,
+        p_hospital_name: targetHospital?.name || null,
+        p_bed_number: assignedBed?.bedNumber || null,
+        p_responder_name: assignedAmbulance?.crew?.[0]?.name || null,
+        p_responder_phone: assignedAmbulance?.phone || null,
+        p_responder_vehicle_type: assignedAmbulance?.type || null,
+        p_responder_vehicle_plate: assignedAmbulance?.vehicle_number || null,
+      });
 
-    if (error) throw error;
-
-    // 6. Update ambulance status
-    if (assignedAmbulance) {
-      await supabase
-        .from('ambulances')
-        .update({
-          status: 'dispatched',
-          current_call: emergencyId,
-          eta: updateData.estimated_arrival || null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', assignedAmbulance.id);
+      if (error) throw error;
+      if (!dispatchResult?.success) {
+        throw new Error(dispatchResult?.error || 'Dispatch RPC failed');
+      }
+      dispatchedEmergency = dispatchResult.request || null;
     }
 
     return {
       success: true,
-      emergency: data,
+      emergency: dispatchedEmergency,
       assignments: {
         ambulance: assignedAmbulance,
         hospital: targetHospital,
@@ -176,16 +188,14 @@ function calculateETA(pickupLocation, hospitalCoords) {
  */
 export async function updateResponderLocation(emergencyId, location, heading) {
   try {
-    const { error } = await supabase
-      .from('emergency_requests')
-      .update({
-        responder_location: location,
-        responder_heading: heading,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', emergencyId);
+    const { data, error } = await supabase.rpc('console_update_responder_location', {
+      p_request_id: emergencyId,
+      p_location: location,
+      p_heading: heading ?? null
+    });
 
     if (error) throw error;
+    if (!data?.success) throw new Error(data?.error || 'Responder location update failed');
     return { success: true };
   } catch (error) {
     console.error('Failed to update responder location:', error);
@@ -198,33 +208,13 @@ export async function updateResponderLocation(emergencyId, location, heading) {
  */
 export async function completeEmergency(emergencyId) {
   try {
-    const { data, error } = await supabase
-      .from('emergency_requests')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', emergencyId)
-      .select()
-      .single();
-
+    const { data, error } = await supabase.rpc('console_complete_emergency', {
+      p_request_id: emergencyId
+    });
     if (error) throw error;
+    if (!data?.success) throw new Error(data?.error || 'Emergency completion failed');
 
-    // Free up ambulance
-    if (data.ambulance_id) {
-      await supabase
-        .from('ambulances')
-        .update({
-          status: 'available',
-          current_call: null,
-          eta: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', data.ambulance_id);
-    }
-
-    return { success: true, emergency: data };
+    return { success: true, emergency: data?.request || null };
   } catch (error) {
     console.error('Failed to complete emergency:', error);
     throw error;

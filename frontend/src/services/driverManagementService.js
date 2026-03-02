@@ -131,11 +131,12 @@ export const driverManagementService = {
    */
   async completeTrip(requestId) {
     try {
-      const { data, error } = await supabase.rpc('complete_trip', {
-        request_uuid: requestId
+      const { data, error } = await supabase.rpc('console_complete_emergency', {
+        p_request_id: requestId
       });
 
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to complete trip');
 
       toast.success('Trip completed - Driver marked as available');
       return data;
@@ -151,12 +152,13 @@ export const driverManagementService = {
    */
   async cancelTrip(requestId, reason = null) {
     try {
-      const { data, error } = await supabase.rpc('cancel_trip', {
-        request_uuid: requestId,
-        reason: reason
+      const { data, error } = await supabase.rpc('console_cancel_emergency', {
+        p_request_id: requestId,
+        p_reason: reason
       });
 
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to cancel trip');
 
       toast.success('Trip cancelled - Driver marked as available');
       return data;
@@ -172,18 +174,41 @@ export const driverManagementService = {
    */
   async updateTripStatus(requestId, newStatus) {
     try {
-      const { data, error } = await supabase
-        .from('emergency_requests')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', requestId)
-        .eq('service_type', 'ambulance')
-        .select()
-        .single();
+      const normalizedStatus = String(newStatus || '').toLowerCase();
+      const allowedStatuses = ['accepted', 'arrived', 'completed', 'cancelled'];
+      if (!allowedStatuses.includes(normalizedStatus)) {
+        throw new Error(`Unsupported trip status: ${newStatus}`);
+      }
+      let data;
 
-      if (error) throw error;
+      if (normalizedStatus === 'completed') {
+        const { data: rpcResult, error } = await supabase.rpc('console_complete_emergency', {
+          p_request_id: requestId
+        });
+        if (error) throw error;
+        if (!rpcResult?.success) throw new Error(rpcResult?.error || 'Trip completion failed');
+        data = rpcResult?.request || null;
+      } else if (normalizedStatus === 'cancelled') {
+        const { data: rpcResult, error } = await supabase.rpc('console_cancel_emergency', {
+          p_request_id: requestId,
+          p_reason: null
+        });
+        if (error) throw error;
+        if (!rpcResult?.success) throw new Error(rpcResult?.error || 'Trip cancellation failed');
+        data = rpcResult?.request || null;
+      } else {
+        const { data: rpcResult, error } = await supabase.rpc('console_update_emergency_request', {
+          p_request_id: requestId,
+          p_payload: {
+            status: normalizedStatus
+          }
+        });
+        if (error) throw error;
+        if (!rpcResult?.success || !rpcResult?.request) {
+          throw new Error(rpcResult?.error || 'Trip status update failed');
+        }
+        data = rpcResult.request;
+      }
       
       const statusMessages = {
         'accepted': 'Ambulance en route',

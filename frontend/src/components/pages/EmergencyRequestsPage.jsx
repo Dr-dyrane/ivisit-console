@@ -12,7 +12,7 @@ import {
 } from '../../constants/emergency';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
-import { getEmergencyRequests } from '../../services/emergencyService';
+import { cancelEmergencyRequest, getEmergencyRequests } from '../../services/emergencyService';
 import { dispatchEmergency, completeEmergency } from '../../services/emergencyResponseService';
 import { getCurrentUser, applyAuthFilter } from '../../services/authService';
 import * as walletService from '../../services/walletService';
@@ -134,6 +134,7 @@ export const EmergencyRequestsPage = () => {
       if (kpiFilter === 'bed') query = query.eq('service_type', 'bed');
       if (kpiFilter === 'pending') query = query.eq('status', 'pending_approval');
       if (kpiFilter === 'inProgress') query = query.eq('status', 'in_progress');
+      if (kpiFilter === 'active') query = query.in('status', ['in_progress', 'accepted', 'arrived']);
 
       const { count } = await query;
       pagination.setTotalCount(count || 0);
@@ -165,6 +166,7 @@ export const EmergencyRequestsPage = () => {
       if (kpiFilter === 'bed') dataQuery = dataQuery.eq('service_type', 'bed');
       if (kpiFilter === 'pending') dataQuery = dataQuery.eq('status', 'pending_approval');
       if (kpiFilter === 'inProgress') dataQuery = dataQuery.eq('status', 'in_progress');
+      if (kpiFilter === 'active') dataQuery = dataQuery.in('status', ['in_progress', 'accepted', 'arrived']);
 
       const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load emergency requests - timeout');
 
@@ -224,10 +226,13 @@ export const EmergencyRequestsPage = () => {
       type: 'multiselect',
       label: 'Status',
       options: [
-        { value: 'pending', label: 'Pending' },
-        { value: 'assigned', label: 'Assigned' },
+        { value: 'pending_approval', label: 'Pending Approval' },
         { value: 'in_progress', label: 'In Progress' },
+        { value: 'accepted', label: 'Accepted' },
+        { value: 'arrived', label: 'Arrived' },
         { value: 'completed', label: 'Completed' },
+        { value: 'cancelled', label: 'Cancelled' },
+        { value: 'payment_declined', label: 'Payment Declined' },
       ]
     },
     {
@@ -312,12 +317,7 @@ export const EmergencyRequestsPage = () => {
       description: `Are you sure you want to delete ${getEmergencyLabel(request)}? This action cannot be undone.`,
       onConfirm: async () => {
         try {
-          const { error } = await supabase
-            .from('emergency_requests')
-            .delete()
-            .eq('id', request.id);
-
-          if (error) throw error;
+          await cancelEmergencyRequest(request.id, 'cancelled_from_console');
 
           await createNotification(
             NotificationTypes.EMERGENCY,
@@ -325,16 +325,16 @@ export const EmergencyRequestsPage = () => {
             request.id,
             { message: `Emergency request has been cancelled` }
           );
-          toast.success('Emergency request deleted successfully');
+          toast.success('Emergency request cancelled successfully');
           fetchRequests();
           setConfirmationModal(prev => ({ ...prev, isOpen: false }));
         } catch (error) {
-          console.error('Error deleting emergency request:', error);
-          toast.error(error.message || 'Failed to delete emergency request');
+          console.error('Error cancelling emergency request:', error);
+          toast.error(error.message || 'Failed to cancel emergency request');
         }
       },
       variant: 'destructive',
-      confirmLabel: 'Delete Request'
+      confirmLabel: 'Cancel Request'
     });
   }, [fetchRequests, getEmergencyLabel]);
 
@@ -366,15 +366,14 @@ export const EmergencyRequestsPage = () => {
   }, []);
 
   const handleBulkDelete = useCallback(async () => {
-    if (!confirm(`Delete ${selectedIds.length} emergencies?`)) return;
+    if (!confirm(`Cancel ${selectedIds.length} emergencies?`)) return;
     try {
-      const { error } = await supabase.from('emergency_requests').delete().in('id', selectedIds);
-      if (error) throw error;
-      toast.success(`${selectedIds.length} emergencies deleted`);
+      await Promise.all(selectedIds.map((id) => cancelEmergencyRequest(id, 'bulk_cancel_from_console')));
+      toast.success(`${selectedIds.length} emergencies cancelled`);
       setSelectedIds([]);
       fetchRequests();
     } catch (error) {
-      toast.error('Failed to delete emergencies');
+      toast.error(error.message || 'Failed to cancel emergencies');
     }
   }, [selectedIds, fetchRequests]);
 
@@ -911,7 +910,7 @@ export const EmergencyRequestsPage = () => {
                               {(currentUser.isAdmin() || currentUser.isOrgAdmin()) && (
                                 <>
                                   {/* Dispatch Case: Pending/In-Progress & No Ambulance */}
-                                  {(req.status === 'pending' || (req.status === 'in_progress' && !req.ambulance_id)) && (
+                                  {((req.status === 'pending' || req.status === 'pending_approval' || req.status === 'in_progress') && !req.ambulance_id) && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
