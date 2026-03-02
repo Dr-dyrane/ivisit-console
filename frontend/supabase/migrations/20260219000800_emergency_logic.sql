@@ -237,14 +237,11 @@ DECLARE
     v_hospital_id UUID;
     v_patient_location JSONB;
     v_hospital_available BOOLEAN;
-    v_service_type TEXT;
-    v_conflict RECORD;
     v_result JSONB;
 BEGIN
     -- Extract required fields
     v_hospital_id := (p_request_data->>'hospital_id')::UUID;
     v_patient_location := p_request_data->'patient_location';
-    v_service_type := p_request_data->>'service_type';
     
     -- Validate hospital exists and is available
     SELECT (available_beds > 0 AND status = 'active') INTO v_hospital_available
@@ -270,40 +267,12 @@ BEGIN
         );
     END IF;
     
-    -- Check for active duplicate requests by service type (no time window loophole)
-    IF v_service_type IN ('ambulance', 'bed') THEN
-        SELECT id, display_id, status
-        INTO v_conflict
-        FROM public.emergency_requests
-        WHERE user_id = p_user_id
-          AND service_type = v_service_type
-          AND status IN ('pending_approval', 'in_progress', 'accepted', 'arrived')
-        ORDER BY updated_at DESC NULLS LAST, created_at DESC
-        LIMIT 1;
-
-        IF v_conflict.id IS NOT NULL THEN
-            RETURN jsonb_build_object(
-                'valid', false,
-                'code', CASE
-                    WHEN v_service_type = 'ambulance' THEN 'ACTIVE_AMBULANCE_EXISTS'
-                    ELSE 'ACTIVE_BED_EXISTS'
-                END,
-                'error', format(
-                    'User already has an active %s request (%s, status=%s). Complete or cancel it first.',
-                    v_service_type,
-                    COALESCE(v_conflict.display_id, v_conflict.id::TEXT),
-                    v_conflict.status
-                ),
-                'conflicting_request_id', v_conflict.id,
-                'conflicting_display_id', v_conflict.display_id,
-                'conflicting_status', v_conflict.status
-            );
-        END IF;
-    ELSIF EXISTS (
-        SELECT 1 FROM public.emergency_requests
-        WHERE user_id = p_user_id
-          AND status IN ('pending_approval', 'in_progress', 'accepted', 'arrived')
-          AND created_at > NOW() - INTERVAL '1 hour'
+    -- Check for duplicate emergencies
+    IF EXISTS (
+        SELECT 1 FROM public.emergency_requests 
+        WHERE user_id = p_user_id 
+        AND status IN ('pending_approval', 'in_progress', 'accepted', 'arrived')
+        AND created_at > NOW() - INTERVAL '1 hour'
     ) THEN
         RETURN jsonb_build_object(
             'valid', false,
@@ -438,13 +407,9 @@ DECLARE
     v_hospital_id UUID;
     v_organization_id UUID;
     v_patient_location GEOMETRY;
-    v_service_type TEXT;
-    v_initial_status TEXT;
-    v_conflict RECORD;
 BEGIN
     -- 1. Extract and Resolve IDs
     v_hospital_id := (p_request_data->>'hospital_id')::UUID;
-    v_service_type := p_request_data->>'service_type';
     SELECT organization_id INTO v_organization_id FROM public.hospitals WHERE id = v_hospital_id;
     
     -- 2. Physical Location Parse
@@ -452,50 +417,17 @@ BEGIN
         (p_request_data->'patient_location'->>'lng')::DOUBLE PRECISION,
         (p_request_data->'patient_location'->>'lat')::DOUBLE PRECISION
     ), 4326);
-
-    v_initial_status := CASE WHEN p_payment_data->>'method' = 'cash' THEN 'pending_approval' ELSE 'in_progress' END;
-
-    -- 2b. Prevent duplicate active requests of the same service type before insert
-    IF v_service_type IN ('ambulance', 'bed') THEN
-        SELECT id, display_id, status
-        INTO v_conflict
-        FROM public.emergency_requests
-        WHERE user_id = p_user_id
-          AND service_type = v_service_type
-          AND status IN ('pending_approval', 'in_progress', 'accepted', 'arrived')
-        ORDER BY updated_at DESC NULLS LAST, created_at DESC
-        LIMIT 1;
-
-        IF v_conflict.id IS NOT NULL THEN
-            RETURN jsonb_build_object(
-                'success', FALSE,
-                'code', CASE
-                    WHEN v_service_type = 'ambulance' THEN 'ACTIVE_AMBULANCE_EXISTS'
-                    ELSE 'ACTIVE_BED_EXISTS'
-                END,
-                'error', format(
-                    'User already has an active %s request (%s, status=%s). Complete or cancel it first.',
-                    v_service_type,
-                    COALESCE(v_conflict.display_id, v_conflict.id::TEXT),
-                    v_conflict.status
-                ),
-                'conflicting_request_id', v_conflict.id,
-                'conflicting_display_id', v_conflict.display_id,
-                'conflicting_status', v_conflict.status
-            );
-        END IF;
-    END IF;
     
     -- 3. Create the Emergency Request
     INSERT INTO public.emergency_requests (
         user_id, hospital_id, service_type, hospital_name, specialty, 
         ambulance_type, patient_location, patient_snapshot, status
     ) VALUES (
-        p_user_id, v_hospital_id, v_service_type,
+        p_user_id, v_hospital_id, p_request_data->>'service_type', 
         p_request_data->>'hospital_name', p_request_data->>'specialty',
         p_request_data->>'ambulance_type', v_patient_location, 
         p_request_data->'patient_snapshot',
-        v_initial_status
+        CASE WHEN p_payment_data->>'method' = 'cash' THEN 'pending_approval' ELSE 'in_progress' END
     ) RETURNING id, display_id INTO v_request_id, v_display_id;
 
     -- 4. Create Visit Record (Medical History)
@@ -542,22 +474,6 @@ BEGIN
         'requires_approval', v_requires_approval,
         'emergency_status', CASE WHEN v_requires_approval THEN 'pending_approval' ELSE 'in_progress' END
     );
-EXCEPTION
-    WHEN unique_violation THEN
-        IF POSITION('emergency_requests_one_active_ambulance_per_user_idx' IN SQLERRM) > 0 THEN
-            RETURN jsonb_build_object(
-                'success', false,
-                'code', 'ACTIVE_AMBULANCE_EXISTS',
-                'error', 'User already has another active ambulance request (pending_approval/in_progress/accepted/arrived). Complete or cancel it first.'
-            );
-        ELSIF POSITION('emergency_requests_one_active_bed_per_user_idx' IN SQLERRM) > 0 THEN
-            RETURN jsonb_build_object(
-                'success', false,
-                'code', 'ACTIVE_BED_EXISTS',
-                'error', 'User already has another active bed request (pending_approval/in_progress/accepted/arrived). Complete or cancel it first.'
-            );
-        END IF;
-        RAISE;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -566,8 +482,7 @@ CREATE OR REPLACE FUNCTION public.approve_cash_payment(p_payment_id UUID, p_requ
 RETURNS JSONB AS $$
 DECLARE
     v_payment RECORD;
-    v_request RECORD;
-    v_conflict RECORD;
+    v_request_service_type TEXT;
     v_org_wallet_id UUID;
     v_org_balance NUMERIC;
     v_platform_wallet_id UUID;
@@ -580,76 +495,23 @@ DECLARE
     v_responder_vehicle_plate TEXT;
 BEGIN
     -- 1. Verify Payment & Resolve Data
-    SELECT p.*, (p.metadata->>'fee_amount')::NUMERIC as calculated_fee
-    INTO v_payment
-    FROM public.payments p
+    SELECT p.*, (p.metadata->>'fee_amount')::NUMERIC as calculated_fee 
+    INTO v_payment 
+    FROM public.payments p 
     WHERE p.id = p_payment_id AND p.status = 'pending';
-
+    
     IF v_payment.id IS NULL THEN
-        RETURN jsonb_build_object(
-            'success', false,
-            'error', 'Pending payment not found',
-            'code', 'PENDING_PAYMENT_NOT_FOUND'
-        );
+        RETURN jsonb_build_object('success', false, 'error', 'Pending payment not found');
     END IF;
 
-    -- 1b. Verify request and linkage
-    SELECT id, display_id, user_id, service_type, status
-    INTO v_request
+    SELECT service_type
+    INTO v_request_service_type
     FROM public.emergency_requests
     WHERE id = p_request_id;
 
-    IF v_request.id IS NULL THEN
-        RETURN jsonb_build_object(
-            'success', false,
-            'error', 'Emergency request not found',
-            'code', 'REQUEST_NOT_FOUND'
-        );
-    END IF;
-
-    IF v_payment.emergency_request_id IS NOT NULL AND v_payment.emergency_request_id <> p_request_id THEN
-        RETURN jsonb_build_object(
-            'success', false,
-            'error', 'Payment does not belong to the provided emergency request',
-            'code', 'PAYMENT_REQUEST_MISMATCH'
-        );
-    END IF;
-
-    -- 1c. Pre-check conflicts so we don't hit a raw unique-index violation during approve
-    IF v_request.service_type IN ('ambulance', 'bed') THEN
-        SELECT id, display_id, status
-        INTO v_conflict
-        FROM public.emergency_requests
-        WHERE user_id = v_request.user_id
-          AND service_type = v_request.service_type
-          AND id <> v_request.id
-          AND status IN ('in_progress', 'accepted', 'arrived')
-        ORDER BY updated_at DESC NULLS LAST, created_at DESC
-        LIMIT 1;
-
-        IF v_conflict.id IS NOT NULL THEN
-            RETURN jsonb_build_object(
-                'success', false,
-                'code', CASE
-                    WHEN v_request.service_type = 'ambulance' THEN 'ACTIVE_AMBULANCE_EXISTS'
-                    ELSE 'ACTIVE_BED_EXISTS'
-                END,
-                'error', format(
-                    'Patient already has an active %s request (%s, status=%s). Complete or cancel it first.',
-                    v_request.service_type,
-                    COALESCE(v_conflict.display_id, v_conflict.id::TEXT),
-                    v_conflict.status
-                ),
-                'conflicting_request_id', v_conflict.id,
-                'conflicting_display_id', v_conflict.display_id,
-                'conflicting_status', v_conflict.status
-            );
-        END IF;
-    END IF;
-
     -- 2. Guard: Auto-provision Org Wallet if missing
-    SELECT id, balance INTO v_org_wallet_id, v_org_balance
-    FROM public.organization_wallets
+    SELECT id, balance INTO v_org_wallet_id, v_org_balance 
+    FROM public.organization_wallets 
     WHERE organization_id = v_payment.organization_id;
 
     IF v_org_wallet_id IS NULL AND v_payment.organization_id IS NOT NULL THEN
@@ -657,7 +519,7 @@ BEGIN
         VALUES (v_payment.organization_id, 0)
         RETURNING id, balance INTO v_org_wallet_id, v_org_balance;
     END IF;
-
+    
     SELECT id INTO v_platform_wallet_id FROM public.ivisit_main_wallet LIMIT 1;
 
     -- 3. Check for Platform Fee
@@ -666,11 +528,7 @@ BEGIN
     -- 4. Execute Ledger Operations (only if fee > 0)
     IF v_fee_amount > 0 THEN
         IF v_org_balance < v_fee_amount THEN
-            RETURN jsonb_build_object(
-                'success', false,
-                'error', 'Organization balance insufficient for platform fee',
-                'code', 'ORG_BALANCE_INSUFFICIENT'
-            );
+            RETURN jsonb_build_object('success', false, 'error', 'Organization balance insufficient for platform fee');
         END IF;
 
         -- Deduct from Org
@@ -691,9 +549,8 @@ BEGIN
     WHERE id = p_request_id;
     UPDATE public.visits SET status = 'active', updated_at = NOW() WHERE request_id = p_request_id;
 
-    -- 5b. Backfill responder snapshot fields for ambulance approvals after auto-dispatch trigger runs.
-    -- This keeps mobile waiting/dispatch UI from seeing ambulance_id without responder metadata.
-    IF v_request.service_type = 'ambulance' THEN
+    -- Backfill responder snapshot fields after approval/auto-dispatch so mobile receives a usable driver label.
+    IF v_request_service_type = 'ambulance' THEN
         UPDATE public.emergency_requests er
         SET
             responder_id = COALESCE(er.responder_id, a.profile_id),
@@ -741,8 +598,8 @@ BEGIN
     WHERE id = p_request_id;
 
     RETURN jsonb_build_object(
-        'success', true,
-        'fee_deducted', v_fee_amount,
+        'success', true, 
+        'fee_deducted', v_fee_amount, 
         'new_balance', COALESCE((v_org_balance - v_fee_amount), 0),
         'ambulance_id', v_assigned_ambulance_id,
         'responder_name', v_responder_name,
@@ -750,22 +607,6 @@ BEGIN
         'responder_vehicle_type', v_responder_vehicle_type,
         'responder_vehicle_plate', v_responder_vehicle_plate
     );
-EXCEPTION
-    WHEN unique_violation THEN
-        IF POSITION('emergency_requests_one_active_ambulance_per_user_idx' IN SQLERRM) > 0 THEN
-            RETURN jsonb_build_object(
-                'success', false,
-                'code', 'ACTIVE_AMBULANCE_EXISTS',
-                'error', 'Patient already has another active ambulance request (accepted/in-progress/arrived). Complete or cancel it first.'
-            );
-        ELSIF POSITION('emergency_requests_one_active_bed_per_user_idx' IN SQLERRM) > 0 THEN
-            RETURN jsonb_build_object(
-                'success', false,
-                'code', 'ACTIVE_BED_EXISTS',
-                'error', 'Patient already has another active bed request (accepted/in-progress/arrived). Complete or cancel it first.'
-            );
-        END IF;
-        RAISE;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1043,3 +884,138 @@ CREATE INDEX IF NOT EXISTS idx_service_pricing_type ON public.service_pricing(se
 CREATE INDEX IF NOT EXISTS idx_service_pricing_hospital ON public.service_pricing(hospital_id);
 CREATE INDEX IF NOT EXISTS idx_room_pricing_type ON public.room_pricing(room_type);
 CREATE INDEX IF NOT EXISTS idx_room_pricing_hospital ON public.room_pricing(hospital_id);
+
+-- ================================================================
+-- Integrated Fix Pack (2026-03-02): Deterministic Emergency State
+-- Source: consolidated from temporary fix migrations
+-- ================================================================
+
+-- Deterministic and safe ambulance status mutation.
+CREATE OR REPLACE FUNCTION public.update_ambulance_status(
+    p_ambulance_id UUID,
+    p_status TEXT,
+    p_location JSONB DEFAULT NULL,
+    p_eta TIMESTAMPTZ DEFAULT NULL,
+    p_current_call UUID DEFAULT NULL
+)
+RETURNS JSONB AS $$
+DECLARE
+    v_hospital_id UUID;
+    v_prev_status TEXT;
+    v_location geometry;
+BEGIN
+    IF p_status NOT IN ('available', 'dispatched', 'en_route', 'on_scene', 'returning', 'maintenance', 'offline', 'on_trip') THEN
+        RETURN jsonb_build_object('error', 'Invalid status', 'code', 'INVALID_STATUS');
+    END IF;
+
+    SELECT hospital_id, status
+    INTO v_hospital_id, v_prev_status
+    FROM public.ambulances
+    WHERE id = p_ambulance_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('error', 'Ambulance not found', 'code', 'NOT_FOUND');
+    END IF;
+
+    IF p_location IS NOT NULL THEN
+        BEGIN
+            v_location := ST_SetSRID(ST_GeomFromGeoJSON(p_location::TEXT), 4326);
+        EXCEPTION WHEN OTHERS THEN
+            v_location := NULL;
+        END;
+    END IF;
+
+    UPDATE public.ambulances
+    SET status = p_status,
+        location = COALESCE(v_location, location),
+        eta = COALESCE(p_eta, eta),
+        current_call = COALESCE(p_current_call, current_call),
+        updated_at = NOW()
+    WHERE id = p_ambulance_id;
+
+    IF v_hospital_id IS NOT NULL AND v_prev_status IS DISTINCT FROM p_status THEN
+        UPDATE public.hospitals
+        SET last_availability_update = NOW()
+        WHERE id = v_hospital_id;
+    END IF;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'ambulance_id', p_ambulance_id,
+        'status', p_status,
+        'updated_at', NOW()
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- Bed discharge must use legal emergency status values.
+CREATE OR REPLACE FUNCTION public.discharge_patient(request_uuid TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+    UPDATE public.emergency_requests
+    SET status = 'completed',
+        completed_at = COALESCE(completed_at, NOW()),
+        updated_at = NOW()
+    WHERE id = request_uuid::UUID
+      AND service_type = 'bed'
+      AND status IN ('in_progress', 'accepted', 'arrived');
+
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- Canonical emergency status transition guard.
+CREATE OR REPLACE FUNCTION public.is_valid_emergency_status_transition(
+    p_current_status TEXT,
+    p_next_status TEXT
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_current TEXT := LOWER(COALESCE(NULLIF(p_current_status, ''), ''));
+    v_next TEXT := LOWER(COALESCE(NULLIF(p_next_status, ''), ''));
+BEGIN
+    IF v_current = '' OR v_next = '' THEN
+        RETURN FALSE;
+    END IF;
+
+    IF v_current = v_next THEN
+        RETURN TRUE;
+    END IF;
+
+    CASE v_current
+        WHEN 'pending_approval' THEN
+            RETURN v_next IN ('in_progress', 'accepted', 'cancelled', 'payment_declined');
+        WHEN 'in_progress' THEN
+            RETURN v_next IN ('accepted', 'arrived', 'completed', 'cancelled', 'payment_declined');
+        WHEN 'accepted' THEN
+            RETURN v_next IN ('arrived', 'completed', 'cancelled');
+        WHEN 'arrived' THEN
+            RETURN v_next IN ('completed', 'cancelled');
+        ELSE
+            RETURN FALSE;
+    END CASE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION public.validate_emergency_status_transition()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'UPDATE' AND NEW.status IS DISTINCT FROM OLD.status THEN
+        IF NOT public.is_valid_emergency_status_transition(OLD.status, NEW.status) THEN
+            RAISE EXCEPTION 'Illegal emergency status transition: % -> %', OLD.status, NEW.status
+                USING ERRCODE = '23514';
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_validate_emergency_status_transition ON public.emergency_requests;
+CREATE TRIGGER trg_validate_emergency_status_transition
+BEFORE UPDATE OF status ON public.emergency_requests
+FOR EACH ROW
+EXECUTE FUNCTION public.validate_emergency_status_transition();
