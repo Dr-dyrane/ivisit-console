@@ -196,7 +196,15 @@ export async function updateResponderLocation(emergencyId, location, heading) {
 
     if (error) throw error;
     if (!data?.success) throw new Error(data?.error || 'Responder location update failed');
-    return { success: true };
+
+    const { data: emergency, error: emergencyError } = await supabase
+      .from('emergency_requests')
+      .select('*')
+      .eq('id', emergencyId)
+      .single();
+    if (emergencyError) throw emergencyError;
+
+    return { success: true, emergency };
   } catch (error) {
     console.error('Failed to update responder location:', error);
     throw error;

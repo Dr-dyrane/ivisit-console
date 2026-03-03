@@ -539,7 +539,15 @@ export async function updateResponderLocation(requestId, location, heading) {
     if (!rpcResult?.success) {
       throw new Error(rpcResult?.error || 'Responder location update failed');
     }
-    return rpcResult;
+
+    const { data: updatedRequest, error: fetchError } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .eq('id', requestId)
+      .single();
+    if (fetchError) throw fetchError;
+
+    return updatedRequest;
   } catch (error) {
     console.error(`Error updating responder location for ${requestId}:`, error);
     throw error;
