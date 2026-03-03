@@ -1,20 +1,29 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { usePageHeader, useLayout } from "../../contexts/LayoutContext";
 import { useBreakpoint } from "../../hooks/useBreakpoint";
 import { MobileMap } from "../mobile/MobileMap";
 import { Card } from "../ui/card";
+import { Button } from "../ui/button";
 import {
 	AlertTriangle,
 	RefreshCw,
-	Navigation
+	Navigation,
+	MapPin,
+	Clock,
+	CheckCircle2,
+	LocateFixed,
+	Radio,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { handleApiError } from "../../utils/errorHandler";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { MAP_STYLES } from "../../constants/mapStyles";
 import { MapProvider, useMapContext } from "../../contexts/MapContext";
 import { supabaseMapService } from "../../services/supabaseMapService";
+import { updateResponderLocation } from "../../services/emergencyResponseService";
+import { driverManagementService } from "../../services/driverManagementService";
 // PULLBACK NOTE: Added imports for PostGIS geometry support and patient data standardization
 // NEW: import { decodePostGISGeometry } from "../../utils/locationUtils";
 // NEW: import { getStandardizedPatient } from "../../utils/patientUtils";
@@ -33,9 +42,48 @@ import {
 } from "../map";
 
 const LAGOS_CENTER = { lat: 6.5244, lng: 3.3792 };
+const ACTIVE_AMBULANCE_STATUSES = new Set(["in_progress", "accepted", "arrived"]);
+const TELEMETRY_STALE_MS = 30000;
+const TELEMETRY_LOST_MS = 120000;
+
+const parseTimestampMs = (value) => {
+	if (!value) return null;
+	if (typeof value === "number" && Number.isFinite(value)) return value;
+	if (typeof value === "string") {
+		const parsed = Date.parse(value);
+		return Number.isFinite(parsed) ? parsed : null;
+	}
+	return null;
+};
+
+const deriveTelemetryState = (updatedAt, hasResponderLocation) => {
+	if (!updatedAt || !hasResponderLocation) {
+		return { state: "inactive", ageMs: null, ageLabel: null };
+	}
+
+	const ts = parseTimestampMs(updatedAt);
+	if (!ts) {
+		return { state: "inactive", ageMs: null, ageLabel: null };
+	}
+
+	const ageMs = Math.max(0, Date.now() - ts);
+	const ageSec = Math.floor(ageMs / 1000);
+	const ageLabel = ageSec < 60
+		? `${ageSec}s`
+		: `${Math.floor(ageSec / 60)}m ${ageSec % 60}s`;
+
+	if (ageMs > TELEMETRY_LOST_MS) {
+		return { state: "lost", ageMs, ageLabel };
+	}
+	if (ageMs > TELEMETRY_STALE_MS) {
+		return { state: "stale", ageMs, ageLabel };
+	}
+	return { state: "live", ageMs, ageLabel };
+};
 
 const GodModeMapContent = () => {
 	const { theme } = useTheme();
+	const { profile, user } = useAuth();
 	const isDark = theme === 'dark';
 	const { isMobile } = useBreakpoint();
 	const { mapData, toggleLayer, setFilter, setSelectedMarker, refresh } = useMapContext();
@@ -53,6 +101,7 @@ const GodModeMapContent = () => {
 	const [activeRoutes, setActiveRoutes] = useState([]); // { id, path: [{lat, lng}], color }
 	const [userLocation, setUserLocation] = useState(null);
 	const [nearbyHospitals, setNearbyHospitals] = useState([]);
+	const [driverAction, setDriverAction] = useState(null);
 
 	// Simulate ID based on location (optional aesthetic)
 	const simulatedSessionId = useMemo(() => {
@@ -223,6 +272,122 @@ const GodModeMapContent = () => {
 		// return processedEmergencies.filter(req => req.priority === filter);
 		return processedEmergencies.filter(req => req.service_type === filter);
 	}, [processedEmergencies, filter]);
+
+	const isDriverMode = profile?.role === "provider" && profile?.provider_type === "driver";
+	const activeAmbulanceRequests = useMemo(
+		() =>
+			processedEmergencies.filter(
+				(request) =>
+					request?.service_type === "ambulance" &&
+					ACTIVE_AMBULANCE_STATUSES.has(String(request?.status || "").toLowerCase())
+			),
+		[processedEmergencies]
+	);
+
+	const opsTelemetrySummary = useMemo(() => {
+		return activeAmbulanceRequests.reduce(
+			(acc, request) => {
+				const hasResponderLocation = !!decodePostGISGeometry(request?.responder_location);
+				const telemetry = deriveTelemetryState(request?.updated_at, hasResponderLocation);
+				acc.total += 1;
+				acc[telemetry.state] += 1;
+				return acc;
+			},
+			{ total: 0, live: 0, stale: 0, lost: 0, inactive: 0 }
+		);
+	}, [activeAmbulanceRequests]);
+
+	const assignedAmbulance = useMemo(() => {
+		if (!isDriverMode || !user?.id) return null;
+		return (
+			processedAmbulances.find((ambulance) =>
+				[ambulance?.profile_id, ambulance?.driver_id].includes(user.id)
+			) ||
+			processedAmbulances[0] ||
+			null
+		);
+	}, [isDriverMode, processedAmbulances, user?.id]);
+
+	const driverActiveEmergency = useMemo(() => {
+		if (!isDriverMode || !user?.id) return null;
+
+		const scoped = activeAmbulanceRequests.filter((request) => {
+			const responderMatch = request?.responder_id === user.id;
+			const ambulanceMatch = assignedAmbulance?.id && request?.ambulance_id === assignedAmbulance.id;
+			return responderMatch || ambulanceMatch;
+		});
+
+		if (!scoped.length) return null;
+		return [...scoped].sort((a, b) => Date.parse(b?.updated_at || 0) - Date.parse(a?.updated_at || 0))[0];
+	}, [activeAmbulanceRequests, assignedAmbulance?.id, isDriverMode, user?.id]);
+
+	const driverTelemetry = useMemo(() => {
+		if (!driverActiveEmergency) {
+			return { state: "inactive", ageLabel: null };
+		}
+		const hasResponderLocation = !!decodePostGISGeometry(driverActiveEmergency?.responder_location);
+		return deriveTelemetryState(driverActiveEmergency?.updated_at, hasResponderLocation);
+	}, [driverActiveEmergency]);
+
+	const requestBrowserLocation = useCallback(() => {
+		return new Promise((resolve, reject) => {
+			if (!("geolocation" in navigator)) {
+				reject(new Error("Geolocation is not available on this device"));
+				return;
+			}
+
+			navigator.geolocation.getCurrentPosition(resolve, reject, {
+				enableHighAccuracy: true,
+				timeout: 10000,
+				maximumAge: 10000,
+			});
+		});
+	}, []);
+
+	const handleDriverPingLocation = useCallback(async () => {
+		if (!driverActiveEmergency?.id) {
+			toast.warning("No active assignment to publish location for");
+			return;
+		}
+
+		setDriverAction("ping");
+		try {
+			const position = await requestBrowserLocation();
+			const coords = position?.coords || {};
+			await updateResponderLocation(
+				driverActiveEmergency.id,
+				{
+					lat: Number(coords.latitude),
+					lng: Number(coords.longitude),
+				},
+				Number.isFinite(coords.heading) ? coords.heading : null
+			);
+			toast.success("Location telemetry updated");
+			await refresh();
+		} catch (error) {
+			console.error("[GodModeMap] Failed to update driver location:", error);
+			toast.error(error?.message || "Unable to publish location");
+		} finally {
+			setDriverAction(null);
+		}
+	}, [driverActiveEmergency?.id, refresh, requestBrowserLocation]);
+
+	const handleDriverStatusUpdate = useCallback(async (status) => {
+		if (!driverActiveEmergency?.id) {
+			toast.warning("No active assignment to update");
+			return;
+		}
+
+		setDriverAction(status);
+		try {
+			await driverManagementService.updateTripStatus(driverActiveEmergency.id, status);
+			await refresh();
+		} catch (error) {
+			console.error("[GodModeMap] Driver status update failed:", error);
+		} finally {
+			setDriverAction(null);
+		}
+	}, [driverActiveEmergency?.id, refresh]);
 
 
 	// 2. Combine for Rendering Markers
@@ -395,10 +560,120 @@ const GodModeMapContent = () => {
 							getPriorityColor={getPriorityColor}
 							theme={theme}
 						/>
-					)}
+						)}
 
-					{/* 3. Floating Tactical Controls (Unified Pattern) */}
-					<div className="absolute bottom-6 right-6 flex flex-col items-end gap-3 z-[100]">
+						{isDriverMode ? (
+							<div className="absolute top-16 left-6 z-[120] w-[20rem] rounded-3xl border border-white/10 bg-background/85 backdrop-blur-xl p-4 shadow-premium">
+								<div className="flex items-center justify-between mb-3">
+									<div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Driver Mission</div>
+									<div className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+										<Radio className="h-3.5 w-3.5" />
+										Live
+									</div>
+								</div>
+
+								{driverActiveEmergency ? (
+									<>
+										<div className="space-y-2 mb-3">
+											<div className="text-sm font-semibold">
+												Request #{driverActiveEmergency?.display_id || driverActiveEmergency?.id?.slice(-6)}
+											</div>
+											<div className="text-xs text-muted-foreground">
+												Status: <span className="font-semibold text-foreground">{String(driverActiveEmergency?.status || "").toUpperCase()}</span>
+											</div>
+											<div className="text-xs text-muted-foreground">
+												Unit: <span className="font-semibold text-foreground">{assignedAmbulance?.call_sign || assignedAmbulance?.vehicle_number || "Unassigned"}</span>
+											</div>
+											<div className="text-xs text-muted-foreground">
+												Telemetry:{" "}
+												<span
+													className={`font-semibold ${
+														driverTelemetry.state === "lost"
+															? "text-destructive"
+															: driverTelemetry.state === "stale"
+																? "text-warning"
+																: "text-success"
+													}`}
+												>
+													{driverTelemetry.state.toUpperCase()}
+												</span>
+												{driverTelemetry.ageLabel ? ` • ${driverTelemetry.ageLabel} ago` : ""}
+											</div>
+										</div>
+										<div className="grid grid-cols-2 gap-2">
+											<Button
+												size="sm"
+												variant="outline"
+												onClick={handleDriverPingLocation}
+												disabled={driverAction !== null}
+												className="rounded-2xl"
+											>
+												{driverAction === "ping" ? <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5 mr-1" />}
+												Ping
+											</Button>
+											<Button
+												size="sm"
+												variant="outline"
+												onClick={() => handleDriverStatusUpdate("accepted")}
+												disabled={driverAction !== null || driverActiveEmergency?.status === "accepted"}
+												className="rounded-2xl"
+											>
+												<MapPin className="h-3.5 w-3.5 mr-1" />
+												En Route
+											</Button>
+											<Button
+												size="sm"
+												variant="outline"
+												onClick={() => handleDriverStatusUpdate("arrived")}
+												disabled={driverAction !== null || driverActiveEmergency?.status === "arrived"}
+												className="rounded-2xl"
+											>
+												<Clock className="h-3.5 w-3.5 mr-1" />
+												Arrived
+											</Button>
+											<Button
+												size="sm"
+												onClick={() => handleDriverStatusUpdate("completed")}
+												disabled={driverAction !== null || !["arrived", "accepted", "in_progress"].includes(String(driverActiveEmergency?.status || "").toLowerCase())}
+												className="rounded-2xl"
+											>
+												<CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+												Complete
+											</Button>
+										</div>
+									</>
+								) : (
+									<div className="text-xs text-muted-foreground">
+										No active ambulance assignment yet. Keep this map open for live dispatch.
+									</div>
+								)}
+							</div>
+						) : (
+							<div className="absolute top-16 left-6 z-[120] w-[18rem] rounded-3xl border border-white/10 bg-background/82 backdrop-blur-xl p-4 shadow-premium">
+								<div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-3">Ops Telemetry</div>
+								<div className="grid grid-cols-2 gap-2 text-xs">
+									<div className="rounded-2xl bg-white/5 p-2">
+										<div className="text-muted-foreground">Active Trips</div>
+										<div className="text-sm font-semibold">{opsTelemetrySummary.total}</div>
+									</div>
+									<div className="rounded-2xl bg-white/5 p-2">
+										<div className="text-success">Live</div>
+										<div className="text-sm font-semibold">{opsTelemetrySummary.live}</div>
+									</div>
+									<div className="rounded-2xl bg-white/5 p-2">
+										<div className="text-warning">Stale</div>
+										<div className="text-sm font-semibold">{opsTelemetrySummary.stale}</div>
+									</div>
+									<div className="rounded-2xl bg-white/5 p-2">
+										<div className="text-destructive">Lost</div>
+										<div className="text-sm font-semibold">{opsTelemetrySummary.lost}</div>
+									</div>
+								</div>
+							</div>
+						)}
+
+						{/* 3. Floating Tactical Controls (Unified Pattern) */}
+						<div className="absolute bottom-6 right-6 flex flex-col items-end gap-3 z-[100]">
 						<motion.button
 							whileTap={{ scale: 0.9 }}
 							onClick={(e) => {
@@ -411,10 +686,12 @@ const GodModeMapContent = () => {
 							<RefreshCw size={20} className={`${loading ? 'animate-spin' : ''} text-primary`} />
 						</motion.button>
 
-						<MapLayerControls
-							showLayers={showLayers}
-							setShowLayers={toggleLayer}
-						/>
+							{!isDriverMode && (
+								<MapLayerControls
+									showLayers={showLayers}
+									setShowLayers={toggleLayer}
+								/>
+							)}
 
 						<motion.button
 							whileTap={{ scale: 0.9 }}
