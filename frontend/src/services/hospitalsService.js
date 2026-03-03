@@ -5,7 +5,6 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { getCurrentUser, applyAuthFilter } from './authService';
 import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'hospitals';
@@ -16,22 +15,9 @@ const TABLE_NAME = 'hospitals';
  */
 export async function getHospitals(filter = {}) {
   try {
-    const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
-
-    // Providers shouldn't filter hospitals by user_id - they see all verified hospitals
-    if (user?.role !== 'admin' && user?.role !== 'org_admin') {
-      // For providers and other roles, only show verified hospitals without user_id filtering
-      query = query.eq('verified', true);
-    } else {
-      // Apply RBAC Scoping only for admins and org admins
-      query = applyAuthFilter(query, user, {
-        orgIdField: 'organization_id', // Org admins see hospitals in their org
-        bypassForAdmin: true
-      });
-    }
-
-    // Remove user_id filter as it doesn't exist in hospitals table
+    // Rely on database RLS for visibility and role scoping to avoid client-side role drift.
+    // This keeps console/admin behavior consistent with backend policy changes.
 
     if (filter?.status) {
       query = query.eq('status', filter.status);
