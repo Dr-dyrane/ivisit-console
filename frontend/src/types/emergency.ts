@@ -43,9 +43,12 @@ export interface SharedDataSnapshot {
  * Emergency Request Status
  */
 export enum EmergencyStatus {
+  PENDING_APPROVAL = 'pending_approval',
+  PAYMENT_DECLINED = 'payment_declined',
   IN_PROGRESS = 'in_progress',
-  PENDING = 'pending',
+  PENDING = 'pending_approval', // legacy alias
   ACCEPTED = 'accepted',
+  ARRIVED = 'arrived',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
 }
@@ -190,8 +193,8 @@ export interface EmergencyRequestFilter {
  */
 export interface EmergencyStats {
   total_requests: number;
-  active_requests: number; // in_progress
-  pending_requests: number; // pending
+  active_requests: number; // pending_approval | in_progress | accepted | arrived
+  pending_requests: number; // pending_approval
   completed_today: number;
   cancelled_today: number;
   avg_response_time_seconds: number;

@@ -43,6 +43,7 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
+import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { usePageHeader } from '../../contexts/LayoutContext';
@@ -270,9 +271,11 @@ export const Analytics = () => {
     const statusPalette = {
       completed: CHART_COLORS.success,
       in_progress: CHART_COLORS.primary,
-      dispatched: CHART_COLORS.info,
-      pending: CHART_COLORS.warning,
-      cancelled: CHART_COLORS.destructive
+      accepted: CHART_COLORS.info,
+      arrived: CHART_COLORS.secondary,
+      pending_approval: CHART_COLORS.warning,
+      payment_declined: CHART_COLORS.destructive,
+      cancelled: CHART_COLORS.destructive,
     };
     const statusCounts = {};
     const typeCounts = {};
@@ -288,7 +291,7 @@ export const Analytics = () => {
       if (!bucket) return;
 
       bucket.requests += 1;
-      const status = String(req.status || 'pending').toLowerCase();
+      const status = canonicalizeEmergencyStatus(req.status, 'pending_approval');
       if (status === 'completed') bucket.completed += 1;
       statusCounts[status] = (statusCounts[status] || 0) + 1;
 

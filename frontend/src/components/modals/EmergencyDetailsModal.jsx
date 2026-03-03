@@ -29,13 +29,14 @@ import { supabase } from '../../lib/supabase';
 import { getVisit } from '../../services/visitsService';
 import { getStandardizedPatient } from '../../utils/patientUtils';
 import { approveCashPayment, declineCashPayment } from '../../services/emergencyService';
+import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 
 export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
   const [visitOutcome, setVisitOutcome] = React.useState(null);
   const [loadingOutcome, setLoadingOutcome] = React.useState(false);
   const [paymentData, setPaymentData] = React.useState(null);
   const [isProcessingApproval, setIsProcessingApproval] = React.useState(false);
-  const normalizedStatus = request?.status === 'pending' ? 'pending_approval' : request?.status;
+  const normalizedStatus = canonicalizeEmergencyStatus(request?.status, request?.status);
   const isApprovalPending = normalizedStatus === 'pending_approval';
   const showCashApprovalCard = isApprovalPending && (
     request?.status === 'pending_approval' ||
@@ -93,7 +94,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
   // }, [request]);
 
   React.useEffect(() => {
-    if (request?.id && (request.status === 'completed' || request.status === 'cancelled')) {
+    if (request?.id && (normalizedStatus === 'completed' || normalizedStatus === 'cancelled')) {
       fetchVisitOutcome(request.id);
     } else {
       setVisitOutcome(null);
@@ -259,13 +260,15 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
             <div className="p-4 sm:p-8 pt-1 sm:pt-2 overflow-y-auto h-[calc(100dvh-88px)] sm:max-h-[calc(90vh-120px)] space-y-5 sm:space-y-6 no-scrollbar">
               {/* Status Tracker Bubbles */}
               <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-                {['pending_approval', 'dispatched', 'en_route', 'arrived', 'completed'].map((step, i, arr) => {
-                  const isCurrent = request.status === step;
-                  // Handle 'pending' as 'pending_approval' for visual consistency if needed
-                  const effectiveStatus = (request.status === 'pending') ? 'pending_approval' : request.status;
-                  const currentIndex = arr.indexOf(effectiveStatus);
+                {['pending_approval', 'in_progress', 'accepted', 'arrived', 'completed'].map((step, i, arr) => {
+                  const isCurrent = normalizedStatus === step;
+                  const currentIndex = arr.indexOf(normalizedStatus);
                   const isPast = currentIndex > i;
-                  const stepLabel = step === 'pending_approval' ? 'Approval' : step;
+                  const stepLabel = step === 'pending_approval'
+                    ? 'Approval'
+                    : step === 'in_progress'
+                      ? 'Dispatched'
+                      : step;
 
                   return (
                     <div key={step} className={`p-3 rounded-2xl text-center border transition-all ${isCurrent ? 'bg-primary/10 border-primary/20 text-primary' :
@@ -381,7 +384,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                           <ChevronRight className="w-3 h-3" />
                         </Button>
                       </div>
-                    ) : (request?.status === 'completed' || request?.status === 'cancelled') ? (
+                    ) : (normalizedStatus === 'completed' || normalizedStatus === 'cancelled') ? (
                       <div className="mt-6 p-4 rounded-2xl bg-yellow-500/5 border border-yellow-500/10 space-y-3">
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="text-yellow-500 border-yellow-500/20 bg-yellow-500/5 text-[10px] font-bold uppercase">Clinical Record</Badge>

@@ -3,6 +3,7 @@
  * Centralized enums and configurations for emergency requests
  * Based on actual mobile app implementation
  */
+import { canonicalizeEmergencyStatus } from '../utils/emergencyStatus';
 
 // Service Types - Based on mobile app useRequestFlow.js
 export const EMERGENCY_SERVICE_TYPES = {
@@ -24,20 +25,23 @@ export const SERVICE_TYPE_DISPLAY = {
 
 // Status Enums - Based on database schema
 export const EMERGENCY_STATUS = {
-  PENDING: 'pending',
+  PENDING: 'pending_approval', // legacy alias mapped to canonical status
   PENDING_APPROVAL: 'pending_approval',
+  PAYMENT_DECLINED: 'payment_declined',
   IN_PROGRESS: 'in_progress',
   ACCEPTED: 'accepted',
+  ARRIVED: 'arrived',
   COMPLETED: 'completed',
   CANCELLED: 'cancelled'
 };
 
 // Status Display Names
 export const STATUS_DISPLAY = {
-  [EMERGENCY_STATUS.PENDING]: 'Pending',
-  [EMERGENCY_STATUS.PENDING_APPROVAL]: 'Approval Needed',
+  [EMERGENCY_STATUS.PENDING_APPROVAL]: 'Pending Approval',
+  [EMERGENCY_STATUS.PAYMENT_DECLINED]: 'Payment Declined',
   [EMERGENCY_STATUS.IN_PROGRESS]: 'In Progress',
   [EMERGENCY_STATUS.ACCEPTED]: 'Accepted',
+  [EMERGENCY_STATUS.ARRIVED]: 'Arrived',
   [EMERGENCY_STATUS.COMPLETED]: 'Completed',
   [EMERGENCY_STATUS.CANCELLED]: 'Cancelled'
 };
@@ -64,9 +68,11 @@ export const SERVICE_TYPE_COLORS = {
 
 // Status Colors
 export const STATUS_COLORS = {
-  [EMERGENCY_STATUS.PENDING]: 'hsl(var(--warning))',
+  [EMERGENCY_STATUS.PENDING_APPROVAL]: 'hsl(var(--warning))',
+  [EMERGENCY_STATUS.PAYMENT_DECLINED]: 'hsl(var(--destructive))',
   [EMERGENCY_STATUS.IN_PROGRESS]: 'hsl(var(--info))',
   [EMERGENCY_STATUS.ACCEPTED]: 'hsl(var(--primary))',
+  [EMERGENCY_STATUS.ARRIVED]: 'hsl(var(--secondary))',
   [EMERGENCY_STATUS.COMPLETED]: 'hsl(var(--success))',
   [EMERGENCY_STATUS.CANCELLED]: 'hsl(var(--destructive))'
 };
@@ -82,10 +88,11 @@ export const SERVICE_TYPE_BADGES = {
 
 // Badge Classes for Status
 export const STATUS_BADGES = {
-  [EMERGENCY_STATUS.PENDING]: 'bg-warning/20 text-warning',
   [EMERGENCY_STATUS.PENDING_APPROVAL]: 'bg-orange-500/20 text-orange-500',
+  [EMERGENCY_STATUS.PAYMENT_DECLINED]: 'bg-destructive/20 text-destructive',
   [EMERGENCY_STATUS.IN_PROGRESS]: 'bg-info/20 text-info',
   [EMERGENCY_STATUS.ACCEPTED]: 'bg-blue-500/20 text-blue-500',
+  [EMERGENCY_STATUS.ARRIVED]: 'bg-secondary/20 text-secondary',
   [EMERGENCY_STATUS.COMPLETED]: 'bg-success/20 text-success',
   [EMERGENCY_STATUS.CANCELLED]: 'bg-destructive/20 text-destructive'
 };
@@ -96,7 +103,8 @@ export const getServiceTypeDisplay = (serviceType) => {
 };
 
 export const getStatusDisplay = (status) => {
-  return STATUS_DISPLAY[status] || 'Unknown';
+  const canonical = canonicalizeEmergencyStatus(status, null);
+  return STATUS_DISPLAY[canonical] || 'Unknown';
 };
 
 export const getServiceTypeColor = (serviceType) => {
@@ -104,7 +112,8 @@ export const getServiceTypeColor = (serviceType) => {
 };
 
 export const getStatusColor = (status) => {
-  return STATUS_COLORS[status] || 'hsl(var(--muted-foreground))';
+  const canonical = canonicalizeEmergencyStatus(status, null);
+  return STATUS_COLORS[canonical] || 'hsl(var(--muted-foreground))';
 };
 
 export const getServiceTypeBadge = (serviceType) => {
@@ -112,5 +121,6 @@ export const getServiceTypeBadge = (serviceType) => {
 };
 
 export const getStatusBadge = (status) => {
-  return STATUS_BADGES[status] || 'bg-muted/20 text-muted-foreground';
+  const canonical = canonicalizeEmergencyStatus(status, null);
+  return STATUS_BADGES[canonical] || 'bg-muted/20 text-muted-foreground';
 };

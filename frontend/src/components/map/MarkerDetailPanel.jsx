@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 // NEW: import { LocationCell } from '../ui/LocationCell';
 import { getStandardizedPatient } from '../../utils/patientUtils';
 import { LocationCell } from '../ui/LocationCell';
+import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 
 export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh }) => {
 	const { isAdmin, isOrgAdmin } = useAuth();
@@ -21,6 +22,9 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 	// OLD: Used selectedMarker.data.name directly
 	// NEW: Uses getStandardizedPatient for consistent patient info across app
 	const patientData = selectedMarker.type === "emergency" ? getStandardizedPatient(selectedMarker.data) : null;
+	const emergencyStatus = selectedMarker.type === "emergency"
+		? canonicalizeEmergencyStatus(selectedMarker.data?.status, selectedMarker.data?.status)
+		: null;
 
 	return (
 		<AnimatePresence>
@@ -125,7 +129,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 								<div className="flex gap-2">
 									{/* Dispatch button for unassigned emergencies */}
 									{(isAdmin() || isOrgAdmin()) &&
-										(selectedMarker.data.status === 'pending' || selectedMarker.data.status === 'in_progress') &&
+										(emergencyStatus === 'pending_approval' || emergencyStatus === 'in_progress') &&
 										!selectedMarker.data.ambulance_id && (
 											<Button
 												className="flex-1 squircle bg-success hover:bg-success/90 shadow-glow font-semibold"
@@ -150,8 +154,8 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 
 									{/* Complete button for dispatched emergencies */}
 									{(isAdmin() || isOrgAdmin()) &&
-										(selectedMarker.data.status === 'accepted' || selectedMarker.data.ambulance_id) &&
-										selectedMarker.data.status !== 'completed' && (
+										(emergencyStatus === 'accepted' || selectedMarker.data.ambulance_id) &&
+										emergencyStatus !== 'completed' && (
 											<Button
 												className="flex-1 squircle bg-info hover:bg-info/90 shadow-glow font-semibold"
 												size="lg"

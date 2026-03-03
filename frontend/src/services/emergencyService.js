@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
 import { logEmergencyActivity } from './activityService';
 import { isValidUUID } from '../lib/utils';
+import { canonicalizeEmergencyStatus } from '../utils/emergencyStatus';
 
 const TABLE_NAME = 'emergency_requests';
 
@@ -60,7 +61,7 @@ function buildLegacyEmergencyPayload(input) {
     ambulance_type: input.ambulance_type,
     payment_status: input.payment_status,
     total_cost: input.total_cost,
-    status: input.status || 'in_progress',
+    status: canonicalizeEmergencyStatus(input.status, 'in_progress'),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -276,8 +277,13 @@ export async function createEmergencyRequest(input) {
  */
 export async function updateEmergencyRequest(requestId, input) {
   try {
+    const normalizedStatus = input?.status !== undefined
+      ? canonicalizeEmergencyStatus(input.status, null)
+      : undefined;
+
     const payload = {
       ...input,
+      ...(normalizedStatus ? { status: normalizedStatus } : {}),
       updated_at: new Date().toISOString(),
     };
 
@@ -292,7 +298,7 @@ export async function updateEmergencyRequest(requestId, input) {
     const data = rpcResult.request;
 
     // Log activity for completed emergencies
-    if (input.status === 'completed') {
+    if (normalizedStatus === 'completed') {
       try {
         await logEmergencyActivity.completed(
           requestId,
@@ -306,14 +312,14 @@ export async function updateEmergencyRequest(requestId, input) {
       } catch (activityError) {
         console.warn('Failed to log activity:', activityError);
       }
-    } else if (input.status) {
+    } else if (normalizedStatus) {
       try {
         await logEmergencyActivity.updated(
           requestId,
-          `Emergency request updated to ${input.status}`,
+          `Emergency request updated to ${normalizedStatus}`,
           {
             old_status: data.status,
-            new_status: input.status,
+            new_status: normalizedStatus,
             location: data.pickup_location?.address
           }
         );
@@ -591,13 +597,13 @@ export async function getEmergencyStats() {
     const { data: activeData } = await supabase
       .from(TABLE_NAME)
       .select('id', { count: 'exact' })
-      .eq('status', 'in_progress');
+      .in('status', ['pending_approval', 'in_progress', 'accepted', 'arrived']);
 
     // Get pending requests (new cash approval flow)
     const { data: pendingData } = await supabase
       .from(TABLE_NAME)
       .select('id', { count: 'exact' })
-      .in('status', ['pending', 'pending_approval']);
+      .eq('status', 'pending_approval');
 
     // Get today's completed
     const today = new Date().toISOString().split('T')[0];

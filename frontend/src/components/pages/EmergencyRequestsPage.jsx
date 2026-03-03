@@ -59,6 +59,7 @@ import { EmergencyRequestTableView } from '../views/EmergencyRequestTableView';
 import { MobileEmergency } from '../mobile/MobileEmergency';
 import { usePageData } from '../../contexts/PageDataContext';
 import { SEOHead } from '../common/SEOHead';
+import { canonicalizeEmergencyStatus, isActiveEmergencyStatus } from '../../utils/emergencyStatus';
 
 export const EmergencyRequestsPage = () => {
   const { isAdmin, isOrgAdmin, isProvider, orgId, profile, can, user } = useAuth();
@@ -134,7 +135,7 @@ export const EmergencyRequestsPage = () => {
       if (kpiFilter === 'bed') query = query.eq('service_type', 'bed');
       if (kpiFilter === 'pending') query = query.eq('status', 'pending_approval');
       if (kpiFilter === 'inProgress') query = query.eq('status', 'in_progress');
-      if (kpiFilter === 'active') query = query.in('status', ['in_progress', 'accepted', 'arrived']);
+      if (kpiFilter === 'active') query = query.in('status', ['pending_approval', 'in_progress', 'accepted', 'arrived']);
 
       const { count } = await query;
       pagination.setTotalCount(count || 0);
@@ -166,12 +167,16 @@ export const EmergencyRequestsPage = () => {
       if (kpiFilter === 'bed') dataQuery = dataQuery.eq('service_type', 'bed');
       if (kpiFilter === 'pending') dataQuery = dataQuery.eq('status', 'pending_approval');
       if (kpiFilter === 'inProgress') dataQuery = dataQuery.eq('status', 'in_progress');
-      if (kpiFilter === 'active') dataQuery = dataQuery.in('status', ['in_progress', 'accepted', 'arrived']);
+      if (kpiFilter === 'active') dataQuery = dataQuery.in('status', ['pending_approval', 'in_progress', 'accepted', 'arrived']);
 
       const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load emergency requests - timeout');
 
       if (error) throw error;
-      setRequests(data || []);
+      const normalizedRows = (data || []).map((row) => ({
+        ...row,
+        status: canonicalizeEmergencyStatus(row.status, row.status),
+      }));
+      setRequests(normalizedRows);
     } catch (error) {
       console.error('Error fetching emergency requests:', error);
       toast.error(error.message || 'Failed to load emergency requests');
@@ -293,7 +298,7 @@ export const EmergencyRequestsPage = () => {
   );
 
   const pendingCount = React.useMemo(() =>
-    requests.filter(r => r.status === 'pending' || r.status === 'pending_approval').length,
+    requests.filter(r => r.status === 'pending_approval').length,
     [requests]);
 
   const footerContent = React.useMemo(() => (
@@ -523,8 +528,8 @@ export const EmergencyRequestsPage = () => {
             onClose={() => setAnalyticsModalOpen(false)}
             analytics={emergencyData?.stats || {
               total: requests.length,
-              active: requests.filter(r => r.status === 'active' || r.status === 'in_progress').length,
-              pending: requests.filter(r => r.status === 'pending' || r.status === 'pending_approval').length,
+              active: requests.filter(r => isActiveEmergencyStatus(r.status)).length,
+              pending: requests.filter(r => r.status === 'pending_approval').length,
               critical: requests.filter(r => r.priority === 'critical').length,
               avgResponseTime: 0
             }}
@@ -910,7 +915,7 @@ export const EmergencyRequestsPage = () => {
                               {(currentUser.isAdmin() || currentUser.isOrgAdmin()) && (
                                 <>
                                   {/* Dispatch Case: Pending/In-Progress & No Ambulance */}
-                                  {((req.status === 'pending' || req.status === 'pending_approval' || req.status === 'in_progress') && !req.ambulance_id) && (
+                                  {((req.status === 'pending_approval' || req.status === 'in_progress') && !req.ambulance_id) && (
                                     <Button
                                       variant="ghost"
                                       size="sm"

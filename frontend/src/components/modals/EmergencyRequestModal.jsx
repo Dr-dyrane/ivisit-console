@@ -28,6 +28,9 @@ const STATUS_ALIAS_TO_DB = {
   pending: 'pending_approval',
   dispatched: 'in_progress',
   en_route: 'accepted',
+  assigned: 'accepted',
+  responding: 'accepted',
+  canceled: 'cancelled',
 };
 
 const normalizeEmergencyStatus = (value, fallback = 'pending_approval') => {

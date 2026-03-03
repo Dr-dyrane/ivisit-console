@@ -36,6 +36,7 @@ import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
+import { canonicalizeEmergencyStatus, isActiveEmergencyStatus, isTerminalEmergencyStatus } from '../../utils/emergencyStatus';
 
 /**
  * MobileEmergency
@@ -105,7 +106,7 @@ export const MobileEmergency = ({
         all: Number(statistics?.total) || emergencies.length,
         ambulance: Number(statistics?.ambulance) || emergencies.filter(e => e.service_type === 'ambulance').length,
         bed: Number(statistics?.bed) || emergencies.filter(e => e.service_type === 'bed').length,
-        active: Number(statistics?.active) || emergencies.filter(e => e.status === 'active' || e.status === 'in_progress').length
+        active: Number(statistics?.active) || emergencies.filter(e => isActiveEmergencyStatus(e.status)).length
     };
 
     const previous = {
@@ -139,8 +140,8 @@ export const MobileEmergency = ({
         { value: 45 }, { value: 60 }, { value: 40 }, { value: 75 }, { value: 85 }, { value: 95 }
     ], []);
 
-    const activeCount = emergencies.filter(e => e.status === 'active').length;
-    const resolvedCount = emergencies.filter(e => e.status === 'resolved' || e.status === 'completed').length;
+    const activeCount = emergencies.filter(e => isActiveEmergencyStatus(e.status)).length;
+    const resolvedCount = emergencies.filter(e => isTerminalEmergencyStatus(e.status)).length;
     const responseSuccess = Number(statistics?.successRate) || (emergencies.length ? (resolvedCount / emergencies.length) * 100 : 0);
     const trendBadge = formatSignedPercent(responseSuccess - 50) || 'LIVE';
 
@@ -154,25 +155,37 @@ export const MobileEmergency = ({
     };
 
     const getStatusIcon = (status) => {
-        switch (status) {
-            case 'active': return AlertCircle;
-            case 'responding': return Activity;
-            case 'resolved': return CheckCircle2;
+        switch (canonicalizeEmergencyStatus(status, null)) {
+            case 'pending_approval':
+                return AlertCircle;
+            case 'in_progress':
+            case 'accepted':
+            case 'arrived':
+                return Activity;
+            case 'completed':
+            case 'cancelled':
+            case 'payment_declined':
+                return CheckCircle2;
             default: return AlertTriangle;
         }
     };
 
     const getStatusColor = (status) => {
-        switch (status) {
-            case 'active': return 'hsl(var(--destructive))';
-            case 'responding': return 'hsl(var(--warning))';
-            case 'resolved': return 'hsl(var(--success))';
+        switch (canonicalizeEmergencyStatus(status, null)) {
+            case 'pending_approval': return 'hsl(var(--warning))';
+            case 'in_progress': return 'hsl(var(--destructive))';
+            case 'accepted': return 'hsl(var(--info))';
+            case 'arrived': return 'hsl(var(--spark))';
+            case 'completed': return 'hsl(var(--success))';
+            case 'cancelled':
+            case 'payment_declined':
+                return 'hsl(var(--muted-foreground))';
             default: return 'hsl(var(--primary))';
         }
     };
 
     const needsApproval = (emergency) =>
-        emergency?.status === 'pending_approval' ||
+        canonicalizeEmergencyStatus(emergency?.status, null) === 'pending_approval' ||
         (emergency?.payment_method_id === 'cash' && emergency?.payment_status && emergency.payment_status !== 'completed');
 
     return (
@@ -329,6 +342,7 @@ export const MobileEmergency = ({
                         (() => {
                             const approvalNeeded = needsApproval(emergency);
                             const rowColor = approvalNeeded ? 'hsl(var(--warning))' : getSeverityColor(emergency.service_type);
+                            const canonicalStatus = canonicalizeEmergencyStatus(emergency.status, emergency.status);
                             const blade = approvalNeeded
                                 ? {
                                     badge: 'APPROVAL',
@@ -338,17 +352,17 @@ export const MobileEmergency = ({
                                     color: 'hsl(var(--warning))'
                                 }
                                 : {
-                                    badge: emergency.status === 'active' ? 'LIVE' : emergency.status === 'responding' ? 'ENROUTE' : 'RESOLVED',
-                                    direction: emergency.status === 'resolved' ? 'up' : emergency.status === 'active' ? 'down' : 'flat',
+                                    badge: isActiveEmergencyStatus(canonicalStatus) ? 'LIVE' : 'RESOLVED',
+                                    direction: canonicalStatus === 'completed' ? 'up' : isActiveEmergencyStatus(canonicalStatus) ? 'down' : 'flat',
                                     label: 'Priority',
                                     value: String(emergency.priority || 'normal').toUpperCase(),
-                                    color: getStatusColor(emergency.status)
+                                    color: getStatusColor(canonicalStatus)
                                 };
                             return (
                         <MobileMetricRow
                             key={emergency.id}
                             layoutEnabled={false}
-                            icon={getStatusIcon(emergency.status)}
+                            icon={getStatusIcon(canonicalStatus)}
                             color={rowColor}
                             attentionPulse={approvalNeeded}
                             label={emergency.service_type?.replace('_', ' ').toUpperCase() || 'MEDICAL EMERGENCY'}

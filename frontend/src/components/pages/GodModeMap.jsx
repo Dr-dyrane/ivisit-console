@@ -29,6 +29,7 @@ import { driverManagementService } from "../../services/driverManagementService"
 // NEW: import { getStandardizedPatient } from "../../utils/patientUtils";
 import { decodePostGISGeometry } from "../../utils/locationUtils";
 import { getStandardizedPatient } from "../../utils/patientUtils";
+import { canonicalizeEmergencyStatus } from "../../utils/emergencyStatus";
 
 // Import extracted map components
 import {
@@ -402,7 +403,7 @@ const GodModeMapContent = () => {
 		const routes = [];
 
 		processedEmergencies.forEach(emergency => {
-			const status = emergency.status || 'pending';
+			const status = canonicalizeEmergencyStatus(emergency.status, 'pending_approval');
 			if (status === 'completed' || status === 'cancelled') return;
 
 			// START Point: Patient
