@@ -7,6 +7,7 @@ import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import { getCurrentUser, applyAuthFilter } from '../../services/authService';
+import { createHealthNews, updateHealthNews, deleteHealthNews, toggleHealthNewsPublish } from '../../services/healthNewsService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -207,8 +208,7 @@ export const HealthNewsManagementPage = () => {
       description: `Are you sure you want to delete "${news.title}"? This action cannot be undone.`,
       onConfirm: async () => {
         try {
-          const { error } = await supabase.from('health_news').delete().eq('id', news.id);
-          if (error) throw error;
+          await deleteHealthNews(news.id);
 
           toast.success('News article deleted successfully');
           fetchHealthNews();
@@ -221,16 +221,11 @@ export const HealthNewsManagementPage = () => {
       variant: 'destructive',
       confirmLabel: 'Delete Article'
     });
-  }, []);
+  }, [fetchHealthNews]);
 
   const handleTogglePublish = useCallback(async (news) => {
     try {
-      const { error } = await supabase
-        .from('health_news')
-        .update({ published: !news.published })
-        .eq('id', news.id);
-
-      if (error) throw error;
+      await toggleHealthNewsPublish(news.id, !news.published);
 
       await createNotification(
         NotificationTypes.NEWS,
@@ -264,27 +259,17 @@ export const HealthNewsManagementPage = () => {
 
   const handleSave = useCallback(async (formData) => {
     try {
-      const timestamp = new Date().toISOString();
       const payload = {
         title: formData.title,
         source: formData.source,
-        icon: formData.icon || 'medical-outline',
         url: formData.url,
         category: formData.category,
         published: formData.published,
-        description: formData.description,
-        content: formData.content,
-        time: timestamp
+        image_url: formData.image_url || null,
       };
 
       if (modalMode === 'create') {
-        const { data, error } = await supabase
-          .from('health_news')
-          .insert([payload])
-          .select()
-          .single();
-
-        if (error) throw error;
+        const data = await createHealthNews(payload);
 
         await createNotification(
           NotificationTypes.NEWS,
@@ -293,12 +278,7 @@ export const HealthNewsManagementPage = () => {
           { message: `"${formData.title}" has been created` }
         );
       } else if (modalMode === 'edit' && selectedNews) {
-        const { error } = await supabase
-          .from('health_news')
-          .update(payload)
-          .eq('id', selectedNews.id);
-
-        if (error) throw error;
+        await updateHealthNews(selectedNews.id, payload);
 
         await createNotification(
           NotificationTypes.NEWS,

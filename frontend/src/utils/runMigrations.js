@@ -43,7 +43,7 @@ export const runMigrations = async () => {
     `;
     
     const { error: healthNewsError } = await supabase.rpc('exec_sql', { 
-      sql_query: healthNewsSQL 
+      sql: healthNewsSQL 
     });
     
     if (healthNewsError) {
@@ -114,7 +114,7 @@ export const runMigrations = async () => {
     `;
     
     const { error: supportTicketsError } = await supabase.rpc('exec_sql', { 
-      sql_query: supportTicketsSQL 
+      sql: supportTicketsSQL 
     });
     
     if (supportTicketsError) {
@@ -234,7 +234,7 @@ export const runMigrations = async () => {
     `;
     
     const { error: insuranceError } = await supabase.rpc('exec_sql', { 
-      sql_query: insuranceSQL 
+      sql: insuranceSQL 
     });
     
     if (insuranceError) {

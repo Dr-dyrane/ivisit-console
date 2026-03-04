@@ -6,7 +6,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
-import { createHospital, updateHospital, getHospitals, getHospital } from '../../services/hospitalsService';
+import { createHospital, updateHospital, getHospitals, getHospital, deleteHospital } from '../../services/hospitalsService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -169,18 +169,7 @@ export const HospitalsPage = () => {
       variant: 'destructive',
       onConfirm: async () => {
         try {
-          // FIX: Direct supabase.from('hospitals').delete() fails silently (200, 0 rows)
-          // because the FOR ALL RLS policy using get_current_user_role() doesn't match
-          // rows for DELETE operations even when the caller IS admin.
-          // SECURITY DEFINER RPC bypasses RLS entirely. See migration 20260216070700.
-          const { data, error } = await supabase.rpc('delete_hospital_by_admin', {
-            target_hospital_id: hospital.id
-          });
-
-          if (error) throw error;
-          if (data && data.success === false) {
-            throw new Error(data.error || 'Hospital deletion failed');
-          }
+          await deleteHospital(hospital.id);
 
           await createNotification(
             NotificationTypes.HOSPITAL,
@@ -268,8 +257,7 @@ export const HospitalsPage = () => {
       variant: 'destructive',
       onConfirm: async () => {
         try {
-          const { error } = await supabase.from('hospitals').delete().in('id', selectedIds);
-          if (error) throw error;
+          await Promise.all(selectedIds.map((id) => deleteHospital(id)));
           toast.success(`${selectedIds.length} hospitals deleted`);
           setSelectedIds([]);
           fetchHospitals();

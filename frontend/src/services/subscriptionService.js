@@ -16,11 +16,6 @@ const WRITABLE_FIELDS = new Set([
   'new_user',
   'welcome_email_sent',
   'subscription_date',
-  'source',
-  'last_engagement_at',
-  'welcome_email_sent_at',
-  'unsubscribed_at',
-  'sale_id',
 ]);
 
 function toSubscriberWritePayload(input = {}, { forInsert = false } = {}) {
@@ -33,7 +28,6 @@ function toSubscriberWritePayload(input = {}, { forInsert = false } = {}) {
     payload.new_user = true;
     payload.welcome_email_sent = false;
     payload.subscription_date = now;
-    payload.source = 'manual';
     payload.created_at = now;
   }
 
@@ -42,14 +36,6 @@ function toSubscriberWritePayload(input = {}, { forInsert = false } = {}) {
       payload[key] = value;
     }
   });
-
-  if (payload.welcome_email_sent === true && !payload.welcome_email_sent_at) {
-    payload.welcome_email_sent_at = now;
-  }
-
-  if (payload.status === 'unsubscribed' && !payload.unsubscribed_at) {
-    payload.unsubscribed_at = now;
-  }
 
   payload.updated_at = now;
   return payload;
@@ -311,7 +297,6 @@ export async function markWelcomeEmailSent(subscriberId) {
           welcome_email_sent: true,
           new_user: false,
           status: 'active',
-          last_engagement_at: new Date().toISOString(),
         },
         { forInsert: false }
       )

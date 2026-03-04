@@ -6,6 +6,7 @@
 
 import { supabase } from '../lib/supabase';
 import { isValidUUID } from '../lib/utils';
+import { buildInsuranceWritePayload, normalizeInsurancePolicy } from './insuranceService';
 
 const TABLE_NAME = 'insurance_policies';
 
@@ -23,7 +24,10 @@ export async function getInsurancePolicies(filter) {
       query = query.eq('provider_name', filter.provider_name);
     }
     if (filter?.coverage_type) {
-      query = query.eq('coverage_type', filter.coverage_type);
+      query = query.eq('plan_type', filter.coverage_type);
+    }
+    if (filter?.plan_type) {
+      query = query.eq('plan_type', filter.plan_type);
     }
 
     query = query.order('created_at', { ascending: false });
@@ -38,7 +42,7 @@ export async function getInsurancePolicies(filter) {
     const { data, error } = await query;
     if (error) throw error;
 
-    return data || [];
+    return (data || []).map(normalizeInsurancePolicy);
   } catch (error) {
     console.error('Error fetching insurance policies:', error);
     throw error;
@@ -60,7 +64,7 @@ export async function getInsurancePolicy(policyId) {
 
     if (error && error.code !== 'PGRST116') throw error;
 
-    return data || null;
+    return normalizeInsurancePolicy(data || null);
   } catch (error) {
     console.error(`Error fetching insurance policy ${policyId}:`, error);
     throw error;
@@ -72,20 +76,10 @@ export async function getInsurancePolicy(policyId) {
  */
 export async function createInsurancePolicy(input) {
   try {
-    const payload = {
-      user_id: input.user_id,
-      provider_name: input.provider_name,
-      policy_number: input.policy_number,
-      group_number: input.group_number,
-      policy_holder_name: input.policy_holder_name,
-      coverage_type: input.coverage_type,
-      start_date: input.start_date,
-      end_date: input.end_date,
-      front_image_url: input.front_image_url,
-      back_image_url: input.back_image_url,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const payload = buildInsuranceWritePayload(input, {
+      userId: input.user_id,
+      forInsert: true,
+    });
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -95,7 +89,7 @@ export async function createInsurancePolicy(input) {
 
     if (error) throw error;
 
-    return data;
+    return normalizeInsurancePolicy(data);
   } catch (error) {
     console.error('Error creating insurance policy:', error);
     throw error;
@@ -107,10 +101,18 @@ export async function createInsurancePolicy(input) {
  */
 export async function updateInsurancePolicy(policyId, input) {
   try {
-    const payload = {
-      ...input,
-      updated_at: new Date().toISOString(),
-    };
+    const { data: existingPolicy, error: existingError } = await supabase
+      .from(TABLE_NAME)
+      .select('coverage_details')
+      .eq('id', policyId)
+      .single();
+
+    if (existingError && existingError.code !== 'PGRST116') throw existingError;
+
+    const payload = buildInsuranceWritePayload(input, {
+      forInsert: false,
+      existingCoverageDetails: existingPolicy?.coverage_details || {},
+    });
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -121,7 +123,7 @@ export async function updateInsurancePolicy(policyId, input) {
 
     if (error) throw error;
 
-    return data;
+    return normalizeInsurancePolicy(data);
   } catch (error) {
     console.error(`Error updating insurance policy ${policyId}:`, error);
     throw error;
@@ -175,13 +177,13 @@ export async function getUserActiveInsurancePolicies(userId) {
       .from(TABLE_NAME)
       .select('*')
       .eq('user_id', userId)
-      .lte('start_date', today)
-      .gte('end_date', today)
+      .lte('starts_at', today)
+      .gte('expires_at', today)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    return data || [];
+    return (data || []).map(normalizeInsurancePolicy);
   } catch (error) {
     console.error(`Error fetching active insurance policies for user ${userId}:`, error);
     throw error;
@@ -225,20 +227,35 @@ export async function verifyCoverage(userId) {
  */
 export async function updatePolicyDocuments(policyId, frontImageUrl, backImageUrl) {
   try {
-    const { data, error } = await supabase
+    const { data: existingPolicy, error: existingError } = await supabase
       .from(TABLE_NAME)
-      .update({
+      .select('coverage_details')
+      .eq('id', policyId)
+      .single();
+
+    if (existingError && existingError.code !== 'PGRST116') throw existingError;
+
+    const payload = buildInsuranceWritePayload(
+      {
         front_image_url: frontImageUrl,
         back_image_url: backImageUrl,
-        updated_at: new Date().toISOString(),
-      })
+      },
+      {
+        forInsert: false,
+        existingCoverageDetails: existingPolicy?.coverage_details || {},
+      }
+    );
+
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .update(payload)
       .eq('id', policyId)
       .select()
       .single();
 
     if (error) throw error;
 
-    return data;
+    return normalizeInsurancePolicy(data);
   } catch (error) {
     console.error(`Error updating policy documents ${policyId}:`, error);
     throw error;

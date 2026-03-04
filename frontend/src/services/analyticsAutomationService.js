@@ -21,8 +21,10 @@ export const analyticsAutomationService = {
     updateTrendingTopics: async ({ daysBack = 7, limitCount = 10 } = {}) => {
         try {
             const { data, error } = await supabase.rpc('admin_update_trending_topics', {
-                days_back: daysBack,
-                limit_count: limitCount
+                payload: {
+                    days_back: daysBack,
+                    limit_count: limitCount
+                }
             });
 
             if (error) throw error;

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { getDoctorByProfileId } from '../../services/doctorsService';
-import { createVisit, updateVisit, getVisit } from '../../services/visitsService';
+import { createVisit, updateVisit, getVisit, deleteVisit } from '../../services/visitsService';
 import { getHospitals } from '../../services/hospitalsService';
 import { getProfiles } from '../../services/profilesService';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
@@ -333,8 +333,7 @@ export const VisitsPage = () => {
       variant: 'destructive',
       onConfirm: async () => {
         try {
-          const { error } = await supabase.from('visits').delete().in('id', selectedIds);
-          if (error) throw error;
+          await Promise.all(selectedIds.map((id) => deleteVisit(id)));
           toast.success(`${selectedIds.length} visits deleted`);
           setSelectedIds([]);
           fetchVisits();
@@ -355,8 +354,7 @@ export const VisitsPage = () => {
       variant: 'destructive',
       onConfirm: async () => {
         try {
-          const { error } = await supabase.from('visits').delete().eq('id', visit.id);
-          if (error) throw error;
+          await deleteVisit(visit.id);
 
           await createNotification(
             NotificationTypes.VISIT,

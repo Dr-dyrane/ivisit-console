@@ -15,8 +15,6 @@ const TABLE_NAME = 'user_activity';
  */
 export async function logActivity(action, entityType, entityId, description, metadata = {}) {
   try {
-    const user = await getCurrentUser();
-
     // Resolve entityId if it's a display ID (fluid ID system support)
     const resolvedId = await resolveEntityId(entityId);
 
@@ -25,8 +23,7 @@ export async function logActivity(action, entityType, entityId, description, met
       p_entity_type: entityType,
       p_entity_id: resolvedId,
       p_description: description,
-      p_metadata: metadata,
-      p_user_id: user?.id || null
+      p_metadata: metadata
     });
 
     if (error) throw error;

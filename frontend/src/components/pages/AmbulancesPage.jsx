@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { getHospitals } from '../../services/hospitalsService';
+import { deleteAmbulance } from '../../services/ambulancesService';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { usePagination } from '../../hooks/usePagination';
@@ -298,12 +299,7 @@ export const AmbulancesPage = () => {
   const handleDelete = useCallback(async (ambulance) => {
     // Legacy confirm removal - now using Modal via confirmDelete logic below
     try {
-      const { error } = await supabase
-        .from('ambulances')
-        .delete()
-        .eq('id', ambulance.id);
-
-      if (error) throw error;
+      await deleteAmbulance(ambulance.id);
 
       await createNotification(
         NotificationTypes.AMBULANCE,
@@ -340,9 +336,7 @@ export const AmbulancesPage = () => {
       confirmLabel: 'Delete All',
       onConfirm: async () => {
         try {
-          await Promise.all(selectedIds.map(id =>
-            supabase.from('ambulances').delete().eq('id', id)
-          ));
+          await Promise.all(selectedIds.map((id) => deleteAmbulance(id)));
           toast.success(`${selectedIds.length} ambulances deleted`);
           setSelectedIds([]);
           fetchAmbulances();

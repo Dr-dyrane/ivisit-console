@@ -9,6 +9,147 @@ import { getCurrentUser, applyAuthFilter } from './authService';
 
 const TABLE_NAME = 'insurance_policies';
 
+function parseCoverageDetails(value) {
+  if (!value) return {};
+  if (typeof value === 'object' && !Array.isArray(value)) return { ...value };
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+function toNullableNumber(value) {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  const asNumber = Number(value);
+  return Number.isFinite(asNumber) ? asNumber : null;
+}
+
+function buildCoverageDetails(input = {}, existingDetails = {}) {
+  const details = {
+    ...parseCoverageDetails(existingDetails),
+  };
+
+  const legacyKeys = [
+    'group_number',
+    'policy_holder_name',
+    'front_image_url',
+    'back_image_url',
+    'coverage_amount',
+  ];
+
+  for (const key of legacyKeys) {
+    if (input[key] === undefined) continue;
+    if (input[key] === null || input[key] === '') {
+      delete details[key];
+      continue;
+    }
+    details[key] = input[key];
+  }
+
+  if (input.coverage_details && typeof input.coverage_details === 'object') {
+    Object.assign(details, input.coverage_details);
+  }
+
+  return details;
+}
+
+export function normalizeInsurancePolicy(record) {
+  if (!record) return record;
+  const details = parseCoverageDetails(record.coverage_details);
+  return {
+    ...record,
+    coverage_type: record.plan_type || details.coverage_type || '',
+    policy_type: record.plan_type || details.coverage_type || '',
+    start_date: record.starts_at || '',
+    end_date: record.expires_at || '',
+    policy_holder_name: details.policy_holder_name || '',
+    group_number: details.group_number || '',
+    front_image_url: details.front_image_url || '',
+    back_image_url: details.back_image_url || '',
+    coverage_amount:
+      details.coverage_amount ??
+      (record.coverage_percentage !== null && record.coverage_percentage !== undefined
+        ? Number(record.coverage_percentage)
+        : 0),
+  };
+}
+
+export function buildInsuranceWritePayload(
+  input = {},
+  { userId = null, forInsert = false, existingCoverageDetails = {} } = {}
+) {
+  const now = new Date().toISOString();
+  const payload = {};
+
+  const assignIfDefined = (key, value) => {
+    if (value !== undefined) payload[key] = value;
+  };
+
+  assignIfDefined('provider_name', input.provider_name);
+  assignIfDefined('policy_number', input.policy_number);
+
+  if (input.coverage_type !== undefined || input.plan_type !== undefined) {
+    assignIfDefined('plan_type', input.coverage_type ?? input.plan_type ?? null);
+  }
+  if (input.start_date !== undefined || input.starts_at !== undefined) {
+    assignIfDefined('starts_at', input.start_date ?? input.starts_at ?? null);
+  }
+  if (input.end_date !== undefined || input.expires_at !== undefined) {
+    assignIfDefined('expires_at', input.end_date ?? input.expires_at ?? null);
+  }
+  if (input.status !== undefined) {
+    assignIfDefined('status', input.status || 'active');
+  }
+  if (input.verified !== undefined) {
+    assignIfDefined('verified', !!input.verified);
+  }
+  if (input.is_default !== undefined) {
+    assignIfDefined('is_default', !!input.is_default);
+  }
+  assignIfDefined('linked_payment_method', input.linked_payment_method ?? undefined);
+
+  const coveragePercentage =
+    input.coverage_percentage !== undefined
+      ? input.coverage_percentage
+      : input.coverage_amount;
+  const parsedCoveragePercentage = toNullableNumber(coveragePercentage);
+  if (parsedCoveragePercentage !== undefined) {
+    payload.coverage_percentage = parsedCoveragePercentage;
+  }
+
+  const hasLegacyCoverageInput =
+    input.group_number !== undefined ||
+    input.policy_holder_name !== undefined ||
+    input.front_image_url !== undefined ||
+    input.back_image_url !== undefined ||
+    input.coverage_amount !== undefined ||
+    input.coverage_details !== undefined;
+
+  if (hasLegacyCoverageInput) {
+    payload.coverage_details = buildCoverageDetails(input, existingCoverageDetails);
+  }
+
+  if (forInsert) {
+    payload.user_id = input.user_id || userId || null;
+    if (payload.status === undefined) payload.status = 'active';
+    if (payload.verified === undefined) payload.verified = false;
+    payload.created_at = now;
+  } else if (input.user_id !== undefined) {
+    payload.user_id = input.user_id || null;
+  }
+
+  payload.updated_at = now;
+  return payload;
+}
+
 /**
  * Get all insurance policies with optional filters
  * Admin users can see all policies, others see only their own
@@ -46,7 +187,10 @@ export async function getInsurancePolicies(filter = {}) {
       query = query.eq('provider_name', filter.provider_name);
     }
     if (filter.coverage_type) {
-      query = query.eq('coverage_type', filter.coverage_type);
+      query = query.eq('plan_type', filter.coverage_type);
+    }
+    if (filter.plan_type) {
+      query = query.eq('plan_type', filter.plan_type);
     }
     if (filter.status) {
       query = query.eq('status', filter.status);
@@ -64,7 +208,7 @@ export async function getInsurancePolicies(filter = {}) {
     const { data, error } = await query;
     if (error) throw error;
 
-    return data || [];
+    return (data || []).map(normalizeInsurancePolicy);
   } catch (error) {
     console.error('Error fetching insurance policies:', error);
     return [];
@@ -88,7 +232,7 @@ export async function getInsurancePolicy(policyId) {
 
     if (error && error.code !== 'PGRST116') throw error;
 
-    return data || null;
+    return normalizeInsurancePolicy(data || null);
   } catch (error) {
     console.error(`Error fetching insurance policy ${policyId}:`, error);
     throw error;
@@ -101,21 +245,10 @@ export async function getInsurancePolicy(policyId) {
 export async function createInsurancePolicy(input) {
   try {
     const user = await getCurrentUser();
-    const payload = {
-      user_id: input.user_id || user?.id,
-      provider_name: input.provider_name,
-      policy_number: input.policy_number,
-      group_number: input.group_number,
-      policy_holder_name: input.policy_holder_name,
-      coverage_type: input.coverage_type,
-      start_date: input.start_date,
-      end_date: input.end_date,
-      front_image_url: input.front_image_url,
-      back_image_url: input.back_image_url,
-      status: input.status || 'active',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const payload = buildInsuranceWritePayload(input, {
+      userId: user?.id,
+      forInsert: true,
+    });
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -125,7 +258,7 @@ export async function createInsurancePolicy(input) {
 
     if (error) throw error;
 
-    return data;
+    return normalizeInsurancePolicy(data);
   } catch (error) {
     console.error('Error creating insurance policy:', error);
     throw error;
@@ -137,10 +270,18 @@ export async function createInsurancePolicy(input) {
  */
 export async function updateInsurancePolicy(policyId, input) {
   try {
-    const payload = {
-      ...input,
-      updated_at: new Date().toISOString(),
-    };
+    const { data: existingPolicy, error: existingError } = await supabase
+      .from(TABLE_NAME)
+      .select('coverage_details')
+      .eq('id', policyId)
+      .single();
+
+    if (existingError && existingError.code !== 'PGRST116') throw existingError;
+
+    const payload = buildInsuranceWritePayload(input, {
+      forInsert: false,
+      existingCoverageDetails: existingPolicy?.coverage_details || {},
+    });
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -151,7 +292,7 @@ export async function updateInsurancePolicy(policyId, input) {
 
     if (error) throw error;
 
-    return data;
+    return normalizeInsurancePolicy(data);
   } catch (error) {
     console.error(`Error updating insurance policy ${policyId}:`, error);
     throw error;
@@ -194,7 +335,7 @@ export async function updatePolicyStatus(policyId, status) {
 
     if (error) throw error;
 
-    return data;
+    return normalizeInsurancePolicy(data);
   } catch (error) {
     console.error(`Error updating policy status for ${policyId}:`, error);
     throw error;
@@ -210,7 +351,6 @@ export async function verifyInsurancePolicy(policyId, verified) {
       .from(TABLE_NAME)
       .update({
         verified,
-        verified_at: verified ? new Date().toISOString() : null,
         updated_at: new Date().toISOString()
       })
       .eq('id', policyId)
@@ -219,7 +359,7 @@ export async function verifyInsurancePolicy(policyId, verified) {
 
     if (error) throw error;
 
-    return data;
+    return normalizeInsurancePolicy(data);
   } catch (error) {
     console.error(`Error verifying insurance policy ${policyId}:`, error);
     throw error;
@@ -233,7 +373,7 @@ export async function getInsuranceAnalytics() {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .select('provider_name, coverage_type, status, verified, created_at, start_date, end_date');
+      .select('provider_name, plan_type, status, verified, created_at, starts_at, expires_at');
 
     if (error) throw error;
 
@@ -246,13 +386,13 @@ export async function getInsuranceAnalytics() {
       verified: data?.filter(item => item.verified).length || 0,
       active: data?.filter(item => item.status === 'active').length || 0,
       expired: data?.filter(item => {
-        if (!item.end_date) return false;
-        const endDate = new Date(item.end_date);
+        if (!item.expires_at) return false;
+        const endDate = new Date(item.expires_at);
         return endDate < new Date();
       }).length || 0,
       expiringSoon: data?.filter(item => {
-        if (!item.end_date) return false;
-        const endDate = new Date(item.end_date);
+        if (!item.expires_at) return false;
+        const endDate = new Date(item.expires_at);
         const thirtyDaysFromNow = new Date();
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
         return endDate > new Date() && endDate <= thirtyDaysFromNow;
@@ -266,7 +406,7 @@ export async function getInsuranceAnalytics() {
 
     // Group by coverage type
     data?.forEach(item => {
-      analytics.byCoverageType[item.coverage_type] = (analytics.byCoverageType[item.coverage_type] || 0) + 1;
+      analytics.byCoverageType[item.plan_type] = (analytics.byCoverageType[item.plan_type] || 0) + 1;
     });
 
     // Group by status

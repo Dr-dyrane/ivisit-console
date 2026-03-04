@@ -164,12 +164,14 @@ export async function updateHospital(hospitalId, input) {
  */
 export async function deleteHospital(hospitalId) {
   try {
-    const { error } = await supabase
-      .from(TABLE_NAME)
-      .delete()
-      .eq('id', hospitalId);
-
+    const { data, error } = await supabase.rpc('delete_hospital_by_admin', {
+      target_hospital_id: hospitalId
+    });
     if (error) throw error;
+    if (data && data.success === false) {
+      throw new Error(data.error || 'Hospital deletion failed');
+    }
+    return data || null;
   } catch (error) {
     console.error(`Error deleting hospital ${hospitalId}:`, error);
     throw error;

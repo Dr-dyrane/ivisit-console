@@ -9,6 +9,36 @@ import { getCurrentUser } from './authService';
 import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'health_news';
+const WRITABLE_COLUMNS = new Set([
+  'title',
+  'source',
+  'category',
+  'url',
+  'published',
+  'image_url',
+]);
+
+function buildHealthNewsPayload(input = {}, { forInsert = false } = {}) {
+  const payload = {};
+  const aliases = {
+    image: 'image_url',
+  };
+
+  for (const [key, value] of Object.entries(input || {})) {
+    if (value === undefined) continue;
+    const column = aliases[key] || key;
+    if (WRITABLE_COLUMNS.has(column)) {
+      payload[column] = value;
+    }
+  }
+
+  if (forInsert) {
+    payload.created_at = new Date().toISOString();
+    if (payload.published === undefined) payload.published = true;
+  }
+
+  return payload;
+}
 
 /**
  * Get all health news with optional filters
@@ -85,19 +115,7 @@ export async function getHealthNewsItem(newsId) {
  */
 export async function createHealthNews(input) {
   try {
-    const payload = {
-      title: input.title,
-      description: input.description,
-      content: input.content,
-      image_url: input.image_url,
-      source: input.source,
-      time: input.time,
-      icon: input.icon,
-      category: input.category,
-      url: input.url,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const payload = buildHealthNewsPayload(input, { forInsert: true });
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -119,10 +137,7 @@ export async function createHealthNews(input) {
  */
 export async function updateHealthNews(newsId, input) {
   try {
-    const payload = {
-      ...input,
-      updated_at: new Date().toISOString(),
-    };
+    const payload = buildHealthNewsPayload(input, { forInsert: false });
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -224,10 +239,7 @@ export async function toggleHealthNewsPublish(newsId, published) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .update({
-        published,
-        updated_at: new Date().toISOString()
-      })
+      .update({ published })
       .eq('id', newsId)
       .select()
       .single();
@@ -249,14 +261,11 @@ export async function bulkImportHealthNews(newsItems) {
     const itemsWithTimestamps = newsItems.map(item => ({
       title: item.title,
       source: item.source,
-      time: item.time || 'Just now',
-      icon: item.icon || 'medical-outline',
       url: item.url,
       category: item.category || 'general',
       published: item.published !== undefined ? item.published : true,
-      priority: item.priority || 0,
+      image_url: item.image_url || null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     }));
 
     const { data, error } = await supabase

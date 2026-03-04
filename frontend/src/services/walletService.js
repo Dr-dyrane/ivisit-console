@@ -227,7 +227,7 @@ export const topUpWallet = async (amount, description, organizationId = null) =>
  */
 export const getOrgStripeStatus = async (organizationId) => {
     const { data, error } = await supabase.rpc('get_org_stripe_status', {
-        p_org_id: organizationId
+        p_organization_id: organizationId
     });
 
     if (error) throw error;
@@ -275,27 +275,102 @@ export const deletePaymentMethod = async (organizationId, paymentMethodId) => {
  * Records a cash payment in the ledger and deducts the 2.5% platform fee from Org balance
  */
 export const processCashPayment = async (emergencyId, orgId, amount, currency = 'USD') => {
-    const { data, error } = await supabase.rpc('process_cash_payment', {
+  void currency;
+  const { data, error } = await supabase.rpc('process_cash_payment', {
         p_emergency_request_id: emergencyId,
         p_organization_id: orgId,
-        p_amount: Number(amount),
-        p_currency: currency
+        p_amount: Number(amount)
     });
 
     if (error) throw error;
     if (!data.success) throw new Error(data.error || 'Failed to process cash payment');
 
-    return data;
+  return data;
+};
+
+/**
+ * Backfill missing platform-fee debit ledger rows for completed payments.
+ * This is a deterministic repair path used by console wallet views.
+ */
+export const backfillMissingFeeLedger = async (organizationId) => {
+  if (!organizationId) return { added: 0 };
+
+  let added = 0;
+
+  const { data: allPayments, error: paymentsError } = await supabase
+    .from('payments')
+    .select('*')
+    .eq('status', 'completed')
+    .eq('organization_id', organizationId)
+    .not('metadata', 'is', null);
+  if (paymentsError) throw paymentsError;
+
+  if (!allPayments || allPayments.length === 0) {
+    return { added };
+  }
+
+  const { data: walletData, error: walletError } = await supabase
+    .from('organization_wallets')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .single();
+  if (walletError) throw walletError;
+  if (!walletData?.id) return { added };
+
+  for (const payment of allPayments) {
+    let meta = payment.metadata;
+    if (typeof meta === 'string') {
+      try {
+        meta = JSON.parse(meta);
+      } catch {
+        continue;
+      }
+    }
+
+    if (!meta?.fee || meta?.ledger_debited) continue;
+
+    const { data: existingDebit, error: existingError } = await supabase
+      .from('wallet_ledger')
+      .select('id')
+      .eq('reference_id', payment.id)
+      .eq('transaction_type', 'debit')
+      .maybeSingle();
+    if (existingError) throw existingError;
+    if (existingDebit?.id) continue;
+
+    const { error: insertError } = await supabase.from('wallet_ledger').insert({
+      wallet_id: walletData.id,
+      organization_id: organizationId,
+      amount: -Math.abs(Number(meta.fee)),
+      transaction_type: 'debit',
+      description: 'Platform Fee (Audit Fix)',
+      reference_id: payment.id,
+      reference_type: 'payment_fee',
+      status: 'completed',
+      created_at: payment.created_at
+    });
+    if (insertError) throw insertError;
+
+    const { error: paymentUpdateError } = await supabase
+      .from('payments')
+      .update({ metadata: { ...meta, ledger_debited: true } })
+      .eq('id', payment.id);
+    if (paymentUpdateError) throw paymentUpdateError;
+
+    added += 1;
+  }
+
+  return { added };
 };
 
 /**
  * Check if Organization can accept a Cash Payment (Wallet Cap)
  * Verifies if their current balance is enough to cover the 2.5% fee
- */
+*/
 export const checkCashEligibility = async (orgId, estimatedAmount) => {
+    void estimatedAmount;
     const { data, error } = await supabase.rpc('check_cash_eligibility', {
-        p_organization_id: orgId,
-        p_estimated_amount: Number(estimatedAmount)
+        p_organization_id: orgId
     });
 
     if (error) {

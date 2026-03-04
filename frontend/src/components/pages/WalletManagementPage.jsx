@@ -19,7 +19,8 @@ import {
     getProjectedRevenue,
     getOrgStripeStatus,
     listPaymentMethods,
-    deletePaymentMethod
+    deletePaymentMethod,
+    backfillMissingFeeLedger
 } from '../../services/walletService';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
@@ -222,71 +223,8 @@ export const WalletManagementPage = () => {
     };
 
     const backfillLedger = useCallback(async () => {
-        let added = 0;
         try {
-            // 1. Get all completed payments for this org
-            const { data: allPayments } = await supabase
-                .from('payments')
-                .select('*')
-                .eq('status', 'completed')
-                .eq('organization_id', profile.organization_id)
-                .not('metadata', 'is', null);
-
-            if (!allPayments) return;
-
-            // Get wallet ID once
-            const { data: walletData } = await supabase
-                .from('organization_wallets')
-                .select('id')
-                .eq('organization_id', profile.organization_id)
-                .single();
-
-            if (!walletData) return;
-
-            for (const p of allPayments) {
-                let meta = p.metadata;
-                if (typeof meta === 'string') {
-                    try { meta = JSON.parse(meta); } catch (e) { continue; }
-                }
-
-                // Only process payments that have a fee and haven't been debited yet
-                if (!meta.fee || meta.ledger_debited) continue;
-
-                // Double check if already in ledger by reference_id
-                const { data: existing } = await supabase
-                    .from('wallet_ledger')
-                    .select('id')
-                    .eq('reference_id', p.id)
-                    .eq('transaction_type', 'debit')
-                    .maybeSingle();
-
-                if (!existing) {
-                    // Insert Debit
-                    const { error: insertError } = await supabase.from('wallet_ledger').insert({
-                        wallet_id: walletData.id,
-                        organization_id: profile.organization_id,
-                        amount: -Math.abs(Number(meta.fee)),
-                        transaction_type: 'debit',
-                        description: `Platform Fee (Audit Fix)`,
-                        reference_id: p.id,
-                        reference_type: 'payment_fee',
-                        status: 'completed',
-                        created_at: p.created_at // Backdate to payment time
-                    });
-
-                    if (insertError) {
-                        console.error('Failed to insert ledger entry:', insertError);
-                        continue;
-                    }
-
-                    // Mark as processed
-                    await supabase.from('payments').update({
-                        metadata: { ...meta, ledger_debited: true }
-                    }).eq('id', p.id);
-
-                    added++;
-                }
-            }
+            const { added } = await backfillMissingFeeLedger(profile.organization_id);
 
             if (added > 0) {
                 console.log(`Self-healing: Backfilled ${added} missing fee entries.`);
