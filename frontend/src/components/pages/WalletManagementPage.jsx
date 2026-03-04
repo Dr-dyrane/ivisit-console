@@ -200,7 +200,7 @@ export const WalletManagementPage = () => {
 
     const footerContent = useMemo(() => (
         <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
                 <div className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-zinc-500 animate-pulse' : 'bg-success'}`} />
                 <span>{ledger.length} Transactions Recorded • Live Balance Active</span>
             </div>

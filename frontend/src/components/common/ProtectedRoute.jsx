@@ -17,7 +17,12 @@ export const ProtectedRoute = ({
 }) => {
 	const { user, profile, loading, hasRole, hasMinRole, can, isOnboarding } = useAuth();
 	const location = useLocation();
-	const currentPath = path || location.pathname;
+	const normalizePath = (value) => {
+		if (!value) return "/";
+		if (value.length > 1 && value.endsWith("/")) return value.slice(0, -1);
+		return value;
+	};
+	const currentPath = normalizePath(path || location.pathname);
 
 	// Wait for auth to complete
 	if (loading) {
@@ -72,29 +77,36 @@ export const ProtectedRoute = ({
  * Check if a path is accessible based on user's navigation configuration
  */
 function checkPathAccess(path, accessibleNav) {
+	const normalizePath = (value) => {
+		if (!value) return "/";
+		if (value.length > 1 && value.endsWith("/")) return value.slice(0, -1);
+		return value;
+	};
+	const normalizedPath = normalizePath(path);
+
 	// Check main navigation items
-	const mainItem = accessibleNav.main?.find(item => item.path === path);
+	const mainItem = accessibleNav.main?.find(item => normalizePath(item.path) === normalizedPath);
 	if (mainItem) return true;
 
 	// Check operations items
-	const opsItem = accessibleNav.ops?.items?.find(item => item.path === path);
+	const opsItem = accessibleNav.ops?.items?.find(item => normalizePath(item.path) === normalizedPath);
 	if (opsItem) return true;
 
 	// Check management items
-	const mgmtItem = accessibleNav.mgmt?.items?.find(item => item.path === path);
+	const mgmtItem = accessibleNav.mgmt?.items?.find(item => normalizePath(item.path) === normalizedPath);
 	if (mgmtItem) return true;
 
 	// [BUG-FIX] Check finance items
-	const financeItem = accessibleNav.finance?.items?.find(item => item.path === path);
+	const financeItem = accessibleNav.finance?.items?.find(item => normalizePath(item.path) === normalizedPath);
 	if (financeItem) return true;
 
 	// Check user items
-	const userItem = accessibleNav.user?.items?.find(item => item.path === path);
+	const userItem = accessibleNav.user?.items?.find(item => normalizePath(item.path) === normalizedPath);
 	if (userItem) return true;
 
 	// Always allow access to basic pages
 	const allowedPaths = ['/login', '/unauthorized', '/onboarding', '/onboarding-success', '/set-password'];
-	if (allowedPaths.includes(path)) return true;
+	if (allowedPaths.includes(normalizedPath)) return true;
 
 	return false;
 }

@@ -238,7 +238,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
               <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* Status Bar */}
-                <div className="p-1.5 rounded-[20px] bg-white/5 border border-white/10 flex items-center justify-between gap-2">
+                <div className="p-1.5 rounded-[20px] bg-white/5  flex items-center justify-between gap-2">
                   {STATUS_STEPS.map((step, i) => {
                     const isCurrent = currentStatus === step;
                     const isPast = currentStepIndex > i;
@@ -286,7 +286,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                           </Select>
                         ) : (
                           <div className="flex items-center gap-4 p-2">
-                            <Avatar className="w-12 h-12 rounded-xl border border-white/10">
+                            <Avatar className="w-12 h-12 rounded-xl ">
                               <AvatarImage src={selectedUser?.avatar_url} />
                               <AvatarFallback>{selectedUser?.username?.[0] || 'U'}</AvatarFallback>
                             </Avatar>

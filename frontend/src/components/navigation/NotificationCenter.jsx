@@ -24,7 +24,7 @@ export const NotificationCenter = () => {
                 <motion.div
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    className="bg-background/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                    className="bg-background/80 backdrop-blur-xl  rounded-2xl shadow-2xl overflow-hidden"
                 >
                     <div className="flex items-center justify-between p-4 border-b border-white/5">
                         <h3 className="font-semibold">Notifications</h3>

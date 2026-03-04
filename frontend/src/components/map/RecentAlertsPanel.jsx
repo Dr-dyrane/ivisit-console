@@ -3,36 +3,37 @@ import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { AlertTriangle, Clock, Activity } from 'lucide-react';
 import { LocationCell } from '../ui/LocationCell';
-import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 
 export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 	const [statusFilter, setStatusFilter] = useState('all');
 
 	const filteredRequests = emergencyRequests.filter(req => {
 		if (statusFilter === 'all') return true;
-		return canonicalizeEmergencyStatus(req.status, null) === statusFilter;
+		return req.status === statusFilter;
 	});
 
 	const getStatusIcon = (status) => {
-		switch (canonicalizeEmergencyStatus(status, null)) {
-			case 'pending_approval': return <Clock className="h-3 w-3" />;
-			case 'in_progress':
-			case 'accepted':
-			case 'arrived':
-				return <Activity className="h-3 w-3" />;
+		// PULLBACK NOTE: Updated status icons to match new emergency schema
+		// OLD: pending, dispatched, en_route
+		// NEW: pending, assigned, in_progress, completed, cancelled
+		switch (status) {
+			case 'pending': return <Clock className="h-3 w-3" />;
+			case 'assigned': return <Activity className="h-3 w-3" />;
+			case 'in_progress': return <Activity className="h-3 w-3" />;
 			case 'completed': return <AlertTriangle className="h-3 w-3" />;
 			default: return <AlertTriangle className="h-3 w-3" />;
 		}
 	};
 
 	const getStatusColor = (status) => {
-		switch (canonicalizeEmergencyStatus(status, null)) {
-			case 'pending_approval': return 'text-warning';
+		// PULLBACK NOTE: Updated status colors to match new emergency schema
+		// OLD: pending, dispatched, en_route, arrived
+		// NEW: pending, assigned, in_progress, completed, cancelled
+		switch (status) {
+			case 'pending': return 'text-warning';
+			case 'assigned': return 'text-info';
 			case 'in_progress': return 'text-primary';
-			case 'accepted': return 'text-info';
-			case 'arrived': return 'text-secondary';
 			case 'completed': return 'text-success';
-			case 'payment_declined':
 			case 'cancelled': return 'text-destructive';
 			default: return 'text-muted-foreground';
 		}
@@ -52,10 +53,12 @@ export const RecentAlertsPanel = ({ emergencyRequests, setSelectedMarker }) => {
 					className="text-xs bg-background/50 border border-border/20 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary/20"
 				>
 					<option value="all">All</option>
-					<option value="pending_approval">Pending Approval</option>
+					{/* PULLBACK NOTE: Updated status options to match new emergency schema */}
+					{/* OLD: pending, dispatched, en_route, arrived */}
+					{/* NEW: pending, assigned, in_progress, completed, cancelled */}
+					<option value="pending">Pending</option>
+					<option value="assigned">Assigned</option>
 					<option value="in_progress">In Progress</option>
-					<option value="accepted">Accepted</option>
-					<option value="arrived">Arrived</option>
 					<option value="completed">Completed</option>
 					<option value="cancelled">Cancelled</option>
 				</select>

@@ -1,79 +1,135 @@
-import React, { useState, useEffect } from 'react';
-import { useMap as useGoogleMap, useMapsLibrary } from '@vis.gl/react-google-maps';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { useMap as useGoogleMap } from '@vis.gl/react-google-maps';
 
 /**
  * GoogleMapsSmartRoute
- * Uses the Directions Service to fetch a real road path between two points
- * and renders it using a custom Polyline for styling control.
+ * Draws road-following routes using the modern Google Routes library.
+ * Falls back to a deterministic straight segment if routing is unavailable.
  */
 export const GoogleMapsSmartRoute = ({ start, end, options }) => {
-    const map = useGoogleMap();
-    const routesLibrary = useMapsLibrary('routes');
-    const [directionsService, setDirectionsService] = useState(null);
-    const [fetchedPath, setFetchedPath] = useState(null);
-    const [polyline, setPolyline] = useState(null);
+	const map = useGoogleMap();
+	const polylineRef = useRef(null);
+	const routesLibPromiseRef = useRef(null);
+	const requestSeqRef = useRef(0);
 
-    // Initialize Directions Service
-    useEffect(() => {
-        if (!routesLibrary || !map) return;
-        setDirectionsService(new routesLibrary.DirectionsService());
-    }, [routesLibrary, map]);
+	const endpoints = useMemo(() => {
+		if (!start || !end) return null;
+		const startLat = Number(start.lat);
+		const startLng = Number(start.lng);
+		const endLat = Number(end.lat);
+		const endLng = Number(end.lng);
+		if (![startLat, startLng, endLat, endLng].every(Number.isFinite)) return null;
+		return { startLat, startLng, endLat, endLng };
+	}, [start, end]);
 
-    // Fetch Route
-    useEffect(() => {
-        if (!directionsService || !start || !end) return;
+	useEffect(() => {
+		if (!map) return undefined;
 
-        // Debounce slightly to avoid hammering the API
-        const timeoutId = setTimeout(() => {
-            directionsService.route(
-                {
-                    origin: { lat: start.lat, lng: start.lng },
-                    destination: { lat: end.lat, lng: end.lng },
-                    travelMode: window.google.maps.TravelMode.DRIVING,
-                },
-                (result, status) => {
-                    if (status === window.google.maps.DirectionsStatus.OK) {
-                        const route = result.routes[0];
-                        if (route && route.overview_path) {
-                            setFetchedPath(route.overview_path);
-                        }
-                    } else {
-                        console.warn(`Directions request failed due to ${status}`);
-                        // Fallback to straight line if directions fail
-                        setFetchedPath([
-                            { lat: start.lat, lng: start.lng },
-                            { lat: end.lat, lng: end.lng }
-                        ]);
-                    }
-                }
-            );
-        }, 200);
+		if (!polylineRef.current) {
+			polylineRef.current = new window.google.maps.Polyline({
+				path: [],
+				...options,
+			});
+			polylineRef.current.setMap(map);
+		}
 
-        return () => clearTimeout(timeoutId);
-    }, [directionsService, start, end]);
+		return undefined;
+	}, [map]);
 
-    // Create & Update Polyline
-    useEffect(() => {
-        if (!map || !fetchedPath) return;
+	useEffect(() => {
+		if (polylineRef.current) {
+			polylineRef.current.setOptions({ ...options });
+		}
+	}, [options]);
 
-        if (!polyline) {
-            const line = new window.google.maps.Polyline({
-                path: fetchedPath,
-                ...options
-            });
-            line.setMap(map);
-            setPolyline(line);
-        } else {
-            polyline.setOptions({
-                path: fetchedPath,
-                ...options
-            });
-        }
+	useEffect(() => {
+		if (!map || !endpoints || !window.google?.maps) return undefined;
+		let isCancelled = false;
+		const requestId = ++requestSeqRef.current;
 
-        return () => {
-            if (polyline) polyline.setMap(null);
-        };
-    }, [map, fetchedPath, options, polyline]);
+		const fallbackPath = [
+			{ lat: endpoints.startLat, lng: endpoints.startLng },
+			{ lat: endpoints.endLat, lng: endpoints.endLng },
+		];
 
-    return null;
+		const getRoutesLib = async () => {
+			if (!routesLibPromiseRef.current) {
+				routesLibPromiseRef.current = window.google.maps.importLibrary('routes');
+			}
+			return routesLibPromiseRef.current;
+		};
+
+		const updatePolyline = (path) => {
+			if (!polylineRef.current) return;
+			polylineRef.current.setOptions({
+				...options,
+				path,
+			});
+		};
+
+		(async () => {
+			try {
+				const routesLib = await getRoutesLib();
+				const Route = routesLib?.Route;
+				if (!Route || typeof Route.computeRoutes !== 'function') {
+					updatePolyline(fallbackPath);
+					return;
+				}
+
+				const routeRequest = {
+					origin: { lat: endpoints.startLat, lng: endpoints.startLng },
+					destination: { lat: endpoints.endLat, lng: endpoints.endLng },
+					travelMode: routesLib.TravelMode?.DRIVING ?? 'DRIVING',
+					routingPreference:
+						routesLib.RoutingPreference?.TRAFFIC_AWARE_OPTIMAL ??
+						routesLib.RoutingPreference?.TRAFFIC_AWARE ??
+						'TRAFFIC_AWARE',
+					polylineQuality:
+						routesLib.PolylineQuality?.HIGH_QUALITY ?? 'HIGH_QUALITY',
+					fields: ['path'],
+				};
+
+				const response = await Route.computeRoutes(routeRequest);
+				if (isCancelled || requestId !== requestSeqRef.current) return;
+
+				const routePath = response?.routes?.[0]?.path;
+				if (Array.isArray(routePath) && routePath.length > 1) {
+					const normalizedPath = routePath
+						.map((point) => {
+							const lat = typeof point?.lat === 'function' ? point.lat() : Number(point?.lat);
+							const lng = typeof point?.lng === 'function' ? point.lng() : Number(point?.lng);
+							if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+							return { lat, lng };
+						})
+						.filter(Boolean);
+
+					if (normalizedPath.length > 1) {
+						updatePolyline(normalizedPath);
+						return;
+					}
+				}
+
+				updatePolyline(fallbackPath);
+			} catch (error) {
+				if (isCancelled || requestId !== requestSeqRef.current) return;
+				console.warn('[GoogleMapsSmartRoute] Traffic-aware route unavailable, using fallback path.', error);
+				updatePolyline(fallbackPath);
+			}
+		})();
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [map, endpoints]);
+
+	useEffect(() => {
+		return () => {
+			if (polylineRef.current) {
+				polylineRef.current.setMap(null);
+				polylineRef.current = null;
+			}
+		};
+	}, []);
+
+	return null;
 };

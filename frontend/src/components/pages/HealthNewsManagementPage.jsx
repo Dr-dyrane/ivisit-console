@@ -425,7 +425,7 @@ export const HealthNewsManagementPage = () => {
 
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
         <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Articles</span>
       </div>
     </div>
@@ -526,7 +526,7 @@ export const HealthNewsManagementPage = () => {
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
                   <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10  group-hover:scale-110 transition-transform duration-200">
                     <Newspaper className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'}`} />
                   </div>
                 </div>

@@ -62,7 +62,7 @@ export const SmartFooter = () => {
                             <div className="flex-1 flex justify-center">
                                 {footerConfig.content || (
                                     <div className="flex items-center gap-4">
-                                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 ">
                                             <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                                             <span className="text-[10px] font-semibold text-foreground/80">LIVE SYNC ACTIVE</span>
                                         </div>

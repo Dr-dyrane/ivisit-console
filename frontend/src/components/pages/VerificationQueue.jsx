@@ -225,7 +225,7 @@ export const VerificationQueue = () => {
 
   const footerContent = useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
         <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} {filters.status === 'pending' ? 'Pending' : filters.status === 'approved' ? 'Verified' : filters.status === 'rejected' ? 'Rejected' : 'Total'}</span>
       </div>
     </div>
@@ -382,7 +382,7 @@ export const VerificationQueue = () => {
     <div className="min-h-screen py-6 md:py-8 pt-6">
       <Tabs defaultValue="providers" onValueChange={setQueueType} className="w-full">
         <div className="flex items-center justify-between mb-8">
-          <TabsList className="squircle-lg bg-background/30 backdrop-blur-md border border-white/10 p-1">
+          <TabsList className="squircle-lg bg-background/30 backdrop-blur-md  p-1">
             <TabsTrigger value="providers" className="px-6 py-2 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all">
               Providers
             </TabsTrigger>
@@ -736,7 +736,7 @@ export const VerificationQueue = () => {
           {loading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-pulse">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="h-[200px] squircle-lg bg-white/5 border border-white/10" />
+                <div key={i} className="h-[200px] squircle-lg bg-white/5 " />
               ))}
             </div>
           )}

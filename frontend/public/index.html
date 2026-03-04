@@ -8,7 +8,7 @@
         content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
     <meta name="theme-color" content="#0a0a0a" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Console" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/icon.png" />
@@ -74,7 +74,10 @@
         posthog.init("phc_xAvL2Iq4tFmANRE7kzbKwaSqp1HJjN7x48s3vr0CMjs", {
             api_host: "https://us.i.posthog.com",
             person_profiles: "identified_only",
-            session_recording: { recordCrossOriginIframes: true },
+            session_recording: {
+                recordCrossOriginIframes: true,
+                recordCanvas: false,
+            },
         });
     </script>
 </body>

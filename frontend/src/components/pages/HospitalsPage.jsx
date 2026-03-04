@@ -343,7 +343,7 @@ export const HospitalsPage = () => {
 
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
         <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Hospitals</span>
       </div>
     </div>

@@ -63,7 +63,7 @@ export const PaginationControls = ({
             </Button>
 
             {/* Page Indicator */}
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-background/50 backdrop-blur-xs border border-white/10 shadow-lg backdrop-blur-md">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-background/50 backdrop-blur-xs  shadow-lg backdrop-blur-md">
                 <span className="text-xs font-bold tracking-widest uppercase text-muted-foreground">
                     Page
                 </span>

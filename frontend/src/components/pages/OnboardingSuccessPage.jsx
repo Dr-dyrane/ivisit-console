@@ -52,7 +52,7 @@ export const OnboardingSuccessPage = () => {
                     {(organization?.display_id || user?.display_id) && (
                         <div className="grid grid-cols-1 gap-3 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
                             {organization?.display_id && (
-                                <div className="group relative overflow-hidden p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-premium transition-all hover:bg-white/10">
+                                <div className="group relative overflow-hidden p-4 rounded-2xl bg-white/5  backdrop-blur-xl shadow-premium transition-all hover:bg-white/10">
                                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
                                     <div className="relative flex items-center justify-between">
                                         <div className="flex items-center gap-3">
@@ -69,7 +69,7 @@ export const OnboardingSuccessPage = () => {
                                 </div>
                             )}
                             {user?.display_id && (
-                                <div className="group relative overflow-hidden p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-premium transition-all hover:bg-white/10">
+                                <div className="group relative overflow-hidden p-4 rounded-2xl bg-white/5  backdrop-blur-xl shadow-premium transition-all hover:bg-white/10">
                                     <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-transparent opacity-50" />
                                     <div className="relative flex items-center justify-between">
                                         <div className="flex items-center gap-3">

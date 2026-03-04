@@ -788,7 +788,7 @@ const reservation = {
   {/* Existing hospital fields */}
   
   {/* NEW: Simple Bed Management */}
-  <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+  <div className="p-4 bg-white/5 rounded-xl ">
     <div className="flex items-center gap-3 mb-2">
       <Bed className="h-5 w-5 text-blue-500" />
       <Label className="text-sm font-semibold">Bed Management</Label>

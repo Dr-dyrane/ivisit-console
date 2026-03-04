@@ -207,7 +207,7 @@ export const OrganizationsPage = () => {
 
     const footerContent = useMemo(() => (
             <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
                     <div className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-zinc-500 animate-pulse' : 'bg-success'}`} />
                     <span>Page {pagination.currentPage} of {pagination.totalPages} - {filteredOrgs.length} Organizations</span>
                 </div>
@@ -261,7 +261,7 @@ export const OrganizationsPage = () => {
                         if (!open) setSelectedOrg(null);
                     }}
                 >
-                    <DialogContent className="z-[120] w-[calc(100vw-1rem)] sm:max-w-[425px] rounded-[24px] md:rounded-[32px] glass-card shadow-2xl border border-white/10 overflow-hidden max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-y-auto mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))] p-2 md:p-6">
+                    <DialogContent className="z-[120] w-[calc(100vw-1rem)] sm:max-w-[425px] rounded-[24px] md:rounded-[32px] glass-card shadow-2xl  overflow-hidden max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-y-auto mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))] p-2 md:p-6">
                         <div className="absolute top-0 left-0 w-full h-1.5 bg-success/20">
                             <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} className="h-full bg-success origin-left" />
                         </div>
@@ -519,7 +519,7 @@ export const OrganizationsPage = () => {
                     if (!open) setSelectedOrg(null);
                 }}
             >
-                <DialogContent className="z-[120] w-[calc(100vw-1rem)] sm:max-w-[425px] rounded-[24px] md:rounded-[32px] glass-card shadow-2xl border border-white/10 overflow-hidden max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-y-auto mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))] p-2 md:p-6">
+                <DialogContent className="z-[120] w-[calc(100vw-1rem)] sm:max-w-[425px] rounded-[24px] md:rounded-[32px] glass-card shadow-2xl  overflow-hidden max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-y-auto mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))] p-2 md:p-6">
                     <div className="absolute top-0 left-0 w-full h-1.5 bg-success/20">
                         <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} className="h-full bg-success origin-left" />
                     </div>

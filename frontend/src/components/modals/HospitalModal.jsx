@@ -344,7 +344,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
 
                       {/* Search Results Dropdown */}
                       {showSearchResults && (
-                        <div className="absolute z-50 w-full bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl max-h-64 overflow-y-auto mt-2">
+                        <div className="absolute z-50 w-full bg-background/95 backdrop-blur-xl  rounded-2xl shadow-xl max-h-64 overflow-y-auto mt-2">
                           {searchResults.length > 0 ? (
                             searchResults.map((hospital, index) => (
                               <div
@@ -536,7 +536,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                   
                   {/* Bed Utilization Indicator */}
                   {(formData.total_beds || 0) > 0 && (
-                    <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/10">
+                    <div className="mt-4 p-3 bg-white/5 rounded-xl ">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-semibold text-muted-foreground uppercase">Bed Utilization</span>
                         <span className="text-xs font-bold">
@@ -582,7 +582,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                       ) : (
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                           {activeReservations.map((reservation) => (
-                            <div key={reservation.id} className="p-3 bg-white/5 rounded-xl border border-white/10">
+                            <div key={reservation.id} className="p-3 bg-white/5 rounded-xl ">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
@@ -743,7 +743,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                             initial={{ opacity: 0, height: 0, marginBottom: 0 }}
                             animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
                             exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                            className="rounded-xl overflow-hidden border border-white/10 relative bg-black/20"
+                            className="rounded-xl overflow-hidden  relative bg-black/20"
                           >
                             <img
                               src={formData.image}
@@ -778,7 +778,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                             />
                             <Label
                               htmlFor="image-upload"
-                              className={`h-10 px-4 flex items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                              className={`h-10 px-4 flex items-center justify-center rounded-xl  bg-white/5 hover:bg-white/10 cursor-pointer transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
                             >
                               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                             </Label>
@@ -798,7 +798,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                 </GlassCard>
 
                 {/* Footer Actions */}
-                <div className="p-3 md:p-4 rounded-[24px] bg-white/5 border border-white/10 flex gap-3 justify-end">
+                <div className="p-3 md:p-4 rounded-[24px] bg-white/5  flex gap-3 justify-end">
                   {!isView ? (
                     <>
                       <Button
@@ -839,7 +839,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
 
 /* Sub-components */
 const GlassCard = ({ children, title, icon }) => (
-  <div className="p-4 sm:p-6 rounded-[28px] bg-white/5 border border-white/10 ">
+  <div className="p-4 sm:p-6 rounded-[28px] bg-white/5  ">
     <div className="flex items-center gap-3 mb-4 sm:mb-6">
       <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5 text-primary' })}

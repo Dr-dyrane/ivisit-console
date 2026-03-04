@@ -51,7 +51,7 @@ export const MobileSettings = ({
         ) : (
         <div className="apple-glass-heavy rounded-3xl p-4 border-0">
           <div className="flex items-center gap-3 mb-3">
-            <Avatar className="h-16 w-16 rounded-2xl border border-white/10">
+            <Avatar className="h-16 w-16 rounded-2xl ">
               <AvatarImage src={avatarUrl} className="object-cover" />
               <AvatarFallback className="bg-muted text-muted-foreground font-bold text-xl">
                 {avatarFallback}

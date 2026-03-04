@@ -135,7 +135,7 @@ export const VerificationStep = ({ formData, updateFormData, setStepValid, onSub
         <motion.div
             variants={sectionVariants}
             animate={getSectionState('summary')}
-            className="relative overflow-hidden rounded-2xl bg-white/[0.03] border border-white/10 shadow-premium"
+            className="relative overflow-hidden rounded-2xl bg-white/[0.03]  shadow-premium"
             onClick={() => setActiveSection('summary')}
         >
             {/* Header - Always visible */}

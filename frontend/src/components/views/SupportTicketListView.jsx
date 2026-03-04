@@ -49,7 +49,7 @@ export const SupportTicketListView = ({
                 <div className="absolute top-0 right-0 p-5 z-20">
                   <div className="relative">
                     <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full scale-150" />
-                    <div className="w-10 h-10 squircle-sm bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                    <div className="w-10 h-10 squircle-sm bg-background/50 backdrop-blur-md flex items-center justify-center shadow-sm relative z-10  group-hover:scale-110 transition-transform duration-300">
                       <Headphones className="h-5 w-5 text-primary" />
                     </div>
                   </div>

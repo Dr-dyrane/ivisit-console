@@ -94,7 +94,7 @@ export const DoctorProfileCard = () => {
             <div className="p-6 border-b border-border/10 flex justify-between items-center bg-muted/10 relative z-10">
                 <div className="flex items-center gap-4">
                     <div className="relative">
-                        <div className="h-12 w-12 rounded-xl overflow-hidden border border-white/10 bg-muted/20">
+                        <div className="h-12 w-12 rounded-xl overflow-hidden  bg-muted/20">
                             {doctorProfile.image ? (
                                 <img
                                     src={doctorProfile.image}

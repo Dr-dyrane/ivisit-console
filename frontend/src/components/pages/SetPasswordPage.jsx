@@ -87,7 +87,7 @@ export const SetPasswordPage = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 className="relative z-10 w-full max-w-[440px] px-6"
             >
-                <div className="bg-background/60 backdrop-blur-xl border border-white/10 shadow-2xl rounded-[32px] overflow-hidden glass-card-premium">
+                <div className="bg-background/60 backdrop-blur-xl  shadow-2xl rounded-[32px] overflow-hidden glass-card-premium">
                     <div className="p-8 sm:p-10">
                         <div className="text-center mb-8">
                             <div className="w-16 h-16 surface-raised rounded-2xl flex items-center justify-center mx-auto mb-6">

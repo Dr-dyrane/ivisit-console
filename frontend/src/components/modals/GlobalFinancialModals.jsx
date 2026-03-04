@@ -25,7 +25,14 @@ import {
     setPayoutMethod
 } from '../../services/walletService';
 
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+const STRIPE_PUBLISHABLE_KEY = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
+const canUseStripeInCurrentOrigin =
+    typeof window !== 'undefined' &&
+    window.location.protocol === 'https:';
+const stripePromise =
+    STRIPE_PUBLISHABLE_KEY && canUseStripeInCurrentOrigin
+        ? loadStripe(STRIPE_PUBLISHABLE_KEY)
+        : null;
 
 const AddPaymentMethodForm = ({ organizationId, onSuccess }) => {
     const stripe = useStripe();
@@ -308,15 +315,21 @@ export const GlobalFinancialModals = () => {
 
                             <div className="space-y-4">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Secure New Source</Label>
-                                <Elements stripe={stripePromise}>
-                                    <AddPaymentMethodForm
-                                        organizationId={isAdmin() ? null : profile?.organization_id}
-                                        onSuccess={() => {
-                                            fetchData();
-                                            toast.success('New source verified.');
-                                        }}
-                                    />
-                                </Elements>
+                                {stripePromise ? (
+                                    <Elements stripe={stripePromise}>
+                                        <AddPaymentMethodForm
+                                            organizationId={isAdmin() ? null : profile?.organization_id}
+                                            onSuccess={() => {
+                                                fetchData();
+                                                toast.success('New source verified.');
+                                            }}
+                                        />
+                                    </Elements>
+                                ) : (
+                                    <div className="rounded-2xl border border-border/20 bg-muted/20 px-4 py-3 text-[11px] text-muted-foreground">
+                                        Card setup is available only over HTTPS.
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

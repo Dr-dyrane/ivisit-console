@@ -34,7 +34,7 @@ export const GoogleMapsPolyline = ({ path, options }) => {
 	return null;
 };
 
-export const GoogleMapsMapRefiner = ({ userLocation, markers, styles }) => {
+export const GoogleMapsMapRefiner = ({ userLocation, hospitals = [], styles }) => {
 	const map = useGoogleMap();
 	const zoomedStatus = React.useRef('none'); // 'none' | 'user' | 'full'
 
@@ -43,29 +43,41 @@ export const GoogleMapsMapRefiner = ({ userLocation, markers, styles }) => {
 		if (map && styles) map.setOptions({ styles });
 	}, [map, styles]);
 
-	// Memoize top 5 closest markers for stability and performance
-	const top5 = React.useMemo(() => {
-		if (!userLocation || !markers || markers.length === 0) return [];
+	// Memoize top 5 closest hospitals (not emergencies) for deterministic zooming
+	const top5Hospitals = React.useMemo(() => {
+		if (!userLocation || !hospitals || hospitals.length === 0) return [];
 		const uLat = userLocation.lat;
 		const uLng = userLocation.lng;
 
-		return [...markers]
+		return [...hospitals]
 			.filter(m => m.lat && m.lng)
 			.map(m => {
 				const mLat = parseFloat(m.lat);
 				const mLng = parseFloat(m.lng);
+				if (!Number.isFinite(mLat) || !Number.isFinite(mLng)) return null;
 				return {
 					lat: mLat,
 					lng: mLng,
 					dist: Math.pow(mLat - uLat, 2) + Math.pow(mLng - uLng, 2)
 				};
 			})
+			.filter(Boolean)
 			.sort((a, b) => a.dist - b.dist)
 			.slice(0, 5);
-	}, [userLocation, markers]);
+	}, [userLocation, hospitals]);
+
+	const hospitalZoomKey = React.useMemo(
+		() => top5Hospitals.map((m) => `${m.lat.toFixed(6)},${m.lng.toFixed(6)}`).join('|'),
+		[top5Hospitals]
+	);
 
 	// State to force re-run of centering logic
 	const [recenterTrigger, setRecenterTrigger] = useState(0);
+
+	useEffect(() => {
+		if (!map) return;
+		zoomedStatus.current = 'none';
+	}, [map]);
 
 	useEffect(() => {
 		if (!map || !userLocation) return;
@@ -77,20 +89,24 @@ export const GoogleMapsMapRefiner = ({ userLocation, markers, styles }) => {
 			map.setZoom(15);
 			zoomedStatus.current = 'user';
 		}
+	}, [map, userLocation, recenterTrigger]);
 
-		// Stage 2: Upgrade to smart zoom once markers catch up
-		if (zoomedStatus.current === 'user' && top5.length > 0) {
-			console.log("MapRefiner: Stage 2 - Expanding to include closest markers");
+	useEffect(() => {
+		if (!map || !userLocation) return;
+
+		// Stage 2: Upgrade to smart zoom once nearby hospitals are loaded
+		if (zoomedStatus.current === 'user' && top5Hospitals.length > 0) {
+			console.log("MapRefiner: Stage 2 - Expanding to include closest hospitals");
 			const bounds = new window.google.maps.LatLngBounds();
 			bounds.extend(userLocation);
-			top5.forEach(m => bounds.extend(m));
+			top5Hospitals.forEach(m => bounds.extend(m));
 
 			map.fitBounds(bounds, {
 				padding: { top: 150, bottom: 150, left: 100, right: 100 }
 			});
 			zoomedStatus.current = 'full';
 		}
-	}, [map, userLocation, top5, recenterTrigger]);
+	}, [map, userLocation, top5Hospitals, hospitalZoomKey, recenterTrigger]);
 
 	// Listen for re-center events
 	useEffect(() => {

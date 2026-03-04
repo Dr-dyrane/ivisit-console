@@ -374,7 +374,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                 <div className="space-y-6">
                   {/* Stats Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
+                    <div className="p-4 rounded-[24px] bg-white/5  text-center">
                       <div className="flex justify-center mb-2">
                         {loading ? (
                           <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
@@ -385,7 +385,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                       <p className="text-xl md:text-2xl font-bold">{staffList.length}</p>
                       <p className="text-[10px] uppercase tracking-widest opacity-50">Total Staff</p>
                     </div>
-                    <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
+                    <div className="p-4 rounded-[24px] bg-white/5  text-center">
                       <div className="flex justify-center mb-2">
                         {loading ? (
                           <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
@@ -398,7 +398,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                       </p>
                       <p className="text-[10px] uppercase tracking-widest opacity-50">Scheduled Today</p>
                     </div>
-                    <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
+                    <div className="p-4 rounded-[24px] bg-white/5  text-center">
                       <div className="flex justify-center mb-2">
                         {loading ? (
                           <Loader2 className="w-6 h-6 text-purple-500 animate-spin" />
@@ -430,7 +430,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
                         {schedules.map(schedule => (
                           <div
                             key={schedule.id}
-                            className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                            className="flex items-center justify-between p-4 rounded-xl bg-white/5  hover:bg-white/10 transition-colors"
                           >
                             <div className="flex items-center gap-4">
                               <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
@@ -623,7 +623,7 @@ const StaffSchedulingModal = ({ isOpen, onClose, hospitalId, existingStaff = [] 
 
 /* GlassCard Component */
 const GlassCard = ({ children, title, icon }) => (
-  <div className="p-4 sm:p-6 rounded-[28px] bg-white/5 border border-white/10">
+  <div className="p-4 sm:p-6 rounded-[28px] bg-white/5 ">
     {title && (
       <div className="flex items-center gap-3 mb-4 sm:mb-6">
         <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">

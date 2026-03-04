@@ -27,7 +27,7 @@ Complete visual and architectural refactor of all modal components to modern gla
 <div className="squircle-lg p-6 bg-white">
 
 // After: Consistent glass morphism
-<div className="rounded-2xl p-4 sm:p-6 bg-background/95 backdrop-blur-xl border border-white/10">
+<div className="rounded-2xl p-4 sm:p-6 bg-background/95 backdrop-blur-xl ">
 ```
 
 ---
@@ -78,7 +78,7 @@ Complete visual and architectural refactor of all modal components to modern gla
 // New reusable GlassCard component
 const GlassCard = ({ children, className = "", ...props }) => (
   <div
-    className={`rounded-2xl p-4 sm:p-6 bg-background/95 backdrop-blur-xl border border-white/10 ${className}`}
+    className={`rounded-2xl p-4 sm:p-6 bg-background/95 backdrop-blur-xl  ${className}`}
     {...props}
   >
     {children}
@@ -210,7 +210,7 @@ const GlassCard = ({ children, className = "", ...props }) => (
 ### **✅ Progressive Enhancement**
 ```jsx
 // Fallback for older browsers
-<div className="bg-background/95 backdrop-blur-xl border border-white/10">
+<div className="bg-background/95 backdrop-blur-xl ">
   {/* Modern browsers get glass effect */}
 </div>
 <div className="bg-background border border-border">

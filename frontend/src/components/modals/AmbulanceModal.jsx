@@ -338,21 +338,21 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
 
               {/* Vehicle Summary Bubbles */}
               <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                <div className="p-3 md:p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
+                <div className="p-3 md:p-4 rounded-[24px] bg-white/5  text-center">
                   <div className="flex justify-center mb-1">
                     <Zap className="w-5 h-5 text-primary opacity-60" />
                   </div>
                   <p className="text-lg md:text-xl font-semibold">{formData.type === 'critical' ? 'ALS' : 'BLS'}</p>
                   <p className="text-[10px] uppercase tracking-widest opacity-50">Configuration</p>
                 </div>
-                <div className="p-3 md:p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
+                <div className="p-3 md:p-4 rounded-[24px] bg-white/5  text-center">
                   <div className="flex justify-center mb-1">
                     <Star className="w-5 h-5 text-yellow-500 opacity-60 fill-yellow-500/20" />
                   </div>
                   <p className="text-lg md:text-xl font-semibold">{formData.rating}</p>
                   <p className="text-[10px] uppercase tracking-widest opacity-50">Crew Rank</p>
                 </div>
-                <div className="p-3 md:p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
+                <div className="p-3 md:p-4 rounded-[24px] bg-white/5  text-center">
                   <div className="flex justify-center mb-1">
                     <Shield className="w-5 h-5 text-blue-500 opacity-60" />
                   </div>
@@ -433,7 +433,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                       {isEdit && (formData.profile_id || formData.driver_id) && !linkingExisting && (
                         <div className="space-y-1.5">
                           <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Currently Assigned Driver</Label>
-                          <div className="p-3 bg-white/5 rounded-xl border border-white/10">
+                          <div className="p-3 bg-white/5 rounded-xl ">
                             <div className="flex items-center justify-between">
                               <div>
                                 <div className="font-semibold">{formData.profile_id || formData.driver_id}</div>
@@ -542,7 +542,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                               initial={{ opacity: 0, height: 0, marginBottom: 0 }}
                               animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
                               exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                              className="rounded-xl overflow-hidden border border-white/10 relative bg-black/20"
+                              className="rounded-xl overflow-hidden  relative bg-black/20"
                             >
                               <img
                                 src={formData.image}
@@ -576,7 +576,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                               />
                               <Label
                                 htmlFor="ambulance-image-upload"
-                                className={`h-11 px-4 flex items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                                className={`h-11 px-4 flex items-center justify-center rounded-xl  bg-white/5 hover:bg-white/10 cursor-pointer transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
                               >
                                 {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                               </Label>
@@ -599,7 +599,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                           <div className="space-y-1.5">
                             <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Base Station / Hospital</Label>
                             {isView && !formData.hospital_id && formData.hospital ? (
-                              <div className="flex items-center h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">
+                              <div className="flex items-center h-11 w-full rounded-xl  bg-white/5 px-3 py-2 text-sm">
                                 <span>{formData.hospital}</span>
                               </div>
                             ) : (
@@ -659,19 +659,19 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                       <GlassCard icon={<Activity className="text-green-500" />} title="Driver Utilization">
                         <div className="space-y-4">
                           <div className="grid grid-cols-2 gap-4">
-                            <div className="text-center p-3 bg-white/5 rounded-xl border border-white/10">
+                            <div className="text-center p-3 bg-white/5 rounded-xl ">
                               <div className="text-2xl font-bold text-green-400">{driverUtilization.total_drivers}</div>
                               <div className="text-xs text-muted-foreground">Total Drivers</div>
                             </div>
-                            <div className="text-center p-3 bg-white/5 rounded-xl border border-white/10">
+                            <div className="text-center p-3 bg-white/5 rounded-xl ">
                               <div className="text-2xl font-bold text-blue-400">{driverUtilization.available_drivers}</div>
                               <div className="text-xs text-muted-foreground">Available</div>
                             </div>
-                            <div className="text-center p-3 bg-white/5 rounded-xl border border-white/10">
+                            <div className="text-center p-3 bg-white/5 rounded-xl ">
                               <div className="text-2xl font-bold text-orange-400">{driverUtilization.on_trip_drivers}</div>
                               <div className="text-xs text-muted-foreground">On Trip</div>
                             </div>
-                            <div className="text-center p-3 bg-white/5 rounded-xl border border-white/10">
+                            <div className="text-center p-3 bg-white/5 rounded-xl ">
                               <div className="text-2xl font-bold text-purple-400">{driverUtilization.utilization_percentage}%</div>
                               <div className="text-xs text-muted-foreground">Utilization</div>
                             </div>
@@ -721,7 +721,7 @@ export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
                           ) : (
                             <div className="space-y-2 max-h-48 overflow-y-auto">
                               {activeAssignments.map((assignment) => (
-                                <div key={assignment.id} className="p-3 bg-white/5 rounded-xl border border-white/10">
+                                <div key={assignment.id} className="p-3 bg-white/5 rounded-xl ">
                                   <div className="flex items-start justify-between">
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2 mb-1">

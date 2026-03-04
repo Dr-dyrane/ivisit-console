@@ -52,6 +52,7 @@ export const MobileMap = ({
     simulatedSessionId,
     getPriorityColor,
     getStatusColor,
+    routePrimaryColor,
     theme,
     isSwitchingMap,
     setMapProvider,
@@ -140,7 +141,9 @@ export const MobileMap = ({
                                 simulatedSessionId={simulatedSessionId}
                                 getPriorityColor={getPriorityColor}
                                 getStatusColor={getStatusColor}
+                                routePrimaryColor={routePrimaryColor}
                                 setSelectedMarker={setSelectedMarker}
+                                selectedMarker={selectedMarker}
                             />
                         ) : (
                             <LeafletMapRenderer

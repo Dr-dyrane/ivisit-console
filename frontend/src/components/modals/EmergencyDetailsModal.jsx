@@ -294,7 +294,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-2xl bg-white/5 ">
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Fee Amount</p>
                       <p className="text-xl font-bold">
@@ -454,12 +454,12 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                 <GlassCard icon={<MapPin className="text-green-500" />} title="Location Data" className="lg:col-span-3">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div className="space-y-4">
-                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Hospital</p>
                         <p className="text-lg font-semibold">{request.hospital_name || 'N/A'}</p>
                       </div>
                       {request.patient_location && (
-                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <div className="p-4 rounded-2xl bg-white/5 ">
                           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Patient Location</p>
                           <p className="font-mono text-sm font-semibold">
                             <LocationCell
@@ -471,22 +471,22 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                         </div>
                       )}
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <div className="p-4 rounded-2xl bg-white/5 ">
                           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Request ID</p>
                           <p className="font-mono text-sm font-semibold">{request.request_id || 'N/A'}</p>
                         </div>
-                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <div className="p-4 rounded-2xl bg-white/5 ">
                           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Service Type</p>
                           <p className="font-mono text-sm font-semibold">{request.service_type || 'N/A'}</p>
                         </div>
                       </div>
                     </div>
                     <div className="space-y-4">
-                      <div className="aspect-video rounded-3xl bg-white/5 border border-white/10 overflow-hidden relative group">
+                      <div className="aspect-video rounded-3xl bg-white/5  overflow-hidden relative group">
                         <div className="absolute inset-0 flex items-center justify-center bg-primary/5 transition-colors group-hover:bg-primary/10">
                           <MapPin className="w-12 h-12 text-primary opacity-20" />
                         </div>
-                        <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10">
+                        <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl bg-black/40 backdrop-blur-md ">
                           <p className="text-xs font-normal text-white/70">Geographic coordinates verified</p>
                         </div>
                       </div>
@@ -505,7 +505,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                 {request.service_type === 'ambulance' && request.ambulance_type && (
                   <GlassCard icon={<Ambulance className="text-blue-500" />} title="Ambulance Details" className="lg:col-span-3">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Type</p>
                         <p className="font-semibold">
                           {typeof request.ambulance_type === 'string'
@@ -514,11 +514,11 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                           }
                         </p>
                       </div>
-                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">ETA</p>
                         <p className="font-semibold">{request.estimated_arrival || 'N/A'}</p>
                       </div>
-                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Status</p>
                         <p className="font-semibold capitalize">{request.status || 'N/A'}</p>
                       </div>
@@ -529,15 +529,15 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                 {request.service_type === 'bed' && (
                   <GlassCard icon={<Calendar className="text-green-500" />} title="Bed Details" className="lg:col-span-3">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Bed Number</p>
                         <p className="font-semibold">{request.bed_number || 'N/A'}</p>
                       </div>
-                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Bed Type</p>
                         <p className="font-semibold capitalize">{request.bed_type || 'N/A'}</p>
                       </div>
-                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Specialty</p>
                         <p className="font-semibold">{request.specialty || 'N/A'}</p>
                       </div>
@@ -549,22 +549,22 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                 {request.responder_name && (
                   <GlassCard icon={<Shield className="text-orange-500" />} title="Responder Information" className="lg:col-span-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Responder Name</p>
                         <p className="font-semibold">{request.responder_name || 'N/A'}</p>
                       </div>
-                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Contact</p>
                         <p className="font-semibold">{request.responder_phone || 'N/A'}</p>
                       </div>
                       {request.responder_vehicle_plate && (
-                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <div className="p-4 rounded-2xl bg-white/5 ">
                           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Vehicle Plate</p>
                           <p className="font-semibold">{request.responder_vehicle_plate || 'N/A'}</p>
                         </div>
                       )}
                       {request.responder_vehicle_type && (
-                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <div className="p-4 rounded-2xl bg-white/5 ">
                           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Vehicle Type</p>
                           <p className="font-semibold capitalize">{request.responder_vehicle_type || 'N/A'}</p>
                         </div>
@@ -584,7 +584,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                   Dismiss
                 </Button>
                 <Button
-                  className="rounded-full px-8 h-12 bg-white/10 hover:bg-white/20 border border-white/10 font-semibold"
+                  className="rounded-full px-8 h-12 bg-white/10 hover:bg-white/20  font-semibold"
                 >
                   Generate Incident Report
                 </Button>

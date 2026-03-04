@@ -274,7 +274,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                 {/* Publish Toggle */}
                 {!isView && (
                   <div
-                    className="p-4 sm:p-5 rounded-[24px] bg-white/5 border border-white/10 flex items-center hover:bg-white/10 transition-colors cursor-pointer"
+                    className="p-4 sm:p-5 rounded-[24px] bg-white/5  flex items-center hover:bg-white/10 transition-colors cursor-pointer"
                     onClick={() => setFormData(prev => ({ ...prev, published: !prev.published }))}
                   >
                     <div className={`p-2 rounded-xl mr-4 transition-colors ${formData.published ? 'bg-green-500/20 text-green-500' : 'bg-white/10 text-muted-foreground'}`}>
@@ -291,7 +291,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
                 )}
 
                 {/* Footer Actions */}
-                <div className="p-4 sm:p-6 rounded-[24px] bg-white/5 border border-white/10 flex gap-3 justify-end">
+                <div className="p-4 sm:p-6 rounded-[24px] bg-white/5  flex gap-3 justify-end">
                   <Button
                     type="button"
                     variant="ghost"
@@ -335,7 +335,7 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
 
 /* Sub-components */
 const GlassCard = ({ children, title, icon }) => (
-  <div className="p-4 sm:p-6 rounded-[28px] bg-white/5 border border-white/10 ">
+  <div className="p-4 sm:p-6 rounded-[28px] bg-white/5  ">
     <div className="flex items-center gap-3 mb-4 sm:mb-6">
       <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5 text-primary' })}

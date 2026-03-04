@@ -1531,7 +1531,7 @@ export const Analytics = () => {
                         <span>{Math.round((hospitalCapacity.occupied / hospitalCapacity.total) * 100)}% Capacity</span>
                       </p>
                     </div>
-                    <div className="px-3 py-1 bg-white/5 rounded-lg border border-white/10">
+                    <div className="px-3 py-1 bg-white/5 rounded-lg ">
                       <p className="text-[8px] font-bold text-muted-foreground uppercase">ICU Free</p>
                       <p className="text-sm font-black text-foreground">{hospitalCapacity.icu || 0}</p>
                     </div>
@@ -1625,7 +1625,7 @@ export const Analytics = () => {
                     {demandHeatmap.map((item, idx) => (
                       <motion.div key={idx} initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.8 + (idx * 0.02) }} className="relative group/cell">
                         <div className={`w-full h-full rounded-md border-white/5 transition-all duration-500 cursor-crosshair ${item.value > 80 ? 'bg-destructive/60' : item.value > 50 ? 'bg-warning/40' : item.value > 30 ? 'bg-info/20' : 'bg-white/5'}`} />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-background/90 backdrop-blur-md rounded text-[8px] font-bold opacity-0 group-hover/cell:opacity-100 transition-opacity z-50 whitespace-nowrap border border-white/10 shadow-xl pointer-events-none">
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-background/90 backdrop-blur-md rounded text-[8px] font-bold opacity-0 group-hover/cell:opacity-100 transition-opacity z-50 whitespace-nowrap  shadow-xl pointer-events-none">
                           {item.hour} • {item.value}% LOAD
                         </div>
                       </motion.div>

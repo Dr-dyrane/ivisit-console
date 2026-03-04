@@ -264,7 +264,7 @@ export const PricingManagementPage = () => {
 
     const footerContent = useMemo(() => (
         <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 uppercase tracking-widest text-[10px] font-bold">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
                 <span>Page {pagination.currentPage} of {pagination.totalPages} • {filteredPricing.length} Rules</span>
             </div>
         </div>
@@ -594,7 +594,7 @@ export const PricingManagementPage = () => {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <input
                         placeholder="Filter configuration registry..."
-                        className="w-full h-12 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 text-[10px] font-bold uppercase tracking-widest focus:ring-2 ring-primary/20 transition-all outline-none placeholder:text-muted-foreground/40"
+                        className="w-full h-12 bg-white/5  rounded-2xl pl-12 pr-6 text-[10px] font-bold uppercase tracking-widest focus:ring-2 ring-primary/20 transition-all outline-none placeholder:text-muted-foreground/40"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />

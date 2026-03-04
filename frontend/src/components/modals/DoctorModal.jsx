@@ -290,14 +290,14 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
 
                 {/* Profile Summary Bubbles */}
                 <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                  <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
+                  <div className="p-4 rounded-[24px] bg-white/5  text-center">
                     <div className="flex justify-center mb-1">
                       <Award className="w-5 h-5 text-primary opacity-60" />
                     </div>
                     <p className="text-xl font-semibold">{formData.experience}+</p>
                     <p className="text-[10px] uppercase tracking-widest opacity-50">Years Exp</p>
                   </div>
-                  <div className="p-4 rounded-[24px] bg-white/5 border border-white/10 text-center">
+                  <div className="p-4 rounded-[24px] bg-white/5  text-center">
                     <div className="flex justify-center mb-1">
                       <Star className="w-5 h-5 text-yellow-500 opacity-60 fill-yellow-500/20" />
                     </div>

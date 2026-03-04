@@ -26,7 +26,7 @@ export const ViewToggle = ({ value, onChange, size = 'default' }) => {
         type="single"
         value={value}
         onValueChange={onChange}
-        className="bg-white/5 border border-white/10 rounded-full p-1 gap-0"
+        className="bg-white/5  rounded-full p-1 gap-0"
       >
         <ToggleGroupItem
           value="grid"
