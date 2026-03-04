@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { usePageHeader, useLayout } from "../../contexts/LayoutContext";
 import { useBreakpoint } from "../../hooks/useBreakpoint";
 import { MobileMap } from "../mobile/MobileMap";
@@ -46,6 +46,8 @@ const LAGOS_CENTER = { lat: 6.5244, lng: 3.3792 };
 const ACTIVE_AMBULANCE_STATUSES = new Set(["in_progress", "accepted", "arrived"]);
 const TELEMETRY_STALE_MS = 30000;
 const TELEMETRY_LOST_MS = 120000;
+const DRIVER_TELEMETRY_MIN_INTERVAL_MS = 7000;
+const DRIVER_TELEMETRY_MIN_DISTANCE_METERS = 12;
 
 const parseTimestampMs = (value) => {
 	if (!value) return null;
@@ -82,6 +84,30 @@ const deriveTelemetryState = (updatedAt, hasResponderLocation) => {
 	return { state: "live", ageMs, ageLabel };
 };
 
+const toRadians = (value) => (value * Math.PI) / 180;
+
+const calculateDistanceMeters = (fromLat, fromLng, toLat, toLng) => {
+	if (
+		!Number.isFinite(fromLat) ||
+		!Number.isFinite(fromLng) ||
+		!Number.isFinite(toLat) ||
+		!Number.isFinite(toLng)
+	) {
+		return Number.POSITIVE_INFINITY;
+	}
+
+	const earthRadiusMeters = 6371000;
+	const dLat = toRadians(toLat - fromLat);
+	const dLng = toRadians(toLng - fromLng);
+	const lat1 = toRadians(fromLat);
+	const lat2 = toRadians(toLat);
+
+	const a =
+		Math.sin(dLat / 2) ** 2 +
+		Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+	return earthRadiusMeters * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+};
+
 const GodModeMapContent = () => {
 	const { theme } = useTheme();
 	const { profile, user } = useAuth();
@@ -103,6 +129,18 @@ const GodModeMapContent = () => {
 	const [userLocation, setUserLocation] = useState(null);
 	const [nearbyHospitals, setNearbyHospitals] = useState([]);
 	const [driverAction, setDriverAction] = useState(null);
+	const [driverTelemetryStream, setDriverTelemetryStream] = useState({
+		enabled: false,
+		lastPublishedAt: null,
+		error: null,
+	});
+	const driverTelemetryRef = useRef({
+		requestId: null,
+		lat: null,
+		lng: null,
+		publishedAtMs: 0,
+	});
+	const driverTelemetryInFlightRef = useRef(false);
 
 	// Simulate ID based on location (optional aesthetic)
 	const simulatedSessionId = useMemo(() => {
@@ -257,9 +295,63 @@ const GodModeMapContent = () => {
 		emergencyRequests.map((r, i) => resolveLocation(r, i)).filter(Boolean),
 		[emergencyRequests, resolveLocation]);
 
-	const processedAmbulances = useMemo(() =>
-		ambulances.map((a, i) => resolveLocation(a, i + 1000)).filter(Boolean),
-		[ambulances, resolveLocation]);
+	const activeAmbulanceRequests = useMemo(
+		() =>
+			processedEmergencies.filter(
+				(request) =>
+					request?.service_type === "ambulance" &&
+					ACTIVE_AMBULANCE_STATUSES.has(String(request?.status || "").toLowerCase())
+			),
+		[processedEmergencies]
+	);
+
+	const emergencyResponderLocationByAmbulance = useMemo(() => {
+		const locationByAmbulance = new Map();
+		for (const request of activeAmbulanceRequests) {
+			const ambulanceId = request?.ambulance_id;
+			if (!ambulanceId) continue;
+
+			const responderLocation = decodePostGISGeometry(request?.responder_location);
+			if (!responderLocation || !Number.isFinite(responderLocation.lat) || !Number.isFinite(responderLocation.lng)) {
+				continue;
+			}
+
+			const requestVersionMs = parseTimestampMs(request?.updated_at) || 0;
+			const existing = locationByAmbulance.get(ambulanceId);
+			if (!existing || requestVersionMs >= existing.updatedAtMs) {
+				locationByAmbulance.set(ambulanceId, {
+					lat: responderLocation.lat,
+					lng: responderLocation.lng,
+					updatedAtMs: requestVersionMs,
+					requestId: request?.id || null,
+				});
+			}
+		}
+		return locationByAmbulance;
+	}, [activeAmbulanceRequests]);
+
+	const processedAmbulances = useMemo(
+		() =>
+			ambulances
+				.map((a, i) => resolveLocation(a, i + 1000))
+				.filter(Boolean)
+				.map((ambulance) => {
+					const override = emergencyResponderLocationByAmbulance.get(ambulance.id);
+					if (!override) return ambulance;
+
+					const ambulanceVersionMs = parseTimestampMs(ambulance?.updated_at) || 0;
+					if (override.updatedAtMs < ambulanceVersionMs) return ambulance;
+
+					return {
+						...ambulance,
+						lat: override.lat,
+						lng: override.lng,
+						location_sync_source: 'emergency_requests',
+						location_sync_request_id: override.requestId,
+					};
+				}),
+		[ambulances, emergencyResponderLocationByAmbulance, resolveLocation]
+	);
 
 	const processedHospitals = useMemo(() => {
 		// Use nearby hospitals if available, otherwise fall back to all hospitals
@@ -275,15 +367,6 @@ const GodModeMapContent = () => {
 	}, [processedEmergencies, filter]);
 
 	const isDriverMode = profile?.role === "provider" && profile?.provider_type === "driver";
-	const activeAmbulanceRequests = useMemo(
-		() =>
-			processedEmergencies.filter(
-				(request) =>
-					request?.service_type === "ambulance" &&
-					ACTIVE_AMBULANCE_STATUSES.has(String(request?.status || "").toLowerCase())
-			),
-		[processedEmergencies]
-	);
 
 	const opsTelemetrySummary = useMemo(() => {
 		return activeAmbulanceRequests.reduce(
@@ -330,6 +413,11 @@ const GodModeMapContent = () => {
 		return deriveTelemetryState(driverActiveEmergency?.updated_at, hasResponderLocation);
 	}, [driverActiveEmergency]);
 
+	const driverTelemetryPublishState = useMemo(() => {
+		if (!driverTelemetryStream?.lastPublishedAt) return { ageLabel: null };
+		return deriveTelemetryState(driverTelemetryStream.lastPublishedAt, true);
+	}, [driverTelemetryStream?.lastPublishedAt]);
+
 	const requestBrowserLocation = useCallback(() => {
 		return new Promise((resolve, reject) => {
 			if (!("geolocation" in navigator)) {
@@ -355,14 +443,29 @@ const GodModeMapContent = () => {
 		try {
 			const position = await requestBrowserLocation();
 			const coords = position?.coords || {};
+			const latitude = Number(coords.latitude);
+			const longitude = Number(coords.longitude);
+			const heading = Number.isFinite(coords.heading) ? coords.heading : null;
 			await updateResponderLocation(
 				driverActiveEmergency.id,
 				{
-					lat: Number(coords.latitude),
-					lng: Number(coords.longitude),
+					lat: latitude,
+					lng: longitude,
 				},
-				Number.isFinite(coords.heading) ? coords.heading : null
+				heading
 			);
+			const nowMs = Date.now();
+			driverTelemetryRef.current = {
+				requestId: driverActiveEmergency.id,
+				lat: latitude,
+				lng: longitude,
+				publishedAtMs: nowMs,
+			};
+			setDriverTelemetryStream((prev) => ({
+				...prev,
+				lastPublishedAt: new Date(nowMs).toISOString(),
+				error: null,
+			}));
 			toast.success("Location telemetry updated");
 			await refresh();
 		} catch (error) {
@@ -372,6 +475,132 @@ const GodModeMapContent = () => {
 			setDriverAction(null);
 		}
 	}, [driverActiveEmergency?.id, refresh, requestBrowserLocation]);
+
+	useEffect(() => {
+		const requestId = driverActiveEmergency?.id || null;
+		const status = String(driverActiveEmergency?.status || "").toLowerCase();
+		const canStreamTelemetry =
+			isDriverMode &&
+			!!requestId &&
+			ACTIVE_AMBULANCE_STATUSES.has(status);
+
+		if (!canStreamTelemetry) {
+			driverTelemetryRef.current = {
+				requestId: null,
+				lat: null,
+				lng: null,
+				publishedAtMs: 0,
+			};
+			driverTelemetryInFlightRef.current = false;
+			setDriverTelemetryStream((prev) => ({
+				...prev,
+				enabled: false,
+				error: null,
+			}));
+			return undefined;
+		}
+
+		if (!navigator?.geolocation?.watchPosition) {
+			setDriverTelemetryStream((prev) => ({
+				...prev,
+				enabled: false,
+				error: "Geolocation watch is not available on this device",
+			}));
+			return undefined;
+		}
+
+		setDriverTelemetryStream((prev) => ({
+			...prev,
+			enabled: true,
+			error: null,
+		}));
+
+		const watchId = navigator.geolocation.watchPosition(
+			async (position) => {
+				const coords = position?.coords || {};
+				const latitude = Number(coords.latitude);
+				const longitude = Number(coords.longitude);
+				if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+
+				const heading = Number.isFinite(coords.heading) ? coords.heading : null;
+				const nowMs = Date.now();
+				let lastTelemetry = driverTelemetryRef.current;
+				if (lastTelemetry.requestId && lastTelemetry.requestId !== requestId) {
+					driverTelemetryRef.current = {
+						requestId,
+						lat: null,
+						lng: null,
+						publishedAtMs: 0,
+					};
+					lastTelemetry = driverTelemetryRef.current;
+				}
+
+				const movedMeters = calculateDistanceMeters(
+					lastTelemetry.lat,
+					lastTelemetry.lng,
+					latitude,
+					longitude
+				);
+				const elapsedMs = nowMs - (lastTelemetry.publishedAtMs || 0);
+				const shouldPublishByTime = elapsedMs >= DRIVER_TELEMETRY_MIN_INTERVAL_MS;
+				const shouldPublishByDistance = movedMeters >= DRIVER_TELEMETRY_MIN_DISTANCE_METERS;
+				if (!shouldPublishByTime && !shouldPublishByDistance) return;
+				if (driverTelemetryInFlightRef.current) return;
+
+				driverTelemetryInFlightRef.current = true;
+				try {
+					await updateResponderLocation(
+						requestId,
+						{
+							lat: latitude,
+							lng: longitude,
+						},
+						heading
+					);
+					driverTelemetryRef.current = {
+						requestId,
+						lat: latitude,
+						lng: longitude,
+						publishedAtMs: nowMs,
+					};
+					setDriverTelemetryStream((prev) => ({
+						...prev,
+						lastPublishedAt: new Date(nowMs).toISOString(),
+						error: null,
+					}));
+				} catch (error) {
+					console.error("[GodModeMap] Auto telemetry publish failed:", error);
+					setDriverTelemetryStream((prev) => ({
+						...prev,
+						error: error?.message || "Unable to publish telemetry",
+					}));
+				} finally {
+					driverTelemetryInFlightRef.current = false;
+				}
+			},
+			(error) => {
+				console.error("[GodModeMap] Geolocation watch failed:", error);
+				setDriverTelemetryStream((prev) => ({
+					...prev,
+					error: error?.message || "Location watch failed",
+				}));
+			},
+			{
+				enableHighAccuracy: true,
+				timeout: 20000,
+				maximumAge: 0,
+			}
+		);
+
+		return () => {
+			navigator.geolocation.clearWatch(watchId);
+			driverTelemetryInFlightRef.current = false;
+			setDriverTelemetryStream((prev) => ({
+				...prev,
+				enabled: false,
+			}));
+		};
+	}, [driverActiveEmergency?.id, driverActiveEmergency?.status, isDriverMode]);
 
 	const handleDriverStatusUpdate = useCallback(async (status) => {
 		if (!driverActiveEmergency?.id) {
@@ -598,8 +827,20 @@ const GodModeMapContent = () => {
 												>
 													{driverTelemetry.state.toUpperCase()}
 												</span>
-												{driverTelemetry.ageLabel ? ` • ${driverTelemetry.ageLabel} ago` : ""}
+												{driverTelemetry.ageLabel ? ` | ${driverTelemetry.ageLabel} ago` : ""}
 											</div>
+											<div className="text-xs text-muted-foreground">
+												Auto Stream:{" "}
+												<span className={`font-semibold ${driverTelemetryStream.enabled ? "text-success" : "text-muted-foreground"}`}>
+													{driverTelemetryStream.enabled ? "ON" : "OFF"}
+												</span>
+												{driverTelemetryPublishState.ageLabel
+													? ` | Last push ${driverTelemetryPublishState.ageLabel} ago`
+													: ""}
+											</div>
+											{driverTelemetryStream.error ? (
+												<div className="text-[11px] text-warning">{driverTelemetryStream.error}</div>
+											) : null}
 										</div>
 										<div className="grid grid-cols-2 gap-2">
 											<Button

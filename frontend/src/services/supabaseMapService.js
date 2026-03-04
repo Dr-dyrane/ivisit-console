@@ -88,7 +88,7 @@ export const supabaseMapService = {
    * Subscribe to all changes in emergency_requests
    * @param {function} onChange - Callback receiving (eventType, newRecord, oldRecord)
    */
-  subscribeToEmergencies(onChange) {
+  subscribeToEmergencies(onChange, onStatus = null) {
     const channel = supabase
       .channel('map_emergencies_all')
       .on(
@@ -102,7 +102,11 @@ export const supabaseMapService = {
           onChange(payload.eventType, payload.new, payload.old);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (typeof onStatus === 'function') {
+          onStatus(status);
+        }
+      });
 
     return () => supabase.removeChannel(channel);
   },
@@ -111,7 +115,7 @@ export const supabaseMapService = {
    * Subscribe to all changes in ambulances
    * @param {function} onChange - Callback receiving (eventType, newRecord, oldRecord)
    */
-  subscribeToAmbulances(onChange) {
+  subscribeToAmbulances(onChange, onStatus = null) {
     const channel = supabase
       .channel('map_ambulances_all')
       .on(
@@ -125,7 +129,11 @@ export const supabaseMapService = {
           onChange(payload.eventType, payload.new, payload.old);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (typeof onStatus === 'function') {
+          onStatus(status);
+        }
+      });
 
     return () => supabase.removeChannel(channel);
   },
@@ -136,7 +144,7 @@ export const supabaseMapService = {
    * Based on plan, we are monitoring 'users' table if it exists, roughly.
    * If 'users' table isn't heavily used yet, we might fallback to emergency_requests updates.
    */
-  subscribeToUsers(onChange) {
+  subscribeToUsers(onChange, onStatus = null) {
     const channel = supabase
       .channel('map_users_all')
       .on(
@@ -150,7 +158,11 @@ export const supabaseMapService = {
           onChange(payload.eventType, payload.new, payload.old);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (typeof onStatus === 'function') {
+          onStatus(status);
+        }
+      });
 
     return () => supabase.removeChannel(channel);
   },
