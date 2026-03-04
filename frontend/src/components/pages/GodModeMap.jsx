@@ -386,9 +386,17 @@ const GodModeMapContent = () => {
 		return (
 			processedAmbulances.find((ambulance) =>
 				[ambulance?.profile_id, ambulance?.driver_id].includes(user.id)
-			) ||
-			processedAmbulances[0] ||
-			null
+			) || null
+		);
+	}, [isDriverMode, processedAmbulances, user?.id]);
+
+	const driverOwnedAmbulanceIds = useMemo(() => {
+		if (!isDriverMode || !user?.id) return new Set();
+		return new Set(
+			processedAmbulances
+				.filter((ambulance) => [ambulance?.profile_id, ambulance?.driver_id].includes(user.id))
+				.map((ambulance) => ambulance.id)
+				.filter(Boolean)
 		);
 	}, [isDriverMode, processedAmbulances, user?.id]);
 
@@ -397,13 +405,19 @@ const GodModeMapContent = () => {
 
 		const scoped = activeAmbulanceRequests.filter((request) => {
 			const responderMatch = request?.responder_id === user.id;
-			const ambulanceMatch = assignedAmbulance?.id && request?.ambulance_id === assignedAmbulance.id;
-			return responderMatch || ambulanceMatch;
+			if (responderMatch) return true;
+
+			// Reassignment handoff continuity:
+			// accept ambulance match only while responder_id is unset.
+			const hasResponderAssigned = !!request?.responder_id;
+			if (hasResponderAssigned) return false;
+
+			return !!request?.ambulance_id && driverOwnedAmbulanceIds.has(request.ambulance_id);
 		});
 
 		if (!scoped.length) return null;
 		return [...scoped].sort((a, b) => Date.parse(b?.updated_at || 0) - Date.parse(a?.updated_at || 0))[0];
-	}, [activeAmbulanceRequests, assignedAmbulance?.id, isDriverMode, user?.id]);
+	}, [activeAmbulanceRequests, driverOwnedAmbulanceIds, isDriverMode, user?.id]);
 
 	const driverTelemetry = useMemo(() => {
 		if (!driverActiveEmergency) {
