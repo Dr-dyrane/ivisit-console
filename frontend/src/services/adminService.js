@@ -59,13 +59,17 @@ const getCachedOrFetch = async (key, fetchFunction, duration = CACHE_DURATION) =
 const logAdminAction = async (action, details = {}) => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
+    const detailsPayload = {
+      ...(details || {}),
+      ipAddress: details?.ipAddress || null,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+    };
 
     await supabase.from('admin_audit_log').insert({
       admin_id: user?.id,
       action,
-      details,
-      ip_address: details.ipAddress || 'unknown',
-      user_agent: navigator.userAgent
+      details: detailsPayload,
+      created_at: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Failed to log admin action:', error);
@@ -565,12 +569,12 @@ export const getAdminAnalyticsData = async (options = {}) => {
       const userStats = await getUserStatistics();
 
       // Get admin activity metrics
-      let activityMetrics = {};
+        let activityMetrics = {};
       if (includeActivity) {
         const { data: activity } = await supabase
           .from('admin_audit_log')
-          .select('action, timestamp')
-          .gte('timestamp', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+          .select('action, created_at')
+          .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
 
         activityMetrics = activity?.reduce((acc, log) => {
           acc[log.action] = (acc[log.action] || 0) + 1;
@@ -685,9 +689,9 @@ export const getAuditLog = async (options = {}) => {
       .from('admin_audit_log')
       .select(`
         *,
-        admin:auth.users(email)
-      `)
-      .order('timestamp', { ascending: false })
+        admin:profiles!admin_audit_log_admin_id_fkey(id, email, full_name, role)
+      `, { count: 'exact' })
+      .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (action) {
@@ -697,8 +701,8 @@ export const getAuditLog = async (options = {}) => {
       query = query.eq('admin_id', adminId);
     }
     if (dateRange) {
-      query = query.gte('timestamp', dateRange.start)
-        .lte('timestamp', dateRange.end);
+      query = query.gte('created_at', dateRange.start)
+        .lte('created_at', dateRange.end);
     }
 
     const { data, error, count } = await query;
@@ -789,8 +793,8 @@ export const getRealTimeStats = async () => {
       ] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
         supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('verification_status', 'pending'),
-        supabase.from('user_sessions').select('id', { count: 'exact', head: true }).eq('active', true),
-        supabase.from('admin_audit_log').select('id', { count: 'exact', head: true }).gte('timestamp', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        supabase.from('user_sessions').select('id', { count: 'exact', head: true }).gte('last_active', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+        supabase.from('admin_audit_log').select('id', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
       ]);
 
       return {
