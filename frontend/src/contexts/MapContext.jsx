@@ -6,6 +6,7 @@ const MapContext = createContext();
 const TRUTH_SYNC_INTERVAL_MS = 30000;
 const RECOVERY_SYNC_DEBOUNCE_MS = 6000;
 const RECOVERY_STATUSES = new Set(['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED']);
+const HEALTHY_STATUSES = new Set(['SUBSCRIBED']);
 
 const parseRecordVersionMs = (record) => {
   if (!record || typeof record !== 'object') return 0;
@@ -78,6 +79,7 @@ export const MapProvider = ({ children }) => {
   const syncInFlightRef = useRef(false);
   const lastRecoverySyncMsRef = useRef(0);
   const mountedRef = useRef(true);
+  const channelStatusRef = useRef({});
 
   const initializeMapData = useCallback(async (isMounted = true, { silent = false } = {}) => {
     try {
@@ -127,15 +129,30 @@ export const MapProvider = ({ children }) => {
     initializeMapData(mounted, { silent: false });
 
     const handleChannelStatus = (channelName) => (status) => {
-      if (!RECOVERY_STATUSES.has(status)) return;
-
+      const previousStatus = channelStatusRef.current[channelName] || null;
+      channelStatusRef.current[channelName] = status;
       const now = Date.now();
-      if (now - lastRecoverySyncMsRef.current < RECOVERY_SYNC_DEBOUNCE_MS) {
+
+      if (RECOVERY_STATUSES.has(status)) {
+        if (now - lastRecoverySyncMsRef.current < RECOVERY_SYNC_DEBOUNCE_MS) {
+          return;
+        }
+        lastRecoverySyncMsRef.current = now;
+        console.warn(`[MapContext] ${channelName} realtime status=${status}; triggering truth sync`);
+        runTruthSync(`recovery:${channelName}:${status}`);
         return;
       }
-      lastRecoverySyncMsRef.current = now;
-      console.warn(`[MapContext] ${channelName} realtime status=${status}; triggering truth sync`);
-      runTruthSync(`recovery:${channelName}:${status}`);
+
+      if (HEALTHY_STATUSES.has(status) && previousStatus && previousStatus !== status) {
+        if (now - lastRecoverySyncMsRef.current < RECOVERY_SYNC_DEBOUNCE_MS) {
+          return;
+        }
+        lastRecoverySyncMsRef.current = now;
+        console.info(
+          `[MapContext] ${channelName} realtime recovered (${previousStatus} -> ${status}); triggering truth sync`
+        );
+        runTruthSync(`resubscribed:${channelName}:${previousStatus}->${status}`);
+      }
     };
 
     // Subscribe to Emergencies
