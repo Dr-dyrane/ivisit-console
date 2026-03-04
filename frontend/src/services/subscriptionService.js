@@ -9,6 +9,80 @@ import { getCurrentUser, applyAuthFilter } from './authService';
 import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'subscribers';
+const WRITABLE_FIELDS = new Set([
+  'email',
+  'type',
+  'status',
+  'new_user',
+  'welcome_email_sent',
+  'subscription_date',
+  'source',
+  'last_engagement_at',
+  'welcome_email_sent_at',
+  'unsubscribed_at',
+  'sale_id',
+]);
+
+function toSubscriberWritePayload(input = {}, { forInsert = false } = {}) {
+  const now = new Date().toISOString();
+  const payload = {};
+
+  if (forInsert) {
+    payload.type = 'free';
+    payload.status = 'pending';
+    payload.new_user = true;
+    payload.welcome_email_sent = false;
+    payload.subscription_date = now;
+    payload.source = 'manual';
+    payload.created_at = now;
+  }
+
+  Object.entries(input || {}).forEach(([key, value]) => {
+    if (WRITABLE_FIELDS.has(key) && value !== undefined) {
+      payload[key] = value;
+    }
+  });
+
+  if (payload.welcome_email_sent === true && !payload.welcome_email_sent_at) {
+    payload.welcome_email_sent_at = now;
+  }
+
+  if (payload.status === 'unsubscribed' && !payload.unsubscribed_at) {
+    payload.unsubscribed_at = now;
+  }
+
+  payload.updated_at = now;
+  return payload;
+}
+
+function getMissingColumnFromError(error) {
+  const message = String(error?.message || '');
+  const match = message.match(/Could not find the '([^']+)' column/i);
+  return match?.[1] || null;
+}
+
+async function runWriteWithSchemaFallback(writeOperation, inputPayload) {
+  const payload = { ...(inputPayload || {}) };
+  const maxAttempts = 8;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const { data, error } = await writeOperation(payload);
+
+    if (!error) {
+      return data;
+    }
+
+    const missingColumn = getMissingColumnFromError(error);
+    if (missingColumn && Object.prototype.hasOwnProperty.call(payload, missingColumn)) {
+      delete payload[missingColumn];
+      continue;
+    }
+
+    throw error;
+  }
+
+  throw new Error('Subscriber write failed after schema compatibility retries');
+}
 
 /**
  * Get all subscribers with optional filters
@@ -100,28 +174,21 @@ export async function getSubscriber(subscriberId) {
  */
 export async function createSubscriber(input) {
   try {
-    const user = await getCurrentUser();
-    const payload = {
-      email: input.email,
-      type: input.type || 'free',
-      status: input.status || 'pending',
-      new_user: input.new_user !== undefined ? input.new_user : true,
-      subscription_date: input.subscription_date || new Date().toISOString(),
-      welcome_email_sent: input.welcome_email_sent || false,
-      welcome_email_sent_at: input.welcome_email_sent_at || null,
-      last_engagement_at: input.last_engagement_at || null,
-      source: input.source || 'website',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const email = String(input?.email || '').trim().toLowerCase();
+    if (!email) {
+      throw new Error('email is required');
+    }
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .insert([payload])
-      .select()
-      .single();
-
-    if (error) throw error;
+    const payload = toSubscriberWritePayload({ ...input, email }, { forInsert: true });
+    const data = await runWriteWithSchemaFallback(
+      (candidate) =>
+        supabase
+          .from(TABLE_NAME)
+          .insert([candidate])
+          .select()
+          .single(),
+      payload
+    );
 
     // Trigger welcome email automatically (Fire and forget to not block UI)
     if (data && data.email) {
@@ -142,19 +209,17 @@ export async function createSubscriber(input) {
  */
 export async function updateSubscriber(subscriberId, input) {
   try {
-    const payload = {
-      ...input,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update(payload)
-      .eq('id', subscriberId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    const payload = toSubscriberWritePayload(input, { forInsert: false });
+    const data = await runWriteWithSchemaFallback(
+      (candidate) =>
+        supabase
+          .from(TABLE_NAME)
+          .update(candidate)
+          .eq('id', subscriberId)
+          .select()
+          .single(),
+      payload
+    );
 
     return data;
   } catch (error) {
@@ -187,17 +252,16 @@ export async function deleteSubscriber(subscriberId) {
  */
 export async function updateSubscriberStatus(subscriberId, status) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', subscriberId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    const data = await runWriteWithSchemaFallback(
+      (candidate) =>
+        supabase
+          .from(TABLE_NAME)
+          .update(candidate)
+          .eq('id', subscriberId)
+          .select()
+          .single(),
+      toSubscriberWritePayload({ status }, { forInsert: false })
+    );
 
     return data;
   } catch (error) {
@@ -211,17 +275,16 @@ export async function updateSubscriberStatus(subscriberId, status) {
  */
 export async function updateSubscriberType(subscriberId, type) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        type,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', subscriberId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    const data = await runWriteWithSchemaFallback(
+      (candidate) =>
+        supabase
+          .from(TABLE_NAME)
+          .update(candidate)
+          .eq('id', subscriberId)
+          .select()
+          .single(),
+      toSubscriberWritePayload({ type }, { forInsert: false })
+    );
 
     return data;
   } catch (error) {
@@ -235,20 +298,24 @@ export async function updateSubscriberType(subscriberId, type) {
  */
 export async function markWelcomeEmailSent(subscriberId) {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        welcome_email_sent: true,
-        welcome_email_sent_at: new Date().toISOString(),
-        new_user: false,
-        status: 'active',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', subscriberId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    const data = await runWriteWithSchemaFallback(
+      (candidate) =>
+        supabase
+          .from(TABLE_NAME)
+          .update(candidate)
+          .eq('id', subscriberId)
+          .select()
+          .single(),
+      toSubscriberWritePayload(
+        {
+          welcome_email_sent: true,
+          new_user: false,
+          status: 'active',
+          last_engagement_at: new Date().toISOString(),
+        },
+        { forInsert: false }
+      )
+    );
 
     return data;
   } catch (error) {
