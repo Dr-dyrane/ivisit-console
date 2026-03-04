@@ -17,7 +17,7 @@ export async function createSearchEvent(input) {
       query: input.query,
       source: input.source,
       selected_key: input.selected_key,
-      extra: input.extra,
+      metadata: input.metadata ?? input.extra ?? null,
       created_at: new Date().toISOString(),
     };
 

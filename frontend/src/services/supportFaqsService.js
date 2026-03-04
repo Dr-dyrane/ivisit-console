@@ -5,9 +5,15 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'support_faqs';
+
+const isValidFaqId = (value) => {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'string') return value.trim().length > 0;
+  return false;
+};
 
 /**
  * Get all FAQs with optional filters
@@ -44,7 +50,7 @@ export async function getSupportFAQs(filter) {
  */
 export async function getSupportFAQ(faqId) {
   try {
-    if (!isValidUUID(faqId)) return null;
+    if (!isValidFaqId(faqId)) return null;
 
     const { data, error } = await supabase
       .from(TABLE_NAME)

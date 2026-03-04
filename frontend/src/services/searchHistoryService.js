@@ -27,10 +27,6 @@ export async function getSearchHistory(filter) {
 
     let query = supabase.from(TABLE_NAME).select('*').eq('user_id', filter.user_id);
 
-    if (filter.query_type) {
-      query = query.eq('query_type', filter.query_type);
-    }
-
     query = query.order('created_at', { ascending: false });
 
     if (filter.limit) {
@@ -80,8 +76,7 @@ export async function createSearchHistory(input) {
     const payload = {
       user_id: input.user_id,
       query: input.query,
-      query_type: input.query_type,
-      result_count: input.results_count,
+      result_count: input.result_count ?? input.results_count ?? null,
       created_at: new Date().toISOString(),
     };
 

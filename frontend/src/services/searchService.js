@@ -1,5 +1,12 @@
 import { supabase } from '../lib/supabase';
 
+const isMissingRelationError = (error, relationName) => {
+  if (!error) return false;
+  if (error.code === '42P01' || error.code === 'PGRST204') return true;
+  const message = String(error.message || '').toLowerCase();
+  return message.includes(String(relationName || '').toLowerCase()) && message.includes('does not exist');
+};
+
 export const searchService = {
   async searchAll(query, limit = 50) {
     if (!query || query.trim().length < 2) return { results: [], total: 0 };
@@ -200,7 +207,7 @@ export const searchService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      await supabase.from('search_selections').insert([
+      const { error } = await supabase.from('search_selections').insert([
         {
           user_id: user.id,
           query: query.toLowerCase(),
@@ -209,6 +216,22 @@ export const searchService = {
           created_at: new Date().toISOString()
         }
       ]);
+
+      if (error && isMissingRelationError(error, 'search_selections')) {
+        await supabase.from('search_events').insert([
+          {
+            query: query.toLowerCase(),
+            source: 'selection_fallback',
+            selected_key: resultId,
+            metadata: {
+              result_type: resultType,
+            },
+            created_at: new Date().toISOString(),
+          },
+        ]);
+        return;
+      }
+      if (error) throw error;
     } catch (error) {
       console.error('Error recording selection:', error);
     }

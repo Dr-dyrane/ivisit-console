@@ -9,6 +9,13 @@ import { getCurrentUser } from './authService';
 
 const TABLE_NAME = 'search_selections';
 
+const isMissingRelationError = (error) => {
+  if (!error) return false;
+  if (error.code === '42P01' || error.code === 'PGRST204') return true;
+  const message = String(error.message || '').toLowerCase();
+  return message.includes('search_selections') && message.includes('does not exist');
+};
+
 /**
  * Create search selection
  */
@@ -36,6 +43,7 @@ export async function createSearchSelection(input) {
       .select()
       .single();
 
+    if (error && isMissingRelationError(error)) return null;
     if (error) throw error;
 
     return data;
@@ -56,6 +64,7 @@ export async function getSearchSelection(selectionId) {
       .eq('id', selectionId)
       .single();
 
+    if (error && isMissingRelationError(error)) return null;
     if (error && error.code !== 'PGRST116') throw error;
 
     return data || null;
@@ -84,6 +93,7 @@ export async function getUserSearchSelections(userId) {
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
+    if (error && isMissingRelationError(error)) return [];
     if (error) throw error;
 
     return data || [];
@@ -117,6 +127,7 @@ export async function updateSearchSelection(selectionId, input) {
       .select()
       .single();
 
+    if (error && isMissingRelationError(error)) return null;
     if (error) throw error;
 
     return data;
@@ -136,7 +147,9 @@ export async function deleteSearchSelection(selectionId) {
       .delete()
       .eq('id', selectionId);
 
+    if (error && isMissingRelationError(error)) return false;
     if (error) throw error;
+    return true;
   } catch (error) {
     console.error(`Error deleting search selection ${selectionId}:`, error);
     throw error;
@@ -154,6 +167,7 @@ export async function getSelectionsByResultType(resultType) {
       .eq('result_type', resultType)
       .order('created_at', { ascending: false });
 
+    if (error && isMissingRelationError(error)) return [];
     if (error) throw error;
 
     return data || [];

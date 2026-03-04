@@ -81,15 +81,15 @@ export const searchAnalyticsService = {
      * @param {string} data.query - Search query
      * @param {string} data.source - Source of search ('console', 'mobile_app', etc.)
      * @param {string} data.selected_key - Selected action/result
-     * @param {Object} data.extra - Additional metadata
+     * @param {Object} data.metadata - Additional metadata
      */
-    trackSearchEvent: async ({ query, source = 'console', selected_key, extra = {} }) => {
+    trackSearchEvent: async ({ query, source = 'console', selected_key, metadata = {} }) => {
         try {
             const { error } = await supabase.from('search_events').insert({
                 query: typeof query === "string" ? query.toLowerCase() : null,
                 source: source,
                 selected_key: typeof selected_key === "string" ? selected_key : null,
-                extra: extra,
+                metadata: metadata,
                 created_at: new Date().toISOString(),
             });
 

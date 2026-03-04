@@ -221,6 +221,7 @@ export const WalletManagementPage = () => {
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: wallet?.currency || 'USD' }).format(amount || 0);
     };
+    const formatPaymentMethod = (payment) => payment?.payment_method || payment?.payment_method_id || 'unknown';
 
     const backfillLedger = useCallback(async () => {
         try {
@@ -300,7 +301,7 @@ export const WalletManagementPage = () => {
                                             <Label className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground">Method</Label>
                                             <div className="flex items-center gap-2">
                                                 <CreditCard className="w-3 h-3 text-muted-foreground" />
-                                                <p className="font-bold text-xs md:text-sm capitalize">{selectedPayment.payment_method_id}</p>
+                                                <p className="font-bold text-xs md:text-sm capitalize">{formatPaymentMethod(selectedPayment)}</p>
                                             </div>
                                         </div>
                                         <div className="space-y-1">
@@ -558,7 +559,7 @@ export const WalletManagementPage = () => {
                                                         )}
                                                     </div>
                                                     <span className="text-xs font-black uppercase tracking-widest">
-                                                        {activeTab === 'ledger' ? item.transaction_type : item.payment_method_id}
+                                                        {activeTab === 'ledger' ? item.transaction_type : formatPaymentMethod(item)}
                                                     </span>
                                                 </div>
                                             </td>
@@ -640,7 +641,7 @@ export const WalletManagementPage = () => {
                                         <Label className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted-foreground">Method</Label>
                                         <div className="flex items-center gap-2">
                                             <CreditCard className="w-3 h-3 text-muted-foreground" />
-                                            <p className="font-bold text-xs md:text-sm capitalize">{selectedPayment.payment_method_id}</p>
+                                            <p className="font-bold text-xs md:text-sm capitalize">{formatPaymentMethod(selectedPayment)}</p>
                                         </div>
                                     </div>
                                     <div className="space-y-1">

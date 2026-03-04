@@ -338,22 +338,34 @@ export const backfillMissingFeeLedger = async (organizationId) => {
     if (existingError) throw existingError;
     if (existingDebit?.id) continue;
 
+    const currentMetadata =
+      meta && typeof meta === 'object' && !Array.isArray(meta) ? { ...meta } : {};
+
     const { error: insertError } = await supabase.from('wallet_ledger').insert({
       wallet_id: walletData.id,
-      organization_id: organizationId,
       amount: -Math.abs(Number(meta.fee)),
       transaction_type: 'debit',
       description: 'Platform Fee (Audit Fix)',
       reference_id: payment.id,
-      reference_type: 'payment_fee',
-      status: 'completed',
+      metadata: {
+        ...currentMetadata,
+        organization_id: organizationId,
+        reference_type: 'payment_fee',
+        status: 'completed',
+      },
       created_at: payment.created_at
     });
     if (insertError) throw insertError;
 
     const { error: paymentUpdateError } = await supabase
       .from('payments')
-      .update({ metadata: { ...meta, ledger_debited: true } })
+      .update({
+        metadata: {
+          ...currentMetadata,
+          ledger_debited: true,
+          ledger_debited_at: new Date().toISOString(),
+        },
+      })
       .eq('id', payment.id);
     if (paymentUpdateError) throw paymentUpdateError;
 
