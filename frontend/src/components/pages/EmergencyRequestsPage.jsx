@@ -60,6 +60,7 @@ import { MobileEmergency } from '../mobile/MobileEmergency';
 import { usePageData } from '../../contexts/PageDataContext';
 import { SEOHead } from '../common/SEOHead';
 import { canonicalizeEmergencyStatus, isActiveEmergencyStatus } from '../../utils/emergencyStatus';
+import { getEmergencyActionState } from '../../utils/emergencyActions';
 
 export const EmergencyRequestsPage = () => {
   const { isAdmin, isOrgAdmin, isProvider, orgId, profile, can, user } = useAuth();
@@ -383,6 +384,13 @@ export const EmergencyRequestsPage = () => {
   }, [selectedIds, fetchRequests]);
 
   const handleDispatch = useCallback(async (request) => {
+    const actionState = getEmergencyActionState(request);
+    if (!actionState.canDispatch) {
+      toast.info('This request is no longer dispatchable. Refreshing list...');
+      await fetchRequests();
+      return;
+    }
+
     try {
       // 1. Wallet Cap Check for Cash Payments
       // We check eligibility based on estimated base costs ($50 for ambulance, $25 for beds)
@@ -411,9 +419,18 @@ export const EmergencyRequestsPage = () => {
       fetchRequests();
     } catch (error) {
       console.error('Dispatch failed:', error);
+      const message = String(error?.message || '');
+      if (
+        message.toLowerCase().includes('terminal emergency request') ||
+        message.toLowerCase().includes('cannot dispatch before cash approval')
+      ) {
+        toast.info(message || 'Request state changed. Refreshing list.', { id: 'dispatch' });
+        await fetchRequests();
+        return;
+      }
       toast.error('Failed to dispatch emergency', { id: 'dispatch' });
     }
-  }, [fetchRequests]);
+  }, [fetchRequests, isAdmin, isOrgAdmin, orgId]);
 
   const handleComplete = useCallback(async (request) => {
     if (!confirm('Mark this emergency as completed?')) return;
@@ -832,7 +849,9 @@ export const EmergencyRequestsPage = () => {
                     layout
                     className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
                   >
-                    {requests.map((req, index) => (
+                    {requests.map((req, index) => {
+                      const actionState = getEmergencyActionState(req);
+                      return (
                       <motion.div
                         layout
                         key={req.id}
@@ -915,7 +934,7 @@ export const EmergencyRequestsPage = () => {
                               {(currentUser.isAdmin() || currentUser.isOrgAdmin()) && (
                                 <>
                                   {/* Dispatch Case: Pending/In-Progress & No Ambulance */}
-                                  {((req.status === 'pending_approval' || req.status === 'in_progress') && !req.ambulance_id) && (
+                                  {actionState.canDispatch && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -928,7 +947,7 @@ export const EmergencyRequestsPage = () => {
                                   )}
 
                                   {/* Complete Case: Accepted/Has Ambulance & Not Completed */}
-                                  {(req.status === 'accepted' || req.ambulance_id) && req.status !== 'completed' && (
+                                  {actionState.canComplete && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -940,7 +959,7 @@ export const EmergencyRequestsPage = () => {
                                     </Button>
                                   )}
                                   {/* Cash Payment Action */}
-                                  {req.status === 'completed' && (
+                                  {actionState.canProcessCash && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -983,7 +1002,7 @@ export const EmergencyRequestsPage = () => {
                               )}
 
                               {/* Provider-specific actions */}
-                              {currentUser.isProvider() && req.status !== 'completed' && (
+                              {currentUser.isProvider() && actionState.canComplete && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -998,7 +1017,8 @@ export const EmergencyRequestsPage = () => {
                           </div>
                         </Card>
                       </motion.div>
-                    ))}
+                      );
+                    })}
                   </motion.div>
                 </LayoutGroup>
               )}

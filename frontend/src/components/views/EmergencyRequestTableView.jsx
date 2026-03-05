@@ -21,6 +21,7 @@ import { getServiceTypeBadge, getServiceTypeDisplay, getStatusDisplay, getStatus
 import { getVisit } from '../../services/visitsService';
 import { toast } from 'sonner';
 import { getStandardizedPatient } from '../../utils/patientUtils';
+import { getEmergencyActionState } from '../../utils/emergencyActions';
 
 export const EmergencyRequestTableView = ({
   requests,
@@ -87,7 +88,9 @@ export const EmergencyRequestTableView = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {requests.map((req, index) => (
+            {requests.map((req, index) => {
+              const actionState = getEmergencyActionState(req);
+              return (
               <motion.tr
                 key={req.id}
                 initial={{ opacity: 0 }}
@@ -168,7 +171,7 @@ export const EmergencyRequestTableView = ({
                         </DropdownMenuItem>
 
                         {/* View Clinical Record Action */}
-                        {(req.status === 'completed' || req.status === 'cancelled') && (
+                        {actionState.showClinicalRecord && (
                           <DropdownMenuItem
                             onClick={async () => {
                               console.log('🔍 EmergencyRequestTableView - Clinical Record clicked for request:', req);
@@ -197,7 +200,7 @@ export const EmergencyRequestTableView = ({
                         )}
 
                         {/* Dispatch Action */}
-                        {canManage && onDispatch && (req.status === 'pending' || (req.status === 'in_progress' && !req.ambulance_id)) && (
+                        {canManage && onDispatch && actionState.canDispatch && (
                           <DropdownMenuItem onClick={() => onDispatch(req)} className="cursor-pointer font-medium text-xs py-2 text-success focus:text-success focus:bg-success/10">
                             <Send className="mr-2 h-3.5 w-3.5" />
                             Dispatch
@@ -205,7 +208,7 @@ export const EmergencyRequestTableView = ({
                         )}
 
                         {/* Complete Action */}
-                        {canManage && onComplete && (req.status === 'accepted' || req.ambulance_id) && req.status !== 'completed' && (
+                        {canManage && onComplete && actionState.canComplete && (
                           <DropdownMenuItem onClick={() => onComplete(req)} className="cursor-pointer font-medium text-xs py-2 text-info focus:text-info focus:bg-info/10">
                             <CheckCheck className="mr-2 h-3.5 w-3.5" />
                             Complete
@@ -213,7 +216,7 @@ export const EmergencyRequestTableView = ({
                         )}
 
                         {/* Cash Payment Action */}
-                        {canManage && req.status === 'completed' && req.payment_method_id === 'cash' && req.payment_status !== 'completed' && (
+                        {canManage && actionState.canProcessCash && (
                           <DropdownMenuItem
                             onClick={() => {
                               if (window.confirm(`Process cash payment for this request? This will deduct the 2.5% platform fee from your organization's wallet.`)) {
@@ -257,7 +260,8 @@ export const EmergencyRequestTableView = ({
                   </div>
                 </TableCell>
               </motion.tr>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </Card>

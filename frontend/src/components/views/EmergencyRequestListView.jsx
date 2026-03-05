@@ -11,6 +11,7 @@ import { LocationCell } from '../ui/LocationCell';
 import { getServiceTypeBadge, getServiceTypeDisplay, getStatusDisplay, getStatusBadge } from '../../constants/emergency';
 import { getVisit } from '../../services/visitsService';
 import { toast } from 'sonner';
+import { getEmergencyActionState } from '../../utils/emergencyActions';
 
 export const EmergencyRequestListView = ({
   requests,
@@ -38,7 +39,9 @@ export const EmergencyRequestListView = ({
       animate={{ opacity: 1 }}
       className="space-y-2"
     >
-      {requests.map((req, index) => (
+      {requests.map((req, index) => {
+        const actionState = getEmergencyActionState(req);
+        return (
         <motion.div
           key={req.id}
           initial={{ opacity: 0, x: -20 }}
@@ -116,7 +119,7 @@ export const EmergencyRequestListView = ({
                 </Button>
 
                 {/* View Clinical Record Action */}
-                {(req.status === 'completed' || req.status === 'cancelled') && (
+                {actionState.showClinicalRecord && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -145,7 +148,7 @@ export const EmergencyRequestListView = ({
                 )}
 
                 {/* Dispatch Action */}
-                {canManage && onDispatch && (req.status === 'pending' || (req.status === 'in_progress' && !req.ambulance_id)) && (
+                {canManage && onDispatch && actionState.canDispatch && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -158,7 +161,7 @@ export const EmergencyRequestListView = ({
                 )}
 
                 {/* Complete Action */}
-                {canManage && onComplete && (req.status === 'accepted' || req.ambulance_id) && req.status !== 'completed' && (
+                {canManage && onComplete && actionState.canComplete && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -171,7 +174,7 @@ export const EmergencyRequestListView = ({
                 )}
 
                 {/* Cash Payment Action */}
-                {canManage && req.status === 'completed' && (
+                {canManage && actionState.canProcessCash && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -218,7 +221,8 @@ export const EmergencyRequestListView = ({
             </div>
           </Card>
         </motion.div>
-      ))}
+        );
+      })}
     </motion.div>
   );
 };
