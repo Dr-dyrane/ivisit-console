@@ -221,7 +221,20 @@ export const WalletManagementPage = () => {
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: wallet?.currency || 'USD' }).format(amount || 0);
     };
-    const formatPaymentMethod = (payment) => payment?.payment_method || payment?.payment_method_id || 'unknown';
+    const formatServiceTypeLabel = (serviceType) => {
+        if (!serviceType || typeof serviceType !== 'string') return null;
+        return serviceType
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, (char) => char.toUpperCase());
+    };
+    const formatPaymentMethod = (payment) => payment?.payment_method || 'unknown';
+    const formatPaymentDescription = (payment) => {
+        const serviceLabel = formatServiceTypeLabel(payment?.emergency_requests?.service_type);
+        if (serviceLabel) return `${serviceLabel} service`;
+        if (payment?.display_id) return `Payment ${payment.display_id}`;
+        if (payment?.emergency_request_id) return 'Emergency service payment';
+        return 'Service payment';
+    };
 
     const backfillLedger = useCallback(async () => {
         try {
@@ -566,7 +579,7 @@ export const WalletManagementPage = () => {
                                             <td className="px-6 py-6">
                                                 <div>
                                                     <p className="text-sm font-bold tracking-tight text-foreground">
-                                                        {item.description}
+                                                        {activeTab === 'ledger' ? item.description : formatPaymentDescription(item)}
                                                     </p>
                                                     <p className="text-[10px] text-muted-foreground uppercase tracking-tighter font-mono">
                                                         {activeTab === 'ledger' ? `Ref: ${item.reference_id?.slice(0, 8) || 'N/A'}` : `ID: ${item.id.slice(0, 8)}`}

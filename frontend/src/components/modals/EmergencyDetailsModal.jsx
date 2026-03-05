@@ -335,7 +335,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Fee Amount</p>
                       <p className="text-xl font-bold">
-                        {paymentData?.amount || request.fee_amount || '0.00'} {paymentData?.currency || 'USD'}
+                        {paymentData?.amount ?? request.total_cost ?? 0} {paymentData?.currency || 'USD'}
                       </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">

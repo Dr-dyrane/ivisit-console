@@ -47,6 +47,19 @@ export const MobileWallet = ({
   const [showBalance, setShowBalance] = useState(true);
   const showTopSectionLoading = loading && !wallet && ledger.length === 0 && payments.length === 0;
   const items = activeTab === 'ledger' ? ledger : payments;
+  const formatServiceTypeLabel = (serviceType) => {
+    if (!serviceType || typeof serviceType !== 'string') return null;
+    return serviceType
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+  const formatPaymentDescription = (payment) => {
+    const serviceLabel = formatServiceTypeLabel(payment?.emergency_requests?.service_type);
+    if (serviceLabel) return `${serviceLabel} service`;
+    if (payment?.display_id) return `Payment ${payment.display_id}`;
+    if (payment?.emergency_request_id) return 'Emergency service payment';
+    return 'Service payment';
+  };
   const creditEntries = useMemo(
     () => ledger.filter(entry => entry.transaction_type === 'credit').length,
     [ledger]
@@ -312,7 +325,7 @@ export const MobileWallet = ({
                   icon={isLedger ? (isCredit ? ArrowDownLeft : ArrowUpRight) : CreditCard}
                   color={isCredit ? 'hsl(var(--success))' : 'hsl(var(--warning))'}
                   label={(isLedger ? item.transaction_type : item.status || 'payment').toUpperCase()}
-                  value={item.description || 'Transaction'}
+                  value={isLedger ? (item.description || 'Transaction') : formatPaymentDescription(item)}
                   rightBlade={{
                     badge: isLedger ? 'LEDGER' : 'PAYMENT',
                     direction: isCredit ? 'up' : 'down',
