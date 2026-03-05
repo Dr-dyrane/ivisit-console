@@ -30,13 +30,16 @@ const DEFAULT_HOSPITAL_FORM = {
   features: [],
   emergency_level: 'Level 1',
   available_beds: 0,
+  icu_beds_available: 0,
   total_beds: 0,
   ambulances_count: 0,
+  emergency_wait_time_minutes: 0,
   wait_time: '',
   price_range: '',
   latitude: null,
   longitude: null,
   place_id: null,
+  last_availability_update: null,
   verified: false,
   verification_status: 'pending',
   status: 'available'
@@ -59,6 +62,13 @@ const toIntOrZero = (value) => {
   return Math.max(0, Math.round(parsed));
 };
 
+const formatDateTime = (value) => {
+  if (!value) return 'Unknown';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown';
+  return date.toLocaleString();
+};
+
 const buildInitialFormData = (hospital) => {
   if (!hospital) return { ...DEFAULT_HOSPITAL_FORM };
   return {
@@ -69,11 +79,14 @@ const buildInitialFormData = (hospital) => {
     features: toTextArray(hospital.features),
     rating: Number.isFinite(Number(hospital.rating)) ? Number(hospital.rating) : DEFAULT_HOSPITAL_FORM.rating,
     available_beds: toIntOrZero(hospital.available_beds),
+    icu_beds_available: toIntOrZero(hospital.icu_beds_available),
     total_beds: toIntOrZero(hospital.total_beds),
     ambulances_count: toIntOrZero(hospital.ambulances_count),
+    emergency_wait_time_minutes: toIntOrZero(hospital.emergency_wait_time_minutes),
     latitude: toNumberOrNull(hospital.latitude),
     longitude: toNumberOrNull(hospital.longitude),
     place_id: hospital.place_id || null,
+    last_availability_update: hospital.last_availability_update || null,
   };
 };
 
@@ -281,8 +294,10 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
     const numericFields = new Set([
       'rating',
       'available_beds',
+      'icu_beds_available',
       'total_beds',
       'ambulances_count',
+      'emergency_wait_time_minutes',
       'latitude',
       'longitude'
     ]);
@@ -537,7 +552,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
 
                 {/* Capacity & Stats */}
                 <GlassCard icon={<Activity />} title="Live Capacity">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                     <div className="space-y-1">
                       <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">Total Beds</Label>
                       <div className="relative">
@@ -560,6 +575,20 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           type="number"
                           name="available_beds"
                           value={formData.available_beds}
+                          onChange={handleChange}
+                          disabled={isView}
+                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">ICU Beds</Label>
+                      <div className="relative">
+                        <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />
+                        <Input
+                          type="number"
+                          name="icu_beds_available"
+                          value={formData.icu_beds_available || 0}
                           onChange={handleChange}
                           disabled={isView}
                           className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
@@ -592,6 +621,24 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         />
                       </div>
                     </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase px-1">ER Wait (min)</Label>
+                      <div className="relative">
+                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-yellow-500" />
+                        <Input
+                          type="number"
+                          name="emergency_wait_time_minutes"
+                          value={formData.emergency_wait_time_minutes || 0}
+                          onChange={handleChange}
+                          disabled={isView}
+                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 text-[11px] text-muted-foreground">
+                    Last availability update: {formatDateTime(formData.last_availability_update)}
                   </div>
                   
                   {/* Bed Utilization Indicator */}

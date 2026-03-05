@@ -70,11 +70,19 @@ function buildHospitalPayload(input = {}, { isCreate = false } = {}) {
   const availableBeds = toNonNegativeIntOrNull(input.available_beds);
   if (availableBeds !== null || isCreate) payload.available_beds = availableBeds ?? 0;
 
+  const icuBedsAvailable = toNonNegativeIntOrNull(input.icu_beds_available);
+  if (icuBedsAvailable !== null || isCreate) payload.icu_beds_available = icuBedsAvailable ?? 0;
+
   const totalBeds = toNonNegativeIntOrNull(input.total_beds);
   if (totalBeds !== null || isCreate) payload.total_beds = totalBeds ?? 0;
 
   const ambulancesCount = toNonNegativeIntOrNull(input.ambulances_count);
   if (ambulancesCount !== null || isCreate) payload.ambulances_count = ambulancesCount ?? 0;
+
+  const emergencyWaitMinutes = toNonNegativeIntOrNull(input.emergency_wait_time_minutes);
+  if (emergencyWaitMinutes !== null || isCreate) {
+    payload.emergency_wait_time_minutes = emergencyWaitMinutes ?? 0;
+  }
 
   const waitTime = toTrimmedOrNull(input.wait_time);
   if (waitTime !== null || isCreate) payload.wait_time = waitTime;

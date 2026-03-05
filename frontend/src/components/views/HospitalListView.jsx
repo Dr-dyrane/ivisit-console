@@ -72,7 +72,10 @@ export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, onSchedu
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground truncate">
-                  {hospital.address || 'No address'} • {hospital.available_beds || 0} beds • Fleet: {hospital.ambulances_count || 0}
+                  {hospital.address || 'No address'} • Beds: {hospital.available_beds || 0}/{hospital.total_beds || 0} • ICU: {hospital.icu_beds_available || 0} • Fleet: {hospital.ambulances_count || 0}
+                </p>
+                <p className="text-xs text-muted-foreground truncate mt-1">
+                  ER wait: {Number.isFinite(Number(hospital.emergency_wait_time_minutes)) ? `${hospital.emergency_wait_time_minutes}m` : 'Unknown'} • Updated: {hospital.last_availability_update ? new Date(hospital.last_availability_update).toLocaleString() : 'Unknown'}
                 </p>
               </div>
 

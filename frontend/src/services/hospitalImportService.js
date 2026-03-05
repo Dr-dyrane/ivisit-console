@@ -2,6 +2,13 @@
 import { supabase } from '../lib/supabase';
 
 class HospitalImportService {
+  isMissingRelationError(error, relationName) {
+    if (!error) return false;
+    if (error.code === '42P01' || error.code === 'PGRST205') return true;
+    const message = String(error.message || '').toLowerCase();
+    return message.includes(String(relationName || '').toLowerCase()) && message.includes('does not exist');
+  }
+
   // Import hospitals from Google Places using unified Edge Function
   async importHospitalsFromGoogle(lat, lng, radius = 10, adminId = null) {
     try {
@@ -268,7 +275,12 @@ class HospitalImportService {
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      if (error) throw error;
+      if (error) {
+        if (this.isMissingRelationError(error, 'hospital_import_logs')) {
+          return [];
+        }
+        throw error;
+      }
       return data;
     } catch (error) {
       console.error('HospitalImportService.getImportLogs error:', error);

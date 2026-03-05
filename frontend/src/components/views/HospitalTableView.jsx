@@ -90,7 +90,9 @@ export const HospitalTableView = ({
               <SortableHead label="Address" columnKey="address" />
               <SortableHead label="Status" columnKey="status" />
               <SortableHead label="Beds" columnKey="available_beds" />
+              <SortableHead label="ICU" columnKey="icu_beds_available" />
               <SortableHead label="Fleet" columnKey="ambulances_count" />
+              <SortableHead label="ER Wait" columnKey="emergency_wait_time_minutes" />
               <SortableHead label="Rating" columnKey="rating" />
               <TableHead className="font-bold uppercase tracking-wider text-right pr-6">Actions</TableHead>
             </TableRow>
@@ -147,8 +149,14 @@ export const HospitalTableView = ({
                     {(hospital.verification_status || hospital.status)?.toUpperCase()}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-medium">{hospital.available_beds || '0'}</TableCell>
+                <TableCell className="font-medium">{`${hospital.available_beds || 0}/${hospital.total_beds || 0}`}</TableCell>
+                <TableCell className="font-medium">{hospital.icu_beds_available || 0}</TableCell>
                 <TableCell className="font-medium">{hospital.ambulances_count || '0'}</TableCell>
+                <TableCell className="font-medium">
+                  {Number.isFinite(Number(hospital.emergency_wait_time_minutes))
+                    ? `${hospital.emergency_wait_time_minutes}m`
+                    : '-'}
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 text-warning fill-warning" />
