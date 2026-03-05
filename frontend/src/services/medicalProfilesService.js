@@ -9,6 +9,73 @@ import { getCurrentUser } from './authService';
 import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'medical_profiles';
+const ARRAY_FIELDS = ['allergies', 'conditions', 'medications'];
+const TEXT_FIELDS = [
+  'blood_type',
+  'insurance_provider',
+  'insurance_policy_number',
+  'emergency_contact_name',
+  'emergency_contact_phone',
+  'emergency_contact_relationship',
+  'emergency_notes',
+];
+
+function normalizeTextArray(value) {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  if (Array.isArray(value)) {
+    const normalized = value
+      .map((item) => (item == null ? '' : String(item).trim()))
+      .filter(Boolean);
+    return normalized.length ? Array.from(new Set(normalized)) : null;
+  }
+  if (typeof value === 'string') {
+    const normalized = value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return normalized.length ? Array.from(new Set(normalized)) : null;
+  }
+  return null;
+}
+
+function normalizeNullableText(value) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  const next = String(value).trim();
+  return next.length ? next : null;
+}
+
+function normalizeBoolean(value) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  return !!value;
+}
+
+function buildMedicalProfilePayload(input = {}, { userId = null, forInsert = false } = {}) {
+  const payload = {};
+  const assignIfDefined = (key, value) => {
+    if (value !== undefined) payload[key] = value;
+  };
+
+  for (const field of TEXT_FIELDS) {
+    assignIfDefined(field, normalizeNullableText(input[field]));
+  }
+  for (const field of ARRAY_FIELDS) {
+    assignIfDefined(field, normalizeTextArray(input[field]));
+  }
+
+  assignIfDefined('organ_donor', normalizeBoolean(input.organ_donor));
+
+  if (forInsert) {
+    assignIfDefined('user_id', input.user_id || userId || null);
+    payload.created_at = new Date().toISOString();
+    if (payload.organ_donor === undefined) payload.organ_donor = false;
+  }
+
+  payload.updated_at = new Date().toISOString();
+  return payload;
+}
 
 /**
  * Get medical profile for user
@@ -45,21 +112,10 @@ export async function getUserMedicalProfile(userId) {
  */
 export async function createMedicalProfile(input) {
   try {
-    const payload = {
-      user_id: input.user_id,
-      blood_type: input.blood_type,
-      allergies: input.allergies,
-      conditions: input.conditions,
-      medications: input.medications,
-      organ_donor: input.organ_donor || false,
-      insurance_provider: input.insurance_provider,
-      insurance_policy_number: input.insurance_policy_number,
-      emergency_contact_name: input.emergency_contact_name,
-      emergency_contact_phone: input.emergency_contact_phone,
-      emergency_contact_relationship: input.emergency_contact_relationship,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const payload = buildMedicalProfilePayload(input, {
+      userId: input?.user_id,
+      forInsert: true,
+    });
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -89,10 +145,7 @@ export async function updateMedicalProfile(userId, input) {
       throw new Error('Unauthorized: Cannot update other users medical profiles');
     }
 
-    const payload = {
-      ...input,
-      updated_at: new Date().toISOString(),
-    };
+    const payload = buildMedicalProfilePayload(input, { forInsert: false });
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
