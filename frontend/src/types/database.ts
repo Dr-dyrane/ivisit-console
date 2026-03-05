@@ -1557,27 +1557,35 @@ export type Database = {
       }
       search_history: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           query: string
           result_count: number | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           query: string
           result_count?: number | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           query?: string
           result_count?: number | null
-          user_id?: string
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "search_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       search_selections: {
         Row: {
