@@ -43,19 +43,35 @@ export const searchService = {
   async searchDoctors(query, limit) {
     const { data } = await supabase
       .from('doctors')
-      .select('id, name, specialty, hospital, rating, avatar_url')
-      .or(`name.ilike.%${query}%,specialty.ilike.%${query}%,hospital.ilike.%${query}%`)
+      .select(`
+        id,
+        name,
+        specialization,
+        department,
+        rating,
+        image,
+        hospitals:hospital_id (
+          name
+        )
+      `)
+      .or(`name.ilike.%${query}%,specialization.ilike.%${query}%,department.ilike.%${query}%`)
       .limit(limit);
 
-    return (data || []).map(d => ({
-      id: d.id,
-      title: d.name || 'Unknown Doctor',
-      subtitle: `${d.specialty || 'Unknown Specialty'} • ${d.hospital || 'Independent'}`,
-      avatar: d.avatar_url,
-      rating: d.rating,
-      type: 'doctor',
-      path: `/doctors?id=${d.id}`
-    }));
+    return (data || []).map((doctor) => {
+      const hospitalName = Array.isArray(doctor.hospitals)
+        ? doctor.hospitals[0]?.name
+        : doctor.hospitals?.name;
+
+      return {
+        id: doctor.id,
+        title: doctor.name || 'Unknown Doctor',
+        subtitle: `${doctor.specialization || doctor.department || 'General'} - ${hospitalName || 'Independent'}`,
+        avatar: doctor.image,
+        rating: doctor.rating,
+        type: 'doctor',
+        path: `/doctors?id=${doctor.id}`,
+      };
+    });
   },
 
   async searchHospitals(query, limit) {
@@ -237,3 +253,4 @@ export const searchService = {
     }
   }
 };
+

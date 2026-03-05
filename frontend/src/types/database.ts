@@ -164,14 +164,19 @@ export type Database = {
         Row: {
           about: string | null
           consultation_fee: string | null
-          created_at: string | null
+          created_at: string
+          current_patients: number | null
+          department: string | null
+          display_id: string | null
           email: string | null
           experience: number | null
           hospital_id: string | null
           id: string
           image: string | null
           is_available: boolean | null
+          is_on_call: boolean | null
           license_number: string | null
+          max_patients: number | null
           name: string
           phone: string | null
           profile_id: string | null
@@ -179,19 +184,24 @@ export type Database = {
           reviews_count: number | null
           specialization: string
           status: string | null
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
           about?: string | null
           consultation_fee?: string | null
-          created_at?: string | null
+          created_at?: string
+          current_patients?: number | null
+          department?: string | null
+          display_id?: string | null
           email?: string | null
           experience?: number | null
           hospital_id?: string | null
           id?: string
           image?: string | null
           is_available?: boolean | null
+          is_on_call?: boolean | null
           license_number?: string | null
+          max_patients?: number | null
           name: string
           phone?: string | null
           profile_id?: string | null
@@ -199,19 +209,24 @@ export type Database = {
           reviews_count?: number | null
           specialization: string
           status?: string | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
           about?: string | null
           consultation_fee?: string | null
-          created_at?: string | null
+          created_at?: string
+          current_patients?: number | null
+          department?: string | null
+          display_id?: string | null
           email?: string | null
           experience?: number | null
           hospital_id?: string | null
           id?: string
           image?: string | null
           is_available?: boolean | null
+          is_on_call?: boolean | null
           license_number?: string | null
+          max_patients?: number | null
           name?: string
           phone?: string | null
           profile_id?: string | null
@@ -219,21 +234,21 @@ export type Database = {
           reviews_count?: number | null
           specialization?: string
           status?: string | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "doctors_hospital_id_fkey"
             columns: ["hospital_id"]
             isOneToOne: false
-            referencedRelation: "available_hospitals"
+            referencedRelation: "hospitals"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "doctors_hospital_id_fkey"
-            columns: ["hospital_id"]
-            isOneToOne: false
-            referencedRelation: "hospitals"
+            foreignKeyName: "doctors_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
