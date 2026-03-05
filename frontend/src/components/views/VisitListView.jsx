@@ -112,7 +112,7 @@ export const VisitListView = ({
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Facility</span>
                   <div className="flex items-center gap-2 font-semibold text-sm truncate">
                     <Hospital className="w-3 h-3 text-muted-foreground shrink-0" />
-                    {visit.hospital?.name || visit.hospital || 'Unknown Facility'}
+                    {visit.hospital?.name || visit.hospital_name || visit.hospital || 'Unknown Facility'}
                   </div>
                 </div>
               </div>

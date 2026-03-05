@@ -183,14 +183,32 @@ export const VisitsPage = () => {
 
       if (visitsData && visitsData.length > 0) {
         const userIds = [...new Set(visitsData.map(v => v.user_id).filter(Boolean))];
-        const doctorIds = [...new Set(visitsData.map(v => v.doctor_id).filter(Boolean))];
+        const requestIds = [...new Set(visitsData.map(v => v.request_id).filter(Boolean))];
+        const visitDoctorIds = [...new Set(visitsData.map(v => v.doctor_id).filter(Boolean))];
+        const directHospitalIds = [...new Set(visitsData.map(v => v.hospital_id).filter(Boolean))];
 
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, username, email')
-          .in('id', userIds);
+        const [{ data: profiles }, { data: emergencyRows }] = await Promise.all([
+          userIds.length > 0
+            ? supabase
+                .from('profiles')
+                .select('id, username, email')
+                .in('id', userIds)
+            : Promise.resolve({ data: [] }),
+          requestIds.length > 0
+            ? supabase
+                .from('emergency_requests')
+                .select('id, hospital_id, hospital_name, status, service_type, assigned_doctor_id')
+                .in('id', requestIds)
+            : Promise.resolve({ data: [] })
+        ]);
 
         const profilesMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
+        const emergencyByRequest = (emergencyRows || []).reduce((acc, row) => ({ ...acc, [row.id]: row }), {});
+
+        const emergencyDoctorIds = [
+          ...new Set((emergencyRows || []).map(r => r.assigned_doctor_id).filter(Boolean))
+        ];
+        const doctorIds = [...new Set([...visitDoctorIds, ...emergencyDoctorIds])];
 
         let doctorsMap = {};
         if (doctorIds.length > 0) {
@@ -198,17 +216,68 @@ export const VisitsPage = () => {
             .from('doctors')
             .select('id, name')
             .in('id', doctorIds);
-
           doctorsMap = (doctors || []).reduce((acc, d) => ({ ...acc, [d.id]: d }), {});
         }
 
-        visitsData = visitsData.map(visit => ({
-          ...visit,
-          visit_type: visit.visit_type || visit.type || null,
-          doctor_name: visit.doctor_name || null,
-          patient: profilesMap[visit.user_id] || null,
-          doctor: doctorsMap[visit.doctor_id] || visit.doctor || visit.doctor_name || null
-        }));
+        const hospitalIds = [
+          ...new Set([
+            ...directHospitalIds,
+            ...(emergencyRows || []).map(r => r.hospital_id).filter(Boolean)
+          ])
+        ];
+        let hospitalsMap = {};
+        if (hospitalIds.length > 0) {
+          const { data: hospitalRows } = await supabase
+            .from('hospitals')
+            .select('id, name, address')
+            .in('id', hospitalIds);
+          hospitalsMap = (hospitalRows || []).reduce((acc, h) => ({ ...acc, [h.id]: h }), {});
+        }
+
+        const emergencyToVisitStatus = {
+          pending_approval: 'scheduled',
+          payment_declined: 'cancelled',
+          in_progress: 'in_progress',
+          accepted: 'in_progress',
+          arrived: 'in_progress',
+          completed: 'completed',
+          cancelled: 'cancelled'
+        };
+
+        visitsData = visitsData.map((visit) => {
+          const emergency = visit.request_id ? emergencyByRequest[visit.request_id] : null;
+          const linkedHospitalId = visit.hospital_id || emergency?.hospital_id || null;
+          const linkedHospitalName =
+            visit.hospital_name ||
+            emergency?.hospital_name ||
+            hospitalsMap[linkedHospitalId]?.name ||
+            null;
+          const emergencyDerivedStatus = emergency?.status
+            ? emergencyToVisitStatus[emergency.status] || null
+            : null;
+          const originalStatus = String(visit.status || '').toLowerCase();
+          const normalizedStatus =
+            !originalStatus || ['upcoming', 'scheduled'].includes(originalStatus)
+              ? emergencyDerivedStatus || visit.status || 'scheduled'
+              : visit.status;
+          const emergencyDoctorName = emergency?.assigned_doctor_id
+            ? doctorsMap[emergency.assigned_doctor_id]?.name || null
+            : null;
+          const doctorName = visit.doctor_name || emergencyDoctorName || null;
+          const visitType = visit.visit_type || visit.type || emergency?.service_type || null;
+
+          return {
+            ...visit,
+            hospital_id: linkedHospitalId,
+            hospital_name: linkedHospitalName,
+            status: normalizedStatus,
+            type: visitType,
+            visit_type: visitType,
+            doctor_name: doctorName,
+            patient: profilesMap[visit.user_id] || null,
+            doctor: doctorsMap[visit.doctor_id] || visit.doctor || doctorName || null
+          };
+        });
       }
 
       setVisits(visitsData || []);

@@ -409,7 +409,7 @@ export const MobileVisits = ({
                                                 <Hospital size={14} className="text-muted-foreground/40" />
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Facility</span>
-                                                    <span className="text-xs font-semibold truncate">{visit.hospital?.name || visit.hospital || 'Direct Consultation'}</span>
+                                                    <span className="text-xs font-semibold truncate">{visit.hospital?.name || visit.hospital_name || visit.hospital || 'Direct Consultation'}</span>
                                                 </div>
                                             </div>
                                             {visit.room_number && (
