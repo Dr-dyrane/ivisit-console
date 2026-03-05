@@ -986,7 +986,7 @@ export type Database = {
           {
             foreignKeyName: "organization_wallets_organization_id_fkey"
             columns: ["organization_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -996,6 +996,7 @@ export type Database = {
         Row: {
           contact_email: string | null
           created_at: string | null
+          display_id: string | null
           fee_tier: string | null
           id: string
           is_active: boolean | null
@@ -1007,6 +1008,7 @@ export type Database = {
         Insert: {
           contact_email?: string | null
           created_at?: string | null
+          display_id?: string | null
           fee_tier?: string | null
           id?: string
           is_active?: boolean | null
@@ -1018,6 +1020,7 @@ export type Database = {
         Update: {
           contact_email?: string | null
           created_at?: string | null
+          display_id?: string | null
           fee_tier?: string | null
           id?: string
           is_active?: boolean | null
@@ -1321,6 +1324,7 @@ export type Database = {
           bvn_verified?: boolean | null
           created_at?: string
           date_of_birth?: string | null
+          display_id?: string | null
           email?: string | null
           first_name?: string | null
           full_name?: string | null

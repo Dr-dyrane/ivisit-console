@@ -9,6 +9,44 @@ import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'organizations';
 
+const toTrimmedOrNull = (value) => {
+    if (value === undefined || value === null) return null;
+    const text = String(value).trim();
+    return text.length > 0 ? text : null;
+};
+
+const toFiniteOrNull = (value) => {
+    if (value === undefined || value === null || value === '') return null;
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : null;
+};
+
+const pruneUndefined = (payload = {}) =>
+    Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+
+function buildOrganizationPayload(org = {}, { isUpdate = false } = {}) {
+    const name = toTrimmedOrNull(org.name);
+    if (!name) {
+        throw new Error('Organization name is required');
+    }
+
+    const payload = {
+        name,
+        stripe_account_id: toTrimmedOrNull(org.stripe_account_id),
+        ivisit_fee_percentage: toFiniteOrNull(org.ivisit_fee_percentage),
+        fee_tier: toTrimmedOrNull(org.fee_tier) ?? 'standard',
+        contact_email: toTrimmedOrNull(org.contact_email),
+        is_active: org.is_active !== undefined ? Boolean(org.is_active) : true,
+        updated_at: new Date().toISOString(),
+    };
+
+    if (!isUpdate) {
+        payload.created_at = new Date().toISOString();
+    }
+
+    return pruneUndefined(payload);
+}
+
 /**
  * Get all organizations
  */
@@ -79,19 +117,7 @@ export async function getOrganization(orgId) {
 export async function saveOrganization(org) {
     try {
         const isUpdate = !!org.id;
-        const payload = {
-            name: org.name,
-            stripe_account_id: org.stripe_account_id,
-            ivisit_fee_percentage: org.ivisit_fee_percentage,
-            fee_tier: org.fee_tier,
-            contact_email: org.contact_email,
-            is_active: org.is_active !== undefined ? org.is_active : true,
-            updated_at: new Date().toISOString(),
-        };
-
-        if (!isUpdate) {
-            payload.created_at = new Date().toISOString();
-        }
+        const payload = buildOrganizationPayload(org, { isUpdate });
 
         const query = isUpdate
             ? supabase.from(TABLE_NAME).update(payload).eq('id', org.id)
