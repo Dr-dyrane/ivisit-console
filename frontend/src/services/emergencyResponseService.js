@@ -59,10 +59,11 @@ export async function dispatchEmergency(emergencyId, emergencyDetails) {
 
     // 4. Reserve bed if needed.
     let assignedBed = null;
-    if (emergencyDetails.bed_type && targetHospital) {
+    const requestedBedCategory = emergencyDetails?.bed_category || emergencyDetails?.bed_type || null;
+    if (requestedBedCategory && targetHospital) {
       assignedBed = await reserveBed(
         targetHospital.id,
-        emergencyDetails.bed_type
+        requestedBedCategory
       );
     }
 

@@ -22,6 +22,7 @@ import { getVisit } from '../../services/visitsService';
 import { toast } from 'sonner';
 import { getStandardizedPatient } from '../../utils/patientUtils';
 import { getEmergencyActionState } from '../../utils/emergencyActions';
+import { isCashPaymentMethod } from '../../utils/emergencyRequestMapper';
 
 export const EmergencyRequestTableView = ({
   requests,
@@ -136,8 +137,8 @@ export const EmergencyRequestTableView = ({
                 <TableCell>
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-1.5">
-                      <Badge className={`squircle-xs border-0 font-bold ${req.payment_method_id === 'cash' ? 'bg-yellow-500/20 text-yellow-600' : 'bg-blue-500/20 text-blue-600'}`}>
-                        {req.payment_method_id?.toUpperCase() || 'UNSET'}
+                      <Badge className={`squircle-xs border-0 font-bold ${isCashPaymentMethod(req.payment_method) ? 'bg-yellow-500/20 text-yellow-600' : 'bg-blue-500/20 text-blue-600'}`}>
+                        {req.payment_method?.toUpperCase() || 'UNSET'}
                       </Badge>
                       {req.payment_status === 'completed' ? (
                         <CheckCheck className="h-3 w-3 text-success" />

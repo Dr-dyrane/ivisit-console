@@ -43,6 +43,12 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
     request?.payment_status === 'pending' ||
     Boolean(paymentData)
   );
+  const etaDisplay =
+    request?.eta_display ||
+    request?.next_estimated_arrival ||
+    request?.estimated_arrival ||
+    null;
+  const bedCategory = request?.bed_category || request?.bed_type || null;
 
   const handleApprove = async () => {
     if (!request) return;
@@ -516,7 +522,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                       </div>
                       <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">ETA</p>
-                        <p className="font-semibold">{request.estimated_arrival || 'N/A'}</p>
+                        <p className="font-semibold">{etaDisplay || 'N/A'}</p>
                       </div>
                       <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Status</p>
@@ -535,7 +541,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                       </div>
                       <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Bed Type</p>
-                        <p className="font-semibold capitalize">{request.bed_type || 'N/A'}</p>
+                        <p className="font-semibold capitalize">{bedCategory || 'N/A'}</p>
                       </div>
                       <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Specialty</p>

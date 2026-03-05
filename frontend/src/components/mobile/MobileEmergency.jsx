@@ -37,6 +37,7 @@ import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { canonicalizeEmergencyStatus, isActiveEmergencyStatus, isTerminalEmergencyStatus } from '../../utils/emergencyStatus';
+import { isCashPaymentMethod } from '../../utils/emergencyRequestMapper';
 
 /**
  * MobileEmergency
@@ -186,7 +187,7 @@ export const MobileEmergency = ({
 
     const needsApproval = (emergency) =>
         canonicalizeEmergencyStatus(emergency?.status, null) === 'pending_approval' ||
-        (emergency?.payment_method_id === 'cash' && emergency?.payment_status && emergency.payment_status !== 'completed');
+        (isCashPaymentMethod(emergency?.payment_method) && emergency?.payment_status && emergency.payment_status !== 'completed');
 
     return (
         <PullToRefresh onRefresh={onRefresh}>

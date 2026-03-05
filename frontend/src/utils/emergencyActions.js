@@ -8,7 +8,7 @@ export function getEmergencyActionState(request) {
   const canonicalStatus = canonicalizeEmergencyStatus(request?.status, request?.status);
   const status = toLower(canonicalStatus);
   const serviceType = toLower(request?.service_type || request?.serviceType);
-  const paymentMethod = toLower(request?.payment_method_id || request?.payment_method);
+  const paymentMethod = toLower(request?.payment_method || request?.payment_method_id);
   const paymentStatus = toLower(request?.payment_status);
   const hasAmbulance = Boolean(request?.ambulance_id);
   const isBedFlow = serviceType === 'bed' || serviceType === 'booking';

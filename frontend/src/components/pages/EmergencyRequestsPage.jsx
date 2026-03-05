@@ -59,8 +59,13 @@ import { EmergencyRequestTableView } from '../views/EmergencyRequestTableView';
 import { MobileEmergency } from '../mobile/MobileEmergency';
 import { usePageData } from '../../contexts/PageDataContext';
 import { SEOHead } from '../common/SEOHead';
-import { canonicalizeEmergencyStatus, isActiveEmergencyStatus } from '../../utils/emergencyStatus';
+import { isActiveEmergencyStatus } from '../../utils/emergencyStatus';
 import { getEmergencyActionState } from '../../utils/emergencyActions';
+import {
+  buildLatestPaymentMap,
+  isCashPaymentMethod,
+  normalizeEmergencyRequestRow,
+} from '../../utils/emergencyRequestMapper';
 
 export const EmergencyRequestsPage = () => {
   const { isAdmin, isOrgAdmin, isProvider, orgId, profile, can, user } = useAuth();
@@ -173,10 +178,26 @@ export const EmergencyRequestsPage = () => {
       const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load emergency requests - timeout');
 
       if (error) throw error;
-      const normalizedRows = (data || []).map((row) => ({
-        ...row,
-        status: canonicalizeEmergencyStatus(row.status, row.status),
-      }));
+      const rawRows = data || [];
+      let paymentByRequestId = new Map();
+      if (rawRows.length > 0) {
+        const requestIds = rawRows.map((row) => row.id).filter(Boolean);
+        const { data: paymentRows, error: paymentError } = await supabase
+          .from('payments')
+          .select('emergency_request_id,payment_method,status,created_at')
+          .in('emergency_request_id', requestIds)
+          .order('created_at', { ascending: false });
+
+        if (paymentError) {
+          console.warn('[EmergencyRequestsPage] Unable to load payment methods:', paymentError);
+        } else {
+          paymentByRequestId = buildLatestPaymentMap(paymentRows);
+        }
+      }
+
+      const normalizedRows = rawRows.map((row) =>
+        normalizeEmergencyRequestRow(row, paymentByRequestId.get(row.id))
+      );
       setRequests(normalizedRows);
     } catch (error) {
       console.error('Error fetching emergency requests:', error);
@@ -439,7 +460,7 @@ export const EmergencyRequestsPage = () => {
       await completeEmergency(request.id);
 
       // Auto-trigger cash processing if it's a cash job and not yet completed
-      if (request.payment_method_id === 'cash' && request.payment_status !== 'completed') {
+      if (isCashPaymentMethod(request.payment_method) && request.payment_status !== 'completed') {
         toast.info('Cash Payment Required', {
           description: 'This was a cash job. Please confirm total amount received.'
         });
