@@ -1376,7 +1376,15 @@ export type Database = {
           user_id?: string
           view_preferences?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
