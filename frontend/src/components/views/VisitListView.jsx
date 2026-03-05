@@ -103,7 +103,7 @@ export const VisitListView = ({
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Doctor</span>
                   <div className="flex items-center gap-2 font-semibold text-sm truncate">
                     <Stethoscope className="w-3 h-3 text-muted-foreground shrink-0" />
-                    {visit.doctor?.name || visit.doctor || (visit.doctor_id ? `Dr. ${visit.doctor_id.slice(0, 8)}` : 'Unassigned')}
+                    {visit.doctor?.name || visit.doctor || visit.doctor_name || 'Unassigned'}
                   </div>
                 </div>
 

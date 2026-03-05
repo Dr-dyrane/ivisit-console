@@ -272,12 +272,19 @@ export async function deleteVisit(visitId) {
  */
 export async function completeVisit(visitId, summary, prescriptions) {
   try {
+    const summaryText = String(summary || '').trim();
+    const prescriptionsText = Array.isArray(prescriptions)
+      ? prescriptions.filter(Boolean).join(', ')
+      : String(prescriptions || '').trim();
+    const completionNotes = [summaryText, prescriptionsText]
+      .filter(Boolean)
+      .join(' | ');
+
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .update({
         status: 'completed',
-        summary: summary,
-        prescriptions: prescriptions,
+        ...(completionNotes ? { notes: completionNotes } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq('id', visitId)

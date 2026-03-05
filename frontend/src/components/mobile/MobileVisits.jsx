@@ -165,10 +165,16 @@ export const MobileVisits = ({
 
         if (search) {
             result = result.filter(v => {
-                const name = String(v?.patient_name || v?.patient?.name || '').toLowerCase();
-                const service = String(v?.service_type || '').toLowerCase();
-                const location = String(v?.location || v?.patient_location || '').toLowerCase();
-                return name.includes(search) || service.includes(search) || location.includes(search);
+                const patientName = String(v?.patient?.username || v?.patient?.full_name || '').toLowerCase();
+                const visitType = String(v?.visit_type || v?.type || '').toLowerCase();
+                const facility = String(v?.hospital_name || v?.hospital?.name || '').toLowerCase();
+                const notes = String(v?.notes || '').toLowerCase();
+                return (
+                    patientName.includes(search) ||
+                    visitType.includes(search) ||
+                    facility.includes(search) ||
+                    notes.includes(search)
+                );
             });
         }
 

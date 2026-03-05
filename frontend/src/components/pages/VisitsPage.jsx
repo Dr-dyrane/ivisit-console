@@ -97,7 +97,7 @@ export const VisitsPage = () => {
   const mapVisitSortKey = useCallback((key) => {
     if (key === 'visit_type') return 'type';
     if (key === 'room_number') return 'hospital_name';
-    if (key === 'doctor' || key === 'doctor_id') return 'doctor_name';
+    if (key === 'doctor') return 'doctor_name';
     return key;
   }, []);
 
@@ -129,8 +129,7 @@ export const VisitsPage = () => {
         if (filters.date.end) query = query.lte('date', filters.date.end);
       }
       if (filters.search) {
-        // TODO: Enable search when backend supports joined filtering
-        // query = query.or(`patient_name.ilike.%${filters.search}%`);
+        // TODO: Enable backend text search when visit-level indexed search RPC is available.
       }
 
       // Apply KPI Filter to count query
@@ -167,8 +166,7 @@ export const VisitsPage = () => {
         if (filters.date.end) dataQuery = dataQuery.lte('date', filters.date.end);
       }
       if (filters.search) {
-        // TODO: Implement search across joined tables (patient name) or verify patient_name column exists
-        // dataQuery = dataQuery.or(`patient_name.ilike.%${filters.search}%`);
+        // TODO: Implement backend visit-level search RPC for paginated queries.
       }
 
       // Apply KPI Filter to data query
@@ -184,7 +182,6 @@ export const VisitsPage = () => {
       if (visitsData && visitsData.length > 0) {
         const userIds = [...new Set(visitsData.map(v => v.user_id).filter(Boolean))];
         const requestIds = [...new Set(visitsData.map(v => v.request_id).filter(Boolean))];
-        const visitDoctorIds = [...new Set(visitsData.map(v => v.doctor_id).filter(Boolean))];
         const directHospitalIds = [...new Set(visitsData.map(v => v.hospital_id).filter(Boolean))];
 
         const [{ data: profiles }, { data: emergencyRows }] = await Promise.all([
@@ -208,7 +205,7 @@ export const VisitsPage = () => {
         const emergencyDoctorIds = [
           ...new Set((emergencyRows || []).map(r => r.assigned_doctor_id).filter(Boolean))
         ];
-        const doctorIds = [...new Set([...visitDoctorIds, ...emergencyDoctorIds])];
+        const doctorIds = [...new Set([...emergencyDoctorIds])];
 
         let doctorsMap = {};
         if (doctorIds.length > 0) {
@@ -275,7 +272,7 @@ export const VisitsPage = () => {
             visit_type: visitType,
             doctor_name: doctorName,
             patient: profilesMap[visit.user_id] || null,
-            doctor: doctorsMap[visit.doctor_id] || visit.doctor || doctorName || null
+            doctor: visit.doctor || doctorName || null
           };
         });
       }
@@ -978,7 +975,7 @@ export const VisitsPage = () => {
                               <p className="text-muted-foreground font-medium uppercase tracking-wider text-[10px]">Doctor</p>
                             </div>
                             <p className="font-semibold truncate">
-                              {visit.doctor?.name || visit.doctor || (visit.doctor_id ? 'Linked' : 'Unassigned')}
+                              {visit.doctor?.name || visit.doctor || (visit.doctor_name ? 'Linked' : 'Unassigned')}
                             </p>
                           </div>
 
