@@ -1487,11 +1487,9 @@ export type Database = {
       room_pricing: {
         Row: {
           created_at: string | null
-          currency: string | null
           description: string | null
           hospital_id: string | null
           id: string
-          is_active: boolean | null
           price_per_night: number
           room_name: string
           room_type: string
@@ -1499,29 +1497,33 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          currency?: string | null
           description?: string | null
           hospital_id?: string | null
           id?: string
-          is_active?: boolean | null
-          price_per_night: number
+          price_per_night?: number
           room_name: string
           room_type: string
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
-          currency?: string | null
           description?: string | null
           hospital_id?: string | null
           id?: string
-          is_active?: boolean | null
           price_per_night?: number
           room_name?: string
           room_type?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "room_pricing_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       search_events: {
         Row: {
@@ -1608,23 +1610,19 @@ export type Database = {
         Row: {
           base_price: number
           created_at: string | null
-          currency: string | null
           description: string | null
           hospital_id: string | null
           id: string
-          is_active: boolean | null
           service_name: string
           service_type: string
           updated_at: string | null
         }
         Insert: {
-          base_price: number
+          base_price?: number
           created_at?: string | null
-          currency?: string | null
           description?: string | null
           hospital_id?: string | null
           id?: string
-          is_active?: boolean | null
           service_name: string
           service_type: string
           updated_at?: string | null
@@ -1632,16 +1630,22 @@ export type Database = {
         Update: {
           base_price?: number
           created_at?: string | null
-          currency?: string | null
           description?: string | null
           hospital_id?: string | null
           id?: string
-          is_active?: boolean | null
           service_name?: string
           service_type?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "service_pricing_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       spatial_ref_sys: {
         Row: {
