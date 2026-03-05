@@ -165,8 +165,11 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
         query = query.eq(userIdField, userId);
       }
     } else if (resourceType === 'support') {
-      // Support tickets: providers see only tickets they created
-      query = query.eq('created_by', userId);
+      // Support tickets: providers see only tickets they created.
+      // support_tickets uses user_id as the ownership field.
+      if (userId) {
+        query = query.eq(userIdField, userId);
+      }
     } else if (resourceType === 'news') {
       // News: providers can see all (read-only handled at UI level)
       // No filtering needed

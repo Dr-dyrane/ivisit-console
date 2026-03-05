@@ -1,5 +1,8 @@
 import { supabase } from '../lib/supabase';
 
+const SEARCH_HISTORY_TABLE = 'search_history';
+const SEARCH_EVENTS_TABLE = 'search_events';
+
 const isMissingRelationError = (error, relationName) => {
   if (!error) return false;
   if (error.code === '42P01' || error.code === 'PGRST204') return true;
@@ -161,7 +164,7 @@ export const searchService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      await supabase.from('search_history').insert([
+      const { error } = await supabase.from(SEARCH_HISTORY_TABLE).insert([
         {
           user_id: user.id,
           query: query.toLowerCase(),
@@ -169,6 +172,20 @@ export const searchService = {
           created_at: new Date().toISOString()
         }
       ]);
+      if (error && isMissingRelationError(error, SEARCH_HISTORY_TABLE)) {
+        await supabase.from(SEARCH_EVENTS_TABLE).insert([
+          {
+            query: query.toLowerCase(),
+            source: 'history_fallback',
+            metadata: {
+              result_count: resultCount,
+            },
+            created_at: new Date().toISOString(),
+          },
+        ]);
+        return;
+      }
+      if (error) throw error;
     } catch (error) {
       console.error('Error tracking search:', error);
     }
@@ -180,7 +197,7 @@ export const searchService = {
       if (!user) return [];
 
       const { data } = await supabase
-        .from('search_history')
+        .from(SEARCH_HISTORY_TABLE)
         .select('query, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })

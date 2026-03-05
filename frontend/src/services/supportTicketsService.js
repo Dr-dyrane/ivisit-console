@@ -9,6 +9,37 @@ import { getCurrentUser, applyAuthFilter } from './authService';
 import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'support_tickets';
+const SUPPORT_TICKET_CREATE_FIELDS = [
+  'user_id',
+  'organization_id',
+  'subject',
+  'message',
+  'category',
+  'priority',
+  'status',
+  'assigned_to',
+];
+const SUPPORT_TICKET_UPDATE_FIELDS = [
+  'user_id',
+  'organization_id',
+  'subject',
+  'message',
+  'category',
+  'priority',
+  'status',
+  'assigned_to',
+];
+
+function pickAllowedSupportTicketFields(input, allowedFields) {
+  const payload = {};
+  if (!input || typeof input !== 'object') return payload;
+  for (const field of allowedFields) {
+    if (Object.prototype.hasOwnProperty.call(input, field) && input[field] !== undefined) {
+      payload[field] = input[field];
+    }
+  }
+  return payload;
+}
 
 /**
  * Get support tickets with optional filters
@@ -98,18 +129,23 @@ export async function getSupportTicket(ticketId) {
  */
 export async function createSupportTicket(input) {
   try {
-    const payload = {
-      user_id: input.user_id,
-      subject: input.subject,
-      message: input.message,
-      category: input.category || 'general',
-      priority: input.priority || 'normal',
-      assigned_to: input.assigned_to || null,
-      organization_id: input.organization_id || null,
-      status: input.status || 'open',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const user = await getCurrentUser();
+    const payload = pickAllowedSupportTicketFields(input, SUPPORT_TICKET_CREATE_FIELDS);
+    payload.user_id = payload.user_id || user?.id || null;
+    payload.organization_id = payload.organization_id || user?.organization_id || null;
+    payload.subject = (payload.subject || '').trim();
+    payload.message = (payload.message || '').trim();
+    payload.category = payload.category || 'general';
+    payload.priority = payload.priority || 'normal';
+    payload.assigned_to = payload.assigned_to || null;
+    payload.status = payload.status || 'open';
+
+    if (!payload.subject) {
+      throw new Error('Support ticket subject is required');
+    }
+    if (!payload.message) {
+      throw new Error('Support ticket message is required');
+    }
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -131,10 +167,26 @@ export async function createSupportTicket(input) {
  */
 export async function updateSupportTicket(ticketId, input) {
   try {
-    const payload = {
-      ...input,
-      updated_at: new Date().toISOString(),
-    };
+    const payload = pickAllowedSupportTicketFields(input, SUPPORT_TICKET_UPDATE_FIELDS);
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'subject')) {
+      payload.subject = (payload.subject || '').trim();
+      if (!payload.subject) {
+        throw new Error('Support ticket subject cannot be empty');
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'message')) {
+      payload.message = (payload.message || '').trim();
+      if (!payload.message) {
+        throw new Error('Support ticket message cannot be empty');
+      }
+    }
+
+    if (Object.keys(payload).length === 0) {
+      return getSupportTicket(ticketId);
+    }
+
+    payload.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
       .from(TABLE_NAME)

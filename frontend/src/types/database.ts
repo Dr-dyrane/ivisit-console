@@ -1756,43 +1756,65 @@ export type Database = {
         Row: {
           assigned_to: string | null
           category: string | null
-          created_at: string | null
+          created_at: string
           id: string
           message: string
           organization_id: string | null
           priority: string | null
           status: string | null
           subject: string
-          updated_at: string | null
+          updated_at: string
           user_id: string | null
         }
         Insert: {
           assigned_to?: string | null
           category?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           message: string
           organization_id?: string | null
           priority?: string | null
           status?: string | null
           subject: string
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string | null
         }
         Update: {
           assigned_to?: string | null
           category?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           message?: string
           organization_id?: string | null
           priority?: string | null
           status?: string | null
           subject?: string
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trending_topics: {
         Row: {
@@ -1825,43 +1847,48 @@ export type Database = {
         Row: {
           action: string
           created_at: string
-          description: string
+          description: string | null
           entity_id: string | null
           entity_type: string | null
           id: string
           ip_address: unknown
           metadata: Json | null
-          updated_at: string
           user_agent: string | null
           user_id: string | null
         }
         Insert: {
           action: string
           created_at?: string
-          description: string
+          description?: string | null
           entity_id?: string | null
           entity_type?: string | null
           id?: string
           ip_address?: unknown
           metadata?: Json | null
-          updated_at?: string
           user_agent?: string | null
           user_id?: string | null
         }
         Update: {
           action?: string
           created_at?: string
-          description?: string
+          description?: string | null
           entity_id?: string | null
           entity_type?: string | null
           id?: string
           ip_address?: unknown
           metadata?: Json | null
-          updated_at?: string
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
