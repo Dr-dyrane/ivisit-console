@@ -1,6 +1,6 @@
 /**
  * Emergency Request Types
- * Database: emergency_requests table (191 rows)
+ * Database: emergency_requests table
  * 
  * Represents emergency medical request/ambulance dispatch records
  */
@@ -26,17 +26,6 @@ export interface PatientSnapshot {
   current_medications?: string[];
   emergency_contact?: string;
   medical_notes?: string;
-}
-
-/**
- * Shared data snapshot (family/authorized contacts)
- * Medical data shared with responders/hospitals
- */
-export interface SharedDataSnapshot {
-  shared_at?: string;
-  shared_with?: string[]; // User IDs
-  data_fields?: string[]; // Which fields are shared
-  access_level?: 'read-only' | 'read-write';
 }
 
 /**
@@ -84,12 +73,11 @@ export enum BedType {
 
 /**
  * Complete Emergency Request Record
- * All 31 columns from emergency_requests table
+ * Mirrors live emergency_requests columns.
  */
 export interface EmergencyRequest {
   // Identifiers
-  id: string; // Primary key (text, not uuid)
-  request_id?: string; // Alternative request identifier
+  id: string;
   user_id?: string; // UUID of requesting user
   
   // Service Details
@@ -99,19 +87,18 @@ export interface EmergencyRequest {
   // Hospital Information
   hospital_id?: string;
   hospital_name?: string;
+  assigned_doctor_id?: string;
+  doctor_assigned_at?: string;
   
-  // Bed/Facility Information
+  // Bed Information
   bed_number?: string;
-  bed_type?: BedType | string;
-  bed_count?: string; // Available beds
   
   // Ambulance Information
   ambulance_type?: AmbulanceType | string;
   ambulance_id?: string;
   
   // Status & Timestamps
-  status: EmergencyStatus | string; // Defaults to 'in_progress'
-  estimated_arrival?: string; // ISO timestamp or duration
+  status: EmergencyStatus | string;
   created_at: string; // ISO timestamp - when request was made
   updated_at: string; // ISO timestamp - last update
   completed_at?: string | null; // ISO timestamp - when completed
@@ -121,13 +108,12 @@ export interface EmergencyRequest {
   pickup_location?: GeoPoint | null; // Where to pick up patient
   destination_location?: GeoPoint | null; // Hospital/destination
   patient_location?: GeoPoint | null; // Current patient location
-  patient_heading?: number | null; // Compass bearing (0-360)
   responder_location?: GeoPoint | null; // Ambulance current location
   responder_heading?: number | null; // Ambulance heading (0-360)
   
   // Medical Data
   patient_snapshot?: PatientSnapshot | null; // Patient medical info snapshot
-  shared_data_snapshot?: SharedDataSnapshot | null; // Shared data record
+  payment_status?: string | null;
   
   // Responder Information
   responder_id?: string; // UUID of responder/ambulance driver
@@ -147,9 +133,9 @@ export interface CreateEmergencyRequestInput {
   specialty?: string;
   pickup_location: GeoPoint;
   destination_location?: GeoPoint;
+  hospital_id?: string;
+  hospital_name?: string;
   patient_snapshot?: PatientSnapshot;
-  shared_data_snapshot?: SharedDataSnapshot;
-  estimated_arrival?: string;
 }
 
 /**
@@ -159,6 +145,8 @@ export interface CreateEmergencyRequestInput {
 export interface UpdateEmergencyRequestInput {
   status?: EmergencyStatus | string;
   ambulance_id?: string;
+  assigned_doctor_id?: string;
+  doctor_assigned_at?: string;
   responder_id?: string;
   responder_name?: string;
   responder_phone?: string;
@@ -167,8 +155,8 @@ export interface UpdateEmergencyRequestInput {
   responder_location?: GeoPoint;
   responder_heading?: number;
   patient_location?: GeoPoint;
-  patient_heading?: number;
-  estimated_arrival?: string;
+  destination_location?: GeoPoint;
+  payment_status?: string;
   completed_at?: string | null;
   cancelled_at?: string | null;
 }

@@ -326,25 +326,19 @@ export type Database = {
         Row: {
           ambulance_id: string | null
           ambulance_type: string | null
-          base_cost: number | null
-          bed_count: string | null
+          assigned_doctor_id: string | null
           bed_number: string | null
-          bed_type: string | null
           cancelled_at: string | null
           completed_at: string | null
-          confirmed_cost: number | null
-          cost_breakdown: Json | null
+          created_at: string
+          destination_location: unknown
           display_id: string | null
-          distance_surcharge: number | null
-          estimated_arrival: string | null
+          doctor_assigned_at: string | null
           hospital_id: string | null
           hospital_name: string | null
           id: string
-          patient_heading: number | null
           patient_location: unknown
           patient_snapshot: Json | null
-          payment_id: string | null
-          payment_method_id: string | null
           payment_status: string | null
           pickup_location: unknown
           responder_heading: number | null
@@ -355,38 +349,28 @@ export type Database = {
           responder_vehicle_plate: string | null
           responder_vehicle_type: string | null
           service_type: string
-          shared_data_snapshot: Json | null
           specialty: string | null
           status: string
           total_cost: number | null
           updated_at: string
-          urgency_surcharge: number | null
           user_id: string | null
         }
         Insert: {
           ambulance_id?: string | null
           ambulance_type?: string | null
-          base_cost?: number | null
-          bed_count?: string | null
+          assigned_doctor_id?: string | null
           bed_number?: string | null
-          bed_type?: string | null
           cancelled_at?: string | null
           completed_at?: string | null
-          confirmed_cost?: number | null
-          cost_breakdown?: Json | null
           created_at?: string
           destination_location?: unknown
           display_id?: string | null
-          distance_surcharge?: number | null
-          estimated_arrival?: string | null
+          doctor_assigned_at?: string | null
           hospital_id?: string | null
           hospital_name?: string | null
           id?: string
-          patient_heading?: number | null
           patient_location?: unknown
           patient_snapshot?: Json | null
-          payment_id?: string | null
-          payment_method_id?: string | null
           payment_status?: string | null
           pickup_location?: unknown
           responder_heading?: number | null
@@ -397,7 +381,6 @@ export type Database = {
           responder_vehicle_plate?: string | null
           responder_vehicle_type?: string | null
           service_type: string
-          shared_data_snapshot?: Json | null
           specialty?: string | null
           status?: string
           total_cost?: number | null
@@ -407,27 +390,19 @@ export type Database = {
         Update: {
           ambulance_id?: string | null
           ambulance_type?: string | null
-          base_cost?: number | null
-          bed_count?: string | null
+          assigned_doctor_id?: string | null
           bed_number?: string | null
-          bed_type?: string | null
           cancelled_at?: string | null
           completed_at?: string | null
-          confirmed_cost?: number | null
-          cost_breakdown?: Json | null
           created_at?: string
           destination_location?: unknown
           display_id?: string | null
-          distance_surcharge?: number | null
-          estimated_arrival?: string | null
+          doctor_assigned_at?: string | null
           hospital_id?: string | null
           hospital_name?: string | null
           id?: string
-          patient_heading?: number | null
           patient_location?: unknown
           patient_snapshot?: Json | null
-          payment_id?: string | null
-          payment_method_id?: string | null
           payment_status?: string | null
           pickup_location?: unknown
           responder_heading?: number | null
@@ -438,14 +413,49 @@ export type Database = {
           responder_vehicle_plate?: string | null
           responder_vehicle_type?: string | null
           service_type?: string
-          shared_data_snapshot?: Json | null
           specialty?: string | null
           status?: string
           total_cost?: number | null
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "emergency_requests_ambulance_id_fkey"
+            columns: ["ambulance_id"]
+            isOneToOne: false
+            referencedRelation: "ambulances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergency_requests_assigned_doctor_id_fkey"
+            columns: ["assigned_doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergency_requests_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergency_requests_responder_id_fkey"
+            columns: ["responder_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergency_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       health_news: {
         Row: {
@@ -947,33 +957,36 @@ export type Database = {
       organization_wallets: {
         Row: {
           balance: number | null
-          created_at: string | null
+          created_at: string
           currency: string | null
+          display_id: string | null
           id: string
           organization_id: string | null
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
           balance?: number | null
-          created_at?: string | null
+          created_at?: string
           currency?: string | null
+          display_id?: string | null
           id?: string
           organization_id?: string | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
           balance?: number | null
-          created_at?: string | null
+          created_at?: string
           currency?: string | null
+          display_id?: string | null
           id?: string
           organization_id?: string | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "organization_wallets_organization_id_fkey"
             columns: ["organization_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -1018,34 +1031,45 @@ export type Database = {
       patient_wallets: {
         Row: {
           balance: number | null
-          created_at: string | null
+          created_at: string
           currency: string | null
+          display_id: string | null
           id: string
-          updated_at: string | null
+          updated_at: string
           user_id: string | null
         }
         Insert: {
           balance?: number | null
-          created_at?: string | null
+          created_at?: string
           currency?: string | null
+          display_id?: string | null
           id?: string
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string | null
         }
         Update: {
           balance?: number | null
-          created_at?: string | null
+          created_at?: string
           currency?: string | null
+          display_id?: string | null
           id?: string
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "patient_wallets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_methods: {
         Row: {
           brand: string | null
-          created_at: string | null
+          created_at: string
           expiry_month: number | null
           expiry_year: number | null
           id: string
@@ -1056,12 +1080,12 @@ export type Database = {
           organization_id: string | null
           provider: string
           type: string
-          updated_at: string | null
+          updated_at: string
           user_id: string | null
         }
         Insert: {
           brand?: string | null
-          created_at?: string | null
+          created_at?: string
           expiry_month?: number | null
           expiry_year?: number | null
           id?: string
@@ -1072,12 +1096,12 @@ export type Database = {
           organization_id?: string | null
           provider: string
           type: string
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string | null
         }
         Update: {
           brand?: string | null
-          created_at?: string | null
+          created_at?: string
           expiry_month?: number | null
           expiry_year?: number | null
           id?: string
@@ -1088,61 +1112,104 @@ export type Database = {
           organization_id?: string | null
           provider?: string
           type?: string
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_methods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {
           amount: number
-          created_at: string | null
+          created_at: string
           currency: string | null
+          display_id: string | null
           emergency_request_id: string | null
           id: string
-          ivisit_deduction_amount: number | null
+          ivisit_fee_amount: number | null
           metadata: Json | null
-          organization_fee_rate: number | null
           organization_id: string | null
-          payment_method_id: string | null
+          payment_method: string | null
+          processed_at: string | null
+          provider_response: Json | null
           status: string | null
           stripe_payment_intent_id: string | null
-          updated_at: string | null
+          updated_at: string
           user_id: string | null
         }
         Insert: {
           amount: number
-          created_at?: string | null
+          created_at?: string
           currency?: string | null
+          display_id?: string | null
           emergency_request_id?: string | null
           id?: string
-          ivisit_deduction_amount?: number | null
+          ivisit_fee_amount?: number | null
           metadata?: Json | null
-          organization_fee_rate?: number | null
           organization_id?: string | null
-          payment_method_id?: string | null
+          payment_method?: string | null
+          processed_at?: string | null
+          provider_response?: Json | null
           status?: string | null
           stripe_payment_intent_id?: string | null
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string | null
         }
         Update: {
           amount?: number
-          created_at?: string | null
+          created_at?: string
           currency?: string | null
+          display_id?: string | null
           emergency_request_id?: string | null
           id?: string
-          ivisit_deduction_amount?: number | null
+          ivisit_fee_amount?: number | null
           metadata?: Json | null
-          organization_fee_rate?: number | null
           organization_id?: string | null
-          payment_method_id?: string | null
+          payment_method?: string | null
+          processed_at?: string | null
+          provider_response?: Json | null
           status?: string | null
           stripe_payment_intent_id?: string | null
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payments_emergency_request_id_fkey"
+            columns: ["emergency_request_id"]
+            isOneToOne: false
+            referencedRelation: "emergency_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       preferences: {
         Row: {
@@ -1811,45 +1878,36 @@ export type Database = {
       wallet_ledger: {
         Row: {
           amount: number
-          created_at: string | null
+          created_at: string
           description: string | null
+          external_reference: string | null
           id: string
           metadata: Json | null
-          organization_id: string | null
           reference_id: string | null
-          reference_type: string | null
           transaction_type: string
-          user_id: string | null
           wallet_id: string
-          wallet_type: string
         }
         Insert: {
           amount: number
-          created_at?: string | null
+          created_at?: string
           description?: string | null
+          external_reference?: string | null
           id?: string
           metadata?: Json | null
-          organization_id?: string | null
           reference_id?: string | null
-          reference_type?: string | null
           transaction_type: string
-          user_id?: string | null
           wallet_id: string
-          wallet_type: string
         }
         Update: {
           amount?: number
-          created_at?: string | null
+          created_at?: string
           description?: string | null
+          external_reference?: string | null
           id?: string
           metadata?: Json | null
-          organization_id?: string | null
           reference_id?: string | null
-          reference_type?: string | null
           transaction_type?: string
-          user_id?: string | null
           wallet_id?: string
-          wallet_type?: string
         }
         Relationships: []
       }
