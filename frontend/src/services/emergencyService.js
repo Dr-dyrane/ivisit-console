@@ -10,6 +10,23 @@ import { isValidUUID } from '../lib/utils';
 import { canonicalizeEmergencyStatus } from '../utils/emergencyStatus';
 
 const TABLE_NAME = 'emergency_requests';
+// Matrix guard contract set: explicit writable keys for RPC-backed create/update payloads.
+const EMERGENCY_REQUEST_WRITABLE_FIELDS = new Set([
+  'user_id',
+  'service_type',
+  'specialty',
+  'status',
+  'hospital_id',
+  'hospital_name',
+  'ambulance_type',
+  'bed_number',
+  'total_cost',
+  'payment_status',
+  'patient_snapshot',
+  'patient_location',
+  'pickup_location',
+  'destination_location',
+]);
 
 function parsePointInput(input) {
   if (!input) return null;
@@ -224,6 +241,9 @@ export async function createEmergencyRequest(input) {
       const payload = buildLegacyEmergencyPayload(input);
       const fallbackPayload = {
         ...payload,
+        user_id: input?.user_id ?? payload.user_id ?? null,
+        service_type: input?.service_type ?? payload.service_type ?? 'ambulance',
+        status: payload.status ?? canonicalizeEmergencyStatus(input?.status, 'in_progress'),
         latitude:
           input?.latitude ??
           input?.pickup_location?.latitude ??

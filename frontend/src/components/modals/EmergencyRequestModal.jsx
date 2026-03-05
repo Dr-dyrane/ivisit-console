@@ -47,6 +47,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
   const [users, setUsers] = useState([]);
   const [formData, setFormData] = useState({
     user_id: '',
+    service_type: 'ambulance',
     emergency_type: '',
     priority: 'medium',
     status: 'pending_approval',
@@ -72,6 +73,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
         priority: request.priority || prev.priority || 'medium',
         status: normalizeEmergencyStatus(request.status || prev.status || 'pending_approval'),
         user_id: request.user_id || prev.user_id || '',
+        service_type: request.service_type || request.emergency_type || prev.service_type || 'ambulance',
         emergency_type: request.emergency_type || prev.emergency_type || ''
       }));
     }
@@ -342,7 +344,13 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                             <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Type</Label>
                             <Select
                               value={formData.emergency_type}
-                              onValueChange={(value) => setFormData(prev => ({ ...prev, emergency_type: value }))}
+                              onValueChange={(value) =>
+                                setFormData(prev => ({
+                                  ...prev,
+                                  emergency_type: value,
+                                  service_type: value || prev.service_type || 'ambulance',
+                                }))
+                              }
                               disabled={isView}
                             >
                               <SelectTrigger className="rounded-xl bg-white/5 border-white/10">
@@ -386,6 +394,12 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                             disabled={isView}
                             placeholder="Detailed situation report..."
                             className="rounded-xl bg-white/5 border-white/10 min-h-[100px] resize-none"
+                          />
+                          <Input
+                            type="hidden"
+                            name="service_type"
+                            value={formData.service_type || ''}
+                            readOnly
                           />
                         </div>
                       </div>
