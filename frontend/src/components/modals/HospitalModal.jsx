@@ -707,8 +707,8 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                                   </div>
                                   
                                   <div className="text-xs text-muted-foreground space-y-1">
-                                    {(reservation.bed_category || reservation.bed_type) && (
-                                      <div>Bed: {reservation.bed_category || reservation.bed_type}</div>
+                                    {reservation.bed_category && (
+                                      <div>Bed: {reservation.bed_category}</div>
                                     )}
                                     {reservation.bed_number && (
                                       <div>Room: {reservation.bed_number}</div>

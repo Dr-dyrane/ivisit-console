@@ -43,12 +43,8 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
     request?.payment_status === 'pending' ||
     Boolean(paymentData)
   );
-  const etaDisplay =
-    request?.eta_display ||
-    request?.next_estimated_arrival ||
-    request?.estimated_arrival ||
-    null;
-  const bedCategory = request?.bed_category || request?.bed_type || null;
+  const etaDisplay = request?.eta_display || null;
+  const bedCategory = request?.bed_category || null;
 
   const handleApprove = async () => {
     if (!request) return;

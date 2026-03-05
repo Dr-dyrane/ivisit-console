@@ -1014,6 +1014,7 @@ export type Database = {
           action_type: string | null
           color: string | null
           created_at: string
+          display_id: string | null
           icon: string | null
           id: string
           message: string | null
@@ -1021,7 +1022,7 @@ export type Database = {
           priority: string | null
           read: boolean
           target_id: string | null
-          timestamp: string | null
+          timestamp: string
           title: string | null
           type: string | null
           updated_at: string
@@ -1032,6 +1033,7 @@ export type Database = {
           action_type?: string | null
           color?: string | null
           created_at?: string
+          display_id?: string | null
           icon?: string | null
           id?: string
           message?: string | null
@@ -1050,6 +1052,7 @@ export type Database = {
           action_type?: string | null
           color?: string | null
           created_at?: string
+          display_id?: string | null
           icon?: string | null
           id?: string
           message?: string | null
@@ -1063,7 +1066,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organization_wallets: {
         Row: {
