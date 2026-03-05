@@ -160,7 +160,7 @@ export async function getUserInsurancePolicies(userId) {
 
     if (error) throw error;
 
-    return data || [];
+    return (data || []).map(normalizeInsurancePolicy);
   } catch (error) {
     console.error(`Error fetching insurance policies for user ${userId}:`, error);
     throw error;

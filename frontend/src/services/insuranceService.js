@@ -32,6 +32,48 @@ function toNullableNumber(value) {
   return Number.isFinite(asNumber) ? asNumber : null;
 }
 
+function parseLinkedPaymentSnapshot(value) {
+  if (!value) return null;
+  if (typeof value === 'object' && !Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function normalizeLinkedPaymentValue(value) {
+  if (value === undefined) {
+    return { normalized: undefined, snapshot: undefined };
+  }
+  if (value === null || value === '') {
+    return { normalized: null, snapshot: null };
+  }
+  if (typeof value === 'string') {
+    return { normalized: value, snapshot: undefined };
+  }
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const methodId =
+      value.id ||
+      value.method_id ||
+      value.payment_method_id ||
+      value.reference_id ||
+      null;
+
+    return {
+      normalized: methodId || undefined,
+      snapshot: value,
+    };
+  }
+  return { normalized: null, snapshot: undefined };
+}
+
 function buildCoverageDetails(input = {}, existingDetails = {}) {
   const details = {
     ...parseCoverageDetails(existingDetails),
@@ -58,12 +100,33 @@ function buildCoverageDetails(input = {}, existingDetails = {}) {
     Object.assign(details, input.coverage_details);
   }
 
+  if (input.coverage_type !== undefined || input.plan_type !== undefined || input.policy_type !== undefined) {
+    const nextCoverageType = input.coverage_type ?? input.plan_type ?? input.policy_type;
+    if (nextCoverageType === null || nextCoverageType === '') {
+      delete details.coverage_type;
+    } else {
+      details.coverage_type = nextCoverageType;
+    }
+  }
+
+  if (input.linked_payment_method_snapshot !== undefined) {
+    if (input.linked_payment_method_snapshot === null || input.linked_payment_method_snapshot === '') {
+      delete details.linked_payment_method_snapshot;
+    } else {
+      details.linked_payment_method_snapshot = input.linked_payment_method_snapshot;
+    }
+  }
+
   return details;
 }
 
 export function normalizeInsurancePolicy(record) {
   if (!record) return record;
   const details = parseCoverageDetails(record.coverage_details);
+  const linkedPaymentSnapshot =
+    parseLinkedPaymentSnapshot(details.linked_payment_method_snapshot) ||
+    parseLinkedPaymentSnapshot(record.linked_payment_method);
+
   return {
     ...record,
     coverage_type: record.plan_type || details.coverage_type || '',
@@ -74,6 +137,7 @@ export function normalizeInsurancePolicy(record) {
     group_number: details.group_number || '',
     front_image_url: details.front_image_url || '',
     back_image_url: details.back_image_url || '',
+    linked_payment_method: linkedPaymentSnapshot || record.linked_payment_method || null,
     coverage_amount:
       details.coverage_amount ??
       (record.coverage_percentage !== null && record.coverage_percentage !== undefined
@@ -96,8 +160,8 @@ export function buildInsuranceWritePayload(
   assignIfDefined('provider_name', input.provider_name);
   assignIfDefined('policy_number', input.policy_number);
 
-  if (input.coverage_type !== undefined || input.plan_type !== undefined) {
-    assignIfDefined('plan_type', input.coverage_type ?? input.plan_type ?? null);
+  if (input.coverage_type !== undefined || input.plan_type !== undefined || input.policy_type !== undefined) {
+    assignIfDefined('plan_type', input.coverage_type ?? input.plan_type ?? input.policy_type ?? null);
   }
   if (input.start_date !== undefined || input.starts_at !== undefined) {
     assignIfDefined('starts_at', input.start_date ?? input.starts_at ?? null);
@@ -114,7 +178,10 @@ export function buildInsuranceWritePayload(
   if (input.is_default !== undefined) {
     assignIfDefined('is_default', !!input.is_default);
   }
-  assignIfDefined('linked_payment_method', input.linked_payment_method ?? undefined);
+
+  const { normalized: linkedPaymentMethod, snapshot: linkedPaymentSnapshot } =
+    normalizeLinkedPaymentValue(input.linked_payment_method);
+  assignIfDefined('linked_payment_method', linkedPaymentMethod);
 
   const coveragePercentage =
     input.coverage_percentage !== undefined
@@ -131,10 +198,24 @@ export function buildInsuranceWritePayload(
     input.front_image_url !== undefined ||
     input.back_image_url !== undefined ||
     input.coverage_amount !== undefined ||
-    input.coverage_details !== undefined;
+    input.coverage_details !== undefined ||
+    input.coverage_type !== undefined ||
+    input.plan_type !== undefined ||
+    input.policy_type !== undefined ||
+    linkedPaymentSnapshot !== undefined ||
+    input.linked_payment_method_snapshot !== undefined;
 
   if (hasLegacyCoverageInput) {
-    payload.coverage_details = buildCoverageDetails(input, existingCoverageDetails);
+    payload.coverage_details = buildCoverageDetails(
+      {
+        ...input,
+        linked_payment_method_snapshot:
+          input.linked_payment_method_snapshot !== undefined
+            ? input.linked_payment_method_snapshot
+            : linkedPaymentSnapshot,
+      },
+      existingCoverageDetails
+    );
   }
 
   if (forInsert) {

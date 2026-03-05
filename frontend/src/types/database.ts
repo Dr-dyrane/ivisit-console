@@ -82,77 +82,61 @@ export type Database = {
         Row: {
           base_price: number | null
           call_sign: string | null
-          created_at: string | null
-          crew: string[] | null
-          currency: string | null
-          current_call: Json | null
-          driver_id: string | null
+          created_at: string
+          crew: Json | null
+          current_call: string | null
+          display_id: string | null
           eta: string | null
-          hospital: string | null
           hospital_id: string | null
           id: string
-          last_maintenance: string | null
+          license_plate: string | null
           location: unknown
           organization_id: string | null
           profile_id: string | null
-          rating: number | null
           status: string | null
           type: string | null
-          updated_at: string | null
+          updated_at: string
           vehicle_number: string | null
         }
         Insert: {
           base_price?: number | null
           call_sign?: string | null
-          created_at?: string | null
-          crew?: string[] | null
-          currency?: string | null
-          current_call?: Json | null
-          driver_id?: string | null
+          created_at?: string
+          crew?: Json | null
+          current_call?: string | null
+          display_id?: string | null
           eta?: string | null
-          hospital?: string | null
           hospital_id?: string | null
-          id: string
-          last_maintenance?: string | null
+          id?: string
+          license_plate?: string | null
           location?: unknown
           organization_id?: string | null
           profile_id?: string | null
-          rating?: number | null
           status?: string | null
           type?: string | null
-          updated_at?: string | null
+          updated_at?: string
           vehicle_number?: string | null
         }
         Update: {
           base_price?: number | null
           call_sign?: string | null
-          created_at?: string | null
-          crew?: string[] | null
-          currency?: string | null
-          current_call?: Json | null
-          driver_id?: string | null
+          created_at?: string
+          crew?: Json | null
+          current_call?: string | null
+          display_id?: string | null
           eta?: string | null
-          hospital?: string | null
           hospital_id?: string | null
           id?: string
-          last_maintenance?: string | null
+          license_plate?: string | null
           location?: unknown
           organization_id?: string | null
           profile_id?: string | null
-          rating?: number | null
           status?: string | null
           type?: string | null
-          updated_at?: string | null
+          updated_at?: string
           vehicle_number?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ambulances_hospital_id_fkey"
-            columns: ["hospital_id"]
-            isOneToOne: false
-            referencedRelation: "available_hospitals"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "ambulances_hospital_id_fkey"
             columns: ["hospital_id"]
@@ -165,6 +149,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ambulances_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -453,6 +444,66 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emergency_status_transitions: {
+        Row: {
+          actor_role: string | null
+          actor_user_id: string | null
+          created_at: string
+          emergency_request_id: string
+          from_status: string | null
+          id: string
+          occurred_at: string
+          reason: string
+          request_snapshot: Json
+          source: string
+          to_status: string
+          transition_metadata: Json
+        }
+        Insert: {
+          actor_role?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          emergency_request_id: string
+          from_status?: string | null
+          id?: string
+          occurred_at?: string
+          reason?: string
+          request_snapshot?: Json
+          source?: string
+          to_status: string
+          transition_metadata?: Json
+        }
+        Update: {
+          actor_role?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          emergency_request_id?: string
+          from_status?: string | null
+          id?: string
+          occurred_at?: string
+          reason?: string
+          request_snapshot?: Json
+          source?: string
+          to_status?: string
+          transition_metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergency_status_transitions_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergency_status_transitions_emergency_request_id_fkey"
+            columns: ["emergency_request_id"]
+            isOneToOne: false
+            referencedRelation: "emergency_requests"
             referencedColumns: ["id"]
           },
         ]
@@ -756,74 +807,150 @@ export type Database = {
         }
         Relationships: []
       }
+      insurance_billing: {
+        Row: {
+          billing_date: string | null
+          claim_number: string | null
+          coverage_percentage: number | null
+          created_at: string
+          emergency_request_id: string | null
+          hospital_id: string | null
+          id: string
+          insurance_amount: number
+          insurance_policy_id: string | null
+          paid_date: string | null
+          status: string | null
+          total_amount: number
+          updated_at: string
+          user_amount: number
+          user_id: string | null
+        }
+        Insert: {
+          billing_date?: string | null
+          claim_number?: string | null
+          coverage_percentage?: number | null
+          created_at?: string
+          emergency_request_id?: string | null
+          hospital_id?: string | null
+          id?: string
+          insurance_amount: number
+          insurance_policy_id?: string | null
+          paid_date?: string | null
+          status?: string | null
+          total_amount: number
+          updated_at?: string
+          user_amount: number
+          user_id?: string | null
+        }
+        Update: {
+          billing_date?: string | null
+          claim_number?: string | null
+          coverage_percentage?: number | null
+          created_at?: string
+          emergency_request_id?: string | null
+          hospital_id?: string | null
+          id?: string
+          insurance_amount?: number
+          insurance_policy_id?: string | null
+          paid_date?: string | null
+          status?: string | null
+          total_amount?: number
+          updated_at?: string
+          user_amount?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_billing_emergency_request_id_fkey"
+            columns: ["emergency_request_id"]
+            isOneToOne: false
+            referencedRelation: "emergency_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_billing_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_billing_insurance_policy_id_fkey"
+            columns: ["insurance_policy_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_billing_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       insurance_policies: {
         Row: {
-          back_image_url: string | null
           coverage_details: Json | null
-          coverage_type: string | null
+          coverage_percentage: number | null
           created_at: string
-          end_date: string | null
           expires_at: string | null
-          front_image_url: string | null
-          group_number: string | null
           id: string
           is_default: boolean | null
-          linked_payment_method: Json | null
+          linked_payment_method: string | null
           plan_type: string | null
-          policy_holder_name: string | null
           policy_number: string | null
           provider_name: string
-          start_date: string | null
           starts_at: string | null
+          status: string | null
           updated_at: string
           user_id: string
           verified: boolean | null
         }
         Insert: {
-          back_image_url?: string | null
           coverage_details?: Json | null
-          coverage_type?: string | null
+          coverage_percentage?: number | null
           created_at?: string
-          end_date?: string | null
           expires_at?: string | null
-          front_image_url?: string | null
-          group_number?: string | null
           id?: string
           is_default?: boolean | null
-          linked_payment_method?: Json | null
+          linked_payment_method?: string | null
           plan_type?: string | null
-          policy_holder_name?: string | null
           policy_number?: string | null
           provider_name: string
-          start_date?: string | null
           starts_at?: string | null
+          status?: string | null
           updated_at?: string
           user_id: string
           verified?: boolean | null
         }
         Update: {
-          back_image_url?: string | null
           coverage_details?: Json | null
-          coverage_type?: string | null
+          coverage_percentage?: number | null
           created_at?: string
-          end_date?: string | null
           expires_at?: string | null
-          front_image_url?: string | null
-          group_number?: string | null
           id?: string
           is_default?: boolean | null
-          linked_payment_method?: Json | null
+          linked_payment_method?: string | null
           plan_type?: string | null
-          policy_holder_name?: string | null
           policy_number?: string | null
           provider_name?: string
-          start_date?: string | null
           starts_at?: string | null
+          status?: string | null
           updated_at?: string
           user_id?: string
           verified?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "insurance_policies_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ivisit_main_wallet: {
         Row: {
