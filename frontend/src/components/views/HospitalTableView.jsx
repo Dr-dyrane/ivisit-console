@@ -40,6 +40,7 @@ export const HospitalTableView = ({
         return 'bg-red-500/20 text-red-500 border-red-500/30';
       case 'pending':
         return 'bg-blue-500/20 text-blue-500 border-blue-500/30';
+      case 'closed':
       case 'inactive':
         return 'bg-gray-500/20 text-gray-500 border-gray-500/30';
       default:
@@ -114,10 +115,10 @@ export const HospitalTableView = ({
                   </TableCell>
                 )}
                 <TableCell className="w-[60px]">
-                  {hospital.image || hospital.google_photos?.[0] ? (
+                  {hospital.image ? (
                     <div className="relative h-10 w-10 rounded-lg overflow-hidden bg-black/20">
                       <img
-                        src={hospital.image || hospital.google_photos?.[0]}
+                        src={hospital.image}
                         alt={hospital.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {

@@ -633,10 +633,10 @@ export const HospitalsPage = () => {
                       <div className="hover-glow hover-glow-primary" />
 
                       {/* Hospital Image */}
-                      {hospital.image || hospital.google_photos?.[0] ? (
+                      {hospital.image ? (
                         <div className="relative h-48 w-full mb-4 rounded-xl overflow-hidden bg-black/20">
                           <img
-                            src={hospital.image || hospital.google_photos?.[0]}
+                            src={hospital.image}
                             alt={hospital.name}
                             className="w-full h-full object-cover"
                             onError={(e) => {

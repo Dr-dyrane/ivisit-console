@@ -9,6 +9,103 @@ import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'hospitals';
 
+const toTrimmedOrNull = (value) => {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  return text.length > 0 ? text : null;
+};
+
+const toFiniteOrNull = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+};
+
+const toNonNegativeIntOrNull = (value) => {
+  const numberValue = toFiniteOrNull(value);
+  if (numberValue === null) return null;
+  return Math.max(0, Math.round(numberValue));
+};
+
+const toTextArray = (value) => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => String(entry || '').trim())
+    .filter(Boolean);
+};
+
+function buildHospitalPayload(input = {}, { isCreate = false } = {}) {
+  const payload = {};
+  const hasOwn = (key) => Object.prototype.hasOwnProperty.call(input, key);
+
+  const name = toTrimmedOrNull(input.name);
+  const address = toTrimmedOrNull(input.address);
+  if (isCreate) {
+    payload.name = name || 'Unnamed Facility';
+    payload.address = address || 'Address unavailable';
+  } else {
+    if (name !== null) payload.name = name;
+    if (address !== null) payload.address = address;
+  }
+
+  const phone = toTrimmedOrNull(input.phone);
+  if (phone !== null || isCreate) payload.phone = phone;
+
+  const rating = toFiniteOrNull(input.rating);
+  if (rating !== null || isCreate) payload.rating = rating ?? 0;
+
+  const type = toTrimmedOrNull(input.type);
+  if (type !== null || isCreate) payload.type = type ?? 'standard';
+
+  const image = toTrimmedOrNull(input.image);
+  if (image !== null || isCreate) payload.image = image;
+
+  if (isCreate || hasOwn('specialties')) payload.specialties = toTextArray(input.specialties);
+  if (isCreate || hasOwn('service_types')) payload.service_types = toTextArray(input.service_types);
+  if (isCreate || hasOwn('features')) payload.features = toTextArray(input.features);
+
+  const emergencyLevel = toTrimmedOrNull(input.emergency_level);
+  if (emergencyLevel !== null || isCreate) payload.emergency_level = emergencyLevel;
+
+  const availableBeds = toNonNegativeIntOrNull(input.available_beds);
+  if (availableBeds !== null || isCreate) payload.available_beds = availableBeds ?? 0;
+
+  const totalBeds = toNonNegativeIntOrNull(input.total_beds);
+  if (totalBeds !== null || isCreate) payload.total_beds = totalBeds ?? 0;
+
+  const ambulancesCount = toNonNegativeIntOrNull(input.ambulances_count);
+  if (ambulancesCount !== null || isCreate) payload.ambulances_count = ambulancesCount ?? 0;
+
+  const waitTime = toTrimmedOrNull(input.wait_time);
+  if (waitTime !== null || isCreate) payload.wait_time = waitTime;
+
+  const priceRange = toTrimmedOrNull(input.price_range);
+  if (priceRange !== null || isCreate) payload.price_range = priceRange;
+
+  const latitude = toFiniteOrNull(input.latitude);
+  const longitude = toFiniteOrNull(input.longitude);
+  if (latitude !== null || isCreate) payload.latitude = latitude;
+  if (longitude !== null || isCreate) payload.longitude = longitude;
+
+  const verified = typeof input.verified === 'boolean' ? input.verified : null;
+  if (verified !== null || isCreate) payload.verified = verified ?? false;
+
+  const verificationStatus = toTrimmedOrNull(input.verification_status);
+  if (verificationStatus !== null || isCreate) payload.verification_status = verificationStatus ?? 'pending';
+
+  const status = toTrimmedOrNull(input.status);
+  if (status !== null || isCreate) payload.status = status ?? 'available';
+
+  const placeId = toTrimmedOrNull(input.place_id);
+  if (placeId !== null || isCreate) payload.place_id = placeId;
+
+  const nowIso = new Date().toISOString();
+  payload.updated_at = nowIso;
+  if (isCreate) payload.created_at = nowIso;
+
+  return payload;
+}
+
 /**
  * Get all hospitals with optional filters
  * Admin users can see all hospitals, org admins see only their hospital, others see verified ones
@@ -99,29 +196,7 @@ export async function getHospital(hospitalId) {
  */
 export async function createHospital(input) {
   try {
-    const payload = {
-      name: input.name,
-      address: input.address,
-      phone: input.phone,
-      rating: input.rating,
-      type: input.type || 'standard',
-      image: input.image,
-      specialties: input.specialties,
-      service_types: input.service_types,
-      features: input.features,
-      emergency_level: input.emergency_level,
-      available_beds: input.available_beds,
-      ambulances_count: input.ambulances_count,
-      wait_time: input.wait_time,
-      price_range: input.price_range,
-      latitude: input.latitude,
-      longitude: input.longitude,
-      verified: input.verified || false,
-      verification_status: input.verification_status || 'pending', // NEW
-      status: input.status || 'available',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const payload = buildHospitalPayload(input, { isCreate: true });
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -143,11 +218,12 @@ export async function createHospital(input) {
  */
 export async function updateHospital(hospitalId, input) {
   try {
+    const payload = buildHospitalPayload(input, { isCreate: false });
     // We use a SECURITY DEFINER RPC to bypass RLS issues and handle 
     // column stripping (total_beds, etc.) on the server side.
     const { data, error } = await supabase.rpc('update_hospital_by_admin', {
       target_hospital_id: hospitalId,
-      payload: input
+      payload: payload
     });
 
     if (error) throw error;

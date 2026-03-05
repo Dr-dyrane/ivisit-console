@@ -15,6 +15,7 @@ export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, onSchedu
         return 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30';
       case 'pending':
         return 'bg-blue-500/20 text-blue-500 border-blue-500/30';
+      case 'closed':
       case 'inactive':
         return 'bg-red-500/20 text-red-500 border-red-500/30';
       default:
@@ -38,10 +39,10 @@ export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, onSchedu
             <div className="flex items-center gap-4 justify-between">
               {/* Hospital Image */}
               <div className="flex-shrink-0">
-                {hospital.image || hospital.google_photos?.[0] ? (
+                {hospital.image ? (
                   <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-black/20">
                     <img
-                      src={hospital.image || hospital.google_photos?.[0]}
+                      src={hospital.image}
                       alt={hospital.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {

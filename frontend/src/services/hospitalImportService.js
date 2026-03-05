@@ -39,7 +39,9 @@ class HospitalImportService {
       });
 
       // Filter for newly imported hospitals (Google-only or pending)
-      const newlyImported = hospitals.filter(h => h.google_only || h.import_status === 'pending');
+      const newlyImported = hospitals.filter(
+        (h) => h.google_only || h.verification_status === 'pending' || h.verified !== true
+      );
 
       return {
         success: true,
@@ -91,7 +93,7 @@ class HospitalImportService {
       const { data, error } = await supabase
         .from('hospitals')
         .select('*')
-        .eq('import_status', 'pending')
+        .eq('verification_status', 'pending')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -110,8 +112,8 @@ class HospitalImportService {
         .select('*');
 
       // Apply filters
-      if (filters.import_status) {
-        query = query.eq('import_status', filters.import_status);
+      if (filters.import_status || filters.verification_status) {
+        query = query.eq('verification_status', filters.verification_status || filters.import_status);
       }
       if (filters.org_admin_id) {
         query = query.eq('org_admin_id', filters.org_admin_id);
@@ -139,7 +141,7 @@ class HospitalImportService {
       const { data, error } = await supabase
         .from('hospitals')
         .update({
-          import_status: 'verified',
+          verification_status: 'verified',
           verified: true,
           status: 'available'
         })
@@ -161,9 +163,9 @@ class HospitalImportService {
       const { data, error } = await supabase
         .from('hospitals')
         .update({
-          import_status: 'rejected',
+          verification_status: 'rejected',
           verified: false,
-          status: 'inactive'
+          status: 'closed'
         })
         .eq('id', hospitalId)
         .select()
@@ -222,7 +224,7 @@ class HospitalImportService {
         .from('hospitals')
         .select('*')
         .eq('org_admin_id', orgAdminId)
-        .eq('import_status', 'verified')
+        .eq('verification_status', 'verified')
         .order('name');
 
       if (error) throw error;
@@ -279,18 +281,18 @@ class HospitalImportService {
     try {
       const { data, error } = await supabase
         .from('hospitals')
-        .select('import_status, verified, status, org_admin_id');
+        .select('verification_status, verified, status, org_admin_id');
 
       if (error) throw error;
 
       const stats = {
         total: data.length,
-        pending: data.filter(h => h.import_status === 'pending').length,
-        verified: data.filter(h => h.import_status === 'verified').length,
-        rejected: data.filter(h => h.import_status === 'rejected').length,
+        pending: data.filter(h => h.verification_status === 'pending').length,
+        verified: data.filter(h => h.verification_status === 'verified').length,
+        rejected: data.filter(h => h.verification_status === 'rejected').length,
         assigned: data.filter(h => h.org_admin_id).length,
         active: data.filter(h => h.status === 'available').length,
-        inactive: data.filter(h => h.status === 'inactive').length
+        inactive: data.filter(h => h.status === 'closed').length
       };
 
       return stats;

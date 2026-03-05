@@ -18,33 +18,71 @@ import hospitalImportService from '../../services/hospitalImportService';
 import { useEffect, useRef } from 'react';
 import { bedManagementService } from '../../services/bedManagementService';
 
+const DEFAULT_HOSPITAL_FORM = {
+  name: '',
+  address: '',
+  phone: '',
+  rating: 4.5,
+  type: 'premium',
+  image: '',
+  specialties: [],
+  service_types: [],
+  features: [],
+  emergency_level: 'Level 1',
+  available_beds: 0,
+  total_beds: 0,
+  ambulances_count: 0,
+  wait_time: '',
+  price_range: '',
+  latitude: null,
+  longitude: null,
+  place_id: null,
+  verified: false,
+  verification_status: 'pending',
+  status: 'available'
+};
+
+const toTextArray = (value) => {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item || '').trim()).filter(Boolean);
+};
+
+const toNumberOrNull = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const toIntOrZero = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.max(0, Math.round(parsed));
+};
+
+const buildInitialFormData = (hospital) => {
+  if (!hospital) return { ...DEFAULT_HOSPITAL_FORM };
+  return {
+    ...DEFAULT_HOSPITAL_FORM,
+    ...hospital,
+    specialties: toTextArray(hospital.specialties),
+    service_types: toTextArray(hospital.service_types),
+    features: toTextArray(hospital.features),
+    rating: Number.isFinite(Number(hospital.rating)) ? Number(hospital.rating) : DEFAULT_HOSPITAL_FORM.rating,
+    available_beds: toIntOrZero(hospital.available_beds),
+    total_beds: toIntOrZero(hospital.total_beds),
+    ambulances_count: toIntOrZero(hospital.ambulances_count),
+    latitude: toNumberOrNull(hospital.latitude),
+    longitude: toNumberOrNull(hospital.longitude),
+    place_id: hospital.place_id || null,
+  };
+};
+
 export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
   const isCreate = mode === 'create';
 
-  const [formData, setFormData] = useState(hospital || {
-    name: '',
-    address: '',
-    phone: '',
-    rating: 4.5,
-    type: 'premium',
-    image: '',
-    specialties: [],
-    service_types: [],
-    features: [],
-    emergency_level: 'Level 1',
-    available_beds: 0,
-    total_beds: 0,
-    reserved_beds: 0,
-    ambulances_count: 0,
-    wait_time: '',
-    price_range: '',
-    latitude: null,
-    longitude: null,
-    verified: false,
-    status: 'available'
-  });
+  const [formData, setFormData] = useState(() => buildInitialFormData(hospital));
 
   const [activeReservations, setActiveReservations] = useState([]);
   const [bedUtilization, setBedUtilization] = useState(null);
@@ -58,6 +96,19 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   const [searchLoading, setSearchLoading] = useState(false);
   const searchTimeoutRef = useRef(null);
   const searchContainerRef = useRef(null);
+
+  useEffect(() => {
+    setFormData(buildInitialFormData(hospital));
+  }, [hospital, mode, isOpen]);
+
+  const totalBeds = toIntOrZero(formData.total_beds);
+  const availableBeds = toIntOrZero(formData.available_beds);
+  const reservedBedsDisplay = isView && bedUtilization
+    ? toIntOrZero(bedUtilization.reserved_beds)
+    : Math.max(0, totalBeds - availableBeds);
+  const bedUtilizationPercent = totalBeds > 0
+    ? Math.min(Math.round(((totalBeds - availableBeds) / totalBeds) * 100), 100)
+    : 0;
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -215,12 +266,10 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
       phone: hospital.phone,
       rating: hospital.rating || 4.0,
       type: hospital.types?.includes('hospital') ? 'premium' : 'standard',
-      website: hospital.website,
       latitude: hospital.geometry?.location?.lat || 0,
       longitude: hospital.geometry?.location?.lng || 0,
       place_id: hospital.place_id,
-      imported_from_google: true,
-      import_status: 'pending'
+      verification_status: 'pending'
     }));
     setShowSearchResults(false);
     setSearchResults([]);
@@ -229,9 +278,22 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const numericFields = new Set([
+      'rating',
+      'available_beds',
+      'total_beds',
+      'ambulances_count',
+      'latitude',
+      'longitude'
+    ]);
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]:
+        type === 'checkbox'
+          ? checked
+          : numericFields.has(name)
+            ? (value === '' ? 0 : Number(value))
+            : value
     }));
   };
 
@@ -510,10 +572,8 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         <Bed className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500" />
                         <Input
                           type="number"
-                          name="reserved_beds"
-                          value={formData.reserved_beds || 0}
-                          onChange={handleChange}
-                          disabled={isView}
+                          value={reservedBedsDisplay}
+                          disabled
                           className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
                         />
                       </div>
@@ -540,18 +600,18 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-semibold text-muted-foreground uppercase">Bed Utilization</span>
                         <span className="text-xs font-bold">
-                          {Math.round(((formData.total_beds - formData.available_beds) / formData.total_beds) * 100)}%
+                          {bedUtilizationPercent}%
                         </span>
                       </div>
                       <div className="w-full bg-white/10 rounded-full h-2">
                         <div 
                           className="h-2 rounded-full bg-gradient-to-r from-green-500 via-orange-500 to-red-500"
-                          style={{ width: `${Math.min(((formData.total_beds - formData.available_beds) / formData.total_beds) * 100, 100)}%` }}
+                          style={{ width: `${bedUtilizationPercent}%` }}
                         />
                       </div>
                       <div className="flex justify-between mt-1 text-[10px] text-muted-foreground">
-                        <span>{formData.total_beds - formData.available_beds} occupied</span>
-                        <span>{formData.available_beds} available</span>
+                        <span>{reservedBedsDisplay} occupied</span>
+                        <span>{availableBeds} available</span>
                       </div>
                     </div>
                   )}
