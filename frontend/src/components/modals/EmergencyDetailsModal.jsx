@@ -117,7 +117,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
     }
   }, [request, isOpen, isApprovalPending]);
 
-  const fetchPaymentData = async (requestId) => {
+  const fetchPaymentData = React.useCallback(async (requestId) => {
     try {
       const { data, error } = await supabase
         .from('payments')
@@ -157,9 +157,9 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
     } catch (e) {
       console.error('Error fetching payment data:', e);
     }
-  };
+  }, []);
 
-  const fetchVisitOutcome = async (id) => {
+  const fetchVisitOutcome = React.useCallback(async (id) => {
     // console.log('🔍 EmergencyDetailsModal - Fetching visit outcome for ID:', id);
     setLoadingOutcome(true);
     try {
@@ -177,7 +177,38 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
     } finally {
       setLoadingOutcome(false);
     }
-  };
+  }, []);
+
+  React.useEffect(() => {
+    if (!isOpen || !request?.id) return undefined;
+    const requestId = request.id;
+    const channel = supabase
+      .channel(`emergency_details_${requestId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'payments', filter: `emergency_request_id=eq.${requestId}` },
+        () => {
+          fetchPaymentData(requestId);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'emergency_requests', filter: `id=eq.${requestId}` },
+        (payload) => {
+          const nextStatus = canonicalizeEmergencyStatus(payload?.new?.status, payload?.new?.status);
+          if (nextStatus === 'completed' || nextStatus === 'cancelled') {
+            fetchVisitOutcome(requestId);
+            return;
+          }
+          fetchPaymentData(requestId);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isOpen, request?.id, fetchPaymentData, fetchVisitOutcome]);
 
   if (!request) return null;
 
@@ -616,3 +647,4 @@ const GlassCard = ({ children, title, icon, className }) => (
     {children}
   </div>
 );
+

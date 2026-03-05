@@ -199,6 +199,10 @@ export const EmergencyRequestsPage = () => {
         normalizeEmergencyRequestRow(row, paymentByRequestId.get(row.id))
       );
       setRequests(normalizedRows);
+      setSelectedRequest((prev) => {
+        if (!prev?.id) return prev;
+        return normalizedRows.find((row) => row.id === prev.id) || prev;
+      });
     } catch (error) {
       console.error('Error fetching emergency requests:', error);
       toast.error(error.message || 'Failed to load emergency requests');
@@ -214,6 +218,7 @@ export const EmergencyRequestsPage = () => {
     const channel = supabase
       .channel('emergency_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_requests' }, fetchRequests)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, fetchRequests)
       .subscribe();
 
     return () => supabase.removeChannel(channel);
