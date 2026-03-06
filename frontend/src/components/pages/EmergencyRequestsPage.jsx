@@ -12,7 +12,12 @@ import {
 } from '../../constants/emergency';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
-import { cancelEmergencyRequest, getEmergencyRequests } from '../../services/emergencyService';
+import {
+  cancelEmergencyRequest,
+  getEmergencyRequests,
+  getUserActivePaymentMethods,
+  retryPaymentWithDifferentMethod,
+} from '../../services/emergencyService';
 import { dispatchEmergency, completeEmergency } from '../../services/emergencyResponseService';
 import { getCurrentUser, applyAuthFilter } from '../../services/authService';
 import * as walletService from '../../services/walletService';
@@ -499,6 +504,82 @@ export const EmergencyRequestsPage = () => {
     }
   }, [fetchRequests, orgId]);
 
+  const handleRetryPayment = useCallback(async (request, preferredPaymentMethodId = null) => {
+    const actionState = getEmergencyActionState(request);
+    if (!actionState.canRetryPayment) {
+      toast.info('This request is not eligible for payment retry. Refreshing list...');
+      await fetchRequests();
+      return false;
+    }
+
+    const requestId = request?.id;
+    const userId = request?.user_id;
+    if (!requestId || !userId) {
+      toast.error('Missing request or patient identifier for retry');
+      return false;
+    }
+
+    const formatMethodLabel = (method, index) => {
+      const brand = String(method?.brand || method?.provider || method?.type || 'Card').toUpperCase();
+      const last4 = method?.last4 ? ` •••• ${method.last4}` : '';
+      const exp =
+        Number.isFinite(Number(method?.expiry_month)) && Number.isFinite(Number(method?.expiry_year))
+          ? ` • exp ${String(method.expiry_month).padStart(2, '0')}/${method.expiry_year}`
+          : '';
+      const defaultTag = method?.is_default ? ' (default)' : '';
+      return `${index + 1}. ${brand}${last4}${exp}${defaultTag}`;
+    };
+
+    try {
+      toast.loading('Preparing payment retry...', { id: 'retry-pay' });
+
+      let selectedMethodId = preferredPaymentMethodId;
+      if (!selectedMethodId) {
+        const methods = await getUserActivePaymentMethods(userId);
+        if (!Array.isArray(methods) || methods.length === 0) {
+          throw new Error('No active payment methods found for this patient');
+        }
+
+        if (methods.length === 1) {
+          selectedMethodId = methods[0].id;
+        } else {
+          const defaultIndex = Math.max(0, methods.findIndex((m) => m.is_default));
+          const options = methods.map((m, i) => formatMethodLabel(m, i)).join('\n');
+          const selection = window.prompt(
+            `Select payment method for retry:\n\n${options}\n\nEnter number (default ${defaultIndex + 1}) or method ID:`,
+            String(defaultIndex + 1)
+          );
+
+          if (selection === null) {
+            toast.dismiss('retry-pay');
+            return false;
+          }
+
+          const token = String(selection || '').trim();
+          const indexNum = Number.parseInt(token, 10);
+          const selectedMethod =
+            Number.isFinite(indexNum) && indexNum >= 1 && indexNum <= methods.length
+              ? methods[indexNum - 1]
+              : methods.find((m) => m.id === token);
+
+          if (!selectedMethod?.id) {
+            throw new Error('Invalid payment method selection');
+          }
+          selectedMethodId = selectedMethod.id;
+        }
+      }
+
+      await retryPaymentWithDifferentMethod(requestId, selectedMethodId, userId);
+      toast.success('Payment retry created. Ask patient to complete payment.', { id: 'retry-pay' });
+      await fetchRequests();
+      return true;
+    } catch (error) {
+      console.error('Payment retry failed:', error);
+      toast.error(error.message || 'Failed to retry payment', { id: 'retry-pay' });
+      return false;
+    }
+  }, [fetchRequests]);
+
   // Handle custom events from context panel
   useEffect(() => {
     const handleOpenModal = () => {
@@ -547,6 +628,7 @@ export const EmergencyRequestsPage = () => {
               }
             }}
             request={selectedRequest}
+            onRetryPayment={handleRetryPayment}
           />
 
           <EmergencyRequestModal
@@ -1011,6 +1093,17 @@ export const EmergencyRequestsPage = () => {
                                       </svg>
                                     </Button>
                                   )}
+                                  {actionState.canRetryPayment && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleRetryPayment(req)}
+                                      className="geo-round h-8 w-8 p-0 hover:bg-warning/10 hover:text-warning transition-colors"
+                                      title="Retry Payment"
+                                    >
+                                      <RefreshCw className="h-4 w-4" />
+                                    </Button>
+                                  )}
                                 </>
                               )}
 
@@ -1060,6 +1153,7 @@ export const EmergencyRequestsPage = () => {
               onDispatch={handleDispatch}
               onComplete={handleComplete}
               onProcessCash={handleProcessCash}
+              onRetryPayment={handleRetryPayment}
               isMobile={isMobile}
               selectedIds={selectedIds}
               onSelect={handleSelect}
@@ -1076,6 +1170,7 @@ export const EmergencyRequestsPage = () => {
               onDispatch={handleDispatch}
               onComplete={handleComplete}
               onProcessCash={handleProcessCash}
+              onRetryPayment={handleRetryPayment}
               isMobile={isMobile}
               selectedIds={selectedIds}
               onSelect={handleSelect}
@@ -1112,6 +1207,7 @@ export const EmergencyRequestsPage = () => {
           }
         }}
         request={selectedRequest}
+        onRetryPayment={handleRetryPayment}
       />
 
       {/* Emergency Request Modal */}

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Trash2, Eye, Send, CheckCheck, ArrowUpDown, ChevronUp, ChevronDown, Stethoscope, Clock } from 'lucide-react';
+import { Trash2, Eye, Send, CheckCheck, ArrowUpDown, ChevronUp, ChevronDown, Stethoscope, Clock, RefreshCw } from 'lucide-react';
 import { Card } from '../ui/card';
 import { motion } from 'framer-motion';
 import { Checkbox } from '../ui/checkbox';
@@ -31,6 +31,7 @@ export const EmergencyRequestTableView = ({
   onDispatch,
   onComplete,
   onProcessCash,
+  onRetryPayment,
   isMobile = false,
   selectedIds = [],
   onSelect,
@@ -244,6 +245,16 @@ export const EmergencyRequestTableView = ({
                               <path d="m16.71 13.88.7.71-2.82 2.82" />
                             </svg>
                             Process Cash
+                          </DropdownMenuItem>
+                        )}
+
+                        {canManage && actionState.canRetryPayment && (
+                          <DropdownMenuItem
+                            onClick={() => onRetryPayment?.(req)}
+                            className="cursor-pointer font-medium text-xs py-2 text-warning focus:text-warning focus:bg-warning/10"
+                          >
+                            <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                            Retry Payment
                           </DropdownMenuItem>
                         )}
 

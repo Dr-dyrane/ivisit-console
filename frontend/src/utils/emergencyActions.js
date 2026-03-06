@@ -24,6 +24,7 @@ export function getEmergencyActionState(request) {
     status === 'completed' &&
     CASH_METHODS.has(paymentMethod) &&
     paymentStatus !== 'completed';
+  const canRetryPayment = status === 'payment_declined' && Boolean(request?.user_id);
   const showClinicalRecord = status === 'completed' || status === 'cancelled';
 
   return {
@@ -34,6 +35,7 @@ export function getEmergencyActionState(request) {
     canDispatch,
     canComplete,
     canProcessCash,
+    canRetryPayment,
     showClinicalRecord,
   };
 }

@@ -581,6 +581,57 @@ export async function updateResponderLocation(requestId, location, heading) {
 }
 
 /**
+ * List active payment methods available for a user.
+ * Used by console operators when retrying declined payments.
+ */
+export async function getUserActivePaymentMethods(userId) {
+  try {
+    if (!isValidUUID(userId)) return [];
+
+    const { data, error } = await supabase
+      .from('payment_methods')
+      .select(
+        'id,type,provider,brand,last4,expiry_month,expiry_year,is_default,is_active,created_at'
+      )
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error(`Error loading payment methods for user ${userId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Retry a declined emergency payment with a different payment method.
+ */
+export async function retryPaymentWithDifferentMethod(requestId, paymentMethodId, userId) {
+  try {
+    if (!isValidUUID(requestId) || !isValidUUID(paymentMethodId) || !isValidUUID(userId)) {
+      throw new Error('Missing valid request, payment method, or user identifier');
+    }
+
+    const { data, error } = await supabase.rpc('retry_payment_with_different_method', {
+      p_emergency_request_id: requestId,
+      p_new_payment_method_id: paymentMethodId,
+      p_user_id: userId,
+    });
+
+    if (error) throw error;
+    if (!data?.success) throw new Error(data?.error || 'Payment retry failed');
+
+    return data;
+  } catch (error) {
+    console.error(`Error retrying payment for request ${requestId}:`, error);
+    throw error;
+  }
+}
+
+/**
  * Update patient location and heading
  */
 export async function updatePatientLocation(requestId, location, heading) {

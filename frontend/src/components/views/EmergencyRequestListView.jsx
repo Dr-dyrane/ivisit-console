@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Trash2, Eye, MapPin, Clock, CheckCheck, Send, Navigation, User, Hospital, Stethoscope } from 'lucide-react';
+import { Trash2, Eye, MapPin, Clock, CheckCheck, Send, Navigation, User, Hospital, Stethoscope, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Checkbox } from '../ui/checkbox';
 import { validateDataSchema } from '../../utils/schemaValidator';
@@ -20,6 +20,7 @@ export const EmergencyRequestListView = ({
   onDispatch,
   onComplete,
   onProcessCash,
+  onRetryPayment,
   isMobile = false,
   selectedIds = [],
   onSelect,
@@ -203,6 +204,18 @@ export const EmergencyRequestListView = ({
                       <path d="M7 6h1v4" />
                       <path d="m16.71 13.88.7.71-2.82 2.82" />
                     </svg>
+                  </Button>
+                )}
+
+                {canManage && actionState.canRetryPayment && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onRetryPayment?.(req)}
+                    className="squircle h-8 w-8 p-0 hover:bg-warning/10 hover:text-warning"
+                    title="Retry Payment"
+                  >
+                    <RefreshCw className="h-4 w-4" />
                   </Button>
                 )}
 

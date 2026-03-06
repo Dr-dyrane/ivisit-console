@@ -181,7 +181,13 @@ export const VisitsPage = () => {
 
       if (visitsData && visitsData.length > 0) {
         const userIds = [...new Set(visitsData.map(v => v.user_id).filter(Boolean))];
-        const requestIds = [...new Set(visitsData.map(v => v.request_id).filter(Boolean))];
+        const emergencyLookupIds = [
+          ...new Set(
+            visitsData
+              .map((v) => v.request_id || v.id)
+              .filter(Boolean)
+          )
+        ];
         const directHospitalIds = [...new Set(visitsData.map(v => v.hospital_id).filter(Boolean))];
 
         const [{ data: profiles }, { data: emergencyRows }] = await Promise.all([
@@ -191,11 +197,11 @@ export const VisitsPage = () => {
                 .select('id, username, email')
                 .in('id', userIds)
             : Promise.resolve({ data: [] }),
-          requestIds.length > 0
+          emergencyLookupIds.length > 0
             ? supabase
                 .from('emergency_requests')
                 .select('id, hospital_id, hospital_name, status, service_type, assigned_doctor_id')
-                .in('id', requestIds)
+                .in('id', emergencyLookupIds)
             : Promise.resolve({ data: [] })
         ]);
 
@@ -242,7 +248,10 @@ export const VisitsPage = () => {
         };
 
         visitsData = visitsData.map((visit) => {
-          const emergency = visit.request_id ? emergencyByRequest[visit.request_id] : null;
+          const emergency =
+            (visit.request_id ? emergencyByRequest[visit.request_id] : null) ||
+            emergencyByRequest[visit.id] ||
+            null;
           const linkedHospitalId = visit.hospital_id || emergency?.hospital_id || null;
           const linkedHospitalName =
             visit.hospital_name ||
@@ -265,6 +274,7 @@ export const VisitsPage = () => {
 
           return {
             ...visit,
+            request_id: visit.request_id || emergency?.id || null,
             hospital_id: linkedHospitalId,
             hospital_name: linkedHospitalName,
             status: normalizedStatus,

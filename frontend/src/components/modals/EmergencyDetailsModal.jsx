@@ -31,13 +31,15 @@ import { getStandardizedPatient } from '../../utils/patientUtils';
 import { approveCashPayment, declineCashPayment } from '../../services/emergencyService';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
 
-export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
+export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment }) => {
   const [visitOutcome, setVisitOutcome] = React.useState(null);
   const [loadingOutcome, setLoadingOutcome] = React.useState(false);
   const [paymentData, setPaymentData] = React.useState(null);
   const [isProcessingApproval, setIsProcessingApproval] = React.useState(false);
+  const [isRetryingPayment, setIsRetryingPayment] = React.useState(false);
   const normalizedStatus = canonicalizeEmergencyStatus(request?.status, request?.status);
   const isApprovalPending = normalizedStatus === 'pending_approval';
+  const isPaymentDeclined = normalizedStatus === 'payment_declined';
   const showCashApprovalCard = isApprovalPending && (
     request?.status === 'pending_approval' ||
     request?.payment_status === 'pending' ||
@@ -87,6 +89,17 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
       toast.error(e.message || 'Failed to decline payment');
     } finally {
       setIsProcessingApproval(false);
+    }
+  };
+
+  const handleRetry = async () => {
+    if (!request || typeof onRetryPayment !== 'function') return;
+    setIsRetryingPayment(true);
+    try {
+      const ok = await onRetryPayment(request);
+      if (ok) onClose(true);
+    } finally {
+      setIsRetryingPayment(false);
     }
   };
 
@@ -357,6 +370,31 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request }) => {
                       Waiting for payment row visibility. If this persists for org admins, apply the finance RLS visibility migration.
                     </p>
                   )}
+                </div>
+              )}
+
+              {isPaymentDeclined && (
+                <div className="p-6 rounded-3xl bg-warning/10 border border-warning/20 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-warning/20 rounded-xl">
+                      <AlertTriangle className="w-5 h-5 text-warning" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-warning">Payment Declined</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Retry this request with a different saved payment method.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={handleRetry}
+                      disabled={isRetryingPayment}
+                      className="rounded-xl bg-warning hover:bg-warning/90 text-white px-6"
+                    >
+                      {isRetryingPayment ? 'Retrying...' : 'Retry Payment'}
+                    </Button>
+                  </div>
                 </div>
               )}
 
