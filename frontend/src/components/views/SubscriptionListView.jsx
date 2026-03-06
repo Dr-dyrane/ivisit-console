@@ -76,7 +76,7 @@ export const SubscriptionListView = ({
                                                         {subscriber.type}
                                                     </Badge>
                                                     <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                                                    <span>{subscriber.source || 'website'}</span>
+                                                    <span>{subscriber.new_user ? 'New subscriber' : 'Member'}</span>
                                                 </div>
                                             </div>
                                         </div>

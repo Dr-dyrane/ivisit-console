@@ -11,7 +11,6 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
     email: '',
     type: 'free',
     status: 'pending',
-    source: 'website',
     subscription_date: new Date().toISOString().split('T')[0],
     sendWelcomeEmail: true,
     selectedSubscribers: [],
@@ -39,7 +38,6 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
         email: subscriber.email || '',
         type: subscriber.type || 'free',
         status: subscriber.status || 'pending',
-        source: subscriber.source || 'website',
         subscription_date: subscriber.subscription_date ?
           new Date(subscriber.subscription_date).toISOString().split('T')[0] :
           new Date().toISOString().split('T')[0],
@@ -50,7 +48,6 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
         email: '',
         type: 'free',
         status: 'pending',
-        source: 'website',
         subscription_date: new Date().toISOString().split('T')[0],
         sendWelcomeEmail: true,
         selectedSubscribers: [],
@@ -661,34 +658,19 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                   </div>
                 </div>
 
-                {/* Status and Source Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Status</label>
-                    <select
-                      disabled={isViewMode}
-                      className="w-full ios-input-well rounded-2xl py-4 px-5 text-sm font-semibold appearance-none outline-none border-none bg-transparent text-foreground"
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    >
-                      <option value="pending" className="bg-background">Pending</option>
-                      <option value="active" className="bg-background">Active</option>
-                      <option value="unsubscribed" className="bg-background">Terminated</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Origin</label>
-                    <select
-                      disabled={isViewMode}
-                      className="w-full ios-input-well rounded-2xl py-4 px-5 text-sm font-semibold appearance-none outline-none border-none bg-transparent text-foreground"
-                      value={formData.source}
-                      onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                    >
-                      <option value="website" className="bg-background">Website</option>
-                      <option value="referral" className="bg-background">Referral</option>
-                      <option value="manual" className="bg-background">Manual</option>
-                    </select>
-                  </div>
+                {/* Status */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Status</label>
+                  <select
+                    disabled={isViewMode}
+                    className="w-full ios-input-well rounded-2xl py-4 px-5 text-sm font-semibold appearance-none outline-none border-none bg-transparent text-foreground"
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  >
+                    <option value="pending" className="bg-background">Pending</option>
+                    <option value="active" className="bg-background">Active</option>
+                    <option value="unsubscribed" className="bg-background">Terminated</option>
+                  </select>
                 </div>
 
                 {/* Welcome Email Toggle: Custom iOS Style */}

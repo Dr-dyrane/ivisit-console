@@ -251,7 +251,7 @@ export const searchService = {
       ]);
 
       if (error && isMissingRelationError(error, 'search_selections')) {
-        await supabase.from('search_events').insert([
+        await supabase.from(SEARCH_EVENTS_TABLE).insert([
           {
             query: query.toLowerCase(),
             source: 'selection_fallback',

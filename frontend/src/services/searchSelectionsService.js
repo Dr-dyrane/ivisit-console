@@ -8,12 +8,25 @@ import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './authService';
 
 const TABLE_NAME = 'search_selections';
+const SEARCH_SELECTION_CREATE_FIELDS = ['user_id', 'query', 'result_type', 'result_id', 'source'];
+const SEARCH_SELECTION_UPDATE_FIELDS = ['query', 'result_type', 'result_id', 'source'];
 
 const isMissingRelationError = (error) => {
   if (!error) return false;
   if (error.code === '42P01' || error.code === 'PGRST204') return true;
   const message = String(error.message || '').toLowerCase();
   return message.includes('search_selections') && message.includes('does not exist');
+};
+
+const pickAllowedFields = (input, allowedFields) => {
+  const payload = {};
+  if (!input || typeof input !== 'object') return payload;
+  for (const field of allowedFields) {
+    if (Object.prototype.hasOwnProperty.call(input, field) && input[field] !== undefined) {
+      payload[field] = input[field];
+    }
+  }
+  return payload;
 };
 
 /**
@@ -28,14 +41,19 @@ export async function createSearchSelection(input) {
       throw new Error('Unauthorized: Cannot create search selections for other users');
     }
     
-    const payload = {
-      user_id: input.user_id,
-      query: input.query,
-      result_type: input.result_type,
-      result_id: input.result_id,
-      source: input.source,
-      created_at: new Date().toISOString(),
-    };
+    const payload = pickAllowedFields(input, SEARCH_SELECTION_CREATE_FIELDS);
+    payload.query = (payload.query || '').trim();
+    payload.result_type = (payload.result_type || '').trim();
+    payload.result_id = (payload.result_id || '').trim();
+    payload.source = payload.source || 'search';
+    payload.created_at = new Date().toISOString();
+
+    if (!payload.user_id) {
+      throw new Error('search selection user_id is required');
+    }
+    if (!payload.query || !payload.result_type || !payload.result_id) {
+      throw new Error('search selection query/result_type/result_id are required');
+    }
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -116,9 +134,23 @@ export async function getUserSearchSelections(userId) {
  */
 export async function updateSearchSelection(selectionId, input) {
   try {
-    const payload = {
-      ...input,
-    };
+    const payload = pickAllowedFields(input, SEARCH_SELECTION_UPDATE_FIELDS);
+    if (Object.prototype.hasOwnProperty.call(payload, 'query')) {
+      payload.query = (payload.query || '').trim();
+      if (!payload.query) throw new Error('search selection query cannot be empty');
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'result_type')) {
+      payload.result_type = (payload.result_type || '').trim();
+      if (!payload.result_type) throw new Error('search selection result_type cannot be empty');
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'result_id')) {
+      payload.result_id = (payload.result_id || '').trim();
+      if (!payload.result_id) throw new Error('search selection result_id cannot be empty');
+    }
+
+    if (Object.keys(payload).length === 0) {
+      return getSearchSelection(selectionId);
+    }
 
     const { data, error } = await supabase
       .from(TABLE_NAME)

@@ -37,7 +37,7 @@ import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
 import { motion, LayoutGroup } from 'framer-motion';
 import { Badge } from '../ui/badge';
-import { subscribeToSubscribers } from '../../services/subscribersService';
+import { subscribeToSubscribers } from '../../services/subscriptionService';
 import { supabase } from '../../lib/supabase';
 
 export const SubscriptionManagementPage = () => {
@@ -795,10 +795,10 @@ export const SubscriptionManagementPage = () => {
                         <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Clock className="h-4 w-4 text-warning" />
-                            <span className="font-normal">Last Active</span>
+                            <span className="font-normal">Updated</span>
                           </div>
                           <span className="font-semibold text-foreground">
-                            {subscriber.last_engagement_at ? new Date(subscriber.last_engagement_at).toLocaleDateString() : 'Never'}
+                            {subscriber.updated_at ? new Date(subscriber.updated_at).toLocaleDateString() : 'N/A'}
                           </span>
                         </div>
                       </div>

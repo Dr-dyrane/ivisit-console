@@ -63,9 +63,6 @@ export const SubscriptionTableView = ({
                             <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
                                 Welcome Email
                             </th>
-                            <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                Source
-                            </th>
                             <th className="text-right p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
                                 Actions
                             </th>
@@ -138,11 +135,6 @@ export const SubscriptionTableView = ({
                                             {subscriber.welcome_email_sent ? 'Sent' : 'Pending'}
                                         </span>
                                     </div>
-                                </td>
-                                <td className="p-4">
-                                    <span className="text-sm text-muted-foreground">
-                                        {subscriber.source || 'website'}
-                                    </span>
                                 </td>
                                 <td className="p-4">
                                     <div className="flex justify-end">

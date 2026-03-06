@@ -8,6 +8,26 @@ import { supabase } from '../lib/supabase';
 import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'trending_topics';
+const TRENDING_TOPIC_CREATE_FIELDS = ['query', 'category', 'rank'];
+const TRENDING_TOPIC_UPDATE_FIELDS = ['query', 'category', 'rank'];
+
+const pickAllowedFields = (input, allowedFields) => {
+  const payload = {};
+  if (!input || typeof input !== 'object') return payload;
+  for (const field of allowedFields) {
+    if (Object.prototype.hasOwnProperty.call(input, field) && input[field] !== undefined) {
+      payload[field] = input[field];
+    }
+  }
+  return payload;
+};
+
+const normalizeRank = (value, fallback = 999) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  const normalized = Math.floor(parsed);
+  return normalized > 0 ? normalized : fallback;
+};
 
 /**
  * Get all trending topics with optional filters
@@ -66,13 +86,14 @@ export async function getTrendingTopic(topicId) {
  */
 export async function createTrendingTopic(input) {
   try {
-    const payload = {
-      query: input.query,
-      category: input.category,
-      rank: input.rank || 999,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const payload = pickAllowedFields(input, TRENDING_TOPIC_CREATE_FIELDS);
+    payload.query = typeof payload.query === 'string' ? payload.query.trim() : '';
+    payload.category = typeof payload.category === 'string' ? payload.category.trim() : '';
+    payload.rank = normalizeRank(payload.rank, 999);
+
+    if (!payload.query || !payload.category) {
+      throw new Error('trending topic query and category are required');
+    }
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -94,10 +115,23 @@ export async function createTrendingTopic(input) {
  */
 export async function updateTrendingTopic(topicId, input) {
   try {
-    const payload = {
-      ...input,
-      updated_at: new Date().toISOString(),
-    };
+    const payload = pickAllowedFields(input, TRENDING_TOPIC_UPDATE_FIELDS);
+    if (Object.prototype.hasOwnProperty.call(payload, 'query')) {
+      payload.query = typeof payload.query === 'string' ? payload.query.trim() : '';
+      if (!payload.query) throw new Error('trending topic query cannot be empty');
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'category')) {
+      payload.category = typeof payload.category === 'string' ? payload.category.trim() : '';
+      if (!payload.category) throw new Error('trending topic category cannot be empty');
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'rank')) {
+      payload.rank = normalizeRank(payload.rank, 999);
+    }
+    payload.updated_at = new Date().toISOString();
+
+    if (Object.keys(payload).length === 1 && payload.updated_at) {
+      return getTrendingTopic(topicId);
+    }
 
     const { data, error } = await supabase
       .from(TABLE_NAME)

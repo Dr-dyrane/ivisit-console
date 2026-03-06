@@ -8,6 +8,36 @@ import { supabase } from '../lib/supabase';
 import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'subscribers';
+const WRITABLE_FIELDS = new Set([
+  'email',
+  'type',
+  'status',
+  'new_user',
+  'welcome_email_sent',
+  'subscription_date',
+]);
+
+function buildSubscriberPayload(input = {}, { forInsert = false } = {}) {
+  const now = new Date().toISOString();
+  const payload = {};
+
+  for (const [key, value] of Object.entries(input || {})) {
+    if (WRITABLE_FIELDS.has(key) && value !== undefined) {
+      payload[key] = value;
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'email')) {
+    payload.email = String(payload.email || '').trim().toLowerCase();
+  }
+
+  if (forInsert) {
+    payload.created_at = now;
+  }
+
+  payload.updated_at = now;
+  return payload;
+}
 
 /**
  * Get all subscribers
@@ -55,10 +85,13 @@ export async function getSubscriber(subscriberId) {
  */
 export async function getSubscriberByEmail(email) {
   try {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    if (!normalizedEmail) return null;
+
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
-      .eq('email', email)
+      .eq('email', normalizedEmail)
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
@@ -75,15 +108,15 @@ export async function getSubscriberByEmail(email) {
  */
 export async function createSubscriber(input) {
   try {
-    const existing = await getSubscriberByEmail(input.email);
+    const payload = buildSubscriberPayload(input, { forInsert: true });
+    if (!payload.email) {
+      throw new Error('email is required');
+    }
+
+    const existing = await getSubscriberByEmail(payload.email);
     if (existing) {
       return existing;
     }
-
-    const payload = {
-      email: input.email,
-      created_at: new Date().toISOString(),
-    };
 
     const { data, error } = await supabase
       .from(TABLE_NAME)

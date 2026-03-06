@@ -5,7 +5,7 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { getCurrentUser, applyAuthFilter } from './authService';
+import { getCurrentUser } from './authService';
 import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'subscribers';
@@ -36,6 +36,10 @@ function toSubscriberWritePayload(input = {}, { forInsert = false } = {}) {
       payload[key] = value;
     }
   });
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'email')) {
+    payload.email = String(payload.email || '').trim().toLowerCase();
+  }
 
   payload.updated_at = now;
   return payload;

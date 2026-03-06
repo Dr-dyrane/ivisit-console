@@ -16,7 +16,7 @@ export const analyticsAutomationService = {
      * @param {Object} options
      * @param {number} options.daysBack - Days to analyze (default: 7)
      * @param {number} options.limitCount - Max topics to generate (default: 10)
-     * @returns {Promise<Array>} Updated trending topics with analytics
+     * @returns {Promise<Object|null>} RPC result payload
      */
     updateTrendingTopics: async ({ daysBack = 7, limitCount = 10 } = {}) => {
         try {
@@ -28,9 +28,12 @@ export const analyticsAutomationService = {
             });
 
             if (error) throw error;
-            
-            console.log(`✅ Updated ${data?.length || 0} trending topics from search analytics`);
-            return data || [];
+
+            const isSuccess = typeof data === 'object' && data !== null
+                ? data.success !== false
+                : Boolean(data);
+            console.log(`✅ Trending topics analytics update status: ${isSuccess ? 'success' : 'failed'}`);
+            return data ?? { success: true };
         } catch (error) {
             console.error('Error updating trending topics:', error);
             return null;
@@ -119,8 +122,11 @@ export const analyticsAutomationService = {
      */
     forceRefresh: async () => {
         try {
-            const success = await analyticsAutomationService.updateTrendingTopics();
-            
+            const result = await analyticsAutomationService.updateTrendingTopics();
+            const success = typeof result === 'object' && result !== null
+                ? result.success !== false
+                : Boolean(result);
+
             if (success) {
                 console.log('🚀 Trending topics force refreshed successfully');
                 return true;

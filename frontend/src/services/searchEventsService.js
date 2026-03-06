@@ -7,19 +7,33 @@
 import { supabase } from '../lib/supabase';
 
 const TABLE_NAME = 'search_events';
+const SEARCH_EVENT_CREATE_FIELDS = ['query', 'source', 'selected_key', 'metadata'];
+
+const pickAllowedFields = (input, allowedFields) => {
+  const payload = {};
+  if (!input || typeof input !== 'object') return payload;
+  for (const field of allowedFields) {
+    if (Object.prototype.hasOwnProperty.call(input, field) && input[field] !== undefined) {
+      payload[field] = input[field];
+    }
+  }
+  return payload;
+};
 
 /**
  * Create search event
  */
 export async function createSearchEvent(input) {
   try {
-    const payload = {
-      query: input.query,
-      source: input.source,
-      selected_key: input.selected_key,
-      metadata: input.metadata ?? input.extra ?? null,
-      created_at: new Date().toISOString(),
-    };
+    const payload = pickAllowedFields(input, SEARCH_EVENT_CREATE_FIELDS);
+    payload.query = typeof payload.query === 'string' ? payload.query.trim() : null;
+    payload.source = typeof payload.source === 'string' && payload.source.trim() ? payload.source.trim() : 'console';
+    payload.selected_key =
+      typeof payload.selected_key === 'string' && payload.selected_key.trim()
+        ? payload.selected_key.trim()
+        : null;
+    payload.metadata = payload.metadata ?? input?.extra ?? null;
+    payload.created_at = new Date().toISOString();
 
     const { data, error } = await supabase
       .from(TABLE_NAME)

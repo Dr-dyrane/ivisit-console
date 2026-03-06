@@ -32,6 +32,23 @@ function buildHealthNewsPayload(input = {}, { forInsert = false } = {}) {
     }
   }
 
+  if (Object.prototype.hasOwnProperty.call(payload, 'title')) {
+    payload.title = typeof payload.title === 'string' ? payload.title.trim() : '';
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, 'source')) {
+    payload.source = typeof payload.source === 'string' ? payload.source.trim() : '';
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, 'category')) {
+    payload.category = typeof payload.category === 'string' ? payload.category.trim() : payload.category;
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, 'url')) {
+    payload.url = typeof payload.url === 'string' ? payload.url.trim() : payload.url;
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, 'image_url')) {
+    payload.image_url =
+      typeof payload.image_url === 'string' ? payload.image_url.trim() : payload.image_url;
+  }
+
   if (forInsert) {
     payload.created_at = new Date().toISOString();
     if (payload.published === undefined) payload.published = true;
@@ -116,6 +133,9 @@ export async function getHealthNewsItem(newsId) {
 export async function createHealthNews(input) {
   try {
     const payload = buildHealthNewsPayload(input, { forInsert: true });
+    if (!payload.title || !payload.source) {
+      throw new Error('health news title and source are required');
+    }
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -138,6 +158,16 @@ export async function createHealthNews(input) {
 export async function updateHealthNews(newsId, input) {
   try {
     const payload = buildHealthNewsPayload(input, { forInsert: false });
+    if (Object.prototype.hasOwnProperty.call(payload, 'title') && !payload.title) {
+      throw new Error('health news title cannot be empty');
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'source') && !payload.source) {
+      throw new Error('health news source cannot be empty');
+    }
+
+    if (Object.keys(payload).length === 0) {
+      return getHealthNewsItem(newsId);
+    }
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
