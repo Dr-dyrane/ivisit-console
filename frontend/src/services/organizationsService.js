@@ -8,6 +8,25 @@ import { getCurrentUser } from './authService';
 import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'organizations';
+const ORGANIZATION_CREATE_FIELDS = [
+    'name',
+    'stripe_account_id',
+    'ivisit_fee_percentage',
+    'fee_tier',
+    'contact_email',
+    'is_active',
+    'created_at',
+    'updated_at',
+];
+const ORGANIZATION_UPDATE_FIELDS = [
+    'name',
+    'stripe_account_id',
+    'ivisit_fee_percentage',
+    'fee_tier',
+    'contact_email',
+    'is_active',
+    'updated_at',
+];
 
 const toTrimmedOrNull = (value) => {
     if (value === undefined || value === null) return null;
@@ -44,7 +63,10 @@ function buildOrganizationPayload(org = {}, { isUpdate = false } = {}) {
         payload.created_at = new Date().toISOString();
     }
 
-    return pruneUndefined(payload);
+    const allowedFields = new Set(isUpdate ? ORGANIZATION_UPDATE_FIELDS : ORGANIZATION_CREATE_FIELDS);
+    return pruneUndefined(
+        Object.fromEntries(Object.entries(payload).filter(([field]) => allowedFields.has(field)))
+    );
 }
 
 /**

@@ -8,6 +8,59 @@ import { supabase } from '../lib/supabase';
 import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'hospitals';
+const HOSPITAL_CREATE_FIELDS = [
+  'name',
+  'address',
+  'phone',
+  'rating',
+  'type',
+  'image',
+  'specialties',
+  'service_types',
+  'features',
+  'emergency_level',
+  'available_beds',
+  'icu_beds_available',
+  'total_beds',
+  'ambulances_count',
+  'emergency_wait_time_minutes',
+  'wait_time',
+  'price_range',
+  'latitude',
+  'longitude',
+  'verified',
+  'verification_status',
+  'status',
+  'place_id',
+  'updated_at',
+  'created_at',
+];
+const HOSPITAL_UPDATE_FIELDS = [
+  'name',
+  'address',
+  'phone',
+  'rating',
+  'type',
+  'image',
+  'specialties',
+  'service_types',
+  'features',
+  'emergency_level',
+  'available_beds',
+  'icu_beds_available',
+  'total_beds',
+  'ambulances_count',
+  'emergency_wait_time_minutes',
+  'wait_time',
+  'price_range',
+  'latitude',
+  'longitude',
+  'verified',
+  'verification_status',
+  'status',
+  'place_id',
+  'updated_at',
+];
 
 const toTrimmedOrNull = (value) => {
   if (value === undefined || value === null) return null;
@@ -111,7 +164,10 @@ function buildHospitalPayload(input = {}, { isCreate = false } = {}) {
   payload.updated_at = nowIso;
   if (isCreate) payload.created_at = nowIso;
 
-  return payload;
+  const allowedFields = new Set(isCreate ? HOSPITAL_CREATE_FIELDS : HOSPITAL_UPDATE_FIELDS);
+  return Object.fromEntries(
+    Object.entries(payload).filter(([field, value]) => allowedFields.has(field) && value !== undefined)
+  );
 }
 
 /**

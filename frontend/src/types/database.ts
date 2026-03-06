@@ -587,6 +587,7 @@ export type Database = {
           google_types: string[] | null
           google_website: string | null
           id: string
+          icu_beds_available: number | null
           image: string | null
           import_status: string | null
           imported_from_google: boolean | null
@@ -605,6 +606,7 @@ export type Database = {
           service_types: string[] | null
           specialties: string[] | null
           status: string | null
+          total_beds: number | null
           type: string | null
           updated_at: string | null
           verification_status: string | null
@@ -631,6 +633,7 @@ export type Database = {
           google_types?: string[] | null
           google_website?: string | null
           id?: string
+          icu_beds_available?: number | null
           image?: string | null
           import_status?: string | null
           imported_from_google?: boolean | null
@@ -649,6 +652,7 @@ export type Database = {
           service_types?: string[] | null
           specialties?: string[] | null
           status?: string | null
+          total_beds?: number | null
           type?: string | null
           updated_at?: string | null
           verification_status?: string | null
@@ -675,6 +679,7 @@ export type Database = {
           google_types?: string[] | null
           google_website?: string | null
           id?: string
+          icu_beds_available?: number | null
           image?: string | null
           import_status?: string | null
           imported_from_google?: boolean | null
@@ -693,6 +698,7 @@ export type Database = {
           service_types?: string[] | null
           specialties?: string[] | null
           status?: string | null
+          total_beds?: number | null
           type?: string | null
           updated_at?: string | null
           verification_status?: string | null

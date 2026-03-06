@@ -19,6 +19,20 @@ const TEXT_FIELDS = [
   'emergency_contact_relationship',
   'emergency_notes',
 ];
+const MEDICAL_PROFILE_CREATE_FIELDS = [
+  'user_id',
+  ...TEXT_FIELDS,
+  ...ARRAY_FIELDS,
+  'organ_donor',
+  'created_at',
+  'updated_at',
+];
+const MEDICAL_PROFILE_UPDATE_FIELDS = [
+  ...TEXT_FIELDS,
+  ...ARRAY_FIELDS,
+  'organ_donor',
+  'updated_at',
+];
 
 function normalizeTextArray(value) {
   if (value === undefined) return undefined;
@@ -74,7 +88,10 @@ function buildMedicalProfilePayload(input = {}, { userId = null, forInsert = fal
   }
 
   payload.updated_at = new Date().toISOString();
-  return payload;
+  const allowedFields = new Set(forInsert ? MEDICAL_PROFILE_CREATE_FIELDS : MEDICAL_PROFILE_UPDATE_FIELDS);
+  return Object.fromEntries(
+    Object.entries(payload).filter(([field, value]) => allowedFields.has(field) && value !== undefined)
+  );
 }
 
 /**
