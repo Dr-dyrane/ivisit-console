@@ -94,6 +94,238 @@ node supabase/tests/scripts/test_runner.js comprehensive_system
 npx supabase migration list
 ```
 
+### **Table Flow Trace Audit**
+```bash
+# Export end-to-end table flow trace (schema -> SQL authority -> app/console UI/service refs)
+npm run hardening:table-flow-trace
+
+# Optional: target another table directly
+node supabase/tests/scripts/export_table_flow_trace.js --table visits
+```
+
+### **Per-Table Runtime Field Coverage Gate**
+```bash
+# Assert every column in the traced table has runtime references (not docs/tests-only).
+# Run this after exporting table flow trace.
+npm run hardening:table-field-runtime-coverage -- --table hospitals
+
+# Optional allowed-missing override (comma-separated) for intentionally dormant columns
+npm run hardening:table-field-runtime-coverage -- --table hospitals --allow-missing some_column
+```
+
+### **Emergency Runtime Confidence Gate**
+```bash
+# Run console transition matrix + E2E emergency flow + confidence assertion
+npm run hardening:emergency-runtime-confidence
+
+# If reports already exist, run assertion only
+npm run hardening:emergency-runtime-confidence-assert
+```
+
+### **Visits JS/JSX Field Guard**
+```bash
+# Detect stale/non-schema visits field reads/writes in console JS/JSX surfaces
+npm run hardening:visits-surface-field-guard
+```
+
+### **Hospitals Surface Field Guard**
+```bash
+# Detect hospitals table contract drift across app+console JS/JSX + core admin RPC persistence
+npm run hardening:hospitals-surface-field-guard
+```
+
+Current guard focus:
+- app/console hospital UI/service surfaces avoid legacy/non-schema import/google drift fields
+- app `hospitalsService.getRooms` must not query `hospital_rooms` and must source bed-room availability from canonical `hospitals` capacity fields
+- canonical SQL must keep hospital bed-capacity synchronization lanes:
+  - `normalize_hosp_bed_state` trigger on `hospitals`
+  - `update_hospital_availability` writes `bed_availability`
+  - `update_hospital_by_admin` persists canonical capacity columns used by runtime surfaces
+
+### **Organizations Surface Field Guard**
+```bash
+# Detect organizations table surface contract drift (console types + organizations CRUD payload)
+npm run hardening:organizations-surface-field-guard
+```
+
+### **Profiles Surface Field Guard**
+```bash
+# Detect profiles type parity drift and enforce profile update whitelist contract in console service
+npm run hardening:profiles-surface-field-guard
+```
+
+### **Preferences Surface Field Guard**
+```bash
+# Detect preferences app/console type parity + relationship parity and
+# enforce canonical preferences select-column usage in console source.
+npm run hardening:preferences-surface-field-guard
+```
+
+### **User Activity Surface Field Guard**
+```bash
+# Detect user_activity app/console type parity + relationship parity, enforce
+# canonical user_activity select columns in console source, and forbid direct
+# console user_activity insert/update/upsert/delete mutation lanes.
+npm run hardening:user-activity-surface-field-guard
+```
+
+### **Support Tickets Surface Field Guard**
+```bash
+# Detect support_tickets app/console type parity + relationship parity, enforce
+# canonical support_tickets select columns in console source, and restrict
+# support_tickets mutations to the canonical supportTicketsService lane.
+npm run hardening:support-tickets-surface-field-guard
+```
+
+### **Support FAQs Surface Field Guard**
+```bash
+# Detect support_faqs app/generated/console type parity, enforce canonical
+# support_faqs select-column usage, and keep FAQ mutations inside the
+# canonical supportFaqsService lane.
+npm run hardening:support-faqs-surface-field-guard
+```
+
+### **Documents Surface Field Guard**
+```bash
+# Detect documents app/generated/console type parity and ensure direct
+# documents table reads/writes do not appear outside approved service lanes.
+# (Supabase Storage bucket usage `storage.from('documents')` is allowed.)
+npm run hardening:documents-surface-field-guard
+```
+
+### **Search History Surface Field Guard**
+```bash
+# Detect search_history app/console type parity + relationship parity, enforce
+# canonical select-column usage for search_history access paths, and keep
+# search_history references/mutations inside approved search service surfaces.
+npm run hardening:search-history-surface-field-guard
+```
+
+### **Search Selections Surface Field Guard**
+```bash
+# Detect search_selections app/console type parity + relationship parity, enforce
+# canonical search_selections select-column usage, and keep search_selections
+# references/mutations inside approved search selection service boundaries.
+npm run hardening:search-selections-surface-field-guard
+```
+
+### **Search Events Surface Field Guard**
+```bash
+# Detect search_events app/console type parity, enforce canonical select-column
+# usage, and keep search_events references/mutations inside approved
+# search analytics/search service boundaries.
+npm run hardening:search-events-surface-field-guard
+```
+
+### **Trending Topics Surface Field Guard**
+```bash
+# Detect trending_topics app/console type parity, enforce canonical select-column
+# usage, enforce RPC return type parity for update_trending_topics_from_search,
+# and keep trending_topics mutations inside approved trending topic service lanes.
+npm run hardening:trending-topics-surface-field-guard
+```
+
+### **Subscribers Surface Field Guard**
+```bash
+# Detect subscribers app/generated/console type parity, enforce canonical
+# select-column usage, and keep subscribers mutations inside approved
+# subscription service lanes.
+npm run hardening:subscribers-surface-field-guard
+```
+
+### **Health News Surface Field Guard**
+```bash
+# Detect health_news app/generated/console type parity, enforce canonical
+# select-column usage, and keep health_news mutations inside approved
+# health news service boundaries.
+npm run hardening:health-news-surface-field-guard
+```
+
+### **Organization Wallets Surface Field Guard**
+```bash
+# Detect organization_wallets type parity + query select-column drift across console wallet surfaces
+npm run hardening:organization-wallets-surface-field-guard
+```
+
+### **Patient Wallets Surface Field Guard**
+```bash
+# Detect patient_wallets type parity + query select-column drift across console surfaces
+npm run hardening:patient-wallets-surface-field-guard
+```
+
+### **iVisit Main Wallet Surface Field Guard**
+```bash
+# Detect ivisit_main_wallet type parity + query/select drift and forbid direct console table mutations
+npm run hardening:ivisit-main-wallet-surface-field-guard
+```
+
+### **Emergency Requests Surface Field Guard**
+```bash
+# Detect emergency_requests app/console type parity + relationship parity + select-column drift.
+# Also forbids direct console emergency_requests insert/update/upsert/delete and
+# keeps legacy aliases (payment_method_id, estimated_arrival, next_estimated_arrival, bed_type)
+# inside dedicated compatibility boundaries only.
+npm run hardening:emergency-requests-surface-field-guard
+```
+
+### **Notifications Surface Field Guard**
+```bash
+# Detect notifications app/console type parity + relationship parity and
+# enforce canonical notifications select-column usage in console source.
+npm run hardening:notifications-surface-field-guard
+```
+
+### **Payment Methods Surface Field Guard**
+```bash
+# Detect payment_methods type parity + query/select drift and forbid direct console table mutations
+npm run hardening:payment-methods-surface-field-guard
+```
+
+### **Wallet Ledger Surface Field Guard**
+```bash
+# Detect wallet_ledger type parity + query/select drift and enforce allowed console mutation paths
+npm run hardening:wallet-ledger-surface-field-guard
+```
+
+### **Payments/Wallet JS/JSX Field Guard**
+```bash
+# Detect stale/non-schema payments + wallet UI field usage in console JS/JSX surfaces
+npm run hardening:payments-surface-field-guard
+```
+
+### **Cash Fee Deduction Contract Guard**
+```bash
+# Enforce cash approval fee deduction contract (fee resolution + persistence)
+npm run hardening:cash-fee-contract-guard
+```
+
+### **Runtime Data Integrity Audit**
+```bash
+# Audit recent live data quality (cash fee ledger coherence, pending-approval/payment coherence, visits linkage)
+npm run hardening:runtime-data-integrity
+
+# Optional window override (default: 168 hours)
+RUNTIME_AUDIT_LOOKBACK_HOURS=72 npm run hardening:runtime-data-integrity
+```
+
+### **Runtime Data Integrity Repair**
+```bash
+# Dry-run repair plan for detected runtime data integrity gaps
+npm run hardening:runtime-data-repair
+
+# Apply deterministic repair actions (fee ledger backfill + visit hospital-name backfill)
+npm run hardening:runtime-data-repair -- --apply
+```
+
+### **Visits Runtime Confidence Gate**
+```bash
+# Run E2E flow matrix and assert required visits lifecycle outcomes
+npm run hardening:visits-runtime-confidence
+
+# If E2E report already exists, run assertion only
+npm run hardening:visits-runtime-confidence-assert
+```
+
 ### **Expected Output**
 ```
 🧪 Comprehensive System Test...
@@ -262,6 +494,202 @@ node supabase/tests/scripts/cleanup_test_side_effects.js --apply
 ```
 
 This targets test-pattern users and their linked side effects (`emergency_requests`, `visits`, `payments`, `notifications`, `doctors`, and related rows) without touching non-test identities.
+
+### **Runtime CRUD Batch (Console UI -> App Flow)**
+For table-by-table runtime hardening, run the deterministic batch runner and enforce cleanup immediately after each batch:
+
+```bash
+# 1) Execute runtime CRUD + relationship validation batch
+npm run hardening:runtime-crud-batch
+
+# 2) Cleanup any residual test artifacts (safety net)
+node supabase/tests/scripts/cleanup_test_side_effects.js --apply
+
+# 3) Confirm zero planned side-effects before commit/push
+npm run hardening:cleanup-dry-run-guard
+```
+
+Current batch coverage:
+- `organization_wallets`, `wallet_ledger`, `payments`, `payment_methods`
+- `support_faqs`, `support_tickets`
+- `search_events`, `search_history`, `search_selections`
+- `medical_profiles`
+- `subscribers`, `health_news`, `trending_topics`
+- `notifications`, `preferences`, `user_activity`
+- `insurance_policies`, `insurance_billing`
+- `admin_audit_log`, `documents`
+- `patient_wallets`, `user_roles`, `user_sessions`
+- `id_mappings` presence assertions for runtime entities
+- `ivisit_main_wallet` baseline presence validation
+- `hospitals`, `doctors`, `doctor_schedules`
+- `emergency_doctor_assignments` via canonical assignment RPC against an existing emergency request target (with assignment rollback in cleanup)
+
+### **Targeted Emergency/Payments/Wallet Coverage Guard**
+When validating contract-critical emergency finance paths, run the targeted guard lane:
+
+```bash
+# Runs console UI CRUD matrix + runtime CRUD batch + targeted coverage assertions
+npm run hardening:targeted-matrix-guard
+
+# Then enforce zero side-effects and contract parity gates
+npm run hardening:cleanup-dry-run-guard
+npm run hardening:contract-drift-guard
+```
+
+Guard expectations:
+- Console matrix must include required surfaces:
+  - `emergency_requests`
+  - `organization_wallets`
+  - `wallet_ledger`
+  - `payments`
+  - `payment_methods`
+- Runtime batch must pass required assertions and mirror-count coverage for:
+  - `emergency_requests`
+  - `payments`
+  - `organization_wallets`
+  - `wallet_ledger`
+  - `patient_wallets`
+  - `ivisit_main_wallet`
+
+### **Ambulances Surface Field Guard**
+For ambulance table contract parity and field-safety enforcement across app + console:
+
+```bash
+# Export current ambulances flow trace evidence
+node supabase/tests/scripts/export_table_flow_trace.js --table ambulances
+
+# Enforce ambulances type/service surface guard
+npm run hardening:ambulances-surface-field-guard
+```
+
+Current guard focus:
+- app/console `ambulances` `Row`/`Insert`/`Update` parity
+- canonical row fields must include:
+  - `crew`, `current_call`, `display_id`, `eta`, `license_plate`
+- app ambulance mapper must avoid non-schema row reads
+- console ambulance service payload/whitelist must avoid non-schema writes
+
+### **Emergency Status Transitions Surface Guard**
+For append-only emergency status audit contract parity and mutation-safety:
+
+```bash
+# Export flow trace evidence for transition audit table
+node supabase/tests/scripts/export_table_flow_trace.js --table emergency_status_transitions
+
+# Enforce emergency_status_transitions type parity + no direct mutation surfaces
+npm run hardening:emergency-status-transitions-surface-field-guard
+```
+
+Current guard focus:
+- app/console `emergency_status_transitions` `Row`/`Insert`/`Update` parity
+- canonical transition audit row fields must exist in type contracts
+- direct `.insert/.update/.delete/.upsert` against this table is forbidden in app/console source paths
+
+### **Insurance Surface Field Guard**
+For `insurance_policies` + `insurance_billing` contract parity and canonical policy-write safety:
+
+```bash
+# Export traces for insurance tables if needed
+node supabase/tests/scripts/export_table_flow_trace.js --table insurance_policies
+node supabase/tests/scripts/export_table_flow_trace.js --table insurance_billing
+
+# Enforce insurance type/service surface contract guard
+npm run hardening:insurance-surface-field-guard
+```
+
+Current guard focus:
+- app/console type parity for `insurance_policies` and `insurance_billing` (`Row`/`Insert`/`Update`)
+- canonical required row fields include `coverage_percentage` + `status` in insurance policy contract
+- insurance policy write services must use canonical payload builder and avoid legacy top-level column mutations
+- console `getUserInsurancePolicies` path must return normalized rows
+
+### **Pricing Surface Field Guard**
+For `service_pricing` + `room_pricing` contract parity and canonical pricing write safety:
+
+```bash
+# Export traces for pricing tables
+node supabase/tests/scripts/export_table_flow_trace.js --table service_pricing
+node supabase/tests/scripts/export_table_flow_trace.js --table room_pricing
+
+# Enforce pricing type/service surface contract guard
+npm run hardening:pricing-surface-field-guard
+```
+
+Current guard focus:
+- app/console type parity for `service_pricing` and `room_pricing` (`Row`/`Insert`/`Update`)
+- canonical required pricing row fields and FK relationship parity
+- console pricing writes must use RPC lanes (`upsert_*` / `delete_*`) instead of direct table mutations
+- pricing payload must not write non-schema fields (`currency`, `is_active`)
+
+### **Medical Profiles Surface Field Guard**
+For `medical_profiles` contract parity and canonical profile write safety:
+
+```bash
+# Export medical profile flow trace evidence
+node supabase/tests/scripts/export_table_flow_trace.js --table medical_profiles
+
+# Enforce medical_profiles type/service surface contract guard
+npm run hardening:medical-profiles-surface-field-guard
+```
+
+Current guard focus:
+- app/console type parity for `medical_profiles` (`Row`/`Insert`/`Update`)
+- ensure `medical_profiles_user_id_fkey` relationship parity in console type contract
+- console medical profile service must use explicit payload builder (no raw input spread)
+- app medical profile update path must upsert by `user_id` to avoid missing-row drift
+
+### **Doctors Surface Field Guard**
+For `doctors` contract parity and canonical doctor search fields:
+
+```bash
+# Export doctors flow trace evidence
+node supabase/tests/scripts/export_table_flow_trace.js --table doctors
+
+# Enforce doctors type/search surface contract guard
+npm run hardening:doctors-surface-field-guard
+```
+
+Current guard focus:
+- app/console type parity for `doctors` (`Row`/`Insert`/`Update`)
+- required `doctors` relationship parity (`doctors_hospital_id_fkey`, `doctors_profile_id_fkey`)
+- no non-canonical `available_hospitals` drift in console `doctors` relationships
+- console doctor search uses canonical fields (`specialization`, `image`) with hospital relation join (`hospitals:hospital_id`)
+- console doctor search forbids legacy/non-schema fields (`specialty`, `avatar_url`)
+
+### **Finance RPC Contract Guard**
+For canonical migration safety on finance RPCs (legacy field regression prevention):
+
+```bash
+# Verify canonical finance retry-payment RPC contract in migration SQL
+npm run hardening:finance-rpc-contract-guard
+```
+
+Current guard focus:
+- `retry_payment_with_different_method` must not reference legacy:
+  - `emergency_requests.estimated_amount`
+  - `payments.payment_method_id` insert column
+- Retry flow must use canonical payment contract fields:
+  - `total_cost`, `payment_method`, `metadata`
+
+### **Automation Contract Guard**
+For emergency logistics automations and emergency->visit lifecycle sync contract safety:
+
+```bash
+# Verify canonical automation migration does not reference stale emergency fields
+# and includes non-terminal visit sync mapping
+npm run hardening:automation-contract-guard
+```
+
+Current guard focus:
+- No `NEW.estimated_arrival` reference in `0009_automations`
+- `sync_emergency_to_visit` includes mapping for:
+  - `accepted`
+  - `arrived`
+  - `cancelled`
+- Visit sync updates include:
+  - `lifecycle_state`
+  - `hospital_name`
+  - `cost`
 
 ### **Commit Gate: Cleanup Must Be Zero**
 Before every commit/push after running tests:

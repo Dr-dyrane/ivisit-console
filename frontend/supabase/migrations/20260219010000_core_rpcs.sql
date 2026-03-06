@@ -157,19 +157,32 @@ BEGIN
         address = COALESCE(payload->>'address', address),
         phone = COALESCE(payload->>'phone', phone),
         rating = COALESCE((payload->>'rating')::FLOAT, rating),
+        type = COALESCE(payload->>'type', type),
         latitude = COALESCE((payload->>'latitude')::FLOAT, latitude),
         longitude = COALESCE((payload->>'longitude')::FLOAT, longitude),
         
         verified = COALESCE((payload->>'verified')::BOOLEAN, verified),
         verification_status = COALESCE(payload->>'verification_status', verification_status),
         status = COALESCE(payload->>'status', status),
+        place_id = COALESCE(payload->>'place_id', place_id),
         
         wait_time = COALESCE(payload->>'wait_time', wait_time),
         price_range = COALESCE(payload->>'price_range', price_range),
-        available_beds = COALESCE((payload->>'available_beds')::INT, available_beds),
+        available_beds = COALESCE(NULLIF(payload->>'available_beds', '')::INT, available_beds),
+        icu_beds_available = COALESCE(NULLIF(payload->>'icu_beds_available', '')::INT, icu_beds_available),
+        total_beds = COALESCE(NULLIF(payload->>'total_beds', '')::INT, total_beds),
+        bed_availability = COALESCE(payload->'bed_availability', bed_availability),
         ambulances_count = COALESCE((payload->>'ambulances_count')::INT, ambulances_count),
         emergency_level = COALESCE(payload->>'emergency_level', emergency_level),
         image = COALESCE(payload->>'image', image),
+        last_availability_update = CASE
+            WHEN payload ? 'available_beds'
+              OR payload ? 'icu_beds_available'
+              OR payload ? 'total_beds'
+              OR payload ? 'bed_availability'
+            THEN NOW()
+            ELSE last_availability_update
+        END,
         
         -- Arrays
         specialties = v_specialties,
@@ -970,27 +983,192 @@ CREATE OR REPLACE FUNCTION public.assign_doctor_to_emergency(
 )
 RETURNS JSONB AS $$
 DECLARE
-    v_available BOOLEAN;
+    v_actor_id UUID := auth.uid();
+    v_claims JSONB := COALESCE(NULLIF(current_setting('request.jwt.claims', true), ''), '{}')::JSONB;
+    v_is_service_role BOOLEAN := COALESCE(v_claims->>'role', '') = 'service_role';
+    v_is_admin BOOLEAN := public.p_is_admin();
+    v_actor_role TEXT;
+    v_actor_org_id UUID;
+    v_req_status TEXT;
+    v_req_hospital_id UUID;
+    v_req_org_id UUID;
+    v_existing_doctor_id UUID;
+    v_doctor_hospital_id UUID;
+    v_doctor_org_id UUID;
+    v_doctor_is_available BOOLEAN;
+    v_doctor_status TEXT;
+    v_doctor_current_patients INTEGER;
+    v_doctor_max_patients INTEGER;
+    v_has_active_same_doctor BOOLEAN := FALSE;
 BEGIN
-    SELECT (d.is_available AND d.current_patients < d.max_patients)
-    INTO v_available FROM public.doctors d WHERE d.id = p_doctor_id;
-
-    IF NOT v_available THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Doctor is not available');
+    IF p_emergency_request_id IS NULL OR p_doctor_id IS NULL THEN
+        RAISE EXCEPTION 'emergency request id and doctor id are required';
     END IF;
 
+    SELECT role, organization_id
+    INTO v_actor_role, v_actor_org_id
+    FROM public.profiles
+    WHERE id = v_actor_id;
+
+    IF NOT v_is_service_role AND v_actor_id IS NULL THEN
+        RAISE EXCEPTION 'Unauthorized';
+    END IF;
+
+    SELECT er.status, er.hospital_id, h.organization_id, er.assigned_doctor_id
+    INTO v_req_status, v_req_hospital_id, v_req_org_id, v_existing_doctor_id
+    FROM public.emergency_requests er
+    LEFT JOIN public.hospitals h ON h.id = er.hospital_id
+    WHERE er.id = p_emergency_request_id
+    FOR UPDATE OF er;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'Emergency request not found',
+            'code', 'REQUEST_NOT_FOUND'
+        );
+    END IF;
+
+    v_req_status := public.canonicalize_emergency_status(v_req_status, v_req_status);
+    IF v_req_status IN ('completed', 'cancelled', 'payment_declined') THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'Cannot assign doctor to terminal emergency request',
+            'code', 'REQUEST_TERMINAL'
+        );
+    END IF;
+
+    SELECT
+        d.hospital_id,
+        h.organization_id,
+        COALESCE(d.is_available, false),
+        LOWER(COALESCE(d.status, '')),
+        COALESCE(d.current_patients, 0),
+        GREATEST(COALESCE(NULLIF(d.max_patients, 0), 1), 1)
+    INTO
+        v_doctor_hospital_id,
+        v_doctor_org_id,
+        v_doctor_is_available,
+        v_doctor_status,
+        v_doctor_current_patients,
+        v_doctor_max_patients
+    FROM public.doctors d
+    LEFT JOIN public.hospitals h ON h.id = d.hospital_id
+    WHERE d.id = p_doctor_id
+    FOR UPDATE OF d;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'Doctor not found',
+            'code', 'DOCTOR_NOT_FOUND'
+        );
+    END IF;
+
+    IF NOT v_is_service_role AND NOT v_is_admin THEN
+        IF v_actor_role NOT IN ('org_admin', 'dispatcher') THEN
+            RAISE EXCEPTION 'Unauthorized';
+        END IF;
+
+        IF v_actor_org_id IS NULL THEN
+            RAISE EXCEPTION 'Unauthorized';
+        END IF;
+
+        IF v_req_org_id IS NOT NULL AND v_actor_org_id IS DISTINCT FROM v_req_org_id THEN
+            RAISE EXCEPTION 'Unauthorized';
+        END IF;
+
+        IF v_doctor_org_id IS NOT NULL AND v_actor_org_id IS DISTINCT FROM v_doctor_org_id THEN
+            RAISE EXCEPTION 'Unauthorized';
+        END IF;
+    END IF;
+
+    IF v_req_hospital_id IS NOT NULL AND v_doctor_hospital_id IS DISTINCT FROM v_req_hospital_id THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'Doctor does not belong to request hospital',
+            'code', 'DOCTOR_HOSPITAL_MISMATCH'
+        );
+    END IF;
+
+    IF NOT v_doctor_is_available
+       OR v_doctor_status <> 'available'
+       OR v_doctor_current_patients >= v_doctor_max_patients THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'Doctor is not available',
+            'code', 'DOCTOR_UNAVAILABLE'
+        );
+    END IF;
+
+    SELECT EXISTS (
+        SELECT 1
+        FROM public.emergency_doctor_assignments eda
+        WHERE eda.emergency_request_id = p_emergency_request_id
+          AND eda.doctor_id = p_doctor_id
+          AND eda.status = 'assigned'
+    ) INTO v_has_active_same_doctor;
+
+    IF v_existing_doctor_id = p_doctor_id THEN
+        IF NOT v_has_active_same_doctor THEN
+            INSERT INTO public.emergency_doctor_assignments (emergency_request_id, doctor_id, status, notes)
+            VALUES (p_emergency_request_id, p_doctor_id, 'assigned', NULLIF(BTRIM(p_notes), ''));
+        END IF;
+
+        UPDATE public.emergency_requests
+        SET doctor_assigned_at = COALESCE(doctor_assigned_at, NOW()),
+            updated_at = NOW()
+        WHERE id = p_emergency_request_id;
+
+        RETURN jsonb_build_object(
+            'success', true,
+            'doctor_id', p_doctor_id,
+            'previous_doctor_id', v_existing_doctor_id,
+            'reassigned', false,
+            'idempotent', true
+        );
+    END IF;
+
+    WITH released_assignments AS (
+        UPDATE public.emergency_doctor_assignments
+        SET status = 'cancelled',
+            updated_at = NOW()
+        WHERE emergency_request_id = p_emergency_request_id
+          AND status = 'assigned'
+        RETURNING doctor_id
+    ),
+    released_counts AS (
+        SELECT doctor_id, COUNT(*)::INTEGER AS release_count
+        FROM released_assignments
+        WHERE doctor_id IS NOT NULL
+        GROUP BY doctor_id
+    )
+    UPDATE public.doctors d
+    SET current_patients = GREATEST(0, COALESCE(d.current_patients, 0) - rc.release_count),
+        updated_at = NOW()
+    FROM released_counts rc
+    WHERE d.id = rc.doctor_id;
+
     INSERT INTO public.emergency_doctor_assignments (emergency_request_id, doctor_id, status, notes)
-    VALUES (p_emergency_request_id, p_doctor_id, 'assigned', p_notes);
+    VALUES (p_emergency_request_id, p_doctor_id, 'assigned', NULLIF(BTRIM(p_notes), ''));
 
     UPDATE public.doctors
-    SET current_patients = current_patients + 1, updated_at = NOW()
+    SET current_patients = COALESCE(current_patients, 0) + 1,
+        updated_at = NOW()
     WHERE id = p_doctor_id;
 
     UPDATE public.emergency_requests
-    SET assigned_doctor_id = p_doctor_id, doctor_assigned_at = NOW()
+    SET assigned_doctor_id = p_doctor_id,
+        doctor_assigned_at = NOW(),
+        updated_at = NOW()
     WHERE id = p_emergency_request_id;
 
-    RETURN jsonb_build_object('success', true, 'doctor_id', p_doctor_id);
+    RETURN jsonb_build_object(
+        'success', true,
+        'doctor_id', p_doctor_id,
+        'previous_doctor_id', v_existing_doctor_id,
+        'reassigned', v_existing_doctor_id IS DISTINCT FROM p_doctor_id
+    );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -1469,6 +1647,7 @@ DECLARE
     v_actor_org_id UUID;
     v_is_admin BOOLEAN := public.p_is_admin();
     v_req_status TEXT;
+    v_req_payment_status TEXT;
     v_req_hospital_id UUID;
     v_req_org_id UUID;
     v_req_current_ambulance_id UUID;
@@ -1498,16 +1677,21 @@ BEGIN
         RAISE EXCEPTION 'Unauthorized';
     END IF;
 
-    SELECT er.status, er.hospital_id, h.organization_id, er.ambulance_id
-    INTO v_req_status, v_req_hospital_id, v_req_org_id, v_req_current_ambulance_id
+    SELECT er.status, er.payment_status, er.hospital_id, h.organization_id, er.ambulance_id
+    INTO v_req_status, v_req_payment_status, v_req_hospital_id, v_req_org_id, v_req_current_ambulance_id
     FROM public.emergency_requests er
     LEFT JOIN public.hospitals h ON h.id = er.hospital_id
     WHERE er.id = p_request_id
     FOR UPDATE OF er;
 
     v_req_status := public.canonicalize_emergency_status(v_req_status, v_req_status);
+    v_req_payment_status := LOWER(COALESCE(v_req_payment_status, 'pending'));
     IF v_req_status IS NULL THEN
         RAISE EXCEPTION 'Emergency request not found';
+    END IF;
+
+    IF v_req_status = 'pending_approval' OR v_req_payment_status = 'requires_approval' THEN
+        RAISE EXCEPTION 'Cannot dispatch before cash approval';
     END IF;
 
     IF v_req_status IN ('completed', 'cancelled', 'payment_declined') THEN
@@ -1553,6 +1737,7 @@ BEGIN
         p_metadata => jsonb_build_object(
             'request_id', p_request_id,
             'previous_status', v_req_status,
+            'previous_payment_status', v_req_payment_status,
             'previous_ambulance_id', v_req_current_ambulance_id,
             'ambulance_id', p_ambulance_id
         ),
@@ -1916,6 +2101,7 @@ DECLARE
     v_current_status TEXT;
     v_next_status TEXT;
     v_patient_location geometry;
+    v_triage_snapshot JSONB;
     v_updated public.emergency_requests%ROWTYPE;
 BEGIN
     IF v_actor_id IS NULL THEN
@@ -1962,7 +2148,8 @@ BEGIN
         p_metadata => jsonb_build_object(
             'request_id', p_request_id,
             'current_status', v_current_status,
-            'requested_status', v_next_status
+            'requested_status', v_next_status,
+            'triage_update', (p_payload ? 'triage_snapshot') OR (p_payload ? 'triage')
         ),
         p_allow_status_write => true
     );
@@ -1974,8 +2161,27 @@ BEGIN
         END IF;
     END IF;
 
+    IF p_payload ? 'triage_snapshot' THEN
+        v_triage_snapshot := p_payload->'triage_snapshot';
+    ELSIF p_payload ? 'triage' THEN
+        v_triage_snapshot := p_payload->'triage';
+    END IF;
+
+    IF v_triage_snapshot IS NOT NULL AND jsonb_typeof(v_triage_snapshot) <> 'object' THEN
+        RAISE EXCEPTION 'Invalid triage snapshot payload';
+    END IF;
+
     UPDATE public.emergency_requests er
     SET patient_location = COALESCE(v_patient_location, er.patient_location),
+        patient_snapshot = CASE
+            WHEN v_triage_snapshot IS NULL THEN er.patient_snapshot
+            ELSE jsonb_set(
+                COALESCE(er.patient_snapshot, '{}'::JSONB),
+                '{triage}',
+                v_triage_snapshot,
+                true
+            )
+        END,
         status = COALESCE(v_next_status, er.status),
         cancelled_at = CASE
             WHEN COALESCE(v_next_status, er.status) = 'cancelled' THEN COALESCE(er.cancelled_at, NOW())
@@ -2155,7 +2361,10 @@ BEGIN
     IF v_req_current_ambulance_id IS NOT NULL
        AND v_req_current_ambulance_id IS DISTINCT FROM p_ambulance_id THEN
         UPDATE public.ambulances
-        SET status = 'available',
+        SET status = CASE
+                WHEN LOWER(COALESCE(status, '')) IN ('offline', 'maintenance') THEN status
+                ELSE 'available'
+            END,
             current_call = NULL,
             eta = NULL,
             updated_at = NOW()
@@ -2166,25 +2375,25 @@ BEGIN
     UPDATE public.emergency_requests er
     SET ambulance_id = p_ambulance_id,
         status = 'accepted',
-        responder_id = COALESCE(er.responder_id, v_amb_profile_id),
+        responder_id = COALESCE(v_amb_profile_id, er.responder_id),
         responder_name = COALESCE(
-            NULLIF(BTRIM(er.responder_name), ''),
             NULLIF(BTRIM(v_driver_name), ''),
             NULLIF(BTRIM(v_amb_plate), ''),
             NULLIF(BTRIM(v_amb_type), ''),
+            NULLIF(BTRIM(er.responder_name), ''),
             'Responder'
         ),
         responder_phone = COALESCE(
-            NULLIF(BTRIM(er.responder_phone), ''),
-            NULLIF(BTRIM(v_driver_phone), '')
+            NULLIF(BTRIM(v_driver_phone), ''),
+            NULLIF(BTRIM(er.responder_phone), '')
         ),
         responder_vehicle_type = COALESCE(
-            NULLIF(BTRIM(er.responder_vehicle_type), ''),
-            NULLIF(BTRIM(v_amb_type), '')
+            NULLIF(BTRIM(v_amb_type), ''),
+            NULLIF(BTRIM(er.responder_vehicle_type), '')
         ),
         responder_vehicle_plate = COALESCE(
-            NULLIF(BTRIM(er.responder_vehicle_plate), ''),
-            NULLIF(BTRIM(v_amb_plate), '')
+            NULLIF(BTRIM(v_amb_plate), ''),
+            NULLIF(BTRIM(er.responder_vehicle_plate), '')
         ),
         updated_at = NOW()
     WHERE er.id = p_emergency_request_id
@@ -2313,13 +2522,17 @@ DECLARE
     v_org_balance NUMERIC;
     v_platform_wallet_id UUID;
     v_fee_amount NUMERIC;
+    v_fee_percentage NUMERIC;
     v_assigned_ambulance_id UUID;
     v_responder_name TEXT;
     v_responder_phone TEXT;
     v_responder_vehicle_type TEXT;
     v_responder_vehicle_plate TEXT;
 BEGIN
-    SELECT p.*, (p.metadata->>'fee_amount')::NUMERIC AS calculated_fee
+    SELECT
+        p.*,
+        NULLIF((p.metadata->>'fee_amount')::NUMERIC, 0) AS calculated_fee,
+        NULLIF((p.metadata->>'fee')::NUMERIC, 0) AS legacy_calculated_fee
     INTO v_payment
     FROM public.payments p
     WHERE p.id = p_payment_id
@@ -2424,7 +2637,18 @@ BEGIN
 
     SELECT id INTO v_platform_wallet_id FROM public.ivisit_main_wallet LIMIT 1 FOR UPDATE;
 
-    v_fee_amount := COALESCE(v_payment.ivisit_fee_amount, v_payment.calculated_fee, 0);
+    SELECT ivisit_fee_percentage
+    INTO v_fee_percentage
+    FROM public.organizations
+    WHERE id = v_request_org_id;
+
+    v_fee_amount := COALESCE(
+        NULLIF(v_payment.ivisit_fee_amount, 0),
+        v_payment.calculated_fee,
+        v_payment.legacy_calculated_fee,
+        ROUND(COALESCE(v_payment.amount, 0) * (COALESCE(v_fee_percentage, 2.5) / 100.0), 2),
+        0
+    );
 
     IF v_fee_amount > 0 THEN
         IF v_org_balance < v_fee_amount THEN
@@ -2449,6 +2673,8 @@ BEGIN
     UPDATE public.payments
     SET status = 'completed',
         processed_at = NOW(),
+        ivisit_fee_amount = v_fee_amount,
+        metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('fee_amount', v_fee_amount, 'fee', v_fee_amount),
         updated_at = NOW()
     WHERE id = p_payment_id;
 
@@ -3061,3 +3287,4 @@ GRANT EXECUTE ON FUNCTION public.set_emergency_transition_context(TEXT, TEXT, UU
 GRANT EXECUTE ON FUNCTION public.notify_cash_approval_org_admins(UUID, UUID, NUMERIC, NUMERIC, TEXT, TEXT, TEXT, UUID) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.process_cash_payment(UUID, UUID, NUMERIC) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.process_wallet_payment(UUID, NUMERIC, UUID) TO authenticated, service_role;
+

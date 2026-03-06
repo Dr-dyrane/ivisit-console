@@ -7,13 +7,59 @@
 import { supabase } from '../lib/supabase';
 
 const TABLE_NAME = 'support_faqs';
+const SUPPORT_FAQ_WRITABLE_FIELDS = ['question', 'answer', 'category', 'rank'];
 
 const isValidFaqId = (value) => {
   if (value === null || value === undefined) return false;
-  if (typeof value === 'number') return Number.isFinite(value);
   if (typeof value === 'string') return value.trim().length > 0;
   return false;
 };
+
+const pickAllowedFields = (input, allowedFields) => {
+  const payload = {};
+  if (!input || typeof input !== 'object') return payload;
+  for (const field of allowedFields) {
+    if (Object.prototype.hasOwnProperty.call(input, field) && input[field] !== undefined) {
+      payload[field] = input[field];
+    }
+  }
+  return payload;
+};
+
+const normalizeRank = (value, fallback = 100) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  const normalized = Math.floor(parsed);
+  return normalized >= 0 ? normalized : fallback;
+};
+
+function buildSupportFaqPayload(input = {}, { forInsert = false } = {}) {
+  const payload = pickAllowedFields(input, SUPPORT_FAQ_WRITABLE_FIELDS);
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'question')) {
+    payload.question = typeof payload.question === 'string' ? payload.question.trim() : '';
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, 'answer')) {
+    payload.answer = typeof payload.answer === 'string' ? payload.answer.trim() : '';
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, 'category')) {
+    payload.category =
+      typeof payload.category === 'string' && payload.category.trim()
+        ? payload.category.trim()
+        : null;
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, 'rank')) {
+    payload.rank = normalizeRank(payload.rank, 100);
+  } else if (forInsert) {
+    payload.rank = 100;
+  }
+
+  if (forInsert) {
+    payload.created_at = new Date().toISOString();
+  }
+
+  return payload;
+}
 
 /**
  * Get all FAQs with optional filters
@@ -72,13 +118,10 @@ export async function getSupportFAQ(faqId) {
  */
 export async function createSupportFAQ(input) {
   try {
-    const payload = {
-      question: input.question,
-      answer: input.answer,
-      category: input.category,
-      rank: input.rank || 999,
-      created_at: new Date().toISOString(),
-    };
+    const payload = buildSupportFaqPayload(input, { forInsert: true });
+    if (!payload.question || !payload.answer) {
+      throw new Error('FAQ question and answer are required');
+    }
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -100,9 +143,20 @@ export async function createSupportFAQ(input) {
  */
 export async function updateSupportFAQ(faqId, input) {
   try {
+    const payload = buildSupportFaqPayload(input, { forInsert: false });
+    if (Object.prototype.hasOwnProperty.call(payload, 'question') && !payload.question) {
+      throw new Error('FAQ question cannot be empty');
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'answer') && !payload.answer) {
+      throw new Error('FAQ answer cannot be empty');
+    }
+    if (Object.keys(payload).length === 0) {
+      return getSupportFAQ(faqId);
+    }
+
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .update(input)
+      .update(payload)
       .eq('id', faqId)
       .select()
       .single();
