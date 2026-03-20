@@ -15,6 +15,7 @@ import { SmartFooter } from "./components/navigation/SmartFooter";
 import { ContextAwareFAB } from "./components/navigation/ContextAwareFAB";
 import { DynamicBottomBar } from "./components/navigation/DynamicBottomBar";
 import { ProtectedRoute, UnauthorizedPage } from "./components/common/ProtectedRoute";
+import { ConsoleStartupOverlay } from "./components/common/ConsoleStartupOverlay";
 import { BentoHome } from "./components/pages/BentoHome";
 import { GodModeMap } from "./components/pages/GodModeMap";
 import { VerificationQueue } from "./components/pages/VerificationQueue";
@@ -120,6 +121,8 @@ const AppShell = ({ children }) => {
 					<DynamicBottomBar />
 				</>
 			)}
+
+			<ConsoleStartupOverlay disabled={hideNav} />
 		</div>
 	);
 };
