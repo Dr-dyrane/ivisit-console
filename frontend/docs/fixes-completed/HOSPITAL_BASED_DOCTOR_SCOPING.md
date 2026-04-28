@@ -93,7 +93,7 @@ SELECT * FROM visits WHERE doctor = 'Dr. Jane Independent';
 ```bash
 ✅ Emergency doctors can see all incoming patients
 ✅ Specialists can review relevant cases hospital-wide
-� On-call doctors can access any patient records
+✅ On-call doctors can access any patient records
 ✅ Department heads can oversee all patient flow
 ✅ Handoffs between doctors are seamless
 ```
@@ -111,8 +111,8 @@ SELECT * FROM visits WHERE doctor = 'Dr. Jane Independent';
 ```bash
 ✅ Multi-doctor consultations
 ✅ Specialist referrals within hospital
-� Cross-department patient care
-� Emergency coverage management
+✅ Cross-department patient care
+✅ Emergency coverage management
 ✅ Quality oversight and review
 ```
 
