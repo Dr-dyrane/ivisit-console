@@ -10,7 +10,9 @@ import { isValidUUID } from '../lib/utils';
 import { canonicalizeEmergencyStatus } from '../utils/emergencyStatus';
 
 const TABLE_NAME = 'emergency_requests';
-// Matrix guard contract set: explicit writable keys for RPC-backed create/update payloads.
+// PULLBACK NOTE: Expanded to include all columns added to logistics pillar during schema audit
+// OLD: minimal set — missing cost breakdown, bed/patient metadata, payment tracking columns
+// NEW: full parity with database.ts emergency_requests Row type
 const EMERGENCY_REQUEST_WRITABLE_FIELDS = new Set([
   'user_id',
   'service_type',
@@ -26,6 +28,22 @@ const EMERGENCY_REQUEST_WRITABLE_FIELDS = new Set([
   'patient_location',
   'pickup_location',
   'destination_location',
+  // Cost breakdown (from calculate_service_cost RPC)
+  'base_cost',
+  'distance_surcharge',
+  'urgency_surcharge',
+  'cost_breakdown',
+  'confirmed_cost',
+  // Bed booking metadata
+  'bed_count',
+  'bed_type',
+  // Patient/navigation metadata
+  'patient_heading',
+  'estimated_arrival',
+  'shared_data_snapshot',
+  // Payment tracking
+  'payment_method_id',
+  'payment_id',
 ]);
 
 function parsePointInput(input) {

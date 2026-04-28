@@ -10,13 +10,26 @@ import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'visits';
 
+// PULLBACK NOTE: Expanded to include all columns added to logistics pillar during schema audit
+// OLD: minimal set — missing snapshot, booking, location, financial, and legacy alias columns
+// NEW: full parity with database.ts visits Row type
 const VISIT_COLUMNS = new Set([
   'id',
   'user_id',
   'hospital_id',
   'request_id',
+  // Hospital snapshot
   'hospital_name',
+  'hospital',           // legacy alias — mapFromDb reads both
+  'hospital_image',
+  'address',
+  'phone',
+  'image',              // legacy alias for hospital_image
+  // Clinician snapshot
   'doctor_name',
+  'doctor',             // legacy alias — mapFromDb reads both
+  'doctor_image',
+  // Visit metadata
   'specialty',
   'date',
   'time',
@@ -24,11 +37,31 @@ const VISIT_COLUMNS = new Set([
   'status',
   'notes',
   'cost',
+  'summary',
+  'preparation',
+  'prescriptions',
+  // Booking details
+  'room_number',
+  'estimated_duration',
+  'meeting_link',
+  'insurance_covered',
+  'next_visit',
+  // Patient location at time of booking
+  'latitude',
+  'longitude',
+  // Financial
+  'tip_amount',
+  'tip_currency',
+  'tipped_at',
+  'tip_payment_id',
+  // Lifecycle
   'lifecycle_state',
   'lifecycle_updated_at',
+  // Rating
   'rating',
   'rating_comment',
   'rated_at',
+  // System
   'display_id',
   'created_at',
   'updated_at'
@@ -272,19 +305,22 @@ export async function deleteVisit(visitId) {
  */
 export async function completeVisit(visitId, summary, prescriptions) {
   try {
-    const summaryText = String(summary || '').trim();
-    const prescriptionsText = Array.isArray(prescriptions)
-      ? prescriptions.filter(Boolean).join(', ')
-      : String(prescriptions || '').trim();
-    const completionNotes = [summaryText, prescriptionsText]
-      .filter(Boolean)
-      .join(' | ');
+    // PULLBACK NOTE: Write to dedicated summary/prescriptions columns (now in pillar)
+    // OLD: collapsed both fields into notes as "summaryText | prescriptionsText"
+    // NEW: summary → TEXT column, prescriptions → TEXT[] column, notes preserved separately
+    const summaryText = String(summary || '').trim() || null;
+    const prescriptionsArray = Array.isArray(prescriptions)
+      ? prescriptions.filter(Boolean)
+      : prescriptions
+        ? String(prescriptions).split(',').map(s => s.trim()).filter(Boolean)
+        : null;
 
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .update({
         status: 'completed',
-        ...(completionNotes ? { notes: completionNotes } : {}),
+        ...(summaryText ? { summary: summaryText } : {}),
+        ...(prescriptionsArray?.length ? { prescriptions: prescriptionsArray } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq('id', visitId)
