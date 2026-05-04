@@ -45,6 +45,12 @@ import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { PWAProvider } from "./contexts/PWAContext";
 import { FeedbackProvider } from "./contexts/FeedbackContext";
+// PULLBACK NOTE: Pass A1 — TanStack Query foundation
+// OLD: no QueryClientProvider, no server data caching
+// NEW: QueryClientProvider wraps full tree; ReactQueryDevtools in dev only
+import { QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { queryClient } from "./lib/queryClient";
 import "./App.css";
 
 // --- PWA DEBUG TRACKER ---
@@ -180,21 +186,26 @@ function AppRoutes() {
 
 function App() {
 	return (
-		<ErrorBoundary>
-			<ThemeProvider>
-				<PWAProvider>
-					<FeedbackProvider>
-						<Router>
-							<AppRoutes />
-							<Toaster position="top-right" richColors />
+		<QueryClientProvider client={queryClient}>
+			<ErrorBoundary>
+				<ThemeProvider>
+					<PWAProvider>
+						<FeedbackProvider>
+							<Router>
+								<AppRoutes />
+								<Toaster position="top-right" richColors />
 
-							{/* PWA Debug Tracker */}
-							<PWADebugTracker />
-						</Router>
-					</FeedbackProvider>
-				</PWAProvider>
-			</ThemeProvider>
-		</ErrorBoundary>
+								{/* PWA Debug Tracker */}
+								<PWADebugTracker />
+							</Router>
+						</FeedbackProvider>
+					</PWAProvider>
+				</ThemeProvider>
+			</ErrorBoundary>
+			{process.env.NODE_ENV === 'development' && (
+				<ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+			)}
+		</QueryClientProvider>
 	);
 }
 
