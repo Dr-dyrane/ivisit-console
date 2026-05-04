@@ -1,5 +1,3 @@
-'use client';
-
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -16,32 +14,9 @@ import { ContextAwareFAB } from "./components/navigation/ContextAwareFAB";
 import { DynamicBottomBar } from "./components/navigation/DynamicBottomBar";
 import { ProtectedRoute, UnauthorizedPage } from "./components/common/ProtectedRoute";
 import { ConsoleStartupOverlay } from "./components/common/ConsoleStartupOverlay";
-import { BentoHome } from "./components/pages/BentoHome";
-import { GodModeMap } from "./components/pages/GodModeMap";
-import { VerificationQueue } from "./components/pages/VerificationQueue";
-import { Analytics } from "./components/pages/Analytics";
-import { HospitalsPage } from "./components/pages/HospitalsPage";
-import { AmbulancesPage } from "./components/pages/AmbulancesPage";
-import { OrganizationsPage } from "./components/pages/OrganizationsPage";
-import { UsersPage } from "./components/pages/UsersPage";
-import { DoctorsPage } from "./components/pages/DoctorsPage";
-import { VisitsPage } from "./components/pages/VisitsPage";
-import { EmergencyRequestsPage } from "./components/pages/EmergencyRequestsPage";
-import { LoginPage } from "./components/pages/LoginPage";
-import { SetPasswordPage } from "./components/pages/SetPasswordPage";
-import { SettingsPage } from "./components/pages/SettingsPage";
-import { NotFoundPage } from "./components/pages/NotFoundPage";
-import { HealthNewsManagementPage } from "./components/pages/HealthNewsManagementPage";
-import { SupportTicketsPage } from "./components/pages/SupportTicketsPage";
-import { InsuranceManagementPage } from "./components/pages/InsuranceManagementPage";
-import { SubscriptionManagementPage } from "./components/pages/SubscriptionManagementPage";
-import { WalletManagementPage } from "./components/pages/WalletManagementPage";
-import { PricingManagementPage } from "./components/pages/PricingManagementPage";
-import { OnboardingPage } from "./components/pages/OnboardingPage";
-import { OnboardingSuccessPage } from "./components/pages/OnboardingSuccessPage";
 import { Toaster } from "./components/ui/sonner";
 import { GlobalFinancialModals } from "./components/modals/GlobalFinancialModals";
-import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import { motion } from "framer-motion";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { PWAProvider } from "./contexts/PWAContext";
 import { FeedbackProvider } from "./contexts/FeedbackContext";
@@ -52,6 +27,33 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "./lib/queryClient";
 import "./App.css";
+
+// PULLBACK NOTE: Pass A2 — lazy route imports for code splitting
+// OLD: all 20 pages eagerly imported at startup (bloats initial bundle)
+// NEW: React.lazy + Suspense — each page loads only when navigated to
+const BentoHome = React.lazy(() => import("./components/pages/BentoHome").then(m => ({ default: m.BentoHome })));
+const GodModeMap = React.lazy(() => import("./components/pages/GodModeMap").then(m => ({ default: m.GodModeMap })));
+const VerificationQueue = React.lazy(() => import("./components/pages/VerificationQueue").then(m => ({ default: m.VerificationQueue })));
+const Analytics = React.lazy(() => import("./components/pages/Analytics").then(m => ({ default: m.Analytics })));
+const HospitalsPage = React.lazy(() => import("./components/pages/HospitalsPage").then(m => ({ default: m.HospitalsPage })));
+const AmbulancesPage = React.lazy(() => import("./components/pages/AmbulancesPage").then(m => ({ default: m.AmbulancesPage })));
+const OrganizationsPage = React.lazy(() => import("./components/pages/OrganizationsPage").then(m => ({ default: m.OrganizationsPage })));
+const UsersPage = React.lazy(() => import("./components/pages/UsersPage").then(m => ({ default: m.UsersPage })));
+const DoctorsPage = React.lazy(() => import("./components/pages/DoctorsPage").then(m => ({ default: m.DoctorsPage })));
+const VisitsPage = React.lazy(() => import("./components/pages/VisitsPage").then(m => ({ default: m.VisitsPage })));
+const EmergencyRequestsPage = React.lazy(() => import("./components/pages/EmergencyRequestsPage").then(m => ({ default: m.EmergencyRequestsPage })));
+const LoginPage = React.lazy(() => import("./components/pages/LoginPage").then(m => ({ default: m.LoginPage })));
+const SetPasswordPage = React.lazy(() => import("./components/pages/SetPasswordPage").then(m => ({ default: m.SetPasswordPage })));
+const SettingsPage = React.lazy(() => import("./components/pages/SettingsPage").then(m => ({ default: m.SettingsPage })));
+const NotFoundPage = React.lazy(() => import("./components/pages/NotFoundPage").then(m => ({ default: m.NotFoundPage })));
+const HealthNewsManagementPage = React.lazy(() => import("./components/pages/HealthNewsManagementPage").then(m => ({ default: m.HealthNewsManagementPage })));
+const SupportTicketsPage = React.lazy(() => import("./components/pages/SupportTicketsPage").then(m => ({ default: m.SupportTicketsPage })));
+const InsuranceManagementPage = React.lazy(() => import("./components/pages/InsuranceManagementPage").then(m => ({ default: m.InsuranceManagementPage })));
+const SubscriptionManagementPage = React.lazy(() => import("./components/pages/SubscriptionManagementPage").then(m => ({ default: m.SubscriptionManagementPage })));
+const WalletManagementPage = React.lazy(() => import("./components/pages/WalletManagementPage").then(m => ({ default: m.WalletManagementPage })));
+const PricingManagementPage = React.lazy(() => import("./components/pages/PricingManagementPage").then(m => ({ default: m.PricingManagementPage })));
+const OnboardingPage = React.lazy(() => import("./components/pages/OnboardingPage").then(m => ({ default: m.OnboardingPage })));
+const OnboardingSuccessPage = React.lazy(() => import("./components/pages/OnboardingSuccessPage").then(m => ({ default: m.OnboardingSuccessPage })));
 
 // --- PWA DEBUG TRACKER ---
 const PWADebugTracker = () => {
@@ -153,6 +155,7 @@ function AppRoutes() {
 	return (
 		<AuthProvider pathname={location.pathname}>
 			<AppLayout>
+				<React.Suspense fallback={<div className="flex-1 bg-background" />}>
 				<Routes>
 					<Route path="/login" element={<LoginPage />} />
 					<Route path="/set-password" element={<SetPasswordPage />} />
@@ -179,6 +182,7 @@ function AppRoutes() {
 					<Route path="/pricing" element={<ProtectedRoute minRole="org_admin"><PricingManagementPage /></ProtectedRoute>} />
 					<Route path="*" element={<NotFoundPage />} />
 				</Routes>
+				</React.Suspense>
 			</AppLayout>
 		</AuthProvider>
 	);
