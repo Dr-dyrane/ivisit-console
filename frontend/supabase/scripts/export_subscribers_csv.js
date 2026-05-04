@@ -9,11 +9,11 @@ const fs = require("fs");
 const path = require("path");
 require("dotenv").config({ path: ".env.local" });
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const SERVICE_ROLE_KEY = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+const SERVICE_ROLE_KEY = process.env.REACT_APP_SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-  console.error("❌ Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY in .env.local");
+  console.error("❌ Missing REACT_APP_SUPABASE_URL or REACT_APP_SUPABASE_SERVICE_ROLE_KEY in .env.local");
   process.exit(1);
 }
 
@@ -68,8 +68,8 @@ async function exportSubscribers() {
     .map((sub) => sub.email?.toLowerCase().trim())
     .filter(Boolean);
 
-  // Comma-separated format
-  const csvContent = emails.join(", ");
+  // One email per row, no header
+  const csvContent = emails.join("\n");
 
   // Write file
   fs.writeFileSync(OUTPUT_PATH, csvContent, "utf8");

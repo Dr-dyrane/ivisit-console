@@ -7,11 +7,11 @@
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config({ path: ".env.local" });
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const SERVICE_ROLE_KEY = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+const SERVICE_ROLE_KEY = process.env.REACT_APP_SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-  console.error("❌ Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY in .env.local");
+  console.error("❌ Missing REACT_APP_SUPABASE_URL or REACT_APP_SUPABASE_SERVICE_ROLE_KEY in .env.local");
   process.exit(1);
 }
 
@@ -25,6 +25,11 @@ const EMAILS = [
   "umehnonsoo@gmail.com",
   "Ericaprecious18@gmail.com",
   "taiwomuraina19@gmail.com",
+  "bhoukey@gmail.com",
+  "pretek25@gmail.com",
+  "kehinde.murainaa@gmail.com",
+  "Boluwatifeashiru@gmail.com",
+  "madu.thommy@gmail.com",
 ];
 
 async function addSubscriberBatch() {

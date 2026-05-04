@@ -8,7 +8,19 @@ System architecture, security, and access control implementation.
 
 ### **📚 Available Documents**
 
-#### **🛡️ [PROTECTED_ROUTES_SYSTEM.md](./PROTECTED_ROUTES_SYSTEM.md)**
+#### **🗺️ [CONSOLE_OPTIMISATION_MASTER_PLAN.md](./CONSOLE_OPTIMISATION_MASTER_PLAN.md)** ← START HERE
+Single source of truth for the full optimisation. 5-layer state architecture, implementation order, rollback hashes, ivisit-app ecosystem alignment, and execution log for all 19 sub-passes.
+
+#### **🏗️ [CONSOLE_GRAND_REFACTOR_PLAN.md](./CONSOLE_GRAND_REFACTOR_PLAN.md)**
+Grand refactor plan to bring the console to gold standard (5-layer state architecture). 10-pass migration from god-context + monolith pages → TanStack Query + Zustand + Jotai + decomposed pages.
+
+#### **🔍 [APP_ENTRY_LAYOUT_AUDIT.md](./APP_ENTRY_LAYOUT_AUDIT.md)**
+Deep audit of `App.js`, `LayoutContext`, `NavigationContext`, and `AppShell`. Documents all violations: eager imports, `window.innerWidth` at render time, duplicate breakpoint listeners, DOM event bus, missing `QueryClientProvider`. 8 sub-passes planned.
+
+#### **🔍 [PROVIDERS_AUDIT.md](./PROVIDERS_AUDIT.md)**
+Full audit of all 7 React context providers. Identifies `PageDataContext` (1,039 lines, 14 domains) and `MapProvider` as critical L2 violations, hardcoded admin email as security issue, duplicate `NavigationProvider`, and target provider tree (8 → 5 nesting levels).
+
+#### **�️ [PROTECTED_ROUTES_SYSTEM.md](./PROTECTED_ROUTES_SYSTEM.md)**
 Comprehensive route protection system preventing manual URL bypassing with navigation-based access control.
 
 #### **🔐 [RBAC_IMPLEMENTATION_STATUS.md](./RBAC_IMPLEMENTATION_STATUS.md)**
