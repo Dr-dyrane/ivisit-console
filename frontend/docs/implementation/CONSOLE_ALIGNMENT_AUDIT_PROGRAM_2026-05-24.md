@@ -187,6 +187,14 @@ Recommended commit boundaries:
 
 Commit only when the stage is coherent enough to resume from. Do not commit half-written matrices unless the commit message says it is a checkpoint.
 
+Database/type sync guard:
+
+- After any Supabase/schema/type sync into console, run `cd frontend && npm run check:database-types-encoding`.
+- The same guard is part of `npm run build`, so Vercel fails early with a named encoding error instead of a vague TypeScript `TS1490`.
+- Tracked hook: `.githooks/pre-commit` runs the guard when staged files include `frontend/src/types/database.ts`, `frontend/supabase_types.ts`, `frontend/supabase/`, or database-named paths.
+- Enable the tracked hook locally with `git config core.hooksPath .githooks`.
+- The generated database type files must be UTF-8 without BOM, never UTF-16 LE/BE and never NUL-padded.
+
 ## Current Next Step
 
 Continue Stage 1. Complete the database truth doc before starting app mutation mapping.
