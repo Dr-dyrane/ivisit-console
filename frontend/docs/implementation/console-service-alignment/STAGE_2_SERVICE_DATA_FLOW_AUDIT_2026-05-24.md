@@ -158,3 +158,25 @@ The first Stage 2 pass now covers the main console service families:
 - visits/medical/insurance/content/subscriber/search/support
 
 The next audit layer should produce exact field-to-UI and payload-to-RPC charts for drift-suspected services before any implementation changes.
+
+## Exact Contract Exhibit Pass
+
+The next layer has started under `frontend/docs/implementation/console-service-alignment/contracts/`.
+
+Completed source-only exhibits:
+
+- emergency creation/update, manual cash completion, wallet ledger repair, and availability mutation
+- profile editing and display ID resolution
+- visits ownership and subscriber lifecycle
+
+First confirmed contract failures requiring implementation planning:
+
+- Console cash completion first marks the request `completed`, then invokes an RPC whose v2 receiver rejects completed requests.
+- The emergency create modal provides status, bed number, cost, and payment-status fields that the atomic creation path does not consistently forward or persist.
+- The current hospital edit path does not persist the visible ER-wait field or rebuild app-consumed availability snapshots from scalar bed edits; the hook also exposes partial bed/status writers outside the availability RPC.
+- Admin profile edit accepts fields, including email and image/name components, that `update_profile_by_admin` does not update.
+- The display ID bulk resolver queries `hospitals` for consumers that supply profile/provider IDs.
+- Direct visit CRUD has no documented separation for rows whose lifecycle is owned by emergency-to-visit synchronization.
+- Subscriber lifecycle flags are written by multiple console services and Edge Functions.
+
+All findings above are static source findings. Runtime and deployed-schema proof remains read-only follow-up work.
