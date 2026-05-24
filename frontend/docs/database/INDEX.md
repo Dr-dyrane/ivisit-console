@@ -1,5 +1,9 @@
 # Database
 
+## Active Alignment Audit
+
+- [Console-App Database Alignment](./console-app-alignment/README.md) - Active Stage 1 database truth subtree for schema, RPC, trigger, policy, Edge Function, UUID/display ID, and Postgres nuance alignment.
+
 ## 📋 **Contents**
 
 Complete database schema, type definitions, and data relationships.

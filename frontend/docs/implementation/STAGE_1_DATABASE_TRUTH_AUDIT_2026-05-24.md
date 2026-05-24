@@ -38,8 +38,13 @@ App repo cross-checks:
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/migrations/`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/docs/REFERENCE.md`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/tests/validation/table_flow_trace_*.md`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/services/`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/hooks/`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/tests/scripts/`
 
 If generated docs disagree with migrations, trust the migrations until live database introspection proves otherwise.
+
+The app repo is the reference implementation for intent and scope. Console does not need to copy every app abstraction in Stage 1, but app services, hooks, Edge Functions, and tests should be consulted to catch missing console service coverage.
 
 ## Initial Table Inventory
 
@@ -94,6 +99,12 @@ wallet_ledger
 ```
 
 Next action: expand this into a table-by-table matrix with columns, types, defaults, nullability, constraints, indexes, RLS policies, owning services, and app/console usage.
+
+The first subtree matrix has started at:
+
+- `frontend/docs/database/console-app-alignment/TABLE_DOMAIN_MATRIX_2026-05-24.md`
+
+Keep detailed table findings in that subtree. This stage document should summarize and link, not absorb every table row.
 
 ## Initial Function/RPC Inventory
 
@@ -225,6 +236,17 @@ validate_payment_method
 
 Next action: classify each function as read, write, trigger-only, RPC, auth helper, validation helper, pricing helper, dispatch helper, payment helper, or deprecated/legacy candidate.
 
+The first RPC classification matrix has started at:
+
+- `frontend/docs/database/console-app-alignment/RPC_MUTATION_MATRIX_2026-05-24.md`
+
+Current high-risk drift candidates:
+
+- Console uses `process_cash_payment`; app uses `process_cash_payment_v2`.
+- Console page code calls `delete_user_by_admin` directly.
+- App calls `update_hospital_availability`; console service usage is not yet observed.
+- Emergency status mutations must go through RPCs that set transition context.
+
 ## Initial Edge Function Inventory
 
 Found under `frontend/supabase/functions/`:
@@ -302,9 +324,76 @@ Then build an RLS matrix:
 | Table | Policy | Operation | Role/Scope | Helper Function | Console Risk |
 | --- | --- | --- | --- | --- | --- |
 
+The first trigger/policy matrix has started at:
+
+- `frontend/docs/database/console-app-alignment/TRIGGER_POLICY_MATRIX_2026-05-24.md`
+
+## Edge Function Matrix
+
+The Edge Function side-effect matrix has started at:
+
+- `frontend/docs/database/console-app-alignment/EDGE_FUNCTION_MATRIX_2026-05-24.md`
+
+Current findings:
+
+- `discovery/index.ts` behaves like a user existence/check-user function, not provider discovery.
+- `payments/index.ts` behaves like an invite-user/admin invitation function, not a payment processor.
+- `process-subscribers`, `sendWelcome`, and `webhooks` mutate subscriber lifecycle state.
+- `sendBulkEmail`, `sendCustomEmail`, `sendWelcome`, and `process-subscribers` can send external email.
+- Several functions have no observed in-function admin authorization check.
+- Email HTML includes mojibake and should be scanned before any public campaign.
+
+## UUID And Display ID Rules
+
+The identity rule doc has started at:
+
+- `frontend/docs/database/console-app-alignment/UUID_DISPLAY_ID_RULES_2026-05-24.md`
+
+Working rule:
+
+- `id` is the UUID database identity.
+- `display_id` is the human-readable label.
+- `id_mappings` and `get_entity_id` bridge display IDs into UUIDs.
+- Console mutations should use UUIDs unless an RPC intentionally accepts display ID text.
+
+Stage 2 must prove this service by service.
+
+## Postgres Nuance Risk Register
+
+The Postgres risk register has started at:
+
+- `frontend/docs/database/console-app-alignment/POSTGRES_NUANCE_RISK_REGISTER_2026-05-24.md`
+
+High-risk themes:
+
+- `SECURITY DEFINER` RPC boundaries.
+- `exec_sql` exposure.
+- emergency transition context and triggers.
+- JSONB payload contracts.
+- wallet/payment atomicity.
+- geometry serialization.
+- generated-doc drift.
+- missing source-controlled cron.
+- mojibake in generated/public surfaces.
+
+## Read-Only Audit Guardrails
+
+The read-only evidence map has started at:
+
+- `frontend/docs/database/console-app-alignment/READ_ONLY_AUDIT_EVIDENCE_2026-05-24.md`
+
+This audit must not run database resets, migration runners, seeders, repair scripts, cleanup scripts, email scripts, subscriber processors, or mutating Edge Functions. Scripts from `ivisit-app` are valuable reference evidence but are not safe to execute by default because many insert, update, delete, call mutating RPCs, or clean up fixtures.
+
 ## Cron/Scheduled Work
 
-Not yet verified. Search targets:
+Initial static search result:
+
+- Current migrations enable `pgcrypto` and `postgis`.
+- No current migration was found that enables `pg_cron` or calls `cron.schedule`.
+- `frontend/docs/architecture/CONSOLE_GRAND_REFACTOR_PLAN.md` explicitly notes that cron schedules belong in migrations and calls out a missing `pg_cron` migration for `process-subscribers`.
+- Legacy references mention a commented `cron.schedule('update-trending-topics', '0 */6 * * *', 'SELECT update_trending_topics_from_search();')`, but this is not current source-of-truth migration behavior.
+
+Remaining search targets:
 
 - `cron.schedule`
 - `pg_cron`
@@ -314,6 +403,18 @@ Not yet verified. Search targets:
 
 This must be completed before Stage 1 is marked done.
 
+## Current App-Console Gap Signals
+
+Static cross-checks against `ivisit-app` show that the app has a more mature L5-style surface:
+
+- service modules for payment, pricing, route, discovery, emergency requests, dispatch, realtime availability, visits, medical profile, preferences, notifications, and app migrations
+- hooks/query layers for visits, payment, map, medical profile, search, and emergency surfaces
+- XState/Jotai/Zustand-adjacent architecture docs and implementations
+- Supabase `_shared` Edge Function utilities for HTTP, env, auth, payments, providers, and domain normalization
+- validation scripts for runtime CRUD, cross-repo contracts, console UI CRUD contracts, direct mutation surfaces, Edge Function smoke, table-flow trace export, and emergency hardening
+
+Console currently has many CRUD services, but Stage 2 must prove field coverage and mutation ownership service by service rather than assuming parity from matching table names.
+
 ## Commands Used
 
 ```powershell
@@ -321,6 +422,9 @@ Select-String -Path frontend\supabase\migrations\*.sql -Pattern 'CREATE TABLE IF
 Select-String -Path frontend\supabase\migrations\*.sql -Pattern 'CREATE OR REPLACE FUNCTION public\.([a-zA-Z0-9_]+)'
 Select-String -Path frontend\supabase\migrations\*.sql -Pattern 'CREATE TRIGGER ([a-zA-Z0-9_]+)|CREATE POLICY "?([^"\r\n]+)"?'
 Get-ChildItem -Path frontend\supabase\functions -Directory
+rg --files -g ".env*" -g "*.ps1" -g "*.js" frontend\supabase frontend\scripts frontend\src\utils .
+rg --files frontend\supabase\tests frontend\supabase\scripts frontend\supabase\functions -g "*.js" -g "*.ts" -g "*.sql" -g "*.md"
+rg -n "rpc\('|\.from\('|\.insert\(|\.update\(|\.delete\(|\.upsert\(" frontend\src -S
 ```
 
 ## Stage 1 Completion Criteria
@@ -335,6 +439,8 @@ Stage 1 is not complete until:
 - UUID/display ID rules are checked against app and console services
 - Postgres nuance risks are called out by domain
 - app repo and console repo schema sources are compared
+- app repo services/tests are consulted for missing console implementation scope
+- read-only audit guardrails are documented before any live/staging introspection
 - any live/staging schema drift is explicitly marked as unverified or verified
 
 ## Recommended Commit Point
