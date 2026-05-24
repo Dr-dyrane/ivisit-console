@@ -104,3 +104,75 @@ Key deployed observations:
 Detailed authority and field mapping is recorded at:
 
 - `frontend/docs/implementation/console-service-alignment/contracts/CARE_CONTENT_ANALYTICS_CONTRACT_CHART_2026-05-24.md`
+
+## Executed Organization Stripe Receiver Follow-Up - 2026-05-24
+
+A SELECT-only column availability probe checked the receiver columns used by the app-owned `manage-payment-methods` function for console organization billing. It returned no rows and executed no function or mutation.
+
+Observed selectable column surface:
+
+| Column | `organizations` | `profiles` |
+| --- | --- | --- |
+| `stripe_account_id` | present | present |
+| `ivisit_fee_percentage` | present | present |
+| `stripe_customer_id` | absent | present |
+| `payout_method_id` | absent | present |
+| `payout_method_last4` | absent | present |
+| `payout_method_brand` | absent | present |
+
+This confirms that the current organization billing-method function targets receiver fields not exposed on live `organizations`, matching the pillar migration mismatch recorded in the Edge Function matrix.
+
+## Executed Finance Ledger Linkage Follow-Up - 2026-05-24
+
+A further SELECT-only aggregate probe read completed payment classifications and ledger references to check the exposure around the mapped cash settlement paths. It returned aggregate counts and ledger signature counts only; it did not return row identifiers, call an RPC or Edge Function, or mutate any payment, wallet, or ledger record.
+
+| Aggregate | Result |
+| --- | ---: |
+| Completed cash payments | 137 |
+| Completed cash payments with positive stored fee | 28 |
+| Completed cash payments with any referenced ledger row | 28 |
+| Completed cash positive-fee payments with any referenced ledger row | 28 |
+| Completed non-cash payments | 15 |
+| Completed non-cash payments with positive stored fee | 0 |
+| Completed non-cash payments with any referenced ledger row | 2 |
+| All ledger rows with a reference id in the fetched population | 103 |
+
+The referenced cash-ledger signatures were:
+
+| Aggregate ledger signature | Rows | Interpretable pairs |
+| --- | ---: | ---: |
+| `debit / iVisit Platform Fee (Cash Payment) / no metadata source` | 6 | 6 debit legs |
+| `credit / Platform Fee (Cash Payment) / no metadata source` | 6 | 6 credit legs |
+| `debit / iVisit Platform Fee (Cash Payment Backfill) / runtime_data_integrity_repair` | 22 | 22 debit legs |
+| `credit / Platform Fee (Cash Payment Backfill) / runtime_data_integrity_repair` | 22 | 22 credit legs |
+
+Interpretation boundary: these reads prove that 22 of 28 fee-bearing completed cash-payment settlement pairs are explicitly labelled as integrity-repair output. They do not prove which UI action originally created any payment. Static source still establishes that the current `process_cash_payment_v2` insert path does not itself contain wallet/ledger writes and is skipped by the generic non-cash settlement trigger.
+
+## Executed Pricing And Onboarding Receiver Follow-Up - 2026-05-24
+
+A SELECT-only probe through the configured non-privileged app client inspected hospital ownership, pricing row scope, and selectable onboarding/verification receiver columns. It returned aggregate counts and column-presence booleans only. It did not call RPCs or Edge Functions and did not insert, update, delete, seed, migrate, repair, or reset data.
+
+The client visibility scope for this probe returned 130 hospital rows; these results must not be interpreted as the full deployed hospital population recorded by a prior differently scoped read.
+
+| Aggregate in visible scope | Result |
+| --- | ---: |
+| Hospitals visible to this probe | 130 |
+| Organizations with at least one visible hospital | 23 |
+| Organizations with multiple visible hospitals | 21 |
+| Hospitals within those multi-hospital organizations | 127 |
+| Visible `service_pricing` rows | 422 |
+| Visible `service_pricing` rows attached to multi-hospital organizations | 410 |
+| Visible `room_pricing` rows | 219 |
+| Visible `room_pricing` rows attached to multi-hospital organizations | 208 |
+
+| Receiver column | Selectable live |
+| --- | --- |
+| `hospitals.verification_status` | yes |
+| `hospitals.rejection_reason` | no |
+| `hospitals.verified_at` | no |
+| `hospitals.rejected_at` | no |
+| `profiles.bvn_verified` | yes |
+| `profiles.verification_status` | no |
+| `profiles.organization_id` | yes |
+
+Interpretation boundary: visible data already contains multi-hospital organizations with hospital-scoped pricing, establishing that the console's silent earliest-hospital pricing resolution is an exposed contract risk. Column presence also confirms that the legacy onboarding approval helper targets absent live receiver fields. A requested privileged full-population recheck was not executed because no local service-role read key was available; it failed before issuing a database request.

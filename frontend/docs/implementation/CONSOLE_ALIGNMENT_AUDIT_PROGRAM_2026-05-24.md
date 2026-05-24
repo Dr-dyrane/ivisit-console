@@ -56,13 +56,13 @@ Avoid doc bloat:
 
 | Stage | Name | Output | Commit Boundary |
 | --- | --- | --- | --- |
-| 0 | Audit rules and map | This program plus the current alignment overview | Commit after the audit spine and indexes are in place |
-| 1 | Database truth | Canonical schema/RPC/trigger/cron/Edge Function map | Commit after DB truth doc is internally consistent |
-| 2 | App mutation truth | How `ivisit-app` mutates each table/RPC/Edge Function | Commit after app mutation map is complete |
-| 3 | Console capability gap | Console services, page-level Supabase calls, missing services, stale paths | Commit after gap matrix is complete |
-| 4 | L5 state/data audit | State ownership map and violations by surface | Commit after state/data doc is complete |
-| 5 | Narrow service audits | One doc per service or domain lane | Commit each finished service audit as its own milestone |
-| 6 | Implementation pass plans | Ordered, narrow implementation plans with no hidden research | Commit after pass plan set is complete |
+| 0 | Audit rules and map | This program plus the current alignment overview | Baseline commit only when needed to establish the audit spine |
+| 1 | Database truth | Canonical schema/RPC/trigger/cron/Edge Function map | Accumulate with Stages 2-3 into one contract-truth evidence pack |
+| 2 | App mutation truth | How `ivisit-app` mutates each table/RPC/Edge Function | Accumulate with Stages 1 and 3 into one contract-truth evidence pack |
+| 3 | Console capability gap | Console services, page-level Supabase calls, missing services, stale paths | Commit once database, app, and console contract findings form a complete evidence pack |
+| 4 | L5 state/data audit | State ownership map and violations by surface | Commit only after the complete state/data ownership stage is indexed and internally consistent |
+| 5 | Narrow service audits | One doc per service or domain lane | Accumulate all service exhibits locally; publish with the completed contract-truth or implementation-plan pack, not per lane |
+| 6 | Implementation pass plans | Ordered, narrow implementation plans with no hidden research | Commit once the ordered pass-plan set is complete and implementation can begin from it |
 
 Do not bundle implementation changes with audit commits. Implementation should start only after a stage doc names the exact target and acceptance checks.
 
@@ -175,17 +175,22 @@ Only after audit docs are complete, produce implementation passes:
 
 ## Git Discipline
 
-Recommended commit boundaries:
+Commit boundaries are comprehensive, not document-by-document:
 
-1. `Document console alignment audit program`
-2. `Document console database truth audit`
-3. `Document app mutation truth for console alignment`
-4. `Document console service and UI capability gaps`
-5. `Document console state ownership audit`
-6. `Document emergency service alignment plan`
-7. `Document payment and wallet alignment plan`
+1. Baseline only: `Establish console alignment audit baseline`, when a stable recovery point is required before deeper audit work.
+2. Contract truth pack: `Document console contract truth audit`, after database truth, app mutation truth, console capability gaps, exact contract exhibits, and read-only evidence are complete enough to hand off together.
+3. State ownership pack: `Document console state ownership audit`, after the full L5 surface map is complete.
+4. Implementation plan pack: `Document console alignment implementation plans`, after the prioritized pass plans and acceptance gates are complete.
 
-Commit only when the stage is coherent enough to resume from. Do not commit half-written matrices unless the commit message says it is a checkpoint.
+Do not commit an individual service map, exhibit, read-only probe note, or index update simply because it is finished. Keep related audit work in the worktree until its full pack is internally consistent and resumable.
+
+An interim commit is permitted only when:
+
+- a build/deployment break requires an immediately publishable repair baseline
+- an external sync or schema refresh needs a protected before/after point
+- the user explicitly requests a checkpoint or push
+
+When an exception is used, identify why the pack was not yet complete in the commit note or audit log.
 
 Database/type sync guard:
 
@@ -197,4 +202,4 @@ Database/type sync guard:
 
 ## Current Next Step
 
-Continue Stage 1. Complete the database truth doc before starting app mutation mapping.
+Continue refining the Stage 6 implementation pass plan from the Stage 4 L5 matrix. Planning is still audit-only: do not start product changes until the selected pass has a narrow checklist, acceptance gates, and verification commands.

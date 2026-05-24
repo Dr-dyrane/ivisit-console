@@ -18,10 +18,10 @@ That order is required before implementation so fixes are made at the ownership 
 
 ## Documents
 
-- [Emergency, Payment, and Capacity Contract Chart - 2026-05-24](./EMERGENCY_PAYMENT_CAPACITY_CONTRACT_CHART_2026-05-24.md) - emergency creation and completion, manual cash processing, ledger repair, and hospital availability fields.
+- [Emergency, Payment, and Capacity Contract Chart - 2026-05-24](./EMERGENCY_PAYMENT_CAPACITY_CONTRACT_CHART_2026-05-24.md) - emergency creation and completion, manual cash processing, Stripe/wallet behavior, hospital-scoped pricing, and availability fields.
 - [Identity, Visits, and Subscribers Contract Chart - 2026-05-24](./IDENTITY_VISITS_SUBSCRIBERS_CONTRACT_CHART_2026-05-24.md) - user editing, display ID resolution, visit ownership, and subscriber email lifecycle.
 - [Ownership Trigger and Edge Function Proof - 2026-05-24](./OWNERSHIP_TRIGGER_EDGE_FUNCTION_PROOF_2026-05-24.md) - trigger/function receivers that correct or confirm charted drift.
-- [Provider Operations Contract Chart - 2026-05-24](./PROVIDER_OPERATIONS_CONTRACT_CHART_2026-05-24.md) - ambulance, doctor invitation/projection, and scheduling field contracts.
+- [Provider Operations Contract Chart - 2026-05-24](./PROVIDER_OPERATIONS_CONTRACT_CHART_2026-05-24.md) - ambulance and responder telemetry, verification/onboarding, doctor invitation/projection, and scheduling field contracts.
 - [Read-Only Live Confirmation Matrix - 2026-05-24](./READ_ONLY_LIVE_CONFIRMATION_MATRIX_2026-05-24.md) - aggregate deployed-table confirmation of current exposure without mutation or row-level disclosure.
 - [Care, Content, and Analytics Contract Chart - 2026-05-24](./CARE_CONTENT_ANALYTICS_CONTRACT_CHART_2026-05-24.md) - insurance authorization, patient-to-console support receipt, health-news authoring, notification policy, and search/trend display truth.
 

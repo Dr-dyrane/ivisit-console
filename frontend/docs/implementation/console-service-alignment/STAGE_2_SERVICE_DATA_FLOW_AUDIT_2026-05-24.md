@@ -135,13 +135,16 @@ For each service:
 
 ## Commit Discipline
 
-Commit after each coherent service-family map, not after every small note. Suggested boundaries:
+Service-family maps and contract exhibits are working evidence, not individual commit boundaries. Continue adding them locally until the complete contract-truth pack includes:
 
-- emergency/payment/capacity map
-- identity/admin/user map
-- provider/hospital/doctor/ambulance map
-- content/support/subscriber/search map
-- final Stage 2 index and implementation plan
+- database/RPC/RLS/Edge Function ownership
+- `ivisit-app` mutation and dependency evidence
+- console service, UI, and missing-capability mapping
+- exact field/payload contract exhibits
+- read-only confirmation where safe and relevant
+- ordered implementation inputs
+
+Publish the pack in one coherent commit once these pieces are complete and indexed. Use an interim checkpoint only for an explicitly requested push, a deployment/build repair baseline, or a before/after boundary required for a sync or schema refresh.
 
 ## Current Stage 2 Documents
 
@@ -228,3 +231,36 @@ The next exact exhibit now covers services whose page promises depend directly o
 - Quick search reads public trend rows through a valid RPC, while automatic trend regeneration functions are success-returning stubs and the analytics screen visibly renders constant search metrics.
 
 A SELECT-only follow-up found zero current policy or ticket rows, two published news rows, zero notification/search event rows, and 21 trend rows. These counts narrow current repair population; they do not reduce the forward contract priority.
+
+## Edge Function Runtime Ownership Pass
+
+The database Edge Function matrix has been expanded against the app-owned deployment runbook and function sources:
+
+- `ivisit-app` is the identified runtime source for `create-payment-intent`, `create-payout`, `manage-payment-methods`, `discover-hospitals`, and `stripe-webhook`, while console calls these slugs without containing their matching implementation tree.
+- Console-local Edge Function sources instead cover legacy subscriber/email, invite, check-user, and unsubscribe behavior; their deployed-slug ownership remains unproven from the app runtime inventory.
+- The app-owned `manage-payment-methods` function accepts organization context and uses a service-role client without an observed organization authorization guard before organization card/payout-method operations. A SELECT-only receiver check also confirms its organization customer/payout-method target fields are absent live on `organizations` and instead exist on `profiles`.
+- Console wallet top-up omits `is_top_up`, discards the returned payment confirmation path, and presents success immediately.
+- The app-owned payout function checks actor/org authority, but server-side wallet balance reservation or sufficiency is not evident before Stripe payout creation and later webhook deduction.
+- The console cash dispatch check treats the JSON result of `check_cash_eligibility` as a boolean and the SQL function considers any nonnegative wallet eligible without considering the estimated fee; the advertised cash wallet cap is not enforced.
+- Manual cash processing calculates a fee but inserts an already-completed cash payment; the completed-payment settlement trigger runs only on update and skips cash, so the visible "fee deducted" outcome is not backed by that path.
+- Org-admin wallet UI reads ledger-based balance history/KPIs and auto-attempts a repair write, while current RLS source grants `wallet_ledger` visibility only to platform admins and provides no org-admin ledger mutation policy.
+- `discover-hospitals` is configured as a public endpoint and uses a service-role client for merge-enabled provider persistence; a discovery request can therefore write canonical `hospitals` and `providers` rows without a console operator identity.
+- The rendered console hospital modal posts text search without coordinates and reads a response key not returned by the app-owned handler, while its Google attribution is not represented in its request flags.
+- Console hospital create/edit payloads omit app-required provider taxonomy and eligibility fields, so console currently cannot intentionally operate the broader Explore Care catalog or control discovery-to-dispatch classification.
+
+This function-boundary work remains part of the uncommitted comprehensive contract-truth evidence pack under the revised commit discipline.
+
+A SELECT-only finance linkage follow-up strengthens the cash-settlement finding without running a mutating path: 28 completed cash payments with positive fees have referenced ledger pairs, and 22 of those pairs are explicitly labelled `runtime_data_integrity_repair` backfill output. This is evidence of multiple settlement/repair lanes in the current population, not evidence that the defective manual console path works.
+
+## Pricing, Telemetry, Verification, And Onboarding Contract Pass
+
+The existing contract charts now include four additional provider-support boundaries:
+
+- Console pricing CRUD writes hospital-scoped records, but the org-admin surface resolves an organization to its earliest hospital and labels the result as an organization override. App quote resolution is selected-hospital scoped, so sibling facility prices can diverge silently.
+- The live operations-map responder telemetry control follows `console_update_responder_location` and its request/ambulance coupled receiver. The generic ambulance hook remains an exposed direct-location writer outside that active-request contract.
+- Hospital verification is the dispatch-authority lane. The parallel provider-profile verification lane writes `profiles.bvn_verified`, is not a dispatch certification receiver, and is blocked for admin-on-other-profile writes by current profile RLS source.
+- The onboarding path has an identity-boundary defect: it inserts a hospital as the submitted organization and assigns that hospital UUID to `profiles.organization_id`, which is foreign-keyed to `organizations`, without an observed RLS-authorized hospital insert path.
+
+These findings are documented in `contracts/EMERGENCY_PAYMENT_CAPACITY_CONTRACT_CHART_2026-05-24.md` and `contracts/PROVIDER_OPERATIONS_CONTRACT_CHART_2026-05-24.md`; they remain part of the uncommitted contract-truth pack.
+
+A client-scoped SELECT-only follow-up confirms exposure without mutation: 21 visible organizations already have multiple hospitals, containing 410 of 422 visible service-pricing rows and 208 of 219 visible room-pricing rows. It also confirms that legacy onboarding approval targets absent live fields (`hospitals.rejection_reason`, `hospitals.verified_at`, `hospitals.rejected_at`, and `profiles.verification_status`).

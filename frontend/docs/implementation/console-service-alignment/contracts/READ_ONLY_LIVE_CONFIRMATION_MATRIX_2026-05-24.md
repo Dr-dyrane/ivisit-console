@@ -77,6 +77,19 @@ The migration source defines `normalize_hospital_bed_state()` and its `BEFORE IN
 
 Conclusion: static trigger ownership protects forward writes only if that migration/trigger is deployed and invoked. It does not make current capacity data aligned. A later implementation/deployment plan needs read-only trigger deployment proof and, only after explicit authorization, a controlled backfill or normalization plan.
 
+### Pricing And Onboarding Receiver Scope
+
+A later SELECT-only client-scoped follow-up returned 130 readable hospitals rather than the fuller hospital population above, so the following counts establish exposure within visible data only:
+
+| Aggregate | Observed result | Interpretation |
+| --- | ---: | --- |
+| Visible organizations with multiple hospitals | 21 | Multi-facility pricing ambiguity is not hypothetical. |
+| Visible service-pricing rows within multi-hospital organizations | 410 of 422 | Hospital-scoped service prices are concentrated in the affected organization shape. |
+| Visible room-pricing rows within multi-hospital organizations | 208 of 219 | Bed-pricing scope has the same exposed ambiguity. |
+| Legacy hospital approval fields (`rejection_reason`, `verified_at`, `rejected_at`) selectable | no | Exposed onboarding approval helpers target absent live hospital receiver fields. |
+| `profiles.verification_status` selectable | no | Legacy profile approval write cannot persist to the live profile shape. |
+| `profiles.bvn_verified` selectable | yes | Active provider verification operates on BVN rather than facility dispatch verification. |
+
 ## Finding Status After Live Confirmation
 
 | Contract finding | Source status before probe | Live confirmation status | Implementation priority |
@@ -90,6 +103,8 @@ Conclusion: static trigger ownership protects forward writes only if that migrat
 | Fallback emergency creation can omit linked visit | Confirmed forward drift | Zero current missing links observed. | High forward contract; no present repair count |
 | Manual doctor create-plus-invite can create unlinked/projected duplication | Confirmed forward drift | Zero current unlinked doctor rows observed. | Medium/high forward contract |
 | Staff scheduling ignores `doctor_schedules` rows | Confirmed drift | Real schedule columns exist live. | Medium/high |
+| Org-level pricing UI silently writes only one hospital | Confirmed drift | Twenty-one visible organizations have multiple hospitals; most visible pricing rows are in that scope. | High |
+| Legacy onboarding approval fields mismatch receiver | Confirmed drift | Hospital approval audit fields and profile `verification_status` are not selectable live. | High |
 
 ## Care, Content, And Analytics Follow-Up
 

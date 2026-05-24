@@ -75,6 +75,13 @@ Started. This is the first database subtree matrix for Stage 1. It is based on s
 7. SELECT-only follow-up confirms `insurance_policies` exposes modern app/console fields not declared by the current finance pillar table source; its RLS remains owner-only while console promises administrative policy management.
 8. SELECT-only follow-up confirms `support_tickets.admin_response` and `health_news.description/content/icon` are absent from the deployed selectable surface even though app or console UI paths write or collect them.
 9. Current RLS source provides public published health-news reads but no draft/authoring management policy, and notifications provide no DELETE policy for app clear/delete behavior.
+10. SELECT-only follow-up confirms organization billing-method fields (`stripe_customer_id`, `payout_method_id`, `payout_method_last4`, `payout_method_brand`) are absent on live `organizations` but present on `profiles`; the app-owned organization billing function and console payout display currently target the wrong receiver surface.
+11. Static function mapping confirms the public app-owned `discover-hospitals` function can persist `hospitals` and `providers` through a service-role client with merge enabled by default, while console hospital CRUD does not expose the taxonomy and eligibility fields that govern emergency versus Explore Care behavior.
+12. Finance source mapping confirms the console cash preflight neither reads `eligible` from its JSON result nor checks the stated fee amount, and its manual completed-cash insertion path is skipped by the non-cash completion settlement trigger. Current org-admin wallet rendering additionally depends on ledger access not granted by the source RLS policy.
+13. Pricing is persisted per hospital, but the console org-admin pricing surface silently maps an organization override to its earliest hospital and omits facility identity in rendering; app patient quotes can therefore diverge across sibling hospitals.
+14. The rendered responder telemetry action uses the canonical request-scoped RPC, but an exported ambulance hook still exposes direct location mutation that does not update request telemetry.
+15. Facility verification updates the dispatch-authority fields, while profile-provider approval updates `bvn_verified` through a direct mutation blocked for admins by current profile RLS and does not establish hospital dispatchability.
+16. Provider onboarding currently inserts a hospital as though it were an organization and assigns that hospital UUID to `profiles.organization_id`, whose foreign key points to `organizations`; no direct onboarding hospital insert policy was observed in current RLS source.
 
 ## Next Matrix Work
 
