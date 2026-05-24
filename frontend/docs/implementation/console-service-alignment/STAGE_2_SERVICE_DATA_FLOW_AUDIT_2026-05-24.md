@@ -169,6 +169,7 @@ Completed source-only exhibits:
 - emergency creation/update, manual cash completion, wallet ledger repair, and availability mutation
 - profile editing and display ID resolution
 - visits ownership and subscriber lifecycle
+- ambulance fleet, doctor invite/projection, and staff scheduling
 
 First confirmed contract failures requiring implementation planning:
 
@@ -179,6 +180,9 @@ First confirmed contract failures requiring implementation planning:
 - The display ID bulk resolver queries `hospitals` for consumers that supply profile/provider IDs.
 - Direct visit CRUD has no documented separation for rows whose lifecycle is owned by emergency-to-visit synchronization.
 - Subscriber lifecycle flags are written by multiple console services and Edge Functions.
+- Ambulance UI offers a schema-invalid `busy` status and collects fields its table/service cannot persist.
+- Manual doctor creation can insert an unlinked directory row before an invitation triggers creation of a second profile-linked doctor row.
+- Staff scheduling collects shift fields but writes only doctor status rather than `doctor_schedules`.
 
 All findings above are static source findings. Runtime and deployed-schema proof remains read-only follow-up work.
 
