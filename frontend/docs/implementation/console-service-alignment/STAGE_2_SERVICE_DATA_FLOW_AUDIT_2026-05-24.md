@@ -148,6 +148,7 @@ Commit after each coherent service-family map, not after every small note. Sugge
 - `frontend/docs/implementation/console-service-alignment/EMERGENCY_PAYMENT_CAPACITY_SERVICE_MAP_2026-05-24.md`
 - `frontend/docs/implementation/console-service-alignment/IDENTITY_ADMIN_PROVIDER_SERVICE_MAP_2026-05-24.md`
 - `frontend/docs/implementation/console-service-alignment/VISITS_CONTENT_SERVICE_MAP_2026-05-24.md`
+- `frontend/docs/implementation/console-service-alignment/contracts/README.md`
 
 ## First Coverage Pass Summary
 
@@ -173,10 +174,20 @@ First confirmed contract failures requiring implementation planning:
 
 - Console cash completion first marks the request `completed`, then invokes an RPC whose v2 receiver rejects completed requests.
 - The emergency create modal provides status, bed number, cost, and payment-status fields that the atomic creation path does not consistently forward or persist.
-- The current hospital edit path does not persist the visible ER-wait field or rebuild app-consumed availability snapshots from scalar bed edits; the hook also exposes partial bed/status writers outside the availability RPC.
+- The current hospital edit path does not persist the visible ER-wait field; a follow-up trigger proof corrected the earlier bed-snapshot concern because `normalize_hospital_bed_state` maintains scalar-bed projection into `bed_availability`.
 - Admin profile edit accepts fields, including email and image/name components, that `update_profile_by_admin` does not update.
 - The display ID bulk resolver queries `hospitals` for consumers that supply profile/provider IDs.
 - Direct visit CRUD has no documented separation for rows whose lifecycle is owned by emergency-to-visit synchronization.
 - Subscriber lifecycle flags are written by multiple console services and Edge Functions.
 
 All findings above are static source findings. Runtime and deployed-schema proof remains read-only follow-up work.
+
+## Trigger And Edge Function Ownership Follow-Up
+
+The contract subtree now includes an ownership proof pass. It confirms:
+
+- `create_emergency_v4` creates an associated visit, while `console_create_emergency_request` does not.
+- `sync_emergency_to_visit` only updates an already-associated visit row and cannot create linkage missing from fallback creation.
+- `sendWelcome` sends mail but updates only `new_user`, while `process-subscribers` selects by `welcome_email_sent` and can send the welcome mail again.
+
+It also corrects one preliminary conclusion: direct bed scalar writes execute the hospital normalization trigger, which reconstructs `bed_availability` and timestamps changed capacity.
