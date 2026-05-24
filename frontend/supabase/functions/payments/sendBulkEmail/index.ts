@@ -66,7 +66,9 @@ export const handler = async (req: Request) => {
     for (const email of emails) {
       try {
         // Use provided content if it exists and contains HTML, otherwise use default template
-        const htmlContent = content.includes('<') && content.includes('>') ? content : getDefaultBulkEmailTemplate(email, subject, content)
+        const htmlContent = content.includes('<') && content.includes('>')
+          ? content.replaceAll('{{email}}', encodeURIComponent(email))
+          : getDefaultBulkEmailTemplate(email, subject, content)
 
         const emailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',

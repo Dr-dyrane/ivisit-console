@@ -5,6 +5,10 @@ import { Button } from '../ui/button';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
 import { getSubscribersForBulkEmail, sendBulkEmail, sendWelcomeEmail, sendCustomEmail } from '../../services/subscriptionService';
+import {
+  IVISIT_106_CAMPAIGN_SUBJECT,
+  getIvisit106CampaignHtml,
+} from '../../emails/ivisit106Campaign';
 
 export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave }) => {
   const [formData, setFormData] = useState({
@@ -230,6 +234,17 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
     }));
   };
 
+  const applyIvisit106Template = () => {
+    setFormData(prev => ({
+      ...prev,
+      bulkEmailSubject: IVISIT_106_CAMPAIGN_SUBJECT,
+      bulkEmailContent: getIvisit106CampaignHtml(),
+      customEmailSubject: IVISIT_106_CAMPAIGN_SUBJECT,
+      customEmailContent: getIvisit106CampaignHtml(),
+    }));
+    toast.success('iVisit 1.0.6 campaign loaded');
+  };
+
   if (!isOpen) return null;
 
   const isViewMode = mode === 'view';
@@ -300,6 +315,18 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
 
             {mode === 'bulk' ? (
               <>
+                <button
+                  type="button"
+                  onClick={applyIvisit106Template}
+                  className="w-full flex items-center justify-between gap-3 p-4 rounded-2xl bg-primary/10 text-primary active:scale-[0.99] transition-transform"
+                >
+                  <span className="flex items-center gap-3 text-sm font-bold">
+                    <Zap size={16} />
+                    Use iVisit 1.0.6 campaign
+                  </span>
+                  <ChevronRight size={16} />
+                </button>
+
                 {/* Email Subject */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Broadcast_Subject</label>
@@ -436,6 +463,18 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
 
                 {formData.selectedEmailAction === 'sendCustom' ? (
                   <>
+                    <button
+                      type="button"
+                      onClick={applyIvisit106Template}
+                      className="w-full flex items-center justify-between gap-3 p-4 rounded-2xl bg-primary/10 text-primary active:scale-[0.99] transition-transform"
+                    >
+                      <span className="flex items-center gap-3 text-sm font-bold">
+                        <Zap size={16} />
+                        Use iVisit 1.0.6 campaign
+                      </span>
+                      <ChevronRight size={16} />
+                    </button>
+
                     {/* Subscriber Selection */}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold tracking-widest uppercase opacity-30 ml-4">Select_Subscriber</label>
@@ -515,6 +554,18 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
                   </>
                 ) : (
                   <>
+                    <button
+                      type="button"
+                      onClick={applyIvisit106Template}
+                      className="w-full flex items-center justify-between gap-3 p-4 rounded-2xl bg-primary/10 text-primary active:scale-[0.99] transition-transform"
+                    >
+                      <span className="flex items-center gap-3 text-sm font-bold">
+                        <Zap size={16} />
+                        Use iVisit 1.0.6 campaign
+                      </span>
+                      <ChevronRight size={16} />
+                    </button>
+
                     {/* Bulk Email Form */}
                     {/* Email Subject */}
                     <div className="space-y-1.5">

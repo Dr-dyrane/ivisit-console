@@ -68,6 +68,7 @@ All completed fixes and improvements
 Development guides and best practices
 - [📚 Documentation Reorganization](./DOCS_REORGANIZATION_COMPLETE.md) - Latest docs reorganization (Jan 24, 2026)
 - [🔄 Update Reference Guide](./guides/UPDATE_REFERENCE_GUIDE.md) - Keeping docs current
+- [Subscriber Campaigns](./guides/SUBSCRIBER_CAMPAIGNS.md) - Subscriber email templates, sender scripts, and closed-test reminder records
 - [🌟 Gold Standard Upgrade](./guides/GOLD_STANDARD_UPGRADE_PLAN.md) - Upgrade planning
 
 ### 🗂️ **Specialized Categories**

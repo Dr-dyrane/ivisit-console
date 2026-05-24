@@ -17,6 +17,9 @@ Summary of documentation reorganization and changes made.
 #### **🔄 [UPDATE_REFERENCE_GUIDE.md](./UPDATE_REFERENCE_GUIDE.md)**
 Guide for keeping documentation current and updating references.
 
+#### **[SUBSCRIBER_CAMPAIGNS.md](./SUBSCRIBER_CAMPAIGNS.md)**
+Subscriber email campaign templates, send scripts, Play Store reminder links, and 1.0.6 closed-test send record.
+
 #### **🌟 [GOLD_STANDARD_UPGRADE_PLAN.md](./GOLD_STANDARD_UPGRADE_PLAN.md)**
 Comprehensive upgrade planning and implementation guidelines.
 

@@ -61,7 +61,9 @@ export const handler = async (req: Request) => {
     }
 
     // Use provided content if it exists and contains HTML, otherwise use default template
-    const htmlContent = content.includes('<') && content.includes('>') ? content : getDefaultEmailTemplate(email, subject, content)
+    const htmlContent = content.includes('<') && content.includes('>')
+      ? content.replaceAll('{{email}}', encodeURIComponent(email))
+      : getDefaultEmailTemplate(email, subject, content)
 
     // Send email using Brevo HTTP API
     const emailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
