@@ -1,31 +1,42 @@
 # Implementation Documentation
 
-## 🎯 Overview
+## Overview
 
-Implementation guides and technical documentation for the iVisit platform features and components.
+Implementation guides and technical documentation for iVisit Console features and alignment work.
 
-## 📁 Available Documentation
+## Active Alignment Work
 
-### 🚀 **RBAC Implementation**
-- **[Dashboard RBAC](../rbac/RBAC_DASHBOARD_IMPLEMENTATION.md)** - Role-based dashboard setup
-- **[Scope-Based RBAC](../rbac/SCOPE_BASED_RBAC_GUIDE.md)** - Service-level patterns
-- **[Navigation RBAC](../rbac/RBAC_NAVIGATION_DESIGN.md)** - Navigation access control
+- **[Console-App Alignment Audit - 2026-05-24](./CONSOLE_APP_ALIGNMENT_AUDIT_2026-05-24.md)** - Current target plan for matching console data flow, CRUD, RPCs, and operational UI to `ivisit-app`.
+- **[Console Alignment Audit Program - 2026-05-24](./CONSOLE_ALIGNMENT_AUDIT_PROGRAM_2026-05-24.md)** - Staged audit method and commit boundaries before implementation.
+- **[Stage 1 Database Truth Audit - 2026-05-24](./STAGE_1_DATABASE_TRUTH_AUDIT_2026-05-24.md)** - Started schema, RPC, trigger, policy, Edge Function, ID, and Postgres truth audit.
 
-### 🔧 **Bug Fixes & Optimizations**
-- **[Infinite Loop Fixes](../fixes/INFINITE_LOOP_FIXES.md)** - React hook dependency issues
+## Available Documentation
 
-## 🎯 Implementation Status
+### RBAC Implementation
 
-### ✅ **Complete**
-- **RBAC System**: Full role-based access control
-- **Dashboard**: Role-appropriate interfaces for all 6 roles
-- **Navigation**: Secure access patterns
-- **Performance**: Optimized rendering and data flow
+- **[Dashboard RBAC](../rbac/RBAC_DASHBOARD_IMPLEMENTATION.md)** - Role-based dashboard setup.
+- **[Scope-Based RBAC](../rbac/SCOPE_BASED_RBAC_GUIDE.md)** - Service-level patterns.
+- **[Navigation RBAC](../rbac/RBAC_NAVIGATION_DESIGN.md)** - Navigation access control.
 
-### 🔄 **In Progress**
-- No active implementation work
+### Bug Fixes And Optimizations
+
+- **[Infinite Loop Fixes](../fixes/INFINITE_LOOP_FIXES.md)** - React hook dependency issues.
+
+## Implementation Status
+
+### Current Focus
+
+- Align console schema, RPC, service, CRUD, realtime, and operational UI flows to the current patient app.
+- Keep the first pass focused on data-flow reliability rather than broad visual or provider refactors.
+
+### Stable But Needs Recheck During Alignment
+
+- RBAC system.
+- Role-appropriate dashboard structure.
+- Navigation access patterns.
+- Existing optimization plans in `../architecture/`.
 
 ---
 
-**Last Updated**: January 24, 2026  
-**Status**: ✅ **Production Ready**
+**Last Updated**: May 24, 2026
+**Status**: Active alignment work
