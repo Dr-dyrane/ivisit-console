@@ -12,6 +12,7 @@ This folder maps console services against database truth and `ivisit-app` refere
 
 - [Stage 2 Service Data Flow Audit - 2026-05-24](./STAGE_2_SERVICE_DATA_FLOW_AUDIT_2026-05-24.md) - Stage 2 method, scope, and first service inventory.
 - [Emergency Payment Capacity Service Map - 2026-05-24](./EMERGENCY_PAYMENT_CAPACITY_SERVICE_MAP_2026-05-24.md) - First narrowed flow audit for emergency, bed/capacity, hospital, pricing, and wallet services.
+- [Identity Admin Provider Service Map - 2026-05-24](./IDENTITY_ADMIN_PROVIDER_SERVICE_MAP_2026-05-24.md) - Identity, admin, ambulance, doctor, staff, and driver-management audit.
 
 ## Working Rule
 

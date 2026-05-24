@@ -146,3 +146,4 @@ Commit after each coherent service-family map, not after every small note. Sugge
 ## Current Stage 2 Documents
 
 - `frontend/docs/implementation/console-service-alignment/EMERGENCY_PAYMENT_CAPACITY_SERVICE_MAP_2026-05-24.md`
+- `frontend/docs/implementation/console-service-alignment/IDENTITY_ADMIN_PROVIDER_SERVICE_MAP_2026-05-24.md`
