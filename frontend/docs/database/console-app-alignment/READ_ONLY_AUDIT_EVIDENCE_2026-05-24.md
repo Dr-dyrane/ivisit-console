@@ -88,3 +88,19 @@ Detailed aggregate results and implementation ordering are recorded at:
 - `frontend/docs/implementation/console-service-alignment/contracts/READ_ONLY_LIVE_CONFIRMATION_MATRIX_2026-05-24.md`
 
 The probe was rerun with pagination and exact hospital counting after the initial hospital query encountered the default 1,000-row response limit.
+
+## Executed Care/Content Column And Count Follow-Up - 2026-05-24
+
+A second in-memory SELECT-only probe checked field availability for insurance, support, health news, notifications, and search/trending tables. It also used exact-count/head queries only to distinguish forward contract defects from current repair population. It returned no row content and invoked no RPC, Edge Function, scheduler, mutation, or report generator.
+
+Key deployed observations:
+
+- Modern insurance columns used by the app and console are selectable live even though the current finance pillar declaration names the older base model; there are currently zero policy rows.
+- `support_tickets.admin_response` is absent from the selectable live table surface; there are currently zero support ticket rows.
+- `health_news.description`, `content`, and `icon` are absent; there are two published rows and no drafts.
+- Notification action/metadata fields exist, with zero current rows observed.
+- Search event/history tables contain zero rows while `trending_topics` contains 21 rows.
+
+Detailed authority and field mapping is recorded at:
+
+- `frontend/docs/implementation/console-service-alignment/contracts/CARE_CONTENT_ANALYTICS_CONTRACT_CHART_2026-05-24.md`

@@ -91,6 +91,20 @@ Conclusion: static trigger ownership protects forward writes only if that migrat
 | Manual doctor create-plus-invite can create unlinked/projected duplication | Confirmed forward drift | Zero current unlinked doctor rows observed. | Medium/high forward contract |
 | Staff scheduling ignores `doctor_schedules` rows | Confirmed drift | Real schedule columns exist live. | Medium/high |
 
+## Care, Content, And Analytics Follow-Up
+
+A second SELECT-only pass checked field availability and exact counts for care/content/search services before their detailed contract chart was written. It returned no row payloads.
+
+| Surface | Read-only deployed observation | Contract significance |
+| --- | --- | --- |
+| `insurance_policies` | Modern console/app fields including `plan_type`, `coverage_percentage`, `coverage_details`, `linked_payment_method`, `starts_at`, `expires_at`, `status`, and `verified` are selectable; row count is 0. | Deployed/type truth is ahead of the current finance table declaration, while there is no current population to repair. |
+| `support_tickets` | Operations fields are selectable, but `admin_response` is absent; row count is 0. | The app inserts an absent receiver field and can fall back locally rather than delivering a ticket to console. |
+| `health_news` | Link/news fields are selectable; `description`, `content`, and `icon` are absent; two rows are published and zero are drafts. | The current console editor promises full article fields its receiver does not store. |
+| `notifications` | Current metadata/action fields are selectable; row count is 0. | Current app delete/clear policy concern is forward-facing in the observed population. |
+| Search/trends | Search table fields are selectable; `search_history` and `search_events` are empty, while `trending_topics` contains 21 rows. | Existing trend read data cannot prove the source-stubbed regeneration RPC ever produced it. |
+
+The full authority and field mapping is in `CARE_CONTENT_ANALYTICS_CONTRACT_CHART_2026-05-24.md`.
+
 ## Ordered Implementation Pass Inputs
 
 No code implementation is authorized by this audit file. It supplies a narrow order for the later pass-plan set:

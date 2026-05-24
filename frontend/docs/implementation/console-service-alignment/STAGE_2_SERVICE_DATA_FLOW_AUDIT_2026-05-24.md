@@ -215,3 +215,16 @@ Narrowed forward-only risks:
 - no currently unlinked doctor directory rows were observed across 232 doctors
 
 These zero-current-incident results do not erase the source-proven fallback-creation and create-then-invite defects. They establish repair scope separately from forward contract repair.
+
+## Care, Content, And Analytics Contract Pass
+
+The next exact exhibit now covers services whose page promises depend directly on RLS or shared app/console field shape:
+
+- Insurance management exposes admin and org-admin policy operations through direct browser table calls, but current RLS source grants policy CRUD only to the patient owner. Modern policy fields exist live and in generated types while the current finance pillar table declaration remains on the older field model.
+- Patient support ticket creation in `ivisit-app` writes `admin_response`, which is absent on the selectable live `support_tickets` surface. The app fallback can therefore retain a local ticket without creating console work.
+- Console support management exposes org-admin/provider operations while current policy source authorizes ticket owner or administrator only.
+- Health-news authoring collects description, content, and icon fields absent from the live receiver, and its current policy source permits published reads without authoring or draft-management writes.
+- Console notifications are correctly scoped as the operator's own activity stream; patient app notification clear/delete actions lack a DELETE policy in current source.
+- Quick search reads public trend rows through a valid RPC, while automatic trend regeneration functions are success-returning stubs and the analytics screen visibly renders constant search metrics.
+
+A SELECT-only follow-up found zero current policy or ticket rows, two published news rows, zero notification/search event rows, and 21 trend rows. These counts narrow current repair population; they do not reduce the forward contract priority.

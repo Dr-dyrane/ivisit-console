@@ -21,6 +21,9 @@ Stage 1 static risk register for Supabase/Postgres behavior that can make consol
 | Missing source-controlled cron | Static search found `pgcrypto` and `postgis`, but no current `pg_cron`/`cron.schedule` migration. | Scheduled subscriber/trending jobs may exist only in dashboard state. | Document dashboard-only schedules as unverified until introspected read-only. |
 | Generated docs drift | `DATABASE_SCHEMA_REFERENCE.md`, generated snapshots, and legacy logs do not all match current migrations. | Engineers can implement against stale examples. | Use migrations/types as primary evidence and mark stale docs instead of copying them. |
 | Mojibake in source docs/functions | Email templates and older docs include mojibake sequences. | Recurrent console build/content issue; can leak into public email/HTML. | Keep encoding guard for generated DB types and add mojibake scan to audit verification. |
+| Browser comments do not grant admin authority | Console uses an anon/session Supabase browser client while insurance, support, health-news, and medical-profile services state administrative access in client code. | Direct table actions still fail or narrow under RLS even when a page enables the button. | Require an explicit RLS or guarded-RPC exhibit for each administrative CRUD surface. |
+| Deployed/type schema exceeds pillar declaration | SELECT-only checks and `database.ts` show modern insurance fields that `20260219000400_finance.sql` does not declare. | A clean local schema rebuild can differ from currently deployed and app-consumed shape. | Reconcile committed schema truth before implementing insurance operations. |
+| Successful no-op automation RPC | Trending update RPCs return success while current SQL source leaves aggregation/upsert logic stubbed. | Schedulers or UI can imply fresh analytics without changing trend data. | Treat trend refresh as unimplemented until a receiver mutation and audit trail are proven. |
 
 ## App Reference Context
 

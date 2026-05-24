@@ -72,6 +72,9 @@ Started. This is the first database subtree matrix for Stage 1. It is based on s
 4. `visits` intentionally carries legacy alias columns such as `hospital`, `doctor`, and `image`; cleanup must not remove those until app mappings are proven.
 5. `wallet_ledger` has polymorphic wallet references and should be treated as RPC-owned unless a service path is explicitly verified.
 6. `providers`, `doctors`, `hospitals`, and `organizations` need a provider-model audit because discovery and console operations can overlap.
+7. SELECT-only follow-up confirms `insurance_policies` exposes modern app/console fields not declared by the current finance pillar table source; its RLS remains owner-only while console promises administrative policy management.
+8. SELECT-only follow-up confirms `support_tickets.admin_response` and `health_news.description/content/icon` are absent from the deployed selectable surface even though app or console UI paths write or collect them.
+9. Current RLS source provides public published health-news reads but no draft/authoring management policy, and notifications provide no DELETE policy for app clear/delete behavior.
 
 ## Next Matrix Work
 

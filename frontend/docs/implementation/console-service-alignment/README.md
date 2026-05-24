@@ -16,6 +16,7 @@ This folder maps console services against database truth and `ivisit-app` refere
 - [Visits Content Service Map - 2026-05-24](./VISITS_CONTENT_SERVICE_MAP_2026-05-24.md) - Visits, medical profile, insurance, subscriber, search, content, and support audit.
 - [Contract Exhibits](./contracts/README.md) - Exact UI-field to service-payload to SQL/RPC/function charts for drift-suspected paths.
 - [Read-Only Live Confirmation Matrix - 2026-05-24](./contracts/READ_ONLY_LIVE_CONFIRMATION_MATRIX_2026-05-24.md) - Aggregate deployed-table confirmation for prioritized contract defects.
+- [Care, Content, and Analytics Contract Chart - 2026-05-24](./contracts/CARE_CONTENT_ANALYTICS_CONTRACT_CHART_2026-05-24.md) - Authority and receiver chart for insurance, support, news, notifications, and trending/analytics surfaces.
 
 ## Working Rule
 
