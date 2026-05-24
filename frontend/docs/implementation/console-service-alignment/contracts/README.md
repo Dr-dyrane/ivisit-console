@@ -22,6 +22,7 @@ That order is required before implementation so fixes are made at the ownership 
 - [Identity, Visits, and Subscribers Contract Chart - 2026-05-24](./IDENTITY_VISITS_SUBSCRIBERS_CONTRACT_CHART_2026-05-24.md) - user editing, display ID resolution, visit ownership, and subscriber email lifecycle.
 - [Ownership Trigger and Edge Function Proof - 2026-05-24](./OWNERSHIP_TRIGGER_EDGE_FUNCTION_PROOF_2026-05-24.md) - trigger/function receivers that correct or confirm charted drift.
 - [Provider Operations Contract Chart - 2026-05-24](./PROVIDER_OPERATIONS_CONTRACT_CHART_2026-05-24.md) - ambulance, doctor invitation/projection, and scheduling field contracts.
+- [Read-Only Live Confirmation Matrix - 2026-05-24](./READ_ONLY_LIVE_CONFIRMATION_MATRIX_2026-05-24.md) - aggregate deployed-table confirmation of current exposure without mutation or row-level disclosure.
 
 ## Evidence Standard
 
@@ -35,4 +36,4 @@ Every asserted drift item must contain:
 
 ## Read-Only Guardrail
 
-This audit may inspect source, migrations, generated types, existing validation artifacts, and read-only database introspection when explicitly used. It must not run resets, migrations, seeders, backfills, cleanup tasks, mutating Edge Functions, or UI/test flows that write database state.
+This audit may inspect source, migrations, generated types, existing validation artifacts, and read-only database introspection when explicitly used. Aggregate read-only confirmation has now been recorded in the live confirmation matrix. It must not run resets, migrations, seeders, backfills, cleanup tasks, mutating Edge Functions, or UI/test flows that write database state.

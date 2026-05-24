@@ -149,6 +149,7 @@ Commit after each coherent service-family map, not after every small note. Sugge
 - `frontend/docs/implementation/console-service-alignment/IDENTITY_ADMIN_PROVIDER_SERVICE_MAP_2026-05-24.md`
 - `frontend/docs/implementation/console-service-alignment/VISITS_CONTENT_SERVICE_MAP_2026-05-24.md`
 - `frontend/docs/implementation/console-service-alignment/contracts/README.md`
+- `frontend/docs/implementation/console-service-alignment/contracts/READ_ONLY_LIVE_CONFIRMATION_MATRIX_2026-05-24.md`
 
 ## First Coverage Pass Summary
 
@@ -195,3 +196,22 @@ The contract subtree now includes an ownership proof pass. It confirms:
 - `sendWelcome` sends mail but updates only `new_user`, while `process-subscribers` selects by `welcome_email_sent` and can send the welcome mail again.
 
 It also corrects one preliminary conclusion: direct bed scalar writes execute the hospital normalization trigger, which reconstructs `bed_availability` and timestamps changed capacity.
+
+## Read-Only Live Confirmation Checkpoint
+
+An aggregate-only SELECT pass has now tested the highest-risk source findings against currently readable shared tables. No row identifiers or private content were recorded, and no RPC, Edge Function, repair routine, migration, or database write was executed.
+
+Confirmed current exposure:
+
+- one cash-linked request is terminal while its payment is not completed
+- seven cash payment rows have organization identity inconsistent with the associated request hospital organization
+- two subscriber rows remain welcome-batch eligible after `new_user` has already been cleared
+- ambulance `image`, `last_maintenance`, and `rating` columns are absent from the live table surface exposed to the console
+- all 1,278 readable hospitals have empty `bed_availability`, even though 127 carry positive scalar available-bed values; source normalization exists, but current population cannot be considered aligned
+
+Narrowed forward-only risks:
+
+- no currently missing emergency-to-visit linkage was observed across 160 emergency requests
+- no currently unlinked doctor directory rows were observed across 232 doctors
+
+These zero-current-incident results do not erase the source-proven fallback-creation and create-then-invite defects. They establish repair scope separately from forward contract repair.

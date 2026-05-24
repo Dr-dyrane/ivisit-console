@@ -23,9 +23,11 @@ The field chart originally treated direct bed scalar writes as necessarily leavi
 
 | Mutation source | Trigger behavior | Corrected status | Proof |
 | --- | --- | --- | --- |
-| Any insert or update on `hospitals`, including direct `available_beds` writers | `normalize_hosp_bed_state` clamps scalar beds, rebuilds `bed_availability` for hospitals, refreshes `last_availability_update` when bed state changes, and toggles `full`/`available` when capacity crosses zero | aligned for bed snapshot normalization | `org_structure.sql:187-246` |
+| Any insert or update on `hospitals`, including direct `available_beds` writers | `normalize_hosp_bed_state` clamps scalar beds, rebuilds `bed_availability` for hospitals, refreshes `last_availability_update` when bed state changes, and toggles `full`/`available` when capacity crosses zero | source-aligned for forward trigger writes; live population drift confirmed | `org_structure.sql:187-246`; `READ_ONLY_LIVE_CONFIRMATION_MATRIX_2026-05-24.md` |
 | Live modal `emergency_wait_time_minutes` edit through `update_hospital_by_admin` | Admin RPC does not extract `emergency_wait_time_minutes`; normalization trigger does not set wait time | confirmed drift remains | `core_rpcs.sql:242-280`; `org_structure.sql:187-246` |
 | Direct specialized `status` API with no bed-state change | Trigger only refreshes availability timestamp for changed bed values/JSON; direct status service is outside `update_hospital_availability` | drift suspected remains for exposed API | `org_structure.sql:220-246`; `emergency_logic.sql:1531-1607` |
+
+Read-only live confirmation narrows this correction: all 1,278 reviewed hospital rows expose empty `bed_availability`, including 127 with positive scalar availability. The trigger body establishes intended behavior for a write if deployed and invoked; it does not prove the existing population is normalized.
 
 ### Resource Automation Interaction
 

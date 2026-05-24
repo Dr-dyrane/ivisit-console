@@ -78,3 +78,13 @@ After any `sync_to_console.js` run or database type refresh:
 3. Scan generated docs/types for mojibake.
 4. Review whether synced docs rewrote local console audit docs.
 5. Only then stage or commit.
+
+## Executed Read-Only Confirmation - 2026-05-24
+
+An in-memory SELECT-only Supabase probe was run from the configured `ivisit-app` environment to confirm prioritized Stage 2 findings. It printed aggregate counts and schema-column availability only, wrote no generated app report, and did not invoke any RPC, Edge Function, repair, migration, test flow, insert, update, or delete.
+
+Detailed aggregate results and implementation ordering are recorded at:
+
+- `frontend/docs/implementation/console-service-alignment/contracts/READ_ONLY_LIVE_CONFIRMATION_MATRIX_2026-05-24.md`
+
+The probe was rerun with pagination and exact hospital counting after the initial hospital query encountered the default 1,000-row response limit.
