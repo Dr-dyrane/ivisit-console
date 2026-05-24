@@ -147,3 +147,14 @@ Commit after each coherent service-family map, not after every small note. Sugge
 
 - `frontend/docs/implementation/console-service-alignment/EMERGENCY_PAYMENT_CAPACITY_SERVICE_MAP_2026-05-24.md`
 - `frontend/docs/implementation/console-service-alignment/IDENTITY_ADMIN_PROVIDER_SERVICE_MAP_2026-05-24.md`
+- `frontend/docs/implementation/console-service-alignment/VISITS_CONTENT_SERVICE_MAP_2026-05-24.md`
+
+## First Coverage Pass Summary
+
+The first Stage 2 pass now covers the main console service families:
+
+- emergency/payment/capacity
+- identity/admin/provider operations
+- visits/medical/insurance/content/subscriber/search/support
+
+The next audit layer should produce exact field-to-UI and payload-to-RPC charts for drift-suspected services before any implementation changes.
