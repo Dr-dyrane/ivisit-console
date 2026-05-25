@@ -473,87 +473,86 @@ code {
 		@apply text-white;
 	}
 
-	/* Arsenal of Geometric Luxury - Command Station Level */
+	/* Global Surface Geometry - Uniform Sharp Edges */
 	.geo-chamfer {
 		border-radius: 0;
-		clip-path: polygon(30px 0,
-				100% 0,
-				100% calc(100% - 30px),
-				calc(100% - 30px) 100%,
-				0 100%,
-				0 30px);
 	}
 
 	.geo-shard {
 		border-radius: 0;
-		clip-path: polygon(0 0, 100% 0, 100% 80%, 80% 100%, 0 100%);
 	}
 
 	.geo-hexagon {
 		border-radius: 0;
-		clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
 	}
 
 	.geo-ticket {
-		border-radius: 2rem;
-		mask: radial-gradient(circle at 0 50%, transparent 20px, black 21px) top left,
-			radial-gradient(circle at 100% 50%, transparent 20px, black 21px) top right;
-		mask-size: 51% 100%;
-		mask-repeat: no-repeat;
-		-webkit-mask: radial-gradient(circle at 0 50%, transparent 20px, black 21px) top left,
-			radial-gradient(circle at 100% 50%, transparent 20px, black 21px) top right;
-		-webkit-mask-size: 51% 100%;
-		-webkit-mask-repeat: no-repeat;
+		border-radius: 0;
 	}
 
 	.geo-leaf {
-		border-radius: 0 4rem 0 4rem;
+		border-radius: 0;
 	}
 
-	/* New Additions: The Heavy Artillery */
 	.geo-arrow {
 		border-radius: 0;
-		clip-path: polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%);
 	}
 
 	.geo-badge {
 		border-radius: 0;
-		clip-path: polygon(15% 0%, 85% 0%, 100% 50%, 85% 100%, 15% 100%, 0% 50%);
 	}
 
 	.geo-trapezoid {
 		border-radius: 0;
-		clip-path: polygon(0 0, 100% 0, 90% 100%, 10% 100%);
 	}
 
 	.geo-block {
 		border-radius: 0;
-		clip-path: polygon(0 15%, 15% 0, 100% 0, 100% 85%, 85% 100%, 0 100%);
+	}
+
+	/* Additional geo classes used in components */
+	.geo-round {
+		border-radius: 0;
+	}
+
+	.geo-sharp {
+		border-radius: 0;
+	}
+
+	.geo-sharp-xs {
+		border-radius: 0;
+	}
+
+	.geo-wave {
+		border-radius: 0;
+	}
+
+	.geo-bg {
+		border-radius: 0;
 	}
 
 	.squircle-3xl {
-		border-radius: 3rem;
-		/* Reverting to round for base, we will override explicitly */
+		border-radius: 0;
 	}
 
 	.squircle-2xl {
-		border-radius: 2rem;
+		border-radius: 0;
 	}
 
 	.squircle-xl {
-		border-radius: 1.5rem;
+		border-radius: 0;
 	}
 
 	.squircle-lg {
-		border-radius: 1rem;
+		border-radius: 0;
 	}
 
 	.squircle {
-		border-radius: 0.75rem;
+		border-radius: 0;
 	}
 
 	.squircle-sm {
-		border-radius: 0.5rem;
+		border-radius: 0;
 	}
 
 	.editorial-title {
