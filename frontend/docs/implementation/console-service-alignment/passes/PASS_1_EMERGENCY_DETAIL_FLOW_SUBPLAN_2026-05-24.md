@@ -57,9 +57,9 @@ The current detail flow conflates these owners:
 | Data/action | Current owner symptom | Required owner |
 | --- | --- | --- |
 | Emergency request detail | Row passed from page/list plus modal realtime refresh. | Emergency detail read model. |
-| Payment row for approval | Modal direct `payments` query. | Emergency/payment detail read model or payment facade with RLS-aware degraded state. |
+| Payment row for approval | Modal direct `payments` query. | Emergency/payment detail read model with RLS-aware degraded state. |
 | Cash approval/decline | Modal direct command calls. | Emergency command boundary with post-command refresh/confirmation. |
-| Visit/clinical outcome | Modal/list/table call `getVisit(request.id)`. | Request-derived visit read model that knows whether lookup is by visit id, request id, or linked request field. |
+| Visit/clinical outcome | Modal/list/table call `getVisit(request.id)`. | Request-derived visit read model using explicit `getVisitByRequestId(requestId)` plus compatibility fallback. |
 | Realtime refresh | Modal owns payments and emergency channel locally. | Detail-scoped realtime invalidation owned by the detail model/hook. |
 | Success feedback | Toast claims dispatch/cash outcome immediately. | Backend-confirmed status/payment/ledger copy after refresh. |
 
@@ -92,14 +92,15 @@ Acceptance gate:
 - `EmergencyDetailsModal`, list view, and table view no longer independently call `getVisit` for request-derived clinical records.
 - The modal does not query `payments` directly.
 
-### 2. Request-Derived Visit Lookup Decision
+### 2. Request-Derived Visit Lookup
 
-Before editing UI, decide the correct lookup contract:
+Decision:
 
-- If `visits.id` is the visit id, do not call `getVisit(request.id)` unless request id and visit id are intentionally the same.
-- If visits link by `request_id`, add a service method that reads by request id.
-- If emergency completion should create/link visit records, name the trigger/RPC that owns it.
-- If terminal requests may not have visits, expose that as an expected empty state, not a broken modal.
+- Add `getVisitByRequestId(requestId)` to `visitsService.js`.
+- Use `visits.request_id` as the canonical request-derived lookup.
+- Keep `getVisit(request.id)` only as compatibility fallback for legacy rows where visit id equals emergency id.
+- Treat `sync_emergency_to_visit` as the current backend owner for emergency-to-visit linking.
+- Terminal requests without a linked visit render an explicit "No visit record linked" state and generate a data repair follow-up, not a broken modal.
 
 Acceptance gate:
 
@@ -158,16 +159,14 @@ Acceptance gate:
 
 Before code changes:
 
-- Confirm receiver names for:
-  - emergency detail read
-  - payment-by-request read
-  - cash approval
-  - cash decline
-  - retry payment
-  - visit-by-request lookup
-- Confirm whether any RLS policy repair is required for org-admin payment visibility.
-- Confirm whether terminal emergency requests should always have linked visits.
-- Confirm whether historical repair is needed; if yes, create a separate read-only maintenance plan.
+- Use `getEmergencyDetailProjection(requestId)` as the emergency detail read boundary.
+- Use `getLatestEmergencyPayment(requestId)` as the payment-by-request read boundary.
+- Use `approveCashPayment(paymentId, requestId)` for cash approval.
+- Use `declineCashPayment(paymentId, requestId)` for cash decline.
+- Use `retryPaymentWithDifferentMethod(requestId, paymentMethodId, userId)` for retry payment.
+- Use `getVisitByRequestId(requestId)` for request-derived visit lookup.
+- Treat current payment RLS as sufficient for org-scoped payment reads; a visible mismatch becomes a data/RLS defect with evidence.
+- Treat terminal emergency requests as expected to have linked visits through `sync_emergency_to_visit`; missing links become explicit empty state plus data repair follow-up.
 
 Read-only/UI cleanup:
 
@@ -177,7 +176,7 @@ Read-only/UI cleanup:
 - Replace optimistic success copy with backend-confirmed or pending copy.
 - Add structural loading state for detail projection and compact degraded rows.
 
-L5 repair, only if required after proof:
+L5 repair, only when a deterministic gate fails:
 
 - Repair payment visibility policy or RPC wrapper.
 - Repair visit creation/linking trigger/RPC.
@@ -210,8 +209,8 @@ Backend/RLS/RPC:
 - RPC test or fixture for retry payment with different method.
 - Visit lookup proof by request id.
 
-Stop conditions:
+Hard blockers:
 
-- Do not patch modal fields if visit lookup ownership is still ambiguous.
-- Do not change cash approval UI if the payment receiver does not prove finance side effects.
+- Do not patch modal fields before `getVisitByRequestId(requestId)` exists.
+- Do not change cash approval UI before `approve_cash_payment` and `decline_cash_payment` remain proven in source.
 - Do not backfill emergency/visit/payment history inside this pass.

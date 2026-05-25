@@ -27,7 +27,7 @@ The riskiest defect is welcome email duplication. A new subscriber can trigger w
 | Evidence | Source | Meaning | Required owner |
 | --- | --- | --- | --- |
 | `subscriptionService.js` owns subscriber CRUD, analytics, realtime, and email sends. | `frontend/src/services/subscriptionService.js:79`, `:165`, `:200`, `:224`, `:319`, `:375`, `:407`, `:425`, `:451` | One service is acting as table adapter, workflow owner, realtime owner, and email client. | Subscription workflow facade plus lower-level table adapter |
-| `subscribersService.js` also owns subscriber CRUD and realtime. | `frontend/src/services/subscribersService.js:45`, `:64`, `:86`, `:109`, `:139`, `:156`, `:204` | Duplicate table owner exists and can drift from `subscriptionService.js`. | Single retained owner or explicit compatibility wrapper |
+| `subscribersService.js` also owns subscriber CRUD and realtime. | `frontend/src/services/subscribersService.js:45`, `:64`, `:86`, `:109`, `:139`, `:156`, `:204` | Duplicate table owner exists and can drift from `subscriptionService.js`. Active UI imports already use `subscriptionService.js`, so `subscribersService.js` is retired from UI flow and retained only as compatibility code until deletion proof. | `subscriptionService.js` workflow facade |
 | Subscriber writes use schema fallback that strips missing columns and retries. | `frontend/src/services/subscriptionService.js:54`, `:67`, `:74` | Runtime can silently adapt to schema drift instead of failing a contract check. | Schema-current subscriber write contract |
 | `subscriptionService.createSubscriber` always fires welcome email after insert when an email exists. | `frontend/src/services/subscriptionService.js:165`, `:185` | Service-level create ignores the modal/hook `sendWelcomeEmail` choice and can send even when the caller intends no email. | Email lifecycle owner |
 | `useSubscription.createNewSubscriber` sends welcome email after create unless `sendWelcomeEmail === false`. | `frontend/src/hooks/useSubscription.js:38`, `:44`, `:46` | Hook-level create can send a second welcome email because service create already fired one. | Email lifecycle owner |
@@ -47,6 +47,7 @@ The riskiest defect is welcome email duplication. A new subscriber can trigger w
 | `sendCustomEmail` returns success but does not write a send log. | `frontend/supabase/functions/payments/sendCustomEmail/index.ts:68`, `:94` | Console has no durable evidence of custom email delivery beyond function response. | Email send/campaign log decision |
 | `sendBulkEmail` returns per-recipient `results`, success count, and failure count. | `frontend/supabase/functions/payments/sendBulkEmail/index.ts:65`, `:90`, `:103`, `:108`, `:113` | The receiver has enough detail for partial failure UI, but modal currently collapses this to one success toast. | Bulk email result UI |
 | Hardening docs name a subscribers surface field guard. | `frontend/supabase/docs/TESTING.md:251`, `:253`, `:256` | There is an expected test gate for canonical subscriber fields and mutation lanes. | Verification gate before implementation |
+| Functions README documents `/functions/v1/sendBulkEmail`, `/functions/v1/sendCustomEmail`, and `/functions/v1/sendWelcome`. | `frontend/supabase/functions/README.md:38`, `:45`, `:52` | Endpoint names are known. The `payments/` folder location is packaging structure, not a planning blocker. | Edge Function command contract |
 
 ## Broken Contract Name
 
@@ -56,27 +57,24 @@ Subscriber management is currently a UI-assembled lifecycle. It needs one workfl
 
 Realtime must never send email. CRUD must not fire email unless the command explicitly owns that lifecycle. Email success copy must reflect the receiver result and, where available, persisted row state.
 
-## Implementation Gates For Pass 7 Subscription
+## Deterministic Decisions For Pass 7 Subscription
 
-1. Choose one owner:
-   - retain `subscriptionService.js` as workflow facade and make `subscribersService.js` a table adapter, or
-   - retire `subscribersService.js` from active UI imports after compatibility proof.
-2. Remove service-level automatic welcome send from plain `createSubscriber`, or split create into explicit commands:
-   - `createSubscriberOnly`
-   - `createSubscriberAndSendWelcome`
-3. Ensure `sendWelcomeEmail` checks current `welcome_email_sent` state or is backed by an idempotent Edge Function before sending.
-4. Remove email sends from passive realtime listeners.
-5. Consolidate realtime to one owner consumed by page/mobile/context surfaces.
-6. Make bulk email UI consume `successful`, `failed`, and `results` from the receiver before claiming send status.
-7. Decide subscriber visibility:
-   - platform-admin-only global marketing list, or
-   - org-scoped contacts with schema/RLS changes, or
-   - separate global marketing and organization contact models.
-8. Replace runtime schema fallback with a contract check once current columns are confirmed.
+1. Retain `subscriptionService.js` as the subscription workflow facade for active UI code.
+2. Retire `subscribersService.js` from active UI flow. It remains compatibility code until a later cleanup proves no imports depend on it.
+3. Make plain `createSubscriber` a row-only command.
+4. Add an explicit `createSubscriberWithWelcome` command for the create-and-email path.
+5. Make `sendWelcomeEmail` idempotent at the command boundary by checking refreshed subscriber state before sending and refreshing after the Edge Function returns.
+6. Remove email sends from passive realtime listeners.
+7. Consolidate realtime to one owner consumed by page/mobile/context surfaces.
+8. Make bulk email UI consume `successful`, `failed`, and `results` from the receiver before claiming send status.
+9. Treat subscribers as a platform-admin global marketing list for this pass because the current schema has no organization scope and RLS grants admin select only.
+10. Remove the org-admin "all subscribers" assumption from the service.
+11. Replace runtime schema fallback with a contract check because current migrations define the subscriber fields the UI uses.
+12. Preserve current hard-delete behavior for admin deletion in this pass. Unsubscribe/status semantics require a separate product decision and are not implied by the delete button.
 
 ## First Safe Implementation Slice
 
-The first implementation slice should avoid email side effects until the owner is chosen:
+The first implementation slice is fixed:
 
 1. Make `createSubscriber` a row-only operation.
 2. Add a separate `createSubscriberWithWelcome` command that owns send, mark, refresh, and duplicate guard.
@@ -85,15 +83,14 @@ The first implementation slice should avoid email side effects until the owner i
 5. Update bulk success/failure copy to use Edge Function result counts.
 6. Run the subscribers surface field guard before browser testing.
 
-## Stop Conditions
+## Hard Blockers
 
-Implementation pauses if any of these cannot be proved:
+Implementation pauses only for these blockers:
 
-- Whether Edge Functions are deployed as `sendWelcome`, `sendCustomEmail`, and `sendBulkEmail` despite living under `frontend/supabase/functions/payments/`.
-- Whether org admins are intended to see global subscribers. Current RLS says admin select only.
-- Whether `welcome_email_sent` means queued, sent, delivered, or manually marked.
-- Whether delete means hard delete, unsubscribe status, or soft-delete metadata.
-- Whether production subscriber emails can be used for any test. Planning assumes no.
+- The current deployment lacks callable `sendWelcome`, `sendCustomEmail`, or `sendBulkEmail` functions. The repo contract names them, so deployment mismatch is an environment defect.
+- A non-admin role needs subscriber management. Current schema/RLS makes this out of scope for this pass; it requires a separate org-scoped subscriber model.
+- `sendWelcome` returns success but the refreshed subscriber row does not show `welcome_email_sent = true`. The UI must report "email sent, subscriber row not marked" rather than "welcome complete."
+- Production subscriber emails are never used for tests. Test email sends use non-production patterned addresses only.
 
 ## Cross-Pass Notes
 

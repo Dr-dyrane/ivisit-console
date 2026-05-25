@@ -41,7 +41,7 @@ Operator path:
 1. Open subscription management.
 2. Review subscriber list and filters.
 3. Create a subscriber.
-4. Optionally send welcome email.
+4. Choose the explicit create-with-welcome command when the operator wants welcome email sent.
 5. Edit subscriber status/type.
 6. Send welcome email to an existing subscriber.
 7. Send a custom email to one subscriber.
@@ -52,36 +52,35 @@ Operator path:
 
 | Data/action | Current owner symptom | Required owner |
 | --- | --- | --- |
-| Subscriber CRUD | Two services export overlapping operations. | One subscriber service facade or explicit compatibility boundary. |
+| Subscriber CRUD | Two services export overlapping operations. | `subscriptionService.js` remains the workflow facade; `subscribersService.js` is retired from active UI flow. |
 | Welcome email | Service auto-send, hook send-after-create, page realtime send, modal direct send. | Single email lifecycle owner with idempotency. |
 | Email sent state | UI can mark/show sent independent of durable receiver proof. | Receiver-confirmed queued/sent/failed state. |
-| Bulk email | Modal sends directly and returns aggregate success. | Campaign/send owner with per-recipient result or queued state. |
+| Bulk email | Modal sends directly and returns aggregate success. | Campaign/send owner with per-recipient result. |
 | Realtime | Hook and page subscribe separately to subscriber changes. | One subscriber realtime owner/invalidation path. |
-| Organization scope | Service comments say org admins see all because table lacks org field. | Explicit product/security decision before implementation. |
+| Organization scope | Service comments say org admins see all because table lacks org field. | Platform-admin-only global marketing list for this pass. |
 
 ## Implementation Packages
 
-### 1. Subscriber Owner Decision
+### 1. Subscriber Owner
 
-Choose one:
+Decision:
 
-- consolidate `subscribersService.js` into `subscriptionService.js`
-- keep `subscribersService.js` as low-level table adapter and `subscriptionService.js` as workflow owner
-- retire one service after compatibility proof
+- Keep `subscriptionService.js` as the active workflow facade.
+- Remove `subscribersService.js` from active UI paths.
+- Leave `subscribersService.js` as compatibility code until a later cleanup pass proves no imports require it.
 
 Acceptance gate:
 
-- `useSubscription`, `SubscriptionManagementPage`, and `SubscriptionModal` import from the same chosen owner.
-- Duplicate create/update/delete/realtime paths are removed or intentionally wrapped.
+- `useSubscription`, `SubscriptionManagementPage`, and `SubscriptionModal` import subscription actions from `subscriptionService.js` only.
+- Duplicate create/update/delete/realtime paths are removed from active UI flow.
 
 ### 2. Schema-Current Payload Contract
 
-Before edits:
+Source truth:
 
-- confirm current `subscribers` table columns
-- confirm allowed values for `type` and `status`
-- confirm whether `new_user`, `welcome_email_sent`, and `subscription_date` are current fields
-- confirm whether organization/campaign scope exists or is intentionally absent
+- `subscribers` includes `email`, `type`, `status`, `new_user`, `welcome_email_sent`, `subscription_date`, `metadata`, `created_at`, and `updated_at`.
+- `type` is constrained to `free` and `paid`.
+- The current schema has no organization or campaign scope.
 
 Acceptance gate:
 
@@ -90,13 +89,13 @@ Acceptance gate:
 
 ### 3. Welcome Email Lifecycle
 
-Define one lifecycle:
+Define this lifecycle:
 
-- create subscriber with `sendWelcomeEmail=true`
-- enqueue/send welcome email through one owner
-- mark welcome email as queued/sent/failed only after receiver proof
-- prevent duplicate sends for the same subscriber unless operator explicitly retries failed state
-- expose pending/failure state in the row or modal
+- `createSubscriber` creates a row only.
+- `createSubscriberWithWelcome` creates the row, checks `welcome_email_sent`, calls `sendWelcome`, refreshes the row, and returns the final subscriber projection.
+- Manual welcome send checks the refreshed row before sending and refreshes again after the Edge Function returns.
+- The UI treats `welcome_email_sent = true` as the only durable "sent" row state.
+- Edge Function success with an unmarked refreshed row reports "email sent, row not marked" instead of "welcome complete."
 
 Acceptance gate:
 
@@ -117,8 +116,8 @@ Bulk email:
 
 - validate selected subscribers from a current active list
 - prevent duplicate submit while pending
-- return campaign id, queued count, sent count, failed count, or explicit unavailable state
-- show per-recipient or aggregate failure details when available
+- return sent count, failed count, and per-recipient results from `sendBulkEmail`
+- show per-recipient or aggregate failure details from the receiver
 
 Acceptance gate:
 
@@ -140,30 +139,30 @@ Acceptance gate:
 - No duplicate toasts for one insert.
 - No email send occurs from a passive realtime listener.
 
-### 6. Security And Scope Decision
+### 6. Security And Scope
 
-Resolve before implementation:
+Decision:
 
-- platform admin visibility
-- org admin visibility
-- support/content admin visibility
-- whether subscribers are global marketing contacts or organization-scoped contacts
-- whether unsubscribe/delete is hard delete, soft delete, or status transition
+- Subscribers are a platform-admin global marketing list in this pass.
+- Org admins do not receive subscriber list visibility in this pass.
+- Support/content roles do not receive subscriber list visibility in this pass.
+- Delete preserves current hard-delete behavior for platform admins.
+- Unsubscribe/status semantics are a separate product decision and are not implied by this pass.
 
 Acceptance gate:
 
 - UI copy and filters match the actual table/RLS scope.
-- Org admins do not see global subscriber data unless that is an explicit product decision and RLS allows it.
+- Org admins do not see global subscriber data.
 
 ## Detailed Implementation Checklist
 
 Before code changes:
 
 - Read current subscribers table and Edge Function contracts.
-- Decide subscriber owner service.
-- Decide email lifecycle state terms.
-- Decide org/global subscriber scope.
-- Decide whether `supportFaqsService.js` is part of Pass 7 or a separate support-content subpass.
+- Use `subscriptionService.js` as the owner service.
+- Use `welcome_email_sent = true` as the durable welcome-sent row state.
+- Treat subscribers as global platform-admin data.
+- Keep `supportFaqsService.js` in the care/content/support subpass, not the subscription subpass.
 
 Read-only/UI cleanup:
 
@@ -173,12 +172,12 @@ Read-only/UI cleanup:
 - Replace generic sent copy with queued/sent/failed copy.
 - Add empty/degraded states for no subscribers, unauthorized subscriber scope, and email function unavailable.
 
-L5 repair, only if required after proof:
+L5 repair, only when a deterministic gate fails:
 
-- Add or fix Edge Function idempotency.
-- Add campaign/send log table or RPC if durable email state is required.
-- Add RLS policy repair for subscriber visibility.
-- Add schema fields only after deciding source-of-truth semantics.
+- Add Edge Function idempotency after command-boundary idempotency fails verification.
+- Add campaign/send log table only after product requires durable custom/bulk history beyond function responses.
+- Add RLS policy repair after platform-admin select stops matching current subscriber management scope.
+- Add schema fields only in a future org-scoped subscriber model.
 
 ## Verification Plan
 

@@ -18,7 +18,7 @@ Covered feature rows from `../services/CONSOLE_FEATURE_SERVICE_TAXONOMY_2026-05-
 
 The console has the important backend receivers for cash approval, cash decline, dispatch, completion, and retry payment, but the emergency detail surface is not consuming them through one coherent detail owner. The page, modal, list/table views, payment service, visits service, and direct Supabase reads each own a piece of the same object. That split explains why an emergency can exist while its detail modal cannot reliably show the payment row, lifecycle outcome, or visit record.
 
-The first implementation pass should not start inside the modal. It should first create a detail projection boundary that reads the request, latest payment, request-derived visit/outcome, patient, hospital/org, and action eligibility as one contract.
+The first implementation pass starts by creating a detail projection boundary that reads the request, latest payment, request-derived visit/outcome, patient, hospital/org, and action eligibility as one contract. Modal edits come after that boundary exists.
 
 ## Evidence Table
 
@@ -43,6 +43,7 @@ The first implementation pass should not start inside the modal. It should first
 | `approve_cash_payment` moves request to `in_progress`, marks payment completed, and updates linked visit. | `frontend/supabase/scripts/apply_live_fixes.sql:875`, `:876`, `:880` | Approval is not a cosmetic state change. It changes emergency, payment, wallet ledger, responder fields, and visit state. | Command result refresh |
 | `decline_cash_payment` moves request to `payment_declined`, marks payment failed, and cancels linked visit. | `frontend/supabase/scripts/apply_live_fixes.sql:934`, `:1047`, `:1052` | Decline has canonical lifecycle consequences and should not be reproduced in UI code. | Command result refresh |
 | Current migrations define `sync_emergency_to_visit` and index `visits.request_id`. | `frontend/supabase/migrations/20260219000900_automations.sql:156`, `:224`, `:234`, `:1084` | Request-derived visit is a first-class relationship even when legacy records share primary ids. | Visits service |
+| Current payment RLS lets users see their own payments and org admins/admins see organization payments. | `frontend/supabase/migrations/20260219000700_security.sql:248`, `:253` | Missing detail payment rows are not accepted as a UI limitation. The implementation must use canonical `organization_id` and surface degraded state only when the backend denies or lacks the row. | Payment detail read contract |
 
 ## Broken Contract Name
 
@@ -52,9 +53,9 @@ Emergency detail is currently a component-assembled object. It needs to become a
 
 The modal should render that projection. It should not decide how to query payments, infer payment visibility, derive visit lookup strategy, or subscribe to table-level changes by itself.
 
-## Implementation Gates For Pass 1
+## Deterministic Decisions For Pass 1
 
-1. Add or extend an emergency detail read boundary that returns:
+1. Create one emergency detail projection boundary that returns:
    - `request`
    - `latestPayment`
    - `visitOutcome`
@@ -63,40 +64,40 @@ The modal should render that projection. It should not decide how to query payme
    - `organization`
    - `actionState`
    - `visibilityState` for hidden/missing payment rows
-2. Add `getVisitByRequestId(requestId)` or equivalent in `visitsService.js`; preserve `getVisit(visitId)` for true visit identity.
+2. Add `getVisitByRequestId(requestId)` in `visitsService.js`; preserve `getVisit(visitId)` for true visit identity.
 3. Move payment-by-request reads out of the modal and page into a service/helper used by both list enrichment and detail projection.
 4. Keep `approveCashPayment(paymentId, requestId)` and `declineCashPayment(paymentId, requestId)` as the canonical cash approval commands.
 5. After any cash approval, cash decline, dispatch, complete, or retry command, refresh the same detail projection before success copy implies final state.
-6. Split manual post-completion cash recording from pending-approval cash approval. They are not the same user flow.
+6. Keep manual post-completion cash recording out of the pending-approval path. Pending cash approval uses only `approveCashPayment` and `declineCashPayment`.
 7. Replace modal-owned table subscriptions with a scoped realtime hook that invalidates or refetches the detail projection.
 8. Do not change request lifecycle statuses in UI code. Use RPC result plus refreshed backend truth.
 
 ## First Safe Implementation Slice
 
-The first implementation slice should be small:
+The first implementation slice is fixed:
 
 1. Add service helpers:
    - `getLatestEmergencyPayment(requestId)`
    - `getVisitByRequestId(requestId)`
    - `getEmergencyDetailProjection(requestId)`
 2. Wire `EmergencyDetailsModal` to consume the projection instead of direct `payments` and `getVisit(request.id)` calls.
-3. Keep the existing UI layout and action buttons unchanged unless the projection exposes missing data states.
+3. Keep the existing UI layout and action buttons unchanged.
 4. Add detail refresh after approve/decline/retry.
 5. Verify one pending cash request, one declined retry request, one completed request, and one completed request whose visit is linked by `request_id`.
 
-## Stop Conditions
+## Hard Blockers
 
-Implementation pauses if any of these cannot be proved:
+Implementation pauses only for these blockers:
 
-- Whether org admins can read the exact payment row needed by `approve_cash_payment`.
-- Whether deployed data has visits where `id != emergency_requests.id` but `request_id = emergency_requests.id` or display id.
-- Whether retry payment returns enough data to show the new pending payment without a second read.
-- Whether manual `processCashPayment` is still needed for completed cash collection or should be retired from emergency request completion.
+- A pending approval request has no visible payment row even though `payments.organization_id` matches the operator organization. That is an RLS/data integrity defect, not a modal defect.
+- A completed/cancelled request has no linked visit by `visits.id`, `visits.display_id`, or `visits.request_id`. That becomes an explicit "No visit record linked" state and a separate data repair ticket, not a blocked modal render.
+- `retry_payment_with_different_method` returns success without a new readable pending payment. The UI still refreshes backend truth and shows pending retry state from the request/payment projection.
+- `walletService.processCashPayment` remains a Pass 2 finance hardening target and is not used for pending cash approval in Pass 1.
 
-## Open Items For Pass 2 Cross-Check
+## Pass 2 Cross-Check
 
-Pass 1 can fix detail visibility and command refresh, but these payment issues belong to Pass 2 as well:
+Pass 1 fixes detail visibility and command refresh. These payment issues belong to Pass 2:
 
-- `walletService.processCashPayment` uses the manual cash path and should be compared against `process_cash_payment_v2` and `approve_cash_payment`.
+- `walletService.processCashPayment` uses the manual cash path and must be compared against `process_cash_payment_v2` and `approve_cash_payment`.
 - Ledger entries from cash approval and manual cash processing must be checked for duplicate platform fee credits.
-- Wallet eligibility should resolve organization id from the canonical hospital/org relationship, not from a UUID-shaped fallback.
+- Wallet eligibility must resolve organization id from the canonical hospital/org relationship, not from a UUID-shaped fallback.
