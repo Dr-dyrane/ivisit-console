@@ -33,6 +33,9 @@ Console files inspected:
 - `frontend/src/services/authService.js`
 - `frontend/src/services/displayIdService.js`
 - `frontend/src/services/rbacPatterns.js`
+- `frontend/supabase/functions/payments/index.ts`
+- `frontend/supabase/functions/discovery/index.ts`
+- `frontend/supabase/functions/README.md`
 
 Audit docs:
 
@@ -62,6 +65,8 @@ Observed source signals:
 - Provider verification service read/capability checks permit `admin`, `org_admin`, and `sponsor`, while live `/verification` route access is `org_admin` or above and the provider and organization approve/reject services require `isAdmin()` for mutation; org admins can reach controls that will be rejected and sponsor semantics conflict between service and route.
 - Both verification services page the visible queue but load unbounded rows again to derive statistics, and the page subscribes to provider and organization queues even while one tab is active.
 - `OrganizationsPage` exposes direct organization create/edit/delete over service CRUD, reports a hard-coded `99.8%` network-health KPI, and calculates wallet/network values from the unbounded organization-plus-wallet collection.
+- `InviteUserModal` and `adminService` address `/functions/v1/invite-user`, but the only inspected handler source is `frontend/supabase/functions/payments/index.ts`; its immediate folder does not prove deployment under the addressed slug. That source proceeds without authorization when no header is supplied and returns a generated link while email delivery is commented out.
+- `LoginPage` addresses `check-user`, but the only inspected handler source is `frontend/supabase/functions/discovery/index.ts`; its immediate folder does not prove the addressed deployment slug. The handler uses service-role profile/Auth inspection to expose existence/role/password-inference signals at the login boundary.
 - Existing source contains corrupted rendered characters in verification status comments/organization KPI copy and auth denial decoration; implementation must repair visible encoding while preserving the audit evidence.
 
 ## User Flow
@@ -105,6 +110,7 @@ Operator/onboarding path:
 | Shell/user avatar rendering | Header, menu and identity surfaces render stored avatars or external generated fallbacks. | External avatar request can include username or profile-derived seed when stored media is absent or failed. | **Exposure gate.** Replace with app-owned fallback or explicitly approve a non-identifying external seed policy before identity surfaces are considered private by default. |
 | `/users` desktop/mobile management | Profiles, organizations map, role/BVN/provider labels and statistics; privileged path loads up to `1000` then slices client-side. | Invite, create/edit, direct privileged delete RPC and bulk operations. | **Blocked.** Counts/bulk scope can truncate and CRUD/auth ownership must remain invite/admin-receiver backed. |
 | `InviteUserModal` | Email, role and `Organization Assignment` selection sourced from a hospital list. | Invokes `invite-user` with selected hospital id in `metadata.organization_id`. | **Blocked.** It can assign an organization-scoped user to facility identity and falsely report scoped invitation success. |
+| Invite and login Edge boundaries | Invite UI/admin service and login screen invoke `invite-user` / `check-user`. | Inspected sources are housed under differently named Console function directories; invite permits unauthenticated continuation/no mail send, while check-user exposes identity/password classification through service-role inspection. | **Blocked, receiver/topology/security gate.** Prove or replace deployed slugs, require appropriate authorization/rate/privacy policy, and derive feedback only from true delivery/session outcomes. |
 | `/organizations` registry | All organizations plus all wallets, local search/page/KPIs, network float and static network-health display. | Direct organization service create/update/delete controls. | **Blocked.** Pagination/aggregates are not authoritative, hard-coded health is false display truth, and guarded command authority is unproved. |
 | Public onboarding wizard facility match | Searches hospital records, renders claim status and entered organization details. | Creates/links through onboarding service and uploads verification evidence. | **Blocked.** Organization-versus-facility identity is ambiguous and pending verification status is ignored when claiming a facility. |
 | `/verification` provider tab | Pages provider profiles and renders BVN/identity verification queue plus stats. | `verifyProvider` writes `profiles.bvn_verified`; command requires admin. | **Blocked.** Org admins can reach actionable controls without receiver authority, while sponsor allowance differs between service and route; stats are independently unbounded. |

@@ -31,6 +31,12 @@ Patient-app and shared receiver evidence:
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/migrations/20260219000400_finance.sql`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/migrations/20260219000700_security.sql`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/migrations/20260219000900_automations.sql`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/functions/payments/create-payment-intent/index.ts`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/functions/payments/create-payout/index.ts`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/functions/payments/manage-payment-methods/index.ts`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/functions/payments/billing-quote/index.ts`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/functions/payments/refresh-exchange-rates/index.ts`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/functions/webhooks/stripe-webhook/index.ts`
 
 Audit docs:
 
@@ -59,6 +65,8 @@ Observed source signals:
 - `MobileWallet` derives credit, payment-success and period-trend metrics from the same capped route previews, so its KPI presentation cannot be read as complete finance analytics.
 - Console source contains corrupted separator bytes in wallet footer and displayed card masking text; these are visible financial-copy defects to repair during implementation.
 - The patient app already has a billing quote service and adopted quote snapshot on core checkout/payment owners, while Console has no `get_billing_quote` or `exchange_rates` consumer and formats wallet/payment values as wallet currency or USD.
+- The live Console invokes `create-payment-intent`, `create-payout`, and `manage-payment-methods`, but those receiver sources are owned in `ivisit-app/supabase/functions`, not in the Console Edge Function tree. They are shared finance receivers that require cross-repo payload, authorization and reflection validation before Console financial actions are implementable.
+- The patient-app function tree additionally owns `billing-quote`, `refresh-exchange-rates`, and `stripe-webhook`; none is a direct Console invocation in this scan, but they are authoritative dependencies for patient quote meaning, FX freshness and Stripe-confirmed completion.
 
 ## User Flow
 
@@ -105,6 +113,7 @@ Operator path:
 | Emergency cash boundary | Emergency page invokes cash eligibility and settlement with possible hospital-id fallback. | `check_cash_eligibility` and `process_cash_payment` RPC paths. | **Blocked dependency from Pass 1.** Amount input is ignored by eligibility helper, organization identity can be incorrect, and settled-copy requires refreshed ledger/payment truth. |
 | Patient billing quote dependency | No found Console quote/rate consumer; operational wallet UI displays USD/wallet currency. | Patient app calls billing quote/conversion RPCs and renders quote snapshots. | **Explicit dependency only.** Console must not calculate FX locally or confuse accounting currency with the patient's display quote. |
 | Insurance billing outcome | No found Console rendered `insurance_billing` result surface. | Trigger creates outcomes; shared RLS permits scoped reads. | **Missing required read dependency.** Pass 7 owns the result/exception surface; Pass 2 must account for it in finance projection semantics. |
+| Cross-repo Edge receiver ownership | Console calls top-up, payout and method-management slugs whose inspected implementations exist only in the patient-app/shared Supabase tree. | `ivisit-app` Edge Functions and Stripe webhook own command/result behavior. | **Receiver topology proved, behavior still blocked.** Do not introduce parallel Console functions; validate roles, organization scope, pending/webhook reflection and deployment together. |
 
 ## Patient-Facing Dependency Closure
 
