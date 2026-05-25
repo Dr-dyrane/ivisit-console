@@ -345,6 +345,30 @@ This is the required bridge between evidence and implementation. Runtime code ma
 
 First implementation cannot begin until the "First-slice audit still required" column is resolved or explicitly deferred with a disabled/unavailable control.
 
+## Emergency Detail Projection Target Contract
+
+`getEmergencyDetailProjection()` is the first service to close in Pass 1. The implementation should make `EmergencyDetailsModal` render from this projection instead of raw `request.*` fallback chains.
+
+| Projection key | Required source fields or receiver | Current raw render evidence | Required output and unavailable state |
+| --- | --- | --- | --- |
+| `identity` | `emergency_requests.id`, `display_id` / `request_id`, `created_at` | Case/time/request id render from `request.id`, `request.created_at`, `request.request_id` in `EmergencyDetailsModal.jsx:300-304` and `:495-499`, `:568-569`. | `{ id, displayLabel, createdAtLabel, createdTimeLabel }`; unknown labels when missing. |
+| `statusDisplay` | canonical status plus RPC legality; transition rules from shared RPC source | Status tracker uses local `normalizedStatus` and hard-coded steps at `EmergencyDetailsModal.jsx:323-343`; service details render raw `request.status` at `:612-613`. | `{ status, label, stepIndex, steps, tone, isTerminal }`; no surface branches on legacy status tokens. |
+| `priorityDisplay` | `priority` plus current priority color helpers or replacement token | Header badge reads `request.priority` at `EmergencyDetailsModal.jsx:294` and `:309-310`. | `{ label, toneClass }`; default "normal" only when source is truly absent. |
+| `serviceDisplay` | `service_type`, `ambulance_type`, bed fields, specialty | Header and service cards render `request.service_type`, local ambulance parser, ETA, bed number/type and specialty at `EmergencyDetailsModal.jsx:299`, `:572-573`, `:598-632`. | `{ type, label, mode, ambulanceTypeLabel, bedLabel, bedCategoryLabel, specialtyLabel }`; scalar/object/malformed ambulance type normalized in service. |
+| `patientDisplay` | `patient_snapshot`, joined profile/user fields, request aliases | Requester section uses `getStandardizedPatient(request)` plus raw username aliases at `EmergencyDetailsModal.jsx:507-543`. | `{ name, initials, avatar, username, phone, email, contactAvailability }`; no separate mobile/modal alias chain. |
+| `facilityDisplay` | `hospital_id`, hospital name/projection, organization/facility scope | Location card renders `request.hospital_name || 'N/A'` at `EmergencyDetailsModal.jsx:550-552`. | `{ hospitalId, organizationId, name, scopeState }`; `not_assigned`, `hidden`, and `missing_name` remain distinct. |
+| `locationDisplay` | patient/pickup/responder location fields, coordinate normalizer, optional external geocoding state | Location card renders `LocationCell` with raw location fields at `EmergencyDetailsModal.jsx:554-563`; map link uses `request.latitude`/`request.longitude` at `:586-591`. | `{ addressLabel, coordinates, coordinateSource, canOpenExternalMap, externalMapUrl, degradedReason }`; third-party geocode failure is not backend-truth failure. |
+| `paymentDisplay` | `getLatestEmergencyPayment()`, request payment aliases, payment visibility/RLS state | Approval amount uses `paymentData?.amount ?? request.total_cost` at `EmergencyDetailsModal.jsx:359-364`; missing payment copy uses `paymentVisibilityState` at `:384-391`. | `{ paymentId, amountLabel, currency, methodLabel, status, visibilityState, canApproveCash, canDeclineCash, canRetry }`; nonnumeric amounts render unavailable, not zero. |
+| `actionState` | emergency action helper plus receiver availability and refreshed projection rules | Approval/retry buttons use local booleans and pending state at `EmergencyDetailsModal.jsx:346-418`; page/map/mobile have separate action logic. | `{ approveCash, declineCash, retryPayment, openClinicalRecord, externalNavigation }` with command class, disabled reason, pending key, and post-command refresh target. |
+| `clinicalOutcome` | `visits.request_id` projection via `getVisitByRequestId()` | Clinical block renders `visitOutcome` and dispatches `openVisitModal` at `EmergencyDetailsModal.jsx:438-489`. | `{ visibilityState, summary, doctorLabel, prescriptions, canOpen, receiver }`; receiver cannot be custom event unless mounted on current route. |
+| `responderDisplay` | dispatch RPC result fields, responder/ambulance fields, telemetry/ETA seed where present | Dispatch indicator uses `request.ambulance_id` at `EmergencyDetailsModal.jsx:421-426`; responder card uses `request.responder_*` at `:638-664`; ETA uses `etaDisplay` at `:608-609`. | `{ assignmentState, ambulanceId, responderName, phone, vehiclePlate, vehicleType, etaLabel, telemetryState }`; no confident ETA if seed is absent. |
+| `timelineSummary` | `emergency_status_transitions` append-only rows | No current rendered Console timeline. | `{ visibilityState, rows }`; read-only, no edit/delete controls. |
+| `chatSummary` | `ensure_emergency_chat_room`, message/read RPCs, scoped chat tables | No current rendered Console chat surface. | `{ availabilityState, roomId, unreadCount, latestMessage, canSend }`; no direct table-send path. |
+| `clinicianAssignment` | `assign_doctor_to_emergency`, `emergency_doctor_assignments` | No current persisted Console assignment surface. | `{ availabilityState, assignmentId, doctorId, doctorLabel, status, notes }`; displayed doctor context is not assignment proof. |
+| `reportAction` | No receiver proved in this pass | Bottom button says `Generate Incident Report` at `EmergencyDetailsModal.jsx:676-679`. | Disabled/unavailable until report receiver is named, or removed from first slice. |
+
+Implementation gate: after this projection contract is implemented, `EmergencyDetailsModal` should treat raw `request` as an input seed only. Direct raw-field rendering is allowed only where the projection explicitly passes through a field with a named unavailable/degraded state.
+
 ## Detailed Implementation Checklist
 
 Before code changes:
