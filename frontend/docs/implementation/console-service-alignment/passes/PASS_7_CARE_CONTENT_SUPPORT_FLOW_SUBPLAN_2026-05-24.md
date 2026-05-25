@@ -27,6 +27,8 @@ Console files inspected:
 - `frontend/src/services/insurancePoliciesService.js`
 - `frontend/src/services/notificationService.js`
 - `frontend/src/services/storageService.js`
+- `frontend/src/utils/runMigrations.js`
+- `frontend/src/utils/testDatabase.js`
 - Shared `insurance_billing` table/trigger and hospital/admin scoped read-policy evidence.
 
 Audit docs:
@@ -48,6 +50,8 @@ Observed source and contract signals:
 - Insurance admin/org-admin promises are not authorized by current owner-only policy source.
 - `insurance_billing` is trigger-backed billing truth with hospital/admin visibility in source policy, but no Console billing-outcome view or exception workflow was found.
 - `notificationService.js` is aligned for operator notification streams but patient delete/clear policy is a separate app drift.
+- `runMigrations.js` contains browser-side `exec_sql` mutation attempts for health news, support tickets and insurance; `testDatabase.js` contains direct diagnostic reads. No product implementation may use these helpers as receiver proof or repair paths.
+- `/health-news` is provider-restricted in the live route while navigation and `ContextPanel` advertise viewer reach; `/insurance` is admin-restricted in the live route while navigation advertises org-admin reach.
 
 ## User Flow
 
@@ -75,6 +79,8 @@ Operator/support/content path:
 | Insurance images | Insurance service uploads directly. | Private insurance-evidence Storage owner with policy/path/expiry/cleanup proof before implementation. |
 | Health news authoring | UI fields are silently discarded by service/table shape. | Curated published-feed owner; unsupported CMS fields/actions remain unavailable until receiver/policy expansion. |
 | Notifications | Operator notifications aligned; patient delete policy drift remains. | Notification owner split: console operator stream versus patient notification lifecycle. |
+| Browser-side schema/diagnostic utilities | `runMigrations.js` can call `exec_sql`; `testDatabase.js` queries domain tables outside service owners. | Maintenance-only boundary excluded from product flows; retire if unused after import proof. |
+| Content and insurance route promise | Navigation/panel role promises disagree with live route and with unproved management authority. | Align visibility with supported read/command authority; do not advertise unavailable management surfaces. |
 
 ## Action Class And Receiver Map
 
@@ -88,6 +94,17 @@ Operator/support/content path:
 | View insurance billing outcome | Backend-derived/scoped read evidence | `insurance_billing` trigger-created result | Add hospital/admin result visibility; do not recreate settlement from UI. |
 | Upload insurance card evidence | Sensitive storage command | Private object ownership and signed URL strategy | Verify Storage policy/object-path lifecycle before implementation. |
 | Read/mark operator notification | Owner-scoped CRUD subset | `notifications` own insert/read/update | Do not generalize into patient notification deletion or broadcast authority. |
+| Enter health-news or insurance management | Role-scoped UI access projection | Consolidated live route/navigation/panel authority plus authorized receiver | Viewer/org-admin entry points remain hidden or deliberately read-only until management authorization is proved. |
+
+## Field And Receiver Gate
+
+| Required contract cluster | Fields that must be projected or submitted deliberately | Gate before implementation closes |
+| --- | --- | --- |
+| Insurance policy and billed outcome | coverage percentage/coverage JSON/card object path; billing request/policy/provider amount/status/result context | Policy management and trigger-created billing outcomes are distinct; no UI recreation of billing creation or unsupported admin CRUD. |
+| Support operations | ticket submitter, status, assignment, staff response, organization scope and patient visibility | Reconcile missing response/scope fields and role authority before promising response, assignment, or deletion. |
+| Content, FAQ, notifications and evidence storage | published feed fields only; FAQ read fields; own notification state; private Storage object path/URL generation lifecycle | Keep authoring dormant under current policy, avoid patient-notification authority expansion, and prove Storage policy before insurance upload persistence. |
+
+Storage evidence confirmation (May 25): no active App/Console `storage.objects` or bucket-policy authority was found outside archive material. Console currently uploads `documents/insurance-cards/*` with a one-year signed URL while the App uploads `documents/insurance/{user.id}/*` with a one-hour URL; implementation must repair this into one private, owner-scoped evidence lifecycle before retaining Console insurance upload behavior.
 
 ## Implementation Packages
 
@@ -208,3 +225,4 @@ Stop conditions:
 - Do not keep health-news fields that are discarded by the service/table.
 - Do not add FAQ UI before deciding whether FAQs are still product-owned.
 - Do not publish or send notifications during planning.
+- Do not invoke or wire browser-side `exec_sql`/diagnostic helpers as care, support or insurance implementation paths.

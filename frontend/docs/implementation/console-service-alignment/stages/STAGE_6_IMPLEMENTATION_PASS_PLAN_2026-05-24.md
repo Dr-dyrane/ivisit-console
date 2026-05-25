@@ -20,6 +20,51 @@ The pass order below is an implementation sequence, not the console feature taxo
 - Preserve user changes in the worktree and avoid doc-only micro-commits.
 - Commit only when the relevant evidence or implementation pack is coherent and resumable.
 
+## Global Receiver And Field Gate
+
+The full source-row field register is maintained in `../../../database/console-app-alignment/TABLE_DOMAIN_MATRIX_2026-05-24.md`. The implementation sequence must consume it as follows:
+
+| Pass | Projection or payload that must be fixed first | Receiver boundary that cannot be guessed during coding | First executable implementation slice after gate clearance |
+| ---: | --- | --- | --- |
+| 1 | Emergency request detail with transitions, chat, clinician assignment, payment and linked visit outcome | Emergency command RPCs, chat RPCs, assignment RPC, payment approval/decline and cash settlement authority | Build one detail/read projection with timeline/chat/assignment capability states and backend-derived action eligibility before altering lifecycle actions. |
+| 2 | Wallet/payment/ledger view keyed by true organization and wallet identity | Stripe function authorization, webhook reflection, backend ledger writer and payout reservation | Remove automatic repair mutation and consolidate truthful read/pending/degraded states before enabling repaired money commands. |
+| 3 | Facility detail containing taxonomy, media, import provenance, availability and hospital-scoped price identity | Availability RPC, provider/media policy, discovery persistence guard and quote receiver | Centralize facility reads and present the missing classification/provenance fields before modifying capacity or import writes. |
+| 4 | Auth/profile/org/hospital identity chain and two separate verification lanes | Admin profile RPC supported columns, invite/auth receiver, guarded organization/onboarding/facility verification path | Remove unsupported save/action promises and make identities/lanes visible before repairing creation or verification commands. |
+| 5 | Fleet/doctor/schedule projection with valid joined identity and active-request marker | Request-scoped telemetry, schedule table CRUD, clinician assignment command | Replace false fleet/schedule projections with table-backed reads before enabling corrected edits. |
+| 6 | Visit projection marked administrative versus emergency-derived | Separate administrative authority, request/trigger-owned clinical lifecycle | Centralize reads and disable destructive edits for request-linked records before any CRUD extension. |
+| 7 | Policy/billing/ticket/content/subscriber projection with policy and lifecycle classifications | Insurance/support authorized receiver, billing read lane, Storage proof, subscriber/email lifecycle receiver | Ship read/disabled/degraded truth surfaces first; do not preserve unauthorized authoring or subscriber controls. |
+| 8 | Dashboard/search/activity values labelled by verified source or unavailable state | Guarded aggregate/activity reads, real trend generation, durable critical-audit writer | Remove fabricated/stub-success display truth and broad realtime ownership after preceding domain readers are stable. |
+
+## Global Direct Boundary Gate
+
+Stage 5 now maintains the direct boundary call-site register for UI, context, hook, utility and infrastructure files that access Supabase/Auth/Edge/Storage outside service owners. This register is part of implementation scope, not optional cleanup.
+
+| Pass | Direct callers that must be reconciled in that pass | Required disposition before the pass can close |
+| ---: | --- | --- |
+| 1 | `EmergencyRequestsPage`, `EmergencyRequestModal`, `LocationCell`, emergency slices of `PageDataContext` | Emergency reads/payment projection/realtime move to the emergency owner; profile selection and external location display are bounded authorized projections rather than modal/cell-owned truth. |
+| 2 | `WalletManagementPage`, wallet slices of `PageDataContext` | Finance read projection moves behind one wallet facade; ledger/money commands stay receiver-backed. |
+| 3 | `HospitalsPage`, `HospitalModal` | Facility realtime/read refresh and discovery Edge interaction are owned by the facility/discovery boundary, not page/modal request assumptions. |
+| 4 | `UsersPage`, `InviteUserModal`, `AuthContext`, `LoginPage`, `SetPasswordPage`, `SecurityModal` | Identity KPI, invite and destructive workflows route through named authority; canonical Auth SDK operations are reviewed and may remain only as supported auth adapters. |
+| 5 | `AmbulancesPage`, `AmbulanceModal`, `DoctorModal` | Fleet counts, assignment availability and facility options use provider/fleet owners with valid relationship scope. |
+| 6 | `VisitsPage` | Visit count/hydration/realtime moves to the visit model; emergency-linked records do not inherit page-owned edit/delete authority. |
+| 7 | `HealthNewsManagementPage`, `HealthNewsPanel`, `SupportTicketsPanel`, `utils/runMigrations.js`, `utils/testDatabase.js` | Content/support reads reuse scoped owners; browser-side SQL repair and diagnostics cannot serve product behavior. |
+| 8 | `Analytics`, `Overview`, `useAnalytics`, remaining `PageDataContext`, `BentoHome`, `DashboardPanel`, `lib/supabase.js` | Dashboard aggregation/realtime consumes stabilized domain truth; public asset delivery, maintenance actions and generic subscriptions are deliberately owned, disabled or retired. |
+
+## Global Route And Surface Gate
+
+Stage 5 now also maintains the visible route, context-panel, primary-action and modal-receiver register. The active route guard is `App.js` plus `ProtectedRoute`; the unconsumed `RouteGuard` / `config/routes.jsx` pair is conflicting dormant configuration until explicitly consolidated.
+
+| Pass | Visible surfaces requiring reconciliation | Required disposition before the pass can close |
+| ---: | --- | --- |
+| 1 | Emergency detail clinical-record action and emergency-route detail modal ownership | Selecting a linked clinical record from `/emergencies` opens a mounted, identity-correct surface or navigates deliberately; it cannot dispatch to an absent `VisitsPage` listener. |
+| 2 | `/pricing` shared primary action and global financial modal invocation | A pricing surface cannot silently open wallet top-up; financial commands appear only in their intentional scoped flow with truthful pending/reflection state. |
+| 3 | `/hospitals` role doctrine and `/pricing` operation meaning, report and Bulk Sync controls | Facility and rate operations have consistent allowed roles and distinct mounted/authorized command surfaces before facility/pricing cleanup closes. |
+| 4 | Auth/onboarding paths, `/organizations`, `/users`, `/verification`, Quick Verify and own-user versus admin settings context | Route, navigation and context-panel roles use one explicit authority model; Quick Verify reaches a real queue state; dormant config is reconciled or retired. |
+| 5 | `/map` access promise, Center Map and targeted recenter controls | Live map is visible only to the operational role permitted by its real route and telemetry scope, and each centering control calls a mounted map receiver with deliberate target semantics. |
+| 6 | Visit-projection ownership used by cross-surface handoffs | Preserve the mounted visit-to-emergency receiver and supply a canonical request-derived visit projection for Pass 1's missing emergency-to-visit direction; request-derived records remain read-only where commanded upstream. |
+| 7 | `/health-news`, `/insurance` and subscription Broadcast action | Advertised role access matches authorized receivers; unimplemented content/insurance/email actions are disabled rather than clickable no-ops. |
+| 8 | Dashboard route doctrine, Report receiver, context-shell access and route/action loading feedback | The consolidated shell uses one route authority; dashboard Report reaches a mounted truthful projection or navigation; all actions acknowledge allowed, pending, unavailable and rejected states. |
+
 ## Pass Order
 
 | Order | Pass | Primary reason | Earliest safe work | Requires backend/RPC/Edge repair before UI truth |
@@ -730,6 +775,7 @@ Before any pass starts, create or update a narrow checklist with:
 | Source truth | Stage 2/3/4 docs and source files read. |
 | Stage 5 coverage | Every service listed for the pass is either included, explicitly deferred, or marked out of scope with a reason. |
 | Operation class | Per user action: scoped read projection, authorized table CRUD, workflow command, derived read-only evidence, or excluded boundary. |
+| Field/receiver gate | Exact high-risk columns rendered or submitted, their source table, and the receiver/command or read projection allowed to own them. |
 | Safe cleanup | Read-only owner moves, UI feedback, and copy-only changes. |
 | L5 repair | Backend/RPC/Edge/schema/policy changes, if any. |
 | Exclusions | Related tempting work that will not be touched. |
@@ -747,10 +793,15 @@ Each pass must clear these gates before code changes begin.
 | --- | --- | --- |
 | Owner gate | The Stage 4 row names a single required owner for the surface/service. | `PageDataContext`, page, and service all still own the same server truth. |
 | Service coverage gate | The Stage 5 ledger has no unassigned service for the pass being started. | Subscription implementation starts while `subscribersService`, `subscriptionService`, and support/email receivers still have no chosen owner. |
+| Direct-boundary gate | The Stage 5 direct call-site register assigns every active non-service Supabase/Auth/Edge/Storage access in pass scope to move, retain as canonical adapter, disable, or retire. | A service facade is introduced while the page or context continues to read the same tables, own the same channel, invoke `exec_sql`, or claim Storage delivery independently. |
+| Route/surface gate | The Stage 5 visible-surface register assigns route entitlement, navigation and panel visibility, primary action and mounted modal receiver for every operated flow in pass scope. | An org admin sees an inaccessible insurance route, a pricing action opens wallet top-up, or the emergency clinical-record button dispatches to no mounted receiver. |
 | Receiver gate | The Stage 2 contract exhibit names the table/RPC/Edge Function that will receive the mutation or read. | UI action says "cash fee deducted" but no backend receiver is confirmed to debit/credit ledger truth. |
 | Operation-class gate | The table-policy/RPC matrices say whether each control is read projection, ordinary CRUD, workflow command, derived read-only evidence, or excluded. | A modal exposes Edit/Delete for a transition, ledger, billing-result, patient-owned, or command-owned row merely because it is selectable. |
+| Field-contract gate | The table matrix/pass subplan names the exact high-risk identity, status, amount, eligibility, evidence, and linkage fields used by the surface. | Implementation discovers while coding that `hospital_id` received an organization UUID or an edited field is not persisted by the receiver. |
+| Trace-coverage gate | Existing generated app trace output is read or regenerated for required shared tables touched by the pass; May 25 baselines complete `45/45` shared-table coverage, including missing capability and scoped/excluded boundaries; source policy/RPC evidence remains authoritative. | An implementation changes a shared-table surface without comparing against its trace and authoritative receiver contract. |
 | Scope gate | The implementation checklist names files touched and files explicitly excluded. | Wallet top-up fix also edits dashboard analytics and subscriber emails. |
 | Data-safety gate | The checklist says whether the pass is read-only cleanup, UI-only, L5 backend repair, schema/RLS work, Edge Function work, or historical repair. | A migration/backfill is run while the pass was only approved for service cleanup. |
+| Storage-authority gate | For upload-bearing Passes 3, 4, 5 and 7, read-only deployed proof identifies bucket visibility, `storage.objects` actor/path policies, canonical object ownership, URL lifetime and cleanup/audit behavior; current source provides no active authority outside archive material. | Console preserves public media URL assumptions or a one-year insurance signed URL while App uses one-hour owner-scoped evidence and no deployed Storage policy has been proved. |
 | Copy/feedback gate | User-facing success, loading, and degraded-state copy is tied to backend truth. | UI claims provider dispatch certification after only `profiles.bvn_verified` changes. |
 | Verification gate | The pass lists exact commands and browser/RLS/RPC checks. | "Test manually" is the only verification statement for payment or dispatch. |
 | Commit gate | The pass states whether it belongs to contract-truth, state-ownership, or implementation-plan pack. | A single finished chart or checklist is committed by itself without an explicit checkpoint reason. |
@@ -777,7 +828,7 @@ Do not commit because a single doc feels finished. A commit is appropriate only 
 | Implementation plan pack | Stage 6 pass plan has enough detail to start the first selected implementation pass without hidden research. |
 | Interim checkpoint | Only if user requests it, a deployment/build repair baseline needs it, or an external sync/schema refresh requires a protected before/after point. |
 
-Current status: prior coverage/ownership checkpoints are committed locally; this operation-class expansion is part of the next coherent audit checkpoint. The plan is detailed enough for implementation-pass selection once its current verification and checkpoint review are complete.
+Current status: the coverage, ownership, and operation-class checkpoints are committed locally. This receiver/field-readiness expansion is the next coherent audit checkpoint; after it is verified, each flow subplan has the required entry point for implementation sequencing without hidden field-contract research.
 
 ## First Implementation Pass Handoff
 

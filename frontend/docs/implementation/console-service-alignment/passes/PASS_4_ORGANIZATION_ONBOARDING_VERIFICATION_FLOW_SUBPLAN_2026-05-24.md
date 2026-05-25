@@ -44,6 +44,9 @@ Observed source signals:
 - `verificationService` verifies provider profiles and imports `rbacPatterns`.
 - `rbacPatterns.js` is used by verification services, so it is not optional infrastructure.
 - Verification queue has separate provider and organization tabs but copy/action semantics can still imply the wrong readiness.
+- Live route/navigation access allows `org_admin` on `/users` and `/verification`, while `ContextPanel` suppresses both panels unless `admin`; own-user `/settings` is also route-visible from `viewer` while its panel is admin-only.
+- `/organizations` is live and admin-visible in `App.js`/navigation but absent from the dormant `config/routes.jsx` doctrine; authentication/onboarding entries are similarly incomplete there.
+- The shared Quick Verify action only navigates to `/verification?quick=true`; no query-param receiver was found in `VerificationQueue`, so it does not currently enter a distinct review operation.
 
 ## User Flow
 
@@ -68,6 +71,8 @@ Operator/onboarding path:
 | RBAC helpers | Used by verification services but not broadly audited. | Security helper review against current RLS/RPC doctrine. |
 | Display IDs | Dynamic enrichment in several services. | Entity-aware display ID resolution and fallback copy. |
 | Admin/user creation | Raw profile paths may create records without Auth identity. | Auth-backed invite/create boundary. |
+| Route and panel authority | Live route/navigation and context-panel role checks disagree for identity/verification/settings surfaces; dormant route config is incomplete. | One explicit access authority for route, nav and panel composition, with own-user settings separated from admin operations. |
+| Quick verification entry | Context action advertises a quick workflow through an unconsumed query flag. | A mounted, authorized verification queue state or no Quick Verify action. |
 
 ## Action Class And Receiver Map
 
@@ -79,22 +84,36 @@ Operator/onboarding path:
 | Review person credential/BVN | Workflow command needing policy/receiver proof | Profile identity lane | Do not describe as facility dispatch certification. |
 | Review/approve facility readiness | Workflow command | Hospital verification/eligibility lane | Render derived dispatch/booking state distinctly. |
 | Assign role/organization/provider identity | Workflow command | Admin/profile/auth authority | Preserve UUID identity chain and display-ID lookup only. |
+| Reach identity and verification surfaces | Role-scoped UI access projection | Consolidated live route/navigation/panel authority plus backend permission | Do not show a route without its valid context or suppress valid org-admin operational context through a stricter panel-only rule. |
+| Enter Quick Verify | Workflow entry point | Verified queue mode tied to the correct person/facility lane | Do not advertise quick review until the queue consumes and renders that state. |
+
+## Field And Receiver Gate
+
+| Required contract cluster | Fields that must be projected or submitted deliberately | Gate before implementation closes |
+| --- | --- | --- |
+| Profile/auth identity | auth-backed profile `id`, role, `organization_id`, `provider_type`, onboarding and BVN state; only RPC-supported editable columns | Do not expose email/avatar/name-component saves or direct other-user writes where the audited admin receiver does not persist or authorize them. |
+| Organization/facility chain | `organizations.id`, hospital `organization_id`, hospital verification and dispatch/emergency eligibility, organization wallet relationship | A hospital UUID never occupies `profiles.organization_id`; facility verification is distinct from person/BVN review. |
+| Invitation/onboarding completion | invite actor scope, role/org/provider metadata, email-delivery result, linked profile/org/hospital creation effects | Do not report an invitation sent or operational ownership established without receiver-backed email and identity linkage proof. |
+
+Generated trace confirmation (May 25): `user_roles` now has a cross-repo table-flow trace with zero matched Console CRUD surfaces. Effective Console role changes remain with the approved Auth/profile/admin identity receiver; this pass must not add a parallel role-table editor.
+
+Storage evidence confirmation (May 25): onboarding currently uploads verification files into `documents/organizations/{organization.id}/verification/*`, but no active App/Console Storage bucket/policy authority was found outside archive material. Evidence upload remains a private-command blocker until read-only deployed policy, actor scope, retention and cleanup proof is available.
 
 ## Implementation Packages
 
-### 1. Organization Registry Decision
+### 1. Organization Registry Boundary
 
-Before code changes, decide:
+Established boundary to preserve during implementation:
 
-- what `organizations` owns
-- what `hospitals` owns
-- how `profiles.organization_id` should reference organization versus facility
-- how organization wallets, pricing, subscribers, providers, and facilities attach
-- whether existing hospital-as-organization rows require a maintenance plan
+- `organizations` owns legal/operating organization identity and organization wallet scope.
+- `hospitals` owns facility identity and facility verification/dispatch eligibility under an organization.
+- `profiles.organization_id` references an organization UUID, never a hospital UUID.
+- Facility-scoped pricing/providers/media remain tied to the facility while authorization resolves through its organization.
+- Existing hospital-as-organization rows, if present, require a separate read-only evidence and authorized maintenance plan.
 
 Acceptance gate:
 
-- No onboarding or verification change begins until organization/facility identity semantics are documented.
+- No onboarding or verification change can submit an ambiguous hospital-versus-organization identifier.
 
 ### 2. Onboarding Writer
 

@@ -117,6 +117,7 @@ Before any implementation pass starts, the feature lane must answer:
 - Which service duplicates must be consolidated or intentionally layered?
 - Which storage/media paths must be public, private, signed, or app-owned?
 - Which verification/RLS/RPC checks are required before browser smoke testing?
+- Which page, modal, context, hook, or utility still reaches Supabase/Auth/Edge/Storage directly for this lane, and is it moved, retained as a canonical adapter, disabled, or retired?
 
 ## Anti-Bloat Rule
 

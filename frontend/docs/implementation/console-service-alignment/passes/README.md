@@ -20,4 +20,4 @@ Pass subplans are implementation handoffs. A pass is not a feature list; it is a
 
 ## Rule
 
-Each pass must name the feature/service rows it covers from `../services/CONSOLE_FEATURE_SERVICE_TAXONOMY_2026-05-24.md` and classify every user action as scoped read projection, authorized CRUD, workflow command, backend-derived read-only evidence, or excluded boundary. If a service is in scope without a checklist row, or an action lacks a receiver class, implementation pauses.
+Each pass must name the feature/service rows it covers from `../services/CONSOLE_FEATURE_SERVICE_TAXONOMY_2026-05-24.md`, classify every user action as scoped read projection, authorized CRUD, workflow command, backend-derived read-only evidence, or excluded boundary, and state the exact high-risk field/receiver gate for its first implementation slice. If a service is in scope without a checklist row, or an action lacks a receiver class or field gate, implementation pauses.

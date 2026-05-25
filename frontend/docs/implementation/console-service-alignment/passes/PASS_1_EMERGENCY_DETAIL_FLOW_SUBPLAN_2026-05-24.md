@@ -11,6 +11,7 @@ This subplan covers the user-visible failure where an operator cannot reliably o
 Console files inspected:
 
 - `frontend/src/components/modals/EmergencyDetailsModal.jsx`
+- `frontend/src/components/ui/LocationCell.jsx`
 - `frontend/src/components/views/EmergencyRequestListView.jsx`
 - `frontend/src/components/views/EmergencyRequestTableView.jsx`
 - `frontend/src/components/pages/EmergencyRequestsPage.jsx`
@@ -40,6 +41,8 @@ Observed source signals:
 - `EmergencyDetailsModal` imports `approveCashPayment` and `declineCashPayment` directly.
 - The cash approval success copy says dispatching responder after the cash approval call, before the refreshed emergency row is proven in the modal.
 - The direct payment query already warns that missing payment rows may be finance RLS visibility, which means the UI sees the symptom but does not own the contract.
+- `LocationCell` owns direct Google reverse geocoding for detail locations while its accepted coordinate shapes are narrower than app location inputs; location fallback is therefore part of emergency detail truth, not leaf formatting.
+- `EmergencyDetailsModal` closes after dispatching `openVisitModal`, but the only active receiver is mounted by `VisitsPage`; from `/emergencies`, the visible "View Full Clinical Record" action has no mounted modal receiver.
 - Shared source defines append-only status-transition evidence plus emergency chat and clinician-assignment receivers; Console runtime currently references these only through generated types or inferred doctor display, while the patient app implements chat RPC/realtime flow.
 
 ## User Flow
@@ -66,6 +69,8 @@ The current detail flow conflates these owners:
 | Payment row for approval | Modal direct `payments` query. | Emergency/payment detail read model with RLS-aware degraded state. |
 | Cash approval/decline | Modal direct command calls. | Emergency command boundary with post-command refresh/confirmation. |
 | Visit/clinical outcome | Modal/list/table call `getVisit(request.id)`. | Request-derived visit read model using explicit `getVisitByRequestId(requestId)` plus compatibility fallback. |
+| Clinical-record navigation from emergency detail | Modal dispatches a visit event and closes while the visits route/listener is not mounted. | Emergency-route-owned outcome detail surface or explicit identity-preserving navigation into the visit projection. |
+| Location/address projection | Leaf cell makes external geocoding request and falls back across mixed coordinate shapes. | Emergency detail location projection with normalized coordinates, bounded external lookup and explicit unavailable/fallback rendering. |
 | Realtime refresh | Modal owns payments and emergency channel locally. | Detail-scoped realtime invalidation owned by the detail model/hook. |
 | Status-transition history | Shared append-only table exists; no Console rendered timeline found. | Read-only detail timeline sourced from `emergency_status_transitions`; no update/delete actions. |
 | Urgent chat thread | Patient app implements room/message/read RPC flow; Console has type-only references. | Request-scoped communication projection/command owner using shared chat authorization. |
@@ -77,12 +82,26 @@ The current detail flow conflates these owners:
 | User-visible action or detail | Operation class | Canonical receiver or source | Console rule for this pass |
 | --- | --- | --- | --- |
 | Open request detail and refresh row | Scoped read projection | `emergency_requests` through emergency read owner | Render normalized row/detail truth; do not let modal become list owner. |
+| Render patient/pickup/responder address | Scoped external read projection | Normalized emergency location model plus bounded geocoding provider call | Accept canonical coordinate forms and display fallback/degraded truth when address lookup is unavailable. |
 | View lifecycle timeline | Backend-derived read-only evidence | `emergency_status_transitions` | Add scoped read timeline; no edit/delete controls. |
 | Open/send/read urgent conversation | Workflow command plus scoped read | Chat RPC family and emergency chat tables | Add participant-authorized projection/actions only through RPC contract. |
 | View/assign clinician handoff | Workflow command plus projection | `assign_doctor_to_emergency`, `emergency_doctor_assignments` | Persist assignment before UI claims handoff. |
 | Dispatch, complete, cancel | Workflow command | Console emergency RPC family | No direct request status CRUD; refresh row before success claim. |
 | Approve/decline/retry payment | Workflow command | Payment RPC family | No payment-table write from modal; success waits for refreshed truth. |
 | View linked visit outcome | Backend-derived read-only evidence in emergency detail | `visits.request_id` projection | Detail modal reads outcome; visit lifecycle editing belongs to Pass 6 authority. |
+| Open full clinical record from emergency detail | Cross-surface read navigation | Canonical request-to-visit projection and mounted route surface | Do not close the emergency modal into an unreceived custom event; show a mounted detail or transition intentionally. |
+
+## Field And Receiver Gate
+
+| Required contract cluster | Fields that must be projected or submitted deliberately | Gate before implementation closes |
+| --- | --- | --- |
+| Request/detail identity and state | `id`, `display_id`, `status`, `service_type`, `ambulance_type`, `hospital_id`, patient/pickup/responder location, `patient_snapshot`, responder/ETA and cost/payment metadata | Normalize mixed shapes before render; all lifecycle state changes remain RPC-owned. |
+| Audit and urgent communication | transition status/actor/time; chat room/request/participant/message/read/archive identity | Timeline is read-only; chat create/send/read uses the authenticated chat RPC family only. |
+| Clinical handoff and outcome | assignment request/doctor/status/notes/time; payment identity/state; `visits.request_id`, terminal clinical outcome | Do not claim assigned clinician, cash/payment resolution, or visit outcome without persisted refreshed rows. |
+
+Generated trace confirmation (May 25): `emergency_chat_rooms`, `emergency_chat_participants`, `emergency_chat_messages`, and `emergency_doctor_assignments` now have cross-repo table-flow traces, and each reports zero matched Console CRUD surfaces. Chat and clinical handoff are required new operational consumption/command work, not hidden existing UI ownership.
+
+`emergency_contacts` is also traced with zero matched Console CRUD surfaces. Contact context may be projected only where an authorized emergency/detail workflow justifies it; this pass does not introduce operator contact management.
 
 ## Implementation Packages
 

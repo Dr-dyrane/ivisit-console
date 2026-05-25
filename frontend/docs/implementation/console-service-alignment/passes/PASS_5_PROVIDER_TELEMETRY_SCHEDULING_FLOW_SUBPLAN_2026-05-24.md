@@ -28,6 +28,7 @@ Console files inspected:
 Observed source signals:
 
 - `GodModeMap` projects emergency requests, ambulances, hospitals, responder locations, telemetry freshness, and driver status actions.
+- The shared `/map` primary action dispatches `centerMap`, and `MapPanel` dispatches `recenter-map-target`, while `MapContext` and the mounted map refiners receive `recenter-map`; neither visible centering command is connected to a proved mounted receiver.
 - Driver map actions call `updateResponderLocation` and `driverManagementService.updateTripStatus`.
 - `AmbulanceModal` uploads images, selects drivers, checks existing assignments directly, and shows active assignment controls.
 - `StaffSchedulingModal` collects real doctor shift fields but `staffSchedulingService` never reads or writes `doctor_schedules`; it derives fixed same-day shifts from doctor and ambulance statuses.
@@ -54,6 +55,7 @@ Operator/provider path:
 | Driver assignment | Modal local filtering plus service actions. | Assignment owner with profile/driver/ambulance relationship truth. |
 | Provider images | Ambulance/doctor modals use storage directly. | Media owner shared with Pass 3/7. |
 | Map telemetry | GodModeMap derives telemetry and writes responder location. | Telemetry projection/command owner tied to active request truth. |
+| Map centering actions | Shared primary action and target-selection panel emit event names not consumed by mounted map implementations. | Single map command API/event shared by map controls and the rendered map receiver, with explicit target support where needed. |
 | Driver trip status | Map and modal can call driver management actions. | Trip lifecycle command owner. |
 | Doctor profile | Doctor record and profile linkage can drift. | Doctor/provider read and mutation owner. |
 | Scheduling | Derived doctor/crew rows and status toggles bypass the real `doctor_schedules` receiver. | Stored doctor-shift owner; ambulance shift CRUD excluded without a receiver. |
@@ -65,10 +67,23 @@ Operator/provider path:
 | --- | --- | --- | --- |
 | View/manage non-active fleet records | Authorized table CRUD after field repair | `ambulances` scoped policy | Use real hospital/org fields and valid status vocabulary. |
 | Dispatch/trip/responder telemetry for active emergency | Workflow command | Request-coupled dispatch/telemetry receivers | Direct fleet status/location editing cannot stand in for active-trip truth. |
+| Center operational map or selected request | UI command over rendered map state | Mounted map controller/refiner | Use the receiving map-control contract and verify the user sees immediate map movement or bounded feedback for both general and targeted centering. |
 | Manage doctor directory fields | Authorized table CRUD with projection boundary | `doctors`, profile sync automation | Separate directory-owned from profile-projected identity fields. |
 | Manage doctor shifts/conflicts/statistics | Authorized table CRUD | `doctor_schedules` | Replace generated/status-derived shifts with stored rows. |
 | Assign doctor to emergency | Workflow command | `assign_doctor_to_emergency`, `emergency_doctor_assignments` | Coordinate with Pass 1 and persist handoff truth. |
 | Upload provider/vehicle imagery | Scoped media/storage boundary | Doctor image field and Pass 3 media/storage authority | Do not upload ambulance media without row receiver; hospital provenance belongs to Pass 3. |
+
+## Field And Receiver Gate
+
+| Required contract cluster | Fields that must be projected or submitted deliberately | Gate before implementation closes |
+| --- | --- | --- |
+| Fleet identity and status | ambulance `hospital_id`, `organization_id`, driver/profile assignment, valid status, location/current call, license plate/vehicle/call-sign display | Join actual facility identity and use valid enum states; active request state cannot be edited as ordinary fleet CRUD. |
+| Telemetry and clinician handoff | request/responder/ambulance identity, location/heading/ETA, assignment request/doctor/status/notes | Active telemetry and emergency doctor assignment remain request-coupled commands with refreshed projection truth. |
+| Doctor schedule truth | doctor/profile/hospital specialty/license/status; schedule doctor/date/start/end/type/availability | Implement shift UI on stored `doctor_schedules`, not doctor status or generated rows; keep operational availability distinct. |
+
+Generated trace confirmation (May 25): `doctor_schedules` and `emergency_doctor_assignments` now have cross-repo baseline traces and report zero matched Console CRUD surfaces. The scheduling modal's current status-derived behavior is not table-backed shift ownership, and clinician assignment must be added through the persisted command/projection boundary coordinated with Pass 1.
+
+Storage evidence confirmation (May 25): current source provides no active `images` bucket-policy authority outside archive material. Doctor image persistence remains conditional on deployed Storage proof; ambulance image upload remains disabled in scope because no audited row receiver owns the uploaded object.
 
 ## Implementation Packages
 

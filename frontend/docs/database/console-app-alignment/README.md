@@ -12,7 +12,7 @@ The current pillar migrations are the primary source. Generated schema docs, old
 
 ## Documents
 
-- [Table Domain Matrix - 2026-05-24](./TABLE_DOMAIN_MATRIX_2026-05-24.md) - Full 45-table reverse capability inventory, source migration, identity posture, Console disposition, and risk by domain.
+- [Table Domain Matrix - 2026-05-24](./TABLE_DOMAIN_MATRIX_2026-05-24.md) - Full 45-table reverse capability inventory plus field-readiness, trigger-side-effect, Storage-boundary, generated-trace coverage, and exhibit-routing gates.
 - [RPC Mutation Matrix - 2026-05-24](./RPC_MUTATION_MATRIX_2026-05-24.md) - Command ownership, app/console call sites, side effects, resolved receiver classifications, and direct-write bypass risks.
 - [Trigger And Policy Matrix - 2026-05-24](./TRIGGER_POLICY_MATRIX_2026-05-24.md) - Trigger/RLS evidence plus full shared-table CRUD-versus-command authority posture.
 - [Edge Function Matrix - 2026-05-24](./EDGE_FUNCTION_MATRIX_2026-05-24.md) - Edge Function inputs, secrets, database effects, external effects, and naming/auth risks.

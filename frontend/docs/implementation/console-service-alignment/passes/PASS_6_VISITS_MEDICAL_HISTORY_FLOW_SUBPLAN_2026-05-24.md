@@ -31,6 +31,7 @@ Observed source signals:
 - `visitContextUtils.fetchEmergencyContext` calls `getEmergencyRequests()` and then searches in memory.
 - `medicalProfilesService` exists but is not yet tied into the visit detail read model.
 - `visitsService` has rich row normalization but page code still performs substantial hydration.
+- `VisitModal` dispatches `openEmergencyDetails`, and `VisitsPage` mounts the receiving emergency-detail modal; preserve this working handoff while supplying canonical visit projection for the missing reverse direction on `/emergencies`.
 
 ## User Flow
 
@@ -50,6 +51,7 @@ Operator/provider path:
 | Visit list/count | Page direct queries plus service/hook. | Visit read owner. |
 | Visit hydration | Page manually joins profiles, hospitals, doctors, emergencies. | Visit projection owner. |
 | Emergency-to-visit lookup | `getVisit(request.id)` and `visit.request_id || visit.id` fallbacks. | Explicit request-derived visit lookup. |
+| Cross-surface detail handoff | Visit-to-emergency is mounted on `VisitsPage`, but emergency-to-visit lacks a receiver on `/emergencies`. | Preserve the working incident detail and provide the canonical visit projection consumed by Pass 1's clinical-record action. |
 | Medical profile | Service exists but not integrated into visit detail. | Authorized patient-care projection. |
 | Visit actions | Hook/service/page can mutate visit state. | Visit command boundary with legality checks. |
 | Realtime | Page and service subscriptions may duplicate ownership. | Visit owner invalidation and detail-scoped subscriptions. |
@@ -60,9 +62,18 @@ Operator/provider path:
 | --- | --- | --- | --- |
 | View/search/hydrate visit | Scoped read projection | `visits` with patient, provider, hospital, request projections | Use explicit `request_id` linkage and one read model. |
 | View emergency-derived clinical outcome | Backend-derived read-only evidence | Emergency-to-visit trigger/RPC output | Do not edit/delete a request-owned row as ordinary visit CRUD. |
+| Open originating incident from a visit | Cross-surface read navigation | Canonical `request_id` emergency detail projection | Preserve the mounted detail receiver and normalize the request projection it consumes. |
 | Create/edit administrative visit | Missing/conditional authorized CRUD | Separate administrative visit ownership not yet proven for Console actor | Enable only after authority and status vocabulary are explicit. |
 | Cancel/complete/no-show visit | Workflow command | Visit lifecycle receiver to be proven | Do not direct-update lifecycle state while emergency sync may own it. |
 | View medical context | Restricted read projection | Authorized patient-care/medical projection | No broad administrative medical-profile CRUD. |
+
+## Field And Receiver Gate
+
+| Required contract cluster | Fields that must be projected or submitted deliberately | Gate before implementation closes |
+| --- | --- | --- |
+| Visit identity and source | `id`, `display_id`, `request_id`, `hospital_id`, patient identity and administrative-versus-emergency-derived marker | Render display IDs where present and use `request_id` as the emergency linkage; no hospital/org UUID confusion. |
+| Lifecycle and clinical outcome | type/status/date/time, summary, prescriptions, notes and completion/cancellation source | Emergency-derived outcome is read-only evidence unless an explicit lifecycle command owns the action. |
+| Restricted medical context | patient/care authorization and medical-profile availability state | Do not revive dormant broad admin medical CRUD; surface unavailable/unauthorized state where access is not proved. |
 
 ## Implementation Packages
 

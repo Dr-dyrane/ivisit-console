@@ -13,6 +13,7 @@ Console files inspected:
 - `frontend/src/components/pages/Analytics.jsx`
 - `frontend/src/components/pages/BentoHome.jsx`
 - `frontend/src/components/pages/Overview.jsx`
+- `frontend/src/components/context/DashboardPanel.jsx`
 - `frontend/src/components/navigation/QuickSearch.jsx`
 - `frontend/src/contexts/PageDataContext.jsx`
 - `frontend/src/services/analyticsService.js`
@@ -35,6 +36,9 @@ Observed source signals:
 - `searchSelectionsService` includes privacy comments removing broad access, while search analytics may aggregate behavior.
 - `preferencesService` exposes demo mode but is not actively wired.
 - `analyticsAutomationService` calls trend update RPCs and reads trending views/history.
+- `BentoHome` assumes a hard-coded public Supabase map image asset, and `DashboardPanel` posts to `/api/backup` without a named audited receiver or failure-facing workflow.
+- Live routing uses `App.js` plus `ProtectedRoute`, while dormant `RouteGuard` / `config/routes.jsx` declarations conflict for dashboard and map access; shell route feedback cannot rely on two divergent access doctrines.
+- `DashboardPanel` dispatches `openAnalyticsModal` for its Report control without mounting an analytics receiver on the dashboard route; map and pricing controls also expose event/receiver gaps assigned to their domain passes.
 
 ## User Flow
 
@@ -58,6 +62,9 @@ Operator path:
 | Trending topics | Manual/stub/live signals can blur. | Trend owner with live/manual/stub/unavailable label. |
 | Realtime | `PageDataContext` subscribes to many tables globally. | One owner per domain/table family, with map/modal scoped exceptions. |
 | Route/action feedback | Some route and action paths can blank or overclaim success. | Shell loading/pending/degraded feedback standard. |
+| Public asset and backup actions | Dashboard assumes a public Storage asset and exposes an unproved backup POST action. | App-owned stable asset delivery plus disabled or authorized/audited maintenance command boundary. |
+| Dashboard/map route doctrine | Live guard and dormant route configuration disagree about public versus operational access. | One routed shell access authority with visible allowed/rejected/loading states. |
+| Dashboard report entry | Dashboard Report dispatches a page-local modal event whose receiver is mounted only on other routes. | Deliberate analytics navigation or mounted dashboard report projection with accurate source labels. |
 
 ## Action Class And Receiver Map
 
@@ -71,6 +78,17 @@ Operator path:
 | View privileged audit | Backend-derived read-only evidence | `admin_audit_log` | Require durable guarded write policy before relying on audit logging. |
 | Edit settings | Own-user CRUD subset | `preferences` | Only signed-in operator settings; no patient consent/demo substitution. |
 | Realtime/route feedback | UI/read invalidation behavior | Domain hook/query owners and skeletons | No global context canonical server state or blank navigation pause. |
+| Trigger system backup | Excluded until authorized workflow exists | No named receiver proved by current audit | Disable the control or implement only under a separately approved auditable operations command. |
+| Navigate dashboard or operational map | Role-scoped UI access and route feedback | Consolidated live route/navigation authority | Do not reuse dormant contradictory config; allowed and rejected navigation render immediate honest feedback. |
+| Open dashboard report | Read navigation or scoped analytics projection | Verified analytics owner and mounted route surface | Do not leave a visible report action dependent on an absent route-local listener. |
+
+## Field And Receiver Gate
+
+| Required contract cluster | Fields that must be projected or submitted deliberately | Gate before implementation closes |
+| --- | --- | --- |
+| Search and trends | own query/history/selection/event identity, result source, trend value/source/time and aggregation provenance | Keep active search telemetry scoped; disable stub-success regeneration and never fabricate ranked production results. |
+| Activity and privileged audit | actor/action/entity/time/details plus permission scope and durable write proof for critical audit | Activity RPCs are a display projection, not proof that a destructive command was durably audited. |
+| Dashboard, settings and realtime | metric source/empty/unavailable state, operator notification preference, domain invalidation/channel owner and pending route state | Remove mock/constants as operational truth and leave patient consent/demo preferences outside Console operational settings. |
 
 ## Implementation Packages
 
@@ -165,6 +183,15 @@ Apply console-wide feedback doctrine:
 Acceptance gate:
 
 - Navigation and primary commands acknowledge intent immediately without false completion claims.
+
+### 7. Dashboard Asset And Maintenance Boundaries
+
+- Replace or validate the hard-coded public map asset through a stable, deliberately public delivery path.
+- Remove or disable the backup action until a named authenticated receiver, audit evidence and result lifecycle are proved.
+
+Acceptance gate:
+
+- Dashboard media does not rely on an unverified public bucket assumption, and no backup action can imply completion from an unproved endpoint.
 
 ## Verification Plan
 

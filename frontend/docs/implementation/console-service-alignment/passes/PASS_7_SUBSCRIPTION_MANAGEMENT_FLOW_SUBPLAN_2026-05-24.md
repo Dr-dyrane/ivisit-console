@@ -11,6 +11,7 @@ This subplan covers subscription management failures across subscriber intake/re
 Console files inspected:
 
 - `frontend/src/components/pages/SubscriptionManagementPage.jsx`
+- `frontend/src/components/context/SubscriptionsPanel.jsx`
 - `frontend/src/components/modals/SubscriptionModal.jsx`
 - `frontend/src/hooks/useSubscription.js`
 - `frontend/src/services/subscriptionService.js`
@@ -33,6 +34,7 @@ Observed source signals:
 - `SubscriptionManagementPage` subscribes to subscribers and invokes `sendWelcome` for new subscribers.
 - `SubscriptionModal` can send welcome, custom, and bulk emails directly through `subscriptionService`.
 - Page/modal/hook split makes it easy to double-send or mark state before the receiver proves delivery.
+- `SubscriptionsPanel` exposes a Broadcast button that dispatches `openEmailActionsModal`, while `SubscriptionManagementPage` only receives create and analytics events; the visible email action currently has no mounted receiver.
 
 ## User Flow
 
@@ -58,6 +60,7 @@ Operator path:
 | Bulk email | Modal sends directly and returns aggregate success. | Campaign/send owner with per-recipient result. |
 | Realtime | Hook and page subscribe separately to subscriber changes. | One subscriber realtime owner/invalidation path. |
 | Organization scope | Service comments say org admins see all because table lacks org field. | Platform-admin-only global marketing list for this pass. |
+| Broadcast entry point | Context panel dispatches an email-actions event with no page receiver. | Disabled action until the single authorized email lifecycle surface is mounted and audited. |
 
 ## Action Class And Receiver Map
 
@@ -68,7 +71,16 @@ Operator path:
 | Edit/delete/unsubscribe subscriber | Missing lifecycle command | Current source does not prove browser update/delete management | Do not implement as direct CRUD from existing services. |
 | Send welcome email | Workflow command | Email function and persisted delivery/lifecycle state | One owner; no duplicate send or success before durable outcome. |
 | Send custom/bulk email | Workflow command | Authorized campaign/send boundary | Add explicit pending/result/audit state before enabling broad sends. |
+| Open Broadcast action | Workflow entry point | Single mounted subscriber/email command surface | No clickable event may remain without a mounted receiver and authorized command disposition. |
 | Realtime subscriber update | Read projection/invalidation | Single selected subscription facade | Remove duplicate service-family subscription ownership. |
+
+## Field And Receiver Gate
+
+| Required contract cluster | Fields that must be projected or submitted deliberately | Gate before implementation closes |
+| --- | --- | --- |
+| Subscription row and read scope | email, type, status, new-user flag, welcome sent/timestamp and unsubscribe state | Public insert and admin read are the only table actions currently proven; remove schema-fallback mutation behavior. |
+| Welcome and lifecycle delivery | command idempotency, queued/sent/failed result, persisted state writer and unsubscribe receiver | Select one authorized lifecycle writer before enabling send/unsubscribe controls or reporting success. |
+| Export/realtime and future campaigns | administrator scope, export content, invalidation owner, campaign pending/result/audit state | Retain one facade for reads; broad email actions stay disabled until an authorized auditable command exists. |
 
 ## Implementation Packages
 

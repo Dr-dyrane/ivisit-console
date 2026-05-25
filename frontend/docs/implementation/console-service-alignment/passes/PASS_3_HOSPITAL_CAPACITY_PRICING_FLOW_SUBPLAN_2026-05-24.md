@@ -13,6 +13,7 @@ Console files inspected:
 - `frontend/src/components/pages/HospitalsPage.jsx`
 - `frontend/src/components/modals/HospitalModal.jsx`
 - `frontend/src/components/pages/PricingManagementPage.jsx`
+- `frontend/src/components/context/PricingContextPanel.jsx`
 - `frontend/src/components/views/PricingTableView.jsx`
 - `frontend/src/components/mobile/MobilePricing.jsx`
 - `frontend/src/services/hospitalsService.js`
@@ -41,6 +42,7 @@ Observed source signals:
 - `hospitalsService.updateHospital` uses `update_hospital_by_admin`, while some status/bed count updates still write direct table fields.
 - `hospitalImportService` invokes `discover-hospitals`, falls back to `nearby_hospitals`, and includes approval/rejection/assignment paths.
 - `pricingService` maps hospital-scoped pricing back to organization scope and chooses the first hospital for organization writes.
+- `PricingContextPanel` emits `openAnalyticsModal` for Reports although `PricingManagementPage` does not listen for that event, and it renders an `Execute Bulk Sync` button without a click handler.
 - Console has no runtime `providers` or `hospital_media` owner beyond base hospital/image editing, while `hospitalImportService` references `hospital_import_logs` without a proven rendered import-history owner.
 
 ## User Flow
@@ -67,6 +69,7 @@ Operator path:
 | Image upload/provenance | Modal direct upload path and raw `hospitals.image`; `hospital_media` is unoperated. | Storage/media owner with bucket/path/auth and media-provenance semantics. |
 | Import history | `hospitalImportService` uses `hospital_import_logs` but visible provenance/error ownership is not proven. | Operator-visible import log/provenance read owner. |
 | Pricing | Organization filter plus hospital first-choice write semantics. | Facility-scoped `service_pricing` / `room_pricing` owner with explicitly labelled platform fallback rows only. |
+| Pricing panel operations | Reports dispatches without a mounted receiver and Bulk Sync is rendered without an operation. | Mounted pricing report projection plus disabled/removed sync until an authorized import/pricing command exists. |
 | Realtime | Page and modal own separate channels. | Domain owner invalidation with modal-scoped detail exceptions. |
 
 ## Action Class And Receiver Map
@@ -79,7 +82,20 @@ Operator path:
 | Edit beds, wait, operational status | Workflow command | `update_hospital_availability` | Use one app-visible operational receiver. |
 | Discover/import facility/provider | Workflow command with provenance read | Authorized discovery/import boundary plus `hospital_import_logs` | No unlabelled public canonical writes or silent fallback success. |
 | Manage service/room prices | Authorized CRUD through scoped command | Pricing RPC family with explicit `hospital_id` | Never label first-hospital pricing as organization-wide override. |
+| View pricing report or run bulk synchronization | Read projection or excluded workflow command | Pricing report owner; no Bulk Sync receiver proved | Report must open a mounted truthful view; Bulk Sync remains unavailable without an authorized auditable receiver. |
 | View reservation/capacity relationship | Read projection plus emergency commands | Request-owned bed reservation and capacity receivers | Cancel/discharge only through correct command; no contradictory occupancy math. |
+
+## Field And Receiver Gate
+
+| Required contract cluster | Fields that must be projected or submitted deliberately | Gate before implementation closes |
+| --- | --- | --- |
+| Facility eligibility and operational capacity | hospital/organization identity, verification status, `emergency_eligible`, `dispatch_eligible`, `booking_eligible`, wait and bed-availability fields | Metadata edits and availability commands remain split; app-visible operational changes route through the availability receiver. |
+| Provider/media/import provenance | provider type/source/category confidence; hospital media role/source/status/primary; import-log status/failure/provenance | Console facility operations include app-visible classification/media truth; discovery/import cannot persist silently. |
+| Pricing and reservation identity | explicit `hospital_id`, service/room category, price/active state, linked request/capacity state | Never imply organization-wide pricing or occupancy from one facility row or inconsistent terminal request counts. |
+
+Generated trace confirmation (May 25): `providers` and `hospital_media` now have cross-repo baseline traces and both report zero matched Console CRUD surfaces. Console currently lacks the app-visible provider/media management lane required by this pass even though provider-related labels exist elsewhere in the UI.
+
+Storage evidence confirmation (May 25): current App/Console migration and maintained docs sources contain no active `storage.objects`/bucket policy authority; only archived legacy SQL mentions an `images` policy. The current `storageService` public-URL assumption cannot authorize facility media changes, so this pass remains blocked on read-only deployed Storage proof and `hospital_media` provenance ownership.
 
 ## Implementation Packages
 
