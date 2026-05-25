@@ -9,7 +9,7 @@ import { Checkbox } from '../ui/checkbox';
 import { validateDataSchema } from '../../utils/schemaValidator';
 import { LocationCell } from '../ui/LocationCell';
 import { getServiceTypeBadge, getServiceTypeDisplay, getStatusDisplay, getStatusBadge } from '../../constants/emergency';
-import { getVisit } from '../../services/visitsService';
+import { getVisitByRequestId } from '../../services/visitsService';
 import { toast } from 'sonner';
 import { getEmergencyActionState } from '../../utils/emergencyActions';
 
@@ -126,8 +126,7 @@ export const EmergencyRequestListView = ({
                     size="sm"
                     onClick={async () => {
                       try {
-                        // Fetch the actual visit data using the shared ID
-                        const visitData = await getVisit(req.id);
+                        const visitData = await getVisitByRequestId(req.id);
                         if (visitData) {
                           // Navigate to Visits page with visit ID as parameter
                           navigate(`/visits?view=${visitData.id}`);

@@ -11,7 +11,7 @@ import { isValidUUID } from '../lib/utils';
 const TABLE_NAME = 'visits';
 
 // PULLBACK NOTE: Expanded to include all columns added to logistics pillar during schema audit
-// OLD: minimal set — missing snapshot, booking, location, financial, and legacy alias columns
+// OLD: minimal set - missing snapshot, booking, location, financial, and legacy alias columns
 // NEW: full parity with database.ts visits Row type
 const VISIT_COLUMNS = new Set([
   'id',
@@ -20,14 +20,14 @@ const VISIT_COLUMNS = new Set([
   'request_id',
   // Hospital snapshot
   'hospital_name',
-  'hospital',           // legacy alias — mapFromDb reads both
+  'hospital',           // legacy alias - mapFromDb reads both
   'hospital_image',
   'address',
   'phone',
   'image',              // legacy alias for hospital_image
   // Clinician snapshot
   'doctor_name',
-  'doctor',             // legacy alias — mapFromDb reads both
+  'doctor',             // legacy alias - mapFromDb reads both
   'doctor_image',
   // Visit metadata
   'specialty',
@@ -239,6 +239,51 @@ export async function getVisit(visitId) {
 }
 
 /**
+ * Get the visit linked to an emergency request.
+ * PULLBACK NOTE: Pass 1 emergency detail alignment.
+ * OLD: callers passed emergency request ids into getVisit(), which only reads visits.id/display_id.
+ * NEW: request-derived clinical records read by visits.request_id first, then legacy id/display_id fallback.
+ */
+export async function getVisitByRequestId(requestId) {
+  try {
+    if (!requestId) return null;
+
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select(`
+        *,
+        profiles!visits_user_id_fkey (
+          id,
+          username,
+          email,
+          full_name,
+          phone,
+          avatar_url
+        )
+      `)
+      .eq('request_id', requestId)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (data) {
+      return {
+        ...normalizeVisitForUI(data),
+        patient: data.profiles,
+        profiles: undefined
+      };
+    }
+
+    return getVisit(requestId);
+  } catch (error) {
+    console.error(`Error fetching visit for request ${requestId}:`, error);
+    throw error;
+  }
+}
+
+/**
  * Create new visit
  */
 export async function createVisit(input) {
@@ -307,7 +352,7 @@ export async function completeVisit(visitId, summary, prescriptions) {
   try {
     // PULLBACK NOTE: Write to dedicated summary/prescriptions columns (now in pillar)
     // OLD: collapsed both fields into notes as "summaryText | prescriptionsText"
-    // NEW: summary → TEXT column, prescriptions → TEXT[] column, notes preserved separately
+    // NEW: summary -> TEXT column, prescriptions -> TEXT[] column, notes preserved separately
     const summaryText = String(summary || '').trim() || null;
     const prescriptionsArray = Array.isArray(prescriptions)
       ? prescriptions.filter(Boolean)

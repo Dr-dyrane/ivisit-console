@@ -37,8 +37,6 @@ import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
 import { motion, LayoutGroup } from 'framer-motion';
 import { Badge } from '../ui/badge';
-import { subscribeToSubscribers } from '../../services/subscriptionService';
-import { supabase } from '../../lib/supabase';
 
 export const SubscriptionManagementPage = () => {
   const { isAdmin } = useAuth();
@@ -99,47 +97,6 @@ export const SubscriptionManagementPage = () => {
     window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
     return () => window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
   }, []);
-
-  // Real-time listener for new subscribers
-  useEffect(() => {
-    const handleNewSubscriber = async (newSubscriber, eventType) => {
-      // Only handle INSERT events for new users
-      if (eventType === 'INSERT' && newSubscriber.new_user) {
-        // Show real-time notification in dashboard UI
-        toast.success(`New subscriber: ${newSubscriber.email}`, {
-          duration: 5000,
-          icon: <Mail className="h-4 w-4" />
-        });
-
-        // Trigger Edge Function to send welcome email
-        try {
-          const { data, error } = await supabase.functions.invoke('sendWelcome', {
-            body: { email: newSubscriber.email }
-          });
-
-          if (error) {
-            console.error('Failed to send welcome email:', error);
-            handleApiError(error, 'submit');
-          } else {
-            console.log('Welcome email sent successfully:', data);
-            toast.success(`Welcome email sent to ${newSubscriber.email}`);
-
-            // Refresh subscribers list to show updated status
-            fetchSubscribers();
-          }
-        } catch (error) {
-          console.error('Error calling sendWelcome function:', error);
-          toast.error(`Error sending welcome email to ${newSubscriber.email}`);
-        }
-      }
-    };
-
-    const unsubscribe = subscribeToSubscribers(handleNewSubscriber);
-
-    return () => {
-      unsubscribe();
-    };
-  }, [fetchSubscribers]);
 
   // Filter Logic (enhanced based on insurance baseline)
   const filteredSubscribers = useMemo(() => {
@@ -347,7 +304,7 @@ export const SubscriptionManagementPage = () => {
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
       <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
-        <span>Page {pagination.currentPage} of {pagination.totalPages} • {filteredSubscribers.length} Subscribers</span>
+        <span>Page {pagination.currentPage} of {pagination.totalPages} / {filteredSubscribers.length} Subscribers</span>
       </div>
     </div>
   ), [pagination.currentPage, pagination.totalPages, filteredSubscribers.length]);

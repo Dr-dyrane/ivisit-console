@@ -14,6 +14,19 @@ Service inventory source:
 - import scan across `frontend/src`
 - existing Stage 2, Stage 3, Stage 4, Stage 6, and contract-chart documentation
 
+The service inventory must be refreshed with full-worktree search before each implementation pass starts. A service row is only a starting point; every route, page, modal, hook, context, view, and utility that imports or duplicates that service behavior must be read for the pass.
+
+Required worktree scans:
+
+```powershell
+rg --files frontend/src
+rg -n "from\\('|rpc\\(|functions\\.invoke|channel\\(|storage\\.|auth\\.|select\\(|insert\\(|update\\(|upsert\\(|delete\\(" frontend/src
+rg -n "JSON\\.parse|new Date\\(|parseInt\\(|parseFloat\\(|Number\\(|\\|\\||\\?\\?|mock|fallback|demo|TODO|FIXME" frontend/src
+rg -n "from\\('|rpc\\(|functions\\.invoke|insert\\(|update\\(|upsert\\(|delete\\(" C:/Users/Dyrane/Documents/GitHub/ivisit-app/services C:/Users/Dyrane/Documents/GitHub/ivisit-app/hooks
+```
+
+For a selected pass, every matching file is either included in the pass checklist or explicitly marked out of scope with a reason. The audit is line-by-line within that pass boundary, not a casual keyword skim.
+
 For each service this audit records:
 
 - source-of-truth role
@@ -217,6 +230,9 @@ A service is not considered implementation-ready until the pass plan names:
 - canonical owner for writes/actions
 - source table/RPC/Edge Function or explicit stub/manual source
 - UI surfaces that consume it
+- all importers and direct duplicate call sites found by the worktree scan
+- field-shape assumptions for every high-risk rendered/submitted field
+- unsafe parser/formatter risks, including JSON/date/number parsing and object truthiness
 - realtime owner, if any
 - loading/pending/error feedback requirements
 - role/RLS/RPC authorization expectations

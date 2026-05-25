@@ -6,12 +6,13 @@
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
 import { logEmergencyActivity } from './activityService';
+import { getVisitByRequestId } from './visitsService';
 import { isValidUUID } from '../lib/utils';
 import { canonicalizeEmergencyStatus } from '../utils/emergencyStatus';
 
 const TABLE_NAME = 'emergency_requests';
 // PULLBACK NOTE: Expanded to include all columns added to logistics pillar during schema audit
-// OLD: minimal set — missing cost breakdown, bed/patient metadata, payment tracking columns
+// OLD: minimal set - missing cost breakdown, bed/patient metadata, payment tracking columns
 // NEW: full parity with database.ts emergency_requests Row type
 const EMERGENCY_REQUEST_WRITABLE_FIELDS = new Set([
   'user_id',
@@ -199,6 +200,115 @@ export async function getEmergencyRequest(requestId) {
     console.error(`Error fetching emergency request ${requestId}:`, error);
     throw error;
   }
+}
+
+export async function getLatestEmergencyPayment(requestId) {
+  try {
+    if (!isValidUUID(requestId)) {
+      return {
+        payment: null,
+        visibilityState: 'not_created',
+        error: null,
+      };
+    }
+
+    const { data, error } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('emergency_request_id', requestId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      return {
+        payment: null,
+        visibilityState: 'failed',
+        error,
+      };
+    }
+
+    return {
+      payment: data || null,
+      visibilityState: data ? 'visible' : 'not_created',
+      error: null,
+    };
+  } catch (error) {
+    console.error(`Error fetching latest emergency payment for ${requestId}:`, error);
+    return {
+      payment: null,
+      visibilityState: 'failed',
+      error,
+    };
+  }
+}
+
+export async function getEmergencyDetailProjection(requestId, initialRequest = null) {
+  const request = initialRequest?.id === requestId
+    ? initialRequest
+    : await getEmergencyRequest(requestId);
+
+  if (!request) {
+    return {
+      request: null,
+      latestPayment: null,
+      paymentVisibilityState: 'not_created',
+      visitOutcome: null,
+      visitVisibilityState: 'not_applicable',
+      errors: {},
+    };
+  }
+
+  const normalizedStatus = canonicalizeEmergencyStatus(request.status, request.status);
+  const terminal = normalizedStatus === 'completed' || normalizedStatus === 'cancelled';
+  const [paymentResult, visitResult] = await Promise.allSettled([
+    getLatestEmergencyPayment(request.id),
+    terminal ? getVisitByRequestId(request.id) : Promise.resolve(null),
+  ]);
+
+  const paymentPayload = paymentResult.status === 'fulfilled'
+    ? paymentResult.value
+    : { payment: null, visibilityState: 'failed', error: paymentResult.reason };
+  const visitOutcome = visitResult.status === 'fulfilled' ? visitResult.value : null;
+
+  return {
+    request,
+    latestPayment: paymentPayload.payment,
+    paymentVisibilityState: paymentPayload.visibilityState,
+    visitOutcome,
+    visitVisibilityState: terminal
+      ? (visitOutcome ? 'linked' : 'missing_terminal')
+      : 'not_expected_yet',
+    errors: {
+      payment: paymentPayload.error || null,
+      visit: visitResult.status === 'rejected' ? visitResult.reason : null,
+    },
+  };
+}
+
+export function subscribeToEmergencyDetail(requestId, callback) {
+  if (!isValidUUID(requestId)) return () => {};
+
+  const channel = supabase
+    .channel(`emergency_detail_projection_${requestId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: TABLE_NAME, filter: `id=eq.${requestId}` },
+      callback
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'payments', filter: `emergency_request_id=eq.${requestId}` },
+      callback
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'visits', filter: `request_id=eq.${requestId}` },
+      callback
+    )
+    .subscribe();
+
+  return () => supabase.removeChannel(channel);
 }
 
 /**

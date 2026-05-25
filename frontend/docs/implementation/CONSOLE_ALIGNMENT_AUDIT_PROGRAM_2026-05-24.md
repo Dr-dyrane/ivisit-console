@@ -21,6 +21,14 @@ No product code changes during the audit stages unless a broken doc or generated
 
 Testing is useful later, but the audit does not rely on tests as a substitute for reading the system. The audit follows the contract first, then the data flow, then the UI.
 
+Field shape is part of the contract. Do not stop at "service aligned" or "table exists." For every high-risk UI surface, verify each rendered and submitted field from source to receiver:
+
+```text
+database/app mutation shape -> console service shape -> hook/query projection -> UI render assumption -> mutation payload -> receiver validation -> failure mode
+```
+
+This includes scalar versus JSON versus object shape, nullable values, default fallbacks, enum/check-constraint values, display formatting, and UI copy that implies a receiver effect. A runtime example is `emergency_requests.ambulance_type`: the detail modal once assumed JSON and crashed when the live value was the scalar string `ambulance`. The audit should catch that class of defect without needing a user click to reveal it.
+
 ## Documentation Tree Discipline
 
 Audit docs must follow the existing doc tree. Do not create one bloated master file that mixes database truth, app mutations, console gaps, state ownership, and service-specific findings.
@@ -149,13 +157,43 @@ Each service audit must include:
 - fields read
 - fields written
 - UI fields rendered
+- exact field shape expected by the UI: scalar, object, JSON string, array, nullable, enum, or derived display value
 - missing table fields
 - display ID versus UUID risks
 - nullability/default risks
 - payload mismatch risks
+- render-time failure risks, including unsafe `JSON.parse`, unguarded date/number parsing, object truthiness, and enum labels that can violate SQL constraints
 - RLS/permission risks
 - stale mock or fallback risks
 - exact implementation pass plan
+
+## Full Worktree Audit Protocol
+
+Before a pass is called implementation-ready, run a worktree-wide source audit for that pass. Do not depend only on known files from earlier docs.
+
+Minimum search lanes:
+
+```powershell
+rg --files frontend/src
+rg -n "from\\('|rpc\\(|functions\\.invoke|channel\\(|storage\\.|auth\\.|select\\(|insert\\(|update\\(|upsert\\(|delete\\(" frontend/src
+rg -n "JSON\\.parse|new Date\\(|parseInt\\(|parseFloat\\(|Number\\(|\\|\\||\\?\\?|mock|fallback|demo|TODO|FIXME" frontend/src
+rg -n "service_type|status|payment_status|organization_id|hospital_id|profile_id|display_id|metadata|payload|request_data" frontend/src
+rg -n "from\\('|rpc\\(|functions\\.invoke|insert\\(|update\\(|upsert\\(|delete\\(" C:/Users/Dyrane/Documents/GitHub/ivisit-app/services C:/Users/Dyrane/Documents/GitHub/ivisit-app/hooks
+```
+
+For each hit that belongs to the pass, classify it as:
+
+- canonical owner
+- duplicate owner
+- direct table read
+- direct table write
+- RPC/Edge receiver
+- render-only projection
+- stale fallback/mock path
+- unsafe parser/formatter
+- orphaned service or unrendered capability
+
+Then read the touched files line-by-line for the selected pass, including page, modal, hook, service, context, route, realtime, and utility files. The audit target is not "find the obvious bug." The target is to prove every rendered field, submitted field, receiver side effect, and failure message is backed by the current app/database contract.
 
 ### Stage 6 - Implementation Pass Plans
 

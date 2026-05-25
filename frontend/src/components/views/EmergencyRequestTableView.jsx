@@ -18,7 +18,7 @@ import { MoreHorizontal } from 'lucide-react';
 import { formatEmergencyLocation } from '../../utils/locationUtils';
 import { LocationCell } from '../ui/LocationCell';
 import { getServiceTypeBadge, getServiceTypeDisplay, getStatusDisplay, getStatusBadge } from '../../constants/emergency';
-import { getVisit } from '../../services/visitsService';
+import { getVisitByRequestId } from '../../services/visitsService';
 import { toast } from 'sonner';
 import { getStandardizedPatient } from '../../utils/patientUtils';
 import { getEmergencyActionState } from '../../utils/emergencyActions';
@@ -176,11 +176,10 @@ export const EmergencyRequestTableView = ({
                         {actionState.showClinicalRecord && (
                           <DropdownMenuItem
                             onClick={async () => {
-                              console.log('🔍 EmergencyRequestTableView - Clinical Record clicked for request:', req);
+                              console.log('EmergencyRequestTableView - Clinical Record clicked for request:', req);
                               try {
-                                // Fetch the actual visit data using the shared ID
-                                const visitData = await getVisit(req.id);
-                                console.log('🔍 EmergencyRequestTableView - Fetched visit data:', visitData);
+                                const visitData = await getVisitByRequestId(req.id);
+                                console.log('EmergencyRequestTableView - Fetched visit data:', visitData);
                                 if (visitData) {
                                   // Navigate to Visits page with visit ID as parameter
                                   navigate(`/visits?view=${visitData.id}`);

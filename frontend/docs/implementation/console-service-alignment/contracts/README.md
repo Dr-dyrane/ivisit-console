@@ -16,6 +16,8 @@ UI field/action -> console handler -> service payload -> RPC/table/function rece
 
 That order is required before implementation so fixes are made at the ownership boundary rather than applied as downstream patches.
 
+The exhibit must operate at field granularity. A row such as "emergency detail renders ambulance details" is not enough; the exhibit must say whether `ambulance_type` is rendered as a scalar label, parsed JSON string, object with `title`, nullable fallback, or constrained enum. Any unsafe render assumption is a contract drift finding even when the mutation path itself is reachable.
+
 ## Documents
 
 - [Emergency, Payment, and Capacity Contract Chart - 2026-05-24](./EMERGENCY_PAYMENT_CAPACITY_CONTRACT_CHART_2026-05-24.md) - emergency creation and completion, manual cash processing, Stripe/wallet behavior, hospital-scoped pricing, and availability fields.
@@ -30,9 +32,13 @@ That order is required before implementation so fixes are made at the ownership 
 Every asserted drift item must contain:
 
 - a console UI line where the value is captured, rendered, or actioned
+- the UI's expected field shape and formatter assumption
 - a service line where the payload is shaped or mutated
+- the service's returned/submitted field shape
 - a SQL RPC, direct-table, trigger, or Edge Function receiver line
+- the receiver's accepted field shape, nullable/default behavior, and enum/check constraint when applicable
 - an `ivisit-app` reference line when the concern is cross-surface behavior
+- the user-visible failure mode, including crash, silent discard, wrong label, false success, or unauthorized action
 - a status of `aligned`, `confirmed drift`, `drift suspected`, or `needs read-only runtime proof`
 
 ## Read-Only Guardrail

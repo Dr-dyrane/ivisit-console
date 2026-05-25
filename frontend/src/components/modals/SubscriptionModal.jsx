@@ -4,7 +4,7 @@ import { X, Mail, Crown, Users, Calendar, Globe, ChevronRight, Zap, Check, Check
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { getSubscribersForBulkEmail, sendBulkEmail, sendWelcomeEmail, sendCustomEmail } from '../../services/subscriptionService';
+import { getSubscribersForBulkEmail, sendBulkEmail, sendWelcomeToSubscriber, sendCustomEmail } from '../../services/subscriptionService';
 import {
   IVISIT_106_CAMPAIGN_SUBJECT,
   getIvisit106CampaignHtml,
@@ -104,9 +104,15 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
         formData.selectedSubscribers.includes(sub.id)
       );
 
-      await sendBulkEmail(selectedSubscribersData, formData.bulkEmailSubject, formData.bulkEmailContent);
-      toast.success(`Email sent to ${formData.selectedSubscribers.length} subscribers`);
-      onClose();
+      const result = await sendBulkEmail(selectedSubscribersData, formData.bulkEmailSubject, formData.bulkEmailContent);
+      const sent = Number(result?.successful ?? selectedSubscribersData.length);
+      const failed = Number(result?.failed ?? 0);
+      if (failed > 0) {
+        toast.warning(`Bulk email processed: ${sent} sent, ${failed} failed`);
+      } else {
+        toast.success(`Bulk email sent to ${sent} subscriber${sent === 1 ? '' : 's'}`);
+        onClose();
+      }
     } catch (error) {
       console.error('Error sending bulk email:', error);
       handleApiError(error, 'submit');
@@ -154,8 +160,8 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
       setLoading(true);
       try {
         const selectedSubscriber = availableSubscribers.find(sub => sub.id === formData.selectedSubscriberForEmail);
-        await sendWelcomeEmail(selectedSubscriber.email);
-        toast.success(`Welcome email sent to ${selectedSubscriber.email}`);
+        const result = await sendWelcomeToSubscriber(selectedSubscriber.id);
+        toast.success(result.marked ? `Welcome email sent to ${selectedSubscriber.email}` : `Email sent to ${selectedSubscriber.email}, row not marked`);
         onClose();
       } catch (error) {
         console.error('Error sending welcome email:', error);
@@ -212,6 +218,10 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
     e.preventDefault();
     if (mode === 'bulk') {
       await handleBulkEmailSubmit();
+      return;
+    }
+    if (mode === 'emailActions') {
+      await handleEmailActionsSubmit();
       return;
     }
     if (!formData.email.trim()) return;
@@ -301,17 +311,7 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
             </button>
           </div>
 
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            if (mode === 'bulk') {
-              handleBulkEmailSubmit();
-            } else if (mode === 'emailActions') {
-              handleEmailActionsSubmit();
-            } else {
-              onSave(formData);
-              onClose();
-            }
-          }} className="p-2 md:p-10 pt-1 md:pt-2 space-y-4 md:space-y-6">
+          <form onSubmit={handleSubmit} className="p-2 md:p-10 pt-1 md:pt-2 space-y-4 md:space-y-6">
 
             {mode === 'bulk' ? (
               <>

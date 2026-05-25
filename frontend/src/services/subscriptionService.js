@@ -45,52 +45,22 @@ function toSubscriberWritePayload(input = {}, { forInsert = false } = {}) {
   return payload;
 }
 
-function getMissingColumnFromError(error) {
-  const message = String(error?.message || '');
-  const match = message.match(/Could not find the '([^']+)' column/i);
-  return match?.[1] || null;
-}
-
-async function runWriteWithSchemaFallback(writeOperation, inputPayload) {
-  const payload = { ...(inputPayload || {}) };
-  const maxAttempts = 8;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    const { data, error } = await writeOperation(payload);
-
-    if (!error) {
-      return data;
-    }
-
-    const missingColumn = getMissingColumnFromError(error);
-    if (missingColumn && Object.prototype.hasOwnProperty.call(payload, missingColumn)) {
-      delete payload[missingColumn];
-      continue;
-    }
-
-    throw error;
-  }
-
-  throw new Error('Subscriber write failed after schema compatibility retries');
+async function runSubscriberWrite(writeOperation, inputPayload) {
+  const { data, error } = await writeOperation(inputPayload || {});
+  if (error) throw error;
+  return data;
 }
 
 /**
  * Get all subscribers with optional filters
- * Admin users can see all subscribers, others see only their own
+ * Admin users can see the global subscriber list. Other roles receive neutral empty state.
  */
 export async function getSubscribers(filter = {}) {
   try {
     const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*');
 
-    // 1. Apply RBAC Scoping
-    // Subscribers table doesn't have organization_id, so org_admins get all subscribers
-    if (user?.role === 'admin') {
-      // Admin gets all subscribers
-    } else if (user?.role === 'org_admin') {
-      // Org Admin gets all subscribers (no organization_id field to filter by)
-    } else {
-      // Other roles get no access to subscriber data
+    if (user?.role !== 'admin') {
       return [];
     }
 
@@ -159,6 +129,25 @@ export async function getSubscriber(subscriberId) {
   }
 }
 
+export async function getSubscriberByEmail(email) {
+  try {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    if (!normalizedEmail) return null;
+
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data || null;
+  } catch (error) {
+    console.error(`Error fetching subscriber by email ${email}:`, error);
+    throw error;
+  }
+}
+
 /**
  * Create new subscriber
  */
@@ -170,7 +159,7 @@ export async function createSubscriber(input) {
     }
 
     const payload = toSubscriberWritePayload({ ...input, email }, { forInsert: true });
-    const data = await runWriteWithSchemaFallback(
+    const data = await runSubscriberWrite(
       (candidate) =>
         supabase
           .from(TABLE_NAME)
@@ -179,14 +168,6 @@ export async function createSubscriber(input) {
           .single(),
       payload
     );
-
-    // Trigger welcome email automatically (Fire and forget to not block UI)
-    if (data && data.email) {
-      sendWelcomeEmail(data.email).catch(err =>
-        console.error('Failed to auto-send welcome email:', err)
-      );
-    }
-
     return data;
   } catch (error) {
     console.error('Error creating subscriber:', error);
@@ -200,7 +181,7 @@ export async function createSubscriber(input) {
 export async function updateSubscriber(subscriberId, input) {
   try {
     const payload = toSubscriberWritePayload(input, { forInsert: false });
-    const data = await runWriteWithSchemaFallback(
+    const data = await runSubscriberWrite(
       (candidate) =>
         supabase
           .from(TABLE_NAME)
@@ -242,7 +223,7 @@ export async function deleteSubscriber(subscriberId) {
  */
 export async function updateSubscriberStatus(subscriberId, status) {
   try {
-    const data = await runWriteWithSchemaFallback(
+    const data = await runSubscriberWrite(
       (candidate) =>
         supabase
           .from(TABLE_NAME)
@@ -265,7 +246,7 @@ export async function updateSubscriberStatus(subscriberId, status) {
  */
 export async function updateSubscriberType(subscriberId, type) {
   try {
-    const data = await runWriteWithSchemaFallback(
+    const data = await runSubscriberWrite(
       (candidate) =>
         supabase
           .from(TABLE_NAME)
@@ -288,7 +269,7 @@ export async function updateSubscriberType(subscriberId, type) {
  */
 export async function markWelcomeEmailSent(subscriberId) {
   try {
-    const data = await runWriteWithSchemaFallback(
+    const data = await runSubscriberWrite(
       (candidate) =>
         supabase
           .from(TABLE_NAME)
@@ -311,6 +292,12 @@ export async function markWelcomeEmailSent(subscriberId) {
     console.error(`Error marking welcome email sent for ${subscriberId}:`, error);
     throw error;
   }
+}
+
+export async function createSubscriberWithWelcome(input) {
+  const subscriber = await createSubscriber(input);
+  const result = await sendWelcomeToSubscriber(subscriber.id);
+  return result.subscriber || subscriber;
 }
 
 /**
@@ -417,6 +404,30 @@ export async function sendWelcomeEmail(email) {
     console.error('Error sending welcome email:', error);
     throw error;
   }
+}
+
+export async function sendWelcomeToSubscriber(subscriberId) {
+  const subscriber = await getSubscriber(subscriberId);
+  if (!subscriber?.email) {
+    throw new Error('Subscriber not found');
+  }
+
+  if (subscriber.welcome_email_sent) {
+    return {
+      subscriber,
+      emailResult: { success: true, skipped: true, reason: 'already_sent' },
+      marked: true,
+    };
+  }
+
+  const emailResult = await sendWelcomeEmail(subscriber.email);
+  const refreshed = await getSubscriber(subscriberId);
+
+  return {
+    subscriber: refreshed || subscriber,
+    emailResult,
+    marked: Boolean(refreshed?.welcome_email_sent),
+  };
 }
 
 /**

@@ -25,16 +25,51 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
-import { supabase } from '../../lib/supabase';
-import { getVisit } from '../../services/visitsService';
 import { getStandardizedPatient } from '../../utils/patientUtils';
-import { approveCashPayment, declineCashPayment } from '../../services/emergencyService';
+import {
+  approveCashPayment,
+  declineCashPayment,
+  getEmergencyDetailProjection,
+  subscribeToEmergencyDetail,
+} from '../../services/emergencyService';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
+
+const formatAmbulanceType = (ambulanceType) => {
+  if (!ambulanceType) return 'Standard';
+
+  if (typeof ambulanceType === 'object') {
+    return ambulanceType.title || ambulanceType.name || 'Standard';
+  }
+
+  if (typeof ambulanceType !== 'string') return 'Standard';
+
+  const trimmedType = ambulanceType.trim();
+  if (!trimmedType) return 'Standard';
+
+  if (trimmedType.startsWith('{') || trimmedType.startsWith('[')) {
+    try {
+      const parsedType = JSON.parse(trimmedType);
+      return parsedType?.title || parsedType?.name || trimmedType;
+    } catch (error) {
+      console.warn('[EmergencyDetailsModal] Invalid ambulance_type JSON; using raw value', {
+        ambulanceType,
+        message: error.message,
+      });
+    }
+  }
+
+  return trimmedType
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
 
 export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment }) => {
   const [visitOutcome, setVisitOutcome] = React.useState(null);
   const [loadingOutcome, setLoadingOutcome] = React.useState(false);
   const [paymentData, setPaymentData] = React.useState(null);
+  const [paymentVisibilityState, setPaymentVisibilityState] = React.useState('not_created');
+  const [visitVisibilityState, setVisitVisibilityState] = React.useState('not_expected_yet');
+  const [detailLoading, setDetailLoading] = React.useState(false);
   const [isProcessingApproval, setIsProcessingApproval] = React.useState(false);
   const [isRetryingPayment, setIsRetryingPayment] = React.useState(false);
   const normalizedStatus = canonicalizeEmergencyStatus(request?.status, request?.status);
@@ -48,6 +83,28 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
   const etaDisplay = request?.eta_display || null;
   const bedCategory = request?.bed_category || null;
 
+  const refreshProjection = React.useCallback(async () => {
+    if (!isOpen || !request?.id) return null;
+
+    setDetailLoading(true);
+    setLoadingOutcome(true);
+    try {
+      const projection = await getEmergencyDetailProjection(request.id, request);
+      setPaymentData(projection.latestPayment || null);
+      setPaymentVisibilityState(projection.paymentVisibilityState);
+      setVisitOutcome(projection.visitOutcome || null);
+      setVisitVisibilityState(projection.visitVisibilityState);
+      return projection;
+    } catch (error) {
+      console.error('Error loading emergency detail projection:', error);
+      toast.error('Failed to load emergency detail');
+      return null;
+    } finally {
+      setDetailLoading(false);
+      setLoadingOutcome(false);
+    }
+  }, [isOpen, request]);
+
   const handleApprove = async () => {
     if (!request) return;
     if (!paymentData) {
@@ -55,13 +112,23 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
         requestId: request?.id,
         requestStatus: request?.status,
       });
-      toast.error('Payment record unavailable for this request. This is usually a finance RLS visibility issue for org admins.');
+      toast.error('Payment record unavailable for this request. Refreshing backend detail.');
+      await refreshProjection();
       return;
     }
     setIsProcessingApproval(true);
     try {
       await approveCashPayment(paymentData.id, request.id);
-      toast.success('Cash payment approved. Dispatching responder.');
+      const projection = await refreshProjection();
+      const nextStatus = canonicalizeEmergencyStatus(
+        projection?.request?.status,
+        projection?.request?.status
+      );
+      toast.success(
+        nextStatus === 'in_progress'
+          ? 'Cash approval recorded. Dispatch is released.'
+          : 'Cash approval recorded. Request is refreshing.'
+      );
       onClose(true); // Close and refresh
     } catch (e) {
       toast.error(e.message || 'Failed to approve payment');
@@ -77,13 +144,15 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
         requestId: request?.id,
         requestStatus: request?.status,
       });
-      toast.error('Payment record unavailable for this request. This is usually a finance RLS visibility issue for org admins.');
+      toast.error('Payment record unavailable for this request. Refreshing backend detail.');
+      await refreshProjection();
       return;
     }
     setIsProcessingApproval(true);
     try {
       await declineCashPayment(paymentData.id, request.id);
-      toast.success('Cash payment declined.');
+      await refreshProjection();
+      toast.success('Cash payment decline recorded.');
       onClose(true); // Close and refresh
     } catch (e) {
       toast.error(e.message || 'Failed to decline payment');
@@ -97,7 +166,10 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
     setIsRetryingPayment(true);
     try {
       const ok = await onRetryPayment(request);
-      if (ok) onClose(true);
+      if (ok) {
+        await refreshProjection();
+        onClose(true);
+      }
     } finally {
       setIsRetryingPayment(false);
     }
@@ -105,10 +177,12 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
 
   // Debug: Log incoming request data (commented out for performance)
   // React.useEffect(() => {
-  //   console.log('🔍 EmergencyDetailsModal - Request Data:', request);
+  //   console.log('EmergencyDetailsModal - Request Data:', request);
   // }, [request]);
 
   React.useEffect(() => {
+    void refreshProjection();
+    return;
     if (request?.id && (normalizedStatus === 'completed' || normalizedStatus === 'cancelled')) {
       fetchVisitOutcome(request.id);
     } else {
@@ -122,62 +196,27 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
     }
 
     if (!request && isOpen) {
-      // console.log('🔍 EmergencyDetailsModal - No request data provided');
+      // console.log('EmergencyDetailsModal - No request data provided');
     }
-  }, [request, isOpen, isApprovalPending]);
+  }, [refreshProjection]);
 
-  const fetchPaymentData = React.useCallback(async (requestId) => {
-    try {
-      const { data, error } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('emergency_request_id', requestId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+  const fetchPaymentData = React.useCallback(async () => {
+    await refreshProjection();
+  }, [refreshProjection]);
 
-      if (error) {
-        console.error('[EmergencyDetailsModal] Error fetching payment data:', {
-          requestId,
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-        });
-        throw error;
-      }
-
-      if (!data) {
-        console.warn('[EmergencyDetailsModal] No payment row visible for pending approval request', {
-          requestId,
-          hint: 'Likely RLS policy missing for org admins on payments',
-        });
-        setPaymentData(null);
-        return;
-      }
-
-      console.log('[EmergencyDetailsModal] Loaded payment row for approval', {
-        requestId,
-        paymentId: data.id,
-        status: data.status,
-        organizationId: data.organization_id,
-      });
-      setPaymentData(data);
-    } catch (e) {
-      console.error('Error fetching payment data:', e);
-    }
-  }, []);
-
-  const fetchVisitOutcome = React.useCallback(async (id) => {
-    // console.log('🔍 EmergencyDetailsModal - Fetching visit outcome for ID:', id);
+  const fetchVisitOutcome = React.useCallback(async () => {
+    await refreshProjection();
+    return;
+    // console.log('EmergencyDetailsModal - Fetching visit outcome for ID:', id);
     setLoadingOutcome(true);
     try {
-      const visitData = await getVisit(id);
-      // console.log('🔍 EmergencyDetailsModal - Visit data received:', visitData);
+      const projection = await refreshProjection();
+      const visitData = projection?.visitOutcome;
+      // console.log('EmergencyDetailsModal - Visit data received:', visitData);
       if (visitData) {
         setVisitOutcome(visitData);
       } else {
-        // console.log('🔍 EmergencyDetailsModal - No visit data found for emergency ID:', id);
+        // console.log('EmergencyDetailsModal - No visit data found for emergency ID:', id);
         setVisitOutcome(null);
       }
     } catch (e) {
@@ -186,38 +225,15 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
     } finally {
       setLoadingOutcome(false);
     }
-  }, []);
+  }, [refreshProjection]);
 
   React.useEffect(() => {
     if (!isOpen || !request?.id) return undefined;
     const requestId = request.id;
-    const channel = supabase
-      .channel(`emergency_details_${requestId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'payments', filter: `emergency_request_id=eq.${requestId}` },
-        () => {
-          fetchPaymentData(requestId);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'emergency_requests', filter: `id=eq.${requestId}` },
-        (payload) => {
-          const nextStatus = canonicalizeEmergencyStatus(payload?.new?.status, payload?.new?.status);
-          if (nextStatus === 'completed' || nextStatus === 'cancelled') {
-            fetchVisitOutcome(requestId);
-            return;
-          }
-          fetchPaymentData(requestId);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [isOpen, request?.id, fetchPaymentData, fetchVisitOutcome]);
+    return subscribeToEmergencyDetail(requestId, () => {
+      void refreshProjection();
+    });
+  }, [isOpen, request?.id, refreshProjection]);
 
   if (!request) return null;
 
@@ -284,7 +300,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                   </h2>
                   <p className="text-sm text-muted-foreground flex items-center gap-2">
                     Case ID: <span className="font-mono text-xs opacity-70">#{request.id?.slice(0, 8)}</span>
-                    <span className="opacity-30">•</span>
+                    <span className="opacity-30">/</span>
                     {request.created_at ? format(new Date(request.created_at), 'MMM dd, HH:mm') : 'Recently'}
                   </p>
                 </div>
@@ -367,7 +383,11 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                   </div>
                   {!paymentData && (
                     <p className="text-xs text-orange-300/80">
-                      Waiting for payment row visibility. If this persists for org admins, apply the finance RLS visibility migration.
+                      {detailLoading
+                        ? 'Refreshing payment detail from backend truth...'
+                        : paymentVisibilityState === 'failed'
+                          ? 'Payment row lookup failed. Refresh the request or check payment visibility.'
+                          : 'No payment row is visible yet for this pending approval request.'}
                     </p>
                   )}
                 </div>
@@ -462,7 +482,9 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                           <span className="text-xs text-muted-foreground">No visit outcome recorded</span>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          This emergency was completed but no detailed clinical record was found in the system.
+                          {visitVisibilityState === 'missing_terminal'
+                            ? 'This emergency is terminal, but no linked visit record was found.'
+                            : 'This emergency was completed but no detailed clinical record was found in the system.'}
                         </p>
                       </div>
                     ) : null}
@@ -579,10 +601,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                       <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Type</p>
                         <p className="font-semibold">
-                          {typeof request.ambulance_type === 'string'
-                            ? JSON.parse(request.ambulance_type)?.title || 'Standard'
-                            : 'Standard'
-                          }
+                          {formatAmbulanceType(request.ambulance_type)}
                         </p>
                       </div>
                       <div className="p-4 rounded-2xl bg-white/5 ">

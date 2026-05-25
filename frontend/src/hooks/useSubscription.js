@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   getSubscribers, 
   createSubscriber, 
+  createSubscriberWithWelcome,
   updateSubscriber, 
   deleteSubscriber,
   updateSubscriberStatus,
@@ -9,8 +10,7 @@ import {
   markWelcomeEmailSent,
   getSubscriptionAnalytics,
   subscribeToSubscribers,
-  subscribeToNewSubscribers,
-  sendWelcomeEmail
+  sendWelcomeToSubscriber
 } from '../services/subscriptionService';
 import { toast } from 'sonner';
 
@@ -37,19 +37,11 @@ export const useSubscription = () => {
   // Create subscriber
   const createNewSubscriber = useCallback(async (subscriberData) => {
     try {
-      const newSubscriber = await createSubscriber(subscriberData);
+      const newSubscriber = subscriberData.sendWelcomeEmail
+        ? await createSubscriberWithWelcome(subscriberData)
+        : await createSubscriber(subscriberData);
       setSubscribers(prev => [newSubscriber, ...prev]);
-      
-      // Send welcome email if it's a new subscription
-      if (subscriberData.sendWelcomeEmail !== false) {
-        try {
-          await sendWelcomeEmail(subscriberData.email);
-          toast.success('Welcome email sent successfully');
-        } catch (emailError) {
-          console.error('Failed to send welcome email:', emailError);
-          toast.warning('Subscriber created but welcome email failed');
-        }
-      }
+      toast.success(subscriberData.sendWelcomeEmail ? 'Subscriber created and welcome processed' : 'Subscriber created');
       
       return newSubscriber;
     } catch (err) {
@@ -136,10 +128,13 @@ export const useSubscription = () => {
   }, []);
 
   // Send welcome email
-  const sendWelcome = useCallback(async (email) => {
+  const sendWelcome = useCallback(async (subscriberId) => {
     try {
-      const result = await sendWelcomeEmail(email);
-      toast.success('Welcome email sent successfully');
+      const result = await sendWelcomeToSubscriber(subscriberId);
+      setSubscribers(prev =>
+        prev.map(sub => sub.id === subscriberId ? result.subscriber : sub)
+      );
+      toast.success(result.marked ? 'Welcome email sent' : 'Email sent, subscriber row not marked');
       return result;
     } catch (err) {
       toast.error('Failed to send welcome email');
@@ -171,29 +166,6 @@ export const useSubscription = () => {
     });
   }, []);
 
-  // Real-time subscription to new subscribers only
-  const subscribeToNewSubs = useCallback((callback) => {
-    return subscribeToNewSubscribers((payload) => {
-      const { new: newRecord } = payload;
-      
-      setSubscribers(prev => [newRecord, ...prev]);
-      
-      // Show notification for new subscriber
-      toast.success(`New subscriber: ${newRecord.email}`, {
-        description: newRecord.type === 'paid' ? 'Paid Supporter!' : 'Free Subscriber',
-        action: {
-          label: 'View',
-          onClick: () => {
-            // Could navigate to subscriber details or highlight in UI
-            console.log('View subscriber:', newRecord);
-          }
-        }
-      });
-      
-      if (callback) callback(newRecord);
-    });
-  }, []);
-
   // Initial fetch
   useEffect(() => {
     fetchSubscribers();
@@ -201,14 +173,12 @@ export const useSubscription = () => {
 
   // Set up real-time subscription
   useEffect(() => {
-    const unsubscribe = subscribeToNewSubs((newSubscriber) => {
-      console.log('New subscriber detected:', newSubscriber);
-    });
+    const unsubscribe = subscribeToChanges();
 
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [subscribeToNewSubs]);
+  }, [subscribeToChanges]);
 
   return {
     // Data
@@ -229,6 +199,6 @@ export const useSubscription = () => {
     
     // Real-time
     subscribeToChanges,
-    subscribeToNewSubscribers: subscribeToNewSubs,
+    subscribeToNewSubscribers: subscribeToChanges,
   };
 };
