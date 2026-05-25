@@ -35,7 +35,7 @@ Service rows, table rows and the visible page component are not sufficient imple
 | 5 | Ambulances, doctors, telemetry, scheduling, map layers, dropdown dependencies and assignment/proximity calculations. | Fleet/provider availability or assignment uses capped, fabricated, or independently loaded truth. |
 | 6 | Visits, medical-history projections, emergency handoffs and all patient/provider/hospital lookup hydration. | Clinical-history completeness or edit eligibility depends on an unbounded lookup or unowned linked-state fetch. |
 | 7 | Insurance, billing results, subscribers, email, support, FAQs, health news, notifications and uploads. | Management counts/actions or content availability mask partial, denied, failed or unproved storage/receiver paths. |
-| 8 | Analytics, overview/dashboard, search, trends, activity, preferences, map shell, shared realtime and remaining provider state. | Aggregate/search/navigation truth can still be generated from mock, stale, partial, broad or unowned sources. |
+| 8 | Analytics, overview/dashboard, search, trends, activity, notifications, preferences, map shell, shared realtime and remaining provider state. | Aggregate/search/navigation truth can still be generated from mock, stale, partial, broad or unowned sources, or an allowed provider dashboard still invokes admin-only subscriber truth. |
 
 ## Global Surface Exposure And Operation Gate
 
@@ -61,7 +61,7 @@ The full source-row field register is maintained in `../../../database/console-a
 | 5 | Fleet/doctor/schedule projection with valid joined identity and active-request marker | Request-scoped telemetry, schedule table CRUD, clinician assignment command | Replace false fleet/schedule projections with table-backed reads before enabling corrected edits. |
 | 6 | Visit projection marked administrative versus emergency-derived | Separate administrative authority, request/trigger-owned clinical lifecycle | Centralize reads and disable destructive edits for request-linked records before any CRUD extension. |
 | 7 | Policy/billing/ticket/content/subscriber projection with policy and lifecycle classifications | Insurance/support authorized receiver, billing read lane, Storage proof, subscriber/email lifecycle receiver | Ship read/disabled/degraded truth surfaces first; do not preserve unauthorized authoring or subscriber controls. |
-| 8 | Dashboard/search/activity values labelled by verified source or unavailable state | Guarded aggregate/activity reads, real trend generation, durable critical-audit writer | Remove fabricated/stub-success display truth and broad realtime ownership after preceding domain readers are stable. |
+| 8 | Dashboard/search/activity/notification values labelled by verified source or unavailable state | Role-scoped aggregates, sequenced search projection, own-user notification/preference receiver, real trend generation and durable critical-audit writer | Remove fabricated/stub-success display truth, cross-role subscriber dependency and broad realtime ownership after preceding domain readers are stable. |
 
 ## Global Direct Boundary Gate
 
@@ -76,7 +76,7 @@ Stage 5 now maintains the direct boundary call-site register for UI, context, ho
 | 5 | `AmbulancesPage`, `AmbulanceModal`, `DoctorModal` | Fleet counts, assignment availability and facility options use provider/fleet owners with valid relationship scope. |
 | 6 | `VisitsPage` | Visit count/hydration/realtime moves to the visit model; emergency-linked records do not inherit page-owned edit/delete authority. |
 | 7 | `HealthNewsManagementPage`, `HealthNewsPanel`, `SupportTicketsPanel`, `utils/runMigrations.js`, `utils/testDatabase.js` | Content/support reads reuse scoped owners; browser-side SQL repair and diagnostics cannot serve product behavior. |
-| 8 | `Analytics`, `Overview`, `useAnalytics`, remaining `PageDataContext`, `BentoHome`, `DashboardPanel`, `lib/supabase.js` | Dashboard aggregation/realtime consumes stabilized domain truth; public asset delivery, maintenance actions and generic subscriptions are deliberately owned, disabled or retired. |
+| 8 | `Analytics`, `Overview`, `useAnalytics`, remaining `PageDataContext`, `BentoHome`, `DashboardPanel`, `ContextPanel`, `QuickSearch`, `NotificationCenter`, `SettingsPage`, `lib/supabase.js` | Dashboard aggregation/realtime consumes stabilized domain truth; admin-only subscriber data is excluded from broader-role dashboards; search fields/failures are role-scoped and visible; notification/settings receivers, public asset delivery, dormant maintenance actions and generic subscriptions are deliberately owned, disabled or retired. |
 
 ## Global Route And Surface Gate
 
@@ -91,7 +91,7 @@ Stage 5 now also maintains the visible route, context-panel, primary-action and 
 | 5 | `/map` access promise, Center Map and targeted recenter controls | Live map is visible only to the operational role permitted by its real route and telemetry scope, and each centering control calls a mounted map receiver with deliberate target semantics. |
 | 6 | Visit-projection ownership used by cross-surface handoffs | Preserve the mounted visit-to-emergency receiver and supply a canonical request-derived visit projection for Pass 1's missing emergency-to-visit direction; request-derived records remain read-only where commanded upstream. |
 | 7 | `/health-news`, `/insurance` and subscription Broadcast action | Advertised role access matches authorized receivers; unimplemented content/insurance/email actions are disabled rather than clickable no-ops. |
-| 8 | Dashboard route doctrine, Report receiver, context-shell access and route/action loading feedback | The consolidated shell uses one route authority; dashboard Report reaches a mounted truthful projection or navigation; all actions acknowledge allowed, pending, unavailable and rejected states. |
+| 8 | Dashboard route doctrine, Report receiver, context-shell access, visible realtime/alert controls, notification settings and route/action loading feedback | The consolidated shell uses one route authority; dashboard Report reaches a mounted truthful projection or navigation; visible configuration has a receiver or is removed; own-user notification setting agrees with notification behavior; all actions acknowledge allowed, pending, unavailable and rejected states. |
 
 ## Global Pagination And Fetch Reliability Gate
 
@@ -106,7 +106,7 @@ Stage 5 maintains the route-list reliability register for the `13` paginated Con
 | 5 | Ambulances, doctors and map operational feeds | Eliminate `1000`-row capped client pagination and derived incomplete totals; fleet/provider lists need server-backed paging truth, while map feed bounds and omitted-data state are explicit. |
 | 6 | Visits | Move page-local paged query, enrichment and explicitly missing search into one visit read model with authoritative page/count/search and degraded relationship state. |
 | 7 | Health news, insurance, subscribers and support tickets | Decouple content list availability from summary KPI failure; replace full-list/client slices and unpaged realtime refetch with scoped paged reads; distinguish unauthorized, empty and failed results. |
-| 8 | Dashboard/analytics/search/map consumers and shared fetch utilities | Define aggregate/feed limits, QuickSearch cancellation/stale-response and partial-category behavior, and shell error/degraded rendering after domain list owners stabilize. |
+| 8 | Dashboard/analytics/search/map/notification consumers and shared fetch utilities | Define aggregate/feed limits and role-scoped aggregate slices, QuickSearch field exposure/cancellation/stale-response/partial-category behavior, and shell error/degraded rendering after domain list owners stabilize. |
 
 ## Pass Order
 
@@ -745,11 +745,12 @@ Console services and receivers:
 | Package | Type | Target | Acceptance gate |
 | --- | --- | --- | --- |
 | Dashboard summary facade | Read-only owner cleanup | Feed dashboard/Bento/Overview from domain selectors. | `PageDataContext` stops owning cross-domain server truth. |
-| Analytics service derivation | Read-only owner cleanup | Move raw reads/chart derivation out of analytics page. | Analytics page renders from service/hook outputs. |
+| Analytics service derivation and role scope | Read-only owner cleanup | Move raw reads/chart derivation out of analytics page and exclude admin-only subscriber projections from broader-role analytics loads. | Analytics page renders from authorized service/hook outputs and a provider route cannot fail because subscriber analytics are denied. |
 | Mock/demo cleanup | UI/service cleanup | Remove production mock defaults or connect visible demo preference. | A failed fetch cannot flip the authenticated shell into mock mode. |
 | Realtime dedupe | Query cleanup | Remove global and duplicate page/panel channels after domain hooks own reads. | One owner per table/event family, with scoped map/modal exceptions. |
 | Route/action feedback | UI cleanup | Add route skeleton and pending guards for high-risk actions. | Navigation and commands acknowledge intent immediately without false completion claims. |
-| Search/trend truth | L5 repair | Replace success-returning stub regeneration or label unavailable state. | Analytics/search UI cannot present stub trend regeneration as real. |
+| Search/trend truth and privacy | L5/read-projection repair | Scope searchable categories/fields by role, sequence parallel queries and replace success-returning stub regeneration or label unavailable state. | Shell search distinguishes no-match, partial, denied and failed results and cannot present stub trend regeneration as real. |
+| Notifications/preferences/settings | UI/read-owner cleanup | Align user-scoped notification read/mark behavior with a real settings receiver and preserve intentional notification action metadata. | An unwired switch or compatibility payload loss cannot misstate notification behavior. |
 
 ### Detailed Checklist
 
@@ -765,6 +766,7 @@ Console services and receivers:
 #### 8B. Analytics Truth
 
 - Move raw reads from `Analytics.jsx` into `analyticsService` or `useAnalytics`.
+- Do not include subscriber analytics in a provider/org/sponsor aggregate load unless the receiver and RLS prove access for that audience; admin-only subscriber metrics remain an isolated admin slice.
 - Replace fixed metric-looking constants with:
   - real values
   - unavailable state
@@ -775,6 +777,8 @@ Console services and receivers:
 #### 8C. Search And Trends
 
 - Keep quick-search trending read path if it continues to use valid read RPC.
+- Define per-role QuickSearch categories and displayed fields before retaining profile email, emergency or visit result projections.
+- Sequence or cancel QuickSearch requests and expose partial/denied/failure state instead of treating a rejected category as no matches.
 - Do not expose trend regeneration success until RPC performs actual aggregation/update work.
 - Label empty/fallback trend data as unavailable or demo, not operational analytics.
 - Fix existing mojibake in search/analytics source files when touching those files, and run encoding gate.
@@ -800,6 +804,8 @@ Console services and receivers:
 - Preserve `DynamicAuthSkeleton` for auth gate.
 - Reuse mobile stable-list and skeleton patterns for desktop/web route loads where appropriate.
 - Add pending/disabled state to bulk/destructive commands that still rely only on toast after click.
+- Remove or wire the dashboard realtime switch and alert thresholds; visible local-only state is not operational configuration.
+- Wire or remove the visible settings notification switch, and define whether compatibility notifications lacking action metadata are non-actionable.
 - Review success copy on every command touched by prior passes.
 
 ### Pass 8 Verification
@@ -809,6 +815,9 @@ Console services and receivers:
 - Console error scan after route changes.
 - Encoding scan for touched search/analytics files.
 - Analytics service tests or fixture-based checks for unavailable/demo states.
+- Role tests for provider analytics with admin-only subscriber data unavailable.
+- QuickSearch tests for out-of-order queries, partial category failure and restricted field/category projection.
+- Notification/settings test for own-user preference behavior and action metadata fallback.
 
 ## Implementation Checklist Template
 
