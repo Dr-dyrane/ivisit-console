@@ -54,7 +54,7 @@ The `subscribers` schema owns `new_user` and `welcome_email_sent` (`identity.sql
 
 | Writer | Action | Fields changed | Status | Finding |
 | --- | --- | --- | --- | --- |
-| `subscriptionService.createSubscriber()` | Creates record and asynchronously invokes `sendWelcome` | Initial service payload sets `new_user = true`, `welcome_email_sent = false`, `status = pending` | multiple-writer entry point | UI success can precede email lifecycle completion. |
+| `subscriptionService.createSubscriber()` and `createSubscriberWithWelcome()` | Plain create inserts a pending row; only the explicit wrapper invokes `sendWelcome` (`subscriptionService.js:154-179,297-301`) | Initial payload sets `new_user = true`, `welcome_email_sent = false`, `status = pending` | create/email split repaired; lifecycle still blocked | Explicit welcome send remains unsafe until it and the batch worker share one durable completion transition. |
 | `sendWelcome` Edge Function | Sends a welcome email, then updates by email | Sets only `new_user = false` (`sendWelcome/index.ts:86-97`) | confirmed incomplete state transition | Successfully sent mail can leave `welcome_email_sent = false`, still eligible for batch resend. |
 | `process-subscribers` Edge Function | Selects rows where `welcome_email_sent` is false/null, sends mail, then updates by ID | Sets `welcome_email_sent = true`, `welcome_email_sent_at`, and `status = active` (`process-subscribers/index.ts:27-96`) | confirmed duplicate-send risk | A row emailed by `sendWelcome` remains selectable by the batch worker. |
 | `webhooks` unsubscribe function | Public unsubscribe behavior using service-role client | Sets `status = unsubscribed`, `unsubscribed_at`, and `new_user = false` (`webhooks/index.ts:49-86`) | separate legitimate transition, authorization review needed | This writer owns unsubscribe state but uses the same record without a unified transition model. |
@@ -76,4 +76,4 @@ Before code changes, define one state transition contract with idempotent send o
 | Bed snapshot from scalar updates | Corrected: normalization trigger maintains bed JSON/timestamp for changed bed state. |
 | ER wait modal field | Confirmed: current admin hospital RPC does not consume the submitted minutes field. |
 | Fallback emergency visit linkage | Confirmed: fallback create has no visit insert, and update trigger cannot insert missing linkage. |
-| Subscriber multiple writers | Confirmed: immediate welcome and batch welcome writers update incompatible flag sets. |
+| Subscriber multiple writers | Confirmed with correction: plain create is row-only in current source, while explicit/manual welcome and batch welcome writers update incompatible flag sets. |

@@ -122,13 +122,13 @@ The eventual implementation pass needs two explicit modes:
 
 ## Subscriber Lifecycle Contract
 
-`SubscriptionManagementPage` saves through create/update subscriber actions (`SubscriptionManagementPage.jsx:286-299`). The primary subscription service accepts fields and retries writes by deleting columns reported missing by the schema (`subscriptionService.js:11-75`).
+`SubscriptionManagementPage` saves through create/update subscriber actions (`SubscriptionManagementPage.jsx:243-256`). Current `subscriptionService.js` builds a fixed allowed-field payload; the earlier runtime schema-fallback behavior is no longer present in the reviewed source (`subscriptionService.js:11-49`).
 
 | UI/service field or action | Mutation receiver | Status | Finding |
 | --- | --- | --- | --- |
-| `email`, `type`, `status`, `new_user`, `welcome_email_sent`, `subscription_date` | Direct `subscribers` insert/update (`subscriptionService.js:11-45,165-313`) | drift suspected | Write shape is runtime-degraded by missing-column retries instead of pinned to current schema truth. |
-| Create subscriber | Direct insert followed by fire-and-forget `sendWelcomeEmail()` (`subscriptionService.js:165-194,407-491`) | drift suspected | Record creation and email lifecycle are not one observable, retry-safe console operation. |
-| Mark welcome sent | Direct update through service (`subscriptionService.js:289-313`) | multiple writers confirmed | The same lifecycle flags can also be changed outside this service. |
+| `email`, `type`, `status`, `new_user`, `welcome_email_sent`, `subscription_date` | Direct `subscribers` insert/update (`subscriptionService.js:11-49,154-304`) | authority drift confirmed | The payload is schema-current, but rendered update/status/delete actions remain unsupported by current public-insert/admin-read RLS. |
+| Create subscriber | Plain row insert or explicit `createSubscriberWithWelcome()` selected by the hook (`subscriptionService.js:154-179,297-301`; `useSubscription.js:38-44`) | repaired split, lifecycle still blocked | Row-only create is now separable from welcome email, but the welcome receiver does not share durable state with batch processing. |
+| Mark welcome sent | Direct update helper plus Edge worker lifecycle (`subscriptionService.js:266-295`; `process-subscribers/index.ts:27-96`) | multiple writers confirmed | The browser helper is unproved by RLS and the worker is the only reviewed email sender that sets `welcome_email_sent`. |
 | Alternate CRUD service | `subscribersService.js` separately writes the same table | multiple writers confirmed | There are two console service ownership surfaces for one table. |
 | Email/automation functions | `sendWelcome`, `process-subscribers`, and `webhooks` each update `subscribers` state | multiple writers confirmed | Welcome status and new-user flags lack one documented writer/idempotency contract. |
 
@@ -140,4 +140,4 @@ The eventual implementation pass needs two explicit modes:
 | High | Display ID bulk resolver sends profile/provider IDs to a hospitals-only query. | Establish per-entity display ID owners and every rendered consumer. |
 | High | Invite user flow does not actually email from the visible function source and does not persist organization/provider metadata into profiles. | Verify deployed slug ownership, then align invite metadata, profile trigger fields, and org-scoped UI. |
 | High | Console direct visit CRUD does not separate administrative visits from emergency-synced visit rows. | Map request/visit triggers and console UI eligibility rules against app lifecycle. |
-| Medium | Subscriber flags are written by duplicate services and several Edge Functions with compatibility fallbacks. | Inventory current deployed function ownership/read-only schema, then appoint one lifecycle contract. |
+| Medium | Subscriber flags are written by duplicate services and several Edge Functions; current fixed-field service repair does not close lifecycle authority. | Inventory deployed function ownership/read-only schema, then appoint one lifecycle contract. |

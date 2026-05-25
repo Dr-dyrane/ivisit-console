@@ -661,7 +661,7 @@ Console services and receivers:
 | --- | --- | --- | --- |
 | Health-news summary owner | Read-only owner cleanup | Move KPI/count/category reads into health-news service/hook. | Page and panel share the same content summary owner. |
 | Support hook reuse | Read-only owner cleanup | Reuse support service/hook across page/panel. | Duplicate support realtime/direct reads are removed. |
-| Subscriber facade | Service cleanup | Consolidate subscriber/subscription services and remove runtime schema fallback writes. | Subscriber payload is pinned to current schema truth. |
+| Subscriber facade | Service cleanup | Consolidate subscriber/subscription services, preserve fixed-field payload repair, and restrict commands to policy/receiver-backed authority. | Subscriber payload remains schema-current and unauthorized management controls are absent. |
 | Email lifecycle owner | L5 repair | Define welcome/custom/bulk/unsubscribe state machine. | Welcome email cannot be sent twice by competing lifecycle writers. |
 | Insurance billing outcome owner | Missing scoped surface | Expose authorized `insurance_billing` result/claim context alongside policy and completed-care support flows. | Admin/hospital support can inspect trigger-created billing outcomes without inventing policy mutation authority. |
 
@@ -688,7 +688,9 @@ Console services and receivers:
 #### 7C. Subscribers And Email
 
 - Retain `subscriptionService.js` as the active console subscriber/email workflow facade; leave `subscribersService.js` as compatibility-only until removal proof exists.
-- Remove runtime schema fallback writes that delete columns after errors.
+- Preserve the current fixed-field subscriber payload repair; do not reintroduce runtime schema fallback writes.
+- Replace unwindowed list reads and repeated hook-mounted subscriber channels with one bounded admin projection/invalidation owner.
+- Remove unsupported edit/delete/status controls and subscriber-tier labels that imply revenue or payment completion without billing proof.
 - Define lifecycle state machine:
   - subscribed/new
   - welcome pending

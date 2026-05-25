@@ -44,8 +44,8 @@ App reference:
 
 | Flow | Console Entry | Read Path | Mutation Owner | App Reference | Status |
 | --- | --- | --- | --- | --- | --- |
-| Subscriber CRUD | `subscribersService.*`, `subscriptionService.*` | `subscribers`. | Direct table CRUD; `subscriptionService.createSubscriber()` also triggers welcome email. | Stage 1 Edge Functions mutate subscribers and send email. | Drift suspected: duplicate lifecycle writers. |
-| Welcome email state | `markWelcomeEmailSent()`, `sendWelcomeEmail()` in subscription service | `subscribers`. | Direct table update plus Edge Function/email side effect. | Edge `sendWelcome` and `process-subscribers` also update subscriber state. | Needs single lifecycle owner. |
+| Subscriber CRUD | `subscribersService.*`, `subscriptionService.*` | `subscribers`. | Direct table CRUD remains exposed; current plain `subscriptionService.createSubscriber()` is row-only and the explicit wrapper selects welcome send. | Edge Functions mutate subscribers and send email. | Payload split repaired; update/delete/status authority and duplicate owners remain open. |
+| Welcome email state | `markWelcomeEmailSent()`, `sendWelcomeToSubscriber()` in subscription service | `subscribers`. | Explicit welcome command refreshes the row, but `sendWelcome` updates only `new_user`. | `process-subscribers` selects still-unmarked rows and is the reviewed sender that sets `welcome_email_sent`. | Confirmed duplicate-send risk until one lifecycle writer owns durable sent state. |
 | Search analytics | `searchAnalyticsService.*` | RPCs and `search_events`. | Direct `search_events.insert` for tracking. | App search services write search history/selections/events for discovery. | Mostly aligned; fallback fake trends should be marked demo-only. |
 | Health news CRUD | `healthNewsService.*` | `health_news`. | Direct table CRUD/bulk insert. | App reads public/published content. | Console-owned, but bulk import is mutating and should be guarded. |
 | Support tickets | `supportTicketsService.*` | `support_tickets`. | Direct table CRUD/status/assignment. | App help/support service likely owns patient ticket creation. | Mostly aligned; status taxonomy and assignment fields need proof. |
@@ -81,7 +81,7 @@ Subscriber state can be changed by:
 ```text
 subscribersService direct CRUD
 subscriptionService direct CRUD
-subscriptionService welcome email trigger
+subscriptionService explicit welcome email command
 sendWelcome Edge Function
 process-subscribers Edge Function
 webhooks unsubscribe Edge Function
