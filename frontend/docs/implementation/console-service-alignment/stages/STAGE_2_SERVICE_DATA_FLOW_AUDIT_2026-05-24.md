@@ -148,9 +148,9 @@ Publish the pack in one coherent commit once these pieces are complete and index
 
 ## Current Stage 2 Documents
 
-- `frontend/docs/implementation/console-service-alignment/EMERGENCY_PAYMENT_CAPACITY_SERVICE_MAP_2026-05-24.md`
-- `frontend/docs/implementation/console-service-alignment/IDENTITY_ADMIN_PROVIDER_SERVICE_MAP_2026-05-24.md`
-- `frontend/docs/implementation/console-service-alignment/VISITS_CONTENT_SERVICE_MAP_2026-05-24.md`
+- `frontend/docs/implementation/console-service-alignment/service-maps/EMERGENCY_PAYMENT_CAPACITY_SERVICE_MAP_2026-05-24.md`
+- `frontend/docs/implementation/console-service-alignment/service-maps/IDENTITY_ADMIN_PROVIDER_SERVICE_MAP_2026-05-24.md`
+- `frontend/docs/implementation/console-service-alignment/service-maps/VISITS_CONTENT_SERVICE_MAP_2026-05-24.md`
 - `frontend/docs/implementation/console-service-alignment/contracts/README.md`
 - `frontend/docs/implementation/console-service-alignment/contracts/READ_ONLY_LIVE_CONFIRMATION_MATRIX_2026-05-24.md`
 

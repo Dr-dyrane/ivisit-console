@@ -4,13 +4,18 @@
 
 Initial implementation-pass plan. Planning only; no product, database, Edge Function, cleanup, seed, migration, or runtime mutation is authorized by this document.
 
-This plan follows the Stage 2 contract exhibits, Stage 3 capability gaps, and Stage 4 L5 ownership matrix. Each pass must be narrowed into its own implementation checklist before code changes begin.
+This plan follows the Stage 2 contract exhibits, Stage 3 capability gaps, Stage 4 L5 ownership matrix, Stage 5 full service coverage audit, and the service taxonomy in `../services/CONSOLE_FEATURE_SERVICE_TAXONOMY_2026-05-24.md`. Each pass must be narrowed into its own implementation checklist before code changes begin.
+
+The pass order below is an implementation sequence, not the console feature taxonomy. A single pass can cover several feature lanes when they share source-of-truth risk. The feature taxonomy remains the coverage gate for ensuring no service or operational surface is skipped.
 
 ## Planning Rules
 
 - Do not start implementation from a page symptom alone. Start from the source-of-truth owner named in Stage 4.
 - Separate read-only owner cleanup from L5 backend contract repair.
 - Do not bundle emergency/payment/backend repair with dashboard polish.
+- Do not start a pass until its Stage 5 service coverage rows have been assigned to that pass or explicitly marked out of scope.
+- Do not treat the numbered passes as the complete feature list; check the feature taxonomy and service review matrix before each pass.
+- Treat emergency detail modal failures and subscription management failures as named user-flow threads, not isolated component bugs.
 - Preserve user changes in the worktree and avoid doc-only micro-commits.
 - Commit only when the relevant evidence or implementation pack is coherent and resumable.
 
@@ -37,6 +42,7 @@ This plan follows the Stage 2 contract exhibits, Stage 3 capability gaps, and St
 - Read-only live confirmation matrix.
 - Stage 3 page/realtime/feedback findings.
 - Stage 4 emergency, cash/payment, visits, wallet, and map rows.
+- Stage 5 emergency detail modal and request-derived visit failure thread.
 
 ### Primary Files To Inspect Before Editing
 
@@ -91,6 +97,7 @@ Receivers and app reference:
   - stale/degraded flags when backend truth is incomplete
 - Move page-level direct count reads into that owner.
 - Keep `EmergencyDetailsModal` scoped realtime only for an open request detail, not as list owner.
+- Replace modal/list/table direct visit lookups with the chosen emergency detail projection or request-derived visit owner.
 - Remove global emergency realtime ownership from `PageDataContext` only after page/domain reads are stable.
 
 #### 1B. Create Contract Decision
@@ -169,6 +176,7 @@ Console services and receivers:
 
 - `frontend/src/services/walletService.js`
 - `frontend/src/services/activityService.js`
+- `frontend/src/services/organizationsService.js`
 - `frontend/supabase/migrations/20260219000400_finance.sql`
 - `frontend/supabase/migrations/20260219000700_security.sql`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/functions/payments/create-payment-intent/index.ts`
@@ -251,6 +259,8 @@ Console services and receivers:
 - `frontend/src/services/hospitalsService.js`
 - `frontend/src/services/hospitalImportService.js`
 - `frontend/src/services/pricingService.js`
+- `frontend/src/services/organizationsService.js`
+- `frontend/src/services/storageService.js`
 - `frontend/src/hooks/useHospitals.js`
 - `frontend/supabase/migrations/20260219000200_org_structure.sql`
 - `frontend/supabase/migrations/20260219000800_emergency_logic.sql`
@@ -333,6 +343,8 @@ Console services and receivers:
 - `frontend/src/services/verificationService.js`
 - `frontend/src/services/orgVerificationService.js`
 - `frontend/src/services/onboardingService.js`
+- `frontend/src/services/organizationsService.js`
+- `frontend/src/services/rbacPatterns.js`
 - `frontend/supabase/migrations/20260219000100_identity.sql`
 - `frontend/supabase/migrations/20260219000200_org_structure.sql`
 - `frontend/supabase/migrations/20260219000700_security.sql`
@@ -402,6 +414,7 @@ Console services and receivers:
 - `frontend/src/services/driverManagementService.js`
 - `frontend/src/services/staffSchedulingService.js`
 - `frontend/src/services/emergencyResponseService.js`
+- `frontend/src/services/storageService.js`
 - `frontend/src/hooks/useAmbulances.js`
 - `frontend/supabase/migrations/20260219000200_org_structure.sql`
 - `frontend/supabase/migrations/20260219000300_logistics.sql`
@@ -478,6 +491,7 @@ Console services and receivers:
 - `frontend/src/services/emergencyService.js`
 - `frontend/src/services/hospitalsService.js`
 - `frontend/src/services/profilesService.js`
+- `frontend/src/services/medicalProfilesService.js`
 - `frontend/supabase/migrations/20260219000900_automations.sql`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/services/visitsService.js`
 
@@ -548,6 +562,8 @@ Console services and receivers:
 - `frontend/src/components/modals/SubscriptionModal.jsx`
 - `frontend/src/services/subscriptionService.js`
 - `frontend/src/services/subscribersService.js`
+- `frontend/src/services/storageService.js`
+- `frontend/src/services/supportFaqsService.js`
 - `frontend/supabase/functions/payments/sendWelcome/index.ts`
 - `frontend/supabase/functions/payments/process-subscribers/index.ts`
 - `frontend/supabase/functions/webhooks/index.ts`
@@ -624,9 +640,14 @@ Console services and receivers:
 - `frontend/src/services/analyticsService.js`
 - `frontend/src/services/searchAnalyticsService.js`
 - `frontend/src/services/searchService.js`
+- `frontend/src/services/searchEventsService.js`
+- `frontend/src/services/searchHistoryService.js`
+- `frontend/src/services/searchSelectionsService.js`
 - `frontend/src/services/trendingTopicsService.js`
 - `frontend/src/services/analyticsAutomationService.js`
 - `frontend/src/services/activityService.js`
+- `frontend/src/services/preferencesService.js`
+- `frontend/src/services/supabaseHelpers.js`
 - `frontend/src/App.js`
 - `frontend/src/components/common/ProtectedRoute.jsx`
 - `frontend/src/components/common/Skeletons.jsx`
@@ -712,6 +733,7 @@ Before any pass starts, create or update a narrow checklist with:
 | --- | --- |
 | Scope | Exact pages/services/RPCs/functions touched. |
 | Source truth | Stage 2/3/4 docs and source files read. |
+| Stage 5 coverage | Every service listed for the pass is either included, explicitly deferred, or marked out of scope with a reason. |
 | Safe cleanup | Read-only owner moves, UI feedback, and copy-only changes. |
 | L5 repair | Backend/RPC/Edge/schema/policy changes, if any. |
 | Exclusions | Related tempting work that will not be touched. |
@@ -728,6 +750,7 @@ Each pass must clear these gates before code changes begin.
 | Gate | Required proof | Blocking example |
 | --- | --- | --- |
 | Owner gate | The Stage 4 row names a single required owner for the surface/service. | `PageDataContext`, page, and service all still own the same server truth. |
+| Service coverage gate | The Stage 5 ledger has no unassigned service for the pass being started. | Subscription implementation starts while `subscribersService`, `subscriptionService`, and support/email receivers still have no chosen owner. |
 | Receiver gate | The Stage 2 contract exhibit names the table/RPC/Edge Function that will receive the mutation or read. | UI action says "cash fee deducted" but no backend receiver is confirmed to debit/credit ledger truth. |
 | Scope gate | The implementation checklist names files touched and files explicitly excluded. | Wallet top-up fix also edits dashboard analytics and subscriber emails. |
 | Data-safety gate | The checklist says whether the pass is read-only cleanup, UI-only, L5 backend repair, schema/RLS work, Edge Function work, or historical repair. | A migration/backfill is run while the pass was only approved for service cleanup. |
