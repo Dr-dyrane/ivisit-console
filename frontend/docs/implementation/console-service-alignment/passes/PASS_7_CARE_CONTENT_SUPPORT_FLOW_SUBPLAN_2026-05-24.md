@@ -27,6 +27,8 @@ Console files inspected:
 - `frontend/src/components/views/InsuranceTableView.jsx`
 - `frontend/src/components/modals/SupportModal.jsx`
 - `frontend/src/components/modals/InsuranceModal.jsx`
+- `frontend/src/components/navigation/ContextAwareFAB.jsx`
+- `frontend/src/components/navigation/DynamicBottomBar.jsx`
 - `frontend/src/hooks/useInsurance.js`
 - `frontend/src/hooks/useSupportTickets.js`
 - `frontend/src/hooks/useHealthNews.js`
@@ -83,6 +85,7 @@ Observed source and contract signals:
 - `SupportTicketsPage` fetches ticket lists without passing a page limit/range, does not place search into `supportTicketsService`, and slices the returned list only for mobile display; its footer pagination total is not set by the route.
 - `SupportTicketsPage.handleView` sets modal mode to `edit`, so a read/detail action opens editable status/message/category/priority inputs. List/table variants also pass `isAdmin` as a function object into components that test it as a boolean, exposing edit/delete controls to every role reaching those variants.
 - `SupportTicketsPanel` independently reads the latest three tickets directly from Supabase and mounts its own broad realtime channel alongside hook and page/global data paths.
+- `AppShell` always renders `ContextAwareFAB` and `DynamicBottomBar`; both call `useInsurance()` and `useSupportTickets()` before their viewport-based early return. Because both hooks fetch on mount and subscribe, sensitive insurance policy reads and unpaged support-ticket reads/channels can execute twice on every route even when neither care surface nor command modal is open.
 - `supportTicketsService` permits direct create/update/delete/status/assignment calls and converts read errors into empty results. It does not project a staff response field, despite the required patient/Console response reconciliation already identified.
 - Runtime sources for insurance, support and health news contain pre-existing corrupted punctuation/icon bytes. They remain implementation findings; this document uses ASCII only.
 
@@ -118,6 +121,7 @@ Operator/support/content path:
 | Insurance edit receiver | Modal edit callback signature does not match page save handler, so intended policy field updates can be discarded. | One typed policy command boundary and tested create/edit/verify receiver contract before any management UI remains active. |
 | Support read versus edit | View action opens editable modal, and list/table role tests use a function object as authorization. | Separate read detail from command mode and evaluate capability before rendering every command variant. |
 | Global support/insurance projections | Context panels use independent reads/stats/events outside route ownership. | One scoped projection/invalidation owner consumed by route, mobile and context panel surfaces. |
+| Hidden global command mounts | Desktop FAB and mobile bottom-bar containers mount insurance/support hooks before deciding they are hidden. | Action-owned command dependencies only; no route-independent sensitive list acquisition from shell controls. |
 
 ## Action Class And Receiver Map
 
@@ -135,6 +139,7 @@ Operator/support/content path:
 | View/edit insurance policy detail | Patient-owned read/write or missing administrator command | `insurance_policies` policy owner plus guarded administrative receiver not currently proved | Fix broken callback shape only as part of authority-aligned command implementation; do not interpret current button as authorized. |
 | Open support ticket details | Scoped read projection | Ticket owner/admin projection | Details must be genuinely read-only unless actor has the proved command capability. |
 | Assign/update/delete support ticket | Conditional workflow/destructive command | Current source proves owner/admin operations only | Remove provider/org-admin management promises until RLS/RPC contract proves them. |
+| Load insurance/support data for a global action button | Excluded shell acquisition | No read is needed until an authorized care surface or opened command requires it | Do not mount full read/realtime hooks merely to retain command callbacks in hidden FAB/bottom-bar containers. |
 
 ## Field And Receiver Gate
 
@@ -158,6 +163,7 @@ Storage evidence confirmation (May 25): no active App/Console `storage.objects` 
 | `/support-tickets` route/mobile list | Hook/service obtain an unpaged list, route displays analytics from a separate full collection query, and mobile slices loaded data while local search/filtering is presented as queue browsing. | Create, detail/edit, delete and assign callbacks; provider route entry exists. | Establish server-scoped list/count/search and role-specific row projection; avoid claiming complete queue analytics from unrestricted or failed reads. |
 | `SupportTicketModal` and grid/list/table variants | Modal renders subject, message, priority, category and status; no rendered staff response field exists. | View opens edit mode; list/table authorization sees truthy function object and can expose edit/delete irrespective of the actor. | Split read and edit modes; reconcile app-visible response contract; gate commands before view composition and before any optimistic success copy. |
 | `SupportTicketsPanel` global context | Uses global summary props but directly reads three latest rows and mounts its own unscoped realtime listener. | Emits create and filter events; Preview has no evidenced receiver. | Remove duplicate direct acquisition/realtime ownership and classify or disable each event receiver. |
+| `ContextAwareFAB` and `DynamicBottomBar` | Each is rendered by the app shell and calls `useInsurance()` plus `useSupportTickets()` before a viewport early return, causing route-independent policy/ticket reads and channels. | Their visible version can later open create command modals, but hidden versions still acquire data. | Do not load protected list truth to mount a command button; move create callbacks into opened authorized modal flow or a no-read command adapter. |
 | `supportFaqsService` | Exposes complete CRUD/search/realtime table capability, while app/shared policy evidence proves public FAQ reading and no Console route was found. | Dormant direct write capability only. | Record as available-table capability without an implemented authorized authoring surface; keep patient read truth, do not invent FAQ admin CRUD. |
 | `/health-news` route/mobile/context | Route performs five count requests plus paged article query; modal/service expose content fields while persisted model/policy is narrower; route/nav roles disagree. | Create/edit/delete/publish controls and notifications. | Keep curated published feed only until write receiver and fields are proven; summary failure must not suppress readable content. |
 

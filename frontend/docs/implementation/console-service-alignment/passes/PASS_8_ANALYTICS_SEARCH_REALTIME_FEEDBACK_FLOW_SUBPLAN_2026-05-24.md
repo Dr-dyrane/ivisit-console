@@ -19,8 +19,14 @@ Console files inspected:
 - `frontend/src/components/navigation/QuickSearch.jsx`
 - `frontend/src/components/navigation/ContextPanel.jsx`
 - `frontend/src/components/common/NotificationCenter.jsx`
+- `frontend/src/components/common/ConsoleStartupOverlay.jsx`
+- `frontend/src/components/pwa/InstallPrompt.jsx`
+- `frontend/src/components/pwa/OfflineIndicator.jsx`
+- `frontend/src/components/pwa/UpdateNotification.jsx`
 - `frontend/src/components/pages/SettingsPage.jsx`
 - `frontend/src/App.js`
+- `frontend/src/contexts/FeedbackContext.jsx`
+- `frontend/src/contexts/PWAContext.jsx`
 - `frontend/src/contexts/PageDataContext.jsx`
 - `frontend/src/contexts/MapContext.jsx`
 - `frontend/src/hooks/useAnalytics.js`
@@ -48,7 +54,10 @@ Observed source signals:
 - `PageDataContext` initializes with mock emergency, analytics, doctors, visits, verification, and support data.
 - `PageDataContext` falls back to mock data on some fetch failures and owns many global realtime channels.
 - `App.js` mounts `BentoHome` at `/` and `Analytics` at `/analytics`; `Overview.jsx` is source-present but is not the live dashboard route found in the route scan.
-- `ContextPanel` is mounted with shell data, calls `useSubscription()` independent of whether the active route is `/subscriptions`, and renders `DashboardPanel` for `/` and `AnalyticsPanel` for `/analytics`.
+- `App.js` also renders `PWAProvider`, `FeedbackProvider` and `PWADebugTracker` outside the routed shell. PWA install/offline/update notices and feedback bursts therefore exist across authenticated and public routes, while a visible hard-coded version badge is rendered on every route.
+- `FeedbackProvider` can create an audio context and vibration for interaction feedback; current mobile callers explicitly opt into sound and haptic behavior. This is an interaction-surface contract requiring reduced-motion/accessibility and operator-setting disposition, not a data-owner issue.
+- `ContextPanel` mounts when the desktop/tablet context panel is open, calls `useSubscription()` independent of whether the active route is `/subscriptions`, and renders `DashboardPanel` for `/` and `AnalyticsPanel` for `/analytics`.
+- `AppShell` always renders `ContextAwareFAB` and `DynamicBottomBar`; each calls `useInsurance()`, `useSupportTickets()` and `useSubscription()` before its viewport-based `return null`. Thus two hidden-or-visible shell controls can fetch and subscribe to care/subscriber domains on every route, independent of their command modal being opened.
 - `Analytics.jsx` contains deterministic fallback/predictive values and role-specific analytics rendering.
 - The live `/analytics` route permits provider-level access, but `Analytics.jsx` includes `fetchSubscriptionAnalytics()` in its aggregate load and `analyticsService.getAnalyticsData()` includes `getSubscriptionAnalytics()` in a single `Promise.all`. Pass 7 proved subscriber reads are admin-only, so provider/org analytics can fail or silently lose a subscriber slice because a broader route consumes a narrower authority.
 - `analyticsService` reports `successRate: 95` when it sees no emergency rows; `AnalyticsModal` reports a default `12.0m` response time when the value is zero/unavailable; `BentoHome` substitutes response, completion, ambulance and hospital values when context data is absent.
@@ -97,6 +106,7 @@ Operator path:
 | Trending topics | Manual/stub/live signals can blur. | Trend owner with live/manual/stub/unavailable label. |
 | Realtime | `PageDataContext` subscribes to many tables globally. | One owner per domain/table family, with map/modal scoped exceptions. |
 | Route/action feedback | Some route and action paths can blank or overclaim success. | Shell loading/pending/degraded feedback standard. |
+| Globally mounted utility feedback | PWA banners, interaction bursts/audio/haptics and a visible hard-coded version badge mount independently of route/domain workflow. | Deliberately owned shell utilities: truthful build/version display or no debug artifact, accessible preference-aware interaction feedback, and tested install/offline/update behavior. |
 | Public asset and dormant backup handler | Dashboard assumes a public Storage asset; source contains an unproved `/api/backup` handler not evidenced as a rendered current control. | App-owned stable asset delivery; remove dormant command or enable only through an authorized/audited operations boundary. |
 | Dashboard/map route doctrine | Live guard and dormant route configuration disagree about public versus operational access. | One routed shell access authority with visible allowed/rejected/loading states. |
 | Dashboard report entry | Dashboard Report dispatches a page-local modal event whose receiver is mounted only on other routes. | Deliberate analytics navigation or mounted dashboard report projection with accurate source labels. |
@@ -119,6 +129,7 @@ Operator path:
 | Edit settings | Own-user CRUD subset | `preferences` | Only signed-in operator settings; no patient consent/demo substitution. |
 | View/mark notification | Own-user bounded read and read-state mutation | `notifications` through `NotificationCenter` / `notificationService` | Keep user scope and loading feedback; do not promise an action target when compatibility fallback discarded it. |
 | Realtime/route feedback | UI/read invalidation behavior | Domain hook/query owners and skeletons | No global context canonical server state or blank navigation pause. |
+| Display PWA/install/update/offline and interaction feedback | Shell-owned browser/UI behavior | `PWAProvider`, `FeedbackProvider`, and their mounted surfaces | Keep immediate feedback intentional and accessible; do not expose a hard-coded debug version marker as operational truth. |
 | Trigger system backup | Excluded until authorized workflow exists | Dormant handler only; no rendered trigger or named backend receiver proved | Remove dormant handler or implement only under a separately approved auditable operations command. |
 | Navigate dashboard or operational map | Role-scoped UI access and route feedback | Consolidated live route/navigation authority | Do not reuse dormant contradictory config; allowed and rejected navigation render immediate honest feedback. |
 | Open dashboard report | Read navigation or scoped analytics projection | Verified analytics owner and mounted route surface | Do not leave a visible report action dependent on an absent route-local listener. |
@@ -137,7 +148,9 @@ Operator path:
 | Surface or acquisition path | Mounted status and audience | Reads or visible claim | Mutation/action path | Deterministic audit outcome |
 | --- | --- | --- | --- | --- |
 | `/` `BentoHome` | Live route for allowed dashboard roles in `App.js`. | Uses global PageData data plus subscriber analytics; displays response/completion/fleet/hospital summary and fixed performance language. | Refresh and navigation actions. | Broken truth boundary: default values and unsupported comparative labels must be removed or explicitly demo/unavailable; subscriber slice must obey admin scope. |
-| Dashboard `ContextPanel` / `DashboardPanel` | Live side panel on `/`; `ContextPanel` invokes `useSubscription()` globally. | Emergency, analytics, doctor, verification and recent activity projections; live indicator based only on `useMockData`. | Report emits `openAnalyticsModal`; visible realtime switch and thresholds update local state only. | Broken receiver and configuration boundary: report receiver absent on `/`; switch/thresholds do not control or persist system behavior; global subscriber fetch is over-mounted. |
+| Dashboard `ContextPanel` / `DashboardPanel` | Live side panel when opened on `/`; `ContextPanel` invokes `useSubscription()` while open. | Emergency, analytics, doctor, verification and recent activity projections; live indicator based only on `useMockData`. | Report emits `openAnalyticsModal`; visible realtime switch and thresholds update local state only. | Broken receiver and configuration boundary: report receiver absent on `/`; switch/thresholds do not control or persist system behavior; context-open subscriber fetch adds duplicate ownership. |
+| `ContextAwareFAB` / `DynamicBottomBar` | Both are always rendered by `AppShell`; each hook executes before desktop/mobile early return. | Each mounts insurance, support-ticket and subscriber hooks independent of current route or whether its modal is opened. | Later opens domain command modals when visible for the relevant viewport/route. | Critical hidden acquisition path: eliminate route-independent sensitive/full-list reads and broad channels; load command dependencies only for an authorized active surface/action. |
+| `PWAProvider`, `FeedbackProvider` and `PWADebugTracker` | Always mounted outside the routed shell, including public/auth routes. | Install/offline/update UI, interaction burst/audio/haptic feedback, and a visible hard-coded `v1.0.33` badge. | PWA install/update/dismiss actions and feedback calls from mobile controls. | Shell utility disposition required: remove production debug artifact or bind it to authoritative build metadata; test PWA status behavior; define accessible feedback preferences/reduced-motion behavior. No server CRUD exposure was found in these providers. |
 | `PageDataContext` | Mounted above all application routes for authenticated users. | Broad emergency, verification, analytics, doctors, visits, hospitals, ambulances, profiles, support, insurance, wallet, activity, pricing and organizations reads; mock-initialized values. | Refreshes from broad table subscriptions. | Critical shell ownership defect: route-independent reads can leak sensitive/bounded/incomplete state and duplicate all domain owners; support failure can turn broad shell data into mock mode. |
 | `/analytics` `Analytics.jsx` | Live provider-or-higher route. | Direct counts/lists plus subscriber analytics; predictive empty intervals and fixed trend labels. | Export and modal event listeners mounted only on this page. | Broken authority/truth boundary: provider-visible analytics composes admin-only subscriber read; computed versus fallback and scope completeness are not distinguishable. |
 | `AnalyticsPanel` / `AnalyticsModal` | Panel is live on `/analytics`; modal is received where individual pages mount listeners. | Panel repeats PageData metrics; modal accepts heterogeneous domain data and uses generic labels/default response time. | Open/report/export navigation only. | Broken semantic projection: default `12m`, generic health/in-flow labels and subscription revenue/retention wording must be backed by actual fields or removed. |
@@ -159,7 +172,7 @@ Operator path:
 | Profiles, verification, organizations and route authority | Pass 4 identity | Search profile fields, analytics roles, and settings/notifications need proved role and own-user scope. |
 | Ambulances, doctors, map telemetry and scheduling | Pass 5 provider operations | Map and dashboard fleet/provider projections must be bounded and use one telemetry/read owner. |
 | Visits and clinical record context | Pass 6 visits | Search and analytics expose visit/emergency-linked fields only through authorized projections and truthful lifecycle totals. |
-| Insurance, support, content, subscriptions and email delivery | Pass 7 care/content/support/subscribers | Shell cannot switch to fake data on support failure or call admin-only subscriber reads from provider/viewer dashboards; subscription language needs delivery/payment proof. |
+| Insurance, support, content, subscriptions and email delivery | Pass 7 care/content/support/subscribers | Hidden shell FAB/bottom-bar mounts cannot fetch sensitive/full lists or broad channels on every route; shell cannot switch to fake data on support failure or call admin-only subscriber reads from provider/viewer dashboards; subscription language needs delivery/payment proof. |
 | Public acquisition and patient-facing product truth | `ivisit` public subscriber owner and `ivisit-app` patient owner | Console search/analytics are operational projections only; they must not invent public conversion, patient satisfaction or patient emergency outcome truth. |
 
 ## Pass 8 Deterministic Closure Register

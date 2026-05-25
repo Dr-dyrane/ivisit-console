@@ -115,6 +115,10 @@ Current closure status:
 | `MapProvider` shell initialization and map subscriptions | Ambulance markers | Loads ambulances without a window and subscribes broadly. | Map feed cannot be an unbounded second fleet owner; define active/viewport feed and telemetry lifecycle. | Pass 5 / Pass 8 |
 | `MapProvider` shell initialization | Hospital markers and nearby fallback | Loads hospitals without a window; nearby-RPC fallback also reads available hospitals without a bound. | Map cannot silently truncate or unboundedly load facility coverage; define geospatial/viewport bounds and unavailable/fallback labeling. | Pass 3 / Pass 5 / Pass 8 |
 | `MapProvider` shell subscription | User location channel | Subscribes to `users` for patient locations even though the table/visibility contract is stated only as an assumption in source comments. | Disable or replace until patient-location receiver, role scope and privacy authority are proven. | Pass 1 / Pass 4 / Pass 5 / Pass 8 |
+| `ContextAwareFAB` shell mount | Insurance policies, support tickets and subscribers | `AppShell` renders the FAB on every route; it calls `useInsurance()`, `useSupportTickets()` and `useSubscription()` before returning `null` on mobile or while the panel is open. Each hook performs initial reads and subscriptions. | A hidden command affordance must not globally acquire sensitive/full collections or admin-only subscriber data. Load command dependencies only in an authorized opened surface or share a narrowly scoped projection. | Pass 7 / Pass 8 |
+| `DynamicBottomBar` shell mount | Insurance policies, support tickets and subscribers | `AppShell` renders the bottom bar on every route; it calls the same three hooks before returning `null` on non-mobile viewports. Each hook performs initial reads and subscriptions. | This duplicates the FAB hidden acquisition on all viewports and routes; remove route-independent hook mounting and use deliberate action-owned command boundaries. | Pass 7 / Pass 8 |
+| `ContextPanelShell` when opened on desktop/tablet | Subscribers and domain context summaries | The shell conditionally mounts `ContextPanel`; while open it invokes `useSubscription()` regardless of active route and projects route context from `PageDataContext`. | Context-open state must not add a full admin-only subscriber fetch/channel outside `/subscriptions`; use authorized route-specific summaries only. | Pass 7 / Pass 8 |
+| Global PWA, feedback and debug mounts | Browser install/update/offline state, interaction feedback, visible version marker | `PWAProvider`, `FeedbackProvider` and `PWADebugTracker` mount outside routed content; they do not read domain tables, but render on public and protected routes. `PWADebugTracker` displays a fixed `v1.0.33`; feedback callers can request audio and haptics. | Classify as shell utility behavior rather than unreviewed infrastructure: remove or authoritatively source production debug copy, verify PWA actions, and gate interaction effects through accessibility/operator expectations. | Pass 8 |
 
 ## Coverage Summary
 
@@ -264,6 +268,23 @@ Runtime authority finding: `App.js` renders `ProtectedRoute`, whose default mini
 | Verification Quick Verify action | `useContextAction` navigates to `/verification?quick=true`, but no query-param consumer was found in `VerificationQueue`. | Implement a real authorized quick-review mode or replace the control with an action the verification queue receives. | Pass 4 |
 | Emergency clinical-record handoff | `EmergencyDetailsModal` dispatches `openVisitModal` and closes itself; the only visit-modal listener is in `VisitsPage`, which is not mounted on `/emergencies`. | Provide an emergency-route-owned clinical detail surface or deliberate route transition with carried identity; never close into a no-op. | Pass 1 / Pass 6 |
 | Visit incident-log handoff | `VisitModal` dispatches `openEmergencyDetails`, and `VisitsPage` does mount the receiving emergency-detail modal. This is the proved working direction of the handoff. | Preserve the mounted receiver while normalizing its request identity through the Pass 1/6 read models; do not infer that the reverse handoff is implemented. | Pass 1 / Pass 6 |
+
+### Live Component Family Assignment
+
+The route rows above establish access and event failures; this component-family register prevents a named route from hiding an unaudited page, modal, panel or global action container. Mobile/table/list/grid variants inherit their parent family's pass and must be checked for identical field exposure and operation authority.
+
+| Live component family | Files or mounted components included | Required audit owner |
+| --- | --- | --- |
+| Public/auth/onboarding/failure | `LoginPage`, `SetPasswordPage`, `OnboardingPage`, `OnboardingSuccessPage`, `NotFoundPage`, unauthorized surface, `SecurityModal`, `ProfileEditModal`, `SupportModal` from settings | Pass 4 identity/auth; Pass 7 support handoff; Pass 8 feedback |
+| Dashboard/analytics/search/notification shell | `BentoHome`, `Analytics`, `AnalyticsPanel`, `AnalyticsModal`, `DashboardPanel`, `QuickSearch`, common `NotificationCenter`, `SmartHeader`, `ContextPanelShell`, `ConsoleStartupOverlay`, `PWAProvider`, `FeedbackProvider`, `PWADebugTracker` | Pass 8, consuming domain truths from Passes 1-7 and explicitly disposing of all shell-visible utility feedback/debug behavior |
+| Global action/modal containers | `ContextAwareFAB`, `DynamicBottomBar`, `GlobalFinancialModals`, `useContextAction` | Pass 8 shell ownership plus each invoked domain pass; hidden hook acquisitions are Pass 7/8 blockers |
+| Emergency/map/clinical handoff | `EmergencyRequestsPage`, `GodModeMap`, `EmergencyPanel`, `MapPanel`, `EmergencyRequestModal`, `EmergencyDetailsModal` | Pass 1; map/telemetry dependencies in Pass 5 and shell cleanup in Pass 8 |
+| Hospitals/pricing/import/capacity | `HospitalsPage`, `PricingManagementPage`, `HospitalsPanel`, `PricingContextPanel`, `HospitalModal`, `BulkImportModal` if wired, and capacity actions | Pass 3; financial handoff in Pass 2 and report/event cleanup in Pass 8 |
+| Ambulance/doctor/scheduling/provider operations | `AmbulancesPage`, `DoctorsPage`, `AmbulancesPanel`, `DoctorsPanel`, `AmbulanceModal`, `DoctorModal`, `StaffSchedulingModal` | Pass 5 |
+| Visits/history | `VisitsPage`, `VisitsPanel`, `VisitModal` and its emergency-detail handoff | Pass 6 with Pass 1 receiver dependency |
+| Identity/verification/organizations/settings | `UsersPage`, `VerificationQueue`, `OrganizationsPage`, `SettingsPage`, `UsersPanel`, `VerificationPanel`, `OrganizationsPanel`, `SettingsPanel`, `UserModal`, `InviteUserModal`, `VerificationModal` | Pass 4; notification/settings wiring in Pass 8 |
+| Care/content/support/subscribers | `HealthNewsManagementPage`, `InsuranceManagementPage`, `SupportTicketsPage`, `SubscriptionManagementPage`, their context panels and `HealthNewsModal`, `InsuranceModal`, `SupportTicketModal`, `SubscriptionModal` | Pass 7, with shell acquisition/realtime cleanup in Pass 8 |
+| Wallet/finance projection | `WalletManagementPage`, `WalletPanel`, `GlobalFinancialModals` top-up/withdraw/billing receivers | Pass 2; shell action separation in Pass 8 |
 
 Surface gate:
 
@@ -455,8 +476,8 @@ Determined plan adjustment:
 | Pass 4 - Identity, verification, and onboarding authority | `organizationsService`, `rbacPatterns`, `onboardingService`, `verificationService`, `orgVerificationService`, `profilesService`, `authService`, display ID helpers. |
 | Pass 5 - Provider operations, telemetry, doctors, and scheduling | `storageService` provider/ambulance uploads, map telemetry projection, ambulance/driver/doctor/schedule lifecycle. |
 | Pass 6 - Visits ownership and request-derived history | canonical `visits.request_id` lookup; request-derived clinical completion remains read-only unless an authorized receiver is established; dormant medical-profile admin promises remain excluded without access authority. |
-| Pass 7 - Content, support, subscribers, and email | subscription failure thread, duplicate subscriber services, support FAQs, support tickets, health news, insurance, media upload for insurance cards, notification side effects. |
-| Pass 8 - Analytics, search, dashboard shell, realtime, and feedback | search telemetry services, preferences/demo mode, analytics automation, trending topics, `supabaseHelpers`, route fallback/loading, realtime ownership. |
+| Pass 7 - Content, support, subscribers, and email | subscription failure thread, duplicate subscriber services, support FAQs, support tickets, health news, insurance, media upload for insurance cards, notification side effects, and route-independent `ContextAwareFAB` / `DynamicBottomBar` hook acquisitions. |
+| Pass 8 - Analytics, search, dashboard shell, realtime, and feedback | search telemetry services, preferences/demo mode, analytics automation, trending topics, `supabaseHelpers`, route fallback/loading, realtime ownership, and removal of hidden shell domain acquisitions. |
 
 ## Service-Level Completion Criteria
 

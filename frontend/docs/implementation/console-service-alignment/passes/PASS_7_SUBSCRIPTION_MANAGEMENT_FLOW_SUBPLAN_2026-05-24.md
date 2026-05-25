@@ -50,7 +50,7 @@ Observed source signals:
 - Current `SubscriptionManagementPage` no longer mounts a page-level realtime email sender; `useSubscription` owns the active route subscription. Earlier audit notes that described a page insert listener sending welcome mail are superseded by this source read.
 - `SubscriptionModal` can send welcome, custom, and bulk emails directly through `subscriptionService`.
 - `sendWelcome` sends email but updates only `new_user = false`; the separate `process-subscribers` worker later selects `welcome_email_sent = false` rows and can send the same welcome email again before marking that flag.
-- The hook, route, context panel, navigation FAB/bottom bar, analytics page, and home surface each mount or consume `useSubscription`; every mounted hook instance performs its own full subscriber fetch and broad realtime subscription.
+- The hook, route, context panel, navigation FAB/bottom bar, analytics page, and home surface each mount or consume `useSubscription`; every mounted hook instance performs its own full subscriber fetch and broad realtime subscription. `AppShell` always renders both `ContextAwareFAB` and `DynamicBottomBar`, and each invokes the hook before its mobile/non-mobile early return, so at least two subscriber reads/channels can execute on every routed shell even when no subscription command is visible.
 - `SubscriptionsPanel` exposes a Broadcast button that dispatches `openEmailActionsModal`, while `SubscriptionManagementPage` only receives create and analytics events; the visible email action currently has no mounted receiver.
 - Subscriber paging is client-side over an unwindowed hook fetch, and `subscriptionService.getSubscribers()` returns an empty array for both unauthorized and failed list fetches.
 - Desktop grid, list, and table variants always receive edit/delete callbacks although current policy proves admin read and public insert only; mobile hides those controls behind `canManage={isAdmin()}` but still calls the same unauthorized operations for an admin.
@@ -88,7 +88,7 @@ Operator path:
 | Welcome durable state | Manual `sendWelcome` changes `new_user` but does not mark `welcome_email_sent`; the worker later selects the still-pending row. | One idempotent welcome command that writes the one durable lifecycle status used by every sender. |
 | Subscriber KPI semantics | Mobile and context surfaces call `type = paid` conversion, premium, monetization, and revenue dynamics without a billing receiver. | Label as subscriber tier/mix only, or join an authorized subscription-payment outcome projection. |
 | Variant action parity | Desktop variants always expose edit/delete; mobile conditionally exposes the same unsupported actions. | One operation capability map shared by every variant, based on proven command authority. |
-| Mounted read ownership | Multiple shell/page consumers mount `useSubscription`, each full-fetching/subscribing to the same global list. | One route/shell projection per mounted experience with scoped invalidation and protected email exposure. |
+| Mounted read ownership | Multiple shell/page consumers mount `useSubscription`, each full-fetching/subscribing to the same global list; hidden FAB/bottom-bar components do so on all viewports/routes. | One authorized route projection and action-owned command loading; no hidden shell mount may read or subscribe to the global email list. |
 
 ## Action Class And Receiver Map
 
@@ -103,6 +103,7 @@ Operator path:
 | Realtime subscriber update | Read projection/invalidation | Single selected subscription facade | Remove duplicate service-family subscription ownership. |
 | Paid, premium, conversion, or revenue labels | Derived business claim | Authorized billing/subscription outcome source, if one exists | Do not infer payment success or revenue from `subscribers.type`. |
 | Show subscriber email in context shell | Sensitive read projection | Platform-admin subscriber read scope | Do not mount outside the admin-protected path or leak into shared shell surfaces. |
+| Mount subscriber hook for global action affordance | Excluded shell acquisition | No subscriber read is necessary before an admin opens an authorized command surface | Do not perform admin-only full reads/realtime in hidden or unauthorized-route shell controls. |
 
 ## Field And Receiver Gate
 
@@ -120,6 +121,7 @@ Operator path:
 | `SubscriptionListView` and `SubscriptionTableView` | Same page-sliced row projection including email and welcome state. | Page passes edit/delete callbacks unconditionally. | Variant components make unsupported management look operational. | Consume one capability map and omit unavailable commands. |
 | `MobileSubscriptions` | Growing slice of loaded collection; email and welcome state; local counts/trends. | View and admin-gated edit/delete. | Loaded-window metrics are described as live conversion/revenue and management still targets unproved writes. | Display bounded registry truth only; remove revenue claims and unauthorized commands. |
 | `SubscriptionsPanel` in `ContextPanel` | Global counts and first four raw subscriber email addresses. | Create and analytics events have page receivers; Broadcast event does not. | Sensitive global data is duplicated in shell context and one primary command is dead. | Keep admin-only, use shared projection, disable Broadcast until a receiver is mounted. |
+| `ContextAwareFAB` and `DynamicBottomBar` shell containers | Both execute `useSubscription()` before checking viewport visibility and exist on every app route. | Visible per-route action can open create/email modals; hidden instance still reads/subscribes. | Remove admin-only subscriber acquisition from global command containers; load allowed command state only after authorized navigation/action. |
 | `SubscriptionModal` create/edit/view | Selected row fields and optional welcome toggle. | Creates row, updates row; email mode invokes welcome/custom/bulk functions. | Create can explicitly select welcome lifecycle; edit is currently an unauthorized direct update. | Keep create separate from email command; remove edit until authorized; route email through audited command state. |
 | `useSubscription` and `subscriptionService.js` | Full-list fetch, row refresh, analytics and broad table realtime. | Insert, update/delete/status/type, mark welcome, welcome/custom/bulk. | Active facade is still over-capable; each hook mount repeats read and channel ownership. | Narrow facade to authorized commands and one projection owner. |
 | `subscribersService.js` | Separate full-list and row reads. | Separate create/delete and realtime. | Available duplicate owner is not needed by active UI and can drift. | Retire after import proof; it cannot authorize missing operations. |
@@ -141,7 +143,7 @@ Operator path:
 | --- | --- | --- | --- | --- | --- |
 | Route directory and pagination | Yes | Yes | Yes | Yes | Blocked by unwindowed list and unsupported writes |
 | Grid/list/table/mobile variants | Yes | Yes | Yes | Yes | Blocked by inconsistent action gating and misleading KPIs |
-| Context panel actions and sensitive data | Yes | Yes | Yes | Yes | Blocked by dead Broadcast receiver and repeated projection |
+| Context panel and global action-container sensitive data | Yes | Yes | Yes | Yes | Blocked by dead Broadcast receiver and hidden route-independent subscriber projection |
 | Create/edit/view modal | Yes | Yes | Yes | Yes | Create constrained; edit blocked; email lifecycle blocked |
 | Hook and active service facade | Yes | Yes | Yes | Yes | Blocked by over-capable API and repeated mounts |
 | Duplicate subscribers service | Yes | N/A | Yes | Yes | Retire from active surface after import proof |

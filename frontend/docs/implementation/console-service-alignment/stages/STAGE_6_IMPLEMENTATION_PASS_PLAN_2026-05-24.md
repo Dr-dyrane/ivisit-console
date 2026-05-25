@@ -34,8 +34,8 @@ Service rows, table rows and the visible page component are not sufficient imple
 | 4 | Profiles/auth, organizations, verification, onboarding, route guards, selectors/lookups and organization-linked wallet/facility scope. | A role/identity/readiness claim uses an untraced provider/context/modal path or mismatched authority. |
 | 5 | Ambulances, doctors, telemetry, scheduling, map layers, dropdown dependencies and assignment/proximity calculations. | Fleet/provider availability or assignment uses capped, fabricated, or independently loaded truth. |
 | 6 | Visits, medical-history projections, emergency handoffs and all patient/provider/hospital lookup hydration. | Clinical-history completeness or edit eligibility depends on an unbounded lookup or unowned linked-state fetch. |
-| 7 | Insurance, billing results, subscribers, email, support, FAQs, health news, notifications and uploads. | Management counts/actions or content availability mask partial, denied, failed or unproved storage/receiver paths. |
-| 8 | Analytics, overview/dashboard, search, trends, activity, notifications, preferences, map shell, shared realtime and remaining provider state. | Aggregate/search/navigation truth can still be generated from mock, stale, partial, broad or unowned sources, or an allowed provider dashboard still invokes admin-only subscriber truth. |
+| 7 | Insurance, billing results, subscribers, email, support, FAQs, health news, notifications, uploads and shell-mounted care/subscriber hook consumers. | Management counts/actions or content availability mask partial, denied, failed or unproved storage/receiver paths, or hidden global command controls acquire protected/unbounded data on unrelated routes. |
+| 8 | Analytics, overview/dashboard, search, trends, activity, notifications, preferences, map shell, PWA/feedback/debug utilities, shared realtime and remaining provider state. | Aggregate/search/navigation truth can still be generated from mock, stale, partial, broad or unowned sources, an allowed provider dashboard still invokes admin-only subscriber truth, or globally mounted UI utilities render unreviewed debug/accessibility behavior. |
 
 ## Global Surface Exposure And Operation Gate
 
@@ -75,8 +75,8 @@ Stage 5 now maintains the direct boundary call-site register for UI, context, ho
 | 4 | `UsersPage`, `InviteUserModal`, `AuthContext`, `LoginPage`, `SetPasswordPage`, `SecurityModal` | Identity KPI, invite and destructive workflows route through named authority; canonical Auth SDK operations are reviewed and may remain only as supported auth adapters. |
 | 5 | `AmbulancesPage`, `AmbulanceModal`, `DoctorModal` | Fleet counts, assignment availability and facility options use provider/fleet owners with valid relationship scope. |
 | 6 | `VisitsPage` | Visit count/hydration/realtime moves to the visit model; emergency-linked records do not inherit page-owned edit/delete authority. |
-| 7 | `HealthNewsManagementPage`, `HealthNewsPanel`, `SupportTicketsPanel`, `utils/runMigrations.js`, `utils/testDatabase.js` | Content/support reads reuse scoped owners; browser-side SQL repair and diagnostics cannot serve product behavior. |
-| 8 | `Analytics`, `Overview`, `useAnalytics`, remaining `PageDataContext`, `BentoHome`, `DashboardPanel`, `ContextPanel`, `QuickSearch`, `NotificationCenter`, `SettingsPage`, `lib/supabase.js` | Dashboard aggregation/realtime consumes stabilized domain truth; admin-only subscriber data is excluded from broader-role dashboards; search fields/failures are role-scoped and visible; notification/settings receivers, public asset delivery, dormant maintenance actions and generic subscriptions are deliberately owned, disabled or retired. |
+| 7 | `HealthNewsManagementPage`, `HealthNewsPanel`, `SupportTicketsPanel`, `ContextAwareFAB`, `DynamicBottomBar`, `utils/runMigrations.js`, `utils/testDatabase.js` | Content/support/insurance/subscriber reads reuse scoped owners; global action controls do not mount protected list hooks until an authorized action surface needs them; browser-side SQL repair and diagnostics cannot serve product behavior. |
+| 8 | `Analytics`, `Overview`, `useAnalytics`, remaining `PageDataContext`, `BentoHome`, `DashboardPanel`, `ContextPanel`, `ContextAwareFAB`, `DynamicBottomBar`, `QuickSearch`, `NotificationCenter`, `SettingsPage`, `lib/supabase.js` | Dashboard aggregation/realtime consumes stabilized domain truth; admin-only subscriber data is excluded from broader-role dashboards and hidden shell controls; search fields/failures are role-scoped and visible; notification/settings receivers, public asset delivery, dormant maintenance actions and generic subscriptions are deliberately owned, disabled or retired. |
 
 ## Global Route And Surface Gate
 
@@ -644,6 +644,8 @@ Console services and receivers:
 - `frontend/src/hooks/useSupportTickets.js`
 - `frontend/src/components/pages/SubscriptionManagementPage.jsx`
 - `frontend/src/components/modals/SubscriptionModal.jsx`
+- `frontend/src/components/navigation/ContextAwareFAB.jsx`
+- `frontend/src/components/navigation/DynamicBottomBar.jsx`
 - `frontend/src/services/subscriptionService.js`
 - `frontend/src/services/subscribersService.js`
 - `frontend/src/services/storageService.js`
@@ -664,6 +666,7 @@ Console services and receivers:
 | Subscriber facade | Service cleanup | Consolidate subscriber/subscription services, preserve fixed-field payload repair, and restrict commands to policy/receiver-backed authority. | Subscriber payload remains schema-current and unauthorized management controls are absent. |
 | Email lifecycle owner | L5 repair | Define welcome/custom/bulk/unsubscribe state machine. | Welcome email cannot be sent twice by competing lifecycle writers. |
 | Insurance billing outcome owner | Missing scoped surface | Expose authorized `insurance_billing` result/claim context alongside policy and completed-care support flows. | Admin/hospital support can inspect trigger-created billing outcomes without inventing policy mutation authority. |
+| Hidden shell acquisition removal | Read-only owner cleanup | Stop global FAB/bottom-bar containers from mounting insurance/support/subscriber full-list hooks solely to supply unopened modal callbacks. | Unrelated routes and hidden viewport controls perform no protected care/subscriber reads or channels. |
 
 ### Detailed Checklist
 
@@ -684,12 +687,14 @@ Console services and receivers:
 - Fix or remove app-side `admin_response` insert expectation if the receiver lacks it, or add a supported receiver field intentionally.
 - Keep support operations within the currently proven admin/owner policy boundary; do not expose org-admin/provider ticket management until a guarded RPC/RLS contract authorizes it.
 - Keep `useSupportTickets` as the page/panel data owner and remove duplicate panel direct channels.
+- Remove shell-mounted `useSupportTickets` acquisition from hidden/unrelated FAB and bottom-bar paths; a create command does not require loading the entire queue before the operator opens it.
 
 #### 7C. Subscribers And Email
 
 - Retain `subscriptionService.js` as the active console subscriber/email workflow facade; leave `subscribersService.js` as compatibility-only until removal proof exists.
 - Preserve the current fixed-field subscriber payload repair; do not reintroduce runtime schema fallback writes.
 - Replace unwindowed list reads and repeated hook-mounted subscriber channels with one bounded admin projection/invalidation owner.
+- Remove `useSubscription` from globally mounted action containers until an authorized subscriber action surface is actually entered; no hidden button may cause admin-only email-list reads.
 - Remove unsupported edit/delete/status controls and subscriber-tier labels that imply revenue or payment completion without billing proof.
 - Define lifecycle state machine:
   - subscribed/new
@@ -706,10 +711,15 @@ Console services and receivers:
 - If patient app clear/delete is in scope, add policy/receiver support separately rather than changing console UI only.
 - Preserve notification `action_data` unless receiver shape intentionally lacks it and UI is prepared for missing actions.
 
+#### 7E. Insurance Shell Acquisition
+
+- Remove shell-mounted `useInsurance` reads/subscriptions from `ContextAwareFAB` and `DynamicBottomBar`; an Add Policy command must acquire data only in its authorized route/modal lifecycle.
+- Keep patient-sensitive policy projections within the proved route or explicitly scoped detail/result surface.
+
 ### Pass 7 Verification
 
 - Service tests for subscriber payload and email lifecycle state transitions.
-- Browser smoke on health-news, support tickets, subscriptions.
+- Browser smoke on health-news, support tickets, subscriptions, and unrelated dashboard routes to confirm no hidden insurance/support/subscriber acquisition.
 - RLS/policy tests for support and content authoring roles.
 - Non-production email function test only after idempotency is defined.
 
@@ -736,6 +746,12 @@ Console services and receivers:
 - `frontend/src/App.js`
 - `frontend/src/components/common/ProtectedRoute.jsx`
 - `frontend/src/components/common/Skeletons.jsx`
+- `frontend/src/components/common/ConsoleStartupOverlay.jsx`
+- `frontend/src/components/pwa/InstallPrompt.jsx`
+- `frontend/src/components/pwa/OfflineIndicator.jsx`
+- `frontend/src/components/pwa/UpdateNotification.jsx`
+- `frontend/src/contexts/PWAContext.jsx`
+- `frontend/src/contexts/FeedbackContext.jsx`
 - `frontend/src/components/ui/skeleton.jsx`
 - `frontend/supabase/migrations/20260219010000_core_rpcs.sql`
 - `frontend/supabase/migrations/20260219000700_security.sql`
@@ -749,6 +765,7 @@ Console services and receivers:
 | Mock/demo cleanup | UI/service cleanup | Remove production mock defaults or connect visible demo preference. | A failed fetch cannot flip the authenticated shell into mock mode. |
 | Realtime dedupe | Query cleanup | Remove global and duplicate page/panel channels after domain hooks own reads. | One owner per table/event family, with scoped map/modal exceptions. |
 | Route/action feedback | UI cleanup | Add route skeleton and pending guards for high-risk actions. | Navigation and commands acknowledge intent immediately without false completion claims. |
+| Shell utility feedback and debug disposition | UI/accessibility cleanup | Review always-mounted PWA/feedback surfaces and remove or source the visible debug version marker. | Install/offline/update prompts remain truthful; audio/haptic effects have deliberate accessibility behavior; production shell shows no hard-coded debug copy. |
 | Search/trend truth and privacy | L5/read-projection repair | Scope searchable categories/fields by role, sequence parallel queries and replace success-returning stub regeneration or label unavailable state. | Shell search distinguishes no-match, partial, denied and failed results and cannot present stub trend regeneration as real. |
 | Notifications/preferences/settings | UI/read-owner cleanup | Align user-scoped notification read/mark behavior with a real settings receiver and preserve intentional notification action metadata. | An unwired switch or compatibility payload loss cannot misstate notification behavior. |
 
@@ -806,6 +823,8 @@ Console services and receivers:
 - Add pending/disabled state to bulk/destructive commands that still rely only on toast after click.
 - Remove or wire the dashboard realtime switch and alert thresholds; visible local-only state is not operational configuration.
 - Wire or remove the visible settings notification switch, and define whether compatibility notifications lacking action metadata are non-actionable.
+- Remove or authoritatively source `PWADebugTracker` production version copy, and review the globally mounted PWA install/offline/update notices as shell-owned user actions.
+- Define reduced-motion and sound/haptic preference behavior for `FeedbackProvider` before retaining feedback effects across mobile command surfaces.
 - Review success copy on every command touched by prior passes.
 
 ### Pass 8 Verification
@@ -818,6 +837,7 @@ Console services and receivers:
 - Role tests for provider analytics with admin-only subscriber data unavailable.
 - QuickSearch tests for out-of-order queries, partial category failure and restricted field/category projection.
 - Notification/settings test for own-user preference behavior and action metadata fallback.
+- PWA/feedback shell check for install/update/offline actions, debug-marker removal or authoritative version source, and accessibility preference behavior.
 
 ## Implementation Checklist Template
 
