@@ -43,6 +43,7 @@ Observed source signals:
 - The direct payment query already warns that missing payment rows may be finance RLS visibility, which means the UI sees the symptom but does not own the contract.
 - `LocationCell` owns direct Google reverse geocoding for detail locations while its accepted coordinate shapes are narrower than app location inputs; location fallback is therefore part of emergency detail truth, not leaf formatting.
 - `EmergencyDetailsModal` closes after dispatching `openVisitModal`, but the only active receiver is mounted by `VisitsPage`; from `/emergencies`, the visible "View Full Clinical Record" action has no mounted modal receiver.
+- `EmergencyRequestsPage` does page-local server pagination/count and current-row payment enrichment; pagination exists, but its filter/count/enrichment/failure lifecycle is not yet owned by the emergency read model.
 - Shared source defines append-only status-transition evidence plus emergency chat and clinician-assignment receivers; Console runtime currently references these only through generated types or inferred doctor display, while the patient app implements chat RPC/realtime flow.
 
 ## User Flow
@@ -72,6 +73,7 @@ The current detail flow conflates these owners:
 | Clinical-record navigation from emergency detail | Modal dispatches a visit event and closes while the visits route/listener is not mounted. | Emergency-route-owned outcome detail surface or explicit identity-preserving navigation into the visit projection. |
 | Location/address projection | Leaf cell makes external geocoding request and falls back across mixed coordinate shapes. | Emergency detail location projection with normalized coordinates, bounded external lookup and explicit unavailable/fallback rendering. |
 | Realtime refresh | Modal owns payments and emergency channel locally. | Detail-scoped realtime invalidation owned by the detail model/hook. |
+| List paging and enrichment | Page directly constructs count/window/filter queries and payment enrichment. | Emergency list owner with stable paging, count/filter parity and explicit enrichment failure state. |
 | Status-transition history | Shared append-only table exists; no Console rendered timeline found. | Read-only detail timeline sourced from `emergency_status_transitions`; no update/delete actions. |
 | Urgent chat thread | Patient app implements room/message/read RPC flow; Console has type-only references. | Request-scoped communication projection/command owner using shared chat authorization. |
 | Clinician assignment | UI can show doctor context without a canonical Console assignment workflow. | Guarded `emergency_doctor_assignments` / assignment RPC owner. |

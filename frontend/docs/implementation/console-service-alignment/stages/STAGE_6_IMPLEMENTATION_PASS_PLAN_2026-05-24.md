@@ -14,11 +14,39 @@ The pass order below is an implementation sequence, not the console feature taxo
 - Separate read-only owner cleanup from L5 backend contract repair.
 - Do not bundle emergency/payment/backend repair with dashboard polish.
 - Do not start a pass until its Stage 5 service coverage rows have been assigned to that pass or explicitly marked out of scope.
+- Do not start a pass from inventory coverage alone. Stage 5 runtime-truth closure must trace every in-scope entity in both directions: all runtime consumers from the source and all mounted acquisitions/receivers from each affected route/action.
+- Start every surface assessment from what it renders and what it allows each role to attempt: prove read/exposure authority before retaining fields, and prove receiver/CRUD/command authority before retaining controls.
 - Do not treat the numbered passes as the complete feature list; check the feature taxonomy and service review matrix before each pass.
 - Do not treat every visible table as CRUD. Before editing a surface, classify each operation as scoped read projection, policy-supported ordinary CRUD, workflow command, backend-derived read-only evidence, or excluded/separately owned.
 - Treat emergency detail modal failures and subscription management failures as named user-flow threads, not isolated component bugs.
 - Preserve user changes in the worktree and avoid doc-only micro-commits.
 - Commit only when the relevant evidence or implementation pack is coherent and resumable.
+
+## Global Runtime Truth Closure Gate
+
+Service rows, table rows and the visible page component are not sufficient implementation evidence. Before a pass starts, Stage 5 must contain a claim-level runtime trace for the domain: route and globally mounted providers, background refresh/realtime paths, modals/context panels, lookup/dropdown/map/analytics/export paths, and all direct boundary calls.
+
+| Pass | Runtime acquisition sweep that must be complete first | Failure that blocks implementation |
+| ---: | --- | --- |
+| 1 | Emergency requests, payment/cash state, responder/map detail, linked visits, global emergency summaries and realtime. | A detail/list/payment state can be obtained or refreshed outside the declared emergency read owner. |
+| 2 | Wallets, ledger, payments, Stripe reflection, payout/top-up dialogs, summaries, exports and maintenance paths. | Any money total/export/repair/action depends on a partial collection or unnamed mutation boundary. |
+| 3 | Hospitals, capacity, provider taxonomy/media, discovery/import and pricing across route, global providers, map, modal lookups and app-facing quote dependencies. | Facility totals/capacity/pricing can be loaded through an unbounded or semantically different path, including a bootstrap context hidden from the page query. |
+| 4 | Profiles/auth, organizations, verification, onboarding, route guards, selectors/lookups and organization-linked wallet/facility scope. | A role/identity/readiness claim uses an untraced provider/context/modal path or mismatched authority. |
+| 5 | Ambulances, doctors, telemetry, scheduling, map layers, dropdown dependencies and assignment/proximity calculations. | Fleet/provider availability or assignment uses capped, fabricated, or independently loaded truth. |
+| 6 | Visits, medical-history projections, emergency handoffs and all patient/provider/hospital lookup hydration. | Clinical-history completeness or edit eligibility depends on an unbounded lookup or unowned linked-state fetch. |
+| 7 | Insurance, billing results, subscribers, email, support, FAQs, health news, notifications and uploads. | Management counts/actions or content availability mask partial, denied, failed or unproved storage/receiver paths. |
+| 8 | Analytics, overview/dashboard, search, trends, activity, preferences, map shell, shared realtime and remaining provider state. | Aggregate/search/navigation truth can still be generated from mock, stale, partial, broad or unowned sources. |
+
+## Global Surface Exposure And Operation Gate
+
+Each pass must inventory the actual UI promise before implementing its owner cleanup: fields rendered, status/summary meaning, datasets exportable, controls exposed and role visibility. A correct service call is insufficient if the surface exposes data outside policy scope or advertises CRUD/commands whose receiver cannot authorize or persist the submitted fields.
+
+| Required surface proof | Must identify | Implementation blocker |
+| --- | --- | --- |
+| Read/render exposure | Surface variant and role, displayed fields/KPIs/detail/export content, source and read/RLS/RPC authority, missing or excessive exposure. | An org admin can render patient/financial/clinical fields not proven visible, or a surface omits app-required truth while appearing authoritative. |
+| Field meaning and completeness | Identity keys, status/amount/eligibility/provenance semantics, bounds/aggregate source, normalization and degraded states. | A UI label changes meaning from its source, renders capped data as total, or presents unavailable data as zero/complete. |
+| Visible operation inventory | Every edit/delete/create/verify/approve/assign/import/export/email/payment/bulk/transition action visible to each role. | A control is left enabled because it exists in JSX without an audited operation class and receiver. |
+| Mutation payload and authority | Submitted fields, table/RPC/Edge/Storage receiver, actor authorization, lifecycle legality, idempotency/audit requirements and reflected read. | A field is collected but discarded, a direct CRUD path violates RLS, or a workflow transition is treated as ordinary edit. |
 
 ## Global Receiver And Field Gate
 
@@ -64,6 +92,21 @@ Stage 5 now also maintains the visible route, context-panel, primary-action and 
 | 6 | Visit-projection ownership used by cross-surface handoffs | Preserve the mounted visit-to-emergency receiver and supply a canonical request-derived visit projection for Pass 1's missing emergency-to-visit direction; request-derived records remain read-only where commanded upstream. |
 | 7 | `/health-news`, `/insurance` and subscription Broadcast action | Advertised role access matches authorized receivers; unimplemented content/insurance/email actions are disabled rather than clickable no-ops. |
 | 8 | Dashboard route doctrine, Report receiver, context-shell access and route/action loading feedback | The consolidated shell uses one route authority; dashboard Report reaches a mounted truthful projection or navigation; all actions acknowledge allowed, pending, unavailable and rejected states. |
+
+## Global Pagination And Fetch Reliability Gate
+
+Stage 5 maintains the route-list reliability register for the `13` paginated Console page surfaces found in source. A pagination control is not acceptance evidence unless its owner provides correct authorized dataset windows, counts, failure states and invalidation behavior.
+
+| Pass | List/fetch surfaces requiring reconciliation | Required disposition before the pass can close |
+| ---: | --- | --- |
+| 1 | Emergency request list/count/payment enrichment | Keep the currently paged experience, but move paging, filter parity, current-page enrichment and invalidation behind one emergency read owner with explicit partial/failure states. |
+| 2 | Wallet ledger/payment recent history and export | Name the `50`-row window as recent history or implement authoritative paged/export retrieval; no truncated preview can be presented as a complete ledger export. |
+| 3 | Hospitals and pricing | Retain a paged hospital list only after removing global unbounded hospital KPI/bootstrap reads, replacing collection-derived hospital totals/capacity with scoped aggregates, and making hospital filters/sorts authoritative; replace all-hospitals/all-pricing client slicing with scoped server-paged price projection. |
+| 4 | Users, organizations and two verification queues | Eliminate `1000`-row user truncation and unbounded organization/wallet loading; preserve queue paging while scoping realtime refetch to the active owned queue. |
+| 5 | Ambulances, doctors and map operational feeds | Eliminate `1000`-row capped client pagination and derived incomplete totals; fleet/provider lists need server-backed paging truth, while map feed bounds and omitted-data state are explicit. |
+| 6 | Visits | Move page-local paged query, enrichment and explicitly missing search into one visit read model with authoritative page/count/search and degraded relationship state. |
+| 7 | Health news, insurance, subscribers and support tickets | Decouple content list availability from summary KPI failure; replace full-list/client slices and unpaged realtime refetch with scoped paged reads; distinguish unauthorized, empty and failed results. |
+| 8 | Dashboard/analytics/search/map consumers and shared fetch utilities | Define aggregate/feed limits, QuickSearch cancellation/stale-response and partial-category behavior, and shell error/degraded rendering after domain list owners stabilize. |
 
 ## Pass Order
 
@@ -793,8 +836,11 @@ Each pass must clear these gates before code changes begin.
 | --- | --- | --- |
 | Owner gate | The Stage 4 row names a single required owner for the surface/service. | `PageDataContext`, page, and service all still own the same server truth. |
 | Service coverage gate | The Stage 5 ledger has no unassigned service for the pass being started. | Subscription implementation starts while `subscribersService`, `subscriptionService`, and support/email receivers still have no chosen owner. |
+| Runtime-truth closure gate | For every entity and user-visible claim in pass scope, Stage 5 traces backend source to all consumers and each affected route/action through all globally mounted and local acquisition/receiver paths. | A route-level paged hospital query is accepted while its globally mounted KPI context still loads a capped full collection and displays it as total network truth. |
+| Surface exposure/operation gate | Every in-scope route, panel, modal, responsive variant and export records rendered fields and exposed controls by role, proves read exposure authority, and assigns each action/field to authorized CRUD, workflow command, read-only evidence or disabled/excluded status. | Insurance/admin fields render under unproved RLS or an editor submits fields the canonical receiver does not persist. |
 | Direct-boundary gate | The Stage 5 direct call-site register assigns every active non-service Supabase/Auth/Edge/Storage access in pass scope to move, retain as canonical adapter, disable, or retire. | A service facade is introduced while the page or context continues to read the same tables, own the same channel, invoke `exec_sql`, or claim Storage delivery independently. |
 | Route/surface gate | The Stage 5 visible-surface register assigns route entitlement, navigation and panel visibility, primary action and mounted modal receiver for every operated flow in pass scope. | An org admin sees an inaccessible insurance route, a pricing action opens wallet top-up, or the emergency clinical-record button dispatches to no mounted receiver. |
+| Pagination/fetch gate | The Stage 5 reliability register classifies each in-scope list/search/export as server-paged, deliberately bounded, detail-only or unavailable, and names count/filter/sort/enrichment/realtime/error behavior. | A `1000`-row client cap is displayed as the full fleet/user total, an unpaged list is presented with paging controls, or a KPI failure blanks an otherwise valid operational list. |
 | Receiver gate | The Stage 2 contract exhibit names the table/RPC/Edge Function that will receive the mutation or read. | UI action says "cash fee deducted" but no backend receiver is confirmed to debit/credit ledger truth. |
 | Operation-class gate | The table-policy/RPC matrices say whether each control is read projection, ordinary CRUD, workflow command, derived read-only evidence, or excluded. | A modal exposes Edit/Delete for a transition, ledger, billing-result, patient-owned, or command-owned row merely because it is selectable. |
 | Field-contract gate | The table matrix/pass subplan names the exact high-risk identity, status, amount, eligibility, evidence, and linkage fields used by the surface. | Implementation discovers while coding that `hospital_id` received an organization UUID or an edited field is not persisted by the receiver. |

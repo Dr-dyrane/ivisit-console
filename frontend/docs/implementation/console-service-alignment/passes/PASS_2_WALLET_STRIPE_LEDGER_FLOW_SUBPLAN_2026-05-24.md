@@ -39,6 +39,7 @@ Observed source signals:
 - `walletService.backfillMissingFeeLedger` is callable from ordinary wallet UI.
 - `EmergencyRequestsPage` directly calls `walletService.checkCashEligibility` and `walletService.processCashPayment`, including hospital id fallback as organization id.
 - `topUpWallet` creates a PaymentIntent and comments that Stripe/webhook later credits the wallet.
+- `WalletManagementPage` loads only the latest `50` ledger rows and `50` payments, enriches payments per row, reports loaded ledger length as transactions recorded, and exports only that loaded ledger window.
 
 ## User Flow
 
@@ -66,6 +67,7 @@ Operator path:
 | Payment methods | Modal/page call function actions independently. | Billing-method owner with per-action pending state. |
 | Cash fee processing | Emergency page calls wallet service directly. | Emergency/payment owner delegates to wallet/ledger receiver after eligibility proof. |
 | Maintenance backfill | Ordinary page button calls repair path. | Explicit maintenance-only flow with separate authorization and read-only evidence. |
+| Ledger/history window and export | Latest-`50` preview is displayed and exported without explicit incomplete-history scope. | Wallet-owned server-paged history or clearly labelled recent-window view/export semantics. |
 
 ## Action Class And Receiver Map
 
@@ -73,6 +75,7 @@ Operator path:
 | --- | --- | --- | --- |
 | View organization/platform balance | Scoped read projection | `organization_wallets`, `ivisit_main_wallet`, Stripe status projection | One wallet facade; preserve actor scope. |
 | View ledger/history | Backend-derived read-only evidence | `wallet_ledger`, `payments` | No normal UI ledger insert, rewrite, or repair. |
+| Export ledger/history | Scoped data export | Wallet read/export owner with declared dataset scope | Do not export a capped recent preview as complete ledger history. |
 | Top up or withdraw/payout | Workflow command | Stripe Edge Function/webhook and guarded payout receiver | Render pending/reflection state until backend truth changes. |
 | Enter top-up from surrounding routes | Workflow navigation and command exposure | Wallet-owned action surface | Remove the accidental `/pricing` entry point unless explicitly redesigned and authorized as a finance handoff. |
 | Manage payment method | Workflow command/owner-controlled data | Stripe payment-method function and confirmation state | Do not direct-administer patient or organization payment rows. |

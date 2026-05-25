@@ -39,6 +39,8 @@ Observed source signals:
 - `BentoHome` assumes a hard-coded public Supabase map image asset, and `DashboardPanel` posts to `/api/backup` without a named audited receiver or failure-facing workflow.
 - Live routing uses `App.js` plus `ProtectedRoute`, while dormant `RouteGuard` / `config/routes.jsx` declarations conflict for dashboard and map access; shell route feedback cannot rely on two divergent access doctrines.
 - `DashboardPanel` dispatches `openAnalyticsModal` for its Report control without mounting an analytics receiver on the dashboard route; map and pricing controls also expose event/receiver gaps assigned to their domain passes.
+- `QuickSearch` starts six parallel category searches per query without visible cancellation/sequence protection; dashboard and analytics sources continue broad multi-domain reads whose partial/failure and freshness limits are not explicit.
+- `withTimeout()` only races a timer against the unresolved operation and does not cancel it, so it cannot by itself prevent late stale list/search responses after a page or filter change.
 
 ## User Flow
 
@@ -65,6 +67,7 @@ Operator path:
 | Public asset and backup actions | Dashboard assumes a public Storage asset and exposes an unproved backup POST action. | App-owned stable asset delivery plus disabled or authorized/audited maintenance command boundary. |
 | Dashboard/map route doctrine | Live guard and dormant route configuration disagree about public versus operational access. | One routed shell access authority with visible allowed/rejected/loading states. |
 | Dashboard report entry | Dashboard Report dispatches a page-local modal event whose receiver is mounted only on other routes. | Deliberate analytics navigation or mounted dashboard report projection with accurate source labels. |
+| Search and aggregate fetch reliability | Parallel search/summary fetches can fail or complete out of order without a declared partial/stale result contract. | Query-sequenced or cancellable reads with bounded aggregate/search scope and visible partial/degraded states. |
 
 ## Action Class And Receiver Map
 
@@ -81,6 +84,7 @@ Operator path:
 | Trigger system backup | Excluded until authorized workflow exists | No named receiver proved by current audit | Disable the control or implement only under a separately approved auditable operations command. |
 | Navigate dashboard or operational map | Role-scoped UI access and route feedback | Consolidated live route/navigation authority | Do not reuse dormant contradictory config; allowed and rejected navigation render immediate honest feedback. |
 | Open dashboard report | Read navigation or scoped analytics projection | Verified analytics owner and mounted route surface | Do not leave a visible report action dependent on an absent route-local listener. |
+| Search across operational records | Scoped read plus user telemetry | Search owner with request sequencing and partial-result policy | Older query results cannot replace newer input, and one category failure cannot silently misstate total search availability. |
 
 ## Field And Receiver Gate
 

@@ -52,6 +52,7 @@ Observed source and contract signals:
 - `notificationService.js` is aligned for operator notification streams but patient delete/clear policy is a separate app drift.
 - `runMigrations.js` contains browser-side `exec_sql` mutation attempts for health news, support tickets and insurance; `testDatabase.js` contains direct diagnostic reads. No product implementation may use these helpers as receiver proof or repair paths.
 - `/health-news` is provider-restricted in the live route while navigation and `ContextPanel` advertise viewer reach; `/insurance` is admin-restricted in the live route while navigation advertises org-admin reach.
+- Health news couples its paged list to five parallel KPI reads, so one summary error can fail the list load; insurance and support surfaces paginate UI over full or unpaged hook results rather than an authoritative page window.
 
 ## User Flow
 
@@ -81,6 +82,7 @@ Operator/support/content path:
 | Notifications | Operator notifications aligned; patient delete policy drift remains. | Notification owner split: console operator stream versus patient notification lifecycle. |
 | Browser-side schema/diagnostic utilities | `runMigrations.js` can call `exec_sql`; `testDatabase.js` queries domain tables outside service owners. | Maintenance-only boundary excluded from product flows; retire if unused after import proof. |
 | Content and insurance route promise | Navigation/panel role promises disagree with live route and with unproved management authority. | Align visibility with supported read/command authority; do not advertise unavailable management surfaces. |
+| Care/content list reliability | Content summary failure can block list results, and insurance/support pagination does not own a server-backed authorized window. | Independent summary degradation plus scoped paged list owners with explicit unavailable/unauthorized/error state. |
 
 ## Action Class And Receiver Map
 

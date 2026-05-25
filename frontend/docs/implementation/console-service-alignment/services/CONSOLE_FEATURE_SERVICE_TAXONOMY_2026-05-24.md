@@ -118,6 +118,11 @@ Before any implementation pass starts, the feature lane must answer:
 - Which storage/media paths must be public, private, signed, or app-owned?
 - Which verification/RLS/RPC checks are required before browser smoke testing?
 - Which page, modal, context, hook, or utility still reaches Supabase/Auth/Edge/Storage directly for this lane, and is it moved, retained as a canonical adapter, disabled, or retired?
+- For every list, search, queue, aggregate, and export surface, what owns pagination/windowing, count/filter/sort parity, enrichment bounds, realtime invalidation, stale-response handling, and distinct empty/unauthorized/failure presentation?
+- Which acquisitions execute because the route is wrapped by global providers, shell/context panels, maps, global modals or startup effects, even when the page component does not import the entity service?
+- Has the lane been traced in both directions: every source entity to every runtime consumer, and every user-visible claim/action to every mounted acquisition or receiver?
+- For each route, panel, modal, responsive variant and export, what fields and records are rendered to each role, and does the read authority permit that exposure without leaking or omitting operational truth?
+- For each visible create/edit/delete/verify/approve/assign/import/export/email/payment/transition/bulk control, what exact fields are submitted and is the operation supported as authorized CRUD, a guarded workflow command or an intentionally unavailable action?
 
 ## Anti-Bloat Rule
 

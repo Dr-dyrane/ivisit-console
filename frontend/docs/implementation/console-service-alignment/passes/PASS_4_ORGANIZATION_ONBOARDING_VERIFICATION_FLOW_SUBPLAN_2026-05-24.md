@@ -47,6 +47,7 @@ Observed source signals:
 - Live route/navigation access allows `org_admin` on `/users` and `/verification`, while `ContextPanel` suppresses both panels unless `admin`; own-user `/settings` is also route-visible from `viewer` while its panel is admin-only.
 - `/organizations` is live and admin-visible in `App.js`/navigation but absent from the dormant `config/routes.jsx` doctrine; authentication/onboarding entries are similarly incomplete there.
 - The shared Quick Verify action only navigates to `/verification?quick=true`; no query-param receiver was found in `VerificationQueue`, so it does not currently enter a distinct review operation.
+- Privileged user lists fetch up to `1000` profiles, paginate locally and derive totals/statistics from that loaded subset; organizations load all organization and wallet rows before local slicing. Verification queues already accept server page/limit/count inputs.
 
 ## User Flow
 
@@ -73,6 +74,7 @@ Operator/onboarding path:
 | Admin/user creation | Raw profile paths may create records without Auth identity. | Auth-backed invite/create boundary. |
 | Route and panel authority | Live route/navigation and context-panel role checks disagree for identity/verification/settings surfaces; dormant route config is incomplete. | One explicit access authority for route, nav and panel composition, with own-user settings separated from admin operations. |
 | Quick verification entry | Context action advertises a quick workflow through an unconsumed query flag. | A mounted, authorized verification queue state or no Quick Verify action. |
+| Identity and organization pagination | User and organization management mix capped/unbounded client collections with management totals. | Server-paged admin projections with true counts; preserve verification service paging with scoped invalidation. |
 
 ## Action Class And Receiver Map
 

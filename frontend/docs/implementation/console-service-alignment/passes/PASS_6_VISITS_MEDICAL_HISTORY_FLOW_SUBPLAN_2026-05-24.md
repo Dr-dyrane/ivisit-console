@@ -32,6 +32,7 @@ Observed source signals:
 - `medicalProfilesService` exists but is not yet tied into the visit detail read model.
 - `visitsService` has rich row normalization but page code still performs substantial hydration.
 - `VisitModal` dispatches `openEmergencyDetails`, and `VisitsPage` mounts the receiving emergency-detail modal; preserve this working handoff while supplying canonical visit projection for the missing reverse direction on `/emergencies`.
+- `VisitsPage` performs its own count and `.range(...)` paging, then performs page-local multi-table enrichment; its source explicitly leaves paginated search unimplemented.
 
 ## User Flow
 
@@ -55,6 +56,7 @@ Operator/provider path:
 | Medical profile | Service exists but not integrated into visit detail. | Authorized patient-care projection. |
 | Visit actions | Hook/service/page can mutate visit state. | Visit command boundary with legality checks. |
 | Realtime | Page and service subscriptions may duplicate ownership. | Visit owner invalidation and detail-scoped subscriptions. |
+| Paged search/enrichment | Page owns paged rows and relationship hydration while search remains TODO. | Visit read model owns page/count/search and exposes bounded partial/degraded relationship states. |
 
 ## Action Class And Receiver Map
 

@@ -36,13 +36,16 @@ Audit docs:
 
 Observed source signals:
 
-- `HospitalsPage` consumes `PageDataContext` stats while also fetching hospitals directly.
+- `HospitalsPage` requests a service-backed page window for displayed rows, but consumes `PageDataContext` stats derived from unbounded `getHospitals()` results; at the backend response ceiling this can display `1000` as total network/capacity truth.
 - `HospitalsPage` owns a global `hospitals` realtime channel.
 - `HospitalModal` uploads images through `storageService`, calls `discover-hospitals` through raw `fetch`, and uses `bedManagementService` for reservations/utilization.
 - `hospitalsService.updateHospital` uses `update_hospital_by_admin`, while some status/bed count updates still write direct table fields.
 - `hospitalImportService` invokes `discover-hospitals`, falls back to `nearby_hospitals`, and includes approval/rejection/assignment paths.
 - `pricingService` maps hospital-scoped pricing back to organization scope and chooses the first hospital for organization writes.
 - `PricingContextPanel` emits `openAnalyticsModal` for Reports although `PricingManagementPage` does not listen for that event, and it renders an `Execute Bulk Sync` button without a click handler.
+- `HospitalsPage` stores search/status filters, KPI selection and table sort state without routing them into its hospital window query or applying them to the rendered rows; its visible controls do not establish authoritative query behavior.
+- `AppLayout` mounts `MapProvider` and `PageDataProvider` around all routes, so opening the hospitals surface can coincide with additional unbounded hospital reads for global KPI data, map data and both pricing mappings.
+- Hospital displayed rows request a service-backed page window, while summary/bootstrap and pricing paths still load unbounded hospital collections.
 - Console has no runtime `providers` or `hospital_media` owner beyond base hospital/image editing, while `hospitalImportService` references `hospital_import_logs` without a proven rendered import-history owner.
 
 ## User Flow
@@ -61,7 +64,7 @@ Operator path:
 
 | Data/action | Current owner symptom | Required owner |
 | --- | --- | --- |
-| Hospital list/stats | Page direct read plus `PageDataContext` stats. | Facility read owner. |
+| Hospital list/stats | Page rows are windowed, but global `PageDataContext` calls unbounded `getHospitals()` and derives network/capacity totals from a potentially capped collection; page filter/KPI/sort state is not authoritative for rendered rows. | Facility read owner with paged/filterable/sortable row query plus scoped aggregate/count projections. |
 | Hospital detail | Page URL path and modal state fetch independently. | Facility detail projection. |
 | Capacity/bed truth | Direct scalar updates plus bed reservation service. | Capacity owner that reconciles scalar fields, `bed_availability`, reservations, and app-visible availability. |
 | Discovery/import | Modal raw `fetch` plus `hospitalImportService` Edge flow. | Discovery/import owner with live/fallback/source labels. |
@@ -70,7 +73,21 @@ Operator path:
 | Import history | `hospitalImportService` uses `hospital_import_logs` but visible provenance/error ownership is not proven. | Operator-visible import log/provenance read owner. |
 | Pricing | Organization filter plus hospital first-choice write semantics. | Facility-scoped `service_pricing` / `room_pricing` owner with explicitly labelled platform fallback rows only. |
 | Pricing panel operations | Reports dispatches without a mounted receiver and Bulk Sync is rendered without an operation. | Mounted pricing report projection plus disabled/removed sync until an authorized import/pricing command exists. |
+| Pricing list retrieval | Service joins all facilities and all price rows in memory before page-local slicing. | Scoped server-paged pricing read owner with explicit hospital/organization identity and independent summary state. |
 | Realtime | Page and modal own separate channels. | Domain owner invalidation with modal-scoped detail exceptions. |
+
+## Surface Read, Exposure, And Operation Closure
+
+This table is the first application of the Stage 5 surface-first closure protocol. It is not an implementation authorization; it identifies what the live facility surfaces are trying to expose or mutate and why Pass 3 remains blocked.
+
+| Surface and current actor signal | Rendered/read promise | Proven source or exposure defect | Visible operation promise | CRUD/command authority disposition |
+| --- | --- | --- | --- | --- |
+| `/hospitals` grid/list/table/mobile; route permits `org_admin` and above while the context panel advertises admin/org-admin management. | Facility identity, address/image, verification/status, beds/ICU, fleet, ER wait and rating; table/page count. | Rows are page-windowed, but page filters/KPI selection/table sort do not govern retrieval/rendered rows; read scope and role contract still need one facility projection. | View, edit, delete and scheduling controls are rendered across variants. | Read remains open for role/source closure; edit/delete/schedule require field-by-field command/RLS proof before retained. |
+| Hospital KPI cards and `HospitalsPanel`; available wherever the hospital route context is mounted. | Network total, available/full facilities, total beds, total ambulances and recent hospitals. Panel labels total as `Active` and available as `Nearby`. | `PageDataContext` derives claims from unbounded `getHospitals()`; 1000 returned rows can masquerade as full network truth. `Nearby` is a label mismatch unless proximity is supplied. | Panel Add opens create modal; Analytics opens stats modal; Filter dispatches page event; Contact is disabled. | Replace summary source with scoped aggregates and correct labels; keep create/analytics/filter only after role and receiver closure. |
+| `HospitalModal` view mode reached from facility row. | Full facility metadata plus active reservations and bed-utilization context, including request/patient-linked bed evidence. | Detail independently loads bed data/realtime; exposure of reservation/clinical context needs explicit operational role authorization and consistent capacity semantics. Existing contract evidence shows occupied/reserved math drift. | View-only surface still supplies entry context for schedule and subsequent edit flows. | Detail read projection must declare permitted actors and minimum clinical exposure before use as authoritative facility detail. |
+| `HospitalModal` create/edit mode and page save handlers; header create currently admin/org-admin. | Form captures metadata, image, status/verification, beds, ICU, fleet count, ER wait, coordinates/place identity and discovery-selected values. | Existing contract evidence proves ER wait can be silently ignored by `update_hospital_by_admin`, taxonomy/eligibility/media provenance fields required by the app are omitted, and raw discovery contract is drifted. | Create/edit facility, upload image, search/select discovered hospital/provider. | Split metadata from operational availability; prove create/update/Storage/discovery authority; disable or remove unsupported fields until receiver persists their meaning. |
+| Row and bulk destructive controls across responsive variants. | Selection implies a manageable facility record set. | Role checks are not uniform: grid gates row edit/delete to admin/org-admin, `HospitalTableView` includes provider in `canManage`, and bulk-delete buttons check admin/provider rather than org-admin. | Delete one or multiple facilities. | No destructive action is ready until route/component role doctrine and audited delete receiver/auditability are aligned. |
+| Facility scheduling entry point. | Facility is selectable as context for staff scheduling. | Pass 5 evidence is required because existing scheduling service does not yet establish persisted ambulance-shift authority and doctor schedule ownership is separate. | Open/manage schedule from hospital card or mobile action. | Retain as cross-pass dependency only after Pass 5 defines authorized stored schedule commands; do not imply facility CRUD owns schedules. |
 
 ## Action Class And Receiver Map
 

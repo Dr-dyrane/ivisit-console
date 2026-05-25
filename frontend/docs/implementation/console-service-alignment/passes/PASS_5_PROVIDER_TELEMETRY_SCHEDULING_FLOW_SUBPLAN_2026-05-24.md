@@ -29,6 +29,8 @@ Observed source signals:
 
 - `GodModeMap` projects emergency requests, ambulances, hospitals, responder locations, telemetry freshness, and driver status actions.
 - The shared `/map` primary action dispatches `centerMap`, and `MapPanel` dispatches `recenter-map-target`, while `MapContext` and the mounted map refiners receive `recenter-map`; neither visible centering command is connected to a proved mounted receiver.
+- Ambulance and privileged doctor lists fetch at most `1000` rows, then sort/page locally and publish fetched length as total, silently truncating larger operational registries.
+- `supabaseMapService` caps emergency map seed rows at `100` but loads ambulance and hospital seeds without comparable feed-window semantics, so operational map completeness is neither bounded consistently nor surfaced to operators.
 - Driver map actions call `updateResponderLocation` and `driverManagementService.updateTripStatus`.
 - `AmbulanceModal` uploads images, selects drivers, checks existing assignments directly, and shows active assignment controls.
 - `StaffSchedulingModal` collects real doctor shift fields but `staffSchedulingService` never reads or writes `doctor_schedules`; it derives fixed same-day shifts from doctor and ambulance statuses.
@@ -56,6 +58,8 @@ Operator/provider path:
 | Provider images | Ambulance/doctor modals use storage directly. | Media owner shared with Pass 3/7. |
 | Map telemetry | GodModeMap derives telemetry and writes responder location. | Telemetry projection/command owner tied to active request truth. |
 | Map centering actions | Shared primary action and target-selection panel emit event names not consumed by mounted map implementations. | Single map command API/event shared by map controls and the rendered map receiver, with explicit target support where needed. |
+| Fleet and clinician pagination | Client-capped list retrieval is presented as complete paginated management data. | Server-backed filter/sort/page/count owner with truthful scoped totals. |
+| Map feed completeness | Mixed bounded/unbounded initial map queries provide no operator-visible coverage contract. | Explicit active/viewport feed bounds, refresh/invalidation ownership and incomplete-data state. |
 | Driver trip status | Map and modal can call driver management actions. | Trip lifecycle command owner. |
 | Doctor profile | Doctor record and profile linkage can drift. | Doctor/provider read and mutation owner. |
 | Scheduling | Derived doctor/crew rows and status toggles bypass the real `doctor_schedules` receiver. | Stored doctor-shift owner; ambulance shift CRUD excluded without a receiver. |

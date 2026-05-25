@@ -35,6 +35,7 @@ Observed source signals:
 - `SubscriptionModal` can send welcome, custom, and bulk emails directly through `subscriptionService`.
 - Page/modal/hook split makes it easy to double-send or mark state before the receiver proves delivery.
 - `SubscriptionsPanel` exposes a Broadcast button that dispatches `openEmailActionsModal`, while `SubscriptionManagementPage` only receives create and analytics events; the visible email action currently has no mounted receiver.
+- Subscriber paging is client-side over an unwindowed hook fetch, and `subscriptionService.getSubscribers()` returns an empty array for both unauthorized and failed list fetches.
 
 ## User Flow
 
@@ -61,6 +62,7 @@ Operator path:
 | Realtime | Hook and page subscribe separately to subscriber changes. | One subscriber realtime owner/invalidation path. |
 | Organization scope | Service comments say org admins see all because table lacks org field. | Platform-admin-only global marketing list for this pass. |
 | Broadcast entry point | Context panel dispatches an email-actions event with no page receiver. | Disabled action until the single authorized email lifecycle surface is mounted and audited. |
+| Subscriber list reliability | Full-list client pagination and empty-on-error behavior hide incomplete or failed admin list truth. | Paged administrator read projection distinguishing empty, unauthorized and unavailable states. |
 
 ## Action Class And Receiver Map
 

@@ -1,10 +1,10 @@
-# Stage 5 Full Service Coverage Audit - 2026-05-24
+# Stage 5 Service Inventory And Runtime Truth Closure Audit - 2026-05-24
 
 ## Status
 
-Post-checkpoint service coverage audit. Planning only; no product, database, Edge Function, cleanup, seed, migration, or runtime mutation is authorized by this document.
+Post-checkpoint service inventory and runtime-truth closure audit. Planning only; no product, database, Edge Function, cleanup, seed, migration, or runtime mutation is authorized by this document.
 
-This stage exists to prove that every console service has an explicit audit owner before implementation begins. Earlier stages correctly prioritized emergency, payment, capacity, identity, provider operations, visits, content, and analytics. This pass closes the remaining planning gap: lower-risk, console-only, infrastructure, and supporting services must also be accounted for so no broken user flow hides outside the L5 priority set.
+This stage proves that every console service has an explicit audit owner and then proves that each operational truth rendered or acted upon by the Console is traced through every runtime acquisition path. Earlier stages correctly prioritized emergency, payment, capacity, identity, provider operations, visits, content, and analytics. Service inventory is necessary, but it is not a runtime-completeness claim: a route can display or preload domain truth through globally mounted providers, shell panels, map contexts, modal lookups, analytics loaders, export handlers, or direct boundary calls that are not apparent from the route's primary service call.
 
 ## Method
 
@@ -35,6 +35,86 @@ For each service this audit records:
 - whether prior audit coverage was explicit or only implied
 - required implementation pass owner
 - pre-implementation concern to preserve
+
+## Deterministic Runtime Truth Closure Protocol
+
+The `43/43` service-file register and the reverse shared-table ledger establish inventory coverage only. They do not establish runtime data-flow closure, list completeness, correct displayed totals, or safe implementation readiness. The hospital bootstrap counterexample on May 25 proves that distinction: the route's visible row query is paged while globally mounted providers still acquire an unbounded hospital collection and render potentially capped KPI truth.
+
+No feature lane may be called fully audited or implementation-ready until it clears all five traversals below. For each lane, the first execution artifact is a surface operation and exposure ledger: read what the UI renders and offers to mutate before judging whether a service or receiver is adequate.
+
+| Traversal | Starting point | Required search/read scope | Closure evidence |
+| --- | --- | --- | --- |
+| 1. Backend entity reverse trace | Every table, view, RPC result, Edge payload, Storage object class and external-provider payload in the domain. | Search service calls and direct `supabase`/Auth/Edge/Storage/fetch consumers; include shared utilities and dynamic imports. | Every consumer is assigned to a surface, provider, hook, modal, background loader, export or explicit dormant path. |
+| 2. Runtime mount graph | Every live route plus `AppLayout`, shell, provider, global modal, context panel, map layer and navigation/FAB wrapper mounted with it. | Read route composition and all mounted provider effects, initializers, subscriptions and refresh functions. | Every query capable of running while the route is open is listed, even when the route component never imports it. |
+| 3. Surface read/render/exposure trace | Every live route, panel, modal, table/card/detail/mobile variant, KPI, chart, search result and export, by role. | Inventory the visible fields and labels first, then trace each field/aggregate -> state/context/hook -> acquisition path -> table/RPC/function/source and read policy. | Each rendered claim proves read authorization, necessary exposure, identity/field semantics, bounds/window, filter/sort/count parity, enrichment, freshness/realtime and empty/error/unauthorized rendering. |
+| 4. Surface mutation/receiver trace | Every create/edit/delete/verify/approve/transition/bulk/import/export/email/payment/assignment control exposed on the surface, by role. | After the render inventory, trace enabled control -> captured/submitted fields -> handler -> facade/direct call -> RLS/RPC/Edge/Storage receiver -> reflected read. | Each control and field is classified as authorized CRUD, workflow command, backend-derived read-only evidence or disabled/excluded boundary; UI cannot advertise unsupported mutation authority. |
+| 5. Cross-surface parity trace | Every entity shared with `ivisit-app`, dispatch, billing, onboarding, patient safety or public discovery. | Compare Console reads/writes and fields to app and shared Supabase authority. | Console cannot claim management completeness while omitting app-consumed capability, identity, provenance or lifecycle truth. |
+
+Required row schema for every runtime truth claim:
+
+| Required field | Must answer |
+| --- | --- |
+| Domain entity and user-visible claim | What operational truth is displayed, selected, exported or mutated? |
+| Surface and actor role | Which route/panel/modal/mobile/desktop/export surface exposes it, and which operator roles can encounter it? |
+| Mount path and trigger | Which route/provider/modal/action/realtime event causes the acquisition? Does it run globally or only on demand? |
+| Caller and source | Which page/context/hook/service/direct boundary reads it, and from which table/RPC/Edge/Storage/external source? |
+| Read exposure authority | Does policy/RPC scope authorize that actor to see each exposed field/aggregate, and is the surface exposing only required operational data? |
+| Retrieval class | Server-paged, bounded summary, bounded lookup, full authorized set with proven maximum, realtime delta, detail read, or unavailable. |
+| Correctness contract | How are role scope, filters, stable order, counts, aggregates, joins/enrichment, identity, stale responses and partial failures kept truthful? |
+| Visible control and submitted fields | Which mutations/actions are offered and what exact values or fields does each surface collect or send? |
+| Receiver/action authority | Does RLS/RPC/Edge/Storage authorize the actor, field set and lifecycle transition, or why is the action disabled/read-only? |
+| Disposition and pass | Retain, centralize, replace, disable or retire; blocking pass and validation evidence. |
+
+### Surface Operation And Exposure Ledger Requirement
+
+Existing Stage 2 contract charts provide evidence for selected high-risk fields and actions, but they do not waive a complete surface sweep. For every live surface in a pass, Stage 5 or its pass evidence must contain rows with this shape before implementation:
+
+| Surface and allowed actor | Read/render promise | Read source and exposure authority | Visible mutation or action | Submitted fields and receiver authority | CRUD/command status | Required disposition/pass |
+| --- | --- | --- | --- | --- | --- | --- |
+| Route, panel, modal, card/table/mobile/export variant and role entitlement. | Fields, aggregates, statuses, labels, controls and downloadable data shown to the operator. | Source plus RLS/RPC/Edge/Storage authorization; identify overexposure, missing data and false labels. | Create/edit/delete/transition/approve/assign/import/export/email/payment controls, including apparent no-op controls. | Exact payload fields and supported policy/RPC/function transition, or confirmed absent receiver. | Authorized read, authorized CRUD, workflow command, derived read-only evidence, unsupported, unauthorized or unavailable. | Centralize, implement receiver, remove exposure, disable control, relabel or retire; owning pass. |
+
+Closure rules:
+
+- Audit both directions for every lane: entity/source -> all runtime consumers, and live route/action -> all mounted acquisitions/receivers.
+- Begin each surface review from rendered exposure and available controls, not from the service API: the audit must discover incorrect read access, excess disclosure, missing data and unsupported CRUD promises.
+- Never declare a surface correct from its primary list query alone; provider/bootstrap/context/map/analytics/modal/export paths mounted with that surface are part of the surface.
+- Never treat a UI control as implemented because state exists; prove that it changes the authoritative query or receiver.
+- Never treat a returned array length as an aggregate total unless a proven maximum bound makes it complete.
+- Any newly found unrecorded runtime path reopens the affected lane, invalidates its readiness decision and triggers the same reverse trace for adjacent shared entities.
+
+Current closure status:
+
+| Inventory layer | Status | Meaning |
+| --- | --- | --- |
+| Console service files | Complete (`43/43`) | Every service has a planned lane; does not prove all runtime acquisitions. |
+| Shared table capability ledger | Complete as maintained reverse inventory (`45/45`) | Table-backed capability absence is recorded; does not prove rendered claim correctness. |
+| Runtime truth claims and mounted acquisition paths | In progress; not closed | Hospital discovery proves globally mounted/background paths must be swept across every lane before implementation starts. |
+| Surface read/exposure and CRUD/command authority rows | In progress; not closed | Existing high-risk contract charts seed this work, but every live surface and actor entitlement still needs deterministic render-and-operation closure. |
+
+### Global Mounted Acquisition Register
+
+`AppLayout` mounts `MapProvider` and `PageDataProvider` around the application shell. `PageDataProvider` starts its domain loads whenever an authenticated user is available, independent of the route the operator opened; `MapProvider` initializes map collections and subscriptions as part of the shell. These paths are therefore in scope for each affected domain pass, not deferred dashboard polish.
+
+| Mounted owner and trigger | Entity/claim acquired globally | Retrieval behavior proven in source | Reliability/ownership disposition | Pass |
+| --- | --- | --- | --- | --- |
+| `PageDataContext` authenticated initialization | Emergency KPI totals/status mix/recent rows | Calls `getEmergencyRequests()` without window, then derives totals and recent rows from returned array. | Unbounded/capped collection cannot be global emergency totals; replace with owned aggregates/recent window and domain invalidation. | Pass 1 / Pass 8 |
+| `PageDataContext` authenticated initialization | Verification summary | Calls `getVerificationStats()` and substitutes zero values for restricted reads. | Retain only as explicitly authorized aggregate; distinguish no access from zero pending verification. | Pass 4 / Pass 8 |
+| `PageDataContext` authenticated initialization | Dashboard analytics across users, emergencies, hospitals, ambulances and subscribers | Calls `getAnalyticsData({ timeRange: 'all', includeRawData: true })`; analytics itself calls full-collection emergency/hospital/ambulance reads and produces derived values. | Duplicate broad load and derived truth cannot remain shell-owned; bounded aggregates and unavailable/degraded status required. | Pass 1 / Pass 3 / Pass 5 / Pass 7 / Pass 8 |
+| `PageDataContext` authenticated initialization | Doctor totals/status/recent rows | Calls `getDoctors()` with no page window and derives totals from returned rows. | Provider totals are potentially capped and duplicate route ownership; use provider aggregates/recent projection. | Pass 5 / Pass 8 |
+| `PageDataContext` authenticated initialization | Visit totals/status/today/recent rows | Calls `getVisits()` without window and derives totals from returned rows. | Clinical-history summary cannot be derived from a response-limited collection; use visit aggregate/recent projection. | Pass 6 / Pass 8 |
+| `PageDataContext` authenticated initialization | Hospital network/capacity/fleet totals/recent rows | Calls `getHospitals()` without window and reduces rows for totals, beds and ambulances. | Confirmed false-completeness path: 1000 returned hospitals can be displayed as complete network capacity. | Pass 3 / Pass 8 |
+| `PageDataContext` authenticated initialization | Ambulance fleet/status/recent rows | Calls `getAmbulances()` without window and derives totals from rows. | Fleet totals are potentially capped and duplicate fleet route/map state; use scoped fleet aggregates and feed owner. | Pass 5 / Pass 8 |
+| `PageDataContext` authenticated initialization | User totals/role distribution and user rows | Calls `getUserStatistics()` where available, but also calls unwindowed `getProfiles()` and may derive statistics from rows. | Keep authoritative aggregate separate from bounded user list; never substitute collection length for management totals. | Pass 4 / Pass 8 |
+| `PageDataContext` authenticated initialization and broad realtime | Support ticket totals/status/week/resolution time | Calls `getSupportTickets()` without window, calculates metrics from rows and switches global mock mode on failure. | Partial or failed support reads cannot create complete KPIs or mock operational truth. | Pass 7 / Pass 8 |
+| `PageDataContext` authenticated initialization and realtime | Insurance policy collection | Calls `getInsurancePolicies()` without window and stores collection globally. | Patient-sensitive policy collection is unbounded and over-broad for shell state; replace with authorized summary or route-owned read. | Pass 7 / Pass 8 |
+| `PageDataContext` authenticated initialization | Wallet and recent ledger preview | Directly reads main/org wallet, then loads ledger ordered by time with `.limit(10)`. | A deliberately recent preview must be labelled and remain distinct from complete ledger/history/export. | Pass 2 / Pass 8 |
+| `PageDataContext` authenticated initialization and activity realtime | Recent activity | Calls bounded `getRecentActivity()` default window through RPC. | Bounded preview is acceptable only with a recent-activity label and one realtime owner. | Pass 8 |
+| `PageDataContext` authenticated initialization and pricing realtime | Service and room prices plus hospital mappings | Calls `getPricing('services')` and `getPricing('rooms')`; each loads all hospital mappings and all pricing rows. | Remove unbounded duplicate pricing/bootstrap reads; use scoped price projection and independent summary truth. | Pass 3 / Pass 8 |
+| `PageDataContext` authenticated initialization and organization realtime | Organizations and organization wallet balances | Calls `getOrganizations()`, which loads all organizations and all organization wallets, then derives total/active/wallet values. | Unbounded registry plus financial join cannot serve global shell totals; use scoped registry and aggregate projection. | Pass 2 / Pass 4 / Pass 8 |
+| `MapProvider` shell initialization and map subscriptions | Emergency markers | Loads latest `100` emergencies and subscribes broadly to all emergency changes. | State is a bounded operational feed, not all emergencies; expose bound/completeness and scope subscription ownership. | Pass 1 / Pass 5 / Pass 8 |
+| `MapProvider` shell initialization and map subscriptions | Ambulance markers | Loads ambulances without a window and subscribes broadly. | Map feed cannot be an unbounded second fleet owner; define active/viewport feed and telemetry lifecycle. | Pass 5 / Pass 8 |
+| `MapProvider` shell initialization | Hospital markers and nearby fallback | Loads hospitals without a window; nearby-RPC fallback also reads available hospitals without a bound. | Map cannot silently truncate or unboundedly load facility coverage; define geospatial/viewport bounds and unavailable/fallback labeling. | Pass 3 / Pass 5 / Pass 8 |
+| `MapProvider` shell subscription | User location channel | Subscribes to `users` for patient locations even though the table/visibility contract is stated only as an assumption in source comments. | Disable or replace until patient-location receiver, role scope and privacy authority are proven. | Pass 1 / Pass 4 / Pass 5 / Pass 8 |
 
 ## Coverage Summary
 
@@ -130,7 +210,7 @@ The `43/43` service-file inventory is complete, but services are not the only fi
 | `components/modals/EmergencyRequestModal.jsx` | Direct `profiles` selection for emergency create inputs. | Active input projection bypass. | Read patient/operator-selectable identity through the Pass 1/4 authorized profile projection; do not let modal shape its own identity authority. | Pass 1 / Pass 4 |
 | `components/ui/LocationCell.jsx` | Direct Google reverse-geocoding `fetch` for emergency location display. | Active external projection dependency with coordinate-shape/fallback sensitivity. | Put geocoding/fallback behavior under the Pass 1 emergency location projection contract; malformed coordinates or unavailable provider must render bounded fallback truth. | Pass 1 |
 | `components/pages/WalletManagementPage.jsx` | Direct reads of `ivisit_main_wallet`, `organization_wallets`, `wallet_ledger`, `payments`, and profile enrichment. | Active duplicated finance read owner. | Move all finance projection reads behind the Pass 2 wallet facade; ledger stays read-only evidence except through an authorized money command. | Pass 2 |
-| `contexts/PageDataContext.jsx` | Direct wallet/ledger reads and global channels for emergency, doctors, visits, insurance, profiles, organizations, pricing, support tickets and activity. | Active cross-domain owner duplication. | Remove domain server truth and channels incrementally after each pass establishes its owner; retain shell composition only. | Passes 1-8; final reduction Pass 8 |
+| `contexts/PageDataContext.jsx` | Direct wallet/ledger reads, service-triggered unbounded summary loads including hospitals/pricing, and global channels for emergency, doctors, visits, insurance, profiles, organizations, pricing, support tickets and activity. | Active cross-domain owner duplication and capped/unbounded aggregate truth risk. | Remove domain server truth and channels incrementally after each pass establishes its owner; retain shell composition only. | Passes 1-8; final reduction Pass 8 |
 | `components/pages/HospitalsPage.jsx` | Page-owned hospitals realtime channel. | Active duplicate facility invalidation owner. | Route invalidation through the Pass 3 facility owner after read centralization. | Pass 3 |
 | `components/modals/HospitalModal.jsx` | Raw `fetch` to `discover-hospitals` with text-search payload/response assumptions. | Active Edge Function contract bypass; already confirmed incompatible with app handler contract. | Route discovery through the Pass 3 discovery/import owner using normalized provider taxonomy/provenance and an authorized non-silent persistence boundary. | Pass 3 |
 | `components/pages/UsersPage.jsx` | Direct verified-profile KPI read and direct privileged `delete_user_by_admin` RPC for single/bulk deletion. | Active identity read and workflow-command bypass. | Move KPI and destructive command invocation to the Pass 4 admin boundary; preserve explicit RPC command semantics and pending/error handling. | Pass 4 |
@@ -191,6 +271,50 @@ Surface gate:
 - A click that dispatches an event without a receiver mounted on the current route is a broken user flow, even if both modal components exist in the repository.
 - Dormant route/security configuration cannot be cited as authorization evidence; only a wired runtime guard and backend authority can prove current access.
 - Cross-surface links must preserve canonical row identity and render loading, unavailable or authorization states rather than silently closing.
+
+## Pagination And Data-Access Reliability Register
+
+Pagination controls and service names do not prove that a list is correctly paged or safely fetched. A May 25 source review found `13` route pages rendering `usePagination` or `PaginationControls`; each requires an explicit query-lifecycle disposition before its implementation pass can close.
+
+| Visible list surface | Observed retrieval/pagination behavior | Proven risk or required guard | Pass |
+| --- | --- | --- | --- |
+| Emergency requests | Page constructs its own count query and paged `.range(...)` row query, then enriches current rows with payment data. | Paging exists, but query/filter/enrichment and failure ownership bypass the emergency read owner. Move paging, sort, count and enrichment state behind Pass 1 projection. | Pass 1 |
+| Hospitals | The visible table requests a service-backed window, but `HospitalsPage` also renders KPI state from globally mounted `PageDataContext.fetchHospitalsData()`, which calls unbounded `getHospitals()` and derives total/availability/bed/fleet metrics from the returned collection. `filters`, KPI selection and table sort state are not passed into that page-window query or otherwise applied to its rendered rows. | Supabase's default response ceiling can make a 1000-hospital collection look like complete network/capacity truth while visible filter/sort controls are non-authoritative. Replace bootstrap collection-derived stats with scoped count/aggregate projections and one paged/filterable/sortable facility read owner. | Pass 3 |
+| Ambulances | Page first counts matching rows, then replaces truth with a `.limit(1000)` full-client set, slices locally, and resets total to fetched length. | Results and total become silently truncated beyond `1000`; filter/sort/pagination is not authoritative. Implement server-paged fleet queries and scoped stats. | Pass 5 |
+| Doctors | Privileged users fetch `1000`, filter/sort/slice locally and set total from fetched length; other roles use service paging. | Admin/org-admin lists silently truncate and totals misstate large datasets. Use consistent server paging/filtering/count authority. | Pass 5 |
+| Visits | Page directly constructs paged query and count, then performs page-local profile/emergency/doctor/hospital hydration; search is explicitly unimplemented for paged data. | Pagination cannot claim searchable complete clinical history; auxiliary fetch errors can yield partial context without an owned degraded contract. Move paging/search/hydration into visit read model. | Pass 6 |
+| Health news | Page directly constructs count and paged query, while five KPI requests run in a single `Promise.all` before list rendering. | Failure of one summary request can fail the usable list; management query authority also bypasses the content owner. Split list from KPI failure state and keep authoring restricted. | Pass 7 |
+| Insurance policies | Hook fetches policies without page window; page filters and slices the loaded collection locally. | Pagination is only client display and cannot represent a complete authorized policy set at scale. Require policy-backed paged read projection before management UI is trusted. | Pass 7 |
+| Subscribers | Hook fetches without page window; page filters and slices locally; service returns `[]` for both denied/error list reads. | Full-list scale risk and empty-versus-unavailable ambiguity mask admin list failures. Use paged admin projection with explicit denied/failed state. | Pass 7 |
+| Support tickets | Page changes `pagination.currentPage` but calls hook with filters only; hook fetches through service without a page window and refetches the entire result on any realtime event. | Pagination control is not backed by deterministic server paging; update storms can refetch an unbounded list. Add page-window/count ownership and scoped invalidation. | Pass 7 |
+| Users | Privileged users request `1000`, slice locally, and derive totals/statistics from the fetched subset; data also depends on organization mapping and extra KPI requests. | Management totals, role counts and bulk scope become silently incomplete beyond the cap. Move page window, stats and organization enrichment behind Pass 4 admin projection. | Pass 4 |
+| Verification queue | Provider and organization queues use service-backed page/limit/count results; the page subscribes to both queues and refetches on changes. | Pagination ownership is closest to correct, but invalidation must remain queue-scoped and cannot turn one active tab into duplicate background refetch ownership. | Pass 4 |
+| Organizations | Page calls `getOrganizations()` for all organizations and all organization wallets, then searches and slices locally. | Unbounded registry and wallet join fetch; an optional finance dependency can block organization browsing. Add scoped paged organization projection and separate wallet availability state. | Pass 4 |
+| Pricing | Service loads all hospitals plus all pricing rows, normalizes in memory, and the page filters/slices locally. | Unbounded cross-table mapping and client pagination compound the already incorrect organization/hospital pricing semantics. Require scoped server-paged pricing projection. | Pass 3 |
+
+High-volume projections without pagination controls are also in scope:
+
+| Surface or projection | Observed retrieval behavior | Proven risk or required guard | Pass |
+| --- | --- | --- | --- |
+| Wallet ledger/payment history and export | `WalletManagementPage` directly fetches at most `50` ledger rows and `50` payments, performs per-payment profile enrichment, displays the loaded ledger length as transactions recorded, and exports only the loaded rows. | A recent-window preview is presented/exported as if complete history. Label it as recent activity or add explicit server-paged history/export scope through the wallet owner. | Pass 2 |
+| Map initial operational feed | `supabaseMapService` limits emergency requests to `100`, while loading ambulances and hospitals without equivalent bounded/windowed scope and subscribing broadly. | Map coverage can silently omit incidents or load unbounded resources; define viewport/active-operation feed bounds and incomplete-data visibility. | Pass 5 / Pass 8 |
+| Authenticated global hospital bootstrap | `AppLayout` mounts `MapProvider` and `PageDataProvider` for every route; authenticated initialization loads hospitals for global KPI state and map state, while pricing initialization reads hospital mappings for both service and room pricing. | Loading `/hospitals` can issue multiple unbounded hospital reads independent of its paged table, multiplying the 1000-row ceiling and stale/partial truth risk. Move global summaries and map/pricing dependencies to bounded owned projections. | Pass 3 / Pass 8 |
+| QuickSearch | One user query executes six parallel category searches and directly records selection/history; no request sequencing or stale-result guard is visible in `QuickSearch`. | Rapid typing can display earlier results after a later query, and one category failure can collapse the combined result path. Provide debounced/cancelled/sequence-safe search with partial-category failure semantics. | Pass 8 |
+| Analytics/dashboard summaries | `Analytics`, `analyticsService` and `PageDataContext` perform broad multi-domain aggregate fetches and fallback handling independently. | Summary failure and data-volume limits are not described as measured, partial or degraded truth. Aggregate endpoints or bounded projections need source/freshness/error labels. | Pass 8 |
+
+Cross-cutting fetch findings:
+
+- `withTimeout()` races a timer against a request but does not cancel the underlying fetch/query; implementations using it still need stale-response and unmount guards when filters/pages change.
+- Full-list fetch plus client-side slicing is not acceptable pagination for operational tables unless a deliberately bounded reference list and maximum bound are proven.
+- A paged list must keep filters, ordering, count, enrichment, realtime invalidation and export/bulk scope under one read owner; page-local reconstruction is not completion.
+- Neutral unauthorized empty state is appropriate only where intended by policy; errors must not be collapsed into a believable empty operational dataset.
+- Independent KPI/analytics failures must not blank a usable operational list unless the list itself cannot be trusted without that data.
+
+Data-access gate:
+
+- Every pass containing a list, table, queue, search or export must classify it as server-paged, deliberately bounded client collection, detail-only, or unavailable.
+- For server-paged lists, verify stable sort keys, filter parity between count and rows, page reset on filter change, bounded enrichments, stale-response handling, realtime invalidation behavior and empty/error/unauthorized rendering.
+- For bulk actions and exports, explicitly state whether scope is current page, selected rows, filtered result set or full authorized dataset; a truncated client collection may not masquerade as the latter.
 
 ## Global Coverage Gaps Found
 
@@ -343,9 +467,12 @@ A service is not considered implementation-ready until the pass plan names:
 - source table/RPC/Edge Function or explicit stub/manual source
 - UI surfaces that consume it
 - all importers and direct duplicate call sites found by the worktree scan
+- surface-by-role read/render exposure inventory and minimum necessary data assessment
+- visible create/edit/delete/transition/export/bulk/action controls with exact operation classification
 - field-shape assumptions for every high-risk rendered/submitted field
 - unsafe parser/formatter risks, including JSON/date/number parsing and object truthiness
 - realtime owner, if any
+- pagination/window/count/search/export scope and data-access failure policy for every list surface
 - loading/pending/error feedback requirements
 - role/RLS/RPC authorization expectations
 - app parity requirement, if the service supports patient app workflows
