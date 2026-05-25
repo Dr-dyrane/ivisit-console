@@ -16,17 +16,18 @@ Covered feature rows from `../services/CONSOLE_FEATURE_SERVICE_TAXONOMY_2026-05-
 
 ## Current Finding
 
-The console has the important backend receivers for cash approval, cash decline, dispatch, completion, and retry payment, but the emergency detail surface is not consuming them through one coherent detail owner. The page, modal, list/table views, payment service, visits service, and direct Supabase reads each own a piece of the same object. That split explains why an emergency can exist while its detail modal cannot reliably show the payment row, lifecycle outcome, or visit record.
+Runtime reconciliation on May 25 supersedes the earlier modal-read diagnosis: `EmergencyDetailsModal` now consumes `getEmergencyDetailProjection()` and `subscribeToEmergencyDetail()`, and refreshes the projected request after cash approval/decline before claiming dispatch release. This is an existing repair baseline to preserve, not future work.
 
-The first implementation pass starts by creating a detail projection boundary that reads the request, latest payment, request-derived visit/outcome, patient, hospital/org, and action eligibility as one contract. Modal edits come after that boundary exists.
+The remaining emergency ownership split is still material. The page separately owns windowed request/payment enrichment, dispatch/completion/manual-cash/retry feedback and broad realtime; map variants directly dispatch and complete; mobile renders stale aliases; clinical-record opening has no mounted receiver from the emergency route; and no rendered Console transition history, emergency chat or clinician-assignment workflow was found. Pass 1 therefore closes the full operational surface around the existing modal projection rather than recreating it.
 
 ## Evidence Table
 
 | Evidence | Source | Meaning | Required owner |
 | --- | --- | --- | --- |
-| Modal reads latest payment directly from `payments` by `emergency_request_id`. | `frontend/src/components/modals/EmergencyDetailsModal.jsx:129`, `:132` | Detail payment visibility is component-owned, not service-owned. RLS gaps or missing rows become modal behavior instead of a typed detail state. | Emergency detail projection service/hook |
-| Modal logs missing payment row as likely org-admin RLS. | `frontend/src/components/modals/EmergencyDetailsModal.jsx:153` | The surface already knows a backend visibility contract is unstable, but handles it as a warning. | Payment detail read contract |
-| Modal subscribes directly to `payments` and `emergency_requests`. | `frontend/src/components/modals/EmergencyDetailsModal.jsx:195`, `:198` | Realtime ownership is inside the modal and duplicates page-level payment subscriptions. | Scoped realtime detail hook |
+| Modal calls `getEmergencyDetailProjection()` and renders projected payment/terminal visit state. | `frontend/src/components/modals/EmergencyDetailsModal.jsx:92-113`; `frontend/src/services/emergencyService.js:246-287` | Detail payment and terminal visit visibility already have a service projection boundary. | Preserve and extend emergency detail projection |
+| Modal calls `subscribeToEmergencyDetail()` for request/payment/visit refresh. | `frontend/src/components/modals/EmergencyDetailsModal.jsx:230-235`; `frontend/src/services/emergencyService.js:289-310` | Scoped modal refresh is already service-owned, although transition/chat/assignment invalidation is absent. | Extend scoped detail invalidation only for added projections |
+| Modal approval/decline refreshes projection before its outcome copy. | `frontend/src/components/modals/EmergencyDetailsModal.jsx:118-162` | The prior premature modal dispatch-release claim is guarded by refreshed request status. | Preserve repaired command feedback |
+| Modal contains unreachable legacy fallback blocks after unconditional `return`. | `frontend/src/components/modals/EmergencyDetailsModal.jsx:178-225` | Old local-fetch scaffold remains in runtime source even though the projection path has replaced it. | Remove dead scaffold during implementation without restoring direct reads |
 | Page fetches payment summaries directly from `payments`. | `frontend/src/components/pages/EmergencyRequestsPage.jsx:191` | List enrichment and detail enrichment are separate ad hoc reads. | Emergency list/detail facade split |
 | Page has global `payments` realtime refresh. | `frontend/src/components/pages/EmergencyRequestsPage.jsx:226` | Page-level refresh can race or duplicate detail modal refresh. | Page data owner plus scoped detail owner |
 | Cash dispatch precheck guesses org id from `orgId || request.organization_id || request.hospital_id`. | `frontend/src/components/pages/EmergencyRequestsPage.jsx:429` | Hospital id can masquerade as org id if it is UUID-shaped. | Payment/wallet eligibility service |
@@ -37,25 +38,29 @@ The first implementation pass starts by creating a detail projection boundary th
 | Emergency service exposes `approveCashPayment` and calls `approve_cash_payment`. | `frontend/src/services/emergencyService.js:449`, `:455` | The receiver exists and should be used by approval UI rather than manual payment processing for pending approval requests. | Emergency command service |
 | Emergency service exposes `declineCashPayment` and calls `decline_cash_payment`. | `frontend/src/services/emergencyService.js:489`, `:495` | Decline receiver exists and returns canonical request/payment consequences. | Emergency command service |
 | Emergency service exposes `retryPaymentWithDifferentMethod`. | `frontend/src/services/emergencyService.js:630`, `:636` | Retry receiver exists, but command result needs a refresh and pending-state projection. | Payment retry command service |
-| `getVisit` only queries `visits.id` or `visits.display_id`. | `frontend/src/services/visitsService.js:199`, `:216`, `:218` | Calling `getVisit(request.id)` only works if visit id equals request id. The schema truth also has `visits.request_id`, so request-derived lookup needs an explicit method. | Visits service |
-| Modal calls `getVisit(id)` with request id for completed/cancelled outcomes. | `frontend/src/components/modals/EmergencyDetailsModal.jsx:175` | Detail outcome can disappear when the visit is linked by `request_id` but does not share the request UUID as its primary id. | Request-derived visit lookup |
+| `getVisitByRequestId()` queries `visits.request_id` and isolates the legacy identity fallback. | `frontend/src/services/visitsService.js:244-279` | Request-derived lookup repair already exists and should not be recast as unimplemented work. | Preserve visits service boundary |
+| Modal, list and table use `getVisitByRequestId()` for emergency-linked clinical outcomes. | `frontend/src/services/emergencyService.js:266`; `frontend/src/components/views/EmergencyRequestListView.jsx:129`; `frontend/src/components/views/EmergencyRequestTableView.jsx:181` | Lookup ownership is aligned across these read surfaces; mounted receiver/navigation remains broken separately. | Preserve lookup; repair clinical receiver |
 | `approve_cash_payment` validates pending payment/request pair. | `frontend/supabase/scripts/apply_live_fixes.sql:715` and function body | Approval is keyed by both payment id and request id, which is the right receiver shape for the modal action. | Cash approval command |
 | `approve_cash_payment` moves request to `in_progress`, marks payment completed, and updates linked visit. | `frontend/supabase/scripts/apply_live_fixes.sql:875`, `:876`, `:880` | Approval is not a cosmetic state change. It changes emergency, payment, wallet ledger, responder fields, and visit state. | Command result refresh |
 | `decline_cash_payment` moves request to `payment_declined`, marks payment failed, and cancels linked visit. | `frontend/supabase/scripts/apply_live_fixes.sql:934`, `:1047`, `:1052` | Decline has canonical lifecycle consequences and should not be reproduced in UI code. | Command result refresh |
 | Current migrations define `sync_emergency_to_visit` and index `visits.request_id`. | `frontend/supabase/migrations/20260219000900_automations.sql:156`, `:224`, `:234`, `:1084` | Request-derived visit is a first-class relationship even when legacy records share primary ids. | Visits service |
 | Current payment RLS lets users see their own payments and org admins/admins see organization payments. | `frontend/supabase/migrations/20260219000700_security.sql:248`, `:253` | Missing detail payment rows are not accepted as a UI limitation. The implementation must use canonical `organization_id` and surface degraded state only when the backend denies or lacks the row. | Payment detail read contract |
+| Detail modal dispatches `openVisitModal` and closes; the receiver is mounted only by `VisitsPage`. | `frontend/src/components/modals/EmergencyDetailsModal.jsx:469`; `frontend/src/components/pages/VisitsPage.jsx:359-366` | An operator on `/emergencies` can select clinical record and receive no mounted detail surface. | Emergency-route-owned outcome receiver or explicit navigation |
+| Mobile emergency renders legacy aliases and sends its `Navigate` action to parent dispatch. | `frontend/src/components/mobile/MobileEmergency.jsx:365-459`; `frontend/src/components/pages/EmergencyRequestsPage.jsx:604-614` | The same request can render incomplete data on mobile and mislabel a lifecycle command. | Shared row exposure model and action labeling |
+| Desktop and mobile map marker detail invoke dispatch/complete directly. | `frontend/src/components/map/MarkerDetailPanel.jsx:128-165`; `frontend/src/components/mobile/MobileMap.jsx:274-303` | Alternate mounted command paths omit route cash/preflight messaging and projected confirmation. | One emergency command policy across route and map surfaces |
+| Page, mobile and context panel source contain corrupted separator bytes in visible labels. | `frontend/src/components/pages/EmergencyRequestsPage.jsx:327,524-527`; `frontend/src/components/mobile/MobileEmergency.jsx:420`; `frontend/src/components/context/EmergencyPanel.jsx:154` | Operator-facing request/payment/location copy is visibly corrupted. | Encoding repair as part of the appropriate UI implementation pass |
 
 ## Broken Contract Name
 
-Emergency detail is currently a component-assembled object. It needs to become a service-backed projection:
+Emergency detail now has an initial service-backed projection, but the full mounted emergency operation remains split:
 
-`emergency_request -> latest payment -> request-derived visit/outcome -> patient -> hospital/org -> allowed actions -> scoped realtime refresh`
+`windowed request list and actions -> projected request/payment/visit detail -> transition/chat/assignment evidence -> map/mobile/context alternate surfaces -> patient tracking/contact/outcome truth`
 
-The modal should render that projection. It should not decide how to query payments, infer payment visibility, derive visit lookup strategy, or subscribe to table-level changes by itself.
+The modal projection should be preserved and completed. The route list, maps and context variants must not separately claim outcomes or expose incompatible fields; absent operational receivers must be made explicit implementation work.
 
 ## Deterministic Decisions For Pass 1
 
-1. Create one emergency detail projection boundary that returns:
+1. Retain and extend the existing emergency detail projection boundary so it returns:
    - `request`
    - `latestPayment`
    - `visitOutcome`
@@ -64,26 +69,37 @@ The modal should render that projection. It should not decide how to query payme
    - `organization`
    - `actionState`
    - `visibilityState` for hidden/missing payment rows
-2. Add `getVisitByRequestId(requestId)` in `visitsService.js`; preserve `getVisit(visitId)` for true visit identity.
-3. Move payment-by-request reads out of the modal and page into a service/helper used by both list enrichment and detail projection.
+2. Preserve existing request-derived visit use in detail, list and table; repair only the unmounted clinical-record outcome receiver.
+3. Move payment-by-request reads out of the page list enrichment into an explicit list/detail service boundary; the modal is already compliant.
 4. Keep `approveCashPayment(paymentId, requestId)` and `declineCashPayment(paymentId, requestId)` as the canonical cash approval commands.
 5. After any cash approval, cash decline, dispatch, complete, or retry command, refresh the same detail projection before success copy implies final state.
 6. Keep manual post-completion cash recording out of the pending-approval path. Pending cash approval uses only `approveCashPayment` and `declineCashPayment`.
-7. Replace modal-owned table subscriptions with a scoped realtime hook that invalidates or refetches the detail projection.
+7. Retain the existing scoped detail subscription and extend its invalidation scope only as transition/chat/assignment projections are added.
 8. Do not change request lifecycle statuses in UI code. Use RPC result plus refreshed backend truth.
 
-## First Safe Implementation Slice
+## Deterministic Surface Coverage Register
 
-The first implementation slice is fixed:
+| Mounted or required surface | Read/render proof | Command/receiver proof | Current disposition |
+| --- | --- | --- | --- |
+| Desktop emergency list/table | Server-windowed requests with page-local payment enrichment and count/footer. | Page owns dispatch, complete, cancellation, retry and manual cash. | Blocked: list ownership and outcome confirmation remain split. |
+| Mobile emergency route | Same rows, legacy render aliases and incomplete responder/location projection. | Non-approval `Navigate` action invokes dispatch. | Blocked: field and command-label drift. |
+| Emergency detail modal | Existing request/payment/terminal-visit projection and scoped refresh. | Cash approve/decline refresh prior to modal success copy. | Repaired base; blocked by missing receiver families and clinical CTA. |
+| Create/edit modal | Operator exposes status/cost/payment/bed values. | Atomic and fallback creation persist different subsets. | Blocked: command input does not have one storage contract. |
+| Context panel/global acquisition | Recent rows/KPIs rendered independently from the route page. | Create/filter/analytics are event-driven. | Blocked: global acquisition and receiver parity require closure. |
+| Desktop/mobile map marker detail | Selected emergency renders location/contact/assignment. | Direct dispatch/complete handlers. | Blocked: alternate command path lacks route/detail parity. |
+| Timeline, chat and clinician assignment | No rendered Console consumer found. | Tables/RPCs exist in shared backend and patient chat service. | Missing required operational surfaces. |
+| Patient tracking/contact/outcome dependencies | App rules require tracking-ready confirmed snapshot and RPC-backed contact dispatch. | Console actions alter the same emergency/payment/responder identity. | Required downstream verification dependency. |
 
-1. Add service helpers:
-   - `getLatestEmergencyPayment(requestId)`
-   - `getVisitByRequestId(requestId)`
-   - `getEmergencyDetailProjection(requestId)`
-2. Wire `EmergencyDetailsModal` to consume the projection instead of direct `payments` and `getVisit(request.id)` calls.
-3. Keep the existing UI layout and action buttons unchanged.
-4. Add detail refresh after approve/decline/retry.
-5. Verify one pending cash request, one declined retry request, one completed request, and one completed request whose visit is linked by `request_id`.
+## Next Safe Implementation Slice
+
+The next implementation slice is fixed around the already-present modal base:
+
+1. Keep `getEmergencyDetailProjection()`, request-derived visit lookup, approve/decline refresh and scoped subscription as protected baseline behavior.
+2. Remove unreachable modal fallback scaffolding only after projection behavior has targeted coverage.
+3. Define one route-list enrichment/action projection and reconcile desktop/mobile/map mounted action paths to its confirmed results.
+4. Replace the unreceived clinical-record event path with a mounted request-derived visit outcome receiver.
+5. Add authorized transition timeline, emergency communication and clinician-assignment projection/commands behind their canonical receivers.
+6. Verify pending cash, declined retry, tracked dispatch, terminal visit, map command and mobile render variants against patient tracking/contact/outcome contracts.
 
 ## Hard Blockers
 

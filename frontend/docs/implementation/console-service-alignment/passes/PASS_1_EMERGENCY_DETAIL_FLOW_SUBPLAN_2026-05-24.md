@@ -11,16 +11,24 @@ This subplan covers the user-visible failure where an operator cannot reliably o
 Console files inspected:
 
 - `frontend/src/components/modals/EmergencyDetailsModal.jsx`
+- `frontend/src/components/modals/EmergencyRequestModal.jsx`
 - `frontend/src/components/ui/LocationCell.jsx`
 - `frontend/src/components/views/EmergencyRequestListView.jsx`
 - `frontend/src/components/views/EmergencyRequestTableView.jsx`
 - `frontend/src/components/pages/EmergencyRequestsPage.jsx`
+- `frontend/src/components/mobile/MobileEmergency.jsx`
+- `frontend/src/components/context/EmergencyPanel.jsx`
+- `frontend/src/components/map/MarkerDetailPanel.jsx`
+- `frontend/src/components/mobile/MobileMap.jsx`
+- `frontend/src/utils/emergencyRequestMapper.js`
 - `frontend/src/services/emergencyService.js`
 - `frontend/src/services/emergencyResponseService.js`
 - `frontend/src/services/visitsService.js`
 - `frontend/src/contexts/PageDataContext.jsx`
 - Generated Console types for `emergency_status_transitions`, `emergency_chat_rooms`, `emergency_chat_participants`, `emergency_chat_messages`, and `emergency_doctor_assignments`, with no corresponding rendered runtime service found.
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/services/emergencyChatService.js`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/docs/flows/emergency/EMERGENCY_FLOW_LIVE_TRACKER_2026-05-19.md`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/docs/flows/emergency/MAP_SCREEN_IMPLEMENTATION_RULES_V1.md`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/migrations/20260219010000_core_rpcs.sql`
 
 Audit docs:
@@ -33,17 +41,20 @@ Audit docs:
 - Emergency/payment/capacity contract chart.
 - Read-only live confirmation matrix.
 
-Observed source signals:
+Observed source signals reconciled against current runtime on May 25:
 
-- `EmergencyDetailsModal` imports `supabase` directly and queries `payments` by `emergency_request_id`.
-- `EmergencyDetailsModal` imports `getVisit` and calls it with the emergency request id.
-- `EmergencyRequestListView` and `EmergencyRequestTableView` also import `getVisit` directly.
-- `EmergencyDetailsModal` imports `approveCashPayment` and `declineCashPayment` directly.
-- The cash approval success copy says dispatching responder after the cash approval call, before the refreshed emergency row is proven in the modal.
-- The direct payment query already warns that missing payment rows may be finance RLS visibility, which means the UI sees the symptom but does not own the contract.
+- `EmergencyDetailsModal` now consumes `getEmergencyDetailProjection(request.id, request)` and `subscribeToEmergencyDetail(requestId, callback)` from `emergencyService`; prior direct modal payment/visit/subscription claims are superseded.
+- `getEmergencyDetailProjection` currently projects the request, latest request payment, and terminal request-derived visit; it does not yet project transition history, emergency chat, persisted clinician assignment, or complete field-normalization state.
+- `EmergencyDetailsModal` refreshes after cash approve/decline and only says dispatch is released when the refreshed projected request is `in_progress`; this repair must be preserved.
+- The modal retains unreachable legacy fallback code after an unconditional `return` inside its projection effect and visit helper, which should be removed during implementation without reintroducing direct reads.
+- `EmergencyRequestListView` and `EmergencyRequestTableView` already call `getVisitByRequestId`; the remaining clinical-record defect is mounted receiver/navigation closure, not lookup creation.
 - `LocationCell` owns direct Google reverse geocoding for detail locations while its accepted coordinate shapes are narrower than app location inputs; location fallback is therefore part of emergency detail truth, not leaf formatting.
 - `EmergencyDetailsModal` closes after dispatching `openVisitModal`, but the only active receiver is mounted by `VisitsPage`; from `/emergencies`, the visible "View Full Clinical Record" action has no mounted modal receiver.
 - `EmergencyRequestsPage` does page-local server pagination/count and current-row payment enrichment; pagination exists, but its filter/count/enrichment/failure lifecycle is not yet owned by the emergency read model.
+- `EmergencyRequestsPage` refreshes from broad emergency/payment subscriptions, attempts dispatch cash eligibility with `orgId || request.organization_id || request.hospital_id`, and can claim dispatched resources or cash fee deduction before refreshed projected truth.
+- `EmergencyRequestsPage`, `MobileEmergency`, and `EmergencyPanel` contain corrupted separator bytes in rendered copy; this is a user-visible encoding defect, not merely a documentation gate.
+- `MobileEmergency` renders alias fields not synthesized by the row mapper and labels the non-approval command `Navigate` while the parent routes it to dispatch.
+- `MarkerDetailPanel` and `MobileMap` dispatch and complete emergency markers outside the page preflight and detail projection refresh contract.
 - Shared source defines append-only status-transition evidence plus emergency chat and clinician-assignment receivers; Console runtime currently references these only through generated types or inferred doctor display, while the patient app implements chat RPC/realtime flow.
 
 ## User Flow
@@ -67,17 +78,64 @@ The current detail flow conflates these owners:
 | Data/action | Current owner symptom | Required owner |
 | --- | --- | --- |
 | Emergency request detail | Row passed from page/list plus modal realtime refresh. | Emergency detail read model. |
-| Payment row for approval | Modal direct `payments` query. | Emergency/payment detail read model with RLS-aware degraded state. |
-| Cash approval/decline | Modal direct command calls. | Emergency command boundary with post-command refresh/confirmation. |
-| Visit/clinical outcome | Modal/list/table call `getVisit(request.id)`. | Request-derived visit read model using explicit `getVisitByRequestId(requestId)` plus compatibility fallback. |
+| Payment row for approval | Detail projection owns latest payment; page still directly enriches listed rows from `payments`. | Preserve detail boundary and add list read ownership with RLS-aware degraded state. |
+| Cash approval/decline | Detail modal uses command plus refreshed projection; page completion still separately invokes manual cash processing. | Preserve modal command boundary; reconcile completion/manual cash under payment authority. |
+| Visit/clinical outcome | Detail projection and list/table call `getVisitByRequestId`; the clinical-record launch path still closes into an unmounted event receiver. | Preserve request-derived visit lookup and add a mounted outcome receiver. |
 | Clinical-record navigation from emergency detail | Modal dispatches a visit event and closes while the visits route/listener is not mounted. | Emergency-route-owned outcome detail surface or explicit identity-preserving navigation into the visit projection. |
 | Location/address projection | Leaf cell makes external geocoding request and falls back across mixed coordinate shapes. | Emergency detail location projection with normalized coordinates, bounded external lookup and explicit unavailable/fallback rendering. |
-| Realtime refresh | Modal owns payments and emergency channel locally. | Detail-scoped realtime invalidation owned by the detail model/hook. |
+| Realtime refresh | Detail modal uses scoped service subscription; page owns broad emergency/payment refresh and map paths own local mutation refresh. | Retain scoped detail invalidation and specify list/map invalidation ownership. |
 | List paging and enrichment | Page directly constructs count/window/filter queries and payment enrichment. | Emergency list owner with stable paging, count/filter parity and explicit enrichment failure state. |
 | Status-transition history | Shared append-only table exists; no Console rendered timeline found. | Read-only detail timeline sourced from `emergency_status_transitions`; no update/delete actions. |
 | Urgent chat thread | Patient app implements room/message/read RPC flow; Console has type-only references. | Request-scoped communication projection/command owner using shared chat authorization. |
 | Clinician assignment | UI can show doctor context without a canonical Console assignment workflow. | Guarded `emergency_doctor_assignments` / assignment RPC owner. |
 | Success feedback | Toast claims dispatch/cash outcome immediately. | Backend-confirmed status/payment/ledger copy after refresh. |
+
+## Surface Read, Exposure, And Operation Closure
+
+| Surface and mounted path | What it reads and renders now | Mutation or receiver path | Deterministic audit result |
+| --- | --- | --- | --- |
+| `/emergencies` desktop list/table | Windowed `emergency_requests`, count, current-page payment method/status enrichment, normalized request labels, state and pagination footer. | Dispatch, complete, cancel, retry and manual cash are page-owned handlers; broad request/payment realtime refetches the page. | **Blocked.** Pagination is present, but list enrichment/failure and post-command confirmation are not owned by one list contract; visible footer/payment labels contain corrupted separator bytes. |
+| `/emergencies` mobile list | Receives the same page rows, but reads legacy `patient_name`, `location`, `contact_phone` and `assignedAmbulance` shapes. | Approval opens detail; the `Navigate` action invokes parent dispatch. | **Blocked.** Mobile can hide true patient/location/responder data and misnames a dispatch command. |
+| `EmergencyDetailsModal` | Existing projection renders request, payment approval state and terminal visit; `LocationCell` renders mixed location values. | Existing approve/decline commands refresh the projection; `openVisitModal` event closes the modal. | **Partially repaired, still blocked.** Preserve the projection/refresh repair; clinical-record receiver is unmounted from this route and transition/chat/assignment data is absent. |
+| `EmergencyRequestModal` create/edit | Exposes patient, hospital, service, status, cost/payment and bed data. | Service selects atomic create or console fallback/create-update RPC contracts. | **Blocked by create contract drift.** The atomic path drops or derives visible status/cost/payment/bed fields differently from fallback; operator input is not deterministically persisted. |
+| `EmergencyPanel` through global page context | Renders recent emergency summaries and aggregate state from global acquisition rather than the route window. | Emits create/filter/analytics events; rendered recent copy contains corrupted separator bytes. | **Blocked.** Global unwindowed ownership and event receiver coverage must be reconciled with route data; encoding defect is visible. |
+| `/map` desktop `MarkerDetailPanel` and mobile map detail | Renders selected emergency marker, patient contact/location and assignment state. | Direct dispatch and complete calls with local toast/refresh behavior. | **Blocked.** Map actions bypass route preflight/payment explanation and do not confirm the same detail projection before declaring outcome. |
+| Lifecycle history surface | No rendered Console timeline found. | Shared emergency transition rows are append-only evidence. | **Missing required read surface.** Add authorized read-only transition timeline; never edit history. |
+| Urgent communication surface | No Console room/message view found. | App and SQL expose room ensure, message send and read-marker RPC flow. | **Missing required operational surface.** Adopt request-scoped authorized communication contract. |
+| Clinician assignment/handoff surface | Doctor context can be displayed without found persisted assignment workflow. | SQL exposes guarded assignment receiver and assignment table. | **Missing required command/read surface.** Display and mutate only persisted handoff state. |
+
+## Patient-Facing Dependency Closure
+
+| App-owned truth that Console operations affect | App evidence | Console implementation obligation |
+| --- | --- | --- |
+| Tracking-ready dispatch handoff | Patient map rules require request id, hospital id, active status, route or ETA seed, pickup/patient context when available, and responder identity or explicit hydrating state. | A Console dispatch or cash approval success state cannot imply active tracking until refreshed backend output can satisfy that snapshot. |
+| Payment-to-tracking transition | Patient live tracker states that approval must hand tracking a warm dispatch snapshot rather than depending on reload/remount. | Detail, page and map commands must converge on the same confirmed request/payment/responder result. |
+| Contact dispatch thread | Patient `emergencyChatService` owns RPC-backed room/message/read and scoped realtime semantics. | Console emergency operators require an authorized participant-facing counterpart, not a separate direct-table chat implementation. |
+| Visit and clinical outcome | Patient request/visit flow retains emergency identity into outcome surfaces. | A Console clinical-record CTA must resolve and mount the request-derived visit receiver without dropping context. |
+
+## Pass 1 Deterministic Surface Register
+
+| Surface family | Read/render closure | Command/receiver closure | Pagination/realtime closure | Status |
+| --- | --- | --- | --- | --- |
+| Emergency desktop route list/table | Mapped; payment enrichment is page-local. | Mapped; dispatch, completion, manual cash and retry need common confirmation contract. | Server page exists; ownership and subscription scope remain open. | Blocked |
+| Emergency mobile route variant | Field exposure traced; alias drift confirmed. | Maps visible `Navigate` to dispatch. | Inherits desktop page window. | Blocked |
+| Emergency detail modal | Existing request/payment/visit projection confirmed. | Cash approval/decline refresh is present; visit launch receiver missing. | Scoped subscription exists; missing receiver families not included. | Partially repaired / blocked |
+| Emergency create/edit modal | Exposed input fields traced to dual receivers. | Atomic/fallback persistence mismatch confirmed. | Not applicable. | Blocked |
+| Context/global recent and KPI panel | Global acquisition identified. | Event commands partly receiver-dependent. | Unwindowed global owner remains to reconcile. | Blocked |
+| Map emergency detail variants | Read and command paths traced. | Direct dispatch/complete differs from route safeguards. | Local refresh only; detail convergence unproven. | Blocked |
+| Timeline/chat/clinician handoff | No rendered ownership found. | Canonical tables/RPCs exist outside Console UI. | Scoped consumption is absent. | Missing required surfaces |
+| Patient downstream tracking/contact/outcome | Required app contracts recorded. | Console commands can change app-visible truth. | Realtime recovery contract remains a verification gate. | Blocked dependency |
+
+## Cross-Pass Emergency Register
+
+| Dependent pass | Emergency dependency that must not be lost |
+| --- | --- |
+| Pass 2 - wallet, payment and ledger | Cash eligibility org resolution, manual completion payment, approval ledger effects, retry completion and backend-confirmed financial copy. |
+| Pass 3 - hospital, capacity and pricing | Selected hospital, bed reservation/capacity truth, patient quote and facility dispatch eligibility. |
+| Pass 4 - onboarding and verification | Organization/facility verification that can enable or prevent operational dispatch. |
+| Pass 5 - fleet and providers | Ambulance selection, responder telemetry and persisted clinician handoff. |
+| Pass 6 - visits and clinical outcomes | Request-derived visit linkage and mounted clinical record projection. |
+| Pass 8 - global shell, map, analytics and realtime | Context acquisition, marker actions, event receiver mounting and scoped invalidation parity. |
 
 ## Action Class And Receiver Map
 
@@ -109,7 +167,7 @@ Generated trace confirmation (May 25): `emergency_chat_rooms`, `emergency_chat_p
 
 ### 1. Emergency Detail Read Model
 
-Create or refine one read boundary that returns a detail projection for a request id:
+Retain and extend the existing `getEmergencyDetailProjection(requestId, initialRequest)` boundary so it returns a complete detail projection for a request id:
 
 - canonical emergency request row
 - patient snapshot/profile projection
@@ -134,8 +192,8 @@ Create or refine one read boundary that returns a detail projection for a reques
 
 Acceptance gate:
 
-- `EmergencyDetailsModal`, list view, and table view no longer independently call `getVisit` for request-derived clinical records.
-- The modal does not query `payments` directly.
+- `EmergencyDetailsModal` continues to consume the existing projection without reintroducing direct payment/visit reads.
+- Existing list/table request-derived clinical lookup remains on `getVisitByRequestId`; page payment enrichment is reconciled to explicit service ownership.
 - A displayed clinician assignment and visible message thread are receiver-backed, not inferred from request decoration.
 
 ### 2. Request-Derived Visit Lookup
@@ -220,7 +278,7 @@ Acceptance gate:
 
 Before code changes:
 
-- Use `getEmergencyDetailProjection(requestId)` as the emergency detail read boundary.
+- Preserve `getEmergencyDetailProjection(requestId, initialRequest)` as the already-present emergency detail read boundary and extend it only for missing receiver truth.
 - Use `getLatestEmergencyPayment(requestId)` as the payment-by-request read boundary.
 - Use `approveCashPayment(paymentId, requestId)` for cash approval.
 - Use `declineCashPayment(paymentId, requestId)` for cash decline.
@@ -231,9 +289,9 @@ Before code changes:
 
 Read-only/UI cleanup:
 
-- Introduce emergency detail hook/service facade.
-- Update modal to consume projection, not direct Supabase/payment/visit reads.
-- Update list/table clinical record button to use the same request-derived visit lookup.
+- Refine the existing emergency detail projection/facade for missing transition, chat, assignment and typed field state.
+- Remove unreachable legacy modal fallback code while retaining projection-only payment/visit reads.
+- Preserve list/table use of the same request-derived visit lookup while repairing the route-owned clinical record receiver.
 - Replace optimistic success copy with backend-confirmed or pending copy.
 - Add structural loading state for detail projection and compact degraded rows.
 
