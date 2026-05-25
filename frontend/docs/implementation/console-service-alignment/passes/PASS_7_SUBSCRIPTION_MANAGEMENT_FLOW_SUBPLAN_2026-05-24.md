@@ -14,6 +14,7 @@ Console files inspected:
 - `frontend/src/components/mobile/MobileSubscriptions.jsx`
 - `frontend/src/components/context/SubscriptionsPanel.jsx`
 - `frontend/src/components/modals/SubscriptionModal.jsx`
+- `frontend/src/emails/ivisit106Campaign.js`
 - `frontend/src/components/views/SubscriptionListView.jsx`
 - `frontend/src/components/views/SubscriptionTableView.jsx`
 - `frontend/src/components/navigation/ContextPanel.jsx`
@@ -32,6 +33,7 @@ Schema, policy, and receiver evidence:
 - `frontend/supabase/functions/payments/process-subscribers/index.ts`
 - `frontend/supabase/functions/payments/sendCustomEmail/index.ts`
 - `frontend/supabase/functions/payments/sendBulkEmail/index.ts`
+- `frontend/supabase/functions/webhooks/index.ts`
 - `frontend/supabase/functions/README.md`
 - `frontend/supabase/docs/TESTING.md`
 
@@ -49,6 +51,7 @@ Observed source signals:
 - Current `subscriptionService.createSubscriber()` creates a row only; `createSubscriberWithWelcome()` is an explicit wrapper selected by the hook when `sendWelcomeEmail` is enabled. Earlier audit notes that said plain create always sends are superseded by this source read.
 - Current `SubscriptionManagementPage` no longer mounts a page-level realtime email sender; `useSubscription` owns the active route subscription. Earlier audit notes that described a page insert listener sending welcome mail are superseded by this source read.
 - `SubscriptionModal` can send welcome, custom, and bulk emails directly through `subscriptionService`.
+- `SubscriptionModal` imports `ivisit106Campaign.js`, whose rendered campaign HTML embeds a hard-coded `/functions/v1/unsubscribe?email=` URL. Welcome, custom, bulk and batch function templates embed the same endpoint, while the only local unsubscribe handler evidence found in this pass is under `frontend/supabase/functions/webhooks/index.ts`; deployed function-slug ownership and lifecycle authority must be proven before the link is treated as implemented.
 - `sendWelcome` sends email but updates only `new_user = false`; the separate `process-subscribers` worker later selects `welcome_email_sent = false` rows and can send the same welcome email again before marking that flag.
 - The hook, route, context panel, navigation FAB/bottom bar, analytics page, and home surface each mount or consume `useSubscription`; every mounted hook instance performs its own full subscriber fetch and broad realtime subscription. `AppShell` always renders both `ContextAwareFAB` and `DynamicBottomBar`, and each invokes the hook before its mobile/non-mobile early return, so at least two subscriber reads/channels can execute on every routed shell even when no subscription command is visible.
 - `SubscriptionsPanel` exposes a Broadcast button that dispatches `openEmailActionsModal`, while `SubscriptionManagementPage` only receives create and analytics events; the visible email action currently has no mounted receiver.
@@ -86,6 +89,7 @@ Operator path:
 | Broadcast entry point | Context panel dispatches an email-actions event with no page receiver. | Disabled action until the single authorized email lifecycle surface is mounted and audited. |
 | Subscriber list reliability | Full-list client pagination and empty-on-error behavior hide incomplete or failed admin list truth. | Paged administrator read projection distinguishing empty, unauthorized and unavailable states. |
 | Welcome durable state | Manual `sendWelcome` changes `new_user` but does not mark `welcome_email_sent`; the worker later selects the still-pending row. | One idempotent welcome command that writes the one durable lifecycle status used by every sender. |
+| Unsubscribe receiver ownership | Campaign and delivery templates hard-code an `unsubscribe` Edge URL, but local source evidence places unsubscribe handling in a differently located webhook function source. | One deployable, tested unsubscribe command endpoint that records the durable status consumed by list/export/send eligibility and by every email template. |
 | Subscriber KPI semantics | Mobile and context surfaces call `type = paid` conversion, premium, monetization, and revenue dynamics without a billing receiver. | Label as subscriber tier/mix only, or join an authorized subscription-payment outcome projection. |
 | Variant action parity | Desktop variants always expose edit/delete; mobile conditionally exposes the same unsupported actions. | One operation capability map shared by every variant, based on proven command authority. |
 | Mounted read ownership | Multiple shell/page consumers mount `useSubscription`, each full-fetching/subscribing to the same global list; hidden FAB/bottom-bar components do so on all viewports/routes. | One authorized route projection and action-owned command loading; no hidden shell mount may read or subscribe to the global email list. |
@@ -99,6 +103,7 @@ Operator path:
 | Edit/delete/unsubscribe subscriber | Missing lifecycle command | Current source does not prove browser update/delete management | Do not implement as direct CRUD from existing services. |
 | Send welcome email | Workflow command | Email function and persisted delivery/lifecycle state | One owner; no duplicate send or success before durable outcome. |
 | Send custom/bulk email | Workflow command | Authorized campaign/send boundary | Add explicit pending/result/audit state before enabling broad sends. |
+| Follow email unsubscribe link | Workflow command | Verified deployed unsubscribe Edge endpoint and subscriber lifecycle writer | Do not ship templates that promise unsubscribe until the linked endpoint and durable `unsubscribed` projection are proven together. |
 | Open Broadcast action | Workflow entry point | Single mounted subscriber/email command surface | No clickable event may remain without a mounted receiver and authorized command disposition. |
 | Realtime subscriber update | Read projection/invalidation | Single selected subscription facade | Remove duplicate service-family subscription ownership. |
 | Paid, premium, conversion, or revenue labels | Derived business claim | Authorized billing/subscription outcome source, if one exists | Do not infer payment success or revenue from `subscribers.type`. |
@@ -123,6 +128,7 @@ Operator path:
 | `SubscriptionsPanel` in `ContextPanel` | Global counts and first four raw subscriber email addresses. | Create and analytics events have page receivers; Broadcast event does not. | Sensitive global data is duplicated in shell context and one primary command is dead. | Keep admin-only, use shared projection, disable Broadcast until a receiver is mounted. |
 | `ContextAwareFAB` and `DynamicBottomBar` shell containers | Both execute `useSubscription()` before checking viewport visibility and exist on every app route. | Visible per-route action can open create/email modals; hidden instance still reads/subscribes. | Remove admin-only subscriber acquisition from global command containers; load allowed command state only after authorized navigation/action. |
 | `SubscriptionModal` create/edit/view | Selected row fields and optional welcome toggle. | Creates row, updates row; email mode invokes welcome/custom/bulk functions. | Create can explicitly select welcome lifecycle; edit is currently an unauthorized direct update. | Keep create separate from email command; remove edit until authorized; route email through audited command state. |
+| `ivisit106Campaign.js` and Edge email templates | Campaign HTML exposes an unsubscribe link with subscriber email in the query string. | Clicking the email link targets a hard-coded `unsubscribe` Edge route; local handler/deployment identity is not yet proved. | A visible recipient lifecycle command exists outside the page UI and can be broken or unaudited even if Console sends succeed. | Centralize verified unsubscribe URL generation and lifecycle result semantics across every sent template. |
 | `useSubscription` and `subscriptionService.js` | Full-list fetch, row refresh, analytics and broad table realtime. | Insert, update/delete/status/type, mark welcome, welcome/custom/bulk. | Active facade is still over-capable; each hook mount repeats read and channel ownership. | Narrow facade to authorized commands and one projection owner. |
 | `subscribersService.js` | Separate full-list and row reads. | Separate create/delete and realtime. | Available duplicate owner is not needed by active UI and can drift. | Retire after import proof; it cannot authorize missing operations. |
 | `sendWelcome` and `process-subscribers` | Email receiver and batch pending-row processor. | Both can send welcome email; only worker writes `welcome_email_sent`. | Manual welcome email leaves the row eligible for later batch resend. | Consolidate idempotent lifecycle writer before any welcome command is trusted. |
@@ -134,6 +140,7 @@ Operator path:
 | Public acquisition/email subscription lane | Console administers subscriber intake and campaigns; this is not patient visit, wallet, or emergency truth. | Keep subscriber management separate from `ivisit-app` patient records and define its public acquisition receiver before broad campaign operations. |
 | `subscribers` policy | Current migrations prove public insert and admin select only. | Platform-admin read plus public intake are the only table capabilities treated as implemented; no browser edit/delete/status claim. |
 | Email Edge Functions | Custom/bulk functions return invocation results; welcome send and pending-worker state do not share one durable sent transition. | Do not claim completed lifecycle or run broad sends until command outcome and idempotency are closed. |
+| Email-template unsubscribe link | Campaign and function-generated HTML expose a public action endpoint not proven against a deployed source/slug in this audit. | Treat unsubscribe as a first-class receiver path: verify route deployment, idempotent status update, privacy of query identity and send-eligibility exclusion. |
 | Wallet/payment outcomes | No audited join from `subscribers.type = paid` to charge, subscription invoice, ledger, or active entitlement is exposed here. | Do not call the tier field revenue, monetization, premium payment, or paid conversion outcome. |
 | Pass 8 shell/realtime ownership | Subscription hook is consumed in route, navigation/context and analytics/home surfaces. | Remove repeated full global loads and broad channels through shared bounded projections/invalidation. |
 

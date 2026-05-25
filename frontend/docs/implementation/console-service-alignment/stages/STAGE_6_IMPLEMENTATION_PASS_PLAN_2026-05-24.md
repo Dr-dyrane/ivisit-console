@@ -69,14 +69,14 @@ Stage 5 now maintains the direct boundary call-site register for UI, context, ho
 
 | Pass | Direct callers that must be reconciled in that pass | Required disposition before the pass can close |
 | ---: | --- | --- |
-| 1 | `EmergencyRequestsPage`, `EmergencyRequestModal`, `LocationCell`, emergency slices of `PageDataContext` | Emergency reads/payment projection/realtime move to the emergency owner; profile selection and external location display are bounded authorized projections rather than modal/cell-owned truth. |
+| 1 | `EmergencyRequestsPage`, `EmergencyRequestModal`, `EmergencyDetailsModal`, `LocationCell`, emergency slices of `PageDataContext` | Emergency reads/payment projection/realtime move to the emergency owner; profile selection, geocoded display and external Google Maps handoff use bounded authorized coordinate projections rather than modal/cell-owned truth. |
 | 2 | `WalletManagementPage`, wallet slices of `PageDataContext` | Finance read projection moves behind one wallet facade; ledger/money commands stay receiver-backed. |
 | 3 | `HospitalsPage`, `HospitalModal` | Facility realtime/read refresh and discovery Edge interaction are owned by the facility/discovery boundary, not page/modal request assumptions. |
-| 4 | `UsersPage`, `InviteUserModal`, `AuthContext`, `LoginPage`, `SetPasswordPage`, `SecurityModal` | Identity KPI, invite and destructive workflows route through named authority; canonical Auth SDK operations are reviewed and may remain only as supported auth adapters. |
-| 5 | `AmbulancesPage`, `AmbulanceModal`, `DoctorModal` | Fleet counts, assignment availability and facility options use provider/fleet owners with valid relationship scope. |
+| 4 | `UsersPage`, `InviteUserModal`, `AuthContext`, `LoginPage`, `SetPasswordPage`, `SecurityModal`, `avatarUtils`, `SmartHeader`, `MobileNavMenu` | Identity KPI, invite and destructive workflows route through named authority; canonical Auth SDK operations are reviewed and may remain only as supported auth adapters; avatar fallback cannot leak operator identity without explicit policy. |
+| 5 | `AmbulancesPage`, `AmbulanceModal`, `DoctorModal`, `LeafletMapRenderer` | Fleet counts, assignment availability and facility options use provider/fleet owners with valid relationship scope; third-party map tiles have a deliberate degradation contract independent of telemetry truth. |
 | 6 | `VisitsPage` | Visit count/hydration/realtime moves to the visit model; emergency-linked records do not inherit page-owned edit/delete authority. |
-| 7 | `HealthNewsManagementPage`, `HealthNewsPanel`, `SupportTicketsPanel`, `ContextAwareFAB`, `DynamicBottomBar`, `utils/runMigrations.js`, `utils/testDatabase.js` | Content/support/insurance/subscriber reads reuse scoped owners; global action controls do not mount protected list hooks until an authorized action surface needs them; browser-side SQL repair and diagnostics cannot serve product behavior. |
-| 8 | `Analytics`, `Overview`, `useAnalytics`, remaining `PageDataContext`, `BentoHome`, `DashboardPanel`, `ContextPanel`, `ContextAwareFAB`, `DynamicBottomBar`, `QuickSearch`, `NotificationCenter`, `SettingsPage`, `lib/supabase.js` | Dashboard aggregation/realtime consumes stabilized domain truth; admin-only subscriber data is excluded from broader-role dashboards and hidden shell controls; search fields/failures are role-scoped and visible; notification/settings receivers, public asset delivery, dormant maintenance actions and generic subscriptions are deliberately owned, disabled or retired. |
+| 7 | `HealthNewsManagementPage`, `HealthNewsPanel`, `SupportTicketsPanel`, `ContextAwareFAB`, `DynamicBottomBar`, `emails/ivisit106Campaign.js`, generated subscriber-email templates, `utils/runMigrations.js`, `utils/testDatabase.js` | Content/support/insurance/subscriber reads reuse scoped owners; global action controls do not mount protected list hooks until an authorized action surface needs them; email unsubscribe links route through one proven lifecycle receiver; browser-side SQL repair and diagnostics cannot serve product behavior. |
+| 8 | `Analytics`, `Overview`, `useAnalytics`, remaining `PageDataContext`, `BentoHome`, `DashboardPanel`, `ContextPanel`, `ContextAwareFAB`, `DynamicBottomBar`, `QuickSearch`, `NotificationCenter`, `SettingsPage`, `PWAProvider`, `FeedbackProvider`, `serviceWorkerRegistration.js`, `lib/supabase.js` | Dashboard aggregation/realtime consumes stabilized domain truth; admin-only subscriber data is excluded from broader-role dashboards and hidden shell controls; search fields/failures are role-scoped and visible; notification/settings receivers, active PWA lifecycle, public asset delivery, dormant maintenance actions and generic subscriptions are deliberately owned, disabled or retired. |
 
 ## Global Route And Surface Gate
 
@@ -140,6 +140,7 @@ Console UI and hooks:
 - `frontend/src/components/pages/EmergencyRequestsPage.jsx`
 - `frontend/src/components/modals/EmergencyRequestModal.jsx`
 - `frontend/src/components/modals/EmergencyDetailsModal.jsx`
+- `frontend/src/components/ui/LocationCell.jsx`
 - `frontend/src/components/mobile/MobileEmergency.jsx`
 - `frontend/src/components/views/EmergencyRequestListView.jsx`
 - `frontend/src/components/views/EmergencyRequestTableView.jsx`
@@ -171,6 +172,7 @@ Receivers and app reference:
 | Clinician assignment owner | Missing L5 capability | Add guarded `emergency_doctor_assignments`/assignment RPC projection and command contract. | Assigned clinician state is persisted and visible rather than inferred from a suggested doctor object. |
 | Payment-aware invalidation | Read-only owner cleanup | Replace generic page-owned `payments` refetch with emergency/payment domain invalidation. | Payment event handling is documented at the owner boundary. |
 | Action feedback guard | UI feedback | Add pending/disabled guards and backend-truth success copy for dispatch, complete, cash, and retry. | No success copy claims dispatch/completion/cash settlement before backend confirmation. |
+| External location handoff | Exposure/reliability cleanup | Normalize coordinate display and Google Maps navigation through the authorized emergency projection. | Reverse-geocoded display and external navigation never disclose malformed/unapproved coordinates or imply tracking completion. |
 | Fallback create contract | L5 repair | Align or retire `console_create_emergency_request` fallback relative to `create_emergency_v4`. | Fallback path either creates required linked truth or is not available for app-parity emergency creation. |
 | Cash completion contract | L5 repair | Fix cash eligibility, processing order, settlement receiver, ledger/audit reflection. | Completing a cash emergency cannot show fee deducted unless ledger/payment truth confirms it. |
 
@@ -425,6 +427,9 @@ Console services and receivers:
 - `frontend/src/components/modals/InviteUserModal.jsx`
 - `frontend/src/components/pages/VerificationQueue.jsx`
 - `frontend/src/components/modals/VerificationModal.jsx`
+- `frontend/src/components/navigation/SmartHeader.jsx`
+- `frontend/src/components/navigation/MobileNavMenu.jsx`
+- `frontend/src/lib/avatarUtils.js`
 - `frontend/src/components/onboarding/OnboardingWizard.jsx`
 - `frontend/src/services/profilesService.js`
 - `frontend/src/services/adminService.js`
@@ -447,6 +452,7 @@ Console services and receivers:
 | Auth-backed user creation | L5 repair | Replace raw `profiles.insert` creation with invite/auth-backed identity. | Console-created users have auth identity or are explicitly invite-pending records. |
 | Verification lane split | L5 repair | Separate profile/BVN verification from facility dispatch certification. | UI copy/action cannot imply dispatch eligibility from the wrong receiver. |
 | Onboarding identity repair | L5 repair | Fix hospital-as-organization insert and `profiles.organization_id` assignment. | Onboarding writes valid organization/hospital/profile relationships under RLS. |
+| Avatar privacy projection | UI/media exposure cleanup | Remove identity-bearing external avatar fallback or define an approved non-identifying fallback policy. | Global/user identity surfaces do not transmit username/profile identity to third-party avatar providers without explicit disposition. |
 
 ### Detailed Checklist
 
@@ -458,6 +464,7 @@ Console services and receivers:
   - do not render editable email/avatar/name-component fields as saveable unless the receiver persists them
   - route email/auth identity changes through Supabase Auth/admin flow if needed
 - Fix display ID bulk resolution to be entity-aware before relying on profile/provider display IDs.
+- Replace or privacy-scope third-party generated-avatar fallback URLs used in identity/header surfaces.
 
 #### 4B. Auth-Backed Creation And Invite
 
@@ -498,6 +505,7 @@ Console services and receivers:
 - `frontend/src/components/modals/DoctorModal.jsx`
 - `frontend/src/components/modals/StaffSchedulingModal.jsx`
 - `frontend/src/components/pages/GodModeMap.jsx`
+- `frontend/src/components/map/MapRenderers/LeafletMapRenderer.jsx`
 - `frontend/src/services/ambulancesService.js`
 - `frontend/src/services/doctorsService.js`
 - `frontend/src/services/driverManagementService.js`
@@ -519,6 +527,7 @@ Console services and receivers:
 | Doctor/profile automation | L5 repair | Decide doctor CRUD relationship to profile-trigger automation. | Manual doctor creation cannot create duplicate/unlinked directory truth. |
 | Schedule ownership | L5 repair | Implement org-authorized `doctor_schedules` read/CRUD/conflict/statistics and remove status-derived shift fiction. | UI no longer collects shift fields that are discarded. |
 | Clinical assignment integration | Cross-pass L5 capability | Coordinate doctor availability/readiness with Pass 1's persisted `emergency_doctor_assignments` command/projection. | A doctor shown as assigned in emergency operations has a canonical assignment row/state. |
+| External map-layer reliability | UI/reliability cleanup | Treat CARTO/OpenStreetMap base tiles as a deliberate external dependency of the operational map. | Tile failure renders a clear degraded state without erasing or falsifying authorized marker/telemetry truth. |
 
 ### Detailed Checklist
 
@@ -539,6 +548,7 @@ Console services and receivers:
 - Guard or retire generic `useAmbulances.updateLocation()` when an ambulance has an active request.
 - Ensure map telemetry updates both request responder truth and linked ambulance projection through the request-scoped receiver.
 - Keep map realtime as projection, not canonical emergency/ambulance state owner.
+- Preserve attribution and define degraded rendering when third-party base tiles are unavailable; operational markers and telemetry retain independent truth status.
 
 #### 5C. Doctor Creation And Profile Link
 
@@ -644,6 +654,7 @@ Console services and receivers:
 - `frontend/src/hooks/useSupportTickets.js`
 - `frontend/src/components/pages/SubscriptionManagementPage.jsx`
 - `frontend/src/components/modals/SubscriptionModal.jsx`
+- `frontend/src/emails/ivisit106Campaign.js`
 - `frontend/src/components/navigation/ContextAwareFAB.jsx`
 - `frontend/src/components/navigation/DynamicBottomBar.jsx`
 - `frontend/src/services/subscriptionService.js`
@@ -704,6 +715,7 @@ Console services and receivers:
   - custom/bulk campaign sent
 - Make email send operations idempotent or visibly retry-safe.
 - Ensure `sendWelcome`, `process-subscribers`, webhook unsubscribe, and UI sends do not compete over the same flags.
+- Verify that every sent email template resolves to one deployed unsubscribe endpoint and that its idempotent lifecycle update removes unsubscribed recipients from future allowed sends.
 
 #### 7D. Notifications
 
@@ -747,6 +759,8 @@ Console services and receivers:
 - `frontend/src/components/common/ProtectedRoute.jsx`
 - `frontend/src/components/common/Skeletons.jsx`
 - `frontend/src/components/common/ConsoleStartupOverlay.jsx`
+- `frontend/src/index.js`
+- `frontend/src/serviceWorkerRegistration.js`
 - `frontend/src/components/pwa/InstallPrompt.jsx`
 - `frontend/src/components/pwa/OfflineIndicator.jsx`
 - `frontend/src/components/pwa/UpdateNotification.jsx`
@@ -823,7 +837,7 @@ Console services and receivers:
 - Add pending/disabled state to bulk/destructive commands that still rely only on toast after click.
 - Remove or wire the dashboard realtime switch and alert thresholds; visible local-only state is not operational configuration.
 - Wire or remove the visible settings notification switch, and define whether compatibility notifications lacking action metadata are non-actionable.
-- Remove or authoritatively source `PWADebugTracker` production version copy, and review the globally mounted PWA install/offline/update notices as shell-owned user actions.
+- Remove or authoritatively source `PWADebugTracker` production version copy, and review the globally mounted PWA install/offline/update notices plus active service-worker registration/reload behavior as shell-owned user actions.
 - Define reduced-motion and sound/haptic preference behavior for `FeedbackProvider` before retaining feedback effects across mobile command surfaces.
 - Review success copy on every command touched by prior passes.
 

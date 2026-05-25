@@ -14,6 +14,9 @@ Console files inspected:
 - `frontend/src/components/pages/VerificationQueue.jsx`
 - `frontend/src/components/pages/UsersPage.jsx`
 - `frontend/src/components/common/ProtectedRoute.jsx`
+- `frontend/src/components/navigation/SmartHeader.jsx`
+- `frontend/src/components/navigation/MobileNavMenu.jsx`
+- `frontend/src/lib/avatarUtils.js`
 - `frontend/src/components/navigation/ContextPanel.jsx`
 - `frontend/src/config/navigation.js`
 - `frontend/src/components/modals/UserModal.jsx`
@@ -53,6 +56,7 @@ Observed source signals:
 - The shared Quick Verify action only navigates to `/verification?quick=true`; no query-param receiver was found in `VerificationQueue`, so it does not currently enter a distinct review operation.
 - Privileged user lists fetch up to `1000` profiles, paginate locally and derive totals/statistics from that loaded subset; organizations load all organization and wallet rows before local slicing. Verification queues already accept server page/limit/count inputs.
 - `AuthContext.fetchProfile` directly elevates one hard-coded email address to `admin` and, on profile-flow error, constructs a fallback profile with `org_admin` for other users; a read failure can therefore create client-visible privilege.
+- Shell/user identity surfaces use third-party avatar fallbacks: `SmartHeader` and `MobileNavMenu` construct `ui-avatars.com` URLs from the profile username, while `avatarUtils` may construct DiceBear URLs from profile or user identity seeds. This is identity-data disclosure to external media providers unless replaced or explicitly approved.
 - `InviteUserModal` labels its selector `Organization Assignment` but loads the options from `getHospitals({ limit: 100 })` and submits the selected hospital id as `metadata.organization_id`.
 - `OrganizationDetailsStep` and `onboardingService.searchHospitalsByName` classify claim status from `verified` only while live hospital truth includes `verification_status`; a pending facility can be presented as available to claim.
 - Provider verification service read/capability checks permit `admin`, `org_admin`, and `sponsor`, while live `/verification` route access is `org_admin` or above and the provider and organization approve/reject services require `isAdmin()` for mutation; org admins can reach controls that will be rejected and sponsor semantics conflict between service and route.
@@ -87,6 +91,7 @@ Operator/onboarding path:
 | Quick verification entry | Context action advertises a quick workflow through an unconsumed query flag. | A mounted, authorized verification queue state or no Quick Verify action. |
 | Identity and organization pagination | User and organization management mix capped/unbounded client collections with management totals. | Server-paged admin projections with true counts; preserve verification service paging with scoped invalidation. |
 | Session/profile fallback role | Auth context upgrades role from hard-coded email or failed profile read. | Backend-authoritative identity projection; a loading/error state never grants a role. |
+| External avatar fallback identity | Header/menu and shared avatar utility can transmit username or profile/user seed to third-party avatar endpoints. | App-owned media fallback or approved privacy-scoped avatar projection that does not disclose operator identifiers unnecessarily. |
 | Invite organization assignment | Organization-labelled selector submits a hospital id into `organization_id`. | Organization-backed assignment selector and receiver payload with facility linkage explicit when needed. |
 | Onboarding facility claim | Search treats every non-verified hospital as unclaimed. | Verification-status-aware claim boundary preventing pending/claimed facility takeover. |
 | Queue visible mutation rights | Org-admin/sponsor route/read permission differs from admin-only verification commands. | Role-correct read-only or command-enabled queue controls derived from actual receiver authority. |
@@ -97,6 +102,7 @@ Operator/onboarding path:
 | Surface and mounted path | What it reads and renders now | Mutation or receiver path | Deterministic audit result |
 | --- | --- | --- | --- |
 | Auth bootstrap and `ProtectedRoute` | Auth context reads/creates profiles and exposes role/onboarding state used by navigation and protected routes. | Direct profile upsert/update and hard-coded/error fallback role projection. | **Blocked, highest authority risk.** A client-side fallback or email check cannot grant `admin` or `org_admin`; route claims are untrustworthy until backend role truth is exclusive. |
+| Shell/user avatar rendering | Header, menu and identity surfaces render stored avatars or external generated fallbacks. | External avatar request can include username or profile-derived seed when stored media is absent or failed. | **Exposure gate.** Replace with app-owned fallback or explicitly approve a non-identifying external seed policy before identity surfaces are considered private by default. |
 | `/users` desktop/mobile management | Profiles, organizations map, role/BVN/provider labels and statistics; privileged path loads up to `1000` then slices client-side. | Invite, create/edit, direct privileged delete RPC and bulk operations. | **Blocked.** Counts/bulk scope can truncate and CRUD/auth ownership must remain invite/admin-receiver backed. |
 | `InviteUserModal` | Email, role and `Organization Assignment` selection sourced from a hospital list. | Invokes `invite-user` with selected hospital id in `metadata.organization_id`. | **Blocked.** It can assign an organization-scoped user to facility identity and falsely report scoped invitation success. |
 | `/organizations` registry | All organizations plus all wallets, local search/page/KPIs, network float and static network-health display. | Direct organization service create/update/delete controls. | **Blocked.** Pagination/aggregates are not authoritative, hard-coded health is false display truth, and guarded command authority is unproved. |

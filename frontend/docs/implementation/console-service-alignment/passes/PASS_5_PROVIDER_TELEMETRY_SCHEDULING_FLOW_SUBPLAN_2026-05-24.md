@@ -16,6 +16,7 @@ Console files inspected:
 - `frontend/src/components/modals/DoctorModal.jsx`
 - `frontend/src/components/modals/StaffSchedulingModal.jsx`
 - `frontend/src/components/pages/GodModeMap.jsx`
+- `frontend/src/components/map/MapRenderers/LeafletMapRenderer.jsx`
 - `frontend/src/contexts/MapContext.jsx`
 - `frontend/src/hooks/useAmbulances.js`
 - `frontend/src/services/ambulancesService.js`
@@ -30,6 +31,7 @@ Console files inspected:
 Observed source signals:
 
 - `GodModeMap` projects emergency requests, ambulances, hospitals, responder locations, telemetry freshness, and driver status actions.
+- `LeafletMapRenderer` uses third-party CARTO raster tile endpoints with OpenStreetMap/CARTO attribution. The map remains operationally dependent on an external base-map delivery path even after Console data ownership is repaired.
 - The shared `/map` primary action dispatches `centerMap`, and `MapPanel` dispatches `recenter-map-target`, while `MapContext` and the mounted map refiners receive `recenter-map`; neither visible centering command is connected to a proved mounted receiver.
 - Ambulance and privileged doctor lists fetch at most `1000` rows, then sort/page locally and publish fetched length as total, silently truncating larger operational registries.
 - `AmbulancesPage` first obtains an exact filtered count, then discards it by resetting pagination total to the capped fetched-row length; its org-admin stats query also filters `hospital_id` with `orgId`, repeating facility-versus-organization identity ambiguity.
@@ -63,6 +65,7 @@ Operator/provider path:
 | Driver assignment | Modal local filtering plus service actions. | Assignment owner with profile/driver/ambulance relationship truth. |
 | Provider images | Ambulance/doctor modals use storage directly. | Media owner shared with Pass 3/7. |
 | Map telemetry | GodModeMap derives telemetry and writes responder location. | Telemetry projection/command owner tied to active request truth. |
+| Base-map delivery | Operational map renders CARTO/OpenStreetMap tiles directly. | Deliberately approved external map-layer dependency with visible unavailable/degraded behavior; marker/dispatch truth must not be confused with tile availability. |
 | Map centering actions | Shared primary action and target-selection panel emit event names not consumed by mounted map implementations. | Single map command API/event shared by map controls and the rendered map receiver, with explicit target support where needed. |
 | Fleet and clinician pagination | Client-capped list retrieval is presented as complete paginated management data. | Server-backed filter/sort/page/count owner with truthful scoped totals. |
 | Map feed completeness | Mixed bounded/unbounded initial map queries provide no operator-visible coverage contract. | Explicit active/viewport feed bounds, refresh/invalidation ownership and incomplete-data state. |
@@ -130,6 +133,7 @@ Operator/provider path:
 | Upload provider/vehicle imagery | Scoped media/storage boundary | Doctor image field and Pass 3 media/storage authority | Do not upload ambulance media without row receiver; hospital provenance belongs to Pass 3. |
 | Compute fleet/doctor totals | Scoped aggregate projection | Fleet/provider owner with organization-to-hospital scope | Do not replace exact counts with capped fetched lengths or filter hospital keys by organization id. |
 | Project map realtime feeds | Scoped realtime invalidation/projection | Map operations owner over authorized active feed | Do not merge broad subscriptions into an apparently scoped operational map without bounded/degraded semantics. |
+| Render operational base map | External visual dependency | Approved tile provider configuration and attribution | Surface map degradation when external tiles fail; never report telemetry failure solely because the base map is unavailable. |
 
 ## Field And Receiver Gate
 
