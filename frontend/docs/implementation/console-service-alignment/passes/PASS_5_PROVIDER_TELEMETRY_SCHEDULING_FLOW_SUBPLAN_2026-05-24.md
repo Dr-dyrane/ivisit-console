@@ -43,6 +43,8 @@ Observed source signals:
 - `AmbulanceModal` uploads images, selects drivers, checks existing assignments directly, and shows active assignment controls.
 - `StaffSchedulingModal` collects real doctor shift fields but `staffSchedulingService` never reads or writes `doctor_schedules`; it derives fixed same-day shifts from doctor and ambulance statuses.
 - `emergency_doctor_assignments` has a shared receiver/RPC boundary while Console has no persisted clinician handoff surface.
+- Backend automation assigns, releases and fails over doctors through `emergency_doctor_assignments`, `doctors.current_patients` and `emergency_requests.assigned_doctor_id`; a direct doctor availability/status edit can therefore change an active emergency handoff without any rendered Console assignment consequence.
+- Backend driver/resource failover can replace or clear responder/ambulance state and adjust hospital capacity when a vehicle becomes unavailable; generic fleet status edits are not isolated from in-flight emergency consequences.
 
 ## User Flow
 
@@ -89,6 +91,7 @@ Operator/provider path:
 | `MapContext` realtime projection | Local emergency, ambulance and assumed user-location arrays. | Broad subscriptions merge inserts/updates/deletes; recenter event only matches one of several visible commands. | **Blocked.** Scoped acquisition, patient-location source and control receiver parity are unproved. |
 | Active responder telemetry | Marker and driver surfaces can expose location/status updates. | Guarded responder-location RPC exists; generic direct ambulance writers are also exported. | **Blocked.** Active-trip location/status must use request-coupled receiver and refreshed tracking truth only. |
 | Emergency clinician assignment | No rendered persisted assignment view/command found. | Shared assignment RPC/table exists. | **Missing required cross-pass surface.** Pass 1 detail and Pass 5 doctor selection share this authority. |
+| Provider and fleet automation consequences | Doctor or ambulance operational status appears editable as directory/fleet data. | Doctor/ambulance failover writers can reassign or clear active emergency responder/clinician state and update capacity. | **Blocked automation consequence.** Status commands need active-assignment impact state and refreshed emergency/assignment/capacity projections before mutation is exposed. |
 
 ## Patient-Facing Dependency Closure
 
@@ -142,6 +145,28 @@ Operator/provider path:
 | Fleet identity and status | ambulance `hospital_id`, `organization_id`, driver/profile assignment, valid status, location/current call, license plate/vehicle/call-sign display | Join actual facility identity and use valid enum states; active request state cannot be edited as ordinary fleet CRUD. |
 | Telemetry and clinician handoff | request/responder/ambulance identity, location/heading/ETA, assignment request/doctor/status/notes | Active telemetry and emergency doctor assignment remain request-coupled commands with refreshed projection truth. |
 | Doctor schedule truth | doctor/profile/hospital specialty/license/status; schedule doctor/date/start/end/type/availability | Implement shift UI on stored `doctor_schedules`, not doctor status or generated rows; keep operational availability distinct. |
+
+## Field-To-UI And Payload-To-Receiver Closure For First Slice
+
+| Console surface/control | Exact field projection required | Payload/receiver gate | App consequence to prove |
+| --- | --- | --- | --- |
+| Ambulance identity card | Ambulance id, display/call sign, plate, vehicle type, status, hospital/facility id, organization id, current request/trip if any | Reads must preserve uuid-native ids and display labels separately. | App tracking can resolve the same vehicle without confusing display id with canonical id. |
+| Fleet scope filters | Organization id, hospital/facility id, provider role, operator scope | Filter payloads must not treat hospital id as organization id. | Console users only see ambulances they can operate, while app request matching remains org/facility scoped. |
+| Driver assignment | Driver profile id, driver/provider id if separate, ambulance id, active assignment, active request/trip lock | Assignment mutation must name the canonical receiver table/RPC and reject active-trip conflicts. | Live ambulance tracking does not lose driver identity during dispatch handoff. |
+| Fleet status/location edits | Ambulance id, maintenance/availability status, non-active location fields, last updated timestamp | Generic fleet edits must not overwrite request-coupled responder telemetry. | App ETA and responder marker stay tied to live trip truth, not stale fleet maintenance coordinates. |
+| Responder telemetry row | Request id, responder id, ambulance id, lat, lng, timestamp, heading, route/ETA seed, freshness state | Telemetry publish/storage is out of first-slice scope until receiver and realtime invalidation are named. | App can distinguish fresh live tracking, stale tracking, and unavailable telemetry without fabricated confidence. |
+| Doctor identity card | Profile id, doctor id, display name, specialty, license/verification status, hospital/facility id, organization id | Reads must not collapse profile identity, doctor row identity, and provider role into one field. | App visit/emergency handoff can resolve clinician identity without ambiguous provider records. |
+| Provider readiness badge | Role, provider type, verification status, availability, current assignment | Badge projection must state which fields are evidence and which are unavailable. | Console does not imply a doctor is schedulable or dispatchable from role alone. |
+| Doctor schedule row | `doctor_schedules` doctor id, date, start/end, schedule type, availability, source timestamp | Schedule create/update controls stay disabled until exact receiver and required fields are charted. | App appointment/emergency routing can rely on schedule windows instead of generated/status-only rows. |
+| Ambulance/crew schedule row | Ambulance id, driver/crew ids, time window, exclusion/unavailable reason | Keep marked unavailable if no receiver table/RPC exists. | Console does not create phantom coverage that app dispatch cannot honor. |
+| Emergency clinician handoff | `emergency_doctor_assignments` request id, doctor id, assignment status, notes, timestamps | Assignment mutation must prove receiver table/RPC and status transition rules. | Patient emergency timeline reflects real clinician assignment rather than console-only intent. |
+| Map feed completeness | Emergency feed cap, ambulance feed bounds, hospital/facility feed bounds, pagination/incomplete marker | Feed readers must expose incomplete/degraded state instead of silently truncating. | Dispatch map does not hide active demand or supply while app requests are waiting. |
+| Map centering actions | Target type, target id, lat/lng, source row, active map event name | Consolidate `centerMap`, `recenter-map-target`, and `recenter-map` before new actions are added. | Operators can locate the same emergency/vehicle/hospital object the app is tracking. |
+| Base map tiles | Tile provider, load/error state, attribution/degraded state | External tile dependency remains view-layer only; no service mutation. | Console map degradation is visible without changing dispatch data truth. |
+| Provider/vehicle images | Storage bucket/path, public/private visibility, source provenance, fallback image | Upload controls remain disabled until bucket policy and receiver ownership are documented. | App and console do not expose fragile direct provider URLs or private media by accident. |
+| Automation/failover status controls | Target object id, current lifecycle state, requested state, side effects on active request/trip/assignment | Any enablement must include downstream reassignment/clearance consequences. | Console status changes cannot orphan app trips, doctor assignments, or responder tracking. |
+
+Implementation rule: the first slice may centralize read projections, paging, map feed bounds, disabled/unavailable controls, and receiver labels. It must not add telemetry publishing, storage uploads, schedule mutations, or schema changes before the receiver and app consequence charts close.
 
 Generated trace confirmation (May 25): `doctor_schedules` and `emergency_doctor_assignments` now have cross-repo baseline traces and report zero matched Console CRUD surfaces. The scheduling modal's current status-derived behavior is not table-backed shift ownership, and clinician assignment must be added through the persisted command/projection boundary coordinated with Pass 1.
 

@@ -120,6 +120,22 @@ Operator path:
 | Welcome and lifecycle delivery | command idempotency, queued/sent/failed result, persisted state writer and unsubscribe receiver | Select one authorized lifecycle writer before enabling send/unsubscribe controls or reporting success. |
 | Export/realtime and future campaigns | administrator scope, export content, invalidation owner, campaign pending/result/audit state | Retain one facade for reads; broad email actions stay disabled until an authorized auditable command exists. |
 
+## Field-To-UI And Payload-To-Receiver Closure For First Slice
+
+| Console surface/control | Exact field projection required | Payload/receiver gate | App consequence to prove |
+| --- | --- | --- | --- |
+| Subscriber registry row | Subscriber id, email, type, status, new-user flag, welcome sent/timestamp, unsubscribe state, created time | Admin read/create are the only currently proved table actions; edit/delete remain unavailable until policy/RPC proof. | Marketing subscriber state does not become patient account or billing truth. |
+| Create subscriber form | Email, type, new-user flag, optional welcome selection, actor id | Public/admin insert payload must stay fixed-field and idempotent around duplicate emails. | App/user lifecycle is not implied by newsletter signup. |
+| Welcome email command | Subscriber id/email, command id, queued/sent/failed state, persisted lifecycle writer, template id | Manual send and worker send must share one idempotent writer before success copy appears. | Recipients do not receive duplicate welcome messages from competing send paths. |
+| Unsubscribe link | Subscriber id/email token, verified endpoint URL, unsubscribe result, timestamp | Template link generation must prove deployed receiver and durable state update. | Public email lifecycle matches console subscriber status. |
+| Broadcast/custom email action | Audience scope, selected ids/query, template/body, actor, queued/result/audit state | Keep disabled until one mounted auditable command receiver exists. | Console cannot claim campaign delivery from a dead button. |
+| Export action | Admin scope, selected filters, exported fields, row count, timestamp | Export must use the same authorized projection and avoid hidden broader reads. | Email exports do not leak outside the intended admin surface. |
+| Subscriber analytics | Count source, bounded/unbounded state, status/type grouping, time window | Revenue/conversion labels require billing/subscription outcome source; otherwise remove. | Sponsor/dashboard copy does not overstate paid or premium traction from subscriber type. |
+| Realtime subscriber update | Channel owner, invalidated query key, admin scope, cleanup state | Retain one subscription facade and one invalidation owner. | Console lists update without duplicate broad realtime reads. |
+| Global shell subscriber preview | Route, role, opened command, visible surface id | Hidden global action containers must not mount admin-only subscriber hooks. | Subscriber emails do not leak into non-subscription routes or unauthorized shells. |
+
+Implementation rule: the first slice may narrow the subscriber projection, remove unsupported commands, and centralize lifecycle command labels. It must not ship edit/delete, broadcast/custom email, revenue labels, or unsubscribe promises until the exact receiver and durable state writer are proved.
+
 ## Surface Read, Exposure, And Operation Closure
 
 | Surface | Reads and renders today | Mutations or commands exposed today | Authority/data-flow finding | Required implementation disposition |

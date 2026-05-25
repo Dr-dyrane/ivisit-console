@@ -195,6 +195,22 @@ These flows are not re-owned by Pass 3, but none can close until their facility 
 | Provider/media/import provenance | provider type/source/category confidence; hospital media role/source/status/primary; import-log status/failure/provenance | Console facility operations include app-visible classification/media truth; discovery/import cannot persist silently. |
 | Pricing and reservation identity | explicit `hospital_id`, service/room category, price/active state, linked request/capacity state | Never imply organization-wide pricing or occupancy from one facility row or inconsistent terminal request counts. |
 
+## Field-To-UI And Payload-To-Receiver Closure For First Slice
+
+| Console surface/control | Exact field projection required | Payload/receiver gate | App consequence to prove |
+| --- | --- | --- | --- |
+| Facility identity row | Hospital id, display id/name, organization id, facility type, verification status, active status | Reads must preserve hospital id and organization id as separate values. | App bed search and emergency matching resolve the same facility without org/hospital id drift. |
+| Facility eligibility badges | `emergency_eligible`, `dispatch_eligible`, `booking_eligible`, verification state, operational status | Badge values must come from explicit fields, not inferred from presence in a list. | App does not offer dispatch, bed booking, or visit paths for ineligible facilities. |
+| Capacity card | Total beds, available beds, occupied/reserved beds, wait estimate, last capacity update | Availability edits must route through `update_hospital_availability` or named receiver, not metadata save. | App capacity display and request matching share one operational truth. |
+| Room/service pricing row | Hospital id, service/room category, price, currency, active flag, source timestamp | Pricing payloads must target explicit `hospital_id`; organization-wide copy stays unavailable until receiver exists. | App quote/payment lanes do not inherit a first-hospital price as system truth. |
+| Reservation/capacity relation | Request id, hospital id, reservation status, occupancy impact, terminal state | Cancel/discharge controls require request-owned receiver and capacity side-effect proof. | App request history and bed availability reconcile after reservation changes. |
+| Provider classification | Provider id, hospital id, type, category, source, confidence, provenance | Import/discovery writes require provenance and failure state. | App listings do not show unverified or silently imported provider truth as canonical. |
+| Facility media | Hospital id, media role, storage path/url, primary flag, source, status | Upload/edit disabled until Storage policy and `hospital_media` receiver are proved. | App uses stable app-owned media and does not expose private or fragile URLs. |
+| Import/discovery action | Query/source, candidate id, match confidence, selected hospital id, import log id/status/error | No silent success; every write must create auditable provenance. | Public or provider data cannot overwrite app-visible facility truth without trace. |
+| Bulk sync/report action | Report fields, sync target, affected rows, actor, audit state | Bulk sync remains unavailable without authorized auditable receiver. | Console cannot mass-change app capacity/pricing through a dead or unproved button. |
+
+Implementation rule: the first slice may centralize facility/capacity/pricing/media read projections and disable unsupported controls. It must not add Storage writes, import persistence, bulk sync, or pricing mutations until the exact receiver and app-visible consequence are charted.
+
 Generated trace confirmation (May 25): `providers` and `hospital_media` now have cross-repo baseline traces and both report zero matched Console CRUD surfaces. Console currently lacks the app-visible provider/media management lane required by this pass even though provider-related labels exist elsewhere in the UI.
 
 Storage evidence confirmation (May 25): current App/Console migration and maintained docs sources contain no active `storage.objects`/bucket policy authority; only archived legacy SQL mentions an `images` policy. The current `storageService` public-URL assumption cannot authorize facility media changes, so this pass remains blocked on read-only deployed Storage proof and `hospital_media` provenance ownership.

@@ -26,6 +26,30 @@ This folder maps console services, surfaces, L5 ownership, and implementation pa
 4. The relevant [pass subplan](./passes/README.md)
 5. The relevant [contract exhibit](./contracts/README.md)
 
+## Operating Doctrine For Multi-Agent Continuation
+
+Use the Stage 6 pass order as the map, and use end-to-end proof as the standard of work inside each pass.
+
+Do not switch to a repo-wide service-by-service rewrite. Services cross user-flow boundaries, and isolated service review can miss the UI promise or app consequence. Also do not implement from a broad pass summary. Each pass must close the involved services end to end before code changes begin.
+
+The required proof chain for every in-scope field, action, list, modal, panel, export, realtime path, and global acquisition is:
+
+`source truth -> service/query/RPC/Edge/Storage -> hook/context/state -> route/modal/panel/UI render -> button/form payload -> receiver -> app consequence`
+
+This means a pass is ready for implementation only when a new contributor can answer all of the following without guessing:
+
+- Which table, RPC, Edge Function, trigger, or Storage policy is the source of truth?
+- Which Console service owns the read projection?
+- Which service/RPC/Edge/Storage receiver owns the write or workflow command?
+- Which hooks, contexts, global providers, panels, modals, maps, exports, and startup effects acquire the same data?
+- Which exact fields are rendered, normalized, parsed, sorted, counted, exported, or submitted?
+- Which visible controls are enabled, disabled, unavailable, read-only, or role-gated?
+- Which payload fields are accepted by the receiver and which UI fields would be discarded or misnamed?
+- What happens in `ivisit-app` if Console changes this field or lifecycle state?
+- What parser, ID, pagination, realtime, RLS, or fallback failure can make the UI lie?
+
+If any link is uncertain, continue the audit instead of implementing. If a service is in scope but not traced through its importers, UI consumers, payloads, receiver, and app consequence, it is not complete.
+
 ## Working Rule
 
 Each service audit must answer:

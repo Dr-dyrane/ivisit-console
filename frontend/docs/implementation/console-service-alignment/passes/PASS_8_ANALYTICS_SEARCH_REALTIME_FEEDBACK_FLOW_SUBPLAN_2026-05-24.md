@@ -146,6 +146,24 @@ Operator path:
 | Activity and privileged audit | actor/action/entity/time/details plus permission scope and durable write proof for critical audit | Activity RPCs are a display projection, not proof that a destructive command was durably audited. |
 | Dashboard, settings and realtime | metric source/empty/unavailable state, operator notification preference, domain invalidation/channel owner and pending route state | Remove mock/constants as operational truth and leave patient consent/demo preferences outside Console operational settings. |
 
+## Field-To-UI And Payload-To-Receiver Closure For First Slice
+
+| Console surface/control | Exact field projection required | Payload/receiver gate | App consequence to prove |
+| --- | --- | --- | --- |
+| Dashboard KPI card | Metric value, source query/RPC, actor scope, time window, bounded/unavailable state, refreshed timestamp | No fallback/mock value may render as operational truth. | Operators do not make dispatch or sponsor decisions from fabricated metrics. |
+| Dashboard report action | Report type, scope, route/modal receiver, export format, actor | Visible report buttons require a mounted receiver or disabled unavailable state. | Console does not expose dead analytics actions as product capability. |
+| Analytics chart/trend | Aggregation source, interval, denominator, previous-period baseline, fallback state | Fixed trend labels and predictive empty intervals must be removed unless backed by fields. | App/company performance claims stay auditable. |
+| QuickSearch result row | Query id, sequence id, category, result id, display id/label, source table, matched field, actor scope | Older async results cannot replace newer input; category failures must be surfaced as partial. | Operators navigate to the correct record without seeing denied/error as no-match. |
+| Search telemetry event | Query id, selection id, actor id, category, result id, timestamp, latency/failure state | Telemetry writes require scoped service owner; no stub-success regeneration. | Search analytics reflect real user behavior and not fake ranked data. |
+| Recent/trending search list | Actor scope, trend source, query text, count, time window, unavailable state | Trend RPC/service-only fallback cannot fabricate production rankings. | Console suggestions do not reveal unrelated users or unproved popularity. |
+| Activity feed row | Actor, action, entity type/id, timestamp, details, durable audit source | Display activity RPC is not proof that underlying commands are audited. | Critical changes need their own auditability before action enablement. |
+| Realtime invalidation channel | Domain, table/channel, query key, role scope, cleanup state, degraded state | Global shell subscriptions must invalidate owners, not hold canonical state. | App/console data converges after changes without duplicate hidden broad reads. |
+| Settings/notification preference | User id, preference key, value, source, persisted state, unavailable state | Patient demo/consent preferences remain outside Console operational settings. | Console settings do not mutate patient-facing behavior accidentally. |
+| PWA/update/feedback surface | Build/version source, update status, offline/install state, reduced-motion/feedback preference | Hard-coded debug badge must be removed or tied to authoritative metadata. | Operators receive immediate, accessible shell feedback without confusing debug artifacts for system truth. |
+| System backup control | Actor, target scope, backup job id, receiver, audit/result state | Keep dormant/removed until authorized auditable workflow exists. | Console cannot imply a protected infrastructure operation from an unbacked button. |
+
+Implementation rule: the first slice may remove mock truth, add unavailable/partial/degraded states, sequence search results, and consolidate realtime invalidation ownership. It must not add backup, fake trend regeneration, broad shell reads, or new analytics claims before source and receiver proof exists.
+
 ## Mounted Surface Read, Exposure, And Operation Closure
 
 | Surface or acquisition path | Mounted status and audience | Reads or visible claim | Mutation/action path | Deterministic audit outcome |

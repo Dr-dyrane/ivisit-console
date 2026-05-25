@@ -106,6 +106,21 @@ Operator/provider path:
 | Restricted medical context | patient/care authorization and medical-profile availability state | Do not revive dormant broad admin medical CRUD; surface unavailable/unauthorized state where access is not proved. |
 | History continuity | `request_id`, `display_id`, lifecycle timestamps/state, rating/tip/payment summary where app history requires it | Do not produce a Console state that patient map history cannot reconcile to the same backend event. |
 
+## Field-To-UI And Payload-To-Receiver Closure For First Slice
+
+| Console surface/control | Exact field projection required | Payload/receiver gate | App consequence to prove |
+| --- | --- | --- | --- |
+| Visit list row | Visit id, display id, request id, patient id/name, doctor id/name, hospital id/name, visit type, status, scheduled/completed timestamps | List projection must classify administrative versus emergency-derived rows before commands reach the view. | Patient history and console visit rows point to the same backend event. |
+| Visit detail modal | Reason/summary, clinical notes, prescriptions, cost, insurance, linked emergency incident, lifecycle timestamps | Emergency-derived fields are read-only unless a lifecycle command receiver is proved. | Console cannot alter patient medical or financial history through generic visit save. |
+| Create administrative visit | Patient id, doctor id, hospital id, scheduled time, visit type, reason, source marker | Create remains separate from emergency outcome rows and must use an authorized admin receiver. | App visit list can distinguish scheduled/admin visits from emergency completions. |
+| Edit/cancel/complete/no-show | Visit id, source marker, current lifecycle state, target state, actor, reason | Direct table writes stay blocked for emergency-derived visits; receiver must own transition legality. | App history does not show impossible or conflicting lifecycle state. |
+| Delete/bulk delete | Visit id, source marker, linked request id, audit reason | Destructive action unavailable until deletion authority, audit record, and patient-history behavior are approved. | Patient medical/history evidence is not removed from app visibility accidentally. |
+| Medical context read | Patient id, authorization scope, blood type/allergies/conditions/medications/insurance/contact availability | Read projection must distinguish unauthorized, unavailable, and empty. | Console shows only allowed clinical context and does not revive broad profile CRUD. |
+| Emergency incident link | Visit request id, emergency request id, incident status, patient id, hospital id | Replace broad emergency list lookup with scoped request-id projection. | Emergency detail handoff opens the correct incident without exposing the entire emergency table. |
+| Search and KPI surfaces | Server count, page cursor, search term, status/type filters, metric source and timestamp | Page-local filtering cannot be labeled complete search or analytics. | Operators do not miss visits outside the loaded page or trust stale global stats. |
+
+Implementation rule: the first slice may create a visit read projection, row-source classifier, scoped incident lookup, and capability map. It must not broaden medical-profile CRUD, direct-write lifecycle fields, or expose deletion for request-derived evidence.
+
 ## Surface Read, Exposure, And Operation Closure
 
 | Console surface | Current reads and rendered exposure | Current operation exposure | Deterministic finding and implementation requirement |

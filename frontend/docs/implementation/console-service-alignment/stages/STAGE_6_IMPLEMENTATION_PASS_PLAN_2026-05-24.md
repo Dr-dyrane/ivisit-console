@@ -8,6 +8,20 @@ This plan follows the Stage 2 contract exhibits, Stage 3 capability gaps, Stage 
 
 The pass order below is an implementation sequence, not the console feature taxonomy. A single pass can cover several feature lanes when they share source-of-truth risk. The feature taxonomy remains the coverage gate for ensuring no service or operational surface is skipped.
 
+## Continuation Doctrine
+
+This plan deliberately keeps the original pass order while raising the proof standard inside each pass. The order prevents scope sprawl; the end-to-end method prevents shallow implementation from missing field-shape, payload, RLS, receiver, realtime, and app-consequence defects.
+
+Continue in this pattern:
+
+1. Pick the next Stage 6 pass in order unless an urgent production defect explicitly interrupts it.
+2. Read the pass subplan, service taxonomy rows, contract exhibits, and Stage 5 registers for that pass.
+3. Close the proof chain for every in-scope service and surface: `source truth -> service/query/RPC/Edge/Storage -> hook/context/state -> route/modal/panel/UI render -> button/form payload -> receiver -> app consequence`.
+4. Document exact code/SQL exhibits, importers, rendered fields, payload fields, disabled controls, missing receivers, app consequences, verification commands, and remaining blockers.
+5. Implement only the first safe executable slice named by the pass after the end-to-end closure is complete.
+
+Do not pause at pass-level inventory and call the service complete. Do not run a whole-repo service rewrite before Pass 1. The intended rhythm is pass-by-pass execution with service-level depth inside the active pass.
+
 ## Planning Rules
 
 - Do not start implementation from a page symptom alone. Start from the source-of-truth owner named in Stage 4.
@@ -51,6 +65,8 @@ Each pass must inventory the actual UI promise before implementing its owner cle
 ## Global Receiver And Field Gate
 
 The full source-row field register is maintained in `../../../database/console-app-alignment/TABLE_DOMAIN_MATRIX_2026-05-24.md`. The implementation sequence must consume it as follows:
+
+Each flow subplan now carries a first-slice field-to-UI/payload-to-receiver closure table. Before implementation, use the pass-local closure as the executable checklist for rendered fields, submitted payloads, disabled controls, missing receivers, and app-facing consequences. Do not treat the broader Stage 6 table below as a substitute for that exact surface/control audit.
 
 | Pass | Projection or payload that must be fixed first | Receiver boundary that cannot be guessed during coding | First executable implementation slice after gate clearance |
 | ---: | --- | --- | --- |
@@ -864,6 +880,7 @@ Before any pass starts, create or update a narrow checklist with:
 | Stage 5 coverage | Every service listed for the pass is either included, explicitly deferred, or marked out of scope with a reason. |
 | Operation class | Per user action: scoped read projection, authorized table CRUD, workflow command, derived read-only evidence, or excluded boundary. |
 | Field/receiver gate | Exact high-risk columns rendered or submitted, their source table, and the receiver/command or read projection allowed to own them. |
+| Parser/formatter gate | Database fields, imported rows, local cache values, and external payloads parsed or coerced by the UI, with allowed scalar/object/null/error shapes. |
 | Safe cleanup | Read-only owner moves, UI feedback, and copy-only changes. |
 | L5 repair | Backend/RPC/Edge/schema/policy changes, if any. |
 | Exclusions | Related tempting work that will not be touched. |
@@ -885,11 +902,13 @@ Each pass must clear these gates before code changes begin.
 | Surface exposure/operation gate | Every in-scope route, panel, modal, responsive variant and export records rendered fields and exposed controls by role, proves read exposure authority, and assigns each action/field to authorized CRUD, workflow command, read-only evidence or disabled/excluded status. | Insurance/admin fields render under unproved RLS or an editor submits fields the canonical receiver does not persist. |
 | Direct-boundary gate | The Stage 5 direct call-site register assigns every active non-service Supabase/Auth/Edge/Storage access in pass scope to move, retain as canonical adapter, disable, or retire. | A service facade is introduced while the page or context continues to read the same tables, own the same channel, invoke `exec_sql`, or claim Storage delivery independently. |
 | Edge topology gate | The Stage 5 receiver register proves the addressed Edge slug, deployable source owner, authentication rule, durable writer/reflection path and any cross-repo ownership for every command, delivered link, webhook or background worker in pass scope. | Console implements an invite, email unsubscribe, wallet or discovery promise from a README/category folder while the addressed slug is missing, app-owned or behaviorally different. |
+| Backend-writer consequence gate | The Stage 5 generated-truth register identifies every trigger/automation that can run after an exposed command and names the refreshed visible projection or intentionally missing/read-only surface. | A doctor status edit silently reassigns an active emergency, an invite seeds a role, or emergency completion creates billing/ledger/visit state that the Console cannot render accurately. |
 | Route/surface gate | The Stage 5 visible-surface register assigns route entitlement, navigation and panel visibility, primary action and mounted modal receiver for every operated flow in pass scope. | An org admin sees an inaccessible insurance route, a pricing action opens wallet top-up, or the emergency clinical-record button dispatches to no mounted receiver. |
 | Pagination/fetch gate | The Stage 5 reliability register classifies each in-scope list/search/export as server-paged, deliberately bounded, detail-only or unavailable, and names count/filter/sort/enrichment/realtime/error behavior. | A `1000`-row client cap is displayed as the full fleet/user total, an unpaged list is presented with paging controls, or a KPI failure blanks an otherwise valid operational list. |
 | Receiver gate | The Stage 2 contract exhibit names the table/RPC/Edge Function that will receive the mutation or read; an RPC source-name match proves inventory only, not authorization or behavioral correctness. | UI action says "cash fee deducted" but no backend receiver is confirmed to debit/credit ledger truth, or a present RPC is accepted without field/role/transition proof. |
 | Operation-class gate | The table-policy/RPC matrices say whether each control is read projection, ordinary CRUD, workflow command, derived read-only evidence, or excluded. | A modal exposes Edit/Delete for a transition, ledger, billing-result, patient-owned, or command-owned row merely because it is selectable. |
 | Field-contract gate | The table matrix/pass subplan names the exact high-risk identity, status, amount, eligibility, evidence, and linkage fields used by the surface. | Implementation discovers while coding that `hospital_id` received an organization UUID or an edited field is not persisted by the receiver. |
+| Parser/formatter gate | The Stage 5 parser register or pass checklist classifies every surviving `JSON.parse`, date/number coercion, object fallback chain, import parser and formatter assumption in scope. | A scalar `ambulance_type` value crashes the modal because the UI parsed it as JSON, or an invalid amount/date becomes a believable zero/today KPI. |
 | Trace-coverage gate | Existing generated app trace output is read or regenerated for required shared tables touched by the pass; May 25 baselines complete `45/45` shared-table coverage, including missing capability and scoped/excluded boundaries; source policy/RPC evidence remains authoritative. | An implementation changes a shared-table surface without comparing against its trace and authoritative receiver contract. |
 | Scope gate | The implementation checklist names files touched and files explicitly excluded. | Wallet top-up fix also edits dashboard analytics and subscriber emails. |
 | Data-safety gate | The checklist says whether the pass is read-only cleanup, UI-only, L5 backend repair, schema/RLS work, Edge Function work, or historical repair. | A migration/backfill is run while the pass was only approved for service cleanup. |

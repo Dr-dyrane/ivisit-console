@@ -21,3 +21,16 @@ Pass subplans are implementation handoffs. A pass is not a feature list; it is a
 ## Rule
 
 Each pass must name the feature/service rows it covers from `../services/CONSOLE_FEATURE_SERVICE_TAXONOMY_2026-05-24.md`, inventory each surface's rendered fields and visible controls by permitted role, classify every user action as scoped read projection, authorized CRUD, workflow command, backend-derived read-only evidence, or excluded boundary, and state the exact high-risk field/receiver gate for its first implementation slice. Every list, queue, search, aggregate, or export in scope must also be classified as server-paged, deliberately bounded, detail-only, or unavailable, with count/filter/sort, enrichment, realtime, stale-response, and failure-display behavior named. Before a pass is executable, it must complete the Stage 5 bidirectional runtime-truth trace: source entity to every runtime consumer and affected route/action to every local or globally mounted acquisition/receiver, including providers, context panels, map loaders, global modals, startup effects and exports. If a service is in scope without a checklist row, a rendered field lacks read/exposure authority, an action lacks a receiver class or field gate, a data surface has no reliability classification, or a mounted acquisition path is not traced, implementation pauses.
+
+## How To Continue A Pass
+
+For the active pass, work in this order:
+
+1. Confirm the pass's service rows in the taxonomy.
+2. List every importing file, direct Supabase/Auth/Edge/Storage caller, hook, context, route, modal, panel, map, export, and shell acquisition involved in that pass.
+3. For each rendered field, document the source field, normalizer/parser, UI label, fallback/degraded state, and app consequence.
+4. For each visible control, document the operation class, payload fields, receiver, authorization requirement, idempotency/audit need, reflected read, pending/error feedback, and disabled/unavailable rule.
+5. Mark service paths as complete only when both directions are closed: source to all consumers, and UI action back to receiver and app consequence.
+6. After documentation closure, implement only the first safe slice named in the pass subplan.
+
+This keeps the original Stage 6 sequence intact while making each pass deep enough for another engineer to continue without relying on memory or chat context.
