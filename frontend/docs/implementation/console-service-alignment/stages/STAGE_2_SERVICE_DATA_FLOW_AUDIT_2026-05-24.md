@@ -349,3 +349,15 @@ The outstanding provider-operations decision is now source-resolved:
 - The deterministic implementation plan is table-backed doctor scheduling in Pass 5: read/write/delete real `doctor_schedules`, compute overlap and statistics from stored shifts, and keep doctor availability as a separate state. Ambulance crew shift creation and synthetic full-day schedule rows are out of scope until a persisted authorized crew scheduling receiver exists.
 
 This resolution was added to the provider operations contract, Stage 5 inventory, service map, and table matrix by static source comparison only; no data mutation was performed.
+
+## Reverse Available-Receiver Coverage Pass
+
+The service inventory is now paired with a reverse source-of-truth inventory. Reading the shared `ivisit-app` pillar migrations identifies 45 source-declared public tables across identity, organization, logistics, finance, content, analytics, and pricing. A Console service scan alone cannot prove coverage when a required receiver has no Console adapter yet.
+
+The reverse matrix closes three previously omitted organization receivers: `hospital_import_logs`, `emergency_doctor_assignments`, and `hospital_media`. It also distinguishes:
+
+- Required missing Console surfaces: provider catalog/classification (`providers`), facility media provenance (`hospital_media`), real doctor schedule management (`doctor_schedules`), clinician emergency handoff (`emergency_doctor_assignments`), emergency transition timeline (`emergency_status_transitions`), request-scoped emergency chat (`emergency_chat_rooms`, `emergency_chat_participants`, `emergency_chat_messages`), and insurance billing outcome visibility (`insurance_billing`).
+- Existing receivers needing corrected visible ownership: import provenance (`hospital_import_logs`), privileged audit visibility (`admin_audit_log`), payment/ledger/capacity/pricing surfaces, and app-discovery facility classification.
+- Dependency or separate-surface boundaries: FX rates remain app/backend billing dependencies rather than Console-authored conversion truth; `documents` remains an `ivisit-docs` data-room boundary; patient wallet CRUD, patient consent preferences, and parallel user-role administration are not to be invented as Console CRUD merely because their tables exist.
+
+This coverage is recorded in `../../../database/console-app-alignment/TABLE_DOMAIN_MATRIX_2026-05-24.md` and propagated into the contract charts and implementation-pass subplans. It is a static audit/planning checkpoint only; no row, Storage, RPC, Edge Function, email, or migration mutation was performed.

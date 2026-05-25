@@ -250,6 +250,16 @@ The app no longer treats every provider row as a dispatchable hospital. Its hosp
 | Import service discovery | `hospitalImportService.importHospitalsFromGoogle()` invokes `discover-hospitals` with nearby coordinates, Google Places, and merge enabled (`hospitalImportService.js:13-56`). | App-owned function can persist `hospitals` and `providers` through service-role helpers. | high-authority external writer | Console import uses an app runtime writer for canonical provider truth; implementation must treat it as a backend mutation boundary, not just search autocomplete. |
 | Hospital media provenance | Modal writes `hospitals.image`; media source/confidence/attribution fields and `hospital_media` rows are not managed from the UI. | App media helpers choose between provider photo, provider image, domain logo, and fallback using source/confidence metadata. | provenance drift | Manual image edits can affect app presentation without recording why the image should override discovery/fallback media. |
 
+## Emergency Timeline, Communication, And Clinician Assignment Receiver Gaps
+
+These receivers do not appear in the current Console service inventory as active workflow owners, but they are part of the same operator-owned emergency event. Their absence is a missing operational surface, not proof that the capability is out of scope.
+
+| Shared receiver | Source/app evidence | Console evidence | Status | Implementation target |
+| --- | --- | --- | --- | --- |
+| `emergency_status_transitions` | Transition-guarded emergency RPCs record request state context before or with request updates (`ivisit-app/supabase/migrations/20260219010000_core_rpcs.sql:1585-1717`). | Present in generated database types; no rendered emergency timeline or read service was found in the runtime scan. | missing required read surface | Pass 1 renders append-only transition history in the emergency detail flow; Console must not invent or directly edit history. |
+| `emergency_chat_rooms`, `emergency_chat_participants`, `emergency_chat_messages` | App owns emergency chat creation, message send, read marker, and realtime through `ensure_emergency_chat_room`, `send_emergency_chat_message`, and `mark_emergency_chat_room_read` (`ivisit-app/services/emergencyChatService.js`; `ivisit-app/supabase/migrations/20260219010000_core_rpcs.sql:3335,3475,3625,3681`). | Tables exist in generated types; no Console emergency-chat service, modal, or page consumer was found. | missing required operational communication | Pass 1 adds request-scoped communication projection and action behind existing RPC and participant authority; emergency operators cannot be absent from an active care channel. |
+| `emergency_doctor_assignments` | Organization schema defines persisted assignment rows and core RPC exposes `assign_doctor_to_emergency` (`ivisit-app/supabase/migrations/20260219000200_org_structure.sql:288`; `ivisit-app/supabase/migrations/20260219010000_core_rpcs.sql:1067`). | No Console service, action, or projection writes or renders the persisted assignment; detail screens can only infer staff context. | missing required clinical handoff | Pass 1 establishes emergency-detail projection/action authority and Pass 5 integrates eligible scheduled clinicians; no display-only assignment fiction. |
+
 ## Implementation Pass Inputs
 
 Implementation should not begin until these ownership decisions are recorded:
@@ -272,6 +282,9 @@ Implementation should not begin until these ownership decisions are recorded:
 | Location utility consolidation | Reuse one location normalizer for `lat/lng`, `latitude/longitude`, GeoJSON, WKT, PostGIS hex, and address objects before rendering or sending responder/request location payloads. |
 | Dispatch entrypoint parity | Main-page, mobile, and map-panel dispatch controls should share the same cash/wallet/status preflight and user-facing failure messages before calling the dispatch RPC. |
 | Route/ETA selection proof | Do not describe console dispatch as optimized until ambulance selection uses route/ETA/proximity evidence instead of first available row selection. |
+| Emergency transition timeline | Render receiver-backed `emergency_status_transitions` history in the detail flow as read-only operational truth. |
+| Emergency communication | Provide request-scoped chat using the existing app/RPC participant and realtime authority; do not create a parallel message model. |
+| Clinician emergency handoff | Project and command `emergency_doctor_assignments` through the guarded assignment boundary, coordinated with real scheduled or eligible clinicians. |
 | Facility taxonomy ownership | Add a deliberate console owner for `provider_type`, emergency/booking eligibility, provider source, confidence, and media provenance before changing discovery/import or facility CRUD. |
 | Ledger repair ownership | Remove normal-page auto-mutation behavior from the supported CRUD path and assign maintenance invocation/audit ownership. |
 

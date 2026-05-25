@@ -183,6 +183,16 @@ The database defines `doctor_schedules` with actual `doctor_id`, `date`, `start_
 
 Determined implementation contract: Pass 5 adopts `doctor_schedules` as the sole doctor-shift CRUD/read/conflict/statistics owner through its existing authorized organization boundary. Doctor operational availability remains a distinct `doctors` state concern. Ambulance assignment and fleet availability remain visible operational context only; ambulance shift CRUD and generated date/time rows are excluded until a persisted crew-schedule receiver is deliberately introduced.
 
+## Provider Catalog, Facility Media, And Import Provenance Gap
+
+Hospital-row CRUD alone is not complete facility operations. The shared source has separate catalog, media, and import-provenance receivers that determine how facilities reach patient discovery and how operators can trust what they see.
+
+| Shared receiver | Source/app evidence | Console evidence | Status | Implementation target |
+| --- | --- | --- | --- | --- |
+| `providers` | Discovery/import can persist normalized provider rows and patient discovery uses provider taxonomy and eligibility context. | The active hospital modal manages `hospitals` fields but no runtime service manages a `providers` catalog or classification projection. | missing required capability | Pass 3 adds an explicit provider-catalog owner or a proven hospital-to-provider projection; facility editing must cover patient discovery categories and eligibility intentionally. |
+| `hospital_media` | Organization source declares media rows and app media projection selects provider, discovery, or manual media using provenance (`ivisit-app/supabase/migrations/20260219000200_org_structure.sql:328-385`). | Generated type exists; modal stores only `hospitals.image`, without table-backed source, confidence, attribution, or history. | missing required provenance | Pass 3 persists or deliberately projects canonical facility media provenance rather than treating an uploaded URL as complete media truth. |
+| `hospital_import_logs` | Source declares import-log rows with scoped policy support (`ivisit-app/supabase/migrations/20260219000200_org_structure.sql:65`; `ivisit-app/supabase/migrations/20260219000700_security.sql:332-361`). | `hospitalImportService.js` references the table and can continue after a missing-relation or error path; no clear durable rendered import-history owner was found. | implemented receiver, incomplete visibility | Pass 3 renders durable import provenance and actionable failure state so canonical provider writes are visible and attributable. |
+
 ## Provider Media And Storage Contract
 
 Provider media is a cross-pass storage boundary. `storageService.uploadImage()` writes to the public `images` bucket and returns a public URL (`storageService.js:3-28`). The active modal consumers are hospital, doctor, and ambulance forms (`HospitalModal.jsx:132`; `DoctorModal.jsx:74`; `AmbulanceModal.jsx:217`). No file type, file size, image dimension, or per-folder authorization guard is enforced in this helper; it relies on deployed Storage policies.
@@ -213,6 +223,9 @@ Current source policy evidence is incomplete: active console/app migrations defi
 | Doctor create/invite | Make profile identity the creation owner or link the created row deterministically; avoid create-then-trigger duplicate doctor rows. |
 | Doctor edits | Define which columns are projected from profile versus owned by the doctor directory. |
 | Staff scheduling | Implement org-authorized `doctor_schedules` CRUD/read/conflict/statistics for doctor shifts, remove generated doctor/ambulance shift rows, keep `doctors` availability distinct, and do not expose ambulance shift CRUD without a persisted receiver. |
+| Provider catalog | Make `providers` and hospital discovery classification an explicit Console capability rather than assuming hospital CRUD manages the patient catalog. |
+| Hospital media provenance | Adopt a receiver-backed `hospital_media` or supported provenance contract for facility imagery rather than raw URL-only editing. |
+| Import provenance | Render `hospital_import_logs` history and failures for provider-discovery mutations initiated through Console. |
 | Provider media | Verify Storage policy authority, then either persist only supported image fields or remove upload controls that cannot be attached to a row. Hospital image edits need provenance fields or an explicit "manual provider image" policy. |
 
 ## Read-Only Receiver Follow-Up

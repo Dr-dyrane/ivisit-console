@@ -23,13 +23,13 @@ The pass order below is an implementation sequence, not the console feature taxo
 
 | Order | Pass | Primary reason | Earliest safe work | Requires backend/RPC/Edge repair before UI truth |
 | ---: | --- | --- | --- | --- |
-| 1 | Emergency lifecycle and cash/payment truth | User safety, dispatch legality, and money movement meet in this path. | Centralize emergency reads/list/count/search; add safer pending/feedback states; stop page-level generic payment refetch. | Fallback emergency create parity, cash settlement, completion legality, tracking-ready route/ETA truth. |
+| 1 | Emergency lifecycle, communication, clinical handoff, and cash/payment truth | User safety, dispatch legality, communication, clinician handoff, and money movement meet in this path. | Centralize emergency reads/list/count/search; add scoped transition/chat/clinician-assignment projections; add safer pending/feedback states; stop page-level generic payment refetch. | Fallback emergency create parity, cash settlement, completion legality, tracking-ready route/ETA truth, emergency chat and clinician-assignment authority. |
 | 2 | Wallet, payout, Stripe functions, and ledger authority | Money movement and ledger correctness must not depend on UI repair/backfill paths. | Create wallet read facade; remove duplicate context/page/service reads; isolate maintenance actions. | Edge Function authorization, wallet reservation/sufficiency, ledger RLS/mutation policy, webhook reflection. |
-| 3 | Hospitals, availability, discovery, and pricing scope | Dispatch and app checkout depend on facility truth. | Centralize hospital/pricing reads; mark discovery fallback read-only; expose hospital-scoped pricing honestly. | Availability writer contract, provider taxonomy, dispatch eligibility, public discovery writes, multi-hospital org pricing semantics. |
+| 3 | Hospitals, provider catalog/media, availability, discovery, and pricing scope | Dispatch and app checkout depend on facility, catalog, media and pricing truth. | Centralize hospital/pricing reads; surface import/media provenance; mark discovery fallback read-only; expose hospital-scoped pricing honestly. | Availability receiver, provider/media authority, dispatch eligibility, public discovery writes, multi-hospital org pricing semantics. |
 | 4 | Identity, verification, and onboarding authority | Access, ownership, and dispatch certification are long-lived defects. | Move admin metrics/destructive RPCs behind services; document direct Auth/MFA exceptions; connect demo preference if retained. | Auth-backed profile creation, facility dispatch verification, onboarding hospital/org identity repair. |
 | 5 | Provider operations, ambulance telemetry, doctors, and scheduling | Dispatch operations need accurate responder and clinician state. | Move counts/lookups/modal reads to services; split map telemetry projection from CRUD; consolidate schedule read model. | Active-request-coupled telemetry, driver/profile assignment mirror, doctor/profile automation, `doctor_schedules` ownership. |
 | 6 | Visits ownership and request-derived history | Patient history should follow emergency truth. | Create visits read model; centralize count/search/hydration; guard request-derived rows. | Canonical repair/creation strategy for fallback emergency rows and request-derived visit lifecycle. |
-| 7 | Content, support, subscribers, and email | Patient/admin communication surfaces need clear lifecycle and RLS. | Consolidate health-news KPIs, support hook reuse, subscriber services, degraded flags. | Subscriber lifecycle owner, schema-current writes, welcome/unsubscribe/campaign state, support/content policies. |
+| 7 | Content, support, insurance billing, subscribers, and email | Patient/admin communication and billing-support surfaces need clear lifecycle and RLS. | Consolidate health-news KPIs, support hook reuse, insurance/subscriber services, scoped billing-result reads, degraded flags. | Insurance policy/billing authority, subscriber lifecycle owner, schema-current writes, welcome/unsubscribe/campaign state, support/content policies. |
 | 8 | Analytics, search, dashboard shell, realtime, and feedback polish | Dashboards should summarize fixed truth, not duplicate drift. | Remove production mock defaults, move analytics derivations to services, replace blank route fallback, dedupe realtime. | Stub trend regeneration, fallback analytics truth, audit failure policy. |
 
 ## Pass 1 - Emergency Lifecycle And Cash/Payment Truth
@@ -78,6 +78,8 @@ Receivers and app reference:
 | Package | Type | Target | Acceptance gate |
 | --- | --- | --- | --- |
 | Emergency read owner | Read-only owner cleanup | Move request list/count/search and summary reads out of page/context direct Supabase paths. | Page renders from emergency domain owner; no direct page count read for request totals. |
+| Emergency audit and communication projection | Missing surface/read owner | Add scoped status-transition timeline and chat room/message/read-state projection for operated requests. | Operator can see app-shared urgent communication/history without mutating append-only transition evidence directly. |
+| Clinician assignment owner | Missing L5 capability | Add guarded `emergency_doctor_assignments`/assignment RPC projection and command contract. | Assigned clinician state is persisted and visible rather than inferred from a suggested doctor object. |
 | Payment-aware invalidation | Read-only owner cleanup | Replace generic page-owned `payments` refetch with emergency/payment domain invalidation. | Payment event handling is documented at the owner boundary. |
 | Action feedback guard | UI feedback | Add pending/disabled guards and backend-truth success copy for dispatch, complete, cash, and retry. | No success copy claims dispatch/completion/cash settlement before backend confirmation. |
 | Fallback create contract | L5 repair | Align or retire `console_create_emergency_request` fallback relative to `create_emergency_v4`. | Fallback path either creates required linked truth or is not available for app-parity emergency creation. |
@@ -275,6 +277,8 @@ Console services and receivers:
 | Scoped pricing UX | UI/service cleanup | Make hospital-scoped versus organization-scoped pricing explicit. | Multi-hospital orgs cannot silently write only earliest-hospital pricing. |
 | Availability writer resolution | L5 repair | Route operational capacity/status/wait changes through `update_hospital_availability`; keep metadata edits separate. | Console capacity edits persist all app-visible fields intentionally. |
 | Discovery authority | L5 repair | Restrict/authorize provider persistence and align modal request/response contract. | Discovery cannot write canonical provider rows without operator authority. |
+| Provider catalog and media provenance | Missing capability/L5 repair | Add authorized `providers` classification and `hospital_media` provenance handling to facility operations. | Console can operate app-visible provider eligibility and media source truth, not only the base hospital row. |
+| Import provenance visibility | Read owner repair | Surface `hospital_import_logs` state and failures for import actions. | Imported/pending/failed provider writes have durable operator-visible provenance. |
 
 ### Detailed Checklist
 
@@ -424,7 +428,8 @@ Console services and receivers:
 | Provider read/lookups | Read-only owner cleanup | Move doctor/ambulance counts, hospital lookups, driver occupancy, modal support reads into services. | Modals do not query supporting tables directly. |
 | Ambulance telemetry owner | L5 repair | Align generic location/status writes with active-request telemetry contract. | Responder map updates use request-coupled receiver when dispatch/tracking state is affected. |
 | Doctor/profile automation | L5 repair | Decide doctor CRUD relationship to profile-trigger automation. | Manual doctor creation cannot create duplicate/unlinked directory truth. |
-| Schedule ownership | L5 repair | Decide `doctor_schedules` versus status-only scheduling model. | UI no longer collects shift fields that are discarded. |
+| Schedule ownership | L5 repair | Implement org-authorized `doctor_schedules` read/CRUD/conflict/statistics and remove status-derived shift fiction. | UI no longer collects shift fields that are discarded. |
+| Clinical assignment integration | Cross-pass L5 capability | Coordinate doctor availability/readiness with Pass 1's persisted `emergency_doctor_assignments` command/projection. | A doctor shown as assigned in emergency operations has a canonical assignment row/state. |
 
 ### Detailed Checklist
 
@@ -569,6 +574,7 @@ Console services and receivers:
 | Support hook reuse | Read-only owner cleanup | Reuse support service/hook across page/panel. | Duplicate support realtime/direct reads are removed. |
 | Subscriber facade | Service cleanup | Consolidate subscriber/subscription services and remove runtime schema fallback writes. | Subscriber payload is pinned to current schema truth. |
 | Email lifecycle owner | L5 repair | Define welcome/custom/bulk/unsubscribe state machine. | Welcome email cannot be sent twice by competing lifecycle writers. |
+| Insurance billing outcome owner | Missing scoped surface | Expose authorized `insurance_billing` result/claim context alongside policy and completed-care support flows. | Admin/hospital support can inspect trigger-created billing outcomes without inventing policy mutation authority. |
 
 ### Detailed Checklist
 
@@ -663,7 +669,7 @@ Console services and receivers:
   - shell summary selectors
   - or explicit domain hooks in the consuming page/panel
 - Remove production mock initial records and global `setUseMockData(true)` fallback behavior.
-- If demo mode remains, wire it to `preferencesService.demo_mode_enabled` and label all affected dashboard panels.
+- Remove operational dashboard dependence on mock/demo fallback. Patient app demo preference is not a Console operational-data switch.
 
 #### 8B. Analytics Truth
 

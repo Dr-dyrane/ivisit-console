@@ -12,3 +12,5 @@ This folder owns complete service inventory and feature taxonomy. It prevents im
 ## Rule
 
 Avoid one file per service unless a service requires deep evidence. The default is a dense ledger plus targeted deep dives only when the service has high-risk writes, money movement, emergency safety, authorization, or cross-surface app parity.
+
+Service-file coverage is necessary but not sufficient. Pair Stage 5 with the reverse 45-table capability ledger in `../../../database/console-app-alignment/TABLE_DOMAIN_MATRIX_2026-05-24.md` so table-backed operational capabilities with no current Console service are still explicitly classified.

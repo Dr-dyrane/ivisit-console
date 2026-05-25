@@ -20,11 +20,13 @@ Canonical service inventory source:
 | --- | --- | --- | --- |
 | Emergency command center | Request list, detail, cash approval, retry payment, dispatch legality, completion. | `emergencyService.js`, `emergencyResponseService.js`, `walletService.js`, `visitsService.js` | Pass 1 |
 | Emergency detail and clinical handoff | Modal/list/table detail, request-derived visit, payment visibility, scoped realtime. | `emergencyService.js`, `visitsService.js`, `medicalProfilesService.js` | Pass 1 / Pass 6 |
+| Emergency communication and transition history | Status timeline, request-scoped patient/provider chat, participants, read state, message sending. | Missing Console service for shared chat/transition receivers. | Pass 1 |
 | Wallet and ledger operations | Platform/org wallet summary, ledger, payments, projections, cash-fee reflection. | `walletService.js`, `activityService.js`, `organizationsService.js` | Pass 2 |
 | Stripe billing and payout methods | Setup intents, saved cards, payout methods, top-up, payout, webhook reflection. | `walletService.js` | Pass 2 |
 | Facility registry | Hospital/facility CRUD, verification flags, org ownership, app-visible facility truth. | `hospitalsService.js`, `organizationsService.js`, `displayIdService.js` | Pass 3 / Pass 4 |
 | Capacity and bed management | Bed counts, reservations, availability, discharge/cancel/arrived actions. | `bedManagementService.js`, `hospitalsService.js`, `emergencyService.js` | Pass 3 |
 | Facility discovery and import | Google/Edge discovery, import approval/rejection, assignment, discovery fallback. | `hospitalImportService.js`, `hospitalsService.js` | Pass 3 |
+| Provider catalog and facility media provenance | App-visible provider classification, emergency/booking eligibility, media source/confidence/selection. | Missing Console service boundary for `providers` and `hospital_media`; current hospital/image paths are insufficient. | Pass 3 |
 | Pricing management | Service pricing, room pricing, global/org/hospital scope, app checkout parity. | `pricingService.js`, `hospitalsService.js`, `organizationsService.js` | Pass 3 |
 | Organization registry | Organization CRUD, wallet scope, user/org/facility relationships. | `organizationsService.js`, `profilesService.js`, `walletService.js` | Pass 4 |
 | Onboarding | New org admin account, organization/facility setup, verification docs, onboarding status. | `onboardingService.js`, `authService.js`, `profilesService.js`, `organizationsService.js`, `storageService.js` | Pass 4 |
@@ -33,11 +35,13 @@ Canonical service inventory source:
 | Ambulance fleet | Ambulance CRUD, vehicle status, driver assignment, hospital/org scope, media. | `ambulancesService.js`, `driverManagementService.js`, `storageService.js` | Pass 5 |
 | Driver and responder operations | Active assignment, trip status, responder location, telemetry freshness. | `driverManagementService.js`, `emergencyResponseService.js`, `supabaseMapService.js` | Pass 5 |
 | Doctor/provider operations | Doctor CRUD, profile linkage, availability, provider readiness. | `doctorsService.js`, `profilesService.js`, `verificationService.js`, `storageService.js` | Pass 5 |
+| Emergency clinician assignment | Assign/track clinician handoff for an operated emergency request. | Missing Console command/read owner for `emergency_doctor_assignments`. | Pass 1 / Pass 5 |
 | Staff scheduling | Doctor shifts, crew projections, conflict checks, schedule realtime. | `staffSchedulingService.js`, `doctorsService.js`, `ambulancesService.js` | Pass 5 |
 | Operations map | God mode map, map projections, nearby hospitals, scoped realtime, fallback map provider. | `supabaseMapService.js`, `emergencyResponseService.js`, `driverManagementService.js` | Pass 5 / Pass 8 |
 | Visits and clinical records | Visit list/detail/actions, emergency-derived history, doctor/hospital/patient hydration. | `visitsService.js`, `doctorsService.js`, `hospitalsService.js`, `profilesService.js`, `emergencyService.js` | Pass 6 |
 | Medical profile support | Patient medical profile, allergies, medications, emergency contacts, clinical visibility. | `medicalProfilesService.js`, `preferencesService.js` | Pass 6 / Pass 7 |
 | Insurance management | Policy CRUD, verification, card images, admin/patient scope. | `insuranceService.js`, `insurancePoliciesService.js`, `storageService.js` | Pass 7 |
+| Insurance billing outcomes | Trigger-created emergency billing/claim visibility and authorized exception handling. | Missing Console service/view for `insurance_billing`. | Pass 2 / Pass 7 |
 | Support operations | Support tickets, assignment, status, patient receipt, analytics. | `supportTicketsService.js`, `notificationService.js` | Pass 7 |
 | Support knowledge base | Patient-app FAQ read truth; console authoring remains dormant until an authorized receiver/route exists. | `supportFaqsService.js` | Pass 7 |
 | Health content | Curated published health-news feed; article-body/draft authoring remains disabled until fields and write policy exist. | `healthNewsService.js`, `notificationService.js`, `storageService.js` | Pass 7 |

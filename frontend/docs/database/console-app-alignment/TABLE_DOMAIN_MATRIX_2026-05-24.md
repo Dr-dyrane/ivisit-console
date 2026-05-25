@@ -2,7 +2,7 @@
 
 ## Status
 
-Started. This is the first database subtree matrix for Stage 1. It is based on static migration reads only; live/staging introspection is not yet verified.
+Expanded reverse capability matrix. It now inventories all 45 shared source-declared tables from the reviewed migration pillars and classifies whether Console currently consumes them, truthfully operates them, must add a capability, or must deliberately leave them outside Console ownership. Static source evidence remains primary; named SELECT-only follow-ups do not prove mutation behavior.
 
 ## Sources Read
 
@@ -31,9 +31,12 @@ Started. This is the first database subtree matrix for Stage 1. It is based on s
 | Identity | `user_sessions` | `20260219000100_identity.sql:179` | UUID primary key | no observed display ID | users see own sessions | none yet | low/medium: admin metrics may depend on stale session fields |
 | Organization | `organizations` | `20260219000200_org_structure.sql:5` | UUID primary key | yes, stamped | public active read only in current source; admin CRUD policy not proven | new organization trigger creates wallet | high: console registry direct create/update/delete needs guarded admin authority; org wallet, fees, provider scoping depend on this row |
 | Organization | `hospitals` | `20260219000200_org_structure.sql:19` | UUID primary key | yes, stamped | public verified read; org admin scoped management | bed normalization and dispatch eligibility triggers; availability RPC | high: app discovery, emergency, pricing, and map flows rely on exact fields |
+| Organization | `hospital_import_logs` | `20260219000200_org_structure.sql:65` | UUID primary key, creator scoped | no observed display ID | admin manage; creator read/insert/update | import lifecycle record | medium/high: Console import service references it but can silently continue when the relation is missing |
 | Organization | `providers` | `20260219000200_org_structure.sql:99` | UUID primary key, linked to `hospitals.id` | no display ID declared | public verified/demo provider read; service-role and org-admin hospital-scoped management | `updated_at` trigger | high: app Explore Care owns taxonomy consumption while console hospital CRUD does not expose provider taxonomy fields |
 | Organization | `doctors` | `20260219000200_org_structure.sql:249` | UUID primary key | yes, stamped | public read; org admin manage | profile-to-doctor sync; doctor availability failover | high: app booking and emergency doctor assignment depend on shape |
 | Organization | `doctor_schedules` | `20260219000200_org_structure.sql:276` | UUID primary key, doctor scoped | no observed display ID | public read; org admin/admin manage through doctor hospital organization | doctor/date index; no `notes` or status projection column | high: authorized doctor-shift receiver exists, while console currently bypasses it and invents date/time rows from status |
+| Organization | `emergency_doctor_assignments` | `20260219000200_org_structure.sql:288` | UUID primary key, request/doctor scoped | no observed display ID | patient/request scoped read; org admin/admin manage doctor-org rows | emergency clinician assignment record | high: app/shared RPC receiver exists while Console has no table/RPC-backed clinician-assignment surface |
+| Organization | `hospital_media` | `20260219000200_org_structure.sql:328` | UUID primary key, hospital scoped | no observed display ID | public active read; org admin manage own hospital media | media provenance and selected asset state | high: Console edits raw `hospitals.image` without operating app-visible media provenance rows |
 | Logistics | `ambulances` | `20260219000300_logistics.sql:5` | UUID primary key | yes, stamped | public read; org admin manage | status/location/availability failover; dispatch triggers | high: emergency dispatch and realtime tracking depend on exact status/location semantics |
 | Logistics | `emergency_requests` | `20260219000300_logistics.sql:31` | UUID primary key | yes, stamped | user, org admin, console/helper guarded | active-request unique indexes; status write-path enforcement; status transition logging; resource sync | critical: app and console must not bypass RPC status paths |
 | Logistics | `emergency_status_transitions` | `20260219000300_logistics.sql:91` | UUID primary key | no observed display ID | scoped read | append-only intent; logging and validation triggers | critical: audit ledger for emergency status; console should not update/delete |
@@ -63,6 +66,91 @@ Started. This is the first database subtree matrix for Stage 1. It is based on s
 | Analytics | `trending_topics` | `20260219000600_analytics.sql:63` | UUID primary key | no observed display ID | public read; admin manage | update RPCs return success without aggregation; cron not source-controlled | medium/high: visible reads are manual/read-only until a real generation receiver exists |
 | Pricing | `service_pricing` | `20260219000800_emergency_logic.sql:1615` | UUID primary key | no observed display ID | public active read; org admin manage | upsert/delete RPCs; `updated_at` trigger | high: app cost calculation depends on pricing hierarchy |
 | Pricing | `room_pricing` | `20260219000800_emergency_logic.sql:1628` | UUID primary key | no observed display ID | public active read; org admin manage | upsert/delete RPCs; `updated_at` trigger | high: bed request cost and availability depend on it |
+
+## Reverse Console Capability Ledger
+
+Classification is deliberately strict:
+
+- `Implemented` means a rendered Console surface or active service consumes the receiver.
+- `Drifted` means Console exposes the capability but its fields, authority, or lifecycle are not truthful enough for implementation closure.
+- `Missing required surface` means the table/RPC supports an operator responsibility that Console must add because it manages the related app/operations flow.
+- `Read-only/dependency` means Console may display scoped truth but must not create independent mutation semantics.
+- `Excluded` means the table belongs to patient ownership, platform infrastructure, or another iVisit surface unless a later authorized workflow is established.
+
+### Identity And Access
+
+| Table | App/shared receiver role | Current Console evidence | Classification | Required Console contract | Pass |
+| --- | --- | --- | --- | --- | --- |
+| `id_mappings` | UUID/display-ID resolution infrastructure | `displayIdService` resolves display identity through helpers/RPC behavior; no direct table CRUD required. | Implemented infrastructure | Continue entity-aware lookup only; never add manual mapping CRUD. | Pass 4 |
+| `profiles` | Auth-linked user/provider/org membership truth | Users, verification, onboarding, doctor and settings surfaces read/write profiles. | Drifted | Move creation/role/org/provider mutations behind auth/admin-authorized receivers; do not direct-insert orphan profiles. | Pass 4 |
+| `preferences` | Patient/operator own preferences | `preferencesService` exists but no importer; visible Settings notification switch is fixed on. | Missing limited surface | Implement only signed-in operator notification/display preferences; keep patient consent/demo controls app-owned. | Pass 8 |
+| `medical_profiles` | Patient medical record and emergency medical RPC source | `medicalProfilesService` exists with no rendered owner; source policy is owner-only. | Missing restricted read projection; CRUD excluded | Expose emergency/clinical context only through an authorized care/support receiver when required; no broad admin CRUD. | Pass 6 |
+| `emergency_contacts` | Patient-owned emergency contacts used in urgent context | No active Console contact-management surface; service references are not an authorized operator owner. | Missing restricted read projection; CRUD excluded | Consume contact snapshot only within authorized emergency/detail workflow; patient remains edit owner. | Pass 1 / Pass 6 |
+| `subscribers` | Marketing subscription and email lifecycle | Subscription page/hook/modal actively operate rows and email commands. | Drifted | Retain `subscriptionService` facade; enforce platform-admin scope, idempotent sends, and receiver-backed result state. | Pass 7 |
+| `user_roles` | Own-user role association table | Only generated type reference found; Console uses `profiles.role`/Auth behavior instead. | Excluded from direct Console CRUD | Treat effective role changes through the approved identity/admin receiver; do not invent parallel `user_roles` administration. | Pass 4 |
+| `user_sessions` | Own-user session records | `adminService` counts sessions although source policy proves users see their own sessions only. | Drifted/missing authorized audit read | Remove unsupported admin KPI or add an authorized security-audit receiver before displaying session analytics. | Pass 4 |
+
+### Organization, Provider, And Capacity
+
+| Table | App/shared receiver role | Current Console evidence | Classification | Required Console contract | Pass |
+| --- | --- | --- | --- | --- | --- |
+| `organizations` | Organization identity and wallet trigger parent | Organization registry direct CRUD and onboarding paths exist. | Drifted | Add guarded registry/onboarding authority and preserve organization-versus-hospital identity. | Pass 4 |
+| `hospitals` | Facility, verification, capacity, dispatch eligibility | Hospital CRUD/modal/import/capacity surfaces are active. | Drifted | Keep metadata CRUD scoped; use operational availability receiver; add taxonomy/eligibility support. | Pass 3 / Pass 4 |
+| `hospital_import_logs` | Import provenance and status record | `hospitalImportService` writes/reads it and catches missing-relation errors; no clear operator history surface was proven. | Implemented service, incomplete visibility | Render import outcome/history where import is enabled and stop treating absent log storage as successful provenance. | Pass 3 |
+| `providers` | Explore Care/provider taxonomy catalog beneath hospitals | No runtime table operation found; Console hospital form omits provider taxonomy/eligibility fields. | Missing required surface | Add deliberate catalog/classification management or an authorized projection so Console can operate all provider types the app consumes. | Pass 3 |
+| `doctors` | Provider directory and availability | Doctor pages/modals/services are active. | Drifted | Align profile linkage and directory-owned fields; avoid duplicate trigger-created doctors. | Pass 5 |
+| `doctor_schedules` | Persisted doctor shifts | Runtime only carries types; scheduling service manufactures status-derived rows. | Missing required surface | Implement stored shift read/CRUD/conflict/statistics through organization-authorized rows. | Pass 5 |
+| `emergency_doctor_assignments` | Clinician assignment to emergency requests | Type reference only; Console emergency response chooses a doctor object but does not use the assignment table/RPC receiver. | Missing required surface | Add assignment/readiness/handoff command and detail projection through guarded clinician-assignment receiver. | Pass 1 / Pass 5 |
+| `hospital_media` | Facility media provenance and active image selection | Type reference only; Console writes raw `hospitals.image`. | Missing required surface | Manage or explicitly preserve media provenance when Console modifies facility presentation. | Pass 3 |
+
+### Emergency, Dispatch, And Communication
+
+| Table | App/shared receiver role | Current Console evidence | Classification | Required Console contract | Pass |
+| --- | --- | --- | --- | --- | --- |
+| `ambulances` | Fleet identity, assignment, active trip telemetry | Fleet, map and driver surfaces are active. | Drifted | Correct hospital/org identity and status enums; use request-coupled telemetry for active trips. | Pass 5 |
+| `emergency_requests` | Canonical urgent request lifecycle | Emergency list/detail/map/actions are active. | Drifted critical | Use app-parity create and guarded lifecycle RPCs; normalize detail/mobile projection. | Pass 1 |
+| `emergency_status_transitions` | Append-only lifecycle evidence | No rendered transition timeline found outside generated types. | Missing required read surface; mutation excluded | Show scoped status history/audit in emergency detail; never allow update/delete. | Pass 1 |
+| `visits` | Clinical/admin visits and request-derived handoff rows | Visits and emergency-detail lookups are active. | Drifted | Separate administrative visits from request-owned rows; use canonical request lookup and read-only clinical completion unless authorized. | Pass 6 |
+| `emergency_chat_rooms` | Request-linked urgent communication room | Type-only Console reference; app owns actual chat service/RPC flow. | Missing required surface | Console dispatch/provider workflow needs scoped room access for emergencies it operates. | Pass 1 |
+| `emergency_chat_participants` | Authorized room participants/read state | Type-only Console reference. | Missing required surface | Consume participant/read visibility through the chat workflow receiver; no direct membership editing outside authorized RPC. | Pass 1 |
+| `emergency_chat_messages` | Urgent message thread and read tracking | Type-only Console reference; app implements send/read/realtime. | Missing required surface | Add guarded send/read/realtime thread capability for operated emergencies, preserving app communication truth. | Pass 1 |
+
+### Payments, Billing, And Insurance
+
+| Table | App/shared receiver role | Current Console evidence | Classification | Required Console contract | Pass |
+| --- | --- | --- | --- | --- | --- |
+| `organization_wallets` | Provider organization balance | Wallet surface and organization service consume it. | Drifted | Read scoped wallet truth and route money movement through verified backend commands. | Pass 2 |
+| `patient_wallets` | Patient-owned payment balance | Schema/helper references only; no Console patient-wallet management surface proven. | Excluded from general CRUD | Only expose a restricted support/audit read if an authorized receiver and user-support need are established. | Pass 2 |
+| `ivisit_main_wallet` | Platform wallet | Admin wallet surface reads it. | Implemented, lifecycle-sensitive | Keep admin-only summary; reflect balance changes only from settled backend truth. | Pass 2 |
+| `wallet_ledger` | Append-only money evidence | Wallet pages/services read it and repair-adjacent behavior exists. | Drifted critical | Treat as append-only/read projection; remove normal UI repair mutation and prove scoped ledger visibility. | Pass 2 |
+| `payment_methods` | Patient/organization Stripe method reflection | Emergency/payment/card behavior references payment methods; organization receiver fields are drifted. | Drifted | Keep Stripe/RPC/Edge ownership; do not direct-manage organization methods against absent fields. | Pass 2 |
+| `payments` | Payment state and settlement linkage | Emergency and wallet workflows consume payments. | Drifted critical | Do not show completion before confirmation; consolidate cash/card/wallet/approval state. | Pass 1 / Pass 2 |
+| `exchange_rates` | App-owned quote/settlement conversion cache | Generated type only; no Console FX service or rendered quote. | Read-only/dependency | Expose currency/rate basis only if finance reporting needs it; no independent Console conversion/write logic. | Pass 2 |
+| `insurance_policies` | Patient insurance policy and coverage input | Insurance page/modal/services actively promise administrative operations. | Drifted/unauthorized | Use one facade and add guarded admin/support authority before verification or patient-policy mutation. | Pass 7 |
+| `insurance_billing` | Emergency-completion insurance claim/billing result | Generated type only; no rendered Console billing outcome surface. | Missing required read/action surface | Add scoped billing/claim visibility for hospitals/admin and any authorized exception workflow; preserve trigger-owned creation. | Pass 2 / Pass 7 |
+
+### Content, Support, And Notifications
+
+| Table | App/shared receiver role | Current Console evidence | Classification | Required Console contract | Pass |
+| --- | --- | --- | --- | --- | --- |
+| `notifications` | User/operator event notifications | Notification service and center are active. | Implemented with policy gaps | Keep operator stream scoped; do not claim unsupported patient delete/lifecycle operations. | Pass 7 / Pass 8 |
+| `support_tickets` | Patient support requests and management state | Support page/hook/service are active. | Drifted | Reconcile receipt fields, response model, roles, assignment and delete authority. | Pass 7 |
+| `support_faqs` | Public patient knowledge-base reads | Dormant Console CRUD adapter; app actively reads FAQs. | Excluded from current Console authoring | Keep read truth in app; add Console authoring only after admin receiver and explicit route exist. | Pass 7 |
+| `health_news` | Published public health-content feed | Console management page exposes draft/edit/publish actions. | Drifted/unauthorized | Retain curated published-feed contract only until fields and authoring policy exist. | Pass 7 |
+| `documents` | Data-room/content document rows | Console uploads Storage objects named `documents`, but no table CRUD surface exists. | Excluded from Console; owned by `iVisit-docs` boundary | Do not conflate Storage evidence with data-room records or build Console data-room management. | Pass 7 |
+
+### Analytics, Audit, Search, And Pricing
+
+| Table | App/shared receiver role | Current Console evidence | Classification | Required Console contract | Pass |
+| --- | --- | --- | --- | --- | --- |
+| `user_activity` | Low-risk activity feed via guarded RPCs | Activity service/hook/context consume it; broad realtime duplicates ownership. | Implemented/read-owner drift | Consolidate read/realtime owner; do not use as critical mutation audit evidence. | Pass 8 |
+| `admin_audit_log` | Privileged admin action evidence | `adminService` inserts and reads it; logging failures can be swallowed. | Implemented/incomplete guarantee | Make critical admin actions fail visibly or prove durable audit persistence. | Pass 4 / Pass 8 |
+| `search_history` | User-private recent search state | QuickSearch writes through `searchService`; separate adapter dormant. | Implemented with duplicate adapter | Keep QuickSearch owner and privacy boundary; do not globally expose raw history. | Pass 8 |
+| `search_selections` | Search selection telemetry | QuickSearch writes through `searchService`; separate adapter dormant. | Implemented with duplicate adapter | Keep permitted write path and aggregate/admin reads only when authorized. | Pass 8 |
+| `search_events` | Search analytics input | Search/analytics services can write/read events. | Implemented/analytics truth drift | Use guarded aggregation and eliminate fabricated fallback results. | Pass 8 |
+| `trending_topics` | Visible trend rows; optional generated refresh | Adapter exists without direct rendered management; generation RPCs are no-op success paths. | Read-only/manual; generated capability missing | Allow labelled manual reads only; disable regeneration until receiver does real work. | Pass 8 |
+| `service_pricing` | Facility service prices | Pricing page/service actively CRUD rows. | Drifted scope | Require facility identity; do not present earliest-hospital writes as organization pricing. | Pass 3 |
+| `room_pricing` | Facility room/bed category prices | Pricing page/service actively CRUD rows. | Drifted scope | Require facility/room category truth and align reservation/capacity display. | Pass 3 |
 
 ## Early Findings
 
@@ -106,10 +194,16 @@ Started. This is the first database subtree matrix for Stage 1. It is based on s
 38. Preferences are split by ownership: app emergency/demo/privacy behavior consumes the user preference row, while console renders an unwired notification switch. Console may write only the operator's own notification setting, not patient consent behavior.
 39. Dashboard analytics currently substitutes positive or plausible-looking data for missing truth: `95%` success with no requests, operational mock fallback rows, estimated responder counts, and fixed performance telemetry.
 40. Staff scheduling has a real receiver and a false projection: `doctor_schedules` is org-admin/admin manageable in source policy, but console reads no stored shifts, writes only `doctors.status`, invents shift dates/times, and attempts fleet context through absent `ambulances.hospital`. Pass 5 must adopt table-backed doctor shifts and leave ambulance shift CRUD out until it has a persisted receiver.
+41. The complete migration inventory contains 45 source-declared tables, including `hospital_import_logs`, `hospital_media`, and `emergency_doctor_assignments`, which were not in the earlier matrix rows. Coverage claims must use the migration inventory, not merely Console service references.
+42. Console has no runtime implementation for app-backed emergency communication tables (`emergency_chat_rooms`, `emergency_chat_participants`, `emergency_chat_messages`). Because Console operates emergency response, this is a required scoped operational surface, not an optional patient-only feature.
+43. Console has no persisted clinician-assignment surface for `emergency_doctor_assignments`, even though emergencies and doctor operations are already rendered. Emergency/provider passes must include guarded doctor assignment and handoff truth.
+44. `hospital_media` and `providers` prove that facility management is broader than hospital row CRUD: Console cannot yet operate app-visible provider catalog classification or media provenance while it can alter the base facility row/image.
+45. `insurance_billing` is trigger-backed claim/billing truth with hospital/admin read scope, but Console currently has no billing-outcome view or authorized exception-handling lane. Policy management alone does not cover insurance operations.
 
 ## Next Matrix Work
 
-- Expand this table with exact column clusters per table.
+- Keep the 45-table reverse capability ledger current whenever the shared source adds, archives, or reassigns a table.
+- Expand high-risk implementation-pass rows with exact column clusters per table.
 - Add policy names and helper functions per table.
 - Add trigger names and side effects per table.
 - Compare against `ivisit-app/supabase/tests/validation/table_flow_trace_*.md`.

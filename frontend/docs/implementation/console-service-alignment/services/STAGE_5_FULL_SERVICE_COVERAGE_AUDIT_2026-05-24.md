@@ -93,6 +93,25 @@ These services had zero or near-zero explicit audit coverage before this stage a
 - `searchHistoryService.js`
 - `searchSelectionsService.js`
 - `storageService.js`
+
+## Reverse Receiver Gaps Beyond Existing Services
+
+The service inventory is complete for `frontend/src/services/*.js`, but it cannot prove coverage of a backend capability for which Console has no service. A reverse scan of all 45 shared source-declared tables identifies these additional implementation obligations:
+
+| Available receiver | Console runtime evidence | Disposition | Pass owner |
+| --- | --- | --- | --- |
+| `providers` | No table-backed provider-catalog management path; hospital CRUD omits app-visible taxonomy/eligibility. | Missing required provider catalog/classification capability. | Pass 3 |
+| `hospital_media` | Type-only reference; Console mutates raw hospital image URL without provenance ownership. | Missing required facility media provenance capability. | Pass 3 |
+| `doctor_schedules` | Type-only receiver reference; active scheduling service does not use table. | Missing required table-backed doctor scheduling capability. | Pass 5 |
+| `emergency_doctor_assignments` | Type-only reference; no guarded clinician assignment workflow found. | Missing required emergency clinical handoff capability. | Pass 1 / Pass 5 |
+| `emergency_status_transitions` | Type-only reference; no visible status-history read surface found. | Missing required read-only emergency audit timeline; mutation prohibited. | Pass 1 |
+| `emergency_chat_rooms`, `emergency_chat_participants`, `emergency_chat_messages` | Type-only references while patient app has a chat service/RPC flow. | Missing required scoped emergency communication capability. | Pass 1 |
+| `insurance_billing` | Type-only reference; policy UI does not show trigger-created billing outcomes. | Missing required scoped billing outcome/read-exception capability. | Pass 2 / Pass 7 |
+| `exchange_rates` | Type-only reference; billing quote/rate refresh is app-owned. | Explicit dependency only; add reporting visibility only if required, no Console mutation logic. | Pass 2 |
+| `documents` | Storage upload paths exist, but no data-room table operations. | Explicitly outside Console data-room ownership; do not implement here. | Pass 7 boundary check |
+| `user_roles` | Type-only reference; profile/Auth receivers own effective Console identity flow. | Explicitly no parallel Console CRUD. | Pass 4 |
+
+`hospital_import_logs` and `admin_audit_log` are the inverse case: they already have active Console service references but need durable visibility/error handling rather than a new backend receiver.
 - `supportFaqsService.js`
 - `preferencesService.js`
 - `trendingTopicsService.js`

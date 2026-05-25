@@ -4,7 +4,7 @@
 
 Detailed implementation subplan only. No product, database, Edge Function, import, storage, cleanup, seed, migration, or runtime mutation is authorized by this document.
 
-This subplan covers hospital/facility management, Google discovery/import, bed/capacity truth, storage/media uploads, pricing scope, and dispatch/app visibility.
+This subplan covers hospital/facility management, provider catalog classification, hospital media provenance, Google discovery/import provenance, bed/capacity truth, storage/media uploads, pricing scope, and dispatch/app visibility.
 
 ## Source Evidence
 
@@ -22,6 +22,7 @@ Console files inspected:
 - `frontend/src/services/storageService.js`
 - `frontend/src/services/organizationsService.js`
 - `frontend/src/contexts/PageDataContext.jsx`
+- Shared receivers `providers`, `hospital_media`, and `hospital_import_logs` from the app-owned organization schema/policy source.
 
 Audit docs:
 
@@ -40,6 +41,7 @@ Observed source signals:
 - `hospitalsService.updateHospital` uses `update_hospital_by_admin`, while some status/bed count updates still write direct table fields.
 - `hospitalImportService` invokes `discover-hospitals`, falls back to `nearby_hospitals`, and includes approval/rejection/assignment paths.
 - `pricingService` maps hospital-scoped pricing back to organization scope and chooses the first hospital for organization writes.
+- Console has no runtime `providers` or `hospital_media` owner beyond base hospital/image editing, while `hospitalImportService` references `hospital_import_logs` without a proven rendered import-history owner.
 
 ## User Flow
 
@@ -48,7 +50,7 @@ Operator path:
 1. Open hospitals/facilities page.
 2. Search, filter, view, create, edit, or delete facilities.
 3. Open facility detail and see availability, capacity, bed reservations, and schedule entry points.
-4. Search/discover hospitals from Google/Edge source and choose whether to import or fill details.
+4. Search/discover facilities/providers from Google/Edge source and explicitly import or fill details through an authorized path.
 5. Upload/update facility image.
 6. Update capacity/availability in a way the patient app can consume.
 7. Manage service and room pricing with clear global, organization, and hospital scope.
@@ -61,7 +63,9 @@ Operator path:
 | Hospital detail | Page URL path and modal state fetch independently. | Facility detail projection. |
 | Capacity/bed truth | Direct scalar updates plus bed reservation service. | Capacity owner that reconciles scalar fields, `bed_availability`, reservations, and app-visible availability. |
 | Discovery/import | Modal raw `fetch` plus `hospitalImportService` Edge flow. | Discovery/import owner with live/fallback/source labels. |
-| Image upload | Modal direct upload path. | Storage/media owner with bucket/path/auth semantics. |
+| Provider classification | Console edits hospital rows without `providers` taxonomy/eligibility control. | Authorized provider-catalog owner for app-visible classification. |
+| Image upload/provenance | Modal direct upload path and raw `hospitals.image`; `hospital_media` is unoperated. | Storage/media owner with bucket/path/auth and media-provenance semantics. |
+| Import history | `hospitalImportService` uses `hospital_import_logs` but visible provenance/error ownership is not proven. | Operator-visible import log/provenance read owner. |
 | Pricing | Organization filter plus hospital first-choice write semantics. | Facility-scoped `service_pricing` / `room_pricing` owner with explicitly labelled platform fallback rows only. |
 | Realtime | Page and modal own separate channels. | Domain owner invalidation with modal-scoped detail exceptions. |
 
@@ -86,7 +90,7 @@ Acceptance gate:
 
 ### 2. Capacity And Bed Truth
 
-Decide the canonical writer for:
+Use `update_hospital_availability` as the operational capacity/status/wait writer. Keep administrative facility metadata separate. The operational receiver owns:
 
 - total beds
 - available beds
@@ -110,12 +114,19 @@ Consolidate discovery:
 - one fallback path owns `nearby_hospitals`
 - results label source: existing, Google, pending import, verified, rejected
 - import/approve/reject/assign actions have pending and failure state
+- import attempts and outcomes render `hospital_import_logs` provenance instead of silently succeeding without durable history
 
 Acceptance gate:
 
 - Selecting a discovered hospital does not imply canonical provider creation until the authorized receiver persists it.
 
-### 4. Storage And Media
+### 4. Provider Catalog, Storage, And Media
+
+Operate the app-visible provider/media contract:
+
+- add deliberate management or authorized projection for `providers.provider_type`, emergency/booking eligibility, source and confidence
+- use `hospital_media` provenance/active selection when Console modifies public facility media, or leave discovery-selected media unchanged
+- render import source/outcome from `hospital_import_logs`
 
 Define storage rules:
 
@@ -129,6 +140,7 @@ Define storage rules:
 Acceptance gate:
 
 - Facility images are delivered through stable app-owned paths and do not rely on fragile provider URLs when persisted.
+- A facility changed in Console does not lose or misstate app-visible provider classification or media provenance.
 
 ### 5. Pricing Scope
 
