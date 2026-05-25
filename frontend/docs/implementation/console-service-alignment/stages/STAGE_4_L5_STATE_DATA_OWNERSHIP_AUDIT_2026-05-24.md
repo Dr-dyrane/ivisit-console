@@ -2,7 +2,7 @@
 
 ## Status
 
-Initial Stage 4 matrix. Static source review only.
+Expanded Stage 4 L5 and operation-class matrix. Static source review only.
 
 This document follows the documented audit spine after Stage 2 service contracts and Stage 3 capability gaps. It focuses on what each console surface consumes, cannot consume, writes, or bypasses compared with the source-of-truth owner.
 
@@ -43,7 +43,7 @@ State ownership labels:
 | Insurance billing outcome | `insurance_billing`, completion billing trigger, scoped policy reads | Policy management only; no billing-result surface found | Trigger-created claim/billing result, hospital/admin visibility, exception outcome | None proven | Console can manage policy UI without seeing the billing consequence of completed emergency care | Insurance billing read/exception owner |
 | Support tickets | `support_tickets`, app patient support creation, console assignment/status | Ticket list, analytics, CRUD/status/assign | Exact patient-created ticket receipt semantics and assignment/status taxonomy | Create/update/delete/assign | Mostly hook-owned but panel/context duplicate realtime exists | Support tickets service/hook owner |
 | Health news/content | `health_news`, public app read/published content | News CRUD, publish state, KPI counts, panel summaries | Centralized KPI/read-summary owner; policy proof for public/private edits | Create/update/delete/publish/import | Page/panel duplicate direct count reads | Health-news service/hook owner |
-| Subscribers/email | `subscribers`, email Edge Functions, unsubscribe function, campaign state | Subscriber list, welcome/custom/bulk email actions, analytics | One lifecycle owner for welcome state, unsubscribe, campaign sends, schema-current payload | Subscriber CRUD, welcome email, bulk/custom sends | Duplicate services; runtime schema fallback; page-level Edge send | Subscription service facade and email lifecycle owner |
+| Subscribers/email | `subscribers`, email Edge Functions, unsubscribe function, campaign state | Subscriber list, welcome/custom/bulk email actions, analytics | One lifecycle owner for welcome state, unsubscribe, campaign sends, schema-current payload | Public intake and admin read are source-supported; current edit/delete/status promises and email commands need authorized lifecycle receivers | Duplicate services; runtime schema fallback; page-level Edge send | Subscription service facade and email lifecycle owner |
 | Search/trending/analytics | Search RPCs/tables, trend RPCs, app discovery/search events | Search analytics RPCs, trend rows, dashboard analytics | Non-stub trend regeneration truth; production analytics without fallback/demo constants | Track events, update/regenerate trends | Stub success functions and fallback analytics can look real | Search/analytics service owner |
 | Dashboard/Bento/Overview | Domain service summaries, page metrics, `PageDataContext` | Cross-domain stats, recent records, wallet/news/support snippets | Trustworthy summaries after domain owner consolidation | Mostly read-only navigation/dashboard actions | Broad context owns server state and mock/realtime; Overview direct reads duplicate | Dashboard summary facade fed by domain owners |
 | Map/God mode | Emergency, ambulance, hospital/provider, user/profile projection, route/dispatch truth | Map markers, live stats, dispatch/complete controls, route fallback | Canonical route/ETA and active trip truth for all map actions; provider discovery classification | Dispatch unit, complete mission, responder location | Map projection can become canonical state if not scoped | Map projection owner that consumes emergency/ambulance owners |
@@ -68,9 +68,23 @@ Hospitals, pricing, visits, wallet, verification, subscribers, analytics, provid
 
 Dispatch, cash process, retry payment, payout, publish, verify, invite, send email, and emergency completion must be treated as lifecycle commands with explicit backend confirmation and auditability.
 
+## Operation Class Gate
+
+The database audit now distinguishes table CRUD rights from workflow command rights in `../../../database/console-app-alignment/TRIGGER_POLICY_MATRIX_2026-05-24.md` and `../../../database/console-app-alignment/RPC_MUTATION_MATRIX_2026-05-24.md`. Every implementation action must be assigned one of these classes before code is edited:
+
+| Operation class | Allowed Console meaning | Current required examples | Prohibited shortcut |
+| --- | --- | --- | --- |
+| Scoped read projection | Render rows the actor is permitted to see; refresh through one domain owner. | Emergency transitions, chat projections, insurance billing outcomes, wallet/ledger views, activity. | Adding edit/delete actions because a row is visible. |
+| Ordinary table CRUD | Manage a record only where current policy and product responsibility both support it. | Organization-scoped `doctor_schedules`, `hospital_media`, `providers`, properly facility-scoped pricing; non-active fleet administration after shape repair. | Using broad policy to mutate active lifecycle or cross-surface truth. |
+| Workflow command | Invoke the RPC, Edge Function, or trigger-owned action and wait for refreshed backend truth. | Emergency dispatch/complete/cancel, chat send/read, clinician assignment, payment approval/settlement/retry, capacity updates. | Direct `.update()` or `.insert()` on affected tables, or optimistic success copy. |
+| Backend-derived/read-only evidence | Display backend-created history or result; no ordinary operator mutation. | `emergency_status_transitions`, `wallet_ledger`, normal `insurance_billing` results, request-derived visit lifecycle. | Admin-style CRUD controls on audit or derived rows. |
+| Excluded or separately owned | Do not build normal Console management. | `documents` data room, patient consent/preferences, patient wallet CRUD, direct role/session administration, FAQ authoring under current policy. | Treating shared-table existence as Console product scope. |
+
+The runtime direct-write scan found concrete operation-class conflicts that must be removed or routed before implementation closes a pass: organization registry browser CRUD, health-news and FAQ authoring, subscriber update/delete lifecycle, insurance administrative CRUD, request-derived visit CRUD, repair-adjacent ledger/payment mutation, and active ambulance/scheduling writes that bypass their real workflow owner.
+
 ## Required Stage 4 Follow-Ups
 
-1. Convert this matrix into implementation inputs per pass: emergency, wallet, hospitals/pricing, provider operations, visits, identity/verification/onboarding, content/support/subscribers, analytics/search, and dashboard/map shell.
+1. Keep each implementation pass tied to its declared operation classes: scoped reads, permitted CRUD, workflow commands, backend-derived evidence, and exclusions.
 2. For each pass, mark which rows are safe read-only improvements versus L5 backend contract repairs.
 3. Before implementation, choose the first pass by risk and user impact rather than by easiest UI diff.
 
@@ -122,7 +136,7 @@ Stage 4 is coherent enough for the broader contract-truth pack when:
 - commit discipline is clear and no doc-only micro-commit is pending
 - Stage 6 can start without hidden research for the first selected pass
 
-Current status: initial matrix and pass inputs are present, but Stage 6 should still read the Stage 2 contract exhibits before producing exact implementation steps.
+Current status: L5 rows, pass inputs, and operation classes are present; each implementation pass must still read its Stage 2 contract exhibit and action-class subplan before any code edit.
 
 ## Commit Discipline
 

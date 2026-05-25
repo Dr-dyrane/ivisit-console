@@ -2,7 +2,7 @@
 
 ## Status
 
-Initial implementation-pass plan. Planning only; no product, database, Edge Function, cleanup, seed, migration, or runtime mutation is authorized by this document.
+Expanded global implementation-pass plan. Planning only; no product, database, Edge Function, cleanup, seed, migration, or runtime mutation is authorized by this document.
 
 This plan follows the Stage 2 contract exhibits, Stage 3 capability gaps, Stage 4 L5 ownership matrix, Stage 5 full service coverage audit, and the service taxonomy in `../services/CONSOLE_FEATURE_SERVICE_TAXONOMY_2026-05-24.md`. Each pass must be narrowed into its own implementation checklist before code changes begin.
 
@@ -15,6 +15,7 @@ The pass order below is an implementation sequence, not the console feature taxo
 - Do not bundle emergency/payment/backend repair with dashboard polish.
 - Do not start a pass until its Stage 5 service coverage rows have been assigned to that pass or explicitly marked out of scope.
 - Do not treat the numbered passes as the complete feature list; check the feature taxonomy and service review matrix before each pass.
+- Do not treat every visible table as CRUD. Before editing a surface, classify each operation as scoped read projection, policy-supported ordinary CRUD, workflow command, backend-derived read-only evidence, or excluded/separately owned.
 - Treat emergency detail modal failures and subscription management failures as named user-flow threads, not isolated component bugs.
 - Preserve user changes in the worktree and avoid doc-only micro-commits.
 - Commit only when the relevant evidence or implementation pack is coherent and resumable.
@@ -728,6 +729,7 @@ Before any pass starts, create or update a narrow checklist with:
 | Scope | Exact pages/services/RPCs/functions touched. |
 | Source truth | Stage 2/3/4 docs and source files read. |
 | Stage 5 coverage | Every service listed for the pass is either included, explicitly deferred, or marked out of scope with a reason. |
+| Operation class | Per user action: scoped read projection, authorized table CRUD, workflow command, derived read-only evidence, or excluded boundary. |
 | Safe cleanup | Read-only owner moves, UI feedback, and copy-only changes. |
 | L5 repair | Backend/RPC/Edge/schema/policy changes, if any. |
 | Exclusions | Related tempting work that will not be touched. |
@@ -746,6 +748,7 @@ Each pass must clear these gates before code changes begin.
 | Owner gate | The Stage 4 row names a single required owner for the surface/service. | `PageDataContext`, page, and service all still own the same server truth. |
 | Service coverage gate | The Stage 5 ledger has no unassigned service for the pass being started. | Subscription implementation starts while `subscribersService`, `subscriptionService`, and support/email receivers still have no chosen owner. |
 | Receiver gate | The Stage 2 contract exhibit names the table/RPC/Edge Function that will receive the mutation or read. | UI action says "cash fee deducted" but no backend receiver is confirmed to debit/credit ledger truth. |
+| Operation-class gate | The table-policy/RPC matrices say whether each control is read projection, ordinary CRUD, workflow command, derived read-only evidence, or excluded. | A modal exposes Edit/Delete for a transition, ledger, billing-result, patient-owned, or command-owned row merely because it is selectable. |
 | Scope gate | The implementation checklist names files touched and files explicitly excluded. | Wallet top-up fix also edits dashboard analytics and subscriber emails. |
 | Data-safety gate | The checklist says whether the pass is read-only cleanup, UI-only, L5 backend repair, schema/RLS work, Edge Function work, or historical repair. | A migration/backfill is run while the pass was only approved for service cleanup. |
 | Copy/feedback gate | User-facing success, loading, and degraded-state copy is tied to backend truth. | UI claims provider dispatch certification after only `profiles.bvn_verified` changes. |
@@ -774,7 +777,7 @@ Do not commit because a single doc feels finished. A commit is appropriate only 
 | Implementation plan pack | Stage 6 pass plan has enough detail to start the first selected implementation pass without hidden research. |
 | Interim checkpoint | Only if user requests it, a deployment/build repair baseline needs it, or an external sync/schema refresh requires a protected before/after point. |
 
-Current status: still uncommitted by design. The plan is detailed enough for implementation-pass selection, but not a reason for a standalone micro-commit.
+Current status: prior coverage/ownership checkpoints are committed locally; this operation-class expansion is part of the next coherent audit checkpoint. The plan is detailed enough for implementation-pass selection once its current verification and checkpoint review are complete.
 
 ## First Implementation Pass Handoff
 

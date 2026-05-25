@@ -69,6 +69,18 @@ Operator path:
 | Pricing | Organization filter plus hospital first-choice write semantics. | Facility-scoped `service_pricing` / `room_pricing` owner with explicitly labelled platform fallback rows only. |
 | Realtime | Page and modal own separate channels. | Domain owner invalidation with modal-scoped detail exceptions. |
 
+## Action Class And Receiver Map
+
+| User-visible action or detail | Operation class | Canonical receiver or source | Console rule for this pass |
+| --- | --- | --- | --- |
+| View facility/provider catalog | Scoped read projection | `hospitals`, `providers`, `hospital_media` | Include app-visible taxonomy and provenance fields. |
+| Create/edit provider classification and media provenance | Authorized table CRUD once implemented | `providers`, `hospital_media` organization-scoped policies | Do not reduce app catalog truth to base `hospitals.image` or tier fields. |
+| Edit facility metadata | Workflow/admin command | `update_hospital_by_admin` contract | Keep separate from operational availability changes. |
+| Edit beds, wait, operational status | Workflow command | `update_hospital_availability` | Use one app-visible operational receiver. |
+| Discover/import facility/provider | Workflow command with provenance read | Authorized discovery/import boundary plus `hospital_import_logs` | No unlabelled public canonical writes or silent fallback success. |
+| Manage service/room prices | Authorized CRUD through scoped command | Pricing RPC family with explicit `hospital_id` | Never label first-hospital pricing as organization-wide override. |
+| View reservation/capacity relationship | Read projection plus emergency commands | Request-owned bed reservation and capacity receivers | Cancel/discharge only through correct command; no contradictory occupancy math. |
+
 ## Implementation Packages
 
 ### 1. Facility Read Owner

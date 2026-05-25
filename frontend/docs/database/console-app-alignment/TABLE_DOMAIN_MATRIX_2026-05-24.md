@@ -199,12 +199,13 @@ Classification is deliberately strict:
 43. Console has no persisted clinician-assignment surface for `emergency_doctor_assignments`, even though emergencies and doctor operations are already rendered. Emergency/provider passes must include guarded doctor assignment and handoff truth.
 44. `hospital_media` and `providers` prove that facility management is broader than hospital row CRUD: Console cannot yet operate app-visible provider catalog classification or media provenance while it can alter the base facility row/image.
 45. `insurance_billing` is trigger-backed claim/billing truth with hospital/admin read scope, but Console currently has no billing-outcome view or authorized exception-handling lane. Policy management alone does not cover insurance operations.
+46. Table presence and even table-level `FOR ALL` policy do not make every visible action ordinary CRUD. The companion CRUD/command authority pass proves that emergency lifecycle, emergency chat, clinician handoff, payment settlement, active telemetry, capacity, and trigger-created billing outcomes require command or read-projection ownership; it also identifies visible direct writes that current policy does not authorize.
 
 ## Next Matrix Work
 
 - Keep the 45-table reverse capability ledger current whenever the shared source adds, archives, or reassigns a table.
 - Expand high-risk implementation-pass rows with exact column clusters per table.
-- Add policy names and helper functions per table.
+- Keep exact table-policy and command posture synchronized with `TRIGGER_POLICY_MATRIX_2026-05-24.md` and `RPC_MUTATION_MATRIX_2026-05-24.md`.
 - Add trigger names and side effects per table.
 - Compare against `ivisit-app/supabase/tests/validation/table_flow_trace_*.md`.
 - Mark tables as `aligned`, `drift suspected`, or `needs live introspection`.

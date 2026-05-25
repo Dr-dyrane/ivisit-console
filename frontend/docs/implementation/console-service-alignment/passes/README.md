@@ -14,10 +14,10 @@ Pass subplans are implementation handoffs. A pass is not a feature list; it is a
 - [Pass 5 Provider Operations, Telemetry, and Scheduling Flow Subplan - 2026-05-24](./PASS_5_PROVIDER_TELEMETRY_SCHEDULING_FLOW_SUBPLAN_2026-05-24.md) - Ambulances, drivers, doctors, telemetry, maps, media, and staff scheduling.
 - [Pass 6 Visits and Medical History Flow Subplan - 2026-05-24](./PASS_6_VISITS_MEDICAL_HISTORY_FLOW_SUBPLAN_2026-05-24.md) - Visits, request-derived clinical records, medical profile consumption, and visit lifecycle actions.
 - [Pass 7 Care, Content, and Support Flow Subplan - 2026-05-24](./PASS_7_CARE_CONTENT_SUPPORT_FLOW_SUBPLAN_2026-05-24.md) - Insurance, support tickets, support FAQs, health news, notifications, and media/storage contracts.
-- [Pass 7 Subscription Management Flow Subplan - 2026-05-24](./PASS_7_SUBSCRIPTION_MANAGEMENT_FLOW_SUBPLAN_2026-05-24.md) - Subscriber CRUD, duplicate services, welcome/custom/bulk email, realtime, and scope decisions.
+- [Pass 7 Subscription Management Flow Subplan - 2026-05-24](./PASS_7_SUBSCRIPTION_MANAGEMENT_FLOW_SUBPLAN_2026-05-24.md) - Subscriber intake/read, unsupported management writes, duplicate services, welcome/custom/bulk email commands, realtime, and scope decisions.
 - [Pass 7 Subscription Management Evidence Audit - 2026-05-24](./PASS_7_SUBSCRIPTION_MANAGEMENT_EVIDENCE_AUDIT_2026-05-24.md) - Evidence checkpoint proving duplicate subscriber, welcome email, custom email, bulk email, realtime, and RLS scope contracts before implementation.
 - [Pass 8 Analytics, Search, Realtime, and Feedback Flow Subplan - 2026-05-24](./PASS_8_ANALYTICS_SEARCH_REALTIME_FEEDBACK_FLOW_SUBPLAN_2026-05-24.md) - Dashboard truth, search telemetry, preferences/demo mode, trends, realtime ownership, and route/action feedback.
 
 ## Rule
 
-Each pass must name the feature/service rows it covers from `../services/CONSOLE_FEATURE_SERVICE_TAXONOMY_2026-05-24.md`. If a service is in the pass scope but not in the pass checklist, implementation pauses.
+Each pass must name the feature/service rows it covers from `../services/CONSOLE_FEATURE_SERVICE_TAXONOMY_2026-05-24.md` and classify every user action as scoped read projection, authorized CRUD, workflow command, backend-derived read-only evidence, or excluded boundary. If a service is in scope without a checklist row, or an action lacks a receiver class, implementation pauses.

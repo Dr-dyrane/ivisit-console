@@ -59,6 +59,17 @@ Operator/provider path:
 | Scheduling | Derived doctor/crew rows and status toggles bypass the real `doctor_schedules` receiver. | Stored doctor-shift owner; ambulance shift CRUD excluded without a receiver. |
 | Clinician assignment | Emergency/doctor context can render without a persisted assignment action/status. | Cross-pass assignment owner using `emergency_doctor_assignments` with Pass 1. |
 
+## Action Class And Receiver Map
+
+| User-visible action or detail | Operation class | Canonical receiver or source | Console rule for this pass |
+| --- | --- | --- | --- |
+| View/manage non-active fleet records | Authorized table CRUD after field repair | `ambulances` scoped policy | Use real hospital/org fields and valid status vocabulary. |
+| Dispatch/trip/responder telemetry for active emergency | Workflow command | Request-coupled dispatch/telemetry receivers | Direct fleet status/location editing cannot stand in for active-trip truth. |
+| Manage doctor directory fields | Authorized table CRUD with projection boundary | `doctors`, profile sync automation | Separate directory-owned from profile-projected identity fields. |
+| Manage doctor shifts/conflicts/statistics | Authorized table CRUD | `doctor_schedules` | Replace generated/status-derived shifts with stored rows. |
+| Assign doctor to emergency | Workflow command | `assign_doctor_to_emergency`, `emergency_doctor_assignments` | Coordinate with Pass 1 and persist handoff truth. |
+| Upload provider/vehicle imagery | Scoped media/storage boundary | Doctor image field and Pass 3 media/storage authority | Do not upload ambulance media without row receiver; hospital provenance belongs to Pass 3. |
+
 ## Implementation Packages
 
 ### 1. Provider Operations Facades

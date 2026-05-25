@@ -45,7 +45,7 @@ Canonical service inventory source:
 | Support operations | Support tickets, assignment, status, patient receipt, analytics. | `supportTicketsService.js`, `notificationService.js` | Pass 7 |
 | Support knowledge base | Patient-app FAQ read truth; console authoring remains dormant until an authorized receiver/route exists. | `supportFaqsService.js` | Pass 7 |
 | Health content | Curated published health-news feed; article-body/draft authoring remains disabled until fields and write policy exist. | `healthNewsService.js`, `notificationService.js`, `storageService.js` | Pass 7 |
-| Subscription and email | Subscriber CRUD, welcome/custom/bulk email, status/type, realtime. | `subscriptionService.js`, `subscribersService.js` | Pass 7 |
+| Subscription and email | Subscriber intake/read, currently unsupported edit/delete/status promises, welcome/custom/bulk email commands, realtime. | `subscriptionService.js`, `subscribersService.js` | Pass 7 |
 | Notifications | Operator notifications, patient notification policy drift, action metadata. | `notificationService.js`, `preferencesService.js` | Pass 7 / Pass 8 |
 | Dashboard analytics | Summary analytics, finance analytics, role-scoped charts, source labels. | `analyticsService.js`, `walletService.js`, `searchAnalyticsService.js` | Pass 8 |
 | Search and quick navigation | Global search, recent searches, trending search, result selection. | `searchService.js`, `searchHistoryService.js`, `searchSelectionsService.js`, `searchEventsService.js` | Pass 8 |

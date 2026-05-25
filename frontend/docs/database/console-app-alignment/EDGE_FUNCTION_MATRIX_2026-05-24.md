@@ -87,7 +87,7 @@ Static source agrees with the deployment observation: `frontend/supabase/migrati
 
 ### Ownership Conclusion
 
-`discover-hospitals` is currently both discovery API and provider-ingest writer. The app calls it with taxonomy-aware inputs for emergency and Explore Care (`ivisit-app/services/hospitalsService.js:740-927`), while console has an active modal integration that does not satisfy its contract and a latent nearby-import path that would write only hospital-default truth. Before implementation, the console plan must choose whether it administers the full provider catalog or only approved hospital/capacity records, and the public persistence boundary must be explicitly guarded or made non-mutating by default.
+`discover-hospitals` is currently both discovery API and provider-ingest writer. The app calls it with taxonomy-aware inputs for emergency and Explore Care (`ivisit-app/services/hospitalsService.js:740-927`), while console has an active modal integration that does not satisfy its contract and a latent nearby-import path that would write only hospital-default truth. The Console implementation boundary is the app-visible provider taxonomy and media provenance for operated facilities; the public persistence boundary must be explicitly guarded or made non-mutating by default.
 
 ## Current Findings
 
@@ -106,9 +106,9 @@ Static source agrees with the deployment observation: `frontend/supabase/migrati
 
 ## Next Pass
 
-- Decide the intended console ownership boundary for hospital-only operations versus the app-owned broader provider catalog, then derive the implementation pass from the mapped persistence contract.
+- Implement Console planning against the full app-visible provider catalog boundary: facility operations must include authorized provider classification, media provenance, and import provenance rather than treating hospital-row CRUD as sufficient.
 - Map Stripe webhook and finance RPC ledger effects against console wallet UI rendered state and payment rows.
 - Obtain read-only deployed-function/config proof for legacy console slugs if available without invocation.
 - Compare function environment variable names against Vercel/Supabase project configuration without exposing values.
-- Decide whether subscriber lifecycle should be RPC-owned, Edge Function-owned, or service-owned.
+- Treat public subscriber insert and platform-admin read as the only currently policy-backed table operations; route welcome/custom/bulk/unsubscribe or future status/delete behavior through explicitly authorized lifecycle commands, with Edge deployment/authorization proof before enablement.
 - Keep runtime source ownership explicit: payment/discovery functions are currently audited from `ivisit-app`, while legacy subscriber/invite/login function deployment remains unproven.

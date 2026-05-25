@@ -54,6 +54,16 @@ Operator/provider path:
 | Visit actions | Hook/service/page can mutate visit state. | Visit command boundary with legality checks. |
 | Realtime | Page and service subscriptions may duplicate ownership. | Visit owner invalidation and detail-scoped subscriptions. |
 
+## Action Class And Receiver Map
+
+| User-visible action or detail | Operation class | Canonical receiver or source | Console rule for this pass |
+| --- | --- | --- | --- |
+| View/search/hydrate visit | Scoped read projection | `visits` with patient, provider, hospital, request projections | Use explicit `request_id` linkage and one read model. |
+| View emergency-derived clinical outcome | Backend-derived read-only evidence | Emergency-to-visit trigger/RPC output | Do not edit/delete a request-owned row as ordinary visit CRUD. |
+| Create/edit administrative visit | Missing/conditional authorized CRUD | Separate administrative visit ownership not yet proven for Console actor | Enable only after authority and status vocabulary are explicit. |
+| Cancel/complete/no-show visit | Workflow command | Visit lifecycle receiver to be proven | Do not direct-update lifecycle state while emergency sync may own it. |
+| View medical context | Restricted read projection | Authorized patient-care/medical projection | No broad administrative medical-profile CRUD. |
+
 ## Implementation Packages
 
 ### 1. Visit Read Model

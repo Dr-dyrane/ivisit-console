@@ -59,6 +59,19 @@ Operator path:
 | Realtime | `PageDataContext` subscribes to many tables globally. | One owner per domain/table family, with map/modal scoped exceptions. |
 | Route/action feedback | Some route and action paths can blank or overclaim success. | Shell loading/pending/degraded feedback standard. |
 
+## Action Class And Receiver Map
+
+| User-visible action or detail | Operation class | Canonical receiver or source | Console rule for this pass |
+| --- | --- | --- | --- |
+| View dashboard/analytics metric | Scoped read projection or explicitly unavailable state | Domain facades and guarded analytics reads | No mock or constant operational value presented as measured truth. |
+| Search and retain own recent history/selection | Authorized user telemetry CRUD/insert | `search_history`, `search_selections`, `search_events` through active search owner | Keep private/history scope and avoid duplicate adapter owners. |
+| View trends | Scoped read projection | `trending_topics` / `get_trending_searches` | Label source; do not imply successful regeneration. |
+| Regenerate/manage trends | Conditional admin CRUD or disabled command | Admin table policy exists; generation command is stubbed | Permit only honest manual administration or disable automatic regeneration. |
+| View activity | Guarded read projection | `get_recent_activity`, `get_activity_stats` | Consolidate owner; activity is not privileged write audit. |
+| View privileged audit | Backend-derived read-only evidence | `admin_audit_log` | Require durable guarded write policy before relying on audit logging. |
+| Edit settings | Own-user CRUD subset | `preferences` | Only signed-in operator settings; no patient consent/demo substitution. |
+| Realtime/route feedback | UI/read invalidation behavior | Domain hook/query owners and skeletons | No global context canonical server state or blank navigation pause. |
+
 ## Implementation Packages
 
 ### 1. PageDataContext Reduction

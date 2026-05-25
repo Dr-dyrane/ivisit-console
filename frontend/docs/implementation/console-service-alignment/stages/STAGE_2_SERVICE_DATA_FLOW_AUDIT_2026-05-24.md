@@ -361,3 +361,17 @@ The reverse matrix closes three previously omitted organization receivers: `hosp
 - Dependency or separate-surface boundaries: FX rates remain app/backend billing dependencies rather than Console-authored conversion truth; `documents` remains an `ivisit-docs` data-room boundary; patient wallet CRUD, patient consent preferences, and parallel user-role administration are not to be invented as Console CRUD merely because their tables exist.
 
 This coverage is recorded in `../../../database/console-app-alignment/TABLE_DOMAIN_MATRIX_2026-05-24.md` and propagated into the contract charts and implementation-pass subplans. It is a static audit/planning checkpoint only; no row, Storage, RPC, Edge Function, email, or migration mutation was performed.
+
+## CRUD Versus Command Authority Pass
+
+The reverse table coverage pass is now refined into operation authority. Current source policy names, RPC families, triggers, and Console direct-write signals were compared so implementation can distinguish:
+
+- scoped reads, such as emergency transition history, chat projection, billing outcomes, wallet/ledger visibility, and activity
+- ordinary policy-supported administrative CRUD, such as organization-scoped doctor shifts, provider catalog/media rows, and facility-scoped pricing
+- workflow commands, such as emergency lifecycle, emergency chat send/read, clinician assignment, payment settlement, operational capacity, and active responder telemetry
+- backend-derived read-only evidence, such as transition rows, ledger evidence, normal trigger-created insurance billing outcomes, and request-derived visit lifecycle
+- excluded or separately owned capabilities, including data-room document management, patient consent/preference management, patient wallet administration, and FAQ authoring under current policy
+
+The direct-write scan also identifies visible Console implementation conflicts requiring repair or removal before a pass can close: browser CRUD for organizations, unsupported health-news and FAQ authoring, subscriber update/delete promises, administrative insurance CRUD without authority, request-derived visit CRUD, repair-adjacent ledger/payment writes, and active ambulance/scheduling mutations that bypass the actual workflow receiver.
+
+The complete policy posture lives in `../../../database/console-app-alignment/TRIGGER_POLICY_MATRIX_2026-05-24.md`; command receiver resolution lives in `../../../database/console-app-alignment/RPC_MUTATION_MATRIX_2026-05-24.md`. Each flow subplan now contains an `Action Class And Receiver Map` and Stage 6 requires that classification before implementation.

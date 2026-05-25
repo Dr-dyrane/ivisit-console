@@ -12,9 +12,9 @@ The current pillar migrations are the primary source. Generated schema docs, old
 
 ## Documents
 
-- [Table Domain Matrix - 2026-05-24](./TABLE_DOMAIN_MATRIX_2026-05-24.md) - First pass table ownership, source migration, ID/display ID posture, RLS/trigger posture, and console risk by domain.
-- [RPC Mutation Matrix - 2026-05-24](./RPC_MUTATION_MATRIX_2026-05-24.md) - First pass RPC ownership, app/console call sites, side effects, and console bypass risks.
-- [Trigger And Policy Matrix - 2026-05-24](./TRIGGER_POLICY_MATRIX_2026-05-24.md) - First pass high-risk trigger, RLS helper, and policy-group audit.
+- [Table Domain Matrix - 2026-05-24](./TABLE_DOMAIN_MATRIX_2026-05-24.md) - Full 45-table reverse capability inventory, source migration, identity posture, Console disposition, and risk by domain.
+- [RPC Mutation Matrix - 2026-05-24](./RPC_MUTATION_MATRIX_2026-05-24.md) - Command ownership, app/console call sites, side effects, resolved receiver classifications, and direct-write bypass risks.
+- [Trigger And Policy Matrix - 2026-05-24](./TRIGGER_POLICY_MATRIX_2026-05-24.md) - Trigger/RLS evidence plus full shared-table CRUD-versus-command authority posture.
 - [Edge Function Matrix - 2026-05-24](./EDGE_FUNCTION_MATRIX_2026-05-24.md) - Edge Function inputs, secrets, database effects, external effects, and naming/auth risks.
 - [UUID And Display ID Rules - 2026-05-24](./UUID_DISPLAY_ID_RULES_2026-05-24.md) - Canonical identity/display rules and service audit requirements.
 - [Postgres Nuance Risk Register - 2026-05-24](./POSTGRES_NUANCE_RISK_REGISTER_2026-05-24.md) - Supabase/Postgres risks that can break console-app alignment.

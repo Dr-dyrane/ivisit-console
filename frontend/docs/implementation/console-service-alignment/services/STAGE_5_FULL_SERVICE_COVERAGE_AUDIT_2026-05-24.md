@@ -292,7 +292,7 @@ Do not create detailed user-flow subplans until:
 After those gates, the first detailed subplans should be:
 
 1. Emergency list/detail/modal, dispatch, cash/payment, and request-derived visit flow.
-2. Subscription management, subscriber CRUD, welcome/custom/bulk email, and realtime subscriber state flow.
+2. Subscription intake/read, unsupported subscriber management writes, welcome/custom/bulk email commands, and realtime subscriber state flow.
 3. Wallet/Stripe/ledger flow.
 4. Organization, onboarding, verification, and provider readiness flow.
 5. Hospital/capacity/pricing flow.

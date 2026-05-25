@@ -4,7 +4,7 @@
 
 Detailed implementation subplan only. No product, database, Edge Function, cleanup, email send, seed, migration, or runtime mutation is authorized by this document.
 
-This subplan covers subscription management failures across subscriber CRUD, welcome email, custom email, bulk email, realtime subscriber updates, and duplicate service ownership.
+This subplan covers subscription management failures across subscriber intake/read, unsupported management writes, welcome email, custom email, bulk email, realtime subscriber updates, and duplicate service ownership.
 
 ## Source Evidence
 
@@ -42,7 +42,7 @@ Operator path:
 2. Review subscriber list and filters.
 3. Create a subscriber.
 4. Choose the explicit create-with-welcome command when the operator wants welcome email sent.
-5. Edit subscriber status/type.
+5. Keep edit/delete/status actions disabled unless an authorized lifecycle receiver is added.
 6. Send welcome email to an existing subscriber.
 7. Send a custom email to one subscriber.
 8. Send a bulk email to selected active subscribers.
@@ -52,12 +52,23 @@ Operator path:
 
 | Data/action | Current owner symptom | Required owner |
 | --- | --- | --- |
-| Subscriber CRUD | Two services export overlapping operations. | `subscriptionService.js` remains the workflow facade; `subscribersService.js` is retired from active UI flow. |
+| Subscriber management writes | Two services export overlapping create/update/delete operations although policy proves public insert and admin read only. | `subscriptionService.js` remains the workflow facade for allowed read/intake and future authorized commands; unsupported edit/delete/status actions are removed or disabled. |
 | Welcome email | Service auto-send, hook send-after-create, page realtime send, modal direct send. | Single email lifecycle owner with idempotency. |
 | Email sent state | UI can mark/show sent independent of durable receiver proof. | Receiver-confirmed queued/sent/failed state. |
 | Bulk email | Modal sends directly and returns aggregate success. | Campaign/send owner with per-recipient result. |
 | Realtime | Hook and page subscribe separately to subscriber changes. | One subscriber realtime owner/invalidation path. |
 | Organization scope | Service comments say org admins see all because table lacks org field. | Platform-admin-only global marketing list for this pass. |
+
+## Action Class And Receiver Map
+
+| User-visible action or detail | Operation class | Canonical receiver or source | Console rule for this pass |
+| --- | --- | --- | --- |
+| Public subscribe | Authorized create | `subscribers` public insert policy | Preserve idempotent signup/result behavior. |
+| Admin view/export list | Scoped read projection | `subscribers` admin read policy | Protect scope and exported data. |
+| Edit/delete/unsubscribe subscriber | Missing lifecycle command | Current source does not prove browser update/delete management | Do not implement as direct CRUD from existing services. |
+| Send welcome email | Workflow command | Email function and persisted delivery/lifecycle state | One owner; no duplicate send or success before durable outcome. |
+| Send custom/bulk email | Workflow command | Authorized campaign/send boundary | Add explicit pending/result/audit state before enabling broad sends. |
+| Realtime subscriber update | Read projection/invalidation | Single selected subscription facade | Remove duplicate service-family subscription ownership. |
 
 ## Implementation Packages
 
@@ -72,7 +83,7 @@ Decision:
 Acceptance gate:
 
 - `useSubscription`, `SubscriptionManagementPage`, and `SubscriptionModal` import subscription actions from `subscriptionService.js` only.
-- Duplicate create/update/delete/realtime paths are removed from active UI flow.
+- Duplicate mutation/realtime paths are removed from active UI flow, and unsupported update/delete actions are not preserved behind the facade.
 
 ### 2. Schema-Current Payload Contract
 
@@ -84,8 +95,8 @@ Source truth:
 
 Acceptance gate:
 
-- Subscriber writes do not silently retry with missing-column fallbacks in normal runtime.
-- UI only renders editable fields that the receiver persists.
+- Policy-backed subscriber insert does not silently retry with missing-column fallbacks in normal runtime.
+- UI only renders editable fields for operations an authorized receiver actually persists.
 
 ### 3. Welcome Email Lifecycle
 
@@ -135,7 +146,7 @@ Replace duplicate realtime ownership:
 
 Acceptance gate:
 
-- Subscriber insert/update/delete realtime refreshes the list once.
+- Subscriber insert and any future authorized lifecycle-event refreshes the list once.
 - No duplicate toasts for one insert.
 - No email send occurs from a passive realtime listener.
 
@@ -146,8 +157,8 @@ Decision:
 - Subscribers are a platform-admin global marketing list in this pass.
 - Org admins do not receive subscriber list visibility in this pass.
 - Support/content roles do not receive subscriber list visibility in this pass.
-- Delete preserves current hard-delete behavior for platform admins.
-- Unsubscribe/status changes are excluded from this implementation slice and must not be inferred from the platform-admin hard-delete control; they require their own receiver-backed lifecycle pass.
+- Edit/delete/status/unsubscribe controls are excluded from this implementation slice because current source proves platform-admin reads, not browser management writes.
+- Any retained management action requires its own receiver-backed lifecycle authorization before implementation.
 
 Acceptance gate:
 
@@ -167,7 +178,7 @@ Before code changes:
 Read-only/UI cleanup:
 
 - Move page/modal direct email actions behind the chosen owner.
-- Add pending/disabled state for create, update, delete, welcome, custom, and bulk actions.
+- Add pending/disabled state for allowed create and any authorized welcome/custom/bulk actions; remove or visibly disable unsupported edit/delete/status actions.
 - Replace realtime-triggered email sends with passive refresh/toast only.
 - Replace generic sent copy with queued/sent/failed copy.
 - Add empty/degraded states for no subscribers, unauthorized subscriber scope, and email function unavailable.
@@ -176,7 +187,7 @@ L5 repair, only when a deterministic gate fails:
 
 - Add Edge Function idempotency after command-boundary idempotency fails verification.
 - Add campaign/send log table only after product requires durable custom/bulk history beyond function responses.
-- Add RLS policy repair after platform-admin select stops matching current subscriber management scope.
+- Add an explicit lifecycle receiver or policy repair only if platform-admin update/delete/status management remains a product requirement.
 - Add schema fields only in a future org-scoped subscriber model.
 
 ## Verification Plan
@@ -190,8 +201,8 @@ Frontend:
 
 - Browser smoke on subscription management.
 - Create subscriber with welcome disabled.
-- Create subscriber with welcome enabled.
-- Edit status/type.
+- Create subscriber with welcome enabled only after email-command authorization/deployment proof.
+- Confirm edit/status/delete controls are absent or disabled under current policy.
 - Send welcome to existing subscriber.
 - Send custom email to one subscriber.
 - Send bulk email to selected subscribers.

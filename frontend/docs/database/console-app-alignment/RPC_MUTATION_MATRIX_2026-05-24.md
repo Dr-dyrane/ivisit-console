@@ -2,7 +2,7 @@
 
 ## Status
 
-Started. Static audit only. This matrix is based on migration signatures plus app/console call-site scans.
+Expanded command-authority audit. Static source only. This matrix now classifies the previously deferred emergency chat, clinician assignment, cash eligibility, analytics/activity, Stripe status, insurance, and billing-quote receivers needed by the implementation pass plan.
 
 ## Purpose
 
@@ -62,33 +62,36 @@ Classify database functions by mutation ownership before console service work be
 | `admin_update_trending_topics(payload JSONB)` | Analytics | write/admin RPC | console analytics | `analyticsAutomationService.js` | none observed | updates `trending_topics` from search data | medium: cron/source-control gap remains |
 | `update_trending_topics_from_search()` | Analytics | write RPC | console/manual automation | `analyticsAutomationService.js` | none observed | refreshes trending topics | medium: should be scheduled or explicitly manual |
 
-## RPCs Needing Signature Follow-Up
+## Resolved Follow-Up Receiver Classification
 
-These appear in app or console call sites and should be classified in the next pass:
+| RPC / Function | Source declaration | Console/App consumer evidence | Authority classification | Implementation determination |
+| --- | --- | --- | --- | --- |
+| `current_user_is_admin`, `current_user_permission_level`, `is_admin` | `core_rpcs.sql:412-440` | Console `adminService.js`, `profilesService.js`, `searchAnalyticsService.js`. | authenticated authorization/read helpers | Keep behind service/guard boundaries; they do not authorize direct writes to rows whose RLS rejects them. |
+| `get_recent_activity`, `get_activity_stats` | `core_rpcs.sql:765-811` | Console `activityService.js:48,72`. | guarded activity read projection | Use as read owner; do not substitute `user_activity` for durable privileged mutation audit. |
+| `get_search_analytics`, `get_search_analytics_summary`, `get_trending_searches` | `core_rpcs.sql:655-741` | Console search services; app discovery service reads trends. | guarded/read analytics projections | Use real returned data only; no fabricated production fallback or false regeneration success. |
+| `get_org_stripe_status` | `core_rpcs.sql:816` | Console `walletService.js:229`. | organization finance read projection | Keep in wallet facade; does not authorize browser writes to organization payment/account fields. |
+| `check_cash_eligibility` | `core_rpcs.sql:853` | Console `walletService.js:384`; emergency page currently consumes returned object unsafely. | pre-command eligibility read | Read returned `eligible` and fee/balance truth explicitly; never treat returned JSON object truthiness as approval. |
+| `get_available_ambulances`, `assign_ambulance_to_emergency` | `emergency_logic.sql:8,108`; newer assignment receiver also `core_rpcs.sql:2290` | Generated Console types; active Console uses dispatch receivers rather than these as its principal path. | emergency dispatch selection/write family | Do not introduce a parallel assignment path without reconciling it with `console_dispatch_emergency` and active request status evidence. |
+| `get_available_doctors`, `assign_doctor_to_emergency` | `core_rpcs.sql:1031,1067` | Generated types only in Console; no runtime clinician assignment owner. | emergency clinician assignment command | Pass 1/5 must consume the guarded receiver with `emergency_doctor_assignments` projection; no display-only assignment. |
+| `ensure_emergency_chat_room`, `send_emergency_chat_message`, `mark_emergency_chat_room_read` | `core_rpcs.sql:3335,3475,3625` | App `emergencyChatService.js:180,250,314`; no Console runtime consumer. | scoped emergency communication commands | Pass 1 adds operator communication through these receivers; no direct chat table CRUD. |
+| `get_billing_quote` | `finance.sql:961` | App `billingQuoteService.js:97`; no Console runtime consumer. | authenticated quote/read dependency | Console does not author regional/FX quote behavior; show only scoped reporting basis if needed. |
+| `validate_payment_method` | `finance.sql:754` | Generated types; payment methods remain patient/Stripe-owned. | payment validation command dependency | Do not build administrative direct payment-method CRUD from table presence. |
+| `validate_insurance_coverage`, `get_insurance_policies` | `ops_content.sql:180,318` | Generated Console types; insurance UI currently direct-table driven. | coverage/policy function family requiring owner reconciliation | Before implementing admin insurance, resolve modern table shape and admin authority; policy CRUD does not replace billing outcomes. |
+| `reload_schema`, `exec_sql` | Generated/runtime utility references; `utils/runMigrations.js` invokes `exec_sql`. | No supported operator workflow justification in audit surface. | maintenance/development-only hazard | Exclude from product implementation and do not expose as Console operational commands. |
 
-- `current_user_is_admin`
-- `current_user_permission_level`
-- `get_recent_activity`
-- `get_activity_stats`
-- `get_search_analytics`
-- `get_search_analytics_summary`
-- `is_admin`
-- `get_trending_searches`
-- `get_org_stripe_status`
-- `check_cash_eligibility`
-- `reload_schema`
-- `exec_sql`
-- `get_available_ambulances`
-- `get_available_doctors`
-- `assign_ambulance_to_emergency`
-- `assign_doctor_to_emergency`
-- `get_billing_quote`
-- `validate_payment_method`
-- `validate_insurance_coverage`
-- `get_insurance_policies`
-- `ensure_emergency_chat_room`
-- `send_emergency_chat_message`
-- `mark_emergency_chat_room_read`
+## Direct Table Write Versus Receiver Rule
+
+The full table policy posture is recorded in `TRIGGER_POLICY_MATRIX_2026-05-24.md`. The following RPC-owned workflows are implementation blockers for direct browser-table alternatives:
+
+| Workflow | Approved receiver posture | Direct-write conflict currently exposed |
+| --- | --- | --- |
+| Emergency create/status/dispatch/complete/cancel | Emergency RPC family with transition context/evidence | Any direct status mutation or fallback create that omits app-visible linked truth. |
+| Emergency communication | Chat RPC family plus participant-scoped reads | No Console surface yet; direct chat row CRUD must not be introduced. |
+| Clinician handoff | `assign_doctor_to_emergency` plus assignment projection | Console has no persisted assignment action yet. |
+| Cash, card, wallet, retry payment | Payment/RPC/webhook paths | `walletService` repair-adjacent ledger/payment direct mutation and unsafe completion claims. |
+| Hospital operational capacity | `update_hospital_availability` | Hospital modal/service partial operational writes lose ER-wait truth. |
+| Pricing | Upsert/delete pricing RPC family scoped by facility | UI scope can silently present one hospital's prices as organization-wide truth. |
+| Activity and privileged audit | guarded read/log receiver appropriate to the action | Browser audit insert is not proven by the read-only `admin_audit_log` policy. |
 
 ## Early Findings
 
@@ -98,6 +101,8 @@ These appear in app or console call sites and should be classified in the next p
 4. Console uses `create_emergency_v4` and `console_create_emergency_request`; the correct split between patient-compatible create and operator create must be documented before implementation.
 5. `update_hospital_availability` is called by the app but not yet observed in console services; hospital capacity UI may be bypassing the canonical capacity RPC.
 6. Several RPCs are `SECURITY DEFINER`; service code must treat them as privileged mutation surfaces, not convenience wrappers.
+7. Emergency communication and clinician assignment have valid shared receiver families but no Console runtime owner; their absence is now a missing operational capability, not unresolved research.
+8. Maintenance helpers such as `exec_sql` and `reload_schema` are not product CRUD receivers and must remain outside implementation flows.
 
 ## Next RPC Work
 
@@ -105,4 +110,4 @@ These appear in app or console call sites and should be classified in the next p
 - Add line exhibits for each RPC body once the matrix is stable.
 - Compare `process_cash_payment` vs `process_cash_payment_v2`.
 - Compare `create_emergency_v4` payload extraction against app `emergencyRequestsService.js`.
-- Map every console direct `.from(...).update/insert/delete` call against this matrix to find bypasses.
+- Keep the direct-write bypass list synchronized with the CRUD authority matrix as runtime implementation changes.

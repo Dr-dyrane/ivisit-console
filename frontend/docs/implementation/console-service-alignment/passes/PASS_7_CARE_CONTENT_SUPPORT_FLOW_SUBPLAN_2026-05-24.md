@@ -76,6 +76,19 @@ Operator/support/content path:
 | Health news authoring | UI fields are silently discarded by service/table shape. | Curated published-feed owner; unsupported CMS fields/actions remain unavailable until receiver/policy expansion. |
 | Notifications | Operator notifications aligned; patient delete policy drift remains. | Notification owner split: console operator stream versus patient notification lifecycle. |
 
+## Action Class And Receiver Map
+
+| User-visible action or detail | Operation class | Canonical receiver or source | Console rule for this pass |
+| --- | --- | --- | --- |
+| Review/manage support tickets | Conditional ordinary CRUD | `support_tickets` owner/admin policy | Platform admin action is source-supported; org-admin/provider management needs authority before enablement. |
+| Respond/assign ticket | Workflow/field contract repair | Supported response and assignment receiver still needs reconciliation | Do not claim response persistence while app/Console field contract differs. |
+| View FAQs | Scoped read projection | `support_faqs` public read | Patient app remains consumer; Console authoring stays dormant. |
+| Create/edit/publish health content | Excluded pending receiver | `health_news` currently published-read only | Remove or disable authoring promise until fields and policy exist. |
+| View/manage insurance policy | Patient CRUD or missing admin command | `insurance_policies` owner policy | Administrative verify/CRUD needs guarded authority first. |
+| View insurance billing outcome | Backend-derived/scoped read evidence | `insurance_billing` trigger-created result | Add hospital/admin result visibility; do not recreate settlement from UI. |
+| Upload insurance card evidence | Sensitive storage command | Private object ownership and signed URL strategy | Verify Storage policy/object-path lifecycle before implementation. |
+| Read/mark operator notification | Owner-scoped CRUD subset | `notifications` own insert/read/update | Do not generalize into patient notification deletion or broadcast authority. |
+
 ## Implementation Packages
 
 ### 1. Support Ticket Contract

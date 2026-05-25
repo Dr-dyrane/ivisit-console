@@ -72,6 +72,18 @@ The current detail flow conflates these owners:
 | Clinician assignment | UI can show doctor context without a canonical Console assignment workflow. | Guarded `emergency_doctor_assignments` / assignment RPC owner. |
 | Success feedback | Toast claims dispatch/cash outcome immediately. | Backend-confirmed status/payment/ledger copy after refresh. |
 
+## Action Class And Receiver Map
+
+| User-visible action or detail | Operation class | Canonical receiver or source | Console rule for this pass |
+| --- | --- | --- | --- |
+| Open request detail and refresh row | Scoped read projection | `emergency_requests` through emergency read owner | Render normalized row/detail truth; do not let modal become list owner. |
+| View lifecycle timeline | Backend-derived read-only evidence | `emergency_status_transitions` | Add scoped read timeline; no edit/delete controls. |
+| Open/send/read urgent conversation | Workflow command plus scoped read | Chat RPC family and emergency chat tables | Add participant-authorized projection/actions only through RPC contract. |
+| View/assign clinician handoff | Workflow command plus projection | `assign_doctor_to_emergency`, `emergency_doctor_assignments` | Persist assignment before UI claims handoff. |
+| Dispatch, complete, cancel | Workflow command | Console emergency RPC family | No direct request status CRUD; refresh row before success claim. |
+| Approve/decline/retry payment | Workflow command | Payment RPC family | No payment-table write from modal; success waits for refreshed truth. |
+| View linked visit outcome | Backend-derived read-only evidence in emergency detail | `visits.request_id` projection | Detail modal reads outcome; visit lifecycle editing belongs to Pass 6 authority. |
+
 ## Implementation Packages
 
 ### 1. Emergency Detail Read Model

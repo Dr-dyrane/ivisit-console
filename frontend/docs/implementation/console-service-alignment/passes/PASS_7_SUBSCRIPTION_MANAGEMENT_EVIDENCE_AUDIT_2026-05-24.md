@@ -7,7 +7,7 @@ This is an evidence-only checkpoint for the subscription management subpass. It 
 Covered feature rows from `../services/CONSOLE_FEATURE_SERVICE_TAXONOMY_2026-05-24.md`:
 
 - Subscription and email
-- Subscriber CRUD
+- Subscriber intake/read and currently exposed but unauthorized management writes
 - Welcome email lifecycle
 - Custom email lifecycle
 - Bulk email lifecycle
@@ -16,7 +16,7 @@ Covered feature rows from `../services/CONSOLE_FEATURE_SERVICE_TAXONOMY_2026-05-
 
 ## Current Finding
 
-Subscription management is not missing a single CRUD handler. It has too many owners for the same lifecycle.
+Subscription management is not missing a single handler. It has too many owners for one lifecycle and exposes management writes not authorized by current source RLS.
 
 The route can create, update, delete, filter, view, send welcome email, send custom email, send bulk email, and react to realtime inserts. Those behaviors are split across `subscriptionService.js`, `subscribersService.js`, `useSubscription.js`, `SubscriptionManagementPage.jsx`, `SubscriptionModal.jsx`, and Edge Functions under `frontend/supabase/functions/payments/`.
 
@@ -53,7 +53,7 @@ The riskiest defect is welcome email duplication. A new subscriber can trigger w
 
 Subscriber management is currently a UI-assembled lifecycle. It needs one workflow contract:
 
-`subscriber row -> allowed scope -> CRUD command -> optional email command -> receiver result -> row refresh -> passive realtime refresh`
+`subscriber row -> policy-backed read/insert or authorized lifecycle command -> optional email command -> receiver result -> row refresh -> passive realtime refresh`
 
 Realtime must never send email. CRUD must not fire email unless the command explicitly owns that lifecycle. Email success copy must reflect the receiver result and, where available, persisted row state.
 
@@ -61,8 +61,8 @@ Realtime must never send email. CRUD must not fire email unless the command expl
 
 1. Retain `subscriptionService.js` as the subscription workflow facade for active UI code.
 2. Retire `subscribersService.js` from active UI flow. It remains compatibility code until a later cleanup proves no imports depend on it.
-3. Make plain `createSubscriber` a row-only command.
-4. Add an explicit `createSubscriberWithWelcome` command for the create-and-email path.
+3. Keep plain `createSubscriber` as the public-insert-compatible row-only action; do not retain browser update/delete/status actions without a new authorized receiver.
+4. Add an explicit `createSubscriberWithWelcome` command only after Edge authorization/deployment proof for the create-and-email path.
 5. Make `sendWelcomeEmail` idempotent at the command boundary by checking refreshed subscriber state before sending and refreshing after the Edge Function returns.
 6. Remove email sends from passive realtime listeners.
 7. Consolidate realtime to one owner consumed by page/mobile/context surfaces.
@@ -70,14 +70,14 @@ Realtime must never send email. CRUD must not fire email unless the command expl
 9. Treat subscribers as a platform-admin global marketing list for this pass because the current schema has no organization scope and RLS grants admin select only.
 10. Remove the org-admin "all subscribers" assumption from the service.
 11. Replace runtime schema fallback with a contract check because current migrations define the subscriber fields the UI uses.
-12. Preserve current hard-delete behavior for admin deletion in this pass. Exclude unsubscribe/status changes from this slice; they require a separate receiver-backed lifecycle pass and are not implied by the delete button.
+12. Remove or disable hard-delete, edit, and status-change promises in this pass because current source proves admin read but not admin update/delete; those operations require a separate authorized lifecycle receiver.
 
 ## First Safe Implementation Slice
 
 The first implementation slice is fixed:
 
-1. Make `createSubscriber` a row-only operation.
-2. Add a separate `createSubscriberWithWelcome` command that owns send, mark, refresh, and duplicate guard.
+1. Make `createSubscriber` the only policy-backed row mutation retained in the first slice and make admin list access read-only.
+2. Add a separate `createSubscriberWithWelcome` command only after its function authorization/deployment contract is proven; it must own send, mark, refresh, and duplicate guard.
 3. Remove the page realtime `sendWelcome` side effect and keep realtime as passive refresh/toast only.
 4. Route modal welcome/custom/bulk actions through one command facade.
 5. Update bulk success/failure copy to use Edge Function result counts.
@@ -89,6 +89,7 @@ Implementation pauses only for these blockers:
 
 - The current deployment lacks callable `sendWelcome`, `sendCustomEmail`, or `sendBulkEmail` functions. The repo contract names them, so deployment mismatch is an environment defect.
 - A non-admin role needs subscriber management. Current schema/RLS makes this out of scope for this pass; it requires a separate org-scoped subscriber model.
+- Platform-admin editing or deletion is required. Current schema/RLS proves admin read only; a guarded lifecycle receiver or policy repair must be explicitly planned first.
 - `sendWelcome` returns success but the refreshed subscriber row does not show `welcome_email_sent = true`. The UI must report "email sent, subscriber row not marked" rather than "welcome complete."
 - Production subscriber emails are never used for tests. Test email sends use non-production patterned addresses only.
 
