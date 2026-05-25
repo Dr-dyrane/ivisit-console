@@ -436,6 +436,9 @@ Static:
 
 - `git diff --check`
 - mojibake/encoding scan for touched text files
+- `npm run check:database-types-encoding`
+- `npm run lint` for changed Console source when implementation begins
+- `npm run build` after any runtime implementation that can affect deployment
 
 Frontend:
 
@@ -455,6 +458,27 @@ Backend/RLS/RPC:
 - RPC test for decline cash payment.
 - RPC test or fixture for retry payment with different method.
 - Visit lookup proof by request id.
+- App-side hardening references when DB/RPC receiver behavior is in scope:
+  - `npm run hardening:emergency`
+  - `npm run hardening:console-matrix`
+  - `npm run hardening:cash-matrix`
+  - `npm run hardening:chat-rls`
+  - `npm run hardening:emergency-runtime-confidence`
+
+## Implementation Readiness State
+
+Pass 1 remains in audit/planning mode. Implementation can start only when every row below is either closed or deliberately deferred with disabled/unavailable UI.
+
+| Readiness gate | Current state | What must be true before runtime code changes |
+| --- | --- | --- |
+| Detail projection contract | Target contract is documented for identity, status, service, patient, facility, location, payment, action state, clinical outcome, responder, timeline, chat, clinician assignment and report action. | Exact source fields and unavailable/degraded states are accepted as the first-slice mapper contract. |
+| Command/action contract | Shared action contract is documented for approve, decline, retry, dispatch, complete, manual cash, clinical record, external navigation and incident report. | Route, detail, mobile and map agree to consume one action model and one command facade. |
+| Missing operational surfaces | Timeline, chat and clinician assignment receiver plan is documented. | Decide first-slice UI disposition: read-only timeline, chat unavailable/summary/panel, clinician assignment unavailable/read-only/command. |
+| List/page projection | Still open. Page owns list query, count, payment enrichment and broad realtime. | Define exact emergency list projection contract or explicitly defer list owner cleanup with no new runtime action changes. |
+| Mobile/map parity | Still open. Mobile renders aliases and map surfaces dispatch/complete directly. | Define the shared row/action projection consumed by mobile and map before touching their action handlers. |
+| Clinical receiver | Still open. `openVisitModal` receiver is mounted only on `/visits`. | Choose mounted emergency-route clinical outcome surface or explicit navigation path. |
+| Finance boundary | Still open. Manual cash settlement and ledger repair belong to Pass 2. | Disable/defer manual settlement in Pass 1 or prove finance receiver and reflected read. |
+| Verification commands | Static commands named; backend/app hardening references identified. | For implementation, choose the smallest verification set that matches touched code and note skipped commands with reasons. |
 
 Hard blockers:
 
