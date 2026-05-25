@@ -104,7 +104,7 @@ Define policy for:
 
 Acceptance gate:
 
-- QuickSearch either wires telemetry through the chosen services or explicitly disables/labels it.
+- Keep `searchService.js` as QuickSearch's active read/event owner, repair its ambulance projection, and leave separate telemetry CRUD/realtime adapters dormant unless a guarded analytics use case is introduced.
 - Admin analytics never expose user-sensitive search history without policy proof.
 
 ### 4. Trending And Automation

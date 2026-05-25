@@ -62,7 +62,7 @@ Operator path:
 | Capacity/bed truth | Direct scalar updates plus bed reservation service. | Capacity owner that reconciles scalar fields, `bed_availability`, reservations, and app-visible availability. |
 | Discovery/import | Modal raw `fetch` plus `hospitalImportService` Edge flow. | Discovery/import owner with live/fallback/source labels. |
 | Image upload | Modal direct upload path. | Storage/media owner with bucket/path/auth semantics. |
-| Pricing | Organization filter plus hospital first-choice write semantics. | Pricing owner with explicit global/org/hospital scope. |
+| Pricing | Organization filter plus hospital first-choice write semantics. | Facility-scoped `service_pricing` / `room_pricing` owner with explicitly labelled platform fallback rows only. |
 | Realtime | Page and modal own separate channels. | Domain owner invalidation with modal-scoped detail exceptions. |
 
 ## Implementation Packages
@@ -132,13 +132,12 @@ Acceptance gate:
 
 ### 5. Pricing Scope
 
-Decide whether pricing is:
+Pricing is hospital/facility-scoped for active patient quotes, with two typed row families:
 
-- global platform pricing
-- organization pricing
-- hospital/facility pricing
-- room/category pricing
-- service pricing
+- `service_pricing` for facility service types.
+- `room_pricing` for facility room/bed categories.
+- Null-hospital rows, where retained, are explicit platform defaults/fallbacks and must not be presented as an organization override.
+- Organization-level presentation is aggregation only unless a future propagation receiver deliberately writes each facility row.
 
 Acceptance gate:
 
@@ -168,6 +167,6 @@ Backend/RLS/RPC/Edge:
 
 Stop conditions:
 
-- Do not implement pricing writes before scope decision.
+- Do not implement pricing writes without an explicit facility selection; never write an implicit earliest-hospital organization override.
 - Do not import discovered providers without authority proof.
 - Do not change availability fields until app-visible capacity semantics are confirmed.

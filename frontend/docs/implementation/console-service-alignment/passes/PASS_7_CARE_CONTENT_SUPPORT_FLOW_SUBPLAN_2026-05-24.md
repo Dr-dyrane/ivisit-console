@@ -66,10 +66,10 @@ Operator/support/content path:
 | --- | --- | --- |
 | Support ticket receipt | App can fallback locally; console table lacks expected response field. | Shared support ticket contract between app and console. |
 | Support assignment | Console exposes org/provider assignment actions beyond proven policy. | Support operations owner with role/RLS proof. |
-| Support FAQs | Service exists without surfaced route. | Retain/wire/retire decision. |
+| Support FAQs | Service exists without surfaced route; current RLS proves reads only. | Patient app remains FAQ reader; console authoring adapter stays dormant until authorized receiver/route exists. |
 | Insurance CRUD | Two services overlap, admin promises exceed policy proof. | Insurance owner with explicit admin/support access model. |
-| Insurance images | Insurance service uploads directly. | Shared storage/media owner with private/public decision. |
-| Health news authoring | UI fields are silently discarded by service/table shape. | Content owner: curated link feed or authored CMS. |
+| Insurance images | Insurance service uploads directly. | Private insurance-evidence Storage owner with policy/path/expiry/cleanup proof before implementation. |
+| Health news authoring | UI fields are silently discarded by service/table shape. | Curated published-feed owner; unsupported CMS fields/actions remain unavailable until receiver/policy expansion. |
 | Notifications | Operator notifications aligned; patient delete policy drift remains. | Notification owner split: console operator stream versus patient notification lifecycle. |
 
 ## Implementation Packages
@@ -90,13 +90,11 @@ Acceptance gate:
 
 - A patient-created ticket can be persisted and then rendered/operated in console with the same fields.
 
-### 2. Support FAQ Decision
+### 2. Support FAQ Boundary
 
-Choose:
-
-- add a support FAQ management route/page
-- expose FAQs only in patient app and retain console service for future
-- retire the service with a separate cleanup plan
+- Expose FAQs through the patient app's public-read path only under the current contract.
+- Keep the console adapter dormant and do not add a management route while write authorization is absent.
+- Retire unused adapter code only in a separate cleanup pass after import proof.
 
 Acceptance gate:
 
@@ -104,11 +102,9 @@ Acceptance gate:
 
 ### 3. Insurance Owner Consolidation
 
-Choose one owner strategy:
-
-- `insuranceService.js` as full workflow owner and `insurancePoliciesService.js` as compatibility wrapper
-- `insurancePoliciesService.js` as table adapter and `insuranceService.js` as workflow/normalizer
-- retirement of duplicate service after compatibility proof
+- Retain `insuranceService.js` as the full active workflow/normalization facade because `useInsurance` and policy actions consume it.
+- Restrict `insurancePoliciesService.js` to current compatible subscription/read support while consolidating duplicate writes.
+- Retire duplicate paths only after import and realtime ownership proof.
 
 Acceptance gate:
 

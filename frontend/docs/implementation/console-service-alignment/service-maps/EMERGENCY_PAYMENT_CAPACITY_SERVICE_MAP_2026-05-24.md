@@ -75,7 +75,7 @@ Audit implication: console capacity controls should be treated as drift suspecte
 
 ### 2. Manual Cash Processing Uses Legacy RPC
 
-Console `walletService.processCashPayment()` calls `process_cash_payment`, while app code and schema docs point to `process_cash_payment_v2` for the richer app flow. The current migration includes a legacy wrapper, but Stage 2 must prove whether console UI should call the wrapper, approval RPC, or v2 directly.
+Console `walletService.processCashPayment()` calls `process_cash_payment`, while app code and schema docs point to `process_cash_payment_v2` for the richer app flow. Stage 2 contract evidence resolves the implementation direction: Console cash completion must route through the canonical approval/settlement receiver that confirms payment and ledger truth; the legacy manual wrapper is not a supported success path for visible fee-deducted completion.
 
 Audit implication: do not implement new payment UI against `process_cash_payment` until the cash state machine is mapped.
 

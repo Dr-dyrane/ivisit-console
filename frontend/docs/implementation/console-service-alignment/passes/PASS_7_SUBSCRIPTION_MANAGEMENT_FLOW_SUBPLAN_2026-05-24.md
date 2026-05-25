@@ -147,7 +147,7 @@ Decision:
 - Org admins do not receive subscriber list visibility in this pass.
 - Support/content roles do not receive subscriber list visibility in this pass.
 - Delete preserves current hard-delete behavior for platform admins.
-- Unsubscribe/status semantics are a separate product decision and are not implied by this pass.
+- Unsubscribe/status changes are excluded from this implementation slice and must not be inferred from the platform-admin hard-delete control; they require their own receiver-backed lifecycle pass.
 
 Acceptance gate:
 

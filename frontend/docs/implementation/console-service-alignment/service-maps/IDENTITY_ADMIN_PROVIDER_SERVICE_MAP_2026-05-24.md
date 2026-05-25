@@ -53,7 +53,7 @@ App reference:
 | Ambulance location/status | `updateAmbulanceLocation()`, `updateAmbulanceStatus()` | None. | Direct `ambulances.update`. | App has `update_ambulance_location` RPC and realtime emergency tracking. | Drift suspected; location/status should use canonical RPCs where available. |
 | Doctor list/get | `getDoctors()`, `getDoctor()` | `doctors`, joined hospitals. | Read-only. | App provider automation expects doctors sync from profiles and doctor records. | Read path useful; display ID enrichment likely broken because bulk resolver only queries hospitals. |
 | Doctor create/update/delete | `createDoctor()`, `updateDoctor()`, `deleteDoctor()` | None. | Direct `doctors` CRUD. | App tests include provider-to-doctor automation verification. | Drift suspected; direct doctor record CRUD can fight profile-trigger automation. |
-| Staff schedule | `staffSchedulingService.*` | `doctors`, `ambulances`, `profiles`. | Direct doctor status updates. | App uses availability/status indirectly through emergency and provider flows. | Thin compatibility layer, not true schedule CRUD. |
+| Staff schedule | `staffSchedulingService.*` | `doctors`, `ambulances`, `profiles`; does not query `doctor_schedules`. | Direct doctor status updates only. | App source defines `doctor_schedules` with org-admin/admin management policy. | Confirmed receiver drift: UI promises scheduling while service bypasses stored shifts. |
 | Driver assignment dashboard | `driverManagementService.*` | `emergency_requests`, `hospitals`, `profiles`, `ambulances`. | Emergency RPCs for trip status; read-only for assignments. | App active trip query and dispatch service observe request/ambulance state. | Trip status boundary is good; utilization calculations are approximate. |
 
 ## Key Findings
@@ -93,13 +93,13 @@ Ambulance and doctor services create/update/delete rows directly. App reference 
 - ambulance assignment and location are app-visible realtime facts
 - emergency dispatch/resource sync is trigger/RPC-owned
 
-Audit implication: provider CRUD needs a dedicated ownership decision. Some admin CRUD may remain direct, but active operational fields should be RPC-owned.
+Audit implication: provider-directory metadata may use authorized CRUD, while active operational ambulance status/location must use request-scoped RPC ownership and doctor shifts must use `doctor_schedules`.
 
 ### 5. Staff Scheduling Is A Compatibility Projection
 
-`staffSchedulingService` does not use `doctor_schedules` despite that table existing in migrations. It derives schedules from doctor status and ambulance crew arrays.
+`staffSchedulingService` does not use `doctor_schedules` despite that table existing in migrations with organization-scoped management policy. It derives schedules from doctor status and ambulance crew arrays, invents fixed same-day shift times, and reads absent `ambulances.hospital` for fleet context.
 
-Audit implication: the UI may look like scheduling but it is really status toggling. Before implementation, decide whether console should manage `doctor_schedules` or keep a lightweight availability/status model.
+Determined implementation implication: the scheduling UI must manage real `doctor_schedules` rows for doctor shifts, conflicts, and scheduling statistics. Doctor availability remains separate operational state. Ambulance crew scheduling is not exposed until a persisted receiver exists; generated crew shifts and the absent ambulance hospital projection must be removed.
 
 ## Required Field Maps For Next Pass
 
@@ -147,7 +147,7 @@ Audit implication: the UI may look like scheduling but it is really status toggl
 - Treat raw `profiles.insert` as unsafe unless paired with auth admin creation.
 - Prefer `update_profile_by_admin` or purpose-built admin RPCs for role/provider/status changes.
 - Audit `update_ambulance_location` and `update_ambulance_status` RPCs before keeping direct ambulance status/location writes.
-- Decide whether staff scheduling should use `doctor_schedules` or explicitly remain a status-only console surface.
+- Use `doctor_schedules` as the org-authorized doctor-shift CRUD receiver; keep doctor availability distinct and do not claim ambulance shift CRUD without a persisted receiver.
 
 ## Next Service Families
 

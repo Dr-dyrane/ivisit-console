@@ -70,7 +70,7 @@ Realtime must never send email. CRUD must not fire email unless the command expl
 9. Treat subscribers as a platform-admin global marketing list for this pass because the current schema has no organization scope and RLS grants admin select only.
 10. Remove the org-admin "all subscribers" assumption from the service.
 11. Replace runtime schema fallback with a contract check because current migrations define the subscriber fields the UI uses.
-12. Preserve current hard-delete behavior for admin deletion in this pass. Unsubscribe/status semantics require a separate product decision and are not implied by the delete button.
+12. Preserve current hard-delete behavior for admin deletion in this pass. Exclude unsubscribe/status changes from this slice; they require a separate receiver-backed lifecycle pass and are not implied by the delete button.
 
 ## First Safe Implementation Slice
 

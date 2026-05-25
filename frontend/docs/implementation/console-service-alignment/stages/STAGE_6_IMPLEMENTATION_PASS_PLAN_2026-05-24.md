@@ -100,18 +100,16 @@ Receivers and app reference:
 - Replace modal/list/table direct visit lookups with the chosen emergency detail projection or request-derived visit owner.
 - Remove global emergency realtime ownership from `PageDataContext` only after page/domain reads are stable.
 
-#### 1B. Create Contract Decision
+#### 1B. Create Contract Resolution
 
-- Decide whether console create is:
-  - app-lifecycle emergency creation through `create_emergency_v4`
-  - administrative emergency record creation through `console_create_emergency_request`
-  - or two explicit UI modes with different labels and field sets
-- If using `create_emergency_v4`, ensure UI fields that remain visible are actually sent and persisted:
+- Patient-equivalent emergency creation from Console uses `create_emergency_v4`, because it is the receiver that establishes app-visible lifecycle, visit/payment, and transition truth.
+- Keep `console_create_emergency_request` unavailable as a general create control until it either establishes the same linked contract or is exposed only as a separately labelled administrative record mode with no patient-lifecycle claim.
+- For the patient-equivalent create surface, ensure UI fields that remain visible are actually sent and persisted:
   - `bed_number`
   - payment method/payment context
   - total amount/currency if supported
   - status only if the receiver intentionally accepts it
-- If `console_create_emergency_request` remains available, document or repair:
+- Before any separate administrative create mode is exposed, document or repair:
   - visit linkage
   - payment creation
   - transition legality
@@ -275,7 +273,7 @@ Console services and receivers:
 | --- | --- | --- | --- |
 | Hospital/pricing read owners | Read-only owner cleanup | Centralize hospital, capacity, pricing, and KPI reads. | Page/modal/context direct reads no longer own facility truth. |
 | Scoped pricing UX | UI/service cleanup | Make hospital-scoped versus organization-scoped pricing explicit. | Multi-hospital orgs cannot silently write only earliest-hospital pricing. |
-| Availability writer decision | L5 repair | Choose canonical capacity/status writer preserving normalization and ER wait. | Console capacity edits persist all app-visible fields intentionally. |
+| Availability writer resolution | L5 repair | Route operational capacity/status/wait changes through `update_hospital_availability`; keep metadata edits separate. | Console capacity edits persist all app-visible fields intentionally. |
 | Discovery authority | L5 repair | Restrict/authorize provider persistence and align modal request/response contract. | Discovery cannot write canonical provider rows without operator authority. |
 
 ### Detailed Checklist
@@ -294,13 +292,11 @@ Console services and receivers:
   - discovery source/attribution fields
 - Show degraded state when app-visible fields are absent or known stale.
 
-#### 3B. Availability Writer Choice
+#### 3B. Availability Writer Resolution
 
-- Decide whether console edits use:
-  - `update_hospital_by_admin`
-  - `update_hospital_availability`
-  - a new console availability RPC
-  - or separate administrative profile edit versus operational availability edit modes
+- Split administrative facility metadata edits from operational availability edits.
+- Route visible operational capacity/status/wait controls through `update_hospital_availability`, the receiver already consumed by app realtime availability and capable of persisting ER wait with the availability snapshot.
+- Keep `update_hospital_by_admin` for non-operational facility metadata only unless its receiver is deliberately expanded and proven equivalent for availability fields.
 - Ensure visible ER wait input persists to the same field app availability consumes.
 - Preserve `normalize_hospital_bed_state` behavior while confirming deployed trigger behavior.
 - Do not use partial direct status/bed writers from hooks for visible operational controls unless they are intentionally scoped and documented.
@@ -454,22 +450,16 @@ Console services and receivers:
 
 - Prefer linking an existing provider profile before creating a doctor row.
 - Avoid create-then-invite flow that can create an unlinked doctor row and later trigger a profile-linked row.
-- Decide which fields are profile-projected versus directory-owned:
-  - name/email/phone
-  - hospital
-  - specialty
-  - license
-  - status
+- Treat name/email/phone and profile-linked facility identity as profile-projected fields for linked doctors.
+- Treat specialty, license, and operational availability status as doctor-directory fields unless a later trigger contract explicitly projects them from profiles.
 - Update UI copy so "invite" and "create directory row" are not presented as one guaranteed atomic operation unless backend makes it so.
 
 #### 5D. Scheduling Ownership
 
-- Choose one product meaning:
-  - actual schedule CRUD using `doctor_schedules`
-  - or availability/status management without date/time shift promises
-- If implementing `doctor_schedules`, read and write actual rows with date/time/shift/notes.
-- If keeping status-only, remove or relabel date/time/shift/notes fields so the UI does not claim persisted scheduling.
-- Do not imply ambulance crew scheduling until a receiver exists.
+- Implement actual doctor-shift CRUD using `doctor_schedules`, the existing org-authorized receiver.
+- Read and write actual stored rows for date/time/shift/availability; remove the unsupported `notes` control unless a receiver is introduced.
+- Keep `doctors` availability/status as operational state rather than schedule persistence.
+- Do not imply ambulance crew scheduling until a persisted authorized receiver exists.
 
 ### Pass 5 Verification
 
@@ -584,14 +574,12 @@ Console services and receivers:
 
 #### 7A. Health News
 
-- Decide whether `health_news` is:
-  - curated outbound link/news feed
-  - or authored article CMS
-- If curated feed, remove or relabel editor fields not persisted:
+- Treat the current `health_news` receiver as a curated published feed, not an authored article CMS: the current table contract and public app read path do not prove article-body authoring or console write policy.
+- Remove or relabel editor fields not persisted:
   - description
   - content
   - icon
-- If authored CMS, add/pin the receiver fields and authoring policies before UI claims save.
+- Do not expose authored-article editing unless a later contract pass adds the receiver fields and authorized authoring policy first.
 - Move page and panel KPI/category reads into one health-news summary service.
 - Obtain policy proof before draft/read/write authoring work.
 
@@ -599,12 +587,12 @@ Console services and receivers:
 
 - Align patient app ticket creation fields with console receiver fields.
 - Fix or remove app-side `admin_response` insert expectation if the receiver lacks it, or add a supported receiver field intentionally.
-- Decide whether org-admin/provider support operations are allowed; if yes, use guarded RPC/RLS rather than direct browser table assumptions.
+- Keep support operations within the currently proven admin/owner policy boundary; do not expose org-admin/provider ticket management until a guarded RPC/RLS contract authorizes it.
 - Keep `useSupportTickets` as the page/panel data owner and remove duplicate panel direct channels.
 
 #### 7C. Subscribers And Email
 
-- Choose one console subscriber facade.
+- Retain `subscriptionService.js` as the active console subscriber/email workflow facade; leave `subscribersService.js` as compatibility-only until removal proof exists.
 - Remove runtime schema fallback writes that delete columns after errors.
 - Define lifecycle state machine:
   - subscribed/new

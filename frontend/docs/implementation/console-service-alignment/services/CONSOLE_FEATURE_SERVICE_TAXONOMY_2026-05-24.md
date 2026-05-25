@@ -39,8 +39,8 @@ Canonical service inventory source:
 | Medical profile support | Patient medical profile, allergies, medications, emergency contacts, clinical visibility. | `medicalProfilesService.js`, `preferencesService.js` | Pass 6 / Pass 7 |
 | Insurance management | Policy CRUD, verification, card images, admin/patient scope. | `insuranceService.js`, `insurancePoliciesService.js`, `storageService.js` | Pass 7 |
 | Support operations | Support tickets, assignment, status, patient receipt, analytics. | `supportTicketsService.js`, `notificationService.js` | Pass 7 |
-| Support knowledge base | FAQ CRUD/search/category/realtime or retirement decision. | `supportFaqsService.js` | Pass 7 |
-| Health content | Health news links/articles, draft/publish/delete, category, authored-field decision. | `healthNewsService.js`, `notificationService.js`, `storageService.js` | Pass 7 |
+| Support knowledge base | Patient-app FAQ read truth; console authoring remains dormant until an authorized receiver/route exists. | `supportFaqsService.js` | Pass 7 |
+| Health content | Curated published health-news feed; article-body/draft authoring remains disabled until fields and write policy exist. | `healthNewsService.js`, `notificationService.js`, `storageService.js` | Pass 7 |
 | Subscription and email | Subscriber CRUD, welcome/custom/bulk email, status/type, realtime. | `subscriptionService.js`, `subscribersService.js` | Pass 7 |
 | Notifications | Operator notifications, patient notification policy drift, action metadata. | `notificationService.js`, `preferencesService.js` | Pass 7 / Pass 8 |
 | Dashboard analytics | Summary analytics, finance analytics, role-scoped charts, source labels. | `analyticsService.js`, `walletService.js`, `searchAnalyticsService.js` | Pass 8 |
@@ -67,7 +67,7 @@ Canonical service inventory source:
 | `driverManagementService.js` | Driver and responder operations; map telemetry. | High | Are driver assignment and trip status coupled to active backend emergency truth? |
 | `emergencyResponseService.js` | Emergency command center; responder telemetry. | High | Does every dispatch/location/completion command respect legal request lifecycle? |
 | `emergencyService.js` | Emergency command center; clinical handoff; visits. | High | Is the emergency detail/list owner authoritative for request, payment, cash, and visit linkage state? |
-| `healthNewsService.js` | Health content. | Medium | Is health news a curated link feed or authored CMS, and do fields/policies match that choice? |
+| `healthNewsService.js` | Health content. | Medium | Remove unsupported CMS-style controls and keep current reads aligned to the curated published-feed receiver. |
 | `hospitalImportService.js` | Facility discovery and import. | High | Can discovery fallback create or imply canonical provider truth without authorized import? |
 | `hospitalsService.js` | Facility registry; capacity; pricing; visits. | High | Do hospital writes preserve app-visible facility, capacity, verification, and pricing semantics? |
 | `insurancePoliciesService.js` | Insurance management. | High | Is this a compatibility wrapper or duplicate owner for policy CRUD/document updates? |

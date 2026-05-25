@@ -104,7 +104,7 @@ Decision:
 
 Acceptance gate:
 
-- Clinical record buttons in modal/list/table route through the same lookup decision.
+- Clinical record buttons in modal/list/table route through the canonical `visits.request_id` lookup, with legacy fallback isolated and labelled.
 - Empty copy distinguishes "not created yet" from "not visible" from "not applicable."
 
 ### 3. Payment And Cash Approval Detail State

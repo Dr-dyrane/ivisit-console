@@ -37,7 +37,7 @@ App reference:
 | Visit create/update/delete | `createVisit()`, `updateVisit()`, `deleteVisit()` | None. | Direct `visits` CRUD. | App uses upsert for patient-owned visits but also treats emergency-to-visit DB sync as owner for request-derived rows. | High-risk direct CRUD; must not fight `sync_emergency_to_visit`. |
 | Visit completion/cancel/no-show | `completeVisit()`, `cancelVisit()`, `markVisitAsNoShow()` | None. | Direct `visits.update`. | App preserves terminal trip/visit context and dispatches visit notifications. | Drift suspected; lifecycle fields and notifications need ownership proof. |
 | Medical profile read/update | `medicalProfilesService.*` | `medical_profiles`, current user check. | Direct table CRUD. | App medical profile hooks/services use a layered query/mutation facade. | Mostly aligned at table level, but admin access and validation RPCs need proof. |
-| Insurance policy CRUD | `insuranceService.*`, `insurancePoliciesService.*` | `insurance_policies`, storage `documents`. | Direct table CRUD and storage upload. | App insurance service normalizes policy state and checkout coverage. | Duplicate service surface; needs consolidation decision. |
+| Insurance policy CRUD | `insuranceService.*`, `insurancePoliciesService.*` | `insurance_policies`, storage `documents`. | Direct table CRUD and storage upload. | App insurance service normalizes policy state and checkout coverage. | Retain `insuranceService` as active workflow facade; reduce the duplicate adapter to compatible read/subscription support pending cleanup. |
 | Insurance analytics | `getInsuranceAnalytics()` | `insurance_policies`. | Read-only. | App focuses patient policy use and coverage checks. | Console-owned analytics. |
 
 ## Content, Search, Subscriber, Support Matrix
@@ -141,7 +141,7 @@ Health news and support tickets are straightforward CRUD surfaces. They still ne
 - Add a visit hydration parity map before touching visit UI.
 - Consolidate subscriber lifecycle ownership before any campaign/send UI work.
 - Keep search analytics RPC reads; label fallback trend data as demo or remove from production surfaces.
-- Decide whether insurance service duplication is intentional before adding new insurance features.
+- Keep `insuranceService.js` as the active normalized policy facade used by `useInsurance`; use `insurancePoliciesService.js` only for its current compatible subscription/read support until the duplicate boundary is consolidated in Pass 7.
 
 ## Stage 2 Remaining Work
 

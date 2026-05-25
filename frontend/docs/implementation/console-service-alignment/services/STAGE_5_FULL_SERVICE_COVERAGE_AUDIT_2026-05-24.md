@@ -43,7 +43,7 @@ For each service this audit records:
 | `activityService.js` | Activity/audit event reads, stats, realtime, and helper logging. | Imported by `PageDataContext`, `useActivity`, and wallet/activity flows. | Explicit in Stage 4/6 as audit support, but not independently covered. | Pass 2 and Pass 8 cross-cutting audit policy. |
 | `adminService.js` | Admin permissions, invite, bulk user operations, suspend/delete, MFA/Auth helpers. | Imported by `useAdmin`, `DoctorModal`, and admin/user flows. | Explicit. | Pass 4 identity/admin authority. |
 | `ambulancesService.js` | Ambulance CRUD, driver assignment, location, status, drivers. | Imported by `PageDataContext`, `useAmbulances`, pages, modals, user creation. | Explicit. | Pass 5 provider operations and ambulance telemetry. |
-| `analyticsAutomationService.js` | Analytics automation/regeneration wrapper. | Low direct UI signal; service object export. | Mentioned, but no concrete owner row before this stage. | Pass 8 analytics automation and degraded truth. |
+| `analyticsAutomationService.js` | Analytics automation/regeneration wrapper. | Service-only export; no rendered caller found. | Source-proven stubbed receiver in care/content chart. | Pass 8 disables regeneration until a real aggregation receiver exists. |
 | `analyticsService.js` | Dashboard analytics, summaries, time series, performance metrics, cache. | Imported by `PageDataContext`, `useAnalytics`, analytics page. | Explicit. | Pass 8 analytics/dashboard truth. |
 | `authService.js` | Current user, admin check, auth-aware query helpers, password update. | Imported by pages and `AuthContext`. | Explicit. | Pass 4 identity/auth boundary, with cross-pass guards. |
 | `bedManagementService.js` | Bed/capacity records, availability actions, hospital capacity helpers. | Imported by `HospitalModal`; read/write path supports emergency capacity. | Explicit. | Pass 3 hospitals/capacity, with Pass 1 dependency. |
@@ -55,23 +55,23 @@ For each service this audit records:
 | `healthNewsService.js` | Health news CRUD, publish toggle, categories, realtime. | Imported by health news page/hook. | Explicit. | Pass 7 content. |
 | `hospitalImportService.js` | Hospital import, enrichment, bulk import/update support. | Imported by `HospitalModal`. | Explicit but mostly as supporting service. | Pass 3 hospitals and public discovery ingestion. |
 | `hospitalsService.js` | Hospital CRUD, verified hospital reads, specialty search, bed count. | Imported by `PageDataContext`, hooks, pages, modals, visit context. | Explicit. | Pass 3 hospitals/capacity/discovery. |
-| `insurancePoliciesService.js` | Insurance policy CRUD, active policy queries, realtime. | Imported by `PageDataContext` and insurance hook subscription. | Partial; duplicate with `insuranceService` documented. | Pass 7 care/supporting patient records, with duplicate-service decision. |
+| `insurancePoliciesService.js` | Insurance policy CRUD, active policy queries, realtime. | Imported by `PageDataContext` and insurance hook subscription. | Duplicate writer; active UI workflow owner is `insuranceService.js`. | Pass 7 restricts it to compatible subscription/read support while duplicate writes are consolidated. |
 | `insuranceService.js` | Insurance normalization, writes, status, card upload, realtime. | Imported by `useInsurance` and `InsuranceModal`. | Explicit as duplicate/receiver drift risk. | Pass 7 insurance lifecycle and upload path. |
 | `medicalProfilesService.js` | Medical profile, allergies, conditions, medications, emergency contacts. | No direct page import in scan; supports patient safety data. | Mentioned, but thin. | Pass 6 or Pass 7 patient-care records, depending on whether consumed by visit detail. |
 | `notificationService.js` | Notification creation, read state, realtime, action metadata. | Imported by notification center and many CRUD modals/pages. | Explicit as action side-effect support. | Cross-pass service, primarily Pass 7 and Pass 8 feedback. |
 | `onboardingService.js` | Onboarding organization/provider profile creation and setup. | Imported by `OnboardingContext` and organization onboarding step. | Partial. | Pass 4 identity, verification, onboarding authority. |
 | `organizationsService.js` | Organization CRUD/read model. | Imported by `PageDataContext`, organizations page, users page. | Not explicitly covered before this stage. | Pass 4 organization registry; Pass 2/3/7 scope dependency. |
 | `orgVerificationService.js` | Organization/facility verification queue and stats. | Imported by verification queue. | Explicit. | Pass 4 facility verification authority. |
-| `preferencesService.js` | User preferences, demo mode, notification toggles, sharing preferences. | No direct import in source scan. | Thin; demo mode noted in Stage 3/4. | Pass 8 settings/preferences and demo-mode decision. |
+| `preferencesService.js` | User preferences, demo mode, notification toggles, sharing preferences. | No direct import in source scan; Settings switch is unwired. | Source-classified ownership split below. | Pass 8 operator notification wiring only; patient demo/privacy excluded. |
 | `pricingService.js` | Service and room pricing read/write/delete. | Imported by `PageDataContext` and pricing page. | Explicit. | Pass 3 pricing scope and organization semantics. |
 | `profilesService.js` | Profile CRUD, search, role reads, avatars, statistics. | Imported by `PageDataContext`, user/admin/hooks, visit context, auth. | Explicit. | Pass 4 identity; Pass 5/6 dependent profile joins. |
-| `rbacPatterns.js` | Shared authorization helpers, authorized query builder, service error handling. | No direct import found in scan. | Thin; only named as infra risk. | Pass 4 security helper audit and cross-pass guardrail. |
+| `rbacPatterns.js` | Shared authorization helpers, authorized query builder, service error handling. | Imported by verification and organization verification services. | Source-classified as active verification infrastructure below. | Pass 4 security helper guardrail; never an RLS replacement. |
 | `searchAnalyticsService.js` | Search analytics summaries and metrics. | Service object export, documented in analytics context. | Explicit but high-level. | Pass 8 search/analytics truth. |
 | `searchEventsService.js` | Search event CRUD and realtime. | No direct import found in scan. | Not explicitly covered before this stage. | Pass 8 search telemetry lifecycle. |
 | `searchHistoryService.js` | Search history CRUD, clear history, popular searches, realtime. | No direct import found in scan. | Not explicitly covered before this stage. | Pass 8 search history/privacy lifecycle. |
 | `searchSelectionsService.js` | Search selection CRUD, user selections, result-type queries, realtime. | No direct import found in scan. | Not explicitly covered before this stage. | Pass 8 search selection/audit lifecycle. |
-| `searchService.js` | Quick search facade across console entities. | Imported by `QuickSearch`. | Partial. | Pass 8 global search, route feedback, and source labeling. |
-| `staffSchedulingService.js` | Staff schedules, availability, conflicts, stats, realtime. | Imported by staff scheduling modal. | Explicit but needs deeper receiver proof. | Pass 5 provider operations and scheduling authority. |
+| `searchService.js` | Quick search facade across console entities. | Imported by `QuickSearch`; active history/selection writer. | Confirmed broken ambulance projection below. | Pass 8 repairs query projection and preserves it as active telemetry owner. |
+| `staffSchedulingService.js` | Staff schedules, availability, conflicts, stats, realtime. | Imported by staff scheduling modal. | Source-proven receiver drift: it bypasses existing authorized `doctor_schedules` and generates rows from statuses. | Pass 5 implements doctor-shift CRUD against `doctor_schedules`; ambulance shift CRUD remains excluded without a receiver. |
 | `storageService.js` | Image upload and URL helpers. | Imported by ambulance, doctor, hospital, and insurance modals. | Not explicitly covered before this stage. | Cross-pass media/upload authority, with Pass 3/5/7 consumers. |
 | `subscribersService.js` | Subscriber CRUD/count/status helpers. | No direct import found in scan; overlaps `subscriptionService`. | Explicit as duplicate-risk but not owner-decided. | Pass 7 subscriber lifecycle consolidation. |
 | `subscriptionService.js` | Subscriber management, bulk/custom/welcome email, status/type, realtime. | Imported by subscription hook/page/modal. | Explicit. | Pass 7 subscription and email lifecycle. |
@@ -79,7 +79,7 @@ For each service this audit records:
 | `supabaseMapService.js` | Map entities, subscriptions, emergency/hospital/ambulance projections. | Imported by map context and God Mode map. | Explicit. | Pass 5 map telemetry and Pass 8 realtime ownership. |
 | `supportFaqsService.js` | Support FAQ CRUD, search, category, realtime. | No direct import found in scan. | Not explicitly covered before this stage. | Pass 7 support content/FAQ management. |
 | `supportTicketsService.js` | Support ticket CRUD, status, counts, user tickets, realtime. | Imported by `PageDataContext`, hook, support modal/page. | Explicit. | Pass 7 support lifecycle and read owner cleanup. |
-| `trendingTopicsService.js` | Trending topic CRUD/category/top topics/realtime. | No direct import found in scan. | Thin mention only. | Pass 8 trend source-of-truth decision. |
+| `trendingTopicsService.js` | Trending topic CRUD/category/top topics/realtime. | No direct import found; QuickSearch reads trends through `searchService`. | Read-only/manual trend state proven below. | Pass 8 keeps generated/write controls dormant until aggregation exists. |
 | `verificationService.js` | Provider verification queue, stats, realtime, permission check. | Imported by `PageDataContext` and verification queue. | Explicit. | Pass 4 provider verification authority. |
 | `visitsService.js` | Visit CRUD, completion/cancel/no-show, realtime, context hydration. | Imported by `PageDataContext`, hooks, visits page, emergency views/modal. | Explicit. | Pass 6 visits ownership, with Pass 1 emergency dependency. |
 | `walletService.js` | Wallet summary, finance analytics, projections, withdrawals, top-ups, Stripe setup/cards. | Imported by wallet page/modals, analytics, bento, emergency page. | Explicit. | Pass 2 wallet/Stripe/ledger, with Pass 1 cash dependency. |
@@ -128,7 +128,7 @@ Subscription management is not just content. It spans:
 
 Required plan adjustment:
 
-- Pass 7 must begin by choosing one subscriber owner or an explicit compatibility boundary.
+- Pass 7 retains `subscriptionService.js` as the active subscriber/email workflow facade and keeps `subscribersService.js` compatibility-only until removal proof exists.
 - Email actions must distinguish queued/sent/failed state; UI must not claim delivery from a request that only started an action.
 - Welcome email state must be receiver-confirmed before `welcome_email_sent` style fields are shown as truth.
 - Bulk/custom email must have row-level pending, failure, and retry semantics.
@@ -162,23 +162,24 @@ Required plan adjustment:
 
 ### Support FAQs Are Missing From Support Lifecycle Planning
 
-`supportFaqsService.js` exists as a full CRUD/realtime service, but no page import was found in the source scan. This could mean an unfinished surface, orphaned service, or future console-only support content capability.
+`supportFaqsService.js` exists as a full CRUD/realtime service, but no page import was found in the source scan. Source RLS grants public reads only, so its browser management methods are dormant unauthorized promises rather than an unfinished active surface.
 
-Required plan adjustment:
+Determined plan adjustment:
 
-- Pass 7 must decide whether FAQs remain an admin-managed console surface.
-- If retained, add a route/page owner or document it as intentionally service-only.
-- If retired, preserve history and remove only through a separate implementation pass, not during unrelated support ticket work.
+- The patient app remains the active FAQ reader through `helpSupportService.js`, backed by public-read table policy.
+- The console FAQ adapter remains dormant: it has no rendered importer and its direct create/update/delete promises are not authorized by current source RLS, which proves public SELECT only.
+- Pass 7 must not expose console FAQ authoring until a deliberate admin-authorized receiver and route are specified. Retirement of dormant code is a separate cleanup pass, not part of support-ticket repair.
 
 ### Search Telemetry Services Are Orphaned From UI
 
 `searchEventsService.js`, `searchHistoryService.js`, and `searchSelectionsService.js` currently have no direct source import in the scan, while `QuickSearch` only imports `searchService.js`.
 
-Required plan adjustment:
+Determined plan adjustment:
 
-- Pass 8 must decide whether QuickSearch should emit/search/save these events through the service boundary.
-- Search history and selections may contain user-sensitive behavior and need role/privacy decisions before being exposed to admin analytics.
-- Unused telemetry services must be marked retained, wired, or retired before Pass 8 closes.
+- `searchService.js` is the active QuickSearch read/event owner; it already records history and selection events through tables allowed by current own-user/authenticated policies.
+- The separate CRUD/realtime telemetry adapters remain dormant and must not be wired into global admin UI without a named privacy/use case and guarded receiver.
+- Pass 8 repairs the active ambulance projection: `searchService.searchAmbulances()` queries absent `ambulances.hospital`, and its rejection can blank all global-search results from the shared `Promise.all()` path.
+- Admin aggregation may use the guarded search RPCs only after removing `searchAnalyticsService` fabricated fallback rows.
 
 ### Infrastructure Helpers Need A Guardrail Audit
 
@@ -186,28 +187,48 @@ Required plan adjustment:
 
 Required plan adjustment:
 
-- Pass 4 must audit whether `rbacPatterns.js` is valid, unused, or superseded by `authService` and RLS.
-- Pass 8 must audit whether `supabaseHelpers.js` should become a shared helper boundary for retry/realtime/audit or remain unused.
+- Pass 4 must treat `rbacPatterns.js` as active verification infrastructure, not unused. It is imported by `verificationService.js` and `orgVerificationService.js`.
+- Pass 8 must treat `supabaseHelpers.js` as dormant until repaired. No active import was found, and the file contains mojibake separators plus Vite-style `import.meta.env.DEV` checks in a CRA/Craco console.
 - No pass should add client-side authorization helpers as a substitute for RLS/RPC/Edge authorization.
 
-### Preferences And Demo Mode Need A Product Decision
+Audit notes:
+
+- `rbacPatterns.isAdmin()` only accepts `role === 'admin'`, while some queue reads allow `org_admin` or `sponsor`. Any implementation must keep read permission, approval authority, and dispatch/readiness authority separate.
+- `rbacPatterns.logAuthorizationEvent()` is disabled by design and does not persist audit evidence. It cannot satisfy critical mutation auditability.
+- `supabaseHelpers.withAudit()` fire-and-forgets `log_user_activity` and swallows failures. It can support operator activity UX, but it is not sufficient for legally or financially critical mutation proof.
+- Active timeout use is currently through `frontend/src/lib/utils.js:36-43`, not `supabaseHelpers.withTimeout()`. Consolidation should happen deliberately, after encoding and runtime-syntax cleanup.
+
+### Preferences And Demo Mode Have Separate Owners
 
 `preferencesService.js` exposes demo mode and several notification/sharing toggles but no active import was found. Stage 3 already noted demo-mode drift.
 
-Required plan adjustment:
+Determined plan adjustment:
 
-- Pass 8 must decide whether demo mode is a real console setting, a development-only setting, or an obsolete field.
-- Notification preferences must be reconciled with `notificationService.js` before notification UI claims user-controlled delivery behavior.
-- Medical profile sharing preferences must not imply patient-consent enforcement unless the backend enforces it.
+- Console settings may own the signed-in operator's notification preference because `preferences.notifications_enabled` is own-user writable, but the visible switch is currently hardcoded and inactive.
+- `demo_mode_enabled` and medical/contact sharing remain patient-app behavior and consent lanes; they are not console operational settings.
+- Pass 8 removes production dashboard mock fallback independent of patient demo mode, and wires or removes the operator notification control with visible pending/error state.
 
 ### Trending And Analytics Automation Need Truth Labels
 
 `trendingTopicsService.js` and `analyticsAutomationService.js` can create the appearance of dynamic intelligence even when the source is manual, stale, stubbed, or not wired.
 
-Required plan adjustment:
+Determined plan adjustment:
 
-- Pass 8 must label trend and automation data as live, derived, manual, stubbed, or disabled.
-- Regeneration actions need pending/failure feedback and must not silently fall back to mock data in production.
+- Current visible trending rows are read-only/manual database content; automatic regeneration is disabled in implementation planning because both source RPCs report success without generating trends.
+- Pass 8 removes or disables any regeneration command until a real aggregator exists, and returns empty/unavailable state rather than fabricated fallback rankings.
+- Dashboard analytics must replace the synthetic `95%` no-request success rate, mock fallback operational rows, estimated on-route ambulances, and constant platform performance metrics with receiver-backed or unavailable states.
+
+### Staff Scheduling Has A Determined Receiver
+
+`StaffSchedulingModal` collects shift dates, times, types, edits, deletes, and conflict checks. `staffSchedulingService.js` currently answers those commands by deriving same-day fixed shifts from `doctors` and `ambulances`, updating only doctor status, and testing current status instead of stored time overlap. Its ambulance query also selects or filters absent `ambulances.hospital`.
+
+Determined plan adjustment:
+
+- `doctor_schedules` is the doctor-shift owner: current schema defines its date/time/type/availability rows and current RLS permits org-admin/admin management within organization scope.
+- Pass 5 must read and mutate stored `doctor_schedules` rows for doctor shifts and calculate conflicts/statistics from those rows, not from status projections.
+- `doctors` availability remains a separate operational state; a scheduled shift must not silently overwrite it as a proxy for schedule persistence.
+- Ambulance crew/fleet assignment may remain contextual read data, but generated ambulance shift rows and ambulance shift CRUD are excluded until a persisted authorized receiver exists.
+- The invalid `ambulances.hospital` projection must be removed in favor of schema-owned identity/join fields wherever fleet context remains visible.
 
 ## Updated Global Pass Assignment
 
@@ -218,7 +239,7 @@ Required plan adjustment:
 | Pass 3 - Hospitals, availability, discovery, and pricing scope | `hospitalImportService`, `storageService` hospital uploads, `organizationsService` hospital ownership, pricing org semantics. |
 | Pass 4 - Identity, verification, and onboarding authority | `organizationsService`, `rbacPatterns`, `onboardingService`, `verificationService`, `orgVerificationService`, `profilesService`, `authService`, display ID helpers. |
 | Pass 5 - Provider operations, telemetry, doctors, and scheduling | `storageService` provider/ambulance uploads, map telemetry projection, ambulance/driver/doctor/schedule lifecycle. |
-| Pass 6 - Visits ownership and request-derived history | emergency-to-visit lookup and medical profile consumption decision. |
+| Pass 6 - Visits ownership and request-derived history | canonical `visits.request_id` lookup; request-derived clinical completion remains read-only unless an authorized receiver is established; dormant medical-profile admin promises remain excluded without access authority. |
 | Pass 7 - Content, support, subscribers, and email | subscription failure thread, duplicate subscriber services, support FAQs, support tickets, health news, insurance, media upload for insurance cards, notification side effects. |
 | Pass 8 - Analytics, search, dashboard shell, realtime, and feedback | search telemetry services, preferences/demo mode, analytics automation, trending topics, `supabaseHelpers`, route fallback/loading, realtime ownership. |
 
