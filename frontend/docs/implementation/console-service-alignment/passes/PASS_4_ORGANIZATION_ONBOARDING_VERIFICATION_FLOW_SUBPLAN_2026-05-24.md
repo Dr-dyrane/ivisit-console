@@ -13,10 +13,14 @@ Console files inspected:
 - `frontend/src/components/pages/OrganizationsPage.jsx`
 - `frontend/src/components/pages/VerificationQueue.jsx`
 - `frontend/src/components/pages/UsersPage.jsx`
+- `frontend/src/components/common/ProtectedRoute.jsx`
+- `frontend/src/components/navigation/ContextPanel.jsx`
+- `frontend/src/config/navigation.js`
 - `frontend/src/components/modals/UserModal.jsx`
 - `frontend/src/components/modals/InviteUserModal.jsx`
 - `frontend/src/components/onboarding/OrganizationDetailsStep.jsx`
 - `frontend/src/contexts/OnboardingContext.jsx`
+- `frontend/src/contexts/AuthContext.jsx`
 - `frontend/src/services/organizationsService.js`
 - `frontend/src/services/onboardingService.js`
 - `frontend/src/services/verificationService.js`
@@ -48,6 +52,13 @@ Observed source signals:
 - `/organizations` is live and admin-visible in `App.js`/navigation but absent from the dormant `config/routes.jsx` doctrine; authentication/onboarding entries are similarly incomplete there.
 - The shared Quick Verify action only navigates to `/verification?quick=true`; no query-param receiver was found in `VerificationQueue`, so it does not currently enter a distinct review operation.
 - Privileged user lists fetch up to `1000` profiles, paginate locally and derive totals/statistics from that loaded subset; organizations load all organization and wallet rows before local slicing. Verification queues already accept server page/limit/count inputs.
+- `AuthContext.fetchProfile` directly elevates one hard-coded email address to `admin` and, on profile-flow error, constructs a fallback profile with `org_admin` for other users; a read failure can therefore create client-visible privilege.
+- `InviteUserModal` labels its selector `Organization Assignment` but loads the options from `getHospitals({ limit: 100 })` and submits the selected hospital id as `metadata.organization_id`.
+- `OrganizationDetailsStep` and `onboardingService.searchHospitalsByName` classify claim status from `verified` only while live hospital truth includes `verification_status`; a pending facility can be presented as available to claim.
+- Provider verification service read/capability checks permit `admin`, `org_admin`, and `sponsor`, while live `/verification` route access is `org_admin` or above and the provider and organization approve/reject services require `isAdmin()` for mutation; org admins can reach controls that will be rejected and sponsor semantics conflict between service and route.
+- Both verification services page the visible queue but load unbounded rows again to derive statistics, and the page subscribes to provider and organization queues even while one tab is active.
+- `OrganizationsPage` exposes direct organization create/edit/delete over service CRUD, reports a hard-coded `99.8%` network-health KPI, and calculates wallet/network values from the unbounded organization-plus-wallet collection.
+- Existing source contains corrupted rendered characters in verification status comments/organization KPI copy and auth denial decoration; implementation must repair visible encoding while preserving the audit evidence.
 
 ## User Flow
 
@@ -75,6 +86,57 @@ Operator/onboarding path:
 | Route and panel authority | Live route/navigation and context-panel role checks disagree for identity/verification/settings surfaces; dormant route config is incomplete. | One explicit access authority for route, nav and panel composition, with own-user settings separated from admin operations. |
 | Quick verification entry | Context action advertises a quick workflow through an unconsumed query flag. | A mounted, authorized verification queue state or no Quick Verify action. |
 | Identity and organization pagination | User and organization management mix capped/unbounded client collections with management totals. | Server-paged admin projections with true counts; preserve verification service paging with scoped invalidation. |
+| Session/profile fallback role | Auth context upgrades role from hard-coded email or failed profile read. | Backend-authoritative identity projection; a loading/error state never grants a role. |
+| Invite organization assignment | Organization-labelled selector submits a hospital id into `organization_id`. | Organization-backed assignment selector and receiver payload with facility linkage explicit when needed. |
+| Onboarding facility claim | Search treats every non-verified hospital as unclaimed. | Verification-status-aware claim boundary preventing pending/claimed facility takeover. |
+| Queue visible mutation rights | Org-admin/sponsor route/read permission differs from admin-only verification commands. | Role-correct read-only or command-enabled queue controls derived from actual receiver authority. |
+| Organization health/KPI promise | Organization route displays hard-coded health alongside unbounded wallet-derived totals. | Verified aggregate source or unavailable state; no fabricated operational health. |
+
+## Surface Read, Exposure, And Operation Closure
+
+| Surface and mounted path | What it reads and renders now | Mutation or receiver path | Deterministic audit result |
+| --- | --- | --- | --- |
+| Auth bootstrap and `ProtectedRoute` | Auth context reads/creates profiles and exposes role/onboarding state used by navigation and protected routes. | Direct profile upsert/update and hard-coded/error fallback role projection. | **Blocked, highest authority risk.** A client-side fallback or email check cannot grant `admin` or `org_admin`; route claims are untrustworthy until backend role truth is exclusive. |
+| `/users` desktop/mobile management | Profiles, organizations map, role/BVN/provider labels and statistics; privileged path loads up to `1000` then slices client-side. | Invite, create/edit, direct privileged delete RPC and bulk operations. | **Blocked.** Counts/bulk scope can truncate and CRUD/auth ownership must remain invite/admin-receiver backed. |
+| `InviteUserModal` | Email, role and `Organization Assignment` selection sourced from a hospital list. | Invokes `invite-user` with selected hospital id in `metadata.organization_id`. | **Blocked.** It can assign an organization-scoped user to facility identity and falsely report scoped invitation success. |
+| `/organizations` registry | All organizations plus all wallets, local search/page/KPIs, network float and static network-health display. | Direct organization service create/update/delete controls. | **Blocked.** Pagination/aggregates are not authoritative, hard-coded health is false display truth, and guarded command authority is unproved. |
+| Public onboarding wizard facility match | Searches hospital records, renders claim status and entered organization details. | Creates/links through onboarding service and uploads verification evidence. | **Blocked.** Organization-versus-facility identity is ambiguous and pending verification status is ignored when claiming a facility. |
+| `/verification` provider tab | Pages provider profiles and renders BVN/identity verification queue plus stats. | `verifyProvider` writes `profiles.bvn_verified`; command requires admin. | **Blocked.** Org admins can reach actionable controls without receiver authority, while sponsor allowance differs between service and route; stats are independently unbounded. |
+| `/verification` organization tab | Pages `hospitals` under the Organizations label and derives hospital status stats. | `verifyOrganization` updates hospital verification/verified fields; command requires admin. | **Blocked.** Facility verification is mislabeled as organization approval and changes dispatch-eligibility inputs without exposing derived operational effect. |
+| Verification panel and Quick Verify entry | Context panel visibility is stricter than route/nav; shared action navigates with `?quick=true`. | No found queue consumer for quick mode. | **Blocked.** Valid users can lose context and visible quick-review action is a no-op mode. |
+
+## App And Operations Dependency Closure
+
+| Downstream truth affected by identity work | Shared/app evidence | Console implementation obligation |
+| --- | --- | --- |
+| Facility dispatch eligibility | App hospital projection consumes `dispatch_eligible`; shared hospital trigger derives it from emergency eligibility, verification and status. | Verification UI must expose facility readiness consequence distinctly from person/BVN or organization identity approval. |
+| Facility/pricing/wallet scope | Facility services and patient quotes are hospital-scoped while organization wallets and permissions are organization-scoped. | Never assign a hospital UUID where a profile, invite or wallet receiver expects organization UUID. |
+| Onboarding claim safety | Current hospital schema includes `verification_status` and provider taxonomy/source state. | Facility matching must block pending/claimed records from competing registration and preserve provenance/readiness state. |
+| Provider operations | Emergency/fleet passes depend on authenticated role and scoped organization/facility authority. | No downstream operation can be considered implementable while client role fallback or ambiguous ownership remains. |
+
+## Pass 4 Deterministic Surface Register
+
+| Surface family | Read/render closure | Command/receiver closure | Pagination/role closure | Status |
+| --- | --- | --- | --- | --- |
+| Auth/profile route gate | Role derivation and route consumers traced. | Direct update/upsert/fallback paths identified. | Client privilege fallback blocks every scoped surface. | Blocked - priority |
+| Users and invite | Exposed fields/options/statistics traced. | Invite/delete/create/edit paths mapped. | `1000` cap and hospital-as-org invite confirmed. | Blocked |
+| Organizations registry | Rendered KPIs/wallet joins traced. | Direct service CRUD mapped. | Unbounded local pagination and fabricated health confirmed. | Blocked |
+| Onboarding facility match | Visible claim and document expectations traced. | Organization/facility write chain remains ambiguous. | Pending status ignored in claim availability. | Blocked |
+| Provider verification queue | Render and profile write path traced. | Admin-only mutation versus broader visible access. | Page window exists; stats/subscriptions overfetch. | Blocked |
+| Facility verification queue | Hospital render/write path traced. | Verification affects dispatch eligibility inputs. | Label/role/stat ownership incomplete. | Blocked |
+| Context/Quick Verify | Event/navigation surface traced. | Quick mode has no found receiver. | Role composition inconsistent with live route. | Blocked |
+
+## Cross-Pass Identity Register
+
+| Dependent pass | Identity dependency that must not be lost |
+| --- | --- |
+| Pass 1 - emergency lifecycle | Dispatcher/clinician authorization and hospital/organization identity used for cash and handoff commands. |
+| Pass 2 - wallet and ledger | Organization wallet and Stripe ownership; no facility id accepted as organization scope. |
+| Pass 3 - facilities/pricing | Facility verification, taxonomy and dispatch eligibility; hospital-scoped prices under organization authority. |
+| Pass 5 - fleet/providers | Provider role, hospital assignment, doctor identity and telemetry scope. |
+| Pass 6 - visits | Authorized clinical projection and patient/provider linkage. |
+| Pass 7 - support/content/insurance | Policy billing scope and role-correct administrative communication. |
+| Pass 8 - shell/analytics/search | One route/nav/panel authority and no aggregate based on failed/fallback role truth. |
 
 ## Action Class And Receiver Map
 
@@ -88,6 +150,9 @@ Operator/onboarding path:
 | Assign role/organization/provider identity | Workflow command | Admin/profile/auth authority | Preserve UUID identity chain and display-ID lookup only. |
 | Reach identity and verification surfaces | Role-scoped UI access projection | Consolidated live route/navigation/panel authority plus backend permission | Do not show a route without its valid context or suppress valid org-admin operational context through a stricter panel-only rule. |
 | Enter Quick Verify | Workflow entry point | Verified queue mode tied to the correct person/facility lane | Do not advertise quick review until the queue consumes and renders that state. |
+| Resolve session role and onboarding eligibility | Identity/auth read projection | Backend profile/Auth/RLS-backed authority | Loading or failed profile lookup renders unavailable/denied state, never elevated role. |
+| Select invite assignment scope | Workflow command input | Canonical organization selector and invite receiver | A facility row cannot masquerade as organization assignment metadata. |
+| Show organization health or totals | Backend-derived projection | Paged registry plus guarded aggregate source | No hard-coded health claim or incomplete wallet collection displayed as total. |
 
 ## Field And Receiver Gate
 
@@ -102,6 +167,19 @@ Generated trace confirmation (May 25): `user_roles` now has a cross-repo table-f
 Storage evidence confirmation (May 25): onboarding currently uploads verification files into `documents/organizations/{organization.id}/verification/*`, but no active App/Console Storage bucket/policy authority was found outside archive material. Evidence upload remains a private-command blocker until read-only deployed policy, actor scope, retention and cleanup proof is available.
 
 ## Implementation Packages
+
+### 0. Auth And Session Authority Blocker
+
+Remove all client-derived privilege grants before relying on any downstream scoped flow:
+
+- no hard-coded email can upgrade a profile to `admin` from the browser
+- profile-fetch timeout or failure renders a loading/unavailable/denied state, never fallback `org_admin` or `admin`
+- missing profiles are created or recovered only through a proved Auth/profile receiver with explicit onboarding state
+- route, navigation and panel access consume the same backend-confirmed role projection
+
+Acceptance gate:
+
+- No Console route, verification action, wallet view or organization command is enabled by a client-created elevated role.
 
 ### 1. Organization Registry Boundary
 
