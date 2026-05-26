@@ -628,6 +628,99 @@ Rendering rules:
 6. Remove global `Primary` card badges unless backed by `payout_method_id`.
 7. Keep archived top-up credit logic as historical context only; do not implement from archived SQL without reconciling current pillar migrations.
 
+## Pass 2E Implementation Sequence And Blocker Matrix
+
+This section converts Pass 2A through Pass 2D into implementation order. It is intentionally stricter than a feature backlog: Console can start matching `ivisit-app`, but it must not invent financial truth the backend does not currently prove.
+
+### Work Order
+
+| Order | Slice | Can start now? | Target | Must not do |
+|---|---|---:|---|---|
+| 1 | Finance projection service contract | Yes | Introduce one read-only projection that normalizes wallet, ledger preview, payment preview, billing account, command readiness, and degraded states from the fields listed in Pass 2C. | Do not call mutating RPCs, Edge Functions, payout functions, cleanup helpers, or backfill routines. |
+| 2 | Normal UI repair isolation | Yes | Remove route-mount or render-path access to `backfillMissingFeeLedger`; make repair behavior maintenance-only and explicit. | Do not silently run fee repair from `/wallet`, dashboards, panels, or analytics surfaces. |
+| 3 | Wallet desktop route read migration | After slice 1 | Move `WalletManagementPage` to the projection read model, preserving current visible data where the projection can prove it. | Do not add top-up success, payout success, or ledger export claims. |
+| 4 | Shared wallet consumers | After slice 1 | Migrate `PageDataContext`, `WalletPanel`, `MobileWallet`, `BentoHome`, and `Analytics` to projection slices instead of independent wallet reads. | Do not let each consumer recalculate financial labels differently. |
+| 5 | Billing method scope cleanup | After slice 1 | Split customer billing-method display from provider payout method display. Label missing proof as unavailable, pending, or not configured. | Do not render `Primary`, `Verified`, `Linked`, `Payouts Enabled`, or `Instant` unless the projection field proves it. |
+| 6 | Cash approval and settlement alignment | With Pass 1 | Align emergency cash UI with the receiver order proven in Pass 2B: approval-gated dispatch first, manual settlement only before completion unless a new receiver exists. | Do not call `process_cash_payment_v2` after `console_complete_emergency`. |
+| 7 | Payout lifecycle | Blocked | Implement payout readiness, sufficiency, reservation/pending, completion, failed reflection, and audit-state display only after backend receiver proof exists. | Do not wire the current payout CTA to production. |
+| 8 | Top-up lifecycle | Blocked | Implement top-up wallet-credit success only after an active backend receiver credits `wallets.balance` and appends `wallet_ledger`. | Do not treat `payments.status = completed` as wallet credit. |
+| 9 | Maintenance mode | Separate | Create an explicit operator-only maintenance path for fee ledger reconciliation and guarded cleanup. | Do not mix maintenance actions with normal dashboard rendering. |
+
+### Blocker Matrix
+
+| Status | Work item | Reason |
+|---|---|---|
+| Ready | Read-only `WalletFinanceProjection` facade | All required source fields and consumers are now listed in Pass 2C, and this can degrade safely when backend proof is absent. |
+| Ready | Static copy downgrade | Current UI has optimistic labels that can be replaced with proof-aware labels without backend mutation. |
+| Ready | Backfill isolation | `backfillMissingFeeLedger` is a Console-owned hazard in the normal UI path and can be removed from route/render execution before broader finance work. |
+| Ready after projection | `/wallet` desktop route migration | Needs the projection function first so desktop does not become another one-off read path. |
+| Ready after projection | Mobile wallet, dashboard, panel, and analytics migration | These should consume shared projection slices once the facade exists. |
+| Cross-pass | Emergency cash lane | Receiver order interacts with Pass 1 emergency detail and status mutation rules. |
+| Cross-pass | Provider/org payout identity | Payout status depends on provider organization fields from provider-operations and organization audit lanes. |
+| Blocked | Top-up credit success | Active receiver proof is missing for wallet balance and ledger credit after top-up payment completion. |
+| Blocked | Production payout action | Current code proves payout call scaffolding, but not reservation, sufficiency, pending, failed, or audit-state reflection. |
+| Blocked | Post-completion cash cleanup | Existing cash RPC rejects completed and cancelled requests; there is no proven receiver for post-completion settlement cleanup. |
+| Blocked | Full ledger export | Console currently renders preview/export intent without a proven full export receiver or bounded paging contract. |
+
+### First Implementation Ticket Contract
+
+The first code pass should be deliberately narrow:
+
+- Add a read-only finance projection service, for example `frontend/src/services/walletFinanceProjectionService.js`.
+- Return a stable `WalletFinanceProjection` shape using the Pass 2C fields.
+- Prefer existing direct reads and service helpers; do not add new backend behavior in the Console pass.
+- Return explicit degraded states for missing wallet, missing Stripe customer, missing Connect account, missing payment methods, missing ledger rows, and unauthorized profile scope.
+- Expose command readiness as data, not as scattered button logic:
+  - `canTopUp`
+  - `canCreatePayout`
+  - `canManageBillingMethods`
+  - `canExportLedger`
+  - `canRunMaintenanceBackfill`
+- Default unsafe commands to `false` with a human-readable `disabledReason`.
+- Keep maintenance readiness separate from normal user/admin dashboard readiness.
+
+The first implementation ticket should not touch:
+
+- active top-up success mutation logic,
+- active payout external-call behavior,
+- Supabase migrations,
+- Edge Function receiver behavior,
+- automatic fee backfill,
+- emergency completion/cash settlement order,
+- production export delivery.
+
+### Acceptance Gates For Implementation
+
+Before the first implementation commit:
+
+- The projection service has a documented input scope and output shape matching Pass 2C.
+- Every migrated consumer reads from the projection or a projection slice.
+- No normal UI route runs a repair/backfill mutation.
+- Every finance command button derives disabled/enabled state from the projection, not from local object truthiness.
+- Labels distinguish `not configured`, `pending proof`, `unavailable`, `verified`, and `enabled`.
+- Top-up completion does not imply wallet credit unless ledger and wallet balance proof exists.
+- Payout enabled does not derive from `stripe_account_id` alone.
+
+Suggested verification once code changes begin:
+
+```powershell
+git diff --check
+rg -n --pcre2 "[\x{00C2}\x{00C3}\x{00E2}\x{00EF}\x{00F0}\x{FFFD}]" frontend/src frontend/docs
+npm run build
+```
+
+When Supabase hardening scripts are available in the active checkout, run the relevant shared contract guards from `ivisit-app/supabase/docs/TESTING.md`:
+
+```powershell
+npm run hardening:organization-wallets-surface-field-guard
+npm run hardening:patient-wallets-surface-field-guard
+npm run hardening:ivisit-main-wallet-surface-field-guard
+npm run hardening:payment-methods-surface-field-guard
+npm run hardening:wallet-ledger-surface-field-guard
+npm run hardening:payments-surface-field-guard
+npm run hardening:cash-fee-contract-guard
+```
+
 ## Implementation Packages
 
 ### 1. Wallet Read Facade
