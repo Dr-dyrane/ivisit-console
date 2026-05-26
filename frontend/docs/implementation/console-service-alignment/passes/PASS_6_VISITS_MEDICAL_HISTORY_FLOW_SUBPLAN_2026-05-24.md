@@ -34,6 +34,7 @@ Canonical app/shared-backend evidence inspected:
 - `../ivisit-app/docs/flows/emergency/history/MAP_VISITS_SYSTEM_AUDIT_V1.md`
 - `../ivisit-app/docs/flows/emergency/history/VISITS_REQUEST_HISTORY_PLAN.md`
 - `../ivisit-app/services/visitsService.js`
+- `../ivisit-app/services/paymentService.js`
 - `../ivisit-app/supabase/docs/REFERENCE.md`
 - `../ivisit-app/supabase/docs/MODULE_SCHEMA_BIBLE.md`
 - `../ivisit-app/supabase/migrations/20260219000300_logistics.sql`
@@ -147,6 +148,7 @@ The patient app documentation is decisive for this pass: `visits` is not merely 
 | Patient map history requires status, facility, actor, timestamps, payment/rating/tip continuity where applicable. | Console exposes status/cost/insurance/notes but does not distinguish provisional, backend-confirmed or patient-visible fields. | Visit projection must label source and confirmation state; cross-pass financial and provider fields remain joined truth, not free-form edits. |
 | Payment and cash emergency functions update visit status by request link. | Direct Console visit update can disagree with payment-release state. | Pass 2 financial authority and Pass 1 emergency authority gate any clinical outcome mutation. |
 | Completion can create insurance billing; medical profiles are restricted patient-care data. | Console has dormant table service and editable insurance checkbox without proved clinical/billing semantics. | Pass 7 insurance and access decisions must precede exposing clinical profile or insurance outcome controls. |
+| App tip settlement uses `process_visit_tip` and `record_visit_cash_tip` against visit identity. | Console visit detail can show cost/payment/history fields while generic visit updates could overwrite or obscure settlement meaning. | Tip/payment outcome is authorized read-only continuity coordinated with Pass 2; it is not an editable visit field. |
 
 ## Pass 6 Deterministic Surface Register
 
@@ -160,6 +162,7 @@ The patient app documentation is decisive for this pass: `visits` is not merely 
 | Request-derived lifecycle ownership | Yes: shared trigger/RPC/migration evidence and app history doctrine. | Yes: generic visit mutations currently exposed. | Request-linked rows are read-only evidence absent approved command. | Audited authority blocker. |
 | Global context panel | Yes: stats/recent aliases. | Yes: schedule/analytics event emissions. | Reconcile with canonical read owner and mounted receiver. | Audited drift. |
 | Medical profile table capability | Yes: service-level fields and authorization code. | Yes: service-level create/update/item mutations; no mounted visit UI. | Missing restricted Console surface, not permission to add generic CRUD. | Audited missing surface. |
+| Visit tip/payment continuity | Yes: app payment RPC receivers create visit-linked card/cash tip consequence. | Yes: generic Console visit edits must not claim or alter tip settlement. | Join reflected read-only finance state from Pass 2 where authorized. | Audited dependency. |
 
 ## Exact Visit And Clinical Flow Exhibits
 
@@ -207,7 +210,8 @@ This pass is clinical-history sensitive. A `visits` row may be an administrative
 | 7 | Administrative visit command lane | Blocked until authority proof | Enable create/update only for rows classified as administrative scheduled visits with explicit receiver and field allowlist. | Do not save clinical/status/cost/insurance fields on request-derived rows through generic table update. |
 | 8 | Lifecycle command lane | Blocked until receiver proof | Define complete/cancel/no-show command semantics, refreshed truth and app-history consequence. | Do not direct-update lifecycle status while emergency/payment automations own linked outcomes. |
 | 9 | Medical profile context | Blocked until access proof | Add restricted medical-profile read only where patient-care authorization, unavailable state and RLS are proved. | Do not add broad admin medical-profile CRUD from service existence alone. |
-| 10 | Destructive delete lane | Blocked until legal/audit proof | Keep visit delete/bulk delete unavailable for request-derived history and any clinical evidence without an approved audited receiver. | Do not remove patient-history evidence with ordinary table delete. |
+| 10 | Tip/payment continuity projection | With Pass 2 | Join authorized reflected state for app `process_visit_tip` and `record_visit_cash_tip` outcomes without adding a Console tip mutation path. | Do not edit tip/payment evidence through generic visit save. |
+| 11 | Destructive delete lane | Blocked until legal/audit proof | Keep visit delete/bulk delete unavailable for request-derived history and any clinical evidence without an approved audited receiver. | Do not remove patient-history evidence with ordinary table delete. |
 
 ### Blocker Matrix
 

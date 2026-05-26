@@ -63,12 +63,12 @@ Service rows, table rows and the visible page component are not sufficient imple
 
 | Pass | Runtime acquisition sweep that must be complete first | Failure that blocks implementation |
 | ---: | --- | --- |
-| 1 | Emergency requests, payment/cash state, responder/map detail, linked visits, global emergency summaries and realtime. | A detail/list/payment state can be obtained or refreshed outside the declared emergency read owner. |
-| 2 | Wallets, ledger, payments, Stripe reflection, payout/top-up dialogs, billing-method list/remove/primary selection, summaries, exports and maintenance paths. | Any money total/export/repair/action depends on a partial collection, mismatched billing scope, fabricated primary payout label or unnamed mutation boundary. |
-| 3 | Hospitals, capacity, provider taxonomy/media, discovery/import and pricing across route, global providers, map, modal lookups and app-facing quote dependencies. | Facility totals/capacity/pricing can be loaded through an unbounded or semantically different path, including a bootstrap context hidden from the page query. |
+| 1 | Emergency requests, payment/cash state, app quote provenance, cash-approval notification delivery, triage/demo branch separation, responder/map detail, linked visits, global emergency summaries and realtime. | A detail/list/payment state can be obtained or refreshed outside the declared emergency read owner, or a mock/degraded quote, delivered notification, triage suggestion or demo writer is represented as confirmed production lifecycle truth. |
+| 2 | Wallets, ledger, app wallet/tip settlement reflection, cash-approval notification provenance, Stripe reflection, payout/top-up dialogs, billing-method list/remove/primary selection, summaries, exports and maintenance paths. | Any money total/export/repair/action depends on a partial collection, mismatched billing scope, fabricated primary payout label or unnamed mutation boundary, or app settlement/delivery consequence is omitted or confused with completion. |
+| 3 | Hospitals, capacity, provider taxonomy/media, discovery/import and pricing across route, global providers, map, modal lookups and app-facing quote dependencies. | Facility totals/capacity/pricing can be loaded through an unbounded or semantically different path: `HospitalsPage` passes nonexistent `pagination.pageSize`, making the first visible facility page unbounded, while PageData and Map shell acquisition add independent unbounded hospital reads. |
 | 4 | Profiles/auth, organizations, verification, onboarding, route guards, selectors/lookups, panel report/export affordances, verification bulk actions and organization-linked wallet/facility scope. | A role/identity/readiness/report claim uses an untraced provider/context/modal path, mismatched authority or visible/bulk control without a receiver. |
 | 5 | Ambulances, doctors, provider settings self-service edits, telemetry, scheduling, map layers, map context export/quick controls, driver command eligibility, vehicle-modal trip scope, dropdown dependencies and assignment/proximity calculations. | Fleet/provider availability or assignment uses capped, fabricated or independently loaded truth, provider self-edit exposes unproved operational status/fee authority, driver controls can select an unproved request, a vehicle modal can operate unrelated trips, or map exports/actions expose operational state without bounded authority and receivers. |
-| 6 | Visits, medical-history projections, emergency handoffs and all patient/provider/hospital lookup hydration. | Clinical-history completeness or edit eligibility depends on an unbounded lookup or unowned linked-state fetch. |
+| 6 | Visits, medical-history projections, visit-tip/payment reflection, emergency handoffs and all patient/provider/hospital lookup hydration. | Clinical-history completeness or edit eligibility depends on an unbounded lookup, unowned linked-state fetch, or generic edit authority over app-settled tip/payment evidence. |
 | 7 | Insurance, billing results, subscribers, email, support, FAQs, health news, disabled panel exports, dormant bulk import, route bulk deletions, notifications, uploads and shell-mounted care/subscriber hook consumers. | Management counts/actions or content availability mask partial, denied, failed or unproved storage/receiver paths, hidden global command controls acquire protected/unbounded data on unrelated routes, or unavailable export/import/deletion capability is treated as authorized. |
 | 8 | Analytics, CSV/report export, overview/dashboard, search, trends, activity, notifications, preferences/settings actions, map shell, PWA/feedback/debug utilities, shared realtime and remaining provider state. | Aggregate/search/navigation/export truth can still be generated from mock, stale, partial, broad, unauthorized or unowned sources, an allowed provider dashboard still invokes admin-only subscriber truth, or visible shell/settings utilities render placeholder or unreviewed debug/accessibility behavior. |
 
@@ -92,12 +92,12 @@ Each flow subplan now carries a first-slice field-to-UI/payload-to-receiver clos
 
 | Pass | Projection or payload that must be fixed first | Receiver boundary that cannot be guessed during coding | First executable implementation slice after gate clearance |
 | ---: | --- | --- | --- |
-| 1 | Emergency request detail with transitions, chat, clinician assignment, payment and linked visit outcome | Emergency command RPCs, chat RPCs, assignment RPC, payment approval/decline and cash settlement authority | Build one detail/read projection with timeline/chat/assignment capability states and backend-derived action eligibility before altering lifecycle actions. |
-| 2 | Wallet/payment/ledger and billing-method view keyed by true platform/organization and wallet identity | Stripe function authorization, method list/remove/select scope, webhook reflection, backend ledger writer and payout reservation | Remove automatic repair mutation and consolidate truthful read/pending/degraded/method-primary states before enabling repaired money commands. |
+| 1 | Emergency request detail with transitions, chat, clinician assignment, payment, app quote/notification/triage provenance and linked visit outcome | Emergency command RPCs, chat RPCs, assignment RPC, payment approval/decline, cash settlement authority, `calculate_emergency_cost_v2` and `notify_cash_approval_org_admins` consequence | Build one detail/read projection with timeline/chat/assignment capability states, quote/delivery provenance and backend-derived action eligibility before altering lifecycle actions. |
+| 2 | Wallet/payment/ledger and billing-method view keyed by true platform/organization and wallet identity, including app wallet/tip settlement reflection | Stripe function authorization, method list/remove/select scope, webhook reflection, backend ledger writer, payout reservation, `process_wallet_payment`, `process_visit_tip`, `record_visit_cash_tip` and notification consequence | Remove automatic repair mutation and consolidate truthful read/pending/degraded/method-primary/settlement-reflection states before enabling repaired money commands. |
 | 3 | Facility detail containing taxonomy, media, import provenance, availability and hospital-scoped price identity | Availability RPC, provider/media policy, discovery persistence guard and quote receiver | Centralize facility reads and present the missing classification/provenance fields before modifying capacity or import writes. |
 | 4 | Auth/profile/org/hospital identity chain, two separate verification lanes, identity/report affordance status and verification bulk capability | Admin profile RPC supported columns, invite/auth receiver, guarded organization/onboarding/facility verification path, redacted report/export authority and bulk result/audit contract | Remove unsupported save/action/report and toast-only bulk promises before repairing creation, verification or reporting commands. |
 | 5 | Fleet/doctor/schedule projection with valid joined identity, provider self-service field authority, positively authorized driver-request binding, vehicle-scoped active-trip rows and bounded map-operation export | Provider self-update and active-assignment effects, request-scoped telemetry/lifecycle commands, schedule table CRUD, clinician assignment command and map export/quick-action authority | Replace false fleet/schedule/map projections, constrain provider self-edit, remove arbitrary driver assignment fallback, constrain vehicle-modal trip controls, and disable raw map download/inert controls before enabling corrected edits. |
-| 6 | Visit projection marked administrative versus emergency-derived | Separate administrative authority, request/trigger-owned clinical lifecycle | Centralize reads and disable destructive edits for request-linked records before any CRUD extension. |
+| 6 | Visit projection marked administrative versus emergency-derived with tip/payment evidence availability | Separate administrative authority, request/trigger-owned clinical lifecycle and app tip-settlement consequence | Centralize reads and disable destructive or financial edits for request-linked records before any CRUD extension. |
 | 7 | Policy/billing/ticket/content/subscriber projection with policy and lifecycle classifications plus unavailable export/import/bulk-delete affordances | Insurance/support authorized receiver, billing read lane, Storage proof, subscriber/email lifecycle receiver and any future content export/import/destructive receiver | Ship read/disabled/degraded truth surfaces first; do not preserve unauthorized authoring or subscriber controls, and keep disabled exports/source-only bulk import/toast-only bulk deletion unavailable until receiver proof exists. |
 | 8 | Dashboard/search/activity/notification values and report exports labelled by verified source or unavailable state | Role-scoped aggregates/exports, sequenced search projection, own-user notification/preference receiver, real trend generation and durable critical-audit writer | Remove fabricated/stub-success display/export truth, cross-role subscriber dependency and broad realtime ownership after preceding domain readers are stable. |
 
@@ -110,8 +110,8 @@ Stage 5 now maintains the direct boundary call-site register for UI, context, ho
 | 1 | `EmergencyRequestsPage`, `EmergencyRequestModal`, `EmergencyDetailsModal`, `MobileMap`, `LocationCell`, emergency slices of `PageDataContext` | Emergency reads/payment projection/realtime move to the emergency owner; mobile map dispatch/completion and patient exposure consume the same legality/payment/cash action projection; profile selection, geocoded display and external Google Maps handoff use bounded authorized coordinate projections rather than modal/cell-owned truth. |
 | 2 | `WalletManagementPage`, wallet slices of `PageDataContext` | Finance read projection moves behind one wallet facade; ledger/money commands stay receiver-backed. |
 | 3 | `HospitalsPage`, `HospitalModal` | Facility realtime/read refresh and discovery Edge interaction are owned by the facility/discovery boundary, not page/modal request assumptions. |
-| 4 | `UsersPage`, `OrganizationsPage`, `VerificationQueue`, `SettingsPage`, `MobileUsers`, `MobileOrganizations`, `MobileVerification`, `MobileSettings`, `InviteUserModal`, `AuthContext`, `LoginPage`, `SetPasswordPage`, `SecurityModal`, `VerificationPanel`, `OrganizationsPanel`, `avatarUtils`, `SmartHeader`, `MobileNavMenu` | Identity KPI, organization aggregates, responsive verification/actions, invite and destructive workflows route through named authority; canonical Auth SDK operations are reviewed and may remain only as supported auth adapters; avatar fallback cannot leak operator identity without explicit policy; mobile/desktop settings and identity report placeholders remain consistent or unavailable. |
-| 5 | `AmbulancesPage`, `MobileAmbulances`, `AmbulanceModal`, `DoctorsPage`, `MobileDoctors`, `DoctorModal`, `DoctorProfileCard`, `useDoctorProfile`, `GodModeMap`, `MobileMap`, `MapPanel`, `ContextPanel`, `LeafletMapRenderer` | Fleet counts, responsive KPI meaning, assignment availability, provider self-service fields and facility options use provider/fleet owners with valid relationship scope; self-service operational status/fee edits require proved authority and active-assignment impact; driver actions require positive responder/request assignment; mobile map emergency commands are deferred to Pass 1 legality; vehicle modals cannot command hospital-wide trips; raw map operational export is disabled until bounded/redacted; inert selected-marker controls are removed or implemented; third-party tiles have a deliberate degradation contract independent of telemetry truth. |
+| 4 | `UsersPage`, `UsersPanel`, `OrganizationsPage`, `VerificationQueue`, `SettingsPage`, `MobileUsers`, `MobileOrganizations`, `MobileVerification`, `MobileSettings`, `InviteUserModal`, `OrganizationDetailsStep`, `OnboardingContext`, `AuthContext`, `LoginPage`, `SetPasswordPage`, `SecurityModal`, `VerificationPanel`, `OrganizationsPanel`, `avatarUtils`, `SmartHeader`, `MobileNavMenu` | Identity KPI, auth-enriched recent-login detail, organization aggregates, responsive verification/actions, invite and destructive workflows route through named authority; existing-facility onboarding selection reaches a canonical non-duplicating claim/link receiver; canonical Auth SDK operations are reviewed and may remain only as supported auth adapters; avatar fallback cannot leak operator identity without explicit policy; mobile/desktop settings and identity report placeholders remain consistent or unavailable. |
+| 5 | `AmbulancesPage`, `MobileAmbulances`, `AmbulanceModal`, `DoctorsPage`, `MobileDoctors`, `DoctorModal`, `DoctorProfileCard`, `useDoctorProfile`, `GodModeMap`, `MapContext`, `MarkerDetailPanel`, `MobileMap`, `MapPanel`, `ContextPanel`, `LeafletMapRenderer`, `MapErrorBoundary` | Fleet counts, responsive KPI meaning, assignment availability, provider self-service fields and facility options use provider/fleet owners with valid relationship scope; map has one authorized bounded feed/channel owner; desktop and mobile map emergency commands/patient exposure are deferred to Pass 1 legality; map/telemetry errors use redacted feedback; driver actions require positive responder/request assignment; vehicle modals cannot command hospital-wide trips; raw map operational export is disabled until bounded/redacted; inert selected-marker controls are removed or implemented; third-party tiles have a deliberate degradation contract independent of telemetry truth. |
 | 6 | `VisitsPage` | Visit count/hydration/realtime moves to the visit model; emergency-linked records do not inherit page-owned edit/delete authority. |
 | 7 | `HealthNewsManagementPage`, `HealthNewsModal`, `HealthNewsPanel`, `SupportTicketsPanel`, `InsurancePanel`, `BulkImportModal`, `ContextAwareFAB`, `DynamicBottomBar`, `emails/ivisit106Campaign.js`, generated subscriber-email templates, `utils/runMigrations.js`, `utils/testDatabase.js` | Content/support/insurance/subscriber reads reuse scoped owners; published health-news source URLs use a validated provenance-bearing safe external-navigation contract shared with the patient app; disabled care/content exports and source-only health-news import remain unavailable until scoped receivers exist; global action controls do not mount protected list hooks until an authorized action surface needs them; email unsubscribe links route through one proven lifecycle receiver; browser-side SQL repair and diagnostics cannot serve product behavior. |
 | 8 | `Analytics`, `MobileAnalytics`, `AnalyticsPanel`, `Overview`, `useAnalytics`, remaining `PageDataContext`, `BentoHome`, `DashboardPanel`, `HospitalFleetManager`, `ContextPanel`, `ContextAwareFAB`, `DynamicBottomBar`, `QuickSearch`, `NotificationCenter`, `SettingsPage`, `MobileSettings`, `PWAProvider`, `FeedbackProvider`, `serviceWorkerRegistration.js`, `lib/supabase.js` | Dashboard aggregation/realtime and exported reports consume stabilized, role-scoped domain truth; exports cannot serialize fallback or admin-only slices for broader roles; search fields/failures are role-scoped and visible; notification/settings/plan receivers, active PWA lifecycle, public asset delivery, dormant mock/maintenance actions and generic subscriptions are deliberately owned, disabled or retired. |
@@ -139,7 +139,7 @@ Stage 5 maintains the route-list reliability register for the `13` paginated Con
 | ---: | --- | --- |
 | 1 | Emergency request list/count/payment enrichment | Keep the currently paged experience, but move paging, filter parity, current-page enrichment and invalidation behind one emergency read owner with explicit partial/failure states. |
 | 2 | Wallet ledger/payment recent history and export | Name the `50`-row window as recent history or implement authoritative paged/export retrieval; no truncated preview can be presented as a complete ledger export. |
-| 3 | Hospitals and pricing | Retain a paged hospital list only after removing global unbounded hospital KPI/bootstrap reads, replacing collection-derived hospital totals/capacity with scoped aggregates, and making hospital filters/sorts authoritative; replace all-hospitals/all-pricing client slicing with scoped server-paged price projection. |
+| 3 | Hospitals and pricing | First repair the disproved hospital page contract: `pagination.pageSize` is absent and currently leaves the first visible list unbounded. Then remove global unbounded hospital KPI/map bootstrap reads, replace collection-derived totals/capacity with scoped aggregates, make filters/sorts authoritative and replace all-hospitals/all-pricing client slicing with scoped server-paged price projection. |
 | 4 | Users, organizations and two verification queues | Eliminate `1000`-row user truncation and unbounded organization/wallet loading; preserve queue paging while scoping realtime refetch to the active owned queue. |
 | 5 | Ambulances, doctors and map operational feeds | Eliminate `1000`-row capped client pagination and derived incomplete totals; fleet/provider lists need server-backed paging truth, while map feed bounds and omitted-data state are explicit. |
 | 6 | Visits | Move page-local paged query, enrichment and explicitly missing search into one visit read model with authoritative page/count/search and degraded relationship state. |
@@ -153,10 +153,12 @@ Protected rows and command results are exposed data even when they appear only i
 | Pass | Live console disclosure to remove or constrain | Completion evidence |
 | ---: | --- | --- |
 | 1 / 2 | Cash approval/decline RPC parameters and result data from `emergencyService`; clinical visit result logged from emergency table navigation. | Cash and clinical browser smoke yields no patient/payment payload logs; backend audit/refreshed projections remain the only evidence path. |
-| 4 | Auth bootstrap email/profile messages, selected user object and desktop settings resolved avatar URL emitted by identity surfaces. | Auth/user/settings smoke yields no identity- or identity-media-bearing console payloads. |
+| 4 | Auth bootstrap email/profile messages, selected user object, desktop settings resolved avatar URL, live protected-route role/path/resource denial logs, raw `SecurityModal` password-update Auth errors and onboarding facility/Auth/Storage/provisioning failures emitted by identity surfaces. | Auth/user/settings/onboarding/unauthorized smoke yields no identity-, entitlement-, credential-, provisioning-, storage-error- or identity-media-bearing console payloads. |
+| 5 | Active `MapErrorBoundary` and driver map failure handlers log raw rendering or telemetry errors from the operational map. | Map degradation and driver-action smoke keeps useful visible failure state while emitting no patient/location/telemetry/provider-error payload through browser console diagnostics. |
 | 6 | `VisitModal` selected visit and submitted clinical payload logs. | Visit view/edit/handoff smoke yields no clinical payload logs. |
 | 7 / 8 | Insurance and support realtime payload logs from route and hidden shell-mounted hooks. | Care route and shell smoke yields no protected realtime payload logs and hidden acquisitions are removed. |
-| 8 | Production `ErrorBoundary` writes stack, component stack and full route URL to the browser console under a monitoring label; notification read failures write user UUID plus raw backend error details. | Failure and notification-degradation smoke uses approved redacted diagnostics, displays failed versus empty state accurately and exposes no route/query/object/user identity or stack payload in the browser console. |
+| 1-8 / 8 mechanism | Shared `utils/errorHandler.js` logs raw error objects and surfaces raw error messages in toasts for mounted page/modal operations across the domain passes. | Each pass failure smoke uses operator-safe messages and approved redacted diagnostics; no backend/Auth/Edge/Storage policy, identifier or receiver detail leaks through shared console or toast behavior. |
+| 8 | Production `ErrorBoundary` writes stack, component stack and full route URL to the browser console under a monitoring label; notification read failures write user UUID plus raw backend error details; Pass 4 supplies mounted auth denial/password error paths to this global gate. | Failure, notification-degradation and auth-denial smoke uses approved redacted diagnostics, displays failed versus empty/denied state accurately and exposes no route/query/object/user identity, entitlement, Auth receiver error or stack payload in the browser console. |
 
 ## Global Responsive Aggregate Truth Gate
 
@@ -234,6 +236,7 @@ Receivers and app reference:
 | Package | Type | Target | Acceptance gate |
 | --- | --- | --- | --- |
 | Emergency read owner | Read-only owner cleanup | Move request list/count/search and summary reads out of page/context direct Supabase paths. | Page renders from emergency domain owner; no direct page count read for request totals. |
+| Dispatch candidate selection contract | Workflow-command reliability repair | Move first-row unbounded ambulance/hospital/doctor selection behind a command-owned readiness projection with Pass 3/5 inputs. | Dispatch cannot call a candidate nearest/optimal/ready or claim assignment outcome until bounded selection basis and refreshed resource state are proved. |
 | Emergency audit and communication projection | Missing surface/read owner | Add scoped status-transition timeline and chat room/message/read-state projection for operated requests. | Operator can see app-shared urgent communication/history without mutating append-only transition evidence directly. |
 | Clinician assignment owner | Missing L5 capability | Add guarded `emergency_doctor_assignments`/assignment RPC projection and command contract. | Assigned clinician state is persisted and visible rather than inferred from a suggested doctor object. |
 | Payment-aware invalidation | Read-only owner cleanup | Replace generic page-owned `payments` refetch with emergency/payment domain invalidation. | Payment event handling is documented at the owner boundary. |
@@ -243,6 +246,7 @@ Receivers and app reference:
 | Emergency activity exposure | Audit/read-projection cleanup | Minimize address-bearing emergency activity descriptions/metadata before they enter the shared dashboard recent feed. | Audit evidence remains useful without broadly rendering pickup/destination context to dashboard readers. |
 | Fallback create contract | L5 repair | Align or retire `console_create_emergency_request` fallback relative to `create_emergency_v4`. | Fallback path either creates required linked truth or is not available for app-parity emergency creation. |
 | Cash completion contract | L5 repair | Fix cash eligibility, processing order, settlement receiver, ledger/audit reflection. | Completing a cash emergency cannot show fee deducted unless ledger/payment truth confirms it. |
+| Patient-origin receiver provenance | Shared receiver/read-projection repair | Classify `calculate_emergency_cost_v2`, `notify_cash_approval_org_admins`, `triage-copilot`, `demo-approve-cash-payment` and `demo-dispatch-reply` in the emergency projection. | Canonical versus degraded quote and delivered-notification state are explicit; triage is persisted-context only; demo writers do not count as production success. |
 
 ### Detailed Checklist
 
@@ -279,6 +283,7 @@ Receivers and app reference:
 #### 1C. Dispatch And Tracking Guard
 
 - Keep `console_dispatch_emergency` as the status-changing receiver for operator dispatch.
+- Replace `emergencyResponseService` first-row candidate selection with a declared selection contract consuming bounded responder, facility capacity/eligibility and clinician-readiness projections; the current unused patient-location argument cannot stand in for proximity.
 - Ensure dispatch UI derives eligibility from backend/current row state, not stale page state.
 - Do not show route/tracking-ready states unless request identity, hospital/service context, route or ETA seed, pickup/patient context, and responder identity or hydrating state are available.
 - Treat fallback ETA/route as degraded and visible, not confident arrival truth.
@@ -291,6 +296,8 @@ Receivers and app reference:
 - Repair processing order so payment/fee settlement happens while the request is in a state accepted by the receiver, or move completion and settlement into one atomic backend path.
 - Do not show "fee deducted" unless ledger/payment truth confirms it.
 - If historical repair is needed, create a separate maintenance plan with read-only scope evidence first.
+- Treat `calculate_emergency_cost_v2` quote state and `notify_cash_approval_org_admins` delivery state as app-origin dependencies: neither authorizes dispatch release or proves settlement.
+- Keep `triage-copilot` out of Console command behavior and exclude demo approval/chat writers from production emergency evidence.
 
 #### 1E. Feedback And Duplicate Action Guards
 
@@ -343,6 +350,8 @@ Console services and receivers:
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/functions/payments/create-payout/index.ts`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/functions/payments/manage-payment-methods/index.ts`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/functions/webhooks/stripe-webhook/index.ts`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/services/paymentService.js`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/services/notificationDispatcher.js`
 
 ### Work Packages
 
@@ -354,6 +363,7 @@ Console services and receivers:
 | Billing-method scope and designation | UI/service contract repair | Reconcile platform/org method list, removal and payout-selection state in page/global modal surfaces. | No method deletion uses a different scope from the rendered list and no `Primary` badge renders without reflected selection truth. |
 | Wallet analytics projection | UI/read projection repair | Replace generic modal values derived from capped wallet route arrays with labelled finance projection data or unavailable state. | Opening wallet analytics cannot present a recent bounded preview as complete financial analytics. |
 | Ledger/RLS policy | L5 repair | Align org-admin/platform-admin ledger read/write semantics. | UI wallet visibility matches deployed RLS and no unauthorized mutation is implied. |
+| App settlement and delivery reflection | Cross-surface read projection | Reflect `process_wallet_payment`, `process_visit_tip`, `record_visit_cash_tip` and `notify_cash_approval_org_admins` consequences where authorized; isolate `demo-approve-cash-payment`. | Wallet/visit history can distinguish settlement evidence from notification delivery and demo behavior without inventing Console mutation authority. |
 
 ### Detailed Checklist
 
@@ -370,6 +380,7 @@ Console services and receivers:
   - projection/analytics values
   - degraded/unauthorized flags
 - Ensure org-admin wallet UI can render a neutral empty/unauthorized state instead of noisy console errors when RLS denies ledger.
+- Include authorized reflected app settlement/tip state in the finance projection when it affects displayed wallet, payment or linked-visit truth; absence is an explicit unavailable state, not zero activity.
 
 #### 2B. Top-Up Confirmation Contract
 
@@ -403,6 +414,12 @@ Console services and receivers:
   - dry-run/preview
   - audit log requirement
   - no execution in normal page refresh
+
+#### 2F. App Settlement And Notification Reflection
+
+- Classify `process_wallet_payment`, `process_visit_tip`, and `record_visit_cash_tip` as patient-origin settlement writers whose reflected rows may appear in Console finance/history reads.
+- Keep `notify_cash_approval_org_admins` delivery/reflection separate from approval, settlement, ledger distribution and emergency release truth.
+- Keep `demo-approve-cash-payment` out of production wallet reporting and action acceptance; any deliberate demo state must be isolated and labelled.
 
 ### Pass 2 Verification
 
@@ -439,6 +456,8 @@ Console services and receivers:
 | Package | Type | Target | Acceptance gate |
 | --- | --- | --- | --- |
 | Hospital/pricing read owners | Read-only owner cleanup | Centralize hospital, capacity, pricing, and KPI reads. | Page/modal/context direct reads no longer own facility truth. |
+| Hospital page-window repair | Read-only reliability prerequisite | Replace the proved `pagination.pageSize`/`itemsPerPage` contract mismatch and unify desktop/mobile refresh, buffer and load-more state with the bounded facility query. | First-page hospital list cannot return an unbounded authorized collection; counts, filters, sort and `hasMore` come from the same source. |
+| Facility view-mode capability parity | Exposure/command cleanup | Project facility row capabilities once before grid, list, table, mobile and panel composition. | Switching display mode cannot broaden facility edit/delete/schedule authority or expose commands absent from the actor's receiver scope. |
 | Scoped pricing UX | UI/service cleanup | Make hospital-scoped versus organization-scoped pricing explicit. | Multi-hospital orgs cannot silently write only earliest-hospital pricing. |
 | Availability writer resolution | L5 repair | Route operational capacity/status/wait changes through `update_hospital_availability`; keep metadata edits separate. | Console capacity edits persist all app-visible fields intentionally. |
 | Discovery authority | L5 repair | Restrict/authorize provider persistence and align modal request/response contract. | Discovery cannot write canonical provider rows without operator authority. |
@@ -450,6 +469,9 @@ Console services and receivers:
 #### 3A. Facility Read Model
 
 - Centralize hospital list/detail/count and recent facility summaries.
+- Treat the current `/hospitals` pagination defect as a first-slice blocker: `usePagination(20)` returns `itemsPerPage`, while the page supplies undefined `pageSize` to a service that applies no first-page limit in that case.
+- Eliminate the three-read route condition before accepting facility summary truth: the page list query, authenticated `PageDataContext.fetchHospitalsData()` and pre-authorization `MapProvider` hospital bootstrap must each be replaced, removed or deliberately bounded/scoped.
+- Route `MobileHospitals` refresh, retained-loading rows and load-more affordance through the same bounded query/result status; buffered rows may not be labelled live or complete while a replacement page is pending or failed.
 - Include explicit fields for:
   - scalar bed counts
   - `bed_availability`
@@ -490,6 +512,8 @@ Console services and receivers:
 
 - Pricing service tests for single-hospital and multi-hospital orgs.
 - Browser smoke on `/hospitals` and `/pricing`, including mobile pricing if touched.
+- Network/read-owner proof on `/hospitals` that the first visible page is bounded, filters/sort/count share the same query contract, and mobile load-more never repeats the unbounded acquisition.
+- Shell-mount proof that public/login/onboarding routes do not acquire hospital map state and that an authorized hospital route does not duplicate facility reads through bootstrap context ownership.
 - Read-only SQL proof for trigger/policy assumptions before L5 availability/discovery repair.
 - App quote comparison for selected hospital pricing after implementation.
 
@@ -513,6 +537,9 @@ Console services and receivers:
 - `frontend/src/components/navigation/MobileNavMenu.jsx`
 - `frontend/src/lib/avatarUtils.js`
 - `frontend/src/components/onboarding/OnboardingWizard.jsx`
+- `frontend/src/components/onboarding/OrganizationDetailsStep.jsx`
+- `frontend/src/components/onboarding/VerificationStep.jsx`
+- `frontend/src/contexts/OnboardingContext.jsx`
 - `frontend/src/services/profilesService.js`
 - `frontend/src/services/adminService.js`
 - `frontend/src/services/authService.js`
@@ -535,9 +562,12 @@ Console services and receivers:
 | Auth-backed user creation | L5 repair | Replace raw `profiles.insert` creation with invite/auth-backed identity. | Console-created users have auth identity or are explicitly invite-pending records. |
 | Verification lane split | L5 repair | Separate profile/BVN verification from facility dispatch certification. | UI copy/action cannot imply dispatch eligibility from the wrong receiver. |
 | Responsive identity/verification parity | UI/command authority cleanup | Align mobile organization metrics, verification actions and settings identity/provider-detail operations to the same bounded projections and action capabilities as desktop. | Mobile cannot turn loaded-row trends into network truth or reveal a command the receiver rejects. |
+| Identity desktop view-mode capability parity | UI/command authority cleanup | Gate organization list/table commands and remove verification list/table no-op Delete through the same row capability/receiver projection used by primary cards. | Switching organization/verification layout cannot reveal unauthorized or inert destructive commands. |
+| Users context-panel recent-login projection | Read/exposure cleanup | Replace the panel-local auth-enriched `getProfiles` read with a named, role-scoped and field-minimized recent-login projection, or remove the detail. | Opening the users panel cannot independently expose email/sign-in metadata or turn read failure into an empty result. |
 | Onboarding identity repair | L5 repair | Fix hospital-as-organization insert and `profiles.organization_id` assignment. | Onboarding writes valid organization/hospital/profile relationships under RLS. |
+| Existing facility claim receiver | L5 repair | Make the visible selected-hospital claim flow consume selected facility identity or stay unavailable; no unconditional insert after a claim choice. | Selecting a facility cannot silently create a duplicate hospital or report canonical ownership without reflected linkage. |
 | Avatar privacy projection | UI/media exposure cleanup | Remove identity-bearing external avatar fallback or define an approved non-identifying fallback policy. | Global/user identity surfaces do not transmit username/profile identity to third-party avatar providers without explicit disposition. |
-| Security and identity activity projection | Auth/read-exposure cleanup | Verify mounted own-user password/MFA Auth behavior and minimize provider-email/username activity records before dashboard display. | Auth security actions remain truthful and verification evidence does not become broad identity disclosure. |
+| Security, denial diagnostics and identity activity projection | Auth/read-exposure cleanup | Verify mounted own-user password/MFA Auth behavior, remove raw password/route-denial diagnostics and minimize provider-email/username activity records before dashboard display. | Auth security and denial actions remain truthful without browser disclosure, and verification evidence does not become broad identity disclosure. |
 
 ### Detailed Checklist
 
@@ -550,6 +580,7 @@ Console services and receivers:
   - route email/auth identity changes through Supabase Auth/admin flow if needed
 - Fix display ID bulk resolution to be entity-aware before relying on profile/provider display IDs.
 - Replace or privacy-scope third-party generated-avatar fallback URLs used in identity/header surfaces.
+- Treat `UsersPanel` as an independent identity read owner: justify or remove its recent-login purpose, minimize email/sign-in fields, and expose failed versus empty state rather than logging and silently rendering no rows.
 - Keep unmounted `useAdmin` audit/export/destructive APIs excluded until a deliberate surface and authority contract require them; do not treat them as replacements for live page flows by filename alone.
 
 #### 4B. Auth-Backed Creation And Invite
@@ -559,6 +590,8 @@ Console services and receivers:
 - Move `invite-user` Edge Function invocation out of modal-local code.
 - Document deployed function ownership and expected invite record/profile effects.
 - Treat `SecurityModal` password/MFA enrollment/unenrollment as a canonical own-user Auth adapter only after assurance state, secret display, error feedback and reflected session outcome are verified.
+- Correct the visible corrupted unauthorized symbol, `SecurityModal` password-placeholder bullets and onboarding verification-summary separator while removing raw protected-route and password-update diagnostics under the encoding/browser-disclosure gates.
+- Include mounted `UserListView` email/organization/provider separators in the identity UTF-8 repair and route verification gate.
 
 #### 4C. Verification Lane Split
 
@@ -568,14 +601,18 @@ Console services and receivers:
 - Ensure provider approval has an authorized receiver if it must mutate another user's profile.
 - Minimize or appropriately scope the provider email/username data currently written to shared activity records during verification.
 - Make `MobileVerification` consume the same provider/facility lane labels, aggregate scope and approve/reject capability as desktop; remove "LIVE"/trend language that is only computed from loaded queue rows.
+- Remove the list/table verification `Delete` command while it is wired to `onDelete={() => { }}`; callback truthiness is not receiver proof.
 
 #### 4D. Onboarding Identity Repair
 
 - Create or identify real `organizations` record creation.
 - Create/claim hospital under organization rather than storing hospital ID in `profiles.organization_id`.
+- Consume selected facility id and claim state in the actual submit receiver, with conflict-safe reflected linkage; do not advertise claim while always inserting a new hospital.
+- Make `OnboardingSuccessPage` consume that reflected result before showing organization identity, review-readiness or dashboard-entry claims; `OnboardingPage` footer copy is included in the same encoding gate.
 - Ensure RLS-authorized facility claim or creation receiver exists.
 - Preserve onboarding draft state separately from committed organization/hospital truth.
 - Make `MobileOrganizations` consume the server-paged organization/wallet projection and guarded CRUD capability rather than locally describing loaded rows as network dynamics.
+- Apply the same organization command capability to desktop list/table renderers before passing create/edit/delete handlers; view mode cannot bypass the page's role/receiver gate.
 - Keep `MobileSettings` identity claims backend-confirmed and reconcile its view-only provider-detail operation with Pass 5's desktop provider self-edit contract deliberately.
 
 ### Pass 4 Verification
@@ -584,6 +621,8 @@ Console services and receivers:
 - Invite flow smoke with non-production account.
 - Verification queue browser smoke for provider and organization tabs.
 - Mobile viewport smoke for organization metrics/actions, verification commands and settings provider-detail identity parity.
+- Auth denial and settings password-failure smoke proving clean visible credential/unauthorized copy and no role/path/resource or raw Auth error payload in the browser console.
+- Onboarding existing-facility and failure smoke proving selected records are not duplicated by submit and that Auth/facility/Storage errors are rendered through bounded feedback without raw browser diagnostic payload.
 - Read-only schema proof for any fields used by onboarding/verification before enabling writes.
 - RLS tests for org-admin, provider, platform admin, and ordinary user paths.
 
@@ -592,12 +631,24 @@ Console services and receivers:
 ### Primary Files To Inspect Before Editing
 
 - `frontend/src/components/pages/AmbulancesPage.jsx`
+- `frontend/src/components/context/AmbulancesPanel.jsx`
+- `frontend/src/components/views/AmbulanceListView.jsx`
+- `frontend/src/components/views/AmbulanceTableView.jsx`
 - `frontend/src/components/modals/AmbulanceModal.jsx`
 - `frontend/src/components/pages/DoctorsPage.jsx`
+- `frontend/src/components/context/DoctorsPanel.jsx`
+- `frontend/src/components/views/DoctorListView.jsx`
+- `frontend/src/components/views/DoctorTableView.jsx`
 - `frontend/src/components/pages/HospitalsPage.jsx`
 - `frontend/src/components/modals/DoctorModal.jsx`
 - `frontend/src/components/modals/StaffSchedulingModal.jsx`
+- `frontend/src/components/scheduling/StaffScheduler.jsx`
 - `frontend/src/components/pages/GodModeMap.jsx`
+- `frontend/src/contexts/MapContext.jsx`
+- `frontend/src/components/map/MarkerDetailPanel.jsx`
+- `frontend/src/components/map/MapRenderers/GoogleMapsRenderer.jsx`
+- `frontend/src/components/map/MapRefiner/GoogleMapsSmartRoute.jsx`
+- `frontend/src/components/map/ErrorBoundary.jsx`
 - `frontend/src/components/mobile/MobileAmbulances.jsx`
 - `frontend/src/components/mobile/MobileDoctors.jsx`
 - `frontend/src/components/mobile/MobileMap.jsx`
@@ -619,11 +670,17 @@ Console services and receivers:
 | Package | Type | Target | Acceptance gate |
 | --- | --- | --- | --- |
 | Provider read/lookups | Read-only owner cleanup | Move doctor/ambulance counts, hospital lookups, driver occupancy, modal support reads into services. | Modals do not query supporting tables directly. |
+| Provider view-mode capability parity | Exposure/command cleanup | Apply one role/row capability projection to grid, list, table, mobile and context surfaces before callbacks are composed. | Switching from grid to list/table cannot reveal edit/delete authority hidden elsewhere. |
+| Provider context summary truth | Read/failure-state cleanup | Replace broad/mock/stale panel readiness claims with typed scoped fleet/doctor summary states. | `Live Fleet`, `Ready Units` and `Active Faculty` labels render only when their source proves that meaning; failed/empty/degraded states remain distinct. |
 | Ambulance telemetry owner | L5 repair | Align generic location/status writes with active-request telemetry contract. | Responder map updates use request-coupled receiver when dispatch/tracking state is affected. |
+| Map mount authorization | Exposure/read-owner cleanup | Stop unguarded `MapProvider` operational reads/subscriptions on public/auth/unauthorized routes and mount scoped map feeds only for authorized map consumers. | Loading login/onboarding/password/unauthorized does not issue emergency, fleet, facility or patient-location map acquisition. |
+| Map singleton ownership and desktop marker authority | Exposure/command cleanup | Remove nested `/map` provider duplication and route desktop selected-marker patient exposure/dispatch/completion through Pass 1 action authority. | Entering `/map` starts one feed owner only; desktop marker detail cannot disclose or command outside the shared emergency contract. |
+| Map operator location and external routing truth | Exposure/reliability cleanup | Separate denied/unavailable browser location from display center, remove coordinate-derived session decoration and label/approve external Google route computation/fallback. | No fabricated proximity/marker truth, unnecessary coordinate badge or silent straight-line route presented as traffic-aware operational route. |
 | Driver and vehicle command scope | Exposure/command repair | Remove client fallback ambulance selection for drivers and prevent an ambulance modal from exposing hospital-wide request lifecycle commands. | Driver actions require proved responder/request linkage; a vehicle record operates only its own linked trip or defers to request detail. |
 | Mobile map emergency handoff | Cross-pass exposure/command repair | Identify mobile map patient fields and dispatch/completion affordances as Pass 1 emergency lifecycle consumers. | Mobile layout cannot invent emergency completion or patient-exposure authority from marker shape or ambulance presence. |
 | Doctor/profile automation | L5 repair | Decide doctor CRUD relationship to profile-trigger automation. | Manual doctor creation cannot create duplicate/unlinked directory truth. |
 | Schedule ownership | L5 repair | Implement org-authorized `doctor_schedules` read/CRUD/conflict/statistics and remove status-derived shift fiction. | UI no longer collects shift fields that are discarded. |
+| Dormant scheduler exclusion | Capability classification | Keep unmounted `StaffScheduler` outside live Console capability or retire it until rebuilt on the canonical stored-shift projection. | No hard-coded/local-only second scheduler can be rendered as operational CRUD. |
 | Clinical assignment integration | Cross-pass L5 capability | Coordinate doctor availability/readiness with Pass 1's persisted `emergency_doctor_assignments` command/projection. | A doctor shown as assigned in emergency operations has a canonical assignment row/state. |
 | External map-layer reliability | UI/reliability cleanup | Treat CARTO/OpenStreetMap base tiles as a deliberate external dependency of the operational map. | Tile failure renders a clear degraded state without erasing or falsifying authorized marker/telemetry truth. |
 
@@ -637,6 +694,7 @@ Console services and receivers:
   - `rating`
 - Remove invalid `busy` status or map it to a valid operational status with explicit copy.
 - Keep administrative fleet edits separate from active dispatch controls.
+- Apply fleet command capabilities to grid, list, table and mobile renderers consistently; do not pass edit/delete callbacks into an otherwise unauthorized view mode.
 - Add active-call guard before driver reassignment if assignment changes can trigger failover behavior.
 - Move hospital lookup and occupied driver/ambulance lookup out of `AmbulanceModal` into the ambulance/provider service layer.
 
@@ -649,6 +707,11 @@ Console services and receivers:
 - Ensure map telemetry updates both request responder truth and linked ambulance projection through the request-scoped receiver.
 - Keep `MobileMap` dispatch/completion gated by the Pass 1 emergency action projection; it may render provider/map layout but may not own emergency payment/cash legality.
 - Keep map realtime as projection, not canonical emergency/ambulance state owner.
+- Do not initialize map reads or channels from public/auth/unauthorized route shells; verify actor and active authorized surface before operational or patient-location acquisition.
+- Remove route-nested map-provider duplication so `/map` consumes one bounded authorized projection and one channel set.
+- Treat `MarkerDetailPanel` as an emergency detail/command surface equal to `MobileMap`; apply Pass 1 patient-field and lifecycle-command legality and repair its corrupted rendered glyph.
+- Treat map browser geolocation as permissioned truth; denial/unavailability cannot become a Lagos operator marker/nearby query or coordinate-derived session display.
+- Treat Google Routes as an external coordinate handoff with approved fields, visibly degraded fallback and redacted failure diagnostics.
 - Preserve attribution and define degraded rendering when third-party base tiles are unavailable; operational markers and telemetry retain independent truth status.
 
 #### 5C. Doctor Creation And Profile Link
@@ -658,6 +721,8 @@ Console services and receivers:
 - Treat name/email/phone and profile-linked facility identity as profile-projected fields for linked doctors.
 - Treat specialty, license, and operational availability status as doctor-directory fields unless a later trigger contract explicitly projects them from profiles.
 - Update UI copy so "invite" and "create directory row" are not presented as one guaranteed atomic operation unless backend makes it so.
+- Apply clinician command capabilities to grid, list, table and mobile renderers consistently, and replace panel-level `Active` claims with status-exact typed summary state.
+- Include the mounted ambulance and doctor list separators in the encoding repair gate before closing this pass.
 
 #### 5D. Scheduling Ownership
 
@@ -666,11 +731,15 @@ Console services and receivers:
 - Read and write actual stored rows for date/time/shift/availability; remove the unsupported `notes` control unless a receiver is introduced.
 - Keep `doctors` availability/status as operational state rather than schedule persistence.
 - Do not imply ambulance crew scheduling until a persisted authorized receiver exists.
+- Keep `StaffScheduler` unmounted/retired unless deliberately rebuilt against `doctor_schedules`; clean its corrupted visible text before any approved mount.
 
 ### Pass 5 Verification
 
 - Browser smoke on `/ambulances`, `/doctors`, scheduling modal, and `/map`.
 - Mobile `/map` smoke for selected-emergency patient exposure and dispatch/completion unavailable/authorized states under the Pass 1 action contract.
+- Public/auth route network/channel smoke proving `/login`, `/set-password`, `/onboarding` and `/unauthorized` do not initialize map domain feeds.
+- `/map` singleton-provider/channel smoke proving one initial feed acquisition/channel set and desktop selected-marker Pass 1 action/exposure gating with clean encoding.
+- `/map` location/routing smoke proving denied location does not seed Lagos proximity/marker truth, coordinate-derived display is removed, and external route fallback/error state is visible and redacted.
 - Service tests for valid ambulance status set and doctor create/link behavior.
 - Realtime smoke for responder location when an active request exists.
 - Read-only proof or tests for doctor/profile automation assumptions before changing create/invite semantics.
@@ -691,6 +760,7 @@ Console services and receivers:
 - `frontend/src/services/medicalProfilesService.js`
 - `frontend/supabase/migrations/20260219000900_automations.sql`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/services/visitsService.js`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/services/paymentService.js`
 
 ### Work Packages
 
@@ -698,6 +768,7 @@ Console services and receivers:
 | --- | --- | --- | --- |
 | Visits read model | Read-only owner cleanup | One owner for count/search/hydration and hospital/profile fallback. | `VisitsPage` does not own direct table count/search shape. |
 | Request-derived guard | Service/UI cleanup | Mark emergency-derived visits as source-owned. | Manual CRUD cannot silently fight emergency-to-visit sync. |
+| Tip/payment continuity | Cross-pass read projection | Reflect app `process_visit_tip` and `record_visit_cash_tip` outcomes as authorized read-only visit finance context. | Generic visit edit cannot alter, erase or claim patient tip settlement. |
 | Fallback row strategy | L5 repair | Define repair/creation strategy for fallback emergency rows if needed. | Existing repair scope and forward contract are separate and documented. |
 
 ### Detailed Checklist
@@ -711,6 +782,7 @@ Console services and receivers:
   - linked emergency request by `request_id` or display fallback where intended
   - legacy aliases used by current UI
   - lifecycle/rating/tip fields
+  - authorized tip/payment settlement provenance and unavailable state
 - Return source markers:
   - administrative visit
   - emergency-derived visit
@@ -725,6 +797,7 @@ Console services and receivers:
   - disable independent status edits unless backend says visits owns that field
   - show source-owned explanation in UI where needed
 - Prevent users from creating a visit that references an emergency request unless the canonical owner supports it.
+- Keep app-settled tip/payment evidence read-only in the visit projection; Pass 2 owns financial receiver/reflection decisions.
 
 #### 6C. Fallback Row Strategy
 
@@ -777,6 +850,7 @@ Console services and receivers:
 | --- | --- | --- | --- |
 | Health-news summary owner | Read-only owner cleanup | Move KPI/count/category reads into health-news service/hook. | Page and panel share the same content summary owner. |
 | Health-news source-link contract | External navigation/content safety | Normalize/validate persisted source URL and provenance; use safe preview navigation consistent with the patient feed consumer. | A published Console content record cannot send patients or operators to malformed or unreviewed destinations. |
+| Health-news view-mode command parity | UI/command authority cleanup | Replace function-object role truthiness in list/table composition with evaluated published-feed capabilities. | Switching from grid to list/table cannot reveal publish/edit/delete commands while content write policy is absent or the actor lacks authority. |
 | Support hook reuse | Read-only owner cleanup | Reuse support service/hook across page/panel. | Duplicate support realtime/direct reads are removed. |
 | Subscriber facade | Service cleanup | Consolidate subscriber/subscription services, preserve fixed-field payload repair, and restrict commands to policy/receiver-backed authority. | Subscriber payload remains schema-current and unauthorized management controls are absent. |
 | Email lifecycle owner | L5 repair | Define welcome/custom/bulk/unsubscribe state machine. | Welcome email cannot be sent twice by competing lifecycle writers. |
@@ -794,6 +868,7 @@ Console services and receivers:
   - content
   - icon
 - Do not expose authored-article editing unless a later contract pass adds the receiver fields and authorized authoring policy first.
+- Do not pass publish/edit/delete callbacks to health-news list/table variants based on a callable `isAdmin` prop; consume explicit evaluated capability values and default them unavailable during published-feed-only operation.
 - Move page and panel KPI/category reads into one health-news summary service.
 - Obtain policy proof before draft/read/write authoring work.
 
@@ -850,6 +925,7 @@ Console services and receivers:
 - `frontend/src/components/mobile/MobileAnalytics.jsx`
 - `frontend/src/components/mobile/MobileDashboard.jsx`
 - `frontend/src/components/dashboard/HospitalFleetManager.jsx`
+- `frontend/src/components/dev/SchemaDebugger.jsx`
 - `frontend/src/components/navigation/ContextPanel.jsx`
 - `frontend/src/components/common/NotificationCenter.jsx`
 - `frontend/src/components/common/ErrorBoundary.jsx`
@@ -863,12 +939,14 @@ Console services and receivers:
 - `frontend/src/services/trendingTopicsService.js`
 - `frontend/src/services/analyticsAutomationService.js`
 - `frontend/src/services/activityService.js`
+- `frontend/src/utils/errorHandler.js`
 - `frontend/src/services/preferencesService.js`
 - `frontend/src/services/supabaseHelpers.js`
 - `frontend/src/App.js`
 - `frontend/src/components/common/ProtectedRoute.jsx`
 - `frontend/src/components/common/Skeletons.jsx`
 - `frontend/src/components/common/ConsoleStartupOverlay.jsx`
+- `frontend/src/components/common/NetworkStatus.jsx`
 - `frontend/src/components/pages/SettingsPage.jsx`
 - `frontend/src/components/mobile/MobileSettings.jsx`
 - `frontend/src/index.js`
@@ -878,6 +956,8 @@ Console services and receivers:
 - `frontend/src/components/pwa/UpdateNotification.jsx`
 - `frontend/src/contexts/PWAContext.jsx`
 - `frontend/src/contexts/FeedbackContext.jsx`
+- `frontend/src/hooks/useNetworkStatus.js`
+- `frontend/src/lib/queryClient.js`
 - `frontend/src/components/ui/skeleton.jsx`
 - `frontend/supabase/migrations/20260219010000_core_rpcs.sql`
 - `frontend/supabase/migrations/20260219000700_security.sql`
@@ -891,12 +971,17 @@ Console services and receivers:
 | Shared analytics modal projection contract | UI/read projection repair | Remove fallback metric semantics from `AnalyticsModal` and require all mounted domain callers to supply typed scope/window/unavailable data from their owning pass. | No modal displays default `12m`, generic confidence indices or bounded-preview totals as proved operational analytics. |
 | Mock/demo cleanup | UI/service cleanup | Remove production mock defaults or connect visible demo preference. | A failed fetch cannot flip the authenticated shell into mock mode. |
 | Realtime dedupe | Query cleanup | Remove global and duplicate page/panel channels after domain hooks own reads. | One owner per table/event family, with scoped map/modal exceptions. |
+| Public-route and singleton map-provider authorization | Exposure/read-owner cleanup | Remove unguarded `MapProvider` operational-feed initialization from public/auth/unauthorized routes, remove nested `/map` provider ownership and require one authorized surface mount for map datasets/channels. | Public shell navigation performs no emergency, fleet, facility or patient-location map read/subscription attempt, and authorized `/map` mounts one feed/channel owner. |
 | Route/action feedback | UI cleanup | Add route skeleton and pending guards for high-risk actions. | Navigation and commands acknowledge intent immediately without false completion claims. |
+| Shared responsive list feedback contract | UI/reliability cleanup | Define how `PullToRefresh`, `useStableList` and `useLoadMoreControl` consume domain-owned loading/error/page status across the live mobile routes that mount them. | Retained rows, refresh indicators and load-more controls cannot make a failed, capped or unbounded collection look current or complete. |
+| Shell footer health disposition | UI/truth cleanup | Remove, neutralize or source `SmartFooter` success styling and `LIVE SYNC ACTIVE` fallback through an actual scoped freshness/health projection. | Mounted shell chrome cannot claim realtime success merely because a page has visible footer configuration. |
 | Shell utility feedback and debug disposition | UI/accessibility cleanup | Review always-mounted PWA/feedback surfaces and remove or source the visible debug version marker. | Install/offline/update prompts remain truthful; audio/haptic effects have deliberate accessibility behavior; production shell shows no hard-coded debug copy. |
 | Search/trend truth and privacy | L5/read-projection repair | Scope searchable categories/fields by role, sequence parallel queries and replace success-returning stub regeneration or label unavailable state. | Shell search distinguishes no-match, partial, denied and failed results and cannot present stub trend regeneration as real. |
 | Notifications/preferences/settings | UI/read-owner cleanup | Align user-scoped notification read/mark behavior with a real settings receiver and preserve intentional notification action metadata. | An unwired switch or compatibility payload loss cannot misstate notification behavior. |
-| Shell diagnostics and sensitive activity projection | Exposure/error-state cleanup | Replace browser-console monitoring/notification error disclosure and minimize identity/location-bearing activity-feed content by role. | Failures remain visible and operational audit remains useful without leaking route/user/error/location/identity metadata. |
+| Shell diagnostics, shared error feedback and sensitive activity projection | Exposure/error-state cleanup | Replace browser-console monitoring/notification error disclosure, centralize raw `errorHandler` logging/toast sanitization, consume Pass 4's auth denial/password-error cleanup and minimize identity/location-bearing activity-feed content by role. | Failures remain useful and visible without leaking route/user/entitlement/Auth-error/receiver/location/identity metadata in console output or user-facing error copy. |
 | Settings plan and dormant dashboard disposition | UI/capability cleanup | Remove or correctly source desktop `Free Tier`/Upgrade claims and keep `HospitalFleetManager` excluded unless real provider/emergency projections and scoped report export exist. | Viewport-only plan claims and unmounted mock dashboards cannot be mistaken for product capability. |
+| Dormant diagnostic disposition | Exposure/capability cleanup | Keep `SchemaDebugger` unmounted/retired unless an explicitly redacted development-only diagnostic policy and clean rendering are approved. | Raw operational objects cannot be surfaced through an unowned debug viewer. |
+| Query/cache ownership and dormant network interceptor | State/reliability cleanup | Record `QueryClientProvider` as foundation only until domain queries migrate; keep unmounted `NetworkStatus`/`useNetworkStatus` from wrapping global fetch. | No API-reliability claim is based on an unused cache provider or global request monkey-patch. |
 | Mobile dashboard patient-care disposition | Ecosystem/action cleanup | Replace empty patient-only visit/history/SOS handlers with deliberate canonical app handoff or unavailable/removed Console presentation. | Console exposes no inert patient workflow and urgent intent receives immediate meaningful feedback. |
 
 ### Detailed Checklist
@@ -951,13 +1036,19 @@ Console services and receivers:
 
 - Replace blank route Suspense fallback with shell-aware skeleton/progress treatment.
 - Preserve `DynamicAuthSkeleton` for auth gate.
+- Separate public/auth shell utility providers from authorized operational map projection mounting so no map feed or patient-location channel starts before an eligible surface is entered.
 - Reuse mobile stable-list and skeleton patterns for desktop/web route loads where appropriate.
 - Add pending/disabled state to bulk/destructive commands that still rely only on toast after click.
 - Remove or wire the dashboard realtime switch and alert thresholds; visible local-only state is not operational configuration.
 - Wire or remove the visible settings notification switch, and define whether compatibility notifications lacking action metadata are non-actionable.
-- Render notification read failure distinctly from no notifications, redact browser diagnostics and replace production `ErrorBoundary` console logging with an approved minimized failure path.
+- Render notification read failure distinctly from no notifications, redact browser diagnostics, replace production `ErrorBoundary` console logging with an approved minimized failure path and make `utils/errorHandler.js` map raw receiver failures to safe actionable operator copy.
 - Remove/disable the static desktop `Free Tier`/Upgrade affordance or connect it to a user-scoped Pass 2/7 billing/subscription projection with the same truth semantics on mobile.
 - Keep `HospitalFleetManager` unmounted/retired unless its hard-coded operations and Export Report surface are replaced by authorized domain projections and export scope.
+- Keep `SchemaDebugger` unmounted/retired unless supplied data is explicitly redacted, development-only and encoding-clean; raw object rendering is not a production diagnostic boundary.
+- Keep `NetworkStatus`/`useNetworkStatus` unmounted/retired; it cannot wrap global `window.fetch` as the solution for typed error, retry, cancellation or degraded-state behavior.
+- Treat `QueryClientProvider` as installed infrastructure only until each domain pass moves proved reads/mutations into owned queries with explicit freshness, retry and invalidation rules.
+- Treat `PullToRefresh`, `useStableList` and `useLoadMoreControl` as feedback adapters only: every mounted mobile list must receive authoritative bounded refresh/page/error state from its domain pass before preserving rows or enabling continuation.
+- Remove, neutralize or source `SmartFooter`'s success-styled `LIVE SYNC ACTIVE` fallback; shell decoration is not realtime-health evidence.
 - Decide and implement the `MobileDashboard` patient-care disposition: canonical patient-app handoff with immediate feedback, or removal/unavailable rendering in Console; empty handlers are not a valid destination.
 - Remove or authoritatively source `PWADebugTracker` production version copy, and review the globally mounted PWA install/offline/update notices plus active service-worker registration/reload behavior as shell-owned user actions.
 - Define reduced-motion and sound/haptic preference behavior for `FeedbackProvider` before retaining feedback effects across mobile command surfaces.
@@ -976,6 +1067,7 @@ Console services and receivers:
 - Settings desktop/mobile plan-action parity check and dormant-component import scan for `HospitalFleetManager`.
 - Mobile patient-role dashboard smoke confirms visit/history/SOS actions either hand off deliberately or are not exposed, and confirms fleet-detail copy passes the encoding gate.
 - PWA/feedback shell check for install/update/offline actions, debug-marker removal or authoritative version source, and accessibility preference behavior.
+- Shell/mobile reliability check for neutral or source-backed footer health text plus truthful refresh/buffering/load-more states on representative paged, capped and failed list projections.
 
 ## Implementation Checklist Template
 
@@ -1006,7 +1098,7 @@ Each pass must clear these gates before code changes begin.
 | --- | --- | --- |
 | Owner gate | The Stage 4 row names a single required owner for the surface/service. | `PageDataContext`, page, and service all still own the same server truth. |
 | Service coverage gate | The Stage 5 ledger has no unassigned service for the pass being started. | Subscription implementation starts while `subscribersService`, `subscriptionService`, and support/email receivers still have no chosen owner. |
-| Runtime-truth closure gate | For every entity and user-visible claim in pass scope, Stage 5 traces backend source to all consumers and each affected route/action through all globally mounted and local acquisition/receiver paths. | A route-level paged hospital query is accepted while its globally mounted KPI context still loads a capped full collection and displays it as total network truth. |
+| Runtime-truth closure gate | For every entity and user-visible claim in pass scope, Stage 5 traces backend source to all consumers and each affected route/action through all globally mounted and local acquisition/receiver paths. | A route labelled paged is accepted while it actually passes an undefined page-size limit and its globally mounted KPI/map contexts also load unbounded hospital collections. |
 | Surface exposure/operation gate | Every in-scope route, panel, modal, responsive variant and export records rendered fields and exposed controls by role, proves read exposure authority, and assigns each action/field to authorized CRUD, workflow command, read-only evidence or disabled/excluded status. | Insurance/admin fields render under unproved RLS or an editor submits fields the canonical receiver does not persist. |
 | Direct-boundary gate | The Stage 5 direct call-site register assigns every active non-service Supabase/Auth/Edge/Storage access in pass scope to move, retain as canonical adapter, disable, or retire. | A service facade is introduced while the page or context continues to read the same tables, own the same channel, invoke `exec_sql`, or claim Storage delivery independently. |
 | Edge topology gate | The Stage 5 receiver register proves the addressed Edge slug, deployable source owner, authentication rule, durable writer/reflection path and any cross-repo ownership for every command, delivered link, webhook or background worker in pass scope. | Console implements an invite, email unsubscribe, wallet or discovery promise from a README/category folder while the addressed slug is missing, app-owned or behaviorally different. |

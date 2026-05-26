@@ -27,6 +27,7 @@ Patient-app and shared receiver evidence:
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/docs/flows/payment/BILLING_CURRENCY_QUOTE_LANE_PLAN_V1.md`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/docs/flows/payment/workflow_map.md`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/services/paymentService.js`
+- `C:/Users/Dyrane/Documents/GitHub/ivisit-app/services/notificationDispatcher.js`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/services/billingQuoteService.js`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/migrations/20260219000400_finance.sql`
 - `C:/Users/Dyrane/Documents/GitHub/ivisit-app/supabase/migrations/20260219000700_security.sql`
@@ -75,6 +76,9 @@ Observed source signals:
 - The patient-app function tree additionally owns `billing-quote`, `refresh-exchange-rates`, and `stripe-webhook`; none is a direct Console invocation in this scan, but they are authoritative dependencies for patient quote meaning, FX freshness and Stripe-confirmed completion.
 - Shared `handle_new_organization()` creates an organization wallet only when a canonical `organizations` row is inserted; the current Console onboarding path inserts a hospital and writes that hospital id as profile organization scope, so wallet existence/scope cannot be assumed from completed onboarding.
 - `process_payment_distribution()` appends organization/platform ledger effects only when a non-cash, non-top-up payment transitions to completed. This makes page-mount ledger backfill and pre-reflection modal success copy direct contradictions of the canonical generated-evidence path.
+- App `paymentService.js` additionally calls `process_wallet_payment`, `process_visit_tip`, and `record_visit_cash_tip`; these patient settlement receivers were not represented by Console action inventory even though their results can affect wallet/payment and visit-history truth.
+- App `notificationDispatcher.js` calls `notify_cash_approval_org_admins` and can fall back to client notification insertion when that RPC does not complete, so cash-approval notification receipt is not payment completion evidence.
+- App `paymentService.js` can invoke `demo-approve-cash-payment`; this is a demo-only writer and must not enter production approval, ledger or completion reporting.
 
 ## User Flow
 
@@ -107,6 +111,9 @@ Operator path:
 | Displayed verification/linked/yield labels | Context panel supplies static trust labels and a balance-derived yield fallback. | Evidence-backed account state and projection, or unavailable state; no invented performance/status claim. |
 | Payment detail status | Any selected row opens a detail surface headed as complete. | Title/status and financial effects derived from the actual projected payment lifecycle. |
 | Billing currency and patient quote relationship | Console formats USD/wallet currency without consuming the app quote lane. | Keep operational wallet accounting currency explicit; surface patient display quote context only through shared finance quote truth. |
+| Patient wallet settlement reflection | App invokes `process_wallet_payment`; Console currently inventories its own cash/Stripe actions but not this app-origin ledger/payment consequence. | Wallet/payment projection reflects app wallet settlement as backend evidence; no duplicate Console settlement control is inferred. |
+| Visit tip settlement reflection | App invokes `process_visit_tip` and `record_visit_cash_tip`; Console visit/finance surfaces do not explicitly classify tip evidence. | Present authorized tip consequence as read-only payment/history truth coordinated with Pass 6; never ordinary visit CRUD. |
+| Cash approval notification reflection | App invokes `notify_cash_approval_org_admins` with fallback insertion behavior. | Approval-notification delivery receives a named reflected state distinct from approved/settled/dispatched lifecycle. |
 
 ## Surface Read, Exposure, And Operation Closure
 
@@ -125,6 +132,7 @@ Operator path:
 | Insurance billing outcome | No found Console rendered `insurance_billing` result surface. | Trigger creates outcomes; shared RLS permits scoped reads. | **Missing required read dependency.** Pass 7 owns the result/exception surface; Pass 2 must account for it in finance projection semantics. |
 | Cross-repo Edge receiver ownership | Console calls top-up, payout and method-management slugs whose inspected implementations exist only in the patient-app/shared Supabase tree. | `ivisit-app` Edge Functions and Stripe webhook own command/result behavior. | **Receiver topology proved, behavior still blocked.** Do not introduce parallel Console functions; validate roles, organization scope, pending/webhook reflection and deployment together. |
 | Wallet initialization and ledger automation | Onboarding and payment completion can appear to establish organization money truth. | `handle_new_organization()` creates org wallet only for canonical organizations; `process_payment_distribution()` creates credited ledger effects only after eligible completed payments. | **Blocked cross-pass dependency.** Pass 4 must repair org creation/scope; this pass must observe generated ledger/reflection instead of repairing it from a normal read surface. |
+| App wallet/tip/approval-notification receivers | Console has no visible caller for app `process_wallet_payment`, `process_visit_tip`, `record_visit_cash_tip`, or `notify_cash_approval_org_admins`; demo payment can also invoke `demo-approve-cash-payment`. | App/shared RPCs and notification dispatcher create or describe finance-visible consequences. | **Required reflection dependency.** Include wallet settlement, tip evidence and notification-delivery provenance in projections where authorized; explicitly exclude demo autoapproval from production finance claims. |
 
 ## Patient-Facing Dependency Closure
 
@@ -134,6 +142,8 @@ Operator path:
 | Billing currency quote snapshot | Patient billing plan and `billingQuoteService` use server quote/conversion RPC results and stale/fallback metadata. | Label Console wallet accounting currency explicitly and avoid claiming patient-facing charged/display value without the quote snapshot. |
 | Ledger reflection and emergency status | Shared receivers write payment/request/ledger consequences from guarded commands and webhook/automation paths. | Money success copy and analytics must follow refreshed receiver-backed state; normal page mount cannot repair ledger evidence. |
 | Insurance settlement outcome | Shared automation creates `insurance_billing` after eligible completion, with scoped RLS. | Wallet reporting must acknowledge insurance result dependency while policy/result workflow is implemented in Pass 7. |
+| Patient wallet and visit-tip settlement | App `paymentService` invokes `process_wallet_payment`, `process_visit_tip`, and `record_visit_cash_tip`. | Reflect resulting wallet/payment/tip evidence in authorized projections; do not expose duplicate direct Console mutation or generic visit edits. |
+| Cash approval notification delivery | App dispatcher invokes `notify_cash_approval_org_admins` with fallback insert behavior. | Keep delivery/read status separate from settlement, ledger distribution and emergency release truth. |
 
 ## Pass 2 Deterministic Surface Register
 
@@ -146,6 +156,7 @@ Operator path:
 | Payment method modal and route removal control | Saved-card/setup paths and unconditional `Primary` label mapped. | Stripe setup is invoked; platform-list versus deletion-scope drift and unused payout-selection receiver are proved. | Primary/default and remove-result state are not truthful until one scoped billing projection owns them. | Blocked |
 | Emergency cash financial effects | Pass 1 path linked. | RPC/service drift mapped. | Payment/ledger reflection not safely presented. | Blocked dependency |
 | App quote and insurance outcome | Backend/app dependency traced. | No Console receiver required for FX; Pass 7 owns insurance surface. | Finance meaning cannot close without explicit dependency treatment. | Missing dependency/read surface |
+| App wallet/tip settlement and cash approval notification | App RPC/function consequence traced. | No additional Console command presumed; projection/reflection owner required. | Demo autoapproval excluded; delivery and settlement cannot be conflated. | Required dependency |
 
 ## Cross-Pass Finance Register
 
@@ -172,6 +183,8 @@ Operator path:
 | Run historical repair | Excluded from ordinary UI | Separate authorized maintenance plan | Remove from normal wallet operations. |
 | Render trust/status/yield analytics | Backend-derived read-only evidence | Wallet/account/reflection projection | Do not render static `Verified`/`Linked` or calculated fallback yield as proved financial state. |
 | Display patient quote or FX basis | Scoped dependency read only where required | Patient billing quote lane / finance RPCs | No Console-side currency conversion or refresh command unless separately authorized. |
+| Display patient wallet settlement and visit tip evidence | Backend-derived read-only evidence | App/shared `process_wallet_payment`, `process_visit_tip`, `record_visit_cash_tip` consequences | Join authorized reflected truth only; do not create a parallel Console settlement/edit lane. |
+| Display cash approval notification state | Delivery/reflection evidence | `notify_cash_approval_org_admins` and authoritative notification read owner | Notification arrival cannot be labelled cash approved, settled or dispatch-released. |
 
 ## Field And Receiver Gate
 
