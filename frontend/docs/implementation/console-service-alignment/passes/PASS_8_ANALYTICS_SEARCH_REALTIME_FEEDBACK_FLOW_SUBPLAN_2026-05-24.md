@@ -284,6 +284,137 @@ These exhibits tie global UI symptoms back to their line-level source. Pass 8 is
 | PWA registration truth | `frontend/src/index.js:43-45` and `frontend/src/serviceWorkerRegistration.js:2,23-97` | Startup registers the service worker while stale comments say registration is not called by default. | Treat PWA update/offline behavior as live and verify visible update/reload states. |
 | Dormant fleet export | `frontend/src/components/dashboard/HospitalFleetManager.jsx:28,159,344-357` | Source-present component contains hard-coded operational data and `Export Report` but no mounted owner was found. | Keep dormant/excluded until provider/fleet truth and export authority exist. |
 
+## Pass 8E Implementation Sequence And Blocker Matrix
+
+Pass 8 is the shell and cross-cutting pass. It must not become a shortcut around Passes 1-7. Its first implementation work should remove false confidence, centralize projection contracts, and make unsupported commands unavailable before any new aggregate, report, export, realtime, or feedback capability is added.
+
+### Pass 8E Work Order
+
+1. Shell projection inventory and registry.
+   - Can start now.
+   - Create a read-only registry of route-level shell consumers, their source owner, live/dormant status, projection readiness, export readiness, realtime owner, and fallback state.
+   - Do not fetch domain tables from the registry. It is a contract surface only.
+2. Mock and fallback metric downgrade.
+   - Can start now.
+   - Replace visible dashboard, analytics, modal, trend, and mobile dashboard constants with unavailable, degraded, demo, or source-pending labels.
+   - Do not invent replacement numbers.
+3. Export and report command downgrade.
+   - Can start now.
+   - Disable or guard desktop analytics CSV, mobile analytics report, analytics panel export, dashboard report, dormant fleet export, and dormant PDF export until a scope-aware export projection exists.
+   - The user-facing state should explain unavailable or source-pending status without implying a completed report.
+4. Search sequence and partial-failure contract.
+   - Can start now.
+   - Define query sequence identity, per-category success/error/denied/capped states, matched fields, allowed result fields, and stale-response rejection.
+   - Do not expand searchable categories before role-safe projections are proved.
+5. Notification, settings, PWA, feedback, and diagnostics cleanup.
+   - Can start now for visible false claims and diagnostics.
+   - Remove or bind the hard-coded PWA debug marker, align service-worker comments with active registration, render notification read failures as unavailable instead of empty, and remove identity-bearing console diagnostics.
+   - Sound, haptic, and animation feedback must respect explicit accessibility/operator preferences before any new global feedback behavior is added.
+6. PageDataContext retirement plan.
+   - Starts after Passes 1-7 define domain projections.
+   - Convert `PageDataContext` from durable domain server truth into shell summary composition, route support, and optional domain hook aggregation.
+   - Do not move every domain into one new broad context.
+7. Dashboard and analytics route migration.
+   - Starts after domain projections exist for emergency, finance, facility, identity, provider ops, visits, care/content, and subscribers.
+   - Route cards, charts, comparison copy, and modal entries must render source, scope, time window, completeness, freshness, and unavailable states.
+8. Realtime ownership consolidation.
+   - Starts after domain data owners are named.
+   - Global realtime should invalidate or refresh domain projections. It must not hold canonical data or directly drive UI truth.
+   - Keep justified scoped exceptions for map/modal/detail surfaces only.
+9. Aggregate, report, and export receivers.
+   - Blocked until role, scope, dataset, redaction, time-window, and auditability are proved.
+   - Exports must refuse fallback, unauthorized, incomplete, or demo slices unless the file itself clearly records that state.
+10. Trend, search telemetry, and analytics automation.
+    - Blocked until policy proves actor scope, privacy boundaries, source provenance, no-op behavior, and admin-only command authority.
+    - No stub-success regeneration may appear as a completed production operation.
+
+### Pass 8E Blocker Matrix
+
+| Area | Can start now | Must wait for Pass 1-7 projections | Blocked until receiver or policy proof |
+| --- | --- | --- | --- |
+| Dashboard and mobile dashboard | Remove mock/default/fixed operational claims, dead patient controls, corrupted visible text, and false live labels. | Real KPI cards, source-labelled cross-domain summaries, patient-app handoff copy, recent activity redaction. | Export/report generation, patient-flow command receivers inside Console, public/sponsor performance claims. |
+| Analytics route and modal | Disable false CSV/report output, remove default response time and fixed trend language, label unavailable slices. | Role-safe analytics projection for emergency, wallet, facilities, providers, visits, care, support, and subscribers. | Downloadable reports, subscriber analytics for non-admin roles, computed trends without comparison windows. |
+| QuickSearch | Define query sequencing, partial results, capped results, denied/error states, matched fields, and stale-response policy. | Domain result projections and field whitelists by role. | Sensitive cross-domain search telemetry, global profile email exposure, admin trend regeneration. |
+| PageDataContext | Document retirement targets and remove shell-only mock truth. | Domain hook/query owners for every consumed table family. | Any new broad server-truth context replacing `PageDataContext`. |
+| Realtime | Inventory table/channel ownership and duplicate subscriptions. | Domain invalidation/query owners. | UI state driven directly from global realtime payloads, unscoped channels, cleanup-free subscriptions. |
+| Notifications and preferences | Render notification read failure truthfully, remove raw diagnostics, and align visible toggles with actual receivers. | Own-user preference projection and role-aware notification action metadata. | Cross-user notification administration, compatibility retry that silently drops actions. |
+| PWA, feedback, and diagnostics | Remove hard-coded debug artifact or bind it to build metadata; make PWA registration docs truthful; redact console diagnostics. | Operator preference model for haptics, sound, reduced motion, and route feedback density. | New global feedback behaviors without accessibility and setting proof. |
+| Activity and audit | Label dashboard activity as bounded recent preview and document sensitive fields. | Role-minimized activity projection from domain owners. | Treating recent activity as durable privileged-command audit proof. |
+| Dormant operational components | Keep `Overview`, `useAnalytics`, `HospitalFleetManager`, navigation notification mock, and example analytics excluded. | Explicit remount plan with projection owners. | Mounting hard-coded fleet/performance/export UI as live capability. |
+
+### Pass 8E First Implementation Ticket Contract
+
+The first implementation ticket should be a read-only shell truth and command-readiness pass. It should introduce or document a `consoleShellProjection` boundary that consumes existing domain projections when they exist and otherwise returns explicit unavailable states.
+
+Required slices:
+
+- `domainProjectionStatus`: route/domain, owner pass, readiness, live/dormant classification, source doc, source code anchor.
+- `dashboardMetricReadiness`: metric key, source owner, actor scope, time window, fallback state, freshness, render label.
+- `analyticsExportReadiness`: actor role, included domains, excluded domains, completeness, degraded reason, redaction status, downloadable boolean.
+- `searchReadiness`: query sequence id, category, allowed fields, matched field, result cap, success/error/denied state, stale-response guard.
+- `realtimeOwnershipRegistry`: table/channel, domain owner, invalidation target, cleanup proof, scoped exception reason.
+- `notificationPreferenceReadiness`: own-user notification read state, action metadata state, setting receiver, unavailable/error state.
+- `utilityFeedbackReadiness`: PWA build/version source, install/update/offline state, feedback preference state, reduced-motion state, diagnostics redaction state.
+
+Command readiness booleans should include at minimum:
+
+- `canExportAnalytics`
+- `canExportDashboard`
+- `canOpenDashboardReport`
+- `canUseGlobalSearch`
+- `canRecordSearchTelemetry`
+- `canRegenerateTrends`
+- `canUseRealtimeChannel`
+- `canUpdateNotificationPreference`
+- `canDismissNotification`
+- `canInstallPWA`
+- `canTriggerFeedback`
+- `canShowDebugTracker`
+
+The first implementation ticket must not change:
+
+- domain CRUD mutations
+- export file generation
+- realtime channel creation
+- service-worker registration behavior beyond truthful comments/debug display
+- notification writes or deletes
+- preference writes
+- trend generation RPCs
+- database migrations
+- Edge Functions
+- storage assets
+- patient-app command ownership
+
+### Pass 8E Acceptance Gates
+
+- No route displays mock, fallback, dormant, or fixed values as measured operational truth.
+- `PageDataContext` is no longer accepted as a future source of durable domain truth.
+- Every analytics/export/report entry point is disabled or guarded until actor, dataset, window, completeness, redaction, and degradation state are known.
+- QuickSearch is sequence-safe and category-partial; denied or failed categories are not presented as no match.
+- Notification reads distinguish empty, loading, unavailable, and failed states.
+- Settings toggles and billing actions either have a real receiver or render as unavailable.
+- PWA, feedback, and diagnostics are treated as live shell utilities with truthful build/update/accessibility state.
+- Realtime is an invalidation/refresh layer, not a hidden global UI state owner.
+- Activity feed labels its preview scope and does not substitute for critical audit evidence.
+- Dormant operational components remain excluded until they consume owned projections.
+
+### Pass 8E Verification Commands
+
+Static and documentation checks:
+
+```powershell
+git diff --check
+rg -n --pcre2 "[\x{00C2}\x{00C3}\x{00E2}\x{00EF}\x{00F0}\x{FFFD}]" frontend/docs/implementation/console-service-alignment/passes/PASS_8_ANALYTICS_SEARCH_REALTIME_FEEDBACK_FLOW_SUBPLAN_2026-05-24.md
+rg -n --pcre2 "[^\x00-\x7F]" frontend/docs/implementation/console-service-alignment/passes/PASS_8_ANALYTICS_SEARCH_REALTIME_FEEDBACK_FLOW_SUBPLAN_2026-05-24.md
+```
+
+Implementation-readiness checks after code begins:
+
+```powershell
+rg -n "mock|fallback|default|Export Report|Generate Analytics Report|openAnalyticsModal|PWADebugTracker|console\\.error|serviceWorkerRegistration\\.register|useMockData|successRate: 95|12\\.0m|patient satisfaction|Free Tier|Upgrade" frontend/src
+rg -n "channel\\(|subscribe\\(|removeChannel|on\\('postgres_changes'|get_recent_activity|searchAll|trending|notification" frontend/src
+```
+
 ## Implementation Packages
 
 ### 1. PageDataContext Reduction
