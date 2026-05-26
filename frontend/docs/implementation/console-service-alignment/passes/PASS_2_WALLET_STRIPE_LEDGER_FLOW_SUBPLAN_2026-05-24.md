@@ -432,6 +432,126 @@ All surfaces that currently read wallet truth directly should consume this proje
 
 Do not implement this projection as a broad component context first. The first implementation should be a service/query boundary that can later be consumed by route hooks and TanStack Query without reintroducing finance reads into UI components.
 
+## WalletFinanceProjection Field Inventory Pass 2C
+
+This inventory makes the projection implementable. It is not code authorization. It defines the smallest finance read contract that can replace duplicated Console reads while preserving backend truth, receiver timing and UI scope labels.
+
+### Projection Owner Rule
+
+`WalletFinanceProjection` should be built by a finance service/query owner, not by `WalletManagementPage`, `PageDataContext`, `WalletPanel`, `MobileWallet`, `BentoHome`, `Analytics` or `GlobalFinancialModals`.
+
+The first implementation should export a read function or query hook that can be consumed by route UI and later moved into TanStack Query. It must not become another broad context that hides table reads inside global page state.
+
+### Actor And Scope Fields
+
+| Projection field | Source truth | Current consumer pressure | Required behavior |
+| --- | --- | --- | --- |
+| `actor.userId` | authenticated profile/user id | All wallet reads currently infer from `useAuth()` or `PageDataContext`. | Required before any finance read or command capability is exposed. |
+| `actor.role` | `profiles.role` | Admin/org-admin/sponsor branching appears in `/wallet`, overview and analytics. | Must drive read scope and command capability; sponsor should not be silently treated as platform admin for money movement. |
+| `actor.organizationId` | canonical `profiles.organization_id` -> `organizations.id` | Emergency code can fall back to `request.hospital_id`; wallet reads use `profile.organization_id`. | Must be canonical organization UUID only. Hospital UUID fallback is invalid finance scope. |
+| `actor.scope` | derived from role and canonical organization id | `listPaymentMethods(null)` means platform/user scope while delete may use org scope. | Must be one of `platform`, `organization`, `user_customer`, or `unavailable`; every method and command must carry the same scope it was loaded under. |
+| `actor.capabilities` | role plus receiver availability | Buttons appear from role checks and modal global events. | Include `canReadWallet`, `canTopUp`, `canRequestPayout`, `canManageBillingMethods`, `canExportLedger`, `canRunMaintenanceRepair`; repair must default false. |
+
+### Wallet Display Fields
+
+| Projection field | Source truth | Current consumer pressure | Required behavior |
+| --- | --- | --- | --- |
+| `walletDisplay.walletId` | `organization_wallets.id` or `ivisit_main_wallet.id` | Ledger queries depend on wallet id but UI code does the resolution itself. | Must be resolved before ledger reads; `null` means no ledger query and a missing-wallet state. |
+| `walletDisplay.organizationId` | `organization_wallets.organization_id` | Org routes and cash flows assume wallet belongs to profile org. | Must match canonical organization id for org scope. |
+| `walletDisplay.balance` | wallet table balance | Displayed as available funds in route, panel, mobile, withdraw modal and overview. | Display-only balance; payout sufficiency/reservation must still be receiver-proved. |
+| `walletDisplay.currency` | wallet `currency`, default only when table is missing | UI formats USD by default in multiple places. | Must be explicit; defaulting to USD should carry `currencySource = defaulted` when no wallet row proves it. |
+| `walletDisplay.updatedAt` | `organization_wallets.updated_at` or `ivisit_main_wallet.last_updated` | "Live" labels appear even when reads are capped or stale. | Normalize timestamp and expose stale/degraded state. |
+| `walletDisplay.visibilityState` | wallet read result and RLS/receiver result | UI currently renders zero/silent states when reads fail. | Use `ready`, `loading`, `unauthorized`, `missing_wallet`, `degraded`, `error`; do not render balance as zero when visibility is not ready. |
+| `walletDisplay.balanceLabel` | derived from visibility/currency | Route and panel copy say available funds/live balance. | Must distinguish available, unavailable, stale, pending payout reflection and preview-only. |
+
+### Ledger Preview Fields
+
+| Projection field | Source truth | Current consumer pressure | Required behavior |
+| --- | --- | --- | --- |
+| `ledgerPreview.rows[].id` | `wallet_ledger.id` | Route, panel and mobile render by row id. | Required for stable rendering. |
+| `ledgerPreview.rows[].walletId` | `wallet_ledger.wallet_id` | Not displayed but needed for scope proof. | Must match `walletDisplay.walletId`; mismatches become degraded state. |
+| `ledgerPreview.rows[].amount` | `wallet_ledger.amount` | Route and mobile infer signs from type then `Math.abs`. | Keep signed amount and add display sign/tone in projection to avoid UI guesswork. |
+| `ledgerPreview.rows[].transactionType` | `wallet_ledger.transaction_type` | Credit/debit/payout tone and ratios are computed in UI. | Normalize allowed types and expose unknown type as neutral/degraded. |
+| `ledgerPreview.rows[].description` | `wallet_ledger.description` | Directly displayed in route/panel/mobile/export. | Sanitize for CSV/export and fallback labels; do not fabricate finance event names. |
+| `ledgerPreview.rows[].referenceId` | `wallet_ledger.reference_id` | Route slices it as ref; finance actions depend on payment linkage. | Include `referenceType` from metadata when present and `paymentId` when reference points to payment. |
+| `ledgerPreview.rows[].externalReference` | `wallet_ledger.external_reference` | Payout/Stripe reconciliation currently not surfaced. | Needed for payout and webhook traceability; hide unless detail/export needs it. |
+| `ledgerPreview.rows[].metadata` | `wallet_ledger.metadata` | Repair/backfill used metadata to mark historical fixes. | Treat as backend evidence; UI must not mutate it. |
+| `ledgerPreview.limit` | query option/current `.limit(50)` or `.limit(10)` | Footer/count/export treat loaded rows as complete. | Must be explicit: route may show 50, context panel may show 4 from same projection, not separate reads. |
+| `ledgerPreview.windowLabel` | derived from limit/date/scope | "Transactions recorded" and "Treasury Dynamics" imply full history. | Examples: `Latest 50 entries`, `Latest 4 entries`, `30-day server aggregate`. |
+| `ledgerPreview.totalKnown` | count query or null | Current UI uses `ledger.length`. | `null` means do not say total transactions. |
+| `ledgerPreview.exportScope` | receiver/export capability | Route and panel export loaded rows. | `preview`, `full`, `server_export_required`, or `unavailable`; copy must match. |
+
+### Payment Preview Fields
+
+| Projection field | Source truth | Current consumer pressure | Required behavior |
+| --- | --- | --- | --- |
+| `paymentPreview.rows[].id` | `payments.id` | Receipt/detail opens from selected row. | Required. |
+| `paymentPreview.rows[].displayId` | `payments.display_id` | Mobile uses display id if present; route slices UUID. | Prefer display id for UI; keep UUID for receiver calls. |
+| `paymentPreview.rows[].userId` | `payments.user_id` | Payer profile enrichment is currently N+1 in the route. | Projection should include a payer summary or declare unavailable, not force UI per-row profile reads. |
+| `paymentPreview.rows[].emergencyRequestId` | `payments.emergency_request_id` | Detail links service/hospital/request context. | Required for emergency payment decisions and receipt deep link. |
+| `paymentPreview.rows[].organizationId` | `payments.organization_id` | Payment and wallet settlement scope. | Must match actor scope for org views or be hidden/degraded. |
+| `paymentPreview.rows[].amount` | `payments.amount` | Receipts and mobile rows display it as final amount. | Must pair with currency and lifecycle; pending amount is not completed revenue. |
+| `paymentPreview.rows[].currency` | `payments.currency` | Formatters default to wallet currency. | Use payment currency, not wallet currency, when rendering payment history. |
+| `paymentPreview.rows[].paymentMethod` | `payments.payment_method` | Cash/card/wallet flow decisions and table labels. | Normalize to `cash`, `card`, `wallet`, `unknown`. |
+| `paymentPreview.rows[].status` | `payments.status` | Receipt title/status and metrics use completed checks. | Must drive status label/tone/title; no fixed "Payment Complete". |
+| `paymentPreview.rows[].stripePaymentIntentId` | `payments.stripe_payment_intent_id` | Retry/webhook state tracing. | Hidden by default but needed by service/debug detail. |
+| `paymentPreview.rows[].ivisitFeeAmount` | `payments.ivisit_fee_amount` | Cash approval UI currently displays full amount as fee. | Required for fee display; fallback may read metadata fee fields but must mark estimated/derived. |
+| `paymentPreview.rows[].metadata` | `payments.metadata` | Failure/fee/top-up/source semantics live here. | Normalize `payment_kind`, `is_top_up`, `fee_amount`, `failure_reason`, `source`; raw metadata should stay behind detail/debug. |
+| `paymentPreview.rows[].providerResponseState` | `provider_response` presence/status | UI currently cannot tell webhook reflected or provider failed. | Project `none`, `present`, `failed`, `unknown`; do not dump provider payload into UI. |
+| `paymentPreview.limit` and `windowLabel` | query limit/date/scope | Route/mobile metrics use latest 50 as analytics. | Must label preview window and block complete-history analytics unless server aggregate exists. |
+
+### Billing Method And Account Fields
+
+| Projection field | Source truth | Current consumer pressure | Required behavior |
+| --- | --- | --- | --- |
+| `accountStatus.stripeCustomerId` | `organizations.stripe_customer_id` or `profiles.stripe_customer_id` | `manage-payment-methods` creates/uses customers for org or user scope. | Needed to explain billing readiness; never display raw id unless an admin detail/debug view needs it. |
+| `accountStatus.stripeAccountId` | `organizations.stripe_account_id` | Organization list says connected/pending; wallet status says linked. | Distinguish Connect payout account from customer billing methods. |
+| `accountStatus.payoutReady` | Stripe account/webhook readiness or organization derived fields | Withdraw modal promises instant transfer. | Must be `true`, `false`, or `unknown`; unknown blocks confident payout copy. |
+| `accountStatus.billingReady` | payment method list/setup state | Top-up button only checks method count. | A saved card permits attempt, not completed funding. |
+| `accountStatus.payoutMethodId` | `organizations.payout_method_id` | Billing modal labels every method primary. | Required to mark one primary payout method; otherwise no primary badge. |
+| `methods.rows[].id` | Stripe payment method id or DB payment method id, source-labelled | Route and billing modal detach by id. | Include `source = stripe_customer | db_payment_methods`; commands must accept only source-supported ids. |
+| `methods.rows[].brand/last4/expiry` | Stripe method card or DB `payment_methods` row | UI displays card masks and expiry. | Mask formatting belongs in projection; run encoding/mojibake check for bullet separators. |
+| `methods.rows[].isPrimaryPayoutMethod` | organization payout fields or supported receiver | Static primary badge today. | Render true only if id matches payout method truth. |
+| `methods.rows[].canRemove` | receiver capability and scope | Delete command can scope drift. | Must be false when scope is ambiguous or method source is unsupported. |
+| `methods.state` | list/setup receiver result | Modals show empty list or HTTPS unavailable. | Use `ready`, `loading`, `unavailable`, `error`, `https_required`, `scope_missing`. |
+
+### Metrics And Analytics Fields
+
+| Projection field | Source truth | Current consumer pressure | Required behavior |
+| --- | --- | --- | --- |
+| `metrics.projectedRevenue30d` | `getProjectedRevenue()` style ledger aggregate or server analytics | Wallet panel uses projection or `wallet.balance * 0.12`; mobile labels `30d LIVE`. | Remove balance-derived fallback; expose `null` with unavailable copy when no proved basis exists. |
+| `metrics.todayIncome` | ledger credits since local day boundary or server aggregate | BentoHome renders today income. | Must carry timezone/basis; local browser day and server day should be labelled. |
+| `metrics.trendPercent` | compared aggregate windows | Overview/mobile display trend signs. | Must expose `basis` and avoid trend when previous window is zero or data is capped. |
+| `metrics.inflowRatio` | current mobile computes credit count / ledger count | Mobile "Treasury Dynamics". | Either mark as recent-preview ratio or replace with server aggregate. |
+| `metrics.paymentSuccessRate` | current mobile computes completed / preview payments | Mobile "Payment Success". | Must be preview-labelled or server-derived; pending/failed/refunded lifecycle must be included. |
+| `metrics.basis` | derived from query/receiver | Analytics page calls separate finance analytics service. | Values: `ledger_preview`, `server_analytics`, `route_preview`, `unavailable`; UI labels must follow. |
+
+### Command Capability Fields
+
+| Capability | Receiver | Current trigger | Required projection guard |
+| --- | --- | --- | --- |
+| `commands.topUp.enabled` | `create-payment-intent` plus Stripe confirmation and top-up wallet credit receiver | Wallet route/panel/mobile/global event | Enabled only with actor scope, billing method availability, HTTPS/Stripe capability and known post-intent reflection plan. |
+| `commands.withdraw.enabled` | `create-payout` plus payout webhook reflection | Wallet route/panel/mobile/global event | Enabled only with payout-ready account, receiver scope and backend sufficiency/reservation; display balance alone is insufficient. |
+| `commands.manageBilling.enabled` | `manage-payment-methods` | Billing modal/global event | Enabled only when scope and Stripe customer path are known. |
+| `commands.exportLedger.enabled` | preview CSV or future server export | Route and WalletPanel event | Must include `exportScope`, file scope label and row count source. |
+| `commands.repairLedger.enabled` | excluded maintenance plan | Current route auto-run | Must be false in product UI. Any true value requires separate maintenance authorization and dry-run evidence. |
+
+### Consumer Migration Map
+
+| Current consumer | Current fields | Projection replacement | First implementation note |
+| --- | --- | --- | --- |
+| `/wallet` desktop route | local `wallet`, `ledger`, `payments`, `projection`, `paymentMethods`, `orgInfo` | full `WalletFinanceProjection` plus command capabilities | Remove direct Supabase reads and route-mounted `backfillMissingFeeLedger()` first. |
+| `MobileWallet` | props from route arrays and derived local metrics | mobile view model derived from projection | Mobile must not compute complete finance KPIs from preview arrays. |
+| `PageDataContext.walletData` | separate wallet plus latest 10 ledger read | minimal projection slice: balance, currency, latest ledger rows, states | Replace direct context reads after route projection exists; do not create a second owner. |
+| `WalletPanel` | balance, projection fallback, linked/verified labels, latest four ledger rows | context panel projection slice | Remove static trust labels and balance-derived yield fallback. |
+| `BentoHome` | `getWalletSummary()` independent service read | summary projection slice: balance, today income, trend and basis | Sponsor/platform scope must be explicit before rendering financial stats. |
+| `Analytics` | `getFinanceAnalytics()` independent ledger read | analytics projection or server aggregate | Chart basis and role scope must match the wallet projection. |
+| `GlobalFinancialModals` | amount, methods, wallet balance from `PageDataContext` | command projection plus action lifecycle states | Modals should not own finance reads; they should submit commands and render receiver/pending states. |
+
+### Pass 2C Acceptance Gate
+
+Implementation is not ready until the above field inventory is represented in a service contract or typed model and each consumer has a migration target. The first code slice should be allowed to render fewer metrics than today if the missing metric would otherwise be fabricated.
+
 ## Implementation Packages
 
 ### 1. Wallet Read Facade
