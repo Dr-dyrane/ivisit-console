@@ -14,6 +14,7 @@ Use a checklist only after the relevant pass subplan and contracts are read. If 
 - [Pass 4 Identity First Implementation Checklist - 2026-05-26](./PASS_4_IDENTITY_FIRST_IMPLEMENTATION_CHECKLIST_2026-05-26.md)
 - [Pass 5 Provider Operations First Implementation Checklist - 2026-05-26](./PASS_5_PROVIDER_OPERATIONS_FIRST_IMPLEMENTATION_CHECKLIST_2026-05-26.md)
 - [Pass 6 Visits First Implementation Checklist - 2026-05-26](./PASS_6_VISITS_FIRST_IMPLEMENTATION_CHECKLIST_2026-05-26.md)
+- [Pass 7 Care Content And Subscribers First Implementation Checklist - 2026-05-26](./PASS_7_CARE_CONTENT_SUBSCRIBERS_FIRST_IMPLEMENTATION_CHECKLIST_2026-05-26.md)
 
 ## Rule
 
