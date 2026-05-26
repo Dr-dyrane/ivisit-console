@@ -366,6 +366,116 @@ type OperationsMapProjection = {
 
 Do not add map visual work until this projection names what is missing, stale, truncated or unavailable. Tile availability is visual-layer health; it must not change the meaning of emergency/telemetry data.
 
+## Pass 5E Implementation Sequence And Blocker Matrix
+
+This pass touches active operations. Fleet records, doctor availability, map telemetry and shift scheduling can affect emergency dispatch, responder tracking, clinician handoff, capacity and patient-visible readiness. The first implementation must therefore centralize read truth and disable false commands before enabling any new operational mutation.
+
+### Work Order
+
+| Order | Slice | Can start now? | Target | Must not do |
+|---|---|---:|---|---|
+| 1 | Provider operations projection contract | Yes | Add read-only projections for fleet rows, doctor rows, active assignment state, self-service readiness, schedule state and command capability. | Do not mutate telemetry, schedules, Storage, assignment, status or active-trip state. |
+| 2 | False command and export downgrade | Yes | Disable or relabel raw map JSON export, inert Contact/Navigate/Call/Track controls, unmatched recenter actions, hospital-wide trip commands in vehicle modal, and schedule success copy backed only by doctor status. | Do not keep a visible enabled control without a mounted receiver and scoped payload. |
+| 3 | Fleet and doctor list migration | After slice 1 | Move `/ambulances`, `/doctors`, mobile variants and panels to server-paged/source-labelled projections with true counts and current-page labels where needed. | Do not overwrite exact counts with fetched `1000`-row length or call row reductions `LIVE` network truth. |
+| 4 | Facility-scope repair for provider records | After Pass 4 identity projection | Resolve organization scope to allowed facility ids before any `hospital_id` filter or create payload for ambulances/doctors. | Do not submit organization UUIDs into `hospital_id`. |
+| 5 | Provider self-service split | After slice 1 and Pass 4 | Split provider-owned profile presentation edits from operational availability/status/fee/readiness fields. | Do not let `DoctorProfileCard` use broad admin `updateDoctor()` for active-emergency-affecting status without preflight. |
+| 6 | Map feed projection | After slice 1 | Replace raw map arrays with bounded/incomplete/degraded feed state for emergencies, ambulances and hospitals. | Do not export or act on a feed whose bounds and redaction are unknown. |
+| 7 | Doctor scheduling read model | After slice 1 | Read stored `doctor_schedules` rows or mark scheduling unavailable. | Do not claim schedule creation by flipping `doctors.status`. |
+| 8 | Active telemetry and trip commands | Blocked until receiver proof | Route driver map status/location through positively matched request/responder/ambulance assignment and request-coupled receivers. | Do not use first-ambulance fallback or generic `ambulances.location/status` writes for active trips. |
+| 9 | Driver/ambulance assignment writes | Blocked until command proof | Add conflict-aware driver/profile/ambulance assignment receiver and reflected active-trip state. | Do not direct-write `ambulances.profile_id` as full assignment truth. |
+| 10 | Clinician assignment handoff | Cross-pass with Pass 1 | Implement `emergency_doctor_assignments` command/read state in emergency detail and doctor operations. | Do not represent a suggested doctor as assigned before persisted assignment truth exists. |
+| 11 | Provider/vehicle media | Blocked until Storage proof | Enable doctor/ambulance image writes only after bucket policy and row receiver ownership are proved. | Do not persist fragile or private media URLs as operational provider truth. |
+
+### Blocker Matrix
+
+| Status | Work item | Reason |
+|---|---|---|
+| Ready | Read-only provider operations projection | Existing exhibits identify row fields, active-assignment gaps, mobile metrics, map feed bounds and self-service risks. |
+| Ready | Disable raw map export and inert map controls | This is an exposure/false-capability cleanup and does not require backend mutation. |
+| Ready | Disable hospital-wide vehicle trip commands | Vehicle modal commands are currently broader than opened ambulance identity; disabling prevents misleading operations. |
+| Ready | Schedule copy downgrade | Current scheduling can stop claiming persisted shift success before table-backed schedules are implemented. |
+| Ready after projection | Fleet/doctor list migration | Requires shared projection so desktop/mobile/panel totals and actions stay aligned. |
+| Ready after projection | Provider self-service read split | Needs explicit editable-field and active-assignment-impact state. |
+| Cross-pass | Facility identity for provider records | Depends on Pass 4 organization/facility projection and Pass 3 facility eligibility. |
+| Cross-pass | Mobile map emergency actions | Belongs to Pass 1 action/exposure/payment legality and Pass 5 map projection. |
+| Cross-pass | Analytics/map shell cleanup | Pass 8 consumes finalized bounded provider/map projections. |
+| Blocked | Active telemetry publishing | Requires positive responder/request assignment and request-coupled receiver verification. |
+| Blocked | Driver assignment mutation | Requires conflict, active-trip transfer and reflected assignment state proof. |
+| Blocked | `doctor_schedules` CRUD | Requires table-backed receiver mapping, conflict checks and reload proof. |
+| Blocked | Provider/ambulance image upload | Storage policy and row ownership are not proved. |
+| Blocked | Clinician handoff mutation | Requires Pass 1 emergency detail projection and assignment receiver/status contract. |
+
+### First Implementation Ticket Contract
+
+The first code pass should be read/disable only:
+
+- Add or identify a provider operations projection service, for example `frontend/src/services/providerOperationsProjectionService.js`.
+- Return stable projection slices for:
+  - fleet list/count/aggregate,
+  - doctor list/count/identity linkage,
+  - provider self-service editable fields,
+  - active trip assignment state,
+  - doctor schedule source state,
+  - map feed bounds and incomplete flags,
+  - command readiness.
+- Preserve separate identities:
+  - ambulance id,
+  - driver/profile id,
+  - doctor id,
+  - provider profile id,
+  - hospital/facility id,
+  - organization id,
+  - emergency request id.
+- Expose command readiness as data:
+  - `canEditFleetMaintenance`
+  - `canAssignDriver`
+  - `canPublishTelemetry`
+  - `canUpdateTripStatus`
+  - `canEditDoctorDirectory`
+  - `canEditProviderSelfProfile`
+  - `canEditOperationalAvailability`
+  - `canCreateDoctorSchedule`
+  - `canExportMapData`
+  - `canUseMapQuickAction`
+- Default unsafe commands to `false` with `disabledReason` and source owner.
+- Keep request-owned lifecycle commands out of provider registry pages unless the request projection explicitly grants them.
+
+The first implementation ticket should not touch:
+
+- telemetry publish/write behavior,
+- direct `ambulances.location` or `ambulances.status` active-trip writes,
+- driver assignment writes,
+- doctor schedule writes,
+- clinician assignment writes,
+- Storage uploads,
+- map visual redesign,
+- emergency dispatch/completion semantics,
+- database migrations or cleanup.
+
+### Acceptance Gates For Implementation
+
+Before the first implementation commit:
+
+- `/ambulances`, `/doctors`, mobile fleet/doctor views and map surfaces have a named source for every total, badge, status, rating, action and trend label.
+- Loaded-row metrics are labelled current-page/current-filter or replaced by aggregate proof.
+- Driver mode cannot select an active request through a fallback ambulance.
+- Vehicle modal cannot show or command hospital-wide trips while scoped to one vehicle.
+- Provider self-service distinguishes presentation edits from operational availability/status/fee/readiness edits.
+- Scheduling either reads `doctor_schedules` or is labelled unavailable; no status-only update claims schedule persistence.
+- Map feed projection names per-source bounds and incomplete state.
+- Map export remains unavailable until role, redaction, fields, feed bounds and generated artifact scope are proved.
+- Active telemetry uses request-coupled receiver truth and never generic fleet-location truth.
+
+Suggested verification once code changes begin:
+
+```powershell
+git diff --check
+rg -n --pcre2 "[\x{00C2}\x{00C3}\x{00E2}\x{00EF}\x{00F0}\x{FFFD}]" frontend/src frontend/docs
+npm run build
+```
+
+Runtime smoke after code begins should include `/ambulances`, `/doctors`, `/map`, the ambulance modal, doctor modal, provider settings professional card, staff scheduling modal and mobile map/fleet/provider variants. Telemetry, schedule, assignment, Storage and emergency lifecycle mutations remain excluded until a separate implementation pass explicitly authorizes non-production receiver testing.
+
 ## Implementation Packages
 
 ### 1. Provider Operations Facades
