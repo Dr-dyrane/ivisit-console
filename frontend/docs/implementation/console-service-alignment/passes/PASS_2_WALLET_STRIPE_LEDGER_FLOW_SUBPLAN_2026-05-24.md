@@ -552,6 +552,82 @@ The first implementation should export a read function or query hook that can be
 
 Implementation is not ready until the above field inventory is represented in a service contract or typed model and each consumer has a migration target. The first code slice should be allowed to render fewer metrics than today if the missing metric would otherwise be fabricated.
 
+## Top-Up Credit And Payout Readiness Proof Pass 2D
+
+This pass checks the remaining money-movement proof that the Console UI currently implies: wallet top-up credit, payout readiness, primary payout method and connected/verified Stripe labels.
+
+### Top-Up Credit Proof
+
+| Evidence | Current truth | Console implication |
+| --- | --- | --- |
+| `ivisit-app/supabase/functions/payments/create-payment-intent/index.ts:18-26` accepts `is_top_up`; `:260-285` inserts a pending payment and returns intent identifiers. | The receiver creates payment intent/payment row evidence, not wallet credit evidence. | Top-up UI can show "payment created" or "pending confirmation", not "wallet topped up". |
+| `ivisit-app/supabase/functions/webhooks/stripe-webhook/index.ts:54-83` marks top-up/no-emergency payment rows completed on Stripe success. | The webhook updates the `payments` row. It does not update `organization_wallets`, `ivisit_main_wallet`, or `wallet_ledger` in the inspected top-up branch. | Refetching wallet after top-up may still show no credited balance if no other receiver exists. |
+| `ivisit-app/supabase/migrations/20260219000400_finance.sql:166-192` sets `v_is_top_up` and returns early for top-ups in `process_payment_distribution()`. | The active settlement trigger explicitly excludes top-ups from org/platform settlement wallet writes. | A completed top-up payment row is not wallet balance proof. |
+| Search of active `ivisit-app/supabase/functions`, `supabase/migrations`, `supabase/docs` and `services` found top-up credit logic only in archived legacy references and demo finance helpers, not in active production migration/function paths. | Current production source does not prove a wallet-credit receiver for Console top-ups. | Treat top-up credit receiver as missing until live/current code proves otherwise. Do not implement funding-complete copy. |
+| Archived legacy references include top-up wallet-credit examples such as `top_up_patient_wallet` and `handle_payment_success` branches. | Historical intent exists but is not current authority. | Archived docs can inform design, but cannot justify current implementation without active migration/function proof. |
+
+Implementation lock: the top-up code path cannot be marked complete by UI work alone. It needs either a current backend receiver that credits the correct platform or organization wallet and writes `wallet_ledger`, or the top-up command must be disabled/renamed to a pending payment-intent experiment until backend credit reflection is implemented.
+
+### Payout And Stripe Readiness Field Proof
+
+| Field or label | Active source truth | Current Console display | Audit result |
+| --- | --- | --- | --- |
+| `organizations.stripe_account_id` | `ivisit-app/supabase/migrations/20260219000200_org_structure.sql:5-15` defines the organization Connect account id. | `WalletManagementPage.jsx:460-462` labels `Payouts Enabled` when `orgInfo?.stripe_account_id` exists; organization views label connected/pending from the same id. | Account id existence is not payout readiness. It proves a configured id only. |
+| `organizations.is_active` | `stripe-webhook` `account.updated` sets `organizations.is_active = account.details_submitted && account.payouts_enabled`; org table also defaults `is_active = true`. | Organization CRUD can edit `is_active`; views count active orgs. | `is_active` is overloaded between operational org status and Stripe readiness. Do not use it alone for payout readiness unless the projection labels its source. |
+| `profiles.stripe_account_id` and profile payout fields | `ivisit-app/supabase/migrations/20260219000100_identity.sql:32-37` defines profile-level Stripe/customer/payout fields. | Console wallet currently uses org/profile customer scope depending on `organization_id` nullness. | Profile payout fields may apply to user/customer billing, not organization payout. Projection must separate profile customer, organization customer and organization Connect account. |
+| `organizations.stripe_customer_id` | Created/updated by `manage-payment-methods` when an organization billing customer is needed. | Billing modal lists Stripe customer methods for org scope. | Customer id is saved-card readiness, not payout readiness. |
+| `organizations.payout_method_id`, `payout_method_last4`, `payout_method_brand` | Written by `manage-payment-methods` `set-payout-method`. | Global billing modal renders every method `Primary`; wallet route can show payout method last4 if `orgInfo` contains it. | Primary badge requires exact match to `payout_method_id`; every-card primary is false. |
+| `create-payout` result `payout.status` | `create-payout/index.ts:65-75` returns created Stripe payout id/status. | Withdraw modal says instant transfer and then success after invocation. | The return proves a payout request, not wallet balance deduction. Final ledger/balance reflection happens on payout webhook. |
+| `stripe-webhook` `payout.paid` | `stripe-webhook/index.ts:164-230` deducts wallet and inserts payout ledger only on paid webhook. | No current Console surface shows pending/paid/failed payout lifecycle. | Payout UI needs pending and failed states before it can be safe. |
+| `stripe-webhook` `payout.failed` | `stripe-webhook/index.ts:234-237` logs failure only. | No current failure read path. | Missing visible failure receiver/projection. Payout failure can be invisible after a request. |
+
+### Account Status Projection Target
+
+`accountStatus` should not be a single `label`. It should split billing readiness from payout readiness:
+
+```ts
+type WalletAccountStatus = {
+  billingCustomer: {
+    scope: 'organization' | 'user_customer' | 'platform' | 'unavailable';
+    stripeCustomerId: string | null;
+    hasSavedMethods: boolean | null;
+    state: 'ready' | 'not_configured' | 'loading' | 'error' | 'unavailable';
+  };
+  connectPayout: {
+    organizationId: string | null;
+    stripeAccountId: string | null;
+    accountConfigured: boolean | null;
+    payoutsEnabled: boolean | null;
+    source: 'stripe_webhook_account_updated' | 'organization_id_only' | 'manual_org_state' | 'unknown';
+    state: 'ready' | 'setup_required' | 'pending_verification' | 'unknown' | 'unavailable';
+  };
+  payoutMethod: {
+    paymentMethodId: string | null;
+    brand: string | null;
+    last4: string | null;
+    state: 'selected' | 'missing' | 'unknown' | 'unavailable';
+  };
+};
+```
+
+Rendering rules:
+
+- "Linked" may only mean billing customer/method is present, not payout-ready.
+- "Payouts Enabled" may only render when payout readiness is receiver-backed, not when only `stripe_account_id` exists.
+- "Primary" may only render for the one method whose id equals `payout_method_id`.
+- "Instant" must not render unless the payout receiver and reflected state prove instant settlement.
+- If `organizations.is_active` is used, the projection must say whether the source is Stripe webhook readiness or manually edited org state.
+
+### Pass 2D Implementation Locks
+
+1. Treat top-up wallet credit as a backend gap until active current code proves wallet/ledger credit for top-ups.
+2. Do not preserve "Wallet topped up successfully" copy; replace with lifecycle copy tied to intent, Stripe confirmation, payment row completion and wallet-credit reflection.
+3. Do not render `Payouts Enabled` from `stripe_account_id` alone.
+4. Split billing customer readiness from Connect payout readiness in the projection.
+5. Add payout failure visibility or keep withdrawals unavailable beyond request-created state.
+6. Remove global `Primary` card badges unless backed by `payout_method_id`.
+7. Keep archived top-up credit logic as historical context only; do not implement from archived SQL without reconciling current pillar migrations.
+
 ## Implementation Packages
 
 ### 1. Wallet Read Facade
