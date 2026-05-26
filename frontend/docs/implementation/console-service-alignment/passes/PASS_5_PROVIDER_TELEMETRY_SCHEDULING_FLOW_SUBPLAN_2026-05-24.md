@@ -476,6 +476,23 @@ npm run build
 
 Runtime smoke after code begins should include `/ambulances`, `/doctors`, `/map`, the ambulance modal, doctor modal, provider settings professional card, staff scheduling modal and mobile map/fleet/provider variants. Telemetry, schedule, assignment, Storage and emergency lifecycle mutations remain excluded until a separate implementation pass explicitly authorizes non-production receiver testing.
 
+## Pass 5A Surface-By-Surface Confirmation Ledger
+
+This ledger is the continuation map for the next auditor or implementer. It keeps the audit in the full chain: source truth -> service/RPC/storage -> hook/state -> route/modal/panel/UI -> payload -> receiver -> app consequence.
+
+| Surface or service edge | Current proof to retain | Required disposition before implementation | Stop condition |
+| --- | --- | --- | --- |
+| `/ambulances` route and mobile fleet | `AmbulancesPage`, `MobileAmbulances`, `useAmbulances`, `ambulancesService` prove a mounted CRUD/list surface with capped/local totals and bulk delete. | Move list/count/aggregate/action capability into provider operations projection; expose loaded-window metrics only as loaded-window values until server totals exist. | Do not call row status/location writes active-trip truth. |
+| Ambulance create/edit/detail modal | `AmbulanceModal` owns image upload, driver assignment, active trip display and command affordances. | Split vehicle maintenance, driver assignment, media, and active-trip command projections; active trips must be scoped to opened ambulance id. | No hospital-wide request commands from one vehicle modal. |
+| `/doctors` route and mobile provider directory | `DoctorsPage`, `MobileDoctors`, `DoctorModal`, `doctorsService` prove capped directory reads and direct doctor CRUD. | Add provider directory projection with doctor id, profile id, facility id, role scope, schedule state and active-assignment impact. | Do not let direct doctor status edit imply emergency handoff readiness. |
+| Provider settings professional card | `SettingsPage`, `DoctorProfileCard`, `useDoctorProfile` allow self-service doctor-row edits through broad doctor update. | Split presentation-profile edits from operational availability/status/fee readiness, with allowed-field capability and active-assignment consequence. | No self-service broad `updateDoctor()` for operational fields. |
+| Staff scheduling modal from facility operations | `HospitalsPage` mounts `StaffSchedulingModal`; `staffSchedulingService` does not persist `doctor_schedules`. | Replace status-derived shift success with stored doctor schedule projection or mark scheduling unavailable. | No "scheduled successfully" copy unless `doctor_schedules` persists and reloads the row. |
+| `/map` operational projection | `GodModeMap`, `MapContext`, `supabaseMapService`, `MobileMap`, `MapPanel` prove mounted emergency, ambulance, hospital, responder and selected-marker surfaces. | Add bounded map feed projection with per-source incomplete/degraded state, one recenter command API, and redacted/export-unavailable map context. | Do not export raw emergency arrays or use unmatched UI events as receiver proof. |
+| Driver mode telemetry/status | `GodModeMap`, `driverManagementService`, `emergencyResponseService.updateResponderLocation` prove active command paths and first-ambulance fallback risk. | Require positive responder/ambulance/request projection before telemetry or status command becomes available. | Never select an active trip through `processedAmbulances[0]` fallback. |
+| Mobile map emergency actions | `MobileMap` calls dispatch or complete from selected marker state and `ambulance_id` presence. | Consume Pass 1 emergency action/exposure/payment/cash legality projection in every map variant. | No mobile-only emergency lifecycle authority. |
+| Clinician assignment handoff | Shared `emergency_doctor_assignments` receiver exists; no mounted Console assignment surface was found. | Design assignment read/command state jointly with Pass 1 emergency detail and Pass 5 doctor readiness. | Do not represent selected or suggested doctor as assigned before persisted assignment truth. |
+| Provider media uploads | Ambulance/doctor modals reach storage paths directly. | Keep upload disabled or unavailable until bucket, path, signed URL, row ownership and cleanup policy are proved. | No fragile or private media URL persistence as operational provider truth. |
+
 ## Implementation Packages
 
 ### 1. Provider Operations Facades

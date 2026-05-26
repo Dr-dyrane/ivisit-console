@@ -298,6 +298,23 @@ npm run build
 
 Runtime smoke after code begins should include `/visits`, desktop grid/list/table variants, `MobileVisits`, `VisitModal`, `VisitsPanel`, linked emergency handoff and emergency clinical-record entry. Visit mutation, medical-profile mutation, backfill and database cleanup remain excluded until a separate implementation pass explicitly authorizes non-production receiver testing.
 
+## Pass 6A Surface-By-Surface Confirmation Ledger
+
+This ledger is the continuation map for clinical-history alignment. It is intentionally row-source-first because a `visits` row can be ordinary scheduling data or patient-facing emergency history.
+
+| Surface or service edge | Current proof to retain | Required disposition before implementation | Stop condition |
+| --- | --- | --- | --- |
+| `/visits` route grid/list/table | `VisitsPage` owns direct count/range queries, local relationship hydration, create/edit/delete/bulk callbacks, and relationship aliases. | Move paging, search, total, hydration, row source and command capabilities into one visit projection. | No row with `request_id` receives generic edit/delete/lifecycle callbacks. |
+| `MobileVisits` | Mobile receives one loaded page, performs local search/KPIs and exposes edit/delete for admin/org admin. | Consume the same server-owned search/count/capability projection as desktop; label loaded-window metrics if retained. | No mobile-only "complete" result or KPI claim from loaded rows. |
+| `VisitModal` detail/create/edit | Modal renders patient, provider, facility, emergency context, cost, insurance and clinical fields; source logs show selected/submitted records can reach browser console. | Classify row source before enabling fields; remove data-bearing diagnostics; scoped incident lookup replaces broad emergency list search. | No clinical, patient, insurance or linked-emergency payload in ordinary console output. |
+| Visit-to-emergency handoff | `VisitModal` dispatches `openEmergencyDetails`; `/visits` mounts the receiving emergency detail modal. | Preserve this working direction while replacing incident context with scoped request projection. | Do not regress to broad emergency table loads for one visit. |
+| Emergency-to-visit handoff | Emergency list/table/service now use `getVisitByRequestId`; `/emergencies` still lacks a canonical mounted visit receiver. | Close with Pass 1 through a canonical visit detail receiver or deliberate route handoff carrying request identity. | Do not call `getVisit(request.id)` as a shortcut. |
+| `visitsService` and `useVisits` | Service exposes rich normalization plus create/update/delete/complete/cancel/no-show table writes. | Split read-only emergency-derived projection from administrative visit command lane and future lifecycle command lane. | No direct table lifecycle write while emergency/payment automations can own the same row. |
+| `medicalProfilesService` | Service-level medical profile create/update/item methods exist without mounted authorized visit consumer. | Treat as restricted read availability only until clinical access/RLS and UI need are proved. | Do not add broad medical profile CRUD from service existence. |
+| `VisitsPanel` and global context | Panel renders stats/recent aliases from `PageDataContext` and dispatches visit/analytics events. | Consume canonical visit projection and mounted receiver registry; remove stale alias assumptions. | No global panel stats disagreeing with route result basis. |
+| Delete and bulk delete | `VisitsPage` exposes single and bulk destructive paths over selected loaded ids. | Keep unavailable for emergency-derived or ambiguous rows until audited destructive receiver and patient-history consequence exist. | No hard delete of patient-history evidence through ordinary UI. |
+| Financial/insurance fields | Modal and service expose cost and insurance-related fields while Pass 2/7 own payment and insurance outcomes. | Render joined display-only outcome fields until finance/insurance command authority exists. | No visit edit substitutes for payment release, cash approval, or insurance claim truth. |
+
 ## Implementation Packages
 
 ### 1. Visit Read Model

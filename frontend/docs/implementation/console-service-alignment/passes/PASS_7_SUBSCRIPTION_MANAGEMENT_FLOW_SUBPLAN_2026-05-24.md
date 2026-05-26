@@ -311,6 +311,25 @@ npm run build
 
 Runtime smoke after code begins should include `/subscriptions`, grid/list/table/mobile variants, `SubscriptionsPanel`, hidden global action containers and create-subscriber flow without welcome email. Email send, unsubscribe, export, delete, Edge and database mutation testing remain excluded until a separate non-production receiver test pass is authorized.
 
+## Pass 7A Subscription Surface-By-Surface Confirmation Ledger
+
+This ledger is the continuation map for subscriber and email lifecycle alignment. Subscriber rows are marketing/contact truth in this pass; they are not patient account, entitlement, payment or revenue truth.
+
+| Surface or service edge | Current proof to retain | Required disposition before implementation | Stop condition |
+| --- | --- | --- | --- |
+| `/subscriptions` route grid/list/table | `SubscriptionManagementPage`, `SubscriptionListView`, `SubscriptionTableView`, `useSubscription` prove full-list fetch, client filters and unsupported edit/delete callbacks. | Replace with platform-admin paged subscriber projection and shared capability map for every variant. | No edit/delete/status/type callback unless a lifecycle receiver is proved. |
+| Mobile subscriptions | `MobileSubscriptions` renders local counts and paid/revenue-style language from `subscribers.type`. | Relabel as subscriber tier/mix or join a proved billing outcome projection later. | Do not call `type = paid` revenue, monetization, entitlement or paid conversion. |
+| Bulk delete | Route bulk action contains placeholder delete logic followed by success toast and selection clear. | Disable/remove until authorized batch lifecycle receiver returns per-row results and refreshed counts. | No false destructive completion. |
+| `SubscriptionsPanel` | Context panel exposes raw emails, counts and dead Broadcast event. | Consume bounded admin projection, keep raw email visibility admin-only, and disable Broadcast until mounted audited receiver exists. | No email action event without receiver. |
+| Hidden shell acquisition | `ContextPanel`, `ContextAwareFAB`, `DynamicBottomBar`, `BentoHome`, and `Analytics` can mount or consume subscription hook outside the route. | Remove hidden full-list fetch/realtime from route-independent shell actions; command data loads only after authorized surface opens. | No global subscriber emails loaded by hidden controls. |
+| Subscriber services | `subscriptionService` and `subscribersService` overlap reads, writes and subscriptions. | Keep one active facade and retire duplicate active imports after import proof. | No two owners for subscriber mutation/realtime. |
+| Create subscriber | Current source separates create row from create-with-welcome when selected. | Preserve fixed-field idempotent create; welcome remains explicit and lifecycle-aware. | Newsletter signup must not imply patient account or billing status. |
+| Welcome email lifecycle | Manual welcome path and batch worker use different durable fields (`new_user` versus `welcome_email_sent`). | Define one idempotent sender and one durable sent/pending/failed projection before success copy. | No duplicate welcome path or "complete" copy when row remains welcome-pending. |
+| Custom and bulk email modal | `SubscriptionModal` can call custom/bulk functions and show aggregate success. | Keep disabled until deployed slug, per-recipient result, audit state and failure handling are proved. | No broad email send during audit or first read/disable pass. |
+| Unsubscribe link | Campaign/templates promise an unsubscribe Edge URL while source topology does not prove a deployed matching slug. | Treat unsubscribe as unproved until endpoint, privacy/token policy, idempotent writer and send exclusion are verified. | No template copy promises unsubscribe as implemented before receiver proof. |
+| Subscriber export and CSV scripts | Export scripts and `exports/subscribers_emails.csv` exist outside route UI. | Keep export as maintenance-only until admin projection, field allowlist, output path and disclosure path are approved. | No raw email export from implementation pass. |
+| Realtime subscriber updates | Each hook mount can full-fetch and subscribe broadly. | Use one subscriber invalidation owner and no data-bearing payload logs. | No duplicate channels or duplicate toasts for one row change. |
+
 ## Implementation Packages
 
 ### 1. Subscriber Owner

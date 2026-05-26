@@ -369,6 +369,25 @@ npm run build
 
 Runtime smoke after code begins should include insurance, support tickets, health news, context panels, mobile variants, hidden global action containers and notification center. Storage upload, support response, policy mutation, content publishing, notification sending, imports, exports and billing exception mutation remain excluded until a separate implementation pass explicitly authorizes non-production receiver testing.
 
+## Pass 7A Care/Content Surface-By-Surface Confirmation Ledger
+
+This ledger is the continuation map for care, support and content implementation. The first code work must be read/disable only: protected reads, evidence media, support responses, content publication and billing outcomes are not ordinary CRUD.
+
+| Surface or service edge | Current proof to retain | Required disposition before implementation | Stop condition |
+| --- | --- | --- | --- |
+| `/insurance` route and mobile policy views | `InsuranceManagementPage`, `MobileInsurance`, `useInsurance`, `insuranceService`, and `insurancePoliciesService` prove overlapping policy reads/writes, local paging/KPIs, and broken edit payload shape. | Consolidate into one scoped policy projection with empty/unauthorized/unavailable state, command capability, and typed edit payload before any save remains enabled. | Do not treat query failure or provider denial as an empty policy list. |
+| Insurance modal and evidence images | `InsuranceModal` exposes policy fields, verification state and private card/media fields. | Keep image upload and verification unavailable until Storage path, signed URL, actor scope, retention and row receiver are proved. | No private insurance document stored or previewed through unproved public URL behavior. |
+| Insurance billing outcome | `insurance_billing` is trigger-created shared truth; no mounted Console billing outcome surface was found. | Add read-only billing-result projection tied to request, visit, payment and facility scope. | Do not recreate claim creation or exception mutation from policy CRUD UI. |
+| `/support-tickets` route and variants | `SupportTicketsPage`, mobile/list/table variants, hook and service prove ticket lists, view-as-edit, function-object role checks and false bulk delete. | Split read detail from command mode; evaluate capabilities before callbacks reach grid/list/table/mobile; disable bulk delete. | No view action opens editable fields without capability. |
+| Support response/assignment | Service exposes update/status/assignment fields while app/Console response field parity remains unresolved. | Define staff response, assignment, status, patient visibility and role scope before enabling response or assignment. | Do not claim response persistence until the app can read the same field. |
+| Support tickets panel | `SupportTicketsPanel` performs independent latest-ticket reads/realtime and has disabled export. | Move to shared support projection and explicit unavailable export state. | No second broad ticket channel outside the owner. |
+| `/health-news` route and mobile feed | `HealthNewsManagementPage`, `MobileHealthNews`, `useHealthNews`, and service prove list, authoring fields, local-live metrics and write/import capability. | Separate published-feed projection from unsupported CMS/import/write fields; label loaded-window metrics and keep authoring unavailable until policy/receiver proof. | No UI field remains editable if service/table discards it. |
+| Health-news source URL | `HealthNewsModal` opens stored URLs and patient app consumes the same URL. | Validate scheme, provenance and safe-open behavior before preview/publication. | No arbitrary malformed external navigation payload becomes patient-facing content. |
+| Bulk import/export/delete care controls | Bulk import is dormant; insurance/support/health-news panels show disabled exports; route bulk deletes can toast success without receiver. | Keep import/export/bulk delete unavailable with disabled reason and no success copy. | No false destructive or export completion without receiver result. |
+| Hidden global shell acquisition | `ContextAwareFAB`, `DynamicBottomBar` and panels can mount hooks for insurance/support before visible route need. | Action containers must not fetch protected lists until authorized surface or command opens. | No protected care rows loaded from hidden global controls. |
+| Browser realtime payload logs | `useInsurance`, `useSupportTickets`, `useHealthNews` log payload objects. | Remove or redact data-bearing payload logs during first implementation cleanup. | No policy, ticket or content record payload in normal browser console output. |
+| Notifications | `notificationService` is an operator stream but patient notification lifecycle drift remains separate. | Keep console operator notification read/update separate from patient deletes/broadcasts. | No notification send/broadcast during planning. |
+
 ## Implementation Packages
 
 ### 1. Support Ticket Contract
