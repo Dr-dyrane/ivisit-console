@@ -190,6 +190,114 @@ These line exhibits are the implementation handoff. Each row maps the code sourc
 | Pass 7 insurance/support | Insurance-billing creation and restricted clinical exception handling | Editable insurance flag and dormant medical-profile service cannot define billing outcome. | Proved insurance read/action semantics and medical access lane. |
 | Pass 8 global/dashboard | Context-panel stats, search, analytics and route receivers | Global tiles/panels can render or launch visit operations outside the route projection. | Consume the same visit read model and capability register. |
 
+## Pass 6E Implementation Sequence And Blocker Matrix
+
+This pass is clinical-history sensitive. A `visits` row may be an administrative appointment, but it may also be backend-derived patient history created from an emergency request. The first implementation must classify row source and suppress unsafe commands before any CRUD repair starts.
+
+### Work Order
+
+| Order | Slice | Can start now? | Target | Must not do |
+|---|---|---:|---|---|
+| 1 | Visit projection contract | Yes | Add a read-only visit projection with paging, search, relationship hydration, row-source classification, incident context, medical-profile availability and command readiness. | Do not mutate visits, medical profiles, emergency rows or insurance/billing fields. |
+| 2 | Clinical diagnostic cleanup | Yes | Remove or redact browser logs that emit selected visit objects, submitted clinical payloads or linked emergency lookup results. | Do not leave clinical/financial/patient payloads in ordinary console output. |
+| 3 | Unsafe command downgrade | Yes | Disable delete/bulk-delete/edit/lifecycle controls for request-derived rows and unavailable medical-profile CRUD. | Do not rely on grid-only role hiding while list/table/bulk/mobile still receive callbacks. |
+| 4 | `/visits` read migration | After slice 1 | Move desktop grid/list/table, mobile, panel stats and recent rows to the projection owner. | Do not let page-local hydration, global context stats and mobile local search disagree. |
+| 5 | Scoped incident lookup | After slice 1 | Replace broad `getEmergencyRequests()` lookup with a request-id scoped incident projection. | Do not load broad emergency collections just to render one visit's incident context. |
+| 6 | Emergency-to-visit receiver closure | With Pass 1 | Provide a mounted canonical visit detail receiver for `/emergencies` clinical-record action or route deliberately with carried identity. | Do not close an emergency modal into an unmounted `openVisitModal` event. |
+| 7 | Administrative visit command lane | Blocked until authority proof | Enable create/update only for rows classified as administrative scheduled visits with explicit receiver and field allowlist. | Do not save clinical/status/cost/insurance fields on request-derived rows through generic table update. |
+| 8 | Lifecycle command lane | Blocked until receiver proof | Define complete/cancel/no-show command semantics, refreshed truth and app-history consequence. | Do not direct-update lifecycle status while emergency/payment automations own linked outcomes. |
+| 9 | Medical profile context | Blocked until access proof | Add restricted medical-profile read only where patient-care authorization, unavailable state and RLS are proved. | Do not add broad admin medical-profile CRUD from service existence alone. |
+| 10 | Destructive delete lane | Blocked until legal/audit proof | Keep visit delete/bulk delete unavailable for request-derived history and any clinical evidence without an approved audited receiver. | Do not remove patient-history evidence with ordinary table delete. |
+
+### Blocker Matrix
+
+| Status | Work item | Reason |
+|---|---|---|
+| Ready | Read-only visit projection | Existing exhibits already identify page query, hydration, request linkage and UI consumers. |
+| Ready | Clinical log removal | Browser diagnostics are exposure hazards and do not require backend changes. |
+| Ready | Request-derived command downgrade | Rows with `request_id` can be classified and rendered read-only before backend command repair. |
+| Ready | Mobile/search truth labels | Mobile can stop implying complete search/KPI truth from a loaded page. |
+| Ready after projection | `/visits` route and panel migration | Needs the shared projection so desktop/mobile/panel and context events consume one source. |
+| Cross-pass | Emergency clinical-record handoff | Pass 1 owns the emergency detail surface and request lifecycle. |
+| Cross-pass | Payment/insurance fields | Pass 2 and Pass 7 own payment, cash, insurance billing and exception semantics. |
+| Cross-pass | Facility/provider hydration | Pass 3 and Pass 5 own canonical facility and provider projections. |
+| Cross-pass | Identity and clinical access | Pass 4 owns role/org scope before clinical context expands. |
+| Blocked | Lifecycle status mutation | Direct visit status writes can conflict with emergency/payment automations. |
+| Blocked | Medical-profile mutation | Service methods exist, but no authorized Console surface or access proof is established. |
+| Blocked | Delete/bulk delete | Destructive patient-history behavior and auditability are not approved. |
+| Blocked | Emergency-derived clinical edit | Request-owned rows need dedicated command proof before any edit. |
+
+### First Implementation Ticket Contract
+
+The first code pass should be read/disable only:
+
+- Add or identify a visit projection service, for example `frontend/src/services/visitProjectionService.js`.
+- Return stable projection slices for:
+  - paged rows,
+  - count and search state,
+  - row source: `administrative`, `emergency_derived`, `legacy_ambiguous`, or `unknown`,
+  - request context,
+  - patient projection,
+  - provider projection,
+  - facility projection,
+  - payment/insurance summary availability,
+  - medical-profile availability,
+  - command readiness.
+- Preserve separate identities:
+  - visit id,
+  - visit display id,
+  - emergency request id,
+  - patient profile id,
+  - doctor id,
+  - hospital/facility id.
+- Expose command readiness as data:
+  - `canCreateAdministrativeVisit`
+  - `canEditAdministrativeVisit`
+  - `canEditEmergencyDerivedVisit`
+  - `canCompleteVisit`
+  - `canCancelVisit`
+  - `canMarkNoShow`
+  - `canDeleteVisit`
+  - `canBulkDeleteVisits`
+  - `canViewMedicalProfile`
+  - `canEditMedicalProfile`
+  - `canOpenLinkedEmergency`
+- Default unsafe commands to `false` with `disabledReason`, source owner and required pass dependency.
+- Preserve `getVisitByRequestId()` direction while replacing raw row/fallback ambiguity with explicit fallback provenance.
+
+The first implementation ticket should not touch:
+
+- visit create/update/delete table writes,
+- lifecycle complete/cancel/no-show writes,
+- medical-profile create/update/item writes,
+- emergency request mutation,
+- insurance or payment fields,
+- historical backfill/cleanup,
+- database migrations.
+
+### Acceptance Gates For Implementation
+
+Before the first implementation commit:
+
+- Every rendered visit row declares whether it is administrative, emergency-derived, legacy ambiguous or unknown.
+- No request-derived row receives edit/delete/lifecycle callbacks in any grid/list/table/mobile/bulk surface.
+- Visit detail incident context loads by scoped request id, not by broad emergency collection search.
+- Search/count/KPI labels distinguish full server result from loaded-page/current-window values.
+- Medical-profile fields render only as unavailable/authorized/empty with explicit access state.
+- Browser console output does not include selected visit payloads, clinical notes, insurance data, patient payloads or linked emergency records.
+- Emergency-to-visit and visit-to-emergency handoffs preserve canonical identity and mounted receivers.
+- Cost, insurance and payment-derived values are display-only unless Pass 2/7 command authority is proved.
+
+Suggested verification once code changes begin:
+
+```powershell
+git diff --check
+rg -n --pcre2 "[\x{00C2}\x{00C3}\x{00E2}\x{00EF}\x{00F0}\x{FFFD}]" frontend/src frontend/docs
+npm run build
+```
+
+Runtime smoke after code begins should include `/visits`, desktop grid/list/table variants, `MobileVisits`, `VisitModal`, `VisitsPanel`, linked emergency handoff and emergency clinical-record entry. Visit mutation, medical-profile mutation, backfill and database cleanup remain excluded until a separate implementation pass explicitly authorizes non-production receiver testing.
+
 ## Implementation Packages
 
 ### 1. Visit Read Model
