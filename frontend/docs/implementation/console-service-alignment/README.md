@@ -17,6 +17,7 @@ This folder maps console services, surfaces, L5 ownership, and implementation pa
 | [services](./services/README.md) | Complete service inventory, feature taxonomy, and service-review coverage gates. |
 | [passes](./passes/README.md) | Detailed implementation subplans by user flow and operational lane. |
 | [contracts](./contracts/README.md) | Exact UI-field to service-payload to SQL/RPC/function charts for drift-suspected paths. |
+| [checklists](./checklists/README.md) | Narrow executable implementation checklists derived from the pass audits. |
 
 ## Current Reading Order
 
@@ -25,6 +26,7 @@ This folder maps console services, surfaces, L5 ownership, and implementation pa
 3. [Stage 6 Implementation Pass Plan](./stages/STAGE_6_IMPLEMENTATION_PASS_PLAN_2026-05-24.md)
 4. The relevant [pass subplan](./passes/README.md)
 5. The relevant [contract exhibit](./contracts/README.md)
+6. The relevant [implementation checklist](./checklists/README.md)
 
 ## Operating Doctrine For Multi-Agent Continuation
 
