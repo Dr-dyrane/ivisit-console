@@ -11,6 +11,7 @@ Use a checklist only after the relevant pass subplan and contracts are read. If 
 - [Pass 1 Emergency First Implementation Checklist - 2026-05-25](./PASS_1_EMERGENCY_FIRST_IMPLEMENTATION_CHECKLIST_2026-05-25.md)
 - [Pass 2 Wallet First Implementation Checklist - 2026-05-26](./PASS_2_WALLET_FIRST_IMPLEMENTATION_CHECKLIST_2026-05-26.md)
 - [Pass 3 Facility First Implementation Checklist - 2026-05-26](./PASS_3_FACILITY_FIRST_IMPLEMENTATION_CHECKLIST_2026-05-26.md)
+- [Pass 4 Identity First Implementation Checklist - 2026-05-26](./PASS_4_IDENTITY_FIRST_IMPLEMENTATION_CHECKLIST_2026-05-26.md)
 
 ## Rule
 
