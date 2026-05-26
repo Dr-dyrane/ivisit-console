@@ -22,6 +22,12 @@ Pass subplans are implementation handoffs. A pass is not a feature list; it is a
 
 Each pass must name the feature/service rows it covers from `../services/CONSOLE_FEATURE_SERVICE_TAXONOMY_2026-05-24.md`, inventory each surface's rendered fields and visible controls by permitted role, classify every user action as scoped read projection, authorized CRUD, workflow command, backend-derived read-only evidence, or excluded boundary, and state the exact high-risk field/receiver gate for its first implementation slice. Every list, queue, search, aggregate, or export in scope must also be classified as server-paged, deliberately bounded, detail-only, or unavailable, with count/filter/sort, enrichment, realtime, stale-response, and failure-display behavior named. Before a pass is executable, it must complete the Stage 5 bidirectional runtime-truth trace: source entity to every runtime consumer and affected route/action to every local or globally mounted acquisition/receiver, including providers, context panels, map loaders, global modals, startup effects and exports. If a service is in scope without a checklist row, a rendered field lacks read/exposure authority, an action lacks a receiver class or field gate, a data surface has no reliability classification, or a mounted acquisition path is not traced, implementation pauses.
 
+Current audit-planning shape:
+
+- Pass 1 uses a deeper projection/action contract format instead of a `Pass 1E` heading. Treat its service-by-service audit, emergency detail projection target, modal raw-field matrix and command/action target contract as the first-slice implementation gate.
+- Passes 2-8 use `Pass E` implementation sequence and blocker matrices to separate safe read/disabled-state cleanup from backend, RPC, Edge, realtime, export, email and Storage work.
+- Detailed implementation planning starts only after the active pass has been confirmed route by route and every visible field/control is marked retained, disabled, moved to an owner or blocked.
+
 ## How To Continue A Pass
 
 For the active pass, work in this order:

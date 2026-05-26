@@ -15,9 +15,23 @@ This plan deliberately keeps the original pass order while raising the proof sta
 Current checkpoint:
 
 - Passes 1-8 now have pass-local subplans with end-to-end audit targets.
+- Pass 1 already contains the deepest first-slice detail through its service-by-service audit, emergency detail projection target contract, modal raw-field closure matrix, and command/action target contract. Its format is different from the later `Pass E` headings, but it is not skipped.
+- Passes 2-8 now include implementation sequence and blocker matrices that separate safe read/disabled-state cleanup from backend, RPC, Edge, realtime, export, email, and Storage work.
 - Passes 6, 7 care/content/support, 7 subscriptions, and 8 now include exact code-exhibit sections for the drift points found in the latest sweep.
 - The next audit frontier is not implementation. It is to use each pass-local exhibit table as the executable checklist for route-by-route confirmation, then mark each visible field/control as retained, disabled, moved to an owner, or blocked by receiver/RLS proof.
 - No database mutation, reset, seed, cleanup, email send, storage upload, or Edge invocation is authorized during this audit checkpoint.
+
+Current coverage by execution layer:
+
+| Layer | Coverage status | Next audit action before implementation |
+| --- | --- | --- |
+| Database/RPC/RLS/Edge/Storage source truth | Stage 1, Stage 2, contract charts, live confirmation, trigger/policy/RPC matrices and Edge ownership proof cover the high-risk shared boundaries. | Keep using read-only proof only; do not run repair, reset, cleanup, seed, migration, email, Storage upload or mutating Edge calls during audit. |
+| Service/query/RPC mapping | Stage 5 service coverage, service maps and pass subplans assign the main console service families to Passes 1-8. | For each active pass, re-run importer and direct-boundary scans before editing so late-added route/context consumers are not missed. |
+| Hook/context/state ownership | Stage 4, Stage 5 and Stage 6 identify broad context ownership defects, especially `PageDataContext`, hidden shell hooks and duplicated realtime. | Implementation may move ownership only after the target pass has its read projection and unavailable-state contract closed. |
+| Route/modal/panel/UI render | Pass 1 and Passes 6-8 contain exact code exhibits; Passes 2-5 contain first-slice field/payload targets and should receive exact route-line exhibits during their active pass checklist. | Work route by route and mark every field/control retained, disabled, moved to owner or blocked. |
+| Button/form payload to receiver | Contract charts and pass subplans identify the high-risk receiver mismatches across emergency, wallet, facility, identity, provider ops, visits, care/content, subscribers and shell exports. | Before implementation, each visible command needs operation class, payload field list, receiver, authorization, pending/error behavior and reflected read. |
+| App consequence | `ivisit-app` references are recorded where app-facing effects matter: emergency tracking/payment, pricing/quotes, availability, route/ETA, visits, chat, provider/facility truth and subscriber/public handoff. | Keep cross-checking `ivisit-app` during each pass; no console fix is complete if it changes app-visible lifecycle without an app consequence note. |
+| Granular implementation planning | Pass 1 has first-slice contract detail; Passes 2-8 now have sequence/blocker matrices. | After route-by-route confirmation, convert each pass into a narrow implementation checklist. Detailed implementation starts only after that checklist is complete. |
 
 Continue in this pattern:
 
