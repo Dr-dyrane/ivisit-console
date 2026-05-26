@@ -415,6 +415,26 @@ rg -n "mock|fallback|default|Export Report|Generate Analytics Report|openAnalyti
 rg -n "channel\\(|subscribe\\(|removeChannel|on\\('postgres_changes'|get_recent_activity|searchAll|trending|notification" frontend/src
 ```
 
+## Pass 8A Shell Surface-By-Surface Confirmation Ledger
+
+This ledger is the continuation map for the cross-cutting shell pass. Pass 8 must consume domain truth from Passes 1-7; it must not become a shortcut that reimplements emergency, finance, facility, provider, visit, care or subscriber ownership in a dashboard layer.
+
+| Surface or service edge | Current proof to retain | Required disposition before implementation | Stop condition |
+| --- | --- | --- | --- |
+| `PageDataContext` | Initializes mock/fallback domain data and broad realtime channels across emergency, visits, doctors, verification, support and analytics. | Retire as durable server-truth owner; keep only shell summary composition or explicit domain projection aggregation after Passes 1-7 exist. | Do not create a new broad context that owns all domain data again. |
+| Dashboard/Bento home | `BentoHome` renders summaries, activity, trends and fallback-prone metrics; `Overview` is source-present but not the live route. | Replace fixed/fallback measured claims with source-labelled, unavailable, degraded or demo states. | No patient satisfaction, response, request, facility or fleet claim without owner/time-window/completeness proof. |
+| Mobile dashboard | `MobileDashboard` renders live labels, corrupted copy risk, and patient-only rows with empty handlers. | Remove/degrade unsupported patient controls or hand off deliberately to canonical patient app surface with immediate feedback; run encoding gate when touched. | No interactive row with an empty handler. |
+| Analytics route and modal | `Analytics.jsx`, `MobileAnalytics`, `AnalyticsPanel`, and `AnalyticsModal` can export or display fallback/default aggregate values. | Disable export/report until actor, dataset, scope, time window, completeness, redaction and source state are known. | No CSV/report over fallback, unauthorized or incomplete slices. |
+| Subscriber-dependent analytics | Provider-accessible analytics can call admin-only subscriber analytics through route/service aggregate loading. | Isolate subscriber metrics to admin scope or render subscriber slice unavailable for non-admin actors. | No provider/org analytics path loads global subscriber truth. |
+| QuickSearch | Shell searches multiple domains and profile email with independent caps and all-or-empty failure behavior. | Add sequence id, per-category role projection, partial/error/denied state and stale-response guard. | No denied/failed category is presented as ordinary no results. |
+| Trending and automation | Trend services and automation can report success while source/provenance/no-op behavior is unproved. | Label trend source as live/view/manual/stub/unavailable; disable regeneration until receiver proves real update. | No stub success copy. |
+| Notification center and preferences | Mounted notification center reads bounded own-user stream; settings toggle is hard-coded; failure can log user id and backend details while returning empty. | Add typed loading/empty/failed/unavailable states; wire or disable settings toggle; remove identity-bearing diagnostics. | No failed notification read rendered as empty. |
+| PWA, feedback and diagnostics | PWA provider, install/offline/update notices, service worker registration, feedback audio/haptics and debug tracker mount globally. | Treat as live shell utilities with truthful version/build/update state and accessibility/preference rules. | No hard-coded debug badge or new sound/haptic behavior without preference proof. |
+| Error boundary and browser diagnostics | ErrorBoundary logs route URL, stack and component stack in production console. | Replace with redacted approved diagnostics and visible recovery. | No browser console as production monitoring sink for sensitive route failures. |
+| Activity feed and audit | `get_recent_activity`, `user_activity` subscription and activity transformation can expose location/identity metadata. | Label dashboard activity as bounded recent preview; minimize fields by role; keep privileged audit separate. | No recent feed treated as durable critical-command audit proof. |
+| Context panels and shell actions | ContextPanel/FAB/bottom bar can mount domain hooks and emit route events across dashboard/analytics/search. | Remove hidden protected acquisitions and require mounted receivers before visible events. | No dead report/export/broadcast event or hidden protected list load. |
+| Dormant operational components | `HospitalFleetManager`, navigation notification mock, dormant `useAnalytics`, and backup/export handlers exist in source. | Keep explicitly excluded or remount only after they consume owned projections and authorized receivers. | No hard-coded operational/export UI becomes live capability. |
+
 ## Implementation Packages
 
 ### 1. PageDataContext Reduction

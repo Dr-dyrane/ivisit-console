@@ -28,6 +28,22 @@ Current audit-planning shape:
 - Passes 2-8 use `Pass E` implementation sequence and blocker matrices to separate safe read/disabled-state cleanup from backend, RPC, Edge, realtime, export, email and Storage work.
 - Detailed implementation planning starts only after the active pass has been confirmed route by route and every visible field/control is marked retained, disabled, moved to an owner or blocked.
 
+## Current Pass Coverage Ledger
+
+This table is the handoff checkpoint after the route-by-route confirmation sweep. It does not authorize implementation; it identifies what has enough documentation to start a narrow implementation checklist and what still needs deeper exact-line or receiver proof.
+
+| Pass | Current documentation coverage | Remaining audit before code |
+| --- | --- | --- |
+| Pass 1 Emergency detail | Evidence audit, route-by-route confirmation ledger, projection target, modal raw-field matrix, action contract and app-consequence chain are documented. | Before implementation, reread the current emergency source diffs and regenerate exact receiver checklist for any changed payment, visit, chat, assignment or realtime line. |
+| Pass 2 Wallet, Stripe and ledger | Surface ledger, top-up/payout readiness proof, implementation sequence and blocker matrix are documented. | Add fresh exact-line exhibits for any touched Stripe, payout, ledger export or self-healing path before editing money code. |
+| Pass 3 Facility, capacity and pricing | Surface ledger, field/payload gates, implementation sequence and blocker matrix are documented. | Confirm latest import/discovery, media, capacity reducer and pricing quote call sites before code; do not assume old facility scope paths are exhaustive. |
+| Pass 4 Identity, onboarding and verification | Surface ledger, deterministic surface register, route authority and implementation sequence are documented. | Confirm live auth/role/org/facility field availability and any invite/verification receiver shape immediately before editing. |
+| Pass 5 Provider operations and scheduling | Surface confirmation ledger, map/telemetry/scheduling target projections, exact exhibits and implementation sequence are documented. | Add exact field-to-UI rows only for the first selected implementation slice; telemetry, trip status, schedules, Storage and assignment writes remain blocked. |
+| Pass 6 Visits and medical history | Surface confirmation ledger, field-to-UI/payload-to-receiver closure, exact clinical exhibits and implementation sequence are documented. | Add current exact-line confirmation for any clinical log, incident lookup, row-source classifier or medical-profile consumer before touching source. |
+| Pass 7 Care/content/support | Surface confirmation ledger, exact care/content exhibits, cross-pass register and implementation sequence are documented. | Reconfirm hidden shell acquisition, false bulk deletes, panel exports, URL safety, Storage proof and billing-result source before code. |
+| Pass 7 Subscriptions | Surface confirmation ledger, exact subscriber/email exhibits, lifecycle blockers and implementation sequence are documented. | Prove deployed email/unsubscribe topology before any email lifecycle work; first code slice remains read/disable only. |
+| Pass 8 Analytics/search/realtime/feedback | Shell surface confirmation ledger, implementation sequence and blocker matrix are documented; shell-wide acquisition and fake/stub truth are mapped. | Before implementation, select only read/disable shell cleanup that does not recreate domain ownership; real dashboard/search/export truth waits on Passes 1-7 projections. |
+
 ## How To Continue A Pass
 
 For the active pass, work in this order:
