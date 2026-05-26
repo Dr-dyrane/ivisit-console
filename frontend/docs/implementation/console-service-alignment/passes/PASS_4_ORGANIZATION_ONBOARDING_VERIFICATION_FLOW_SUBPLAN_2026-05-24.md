@@ -339,6 +339,106 @@ Implementation must not keep hospital rows as organization identity. The first s
 - disable invite/onboarding/verification copy that promises role, email, wallet or dispatch readiness when the chain is incomplete;
 - then separately repair the provisioning receiver after the audit confirms deployment, RLS and cleanup requirements.
 
+## Pass 4E Implementation Sequence And Blocker Matrix
+
+This pass is an upstream safety gate for nearly every other Console lane. Wallet scope, facility pricing, fleet ownership, support visibility, analytics role access and verification controls all depend on backend-confirmed identity. The first implementation must therefore remove false authority before adding new organization or verification capability.
+
+### Work Order
+
+| Order | Slice | Can start now? | Target | Must not do |
+|---|---|---:|---|---|
+| 1 | Client privilege removal | Yes | Remove or neutralize hard-coded email role elevation and profile-fetch fallback roles; failed profile load becomes loading, unavailable or denied. | Do not grant `admin` or `org_admin` from browser logic, timeout fallback or local profile construction. |
+| 2 | Identity projection contract | Yes | Add a read-only `ConsoleIdentityProjection` boundary for auth state, backend profile role, organization scope, route/panel/action access and mismatch states. | Do not repair onboarding or invite writes in the same slice. |
+| 3 | Browser identity exposure cleanup | Yes | Remove or redact ordinary browser logs carrying email, profile objects, selected users or avatar URL/media path details. | Do not leave diagnostic identity output in normal runtime. |
+| 4 | Unsupported action downgrade | Yes | Disable or relabel Quick Verify no-op, verification bulk false-success actions, panel export/feed placeholders and organization Growth/Pulse affordances. | Do not show success toast for a command that did not call a receiver. |
+| 5 | Organization registry read projection | After slice 2 | Move `/organizations` desktop/mobile rows, wallet availability and metrics to a server-paged/source-labelled organization projection. | Do not compute network health, wallet float or revenue share from unbounded local collections or hard-coded constants. |
+| 6 | Users/read projection | After slice 2 | Move `/users` desktop/mobile list, search, filters, counts and BVN/person labels to a bounded admin projection. | Do not derive identity totals or mobile `LIVE` trends from a capped loaded subset. |
+| 7 | Verification lane projection | After slice 2 | Split provider/person verification from facility dispatch-readiness verification and expose per-actor command capability. | Do not label hospital verification as organization approval or BVN as dispatch certification. |
+| 8 | Invite/onboarding receiver repair | Blocked until receiver proof | Replace hospital-as-organization assignment with canonical organization id plus explicit facility linkage and email-delivery/role-grant state. | Do not seed roles from unguarded invite metadata or write hospital UUIDs to `profiles.organization_id`. |
+| 9 | Organization CRUD command | Blocked until authority proof | Add guarded create/update/delete organization workflow with auditability and wallet initialization/reflection. | Do not preserve direct browser table CRUD as sufficient authority. |
+| 10 | Evidence upload/storage | Blocked until storage proof | Keep verification document upload private and unavailable/pending unless bucket policy, actor scope, retention and cleanup are proved. | Do not treat `documents/organizations/...` upload paths as legal org proof or data-room documents. |
+
+### Blocker Matrix
+
+| Status | Work item | Reason |
+|---|---|---|
+| Ready | Remove client-side role elevation | This is an immediate safety correction and does not require database mutation. |
+| Ready | Identity projection read model | Pass 4 already names the required fields and downstream consumers; a read-only projection can degrade safely. |
+| Ready | Disable false-success controls | Quick Verify, bulk approve/reject, placeholder exports and inert org panel actions can be made unavailable without backend changes. |
+| Ready | Identity log cleanup | Browser logs are local exposure hazards and can be removed or development-gated without changing data contracts. |
+| Ready after projection | Organization and user list migration | Needs the identity/access projection first so row visibility and command state are role-backed. |
+| Ready after projection | Verification queue copy/action migration | Needs provider versus facility lane separation and per-actor command authority. |
+| Cross-pass | Provider professional self-service | Desktop/mobile provider settings parity depends on Pass 5 provider operations. |
+| Cross-pass | Facility dispatch eligibility | Facility verification affects Pass 3 facility state and Pass 1 emergency dispatch eligibility. |
+| Cross-pass | Wallet and pricing org scope | Pass 2 and Pass 3 cannot trust org scope until hospital-id mismatch handling exists. |
+| Blocked | Invite role grant and email delivery | The addressed receiver topology and email send result need proof before UI can claim invitation success. |
+| Blocked | Onboarding canonical creation | Current implementation writes hospital-shaped organization truth; canonical org/facility/profile/wallet creation needs receiver proof. |
+| Blocked | Organization direct CRUD | Direct table writes require RLS/receiver/audit proof before keeping create/update/delete enabled. |
+| Blocked | Verification evidence upload | Active Storage policy and retention proof is missing. |
+
+### First Implementation Ticket Contract
+
+The first code pass should make identity safer, not more capable:
+
+- Create or identify a small identity/access projection service/hook, for example `frontend/src/services/consoleIdentityProjectionService.js` plus a hook wrapper if needed.
+- Return `ConsoleIdentityProjection` with explicit states for:
+  - auth loading,
+  - backend profile loaded,
+  - profile missing,
+  - profile fetch failed,
+  - organization missing,
+  - organization/facility id mismatch,
+  - route allowed/read-only/denied.
+- Remove hard-coded email role promotion and fallback `org_admin` construction from normal runtime.
+- Keep route, nav, panel and action access derived from the projection or from one helper that consumes it.
+- Add command readiness fields for identity surfaces:
+  - `canInviteUser`
+  - `canCreateOrganization`
+  - `canEditOrganization`
+  - `canDeleteOrganization`
+  - `canVerifyProvider`
+  - `canVerifyFacility`
+  - `canBulkVerify`
+  - `canOpenIdentityExport`
+  - `canOpenQuickVerify`
+- Default unsafe commands to unavailable with `disabledReason`.
+- Preserve direct Supabase Auth own-user operations in `SecurityModal` only as a documented Auth adapter exception with clear loading/error/recovery behavior.
+
+The first implementation ticket should not touch:
+
+- Auth admin invite creation,
+- deployed Edge Function behavior,
+- onboarding submit writes,
+- organization create/update/delete writes,
+- verification approve/reject writes,
+- Storage uploads,
+- display-id table mutation,
+- data repair for existing hospital-as-organization rows.
+
+### Acceptance Gates For Implementation
+
+Before the first implementation commit:
+
+- No failed profile read or hard-coded email path can grant an elevated role.
+- Route, nav, panel and page action visibility agree for the same actor.
+- `profile.organization_id` is not treated as organization scope unless the projection proves it references an `organizations.id`.
+- Hospital/facility verification copy does not imply legal organization approval.
+- Provider/BVN verification copy does not imply facility dispatch readiness.
+- Bulk approve/reject controls are unavailable unless a real receiver executes and refreshes per-row results.
+- Invite success copy distinguishes link generated, email sent, role granted and organization linked.
+- Organization/network metrics label their aggregate basis or render unavailable.
+- Browser logs do not emit operator email, selected user object, profile payload or avatar/media URL in ordinary runtime.
+
+Suggested verification once code changes begin:
+
+```powershell
+git diff --check
+rg -n --pcre2 "[\x{00C2}\x{00C3}\x{00E2}\x{00EF}\x{00F0}\x{FFFD}]" frontend/src frontend/docs
+npm run build
+```
+
+Runtime smoke after code begins should include login/session restore, protected-route denial, `/users`, `/organizations`, `/verification`, mobile organization/verification/user views and own-user security settings. Auth admin, invite, onboarding, Storage and database mutations remain excluded until a separate implementation pass explicitly authorizes non-production receiver testing.
+
 ## Implementation Packages
 
 ### 0. Auth And Session Authority Blocker
