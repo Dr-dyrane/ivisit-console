@@ -321,6 +321,61 @@ This pass closes the next end-to-end audit level for wallet, Stripe and ledger b
 - Compare finance hardening scripts in `ivisit-app/supabase/docs/TESTING.md` against Console service fields before implementation: organization wallets, patient wallets, ivisit main wallet, payment methods, wallet ledger, payments and cash fee guards.
 - Produce an exact field inventory for `WalletFinanceProjection` rows before code changes: wallet fields, ledger fields, payment fields, payer/request fields, billing method fields, account status fields and metric fields.
 
+## Emergency Payment Receiver Closure Pass 2B
+
+This pass extends finance audit into the emergency receiver side because wallet, payment, dispatch and completion are not separable in Console. It found one hard ordering contradiction that must be fixed before cash/manual-payment implementation.
+
+### Emergency Receiver Line Exhibits
+
+| Receiver | Exact evidence | Console consequence |
+| --- | --- | --- |
+| Card success finalizer | `ivisit-app/supabase/migrations/20260219000800_emergency_logic.sql:630-740` finds a card payment by `stripe_payment_intent_id`, sets `payments.status = completed`, sets `payment_status = completed`, releases pending approval to `in_progress`, activates visits and returns request/payment ids. | Console retry/card recovery copy should listen for the payment/request projection update. It should not claim dispatch release from retry creation alone. |
+| Card failure finalizer | `ivisit-app/supabase/migrations/20260219000800_emergency_logic.sql:745-834` sets payment failed and request `status = payment_declined`, `payment_status = failed`. | Console `Payment Declined` UI is receiver-backed only after this status pair appears; retry UI must keep a pending retry state until a new receiver result arrives. |
+| Cash approval receiver | `ivisit-app/supabase/migrations/20260219000800_emergency_logic.sql:838-1050` locks pending cash payment/request, verifies payment/request organization match, checks request status and payment status, validates actor scope, deducts org wallet fee, credits platform wallet, marks payment completed, marks request `in_progress`, activates visit and backfills responder snapshot. | The details modal approve action is the correct authoritative receiver for pending cash flows. Its UI should present the platform fee, not the full cash amount, and must refresh request/payment/ledger/responder truth after success. |
+| Cash decline receiver | `ivisit-app/supabase/migrations/20260219000800_emergency_logic.sql:1072-1177` validates pending cash payment/request, sets payment failed, request `payment_declined`, request `payment_status = failed`, and visit cancelled. | Decline copy and downstream filters must treat this as a terminal payment-declined request with cancelled visit consequence. |
+| Manual cash settlement receiver | `ivisit-app/supabase/migrations/20260219000800_emergency_logic.sql:1182-1283` rejects completed/cancelled requests, inserts a completed cash payment, sets `payment_status = completed`, and returns `payment_id` plus `fee_calculated`. | Console cannot call this after `console_complete_emergency`; if used at all, it must run before request completion or be replaced by the pending approval receiver path. |
+| Console complete receiver | `ivisit-app/supabase/migrations/20260219010000_core_rpcs.sql:1878-1971` completes eligible requests and frees ambulance state, but does not process cash payment or ledger effects. | Completion is a logistics receiver, not a payment receiver. Cash processing must not be attached as an afterthought after completion. |
+| Legacy wrapper | `ivisit-app/supabase/migrations/20260219010000_core_rpcs.sql:832-849` exposes `process_cash_payment(...)` and delegates to `process_cash_payment_v2(..., 'USD')`. | `walletService.processCashPayment()` is USD-only today even though it accepts a currency argument. |
+
+### Console Emergency Payment Line Exhibits
+
+| Console surface | Exact evidence | Audit result |
+| --- | --- | --- |
+| Request list payment preview | `frontend/src/components/pages/EmergencyRequestsPage.jsx:187-205` loads latest payment rows with only `emergency_request_id,payment_method,status,created_at` and normalizes rows from that shallow data. | Request rows know payment method/status enough for action hints, but not amount, currency, fee, failure reason or receiver metadata. Detail projection must be used for payment decisions. |
+| Realtime refresh | `EmergencyRequestsPage.jsx:223-227` subscribes to all `emergency_requests` and all `payments` changes, then refetches the page. | This can recover broad changes but is not scoped and not a substitute for receiver-specific pending/result state. |
+| Dispatch eligibility check | `EmergencyRequestsPage.jsx:425-440` checks cash eligibility for admin/org-admin with `orgId || request.organization_id || request.hospital_id`, uses UUID length, passes an estimated amount that the RPC ignores, and treats returned object truthiness as eligibility. | **Blocked.** It can use a hospital UUID as organization scope and any returned object becomes eligible, even `{ eligible: false }`. Dispatch gating must use canonical organization id and `eligible === true`. |
+| Complete-then-cash flow | `EmergencyRequestsPage.jsx:466-505` calls `completeEmergency()` first, then for cash jobs prompts for amount and calls `processCashPayment()`. | **Hard contradiction.** `process_cash_payment_v2` rejects completed requests, so this flow can make cash settlement impossible after logistics completion. |
+| Prompt amount parser | `EmergencyRequestsPage.jsx:491-497` uses `prompt`, `isNaN`, and passes raw amount to the RPC path. | Needs the same money parser and explicit currency behavior as wallet actions; prompt-based financial mutation is not an implementation target. |
+| Retry payment flow | `EmergencyRequestsPage.jsx:507-581` loads DB `payment_methods`, prompts for method selection, calls retry RPC, and says patient must complete payment. | This copy is mostly honest, but it needs pending retry state and should refresh detail projection for card success/failure receiver result. |
+| Detail projection | `frontend/src/services/emergencyService.js:205-287` fetches latest payment row and visit outcome, then returns `paymentVisibilityState` and `visitVisibilityState`. | This is the right boundary to extend: it can carry fee, amount, lifecycle, receiver result and retry/cash action state into modals without UI table guesses. |
+| Detail realtime | `emergencyService.js:289-312` subscribes to request, payment and visit changes for one request. | This is the canonical recovery pattern for payment approval detail; Pass 1/2 should favor this over page-wide payment subscriptions for modal actions. |
+| Approve/decline services | `emergencyService.js:559-620` calls `approve_cash_payment` and `decline_cash_payment` and rejects non-success responses. | Service boundaries are good enough for first implementation, but should return typed receiver results to the UI projection instead of leaving toasts to infer consequences. |
+| Cash approval UI | `frontend/src/components/modals/EmergencyDetailsModal.jsx:108-161` approves/declines using `paymentData.id` then refreshes projection; `:346-393` renders approval card. | This is the correct UI direction, but the displayed "Fee Amount" currently uses `paymentData.amount ?? request.total_cost`; that reads as full amount, not platform fee. |
+| Retry UI in detail modal | `EmergencyDetailsModal.jsx:396-419` shows retry when request is `payment_declined`. | Must distinguish retry-created/pending from retry-confirmed/reflected; current state only covers button processing. |
+| Action state helper | `frontend/src/utils/emergencyActions.js:16-27` only allows dispatch when `status === in_progress`; `canProcessCash` requires `status === completed` and cash not completed. | The helper mirrors the broken complete-then-cash assumption. Cash settlement should be modeled as approval-before-dispatch or pre-completion manual settlement, not completed-state cleanup. |
+
+### Cash Flow Decision Before Implementation
+
+Console must choose one cash lane and document it in the implementation plan before code changes:
+
+| Lane | Receiver | Valid timing | Required UI |
+| --- | --- | --- | --- |
+| Approval-gated cash dispatch | `approve_cash_payment(payment_id, request_id)` | Request/payment pending approval before dispatch. | Details modal approve/decline with fee, organization balance, receiver result and projection refresh. |
+| Manual cash settlement | `process_cash_payment_v2(request_id, organization_id, amount, currency)` | Before request is completed or cancelled. | Explicit settlement modal with amount parser, canonical org id and reflected payment readback. |
+| Post-completion cash cleanup | None proved. | Not currently receiver-backed. | Do not implement unless a backend receiver is added and documented. |
+
+Implementation should prefer the approval-gated lane for existing pending cash requests because it updates payment, request, visit, wallet ledger and responder truth in one receiver. If manual settlement remains needed for legacy records, it must be separated as a maintenance/manual settlement lane and must not run after `console_complete_emergency`.
+
+### Pass 2B Implementation Locks
+
+1. Remove the complete-then-process-cash sequence from the implementation target. It is provably incompatible with `process_cash_payment_v2`.
+2. Move cash action state from `status === completed` cleanup toward receiver-backed states: `pending_cash_approval`, `approved_dispatch_released`, `declined_payment_failed`, `manual_settlement_available`, `manual_settlement_blocked`.
+3. Extend `getEmergencyDetailProjection()` to include latest payment fields needed by UI: amount, currency, fee amount, method, status, processed time, failure reason/source metadata and receiver visibility.
+4. Make dispatch gating use canonical organization id only. Hospital UUID fallback must become unavailable/error state, not a wallet eligibility input.
+5. Replace object truthiness with explicit `eligibility?.eligible === true` and render `balance`, `fee_percentage` and computed/returned fee basis where available.
+6. Keep retry copy at "retry created/patient action required" until `complete_card_payment` or `fail_card_payment` changes request/payment truth.
+7. Add hardening commands to the implementation checklist: `npm run hardening:payments-surface-field-guard`, `npm run hardening:wallet-ledger-surface-field-guard`, `npm run hardening:cash-fee-contract-guard`, and the wallet/payment-method guards listed in `ivisit-app/supabase/docs/TESTING.md:270-322`.
+
 ## Finance Projection Boundary Target
 
 Before any implementation touches the wallet route, define a read facade such as `getWalletFinanceProjection(actor, options)` or a hook/service pair with this minimum shape:
