@@ -368,6 +368,106 @@ Implementation must not retain the current first-hospital write behavior under o
 - add explicit hospital selection for pricing create/edit and save only facility-scoped rows, or
 - disable org-admin pricing save with clear unavailable copy until a deliberate organization propagation receiver exists.
 
+## Pass 3E Implementation Sequence And Blocker Matrix
+
+This section converts the facility, capacity, discovery, media and pricing evidence into an implementation order. The ordering is conservative because facility truth is consumed by emergency matching, bed search, map detail, patient quotes, verification, onboarding, provider operations and dashboard analytics.
+
+### Work Order
+
+| Order | Slice | Can start now? | Target | Must not do |
+|---|---|---:|---|---|
+| 1 | Facility projection contract | Yes | Introduce a read-only facility projection boundary for row, detail, aggregate, eligibility, capacity, media provenance and degraded states. | Do not add Storage writes, import persistence, availability mutation or pricing mutation. |
+| 2 | False capability downgrade | Yes | Disable or relabel unsupported facility/pricing controls: pricing reports without mounted receiver, bulk sync without handler, raw map/facility action promises, and broken reservation cancel. | Do not leave a button enabled because the JSX exists. |
+| 3 | `/hospitals` read migration | After slice 1 | Route desktop, table/list/grid, mobile and panel facility displays through one projection with real page/filter/sort/count semantics. | Do not compute network totals, capacity totals or `LIVE` mobile metrics from page rows or unbounded bootstrap lists. |
+| 4 | Facility detail and capacity read split | After slice 1 | Split metadata/detail read from operational availability/capacity read; expose stale/degraded capacity states. | Do not treat scalar `hospitals` fields, request reservations and room/capacity buckets as interchangeable truth. |
+| 5 | Pricing read projection | After slice 1 | Build a facility-scoped pricing projection with explicit `hospital_id`, platform fallback rows, count basis, and amount/currency meaning. | Do not keep organization-wide pricing copy while saving to the earliest hospital. |
+| 6 | Pricing edit disposition | After slice 5 | Either add explicit facility selection for create/edit or disable org-admin save until a propagation receiver exists. | Do not silently write one facility row under organization override language. |
+| 7 | Operational availability writer | Blocked until receiver proof | Route capacity/status/wait changes through `update_hospital_availability` or a named app-visible receiver. | Do not use direct `hospitals.available_beds` or `hospitals.status` updates for app-visible operational truth. |
+| 8 | Discovery/import provenance | Blocked until receiver proof | Use one service-owned discovery/import boundary with source labels, fallback labels, import logs and failure state. | Do not persist canonical provider/facility truth from raw modal `fetch` results. |
+| 9 | Provider catalog and media | Blocked until policy/provenance proof | Add or preserve `providers`, `hospital_media`, Storage policy, role/source/status/primary and import provenance ownership. | Do not reduce app-visible provider/media truth to base `hospitals.image` or type fields. |
+
+### Blocker Matrix
+
+| Status | Work item | Reason |
+|---|---|---|
+| Ready | Read-only facility projection scaffold | Pass 3 has exact source, UI, payload and app-consequence fields for the minimum projection. |
+| Ready | Unsupported control downgrade | Broken or unmounted controls can be disabled without backend mutation: reservation cancel, pricing report, bulk sync and misleading pricing scope copy. |
+| Ready | Mobile metric truth labels | Mobile hospital/pricing metrics can stop using `LIVE` or total language when the source is only the loaded page/current collection. |
+| Ready after projection | `/hospitals` row/panel/mobile migration | Needs the shared facility projection to prevent a new one-off route fix. |
+| Ready after projection | `/pricing` read migration | Needs facility identity and pricing source labels before list, summary and mobile projections can be truthful. |
+| Cross-pass | Reservation arrive/discharge/cancel | Request-owned bed lifecycle belongs with Pass 1 emergency legality and Pass 6 visit/history consequences. |
+| Cross-pass | Facility verification and onboarding | Pass 4 owns organization/hospital identity and verification authority; Pass 3 consumes facility eligibility fields. |
+| Cross-pass | Scheduling and fleet context | Pass 5 owns stored schedules, fleet availability and provider operations tied to a facility. |
+| Cross-pass | Analytics/search/map summaries | Pass 8 consumes facility projections for dashboard, QuickSearch, reports and global realtime cleanup. |
+| Blocked | Storage/media writes | Active source does not yet prove deployed Storage policies or `hospital_media` provenance ownership. |
+| Blocked | Import persistence | Raw discovery/modal responses and fallback nearby results are not enough to create canonical provider/facility truth. |
+| Blocked | Organization-wide pricing | Current receiver is hospital-scoped; no propagation receiver exists for every facility under an organization. |
+| Blocked | Operational capacity mutation | Direct scalar updates do not prove app-visible availability, wait, bed JSON and request reservation side effects. |
+
+### First Implementation Ticket Contract
+
+The first code pass should be a read/disable pass, not a write pass:
+
+- Add a facility projection service, for example `frontend/src/services/facilityProjectionService.js`, or extend `hospitalsService` behind a clearly named projection export.
+- Return a stable `FacilityProjection` shape using the fields listed above.
+- Preserve separate identities:
+  - hospital/facility id,
+  - hospital display id,
+  - organization id,
+  - organization display id when available.
+- Return explicit source/degraded states for:
+  - aggregate basis,
+  - capacity freshness,
+  - media provenance,
+  - provider taxonomy ownership,
+  - import provenance,
+  - pricing scope.
+- Expose command readiness as data, not local JSX guesses:
+  - `canEditMetadata`
+  - `canEditAvailability`
+  - `canDeleteFacility`
+  - `canImportDiscoveryCandidate`
+  - `canUploadFacilityMedia`
+  - `canEditFacilityPricing`
+  - `canRunPricingBulkSync`
+  - `canOpenPricingReport`
+- Default unsafe commands to `false` with a specific `disabledReason`.
+- Keep pricing projection separate enough that `/pricing` can migrate without making facility detail modal responsible for pricing state.
+
+The first implementation ticket should not touch:
+
+- Storage upload behavior,
+- discovery/import persistence,
+- direct availability mutations,
+- pricing upsert/delete receivers,
+- organization-wide price propagation,
+- reservation lifecycle commands,
+- onboarding or verification writes,
+- map or analytics aggregates beyond consuming/degrading projected facility truth.
+
+### Acceptance Gates For Implementation
+
+Before the first implementation commit:
+
+- `/hospitals` and `/pricing` have a named source for every rendered total, KPI, badge, amount and action.
+- Loaded-page/current-filter metrics are labelled as such or replaced by server aggregate proof.
+- No enabled visible control calls an absent method, unmounted event receiver or cross-pass command.
+- Pricing create/edit either collects an explicit facility id or remains unavailable for organization-wide edits.
+- `hospitals.id` and `organizations.id` cannot be collapsed into a single `organizationId` or `facilityId` variable without a projection field that names the conversion.
+- Media/image changes are unavailable unless Storage policy and `hospital_media` provenance proof exists.
+- Import/discovery persistence remains unavailable unless the receiver returns auditable source/result/failure state.
+- Availability/capacity mutation remains unavailable unless the app-visible receiver and patient consequence are named.
+
+Suggested verification once code changes begin:
+
+```powershell
+git diff --check
+rg -n --pcre2 "[\x{00C2}\x{00C3}\x{00E2}\x{00EF}\x{00F0}\x{FFFD}]" frontend/src frontend/docs
+npm run build
+```
+
+Runtime smoke after code begins should include `/hospitals`, `/pricing`, the hospital detail modal, mobile hospital view and mobile pricing view. Database and Edge verification must stay read-only until a separate implementation pass explicitly authorizes receiver testing.
+
 ## Implementation Packages
 
 ### 1. Facility Read Owner
