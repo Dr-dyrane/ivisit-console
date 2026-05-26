@@ -19,6 +19,7 @@ Console files inspected:
 - `frontend/src/components/map/MarkerDetailPanel.jsx`
 - `frontend/src/components/context/PricingContextPanel.jsx`
 - `frontend/src/components/views/PricingTableView.jsx`
+- `frontend/src/components/mobile/MobileHospitals.jsx`
 - `frontend/src/components/mobile/MobilePricing.jsx`
 - `frontend/src/services/hospitalsService.js`
 - `frontend/src/services/hospitalImportService.js`
@@ -76,6 +77,8 @@ Observed source signals:
 - Live app code applies billing quote maps in hospital-detail service/room rails, while the current app billing plan still carries hospital-browsing price cards as pending; Pass 3 must prove coverage surface by surface rather than assume every facility price display is quoted.
 - The Console map route reads hospital markers through `MapContext`/`supabaseMapService`, falls back from nearby lookup to an unbounded available-hospitals query, and renders hospital available-bed values in marker detail/mobile map surfaces.
 - The Console analytics route performs an exact hospital count but calculates bed/ICU capacity by reducing returned hospital rows, so a response ceiling can preserve a truthful facility count while still truncating capacity totals.
+- `MobileHospitals.jsx:95-104,192-216` falls back from absent statistics to its supplied hospital rows for facility, available-bed and fleet totals, then labels fallback/derived measures as `LIVE`. The mobile facility view can reproduce the same incomplete-capacity claim even when the desktop route is later paged correctly.
+- `MobilePricing.jsx:53-104,125-203` calculates average price, global/override counts and time-window trend ratios from the locally supplied `allPricing` collection and labels unproved values `LIVE`. A mobile scope summary is not price-rule completeness or patient-quote truth.
 - Dashboard variants expose hospital and bed claims derived from analytics/context state, including an `activeHospitals || 8` fallback and a bed estimate derived from available ambulances rather than hospital capacity truth.
 - Organization onboarding searches and creates records in `hospitals`, and the verification queue updates `hospitals.verification_status`/`verified`; because dispatch eligibility derives from facility verification state, an identity/onboarding action can alter patient-visible facility eligibility unless the contract is separated.
 - Global QuickSearch reads hospital identity/type/address separately from the facility projection and its result subtitle contains corrupted separator bytes in current source; facility discovery is therefore also a shell-visible read-quality concern.
@@ -114,14 +117,14 @@ This table is the first application of the Stage 5 surface-first closure protoco
 
 | Surface and current actor signal | Rendered/read promise | Proven source or exposure defect | Visible operation promise | CRUD/command authority disposition |
 | --- | --- | --- | --- | --- |
-| `/hospitals` grid/list/table/mobile; route permits `org_admin` and above while the context panel advertises admin/org-admin management. | Facility identity, address/image, verification/status, beds/ICU, fleet, ER wait and rating; table/page count. | Rows are page-windowed, but page filters/KPI selection/table sort do not govern retrieval/rendered rows; read scope and role contract still need one facility projection. | View, edit, delete and scheduling controls are rendered across variants. | Read remains open for role/source closure; edit/delete/schedule require field-by-field command/RLS proof before retained. |
+| `/hospitals` grid/list/table/mobile; route permits `org_admin` and above while the context panel advertises admin/org-admin management. | Facility identity, address/image, verification/status, beds/ICU, fleet, ER wait and rating; table/page count. Mobile also renders operational KPI and trend panels. | Rows are page-windowed, but page filters/KPI selection/table sort do not govern retrieval/rendered rows; mobile falls back to row reductions for total/available beds/fleet and labels the result `LIVE`. Read scope and role contract still need one facility projection. | View, edit, delete and scheduling controls are rendered across variants. | Read remains open for role/source closure; mobile capacity metrics require scoped aggregates or unavailable state; edit/delete/schedule require field-by-field command/RLS proof before retained. |
 | Hospital KPI cards and `HospitalsPanel`; available wherever the hospital route context is mounted. | Network total, available/full facilities, total beds, total ambulances and recent hospitals. Panel labels total as `Active` and available as `Nearby`. | `PageDataContext` derives claims from unbounded `getHospitals()`; 1000 returned rows can masquerade as full network truth. `Nearby` is a label mismatch unless proximity is supplied. | Panel Add opens create modal; Analytics opens stats modal; Filter dispatches page event; Contact is disabled. | Replace summary source with scoped aggregates and correct labels; keep create/analytics/filter only after role and receiver closure. |
 | `HospitalModal` view mode reached from facility row. | Full facility metadata plus active reservations and bed-utilization context, including request/patient-linked bed evidence. | Detail independently loads bed data/realtime; exposure of reservation/clinical context needs explicit operational role authorization and consistent capacity semantics. Existing contract evidence shows occupied/reserved math drift. | View-only surface still supplies entry context for schedule and subsequent edit flows. | Detail read projection must declare permitted actors and minimum clinical exposure before use as authoritative facility detail. |
 | `HospitalModal` create/edit mode and page save handlers; header create currently admin/org-admin. | Form captures metadata, image, status/verification, beds, ICU, fleet count, ER wait, coordinates/place identity and discovery-selected values. | Existing contract evidence proves ER wait can be silently ignored by `update_hospital_by_admin`, taxonomy/eligibility/media provenance fields required by the app are omitted, and raw discovery contract is drifted. | Create/edit facility, upload image, search/select discovered hospital/provider. | Split metadata from operational availability; prove create/update/Storage/discovery authority; disable or remove unsupported fields until receiver persists their meaning. |
 | Row and bulk destructive controls across responsive variants. | Selection implies a manageable facility record set. | Role checks are not uniform: grid gates row edit/delete to admin/org-admin, `HospitalTableView` includes provider in `canManage`, and bulk-delete buttons check admin/provider rather than org-admin. | Delete one or multiple facilities. | No destructive action is ready until route/component role doctrine and audited delete receiver/auditability are aligned. |
 | Facility scheduling entry point. | Facility is selectable as context for staff scheduling. | Pass 5 evidence is required because existing scheduling service does not yet establish persisted ambulance-shift authority and doctor schedule ownership is separate. | Open/manage schedule from hospital card or mobile action. | Retain as cross-pass dependency only after Pass 5 defines authorized stored schedule commands; do not imply facility CRUD owns schedules. |
 | `HospitalModal` active reservation and utilization region; visible from facility detail to permitted facility operators. | Bed request rows expose patient/request context, bed number/category, reservation state and occupied/reserved utilization against facility totals. | `bedManagementService` joins request and hospital rows in the client; utilization counts completed requests as occupied while the modal also renders scalar-bed math. Room-price/capacity-bucket linkage is unproved. | Cancel reservation, mark arrived and discharge. | `updateReservationStatus(..., 'arrived')` and discharge route through guarded emergency commands; Cancel calls nonexistent `cancelReservation()` instead of exposed `cancelBedReservation()`. This operational surface is blocked until command wiring, role exposure and capacity semantics align. |
-| `/pricing` desktop table/list and mobile pricing surface; route permits `org_admin` and above. | Service and room pricing rules, global/override classification, dollar amounts, units, average price, filters, totals and pagination. | `getPricing()` reads all facility mappings and all price rows then filters/slices in the client. Classification treats a hospital-scoped row as an organization override, while patient price resolution is explicitly hospital-scoped and may use global fallback. Display is raw USD while patient hospital detail uses billing quote maps. | View, add, edit, delete and bulk delete service or room pricing rows. | Read is neither server-paged nor patient-quote equivalent. CRUD is blocked on explicit facility scope, receiver/RLS proof, currency-display doctrine and deletion authority. |
+| `/pricing` desktop table/list and mobile pricing surface; route permits `org_admin` and above. | Service and room pricing rules, global/override classification, dollar amounts, units, average price, filters, totals and pagination. Mobile renders local scope ratios and trend language. | `getPricing()` reads all facility mappings and all price rows then filters/slices in the client. Mobile further reduces `allPricing` for averages/global/override time-window trends and labels values `LIVE`. Classification treats a hospital-scoped row as an organization override, while patient price resolution is explicitly hospital-scoped and may use global fallback. Display is raw USD while patient hospital detail uses billing quote maps. | View, add, edit, delete and bulk delete service or room pricing rows. | Read is neither server-paged nor patient-quote equivalent. Mobile metrics require an explicit scoped price-rule aggregate basis; CRUD is blocked on facility scope, receiver/RLS proof, currency-display doctrine and deletion authority. |
 | `/pricing` create/edit dialog; `org_admin` copy promises a local organization override. | Name, type, unit, description and USD economic value for either a service or room rule. | The form has no hospital selector. `saveServicePricing()` and `saveRoomPricing()` translate `organization_id` into the earliest-created hospital, so the rendered organization promise can silently alter only one facility consumed by the app. | Apply changes through pricing upsert RPCs. | Do not retain the organization-override promise or allow save until the selected facility or a deliberate propagation command is explicit and auditable. |
 | `PricingContextPanel` and shared navigation action on `/pricing`. | Scope distribution and blended average values described as global standard rates and organization-specific overrides. | The panel receives globally/bootstrap-loaded service and room collections and repeats the same scope error; the average blends dissimilar service and room amounts without patient quote/currency context. Shared action wiring presents wallet `Top Up` while on a pricing route. | Add Item, Reports, Execute Bulk Sync and Top Up. | Add Item has a mounted receiver; Reports dispatches an event not listened to by `PricingManagementPage`; Bulk Sync has no handler; Top Up is a Pass 2 wallet command and must not imply pricing authority. Keep only proved actions and truthful scoped aggregates. |
 | Provider taxonomy, discovery/import history and public media provenance required by app hospital browsing. | The patient product renders provider identity, eligibility-dependent selection, imported/unverified warning state and stable image choices. | `HospitalModal` imports `hospitalImportService` but autocomplete performs a raw Edge fetch; the service has import/approve/reject/assign/log capabilities without found rendered consumers. No rendered management surface for the facility `providers` table, `hospital_media`, or `hospital_import_logs` was found. Base `hospitals.image` editing is not provenance ownership. | Correct provider type/eligibility, approve or reject import, inspect provenance, and select public media should be operator capabilities. | Missing surface, not optional scope. Do not call the lane implemented until these backend-supported tables/actions have explicit Console read and command owners. |
@@ -215,6 +218,156 @@ Generated trace confirmation (May 25): `providers` and `hospital_media` now have
 
 Storage evidence confirmation (May 25): current App/Console migration and maintained docs sources contain no active `storage.objects`/bucket policy authority; only archived legacy SQL mentions an `images` policy. The current `storageService` public-URL assumption cannot authorize facility media changes, so this pass remains blocked on read-only deployed Storage proof and `hospital_media` provenance ownership.
 
+## Exact Facility, Pricing, And Receiver Exhibits
+
+These are the code anchors for the next implementation handoff. They identify where the live Console currently changes meaning between facility source truth, UI render, payload and downstream app consequence.
+
+| Exhibit | Current code location | Contract implication |
+| --- | --- | --- |
+| Hospitals route paged row read | `frontend/src/components/pages/HospitalsPage.jsx:70-99` reads either one URL-selected facility or a paged `getHospitals({ limit, offset, count })` window. | Keep page rows windowed, but move filter, KPI and sort into the read owner before claiming the page controls are authoritative. |
+| Hospitals route global realtime owner | `HospitalsPage.jsx:103-117` subscribes to all `hospitals` changes and refetches the route. | Realtime should invalidate the facility query owner; page-level all-table subscriptions are a temporary source of duplicate refresh and scope drift. |
+| Hospitals route context dependency | `HospitalsPage.jsx:37-40` consumes `usePageData().hospitalsData` while route rows come from `getHospitals()`. | Summary/KPI and route row truth must share one facility projection, or the UI can display contradictory totals/rows. |
+| Hospital create/update payload allowlist | `frontend/src/services/hospitalsService.js:11-48` omits app-visible `provider_type`, `provider_source`, `emergency_eligible`, `dispatch_eligible`, `booking_eligible`, `hospital_media`, and provenance fields. | Base hospital save cannot be treated as full patient-visible provider catalog management. |
+| Hospital read service paging | `hospitalsService.js:179-214` supports limit/offset but only status, verified, verification status and specialty filters. | Search, KPI and sort state from the page need explicit query contract before implementation. |
+| Display-id enrichment bug risk | `hospitalsService.js:207-214` maps display IDs using hospital ids while comment says `ORG-XXXXXX`. | Facility identity projection must distinguish `HSP-` display id, organization id and any org display id. |
+| Hospital metadata update receiver | `hospitalsService.js:286-300` calls `update_hospital_by_admin`. | This is an admin metadata receiver, not proof that availability, wait, media or app catalog fields are persisted with patient-visible semantics. |
+| Direct capacity updates | `hospitalsService.js:362-406` updates `available_beds` and `status` directly on `hospitals`. | Operational capacity/status should route through the availability receiver that preserves bed JSON, status normalization and app-visible availability side effects. |
+| Hospital detail discovery raw fetch | `frontend/src/components/modals/HospitalModal.jsx:156-184` calls `/functions/v1/discover-hospitals` with anon key and expects `data.hospitals`. | Discovery must use one service receiver contract and response shape; raw modal fetch bypasses import provenance/fallback handling. |
+| Hospital image upload | `HospitalModal.jsx:130-145` uploads to a generic `hospitals` path and writes `image`. | Facility media changes remain blocked until Storage policy and `hospital_media` role/source/status/primary ownership are proved. |
+| Reservation command receiver mismatch | `HospitalModal.jsx:721-745` renders Cancel, Arrived and Discharge actions; Cancel calls `bedManagementService.cancelReservation(...)`, while `bedManagementService.js:121-159` exposes `dischargePatient(...)` and `cancelBedReservation(...)` and has no `cancelReservation` method. | The visible cancel action is broken before authorization is even considered; rewire only through the request-owned guarded cancellation command after role/exposure/capacity reflection is proved. |
+| Pricing route all-row load | `frontend/src/components/pages/PricingManagementPage.jsx:68-83` calls `getPricing()` and sets total count to loaded array length. | Pricing reads are not server-paged; totals and filters are client-window semantics over whatever the service returned. |
+| Pricing modal save payload | `PricingManagementPage.jsx:106-132` submits org id but no selected hospital id. | Org-admin pricing save cannot honestly mean "organization override" when the service resolves to one facility. |
+| Pricing client filters and paging | `PricingManagementPage.jsx:170-213` filters/searches/slices in memory and mutates total count inside `useMemo`. | Server-owned search/filter/page/count is required before pricing list totals can be trusted. |
+| Pricing footer mojibake | `PricingManagementPage.jsx:241-244` renders a corrupted separator between page and rule count. | Encoding gate must be run on pricing files before any implementation commit touching this surface. |
+| Pricing service broad joins | `frontend/src/services/pricingService.js:9-23` loads all hospitals and all service/room rows before mapping `organization_id`. | Replace with scoped facility pricing projection; broad joins are not acceptable for multi-hospital org truth. |
+| Pricing first-hospital write | `pricingService.js:33-50` resolves an org pricing item to the earliest-created hospital when `hospital_id` is absent. | This is the core blocker: no implementation may keep organization-wide copy while writing one hospital row. |
+| Pricing RPC payload | `pricingService.js:52-99` sends `hospital_id`, service/room fields and description to upsert RPCs. | The actual receiver is hospital-scoped. UI must expose hospital selection or disable org-wide save until a propagation receiver exists. |
+| Import service Edge receiver | `frontend/src/services/hospitalImportService.js:18-35` invokes `discover-hospitals` with merge/import options. | This is closer to the desired owner than the modal raw fetch, but its response/provenance must be matched to the shared app-owned Edge source. |
+| Import fallback | `hospitalImportService.js:74-89` falls back to `nearby_hospitals` and returns no new imports. | Fallback results must be labelled existing/read-only, not import success. |
+| Import direct approval writes | `hospitalImportService.js:148-186` approves/rejects by direct `hospitals` update. | Approval is a workflow command that affects verification/dispatch eligibility; direct table update needs receiver/authorization proof or must be moved. |
+| Import assignment drift | `hospitalImportService.js:192-205` writes `org_admin_id`, while current schema/role doctrine centers organization ownership. | Assignment semantics need Pass 4 identity alignment; `org_admin_id` cannot be assumed canonical facility ownership. |
+| Import log read | `hospitalImportService.js:266-285` reads `hospital_import_logs` and returns empty if relation is missing. | Missing log table/scope should produce an unavailable provenance state, not silent proof that there were no imports. |
+| Global pricing realtime | `frontend/src/contexts/PageDataContext.jsx:753-765` subscribes to `service_pricing` and `room_pricing` globally. | Pricing route should own pricing invalidation through its read owner; global domain realtime stays a Pass 8 cleanup dependency. |
+
+## Facility Projection Boundary Target
+
+The first implementation slice should define a facility projection service/query boundary, not a new broad context. Minimum target shape:
+
+```ts
+type FacilityProjection = {
+  actor: { userId: string; role: string; organizationId: string | null };
+  query: {
+    page: number;
+    pageSize: number;
+    filters: Record<string, unknown>;
+    sort: { key: string; direction: 'asc' | 'desc' };
+  };
+  rows: FacilityRow[];
+  totalCount: number | null;
+  aggregate: {
+    totalFacilities: number | null;
+    availableFacilities: number | null;
+    totalBeds: number | null;
+    availableBeds: number | null;
+    icuBedsAvailable: number | null;
+    basis: 'server_aggregate' | 'current_page' | 'unavailable';
+  };
+  detail?: {
+    hospitalId: string;
+    displayId: string | null;
+    organizationId: string | null;
+    metadata: FacilityMetadata;
+    eligibility: {
+      verified: boolean;
+      verificationStatus: string | null;
+      emergencyEligible: boolean | null;
+      dispatchEligible: boolean | null;
+      bookingEligible: boolean | null;
+      status: string | null;
+    };
+    availability: {
+      totalBeds: number | null;
+      availableBeds: number | null;
+      icuBedsAvailable: number | null;
+      bedAvailability: Record<string, unknown> | null;
+      waitMinutes: number | null;
+      lastAvailabilityUpdate: string | null;
+      stale: boolean;
+    };
+    media: {
+      primaryUrl: string | null;
+      source: 'hospital_media' | 'legacy_image' | 'external' | 'missing';
+      provenanceState: 'ready' | 'unproved_storage' | 'missing_owner';
+    };
+    providerCatalog: {
+      providerType: string | null;
+      providerSource: string | null;
+      confidence: number | null;
+      managedByConsole: boolean;
+    };
+  };
+  states: {
+    loading: boolean;
+    refreshing: boolean;
+    unauthorized: boolean;
+    degraded: boolean;
+    missingCapabilities: string[];
+  };
+};
+```
+
+All route, panel, map and search consumers should either consume this projection or deliberately consume a smaller projection from the same owner:
+
+- `/hospitals` desktop/mobile/list/table.
+- `HospitalsPanel` and any `PageDataContext` hospital summary.
+- `HospitalModal` view/detail/edit bootstrap.
+- Map marker/detail hospital fields.
+- Analytics/dashboard facility aggregates.
+- QuickSearch hospital results.
+- Pricing read owner where facility identity is needed.
+
+## Pricing Projection Boundary Target
+
+Pricing implementation must be facility-scoped first. A safe target contract:
+
+```ts
+type PricingProjection = {
+  actor: { role: string; organizationId: string | null };
+  scope: {
+    mode: 'platform_default' | 'facility' | 'organization_summary';
+    hospitalId: string | null;
+    organizationId: string | null;
+    editable: boolean;
+    reason?: string;
+  };
+  rows: Array<{
+    id: string;
+    family: 'service' | 'room';
+    hospitalId: string | null;
+    organizationId: string | null;
+    sourceLabel: 'platform fallback' | 'facility price' | 'organization summary';
+    name: string;
+    type: string;
+    amount: number;
+    currency: 'USD';
+    active: boolean | null;
+    updatedAt: string | null;
+  }>;
+  totalCount: number | null;
+  summary: {
+    globalFallbackCount: number;
+    facilityPriceCount: number;
+    averageAmount: number | null;
+    basis: 'server_projection' | 'current_filter' | 'unavailable';
+  };
+};
+```
+
+Implementation must not retain the current first-hospital write behavior under organization-wide language. The first executable slice is either:
+
+- add explicit hospital selection for pricing create/edit and save only facility-scoped rows, or
+- disable org-admin pricing save with clear unavailable copy until a deliberate organization propagation receiver exists.
+
 ## Implementation Packages
 
 ### 1. Facility Read Owner
@@ -251,6 +404,7 @@ Acceptance gate:
 
 - Patient-app bed search and console facility detail see the same availability meaning.
 - UI labels fallback capacity as stale/degraded instead of confident.
+- Reservation controls use named request-owned lifecycle receivers; a facility detail modal cannot ship a Cancel button that calls a missing method.
 
 ### 3. Discovery And Import
 

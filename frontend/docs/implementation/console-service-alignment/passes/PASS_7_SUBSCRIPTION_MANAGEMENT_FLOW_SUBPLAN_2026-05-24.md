@@ -94,6 +94,7 @@ Operator path:
 | Email receiver deployment topology | Console calls top-level welcome/custom/bulk slugs and may rely on a batch worker, while inspected sources are nested below a category folder without deployable-slug proof. | One deployed-function inventory proving slug, auth, idempotency, durable writes, failure response and scheduling for every email command/worker before enabling lifecycle claims. |
 | Subscriber KPI semantics | Mobile and context surfaces call `type = paid` conversion, premium, monetization, and revenue dynamics without a billing receiver. | Label as subscriber tier/mix only, or join an authorized subscription-payment outcome projection. |
 | Variant action parity | Desktop variants always expose edit/delete; mobile conditionally exposes the same unsupported actions. | One operation capability map shared by every variant, based on proven command authority. |
+| Bulk delete false success | Route bulk-delete confirmation emits a success toast and clears selection while its handler contains only a placeholder comment. | Keep bulk delete unavailable until a policy-backed lifecycle/delete command returns per-row outcome and refreshed list truth. |
 | Mounted read ownership | Multiple shell/page consumers mount `useSubscription`, each full-fetching/subscribing to the same global list; hidden FAB/bottom-bar components do so on all viewports/routes. | One authorized route projection and action-owned command loading; no hidden shell mount may read or subscribe to the global email list. |
 
 ## Action Class And Receiver Map
@@ -103,6 +104,7 @@ Operator path:
 | Public subscribe | Authorized create | `subscribers` public insert policy | Preserve idempotent signup/result behavior. |
 | Admin view/export list | Scoped read projection | `subscribers` admin read policy | Protect scope and exported data. |
 | Edit/delete/unsubscribe subscriber | Missing lifecycle command | Current source does not prove browser update/delete management | Do not implement as direct CRUD from existing services. |
+| Bulk delete selected subscribers | Destructive command, currently unsupported | No receiver is invoked by the route bulk-action handler | Disable/remove; never toast deletion or clear selection as completion without an authorized durable result. |
 | Send welcome email | Workflow command | Email function and persisted delivery/lifecycle state | One owner; no duplicate send or success before durable outcome. |
 | Send custom/bulk email | Workflow command | Authorized campaign/send boundary | Add explicit pending/result/audit state before enabling broad sends. |
 | Follow email unsubscribe link | Workflow command | Verified deployed unsubscribe Edge endpoint and subscriber lifecycle writer | Do not ship templates that promise unsubscribe until the linked endpoint and durable `unsubscribed` projection are proven together. |
@@ -130,6 +132,7 @@ Operator path:
 | Unsubscribe link | Subscriber id/email token, verified endpoint URL, unsubscribe result, timestamp | Template link generation must prove deployed receiver and durable state update. | Public email lifecycle matches console subscriber status. |
 | Broadcast/custom email action | Audience scope, selected ids/query, template/body, actor, queued/result/audit state | Keep disabled until one mounted auditable command receiver exists. | Console cannot claim campaign delivery from a dead button. |
 | Export action | Admin scope, selected filters, exported fields, row count, timestamp | Export must use the same authorized projection and avoid hidden broader reads. | Email exports do not leak outside the intended admin surface. |
+| Bulk delete action | Admin scope, selected ids, lifecycle eligibility, per-row receiver results, audit state and refreshed counts | Current placeholder handler remains disabled/unavailable; no ordinary delete until RLS/RPC command authority is proved. | Subscriber lifecycle cannot be falsely removed while sends/unsubscribe eligibility still depend on the row. |
 | Subscriber analytics | Count source, bounded/unbounded state, status/type grouping, time window | Revenue/conversion labels require billing/subscription outcome source; otherwise remove. | Sponsor/dashboard copy does not overstate paid or premium traction from subscriber type. |
 | Realtime subscriber update | Channel owner, invalidated query key, admin scope, cleanup state | Retain one subscription facade and one invalidation owner. | Console lists update without duplicate broad realtime reads. |
 | Global shell subscriber preview | Route, role, opened command, visible surface id | Hidden global action containers must not mount admin-only subscriber hooks. | Subscriber emails do not leak into non-subscription routes or unauthorized shells. |
@@ -141,6 +144,7 @@ Implementation rule: the first slice may narrow the subscriber projection, remov
 | Surface | Reads and renders today | Mutations or commands exposed today | Authority/data-flow finding | Required implementation disposition |
 | --- | --- | --- | --- | --- |
 | `/subscriptions` route, grid view | Full `subscribers` collection, email, type, status, dates, welcome flag; filters and slices locally. | Create, edit, hard delete, analytics, selection. | Admin route is aligned, but list is unwindowed and edit/delete lack policy-backed command authority. | Replace with paged admin projection; retain row create only until lifecycle receivers authorize additional operations. |
+| `/subscriptions` bulk delete action | Selected subscriber rows from the page-sliced directory. | Confirmation callback contains placeholder deletion code, then reports successful deletion and clears selection. | This is an active false-success destructive control with no receiver. | Disable/remove until lifecycle-aware authorized batch deletion and reflected list/count outcomes exist. |
 | `SubscriptionListView` and `SubscriptionTableView` | Same page-sliced row projection including email and welcome state. | Page passes edit/delete callbacks unconditionally. | Variant components make unsupported management look operational. | Consume one capability map and omit unavailable commands. |
 | `MobileSubscriptions` | Growing slice of loaded collection; email and welcome state; local counts/trends. | View and admin-gated edit/delete. | Loaded-window metrics are described as live conversion/revenue and management still targets unproved writes. | Display bounded registry truth only; remove revenue claims and unauthorized commands. |
 | `SubscriptionsPanel` in `ContextPanel` | Global counts and first four raw subscriber email addresses. | Create and analytics events have page receivers; Broadcast event does not. | Sensitive global data is duplicated in shell context and one primary command is dead. | Keep admin-only, use shared projection, disable Broadcast until a receiver is mounted. |
@@ -174,6 +178,23 @@ Implementation rule: the first slice may narrow the subscriber projection, remov
 | Duplicate subscribers service | Yes | N/A | Yes | Yes | Retire from active surface after import proof |
 | Welcome/custom/bulk receiver path | Yes | Yes | Yes | Yes | Blocked by welcome durable-state split and campaign auditability |
 | Policy/table/test authority | Yes | N/A | Yes | Yes | Public insert/admin read proven only |
+
+## Exact Subscriber And Email Flow Exhibits
+
+These line exhibits define the next implementation edge: subscriber rows are marketing/contact truth, not billing, patient, or entitlement truth.
+
+| Exhibit | Code anchor | Current contract break | Implementation target |
+| --- | --- | --- | --- |
+| Route-local list truth | `frontend/src/components/pages/SubscriptionManagementPage.jsx:103-172,420-423` | Search, filters and KPI totals are derived from the hook's loaded collection, not from a paged admin projection. | Build a paged subscriber read owner with total/count/filter metadata and explicit unavailable/unauthorized states. |
+| Direct edit/delete exposure | `frontend/src/components/pages/SubscriptionManagementPage.jsx:203-221,243-256,774-792,808-824` | Edit and delete are wired through route/list/table variants even though the proved table contract is public insert plus admin read. | Keep create/read; disable edit/delete/status/type until an authorized lifecycle command exists. |
+| Bulk delete false success | `frontend/src/components/pages/SubscriptionManagementPage.jsx:912-929` | The confirmation action reports selected-row deletion and clears selection while no durable receiver is documented. | Disable/remove until a lifecycle-aware batch receiver returns per-row result and refreshed counts. |
+| Mobile paid/revenue semantics | `frontend/src/components/mobile/MobileSubscriptions.jsx:53-78,101-124,170-173,251-277` | `type = paid` becomes paid conversion, monetization and revenue-style copy without payment or entitlement evidence. | Rename to subscriber tier/mix or join a proved billing/subscription outcome projection. |
+| Context-panel raw email exposure | `frontend/src/components/context/SubscriptionsPanel.jsx:32-35,74-126` | The shell panel exposes raw subscriber emails and premium counts outside the route-specific read owner. | Restrict to platform-admin context, consume the same bounded projection, and disable Broadcast until receiver mounted. |
+| Hook over-capability | `frontend/src/hooks/useSubscription.js:40-70,81-147,176-181` | One hook exposes create, update, delete, status/type, welcome and realtime while every mount full-fetches/subscribes. | Split read projection from explicit email/lifecycle commands; one realtime invalidation owner only. |
+| Service duplicate ownership | `frontend/src/services/subscriptionService.js:58-100,154-205,224-282,362-380` and `frontend/src/services/subscribersService.js:45-64,109-165,202-206` | Two services own the same table and broad realtime/mutation behavior. | Keep one active facade and retire duplicate paths after import proof. |
+| Welcome lifecycle split | `frontend/src/services/subscriptionService.js:270-299,409-429` | Manual welcome send checks and marks one path, while the worker contract separately depends on `welcome_email_sent`. | One idempotent send command writes the durable lifecycle field used by every sender. |
+| Direct email/bulk commands | `frontend/src/components/modals/SubscriptionModal.jsx:174-227,426-572,649-805` | Modal commands can send welcome/custom/bulk email from UI state without a unified campaign result/audit projection. | Add queued/sent/failed per-recipient command state before broad sends are enabled. |
+| Unsubscribe endpoint promise | `frontend/src/emails/ivisit106Campaign.js` and `frontend/supabase/functions/payments/sendWelcome/index.ts` | Templates promise an unsubscribe URL, but source topology places handlers under nested function folders and webhook source. | Prove deployed slug, auth/privacy, idempotent unsubscribe writer and send-eligibility exclusion before shipping the link as implemented. |
 
 ## Cross-Pass Subscription Register
 

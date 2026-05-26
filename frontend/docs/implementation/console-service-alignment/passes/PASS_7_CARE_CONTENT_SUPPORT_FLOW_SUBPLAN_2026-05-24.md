@@ -12,6 +12,7 @@ Console files inspected:
 
 - `frontend/src/components/pages/HealthNewsManagementPage.jsx`
 - `frontend/src/components/modals/HealthNewsModal.jsx`
+- `frontend/src/components/modals/BulkImportModal.jsx`
 - `frontend/src/components/context/HealthNewsPanel.jsx`
 - `frontend/src/components/mobile/MobileHealthNews.jsx`
 - `frontend/src/components/pages/SupportTicketsPage.jsx`
@@ -67,6 +68,7 @@ Observed source and contract signals:
 
 - Health news UI captures authoring fields that the service/live table does not persist.
 - Health news draft/write policy is not proven by current RLS source.
+- `BulkImportModal` and `useHealthNews.bulkImport()` expose a CSV/template and multi-row health-news import capability in source, but the modal is only barrel-exported and no mounted route consumer was found. It is dormant capability, not an authorized authoring surface.
 - Support tickets page/hook/service expose admin/org/provider operations, while current policy evidence supports owner/admin, not every rendered role.
 - Patient app support insert expects `admin_response`, but the live selectable console table shape did not expose that field in the contract exhibit.
 - `supportFaqsService.js` is full CRUD/realtime but no direct UI route was found in the source scan.
@@ -84,9 +86,14 @@ Observed source and contract signals:
 - `insuranceService.getInsurancePolicies()` returns `[]` for both provider denial and query failure, includes an org-admin all-policy assumption without an organization key, and its analytics query is unscoped. `useInsurance` also imports a second subscription alias from `insurancePoliciesService`, confirming overlapping ownership.
 - Insurance detail/modal surfaces display and mutate policy status, verification and private card images, while no mounted Console surface reads trigger-created `insurance_billing` outcomes or links those outcomes back to visits/emergency completion.
 - `SupportTicketsPage` fetches ticket lists without passing a page limit/range, does not place search into `supportTicketsService`, and slices the returned list only for mobile display; its footer pagination total is not set by the route.
+- `MobileSupportTickets.jsx:56-66,90-111,132-208` falls back to loaded tickets for status counts and locally computes queue/resolution trend panels labelled `LIVE`; this is not complete support-queue performance.
+- `MobileHealthNews.jsx:56-67,100-136,159-234` falls back to loaded articles for total, draft, medical and recent content counts and renders `LIVE` trend panels; a visible content page window is not publication-system analytics.
+- `HealthNewsModal.jsx:314-323` opens the persisted `formData.url` directly in a new browser tab for `Visit Source`; `ivisit-app/hooks/search/useSearchScreenModel.js:169-176` opens the same health-news URL for patients. The Console news URL is a patient-facing external-navigation payload and needs scheme/provenance/safe-open rules before publication is trustworthy.
 - `SupportTicketsPage.handleView` sets modal mode to `edit`, so a read/detail action opens editable status/message/category/priority inputs. List/table variants also pass `isAdmin` as a function object into components that test it as a boolean, exposing edit/delete controls to every role reaching those variants.
 - `SupportTicketsPanel` independently reads the latest three tickets directly from Supabase and mounts its own broad realtime channel alongside hook and page/global data paths.
+- `InsurancePanel`, `SupportTicketsPanel` and `HealthNewsPanel` each render an `Export` control marked `disabled` and titled `Export (Coming Soon)`. These are visible unavailable operations over sensitive policy, ticket or content projections; they are not evidence of an implemented export receiver.
 - `AppShell` always renders `ContextAwareFAB` and `DynamicBottomBar`; both call `useInsurance()` and `useSupportTickets()` before their viewport-based early return. Because both hooks fetch on mount and subscribe, sensitive insurance policy reads and unpaged support-ticket reads/channels can execute twice on every route even when neither care surface nor command modal is open.
+- `useInsurance` and `useSupportTickets` log realtime payload objects to the browser console; combined with route-independent shell mounting, protected care updates can be disclosed even when no care surface is open.
 - `supportTicketsService` permits direct create/update/delete/status/assignment calls and converts read errors into empty results. It does not project a staff response field, despite the required patient/Console response reconciliation already identified.
 - Runtime sources for insurance, support and health news contain pre-existing corrupted punctuation/icon bytes. They remain implementation findings; this document uses ASCII only.
 
@@ -115,6 +122,8 @@ Operator/support/content path:
 | Insurance billing outcomes | Trigger-backed billing rows exist with scoped read authority; no Console view/action owner exists. | Scoped billing outcome projection plus separately authorized exception workflow. |
 | Insurance images | Insurance service uploads directly. | Private insurance-evidence Storage owner with policy/path/expiry/cleanup proof before implementation. |
 | Health news authoring | UI fields are silently discarded by service/table shape. | Curated published-feed owner; unsupported CMS fields/actions remain unavailable until receiver/policy expansion. |
+| Published health-news source link | Console permits source URL entry and directly opens it; patient discovery opens persisted health-news URLs. | Validated external-link projection with accepted scheme/source provenance and safe browser/app handoff; do not publish arbitrary or malformed navigation payloads. |
+| Health news bulk import/template | A source-present modal and hook can accept/download CSV data and invoke multi-row import, but no mounted surface or write authority is proved. | Keep dormant and excluded until the same published-feed/write policy and audit receiver govern import. |
 | Notifications | Operator notifications aligned; patient delete policy drift remains. | Notification owner split: console operator stream versus patient notification lifecycle. |
 | Browser-side schema/diagnostic utilities | `runMigrations.js` can call `exec_sql`; `testDatabase.js` queries domain tables outside service owners. | Maintenance-only boundary excluded from product flows; retire if unused after import proof. |
 | Content and insurance route promise | Navigation/panel role promises disagree with live route and with unproved management authority. | Align visibility with supported read/command authority; do not advertise unavailable management surfaces. |
@@ -122,6 +131,8 @@ Operator/support/content path:
 | Insurance edit receiver | Modal edit callback signature does not match page save handler, so intended policy field updates can be discarded. | One typed policy command boundary and tested create/edit/verify receiver contract before any management UI remains active. |
 | Support read versus edit | View action opens editable modal, and list/table role tests use a function object as authorization. | Separate read detail from command mode and evaluate capability before rendering every command variant. |
 | Global support/insurance projections | Context panels use independent reads/stats/events outside route ownership. | One scoped projection/invalidation owner consumed by route, mobile and context panel surfaces. |
+| Care/content export affordances | Insurance, support and health-news panels display disabled `Export (Coming Soon)` controls without an export dataset or receiver. | Keep explicitly unavailable until each domain defines authorized fields, scope, paging/completeness and delivery receiver; do not promote placeholder controls into apparent capability. |
+| Care/content bulk delete controls | Health-news, insurance and support routes each render Delete Selected confirmation and then toast successful deletion while the handler contains only a placeholder comment. | Treat bulk deletion as unavailable; disable or remove until an authorized bulk/destructive receiver returns per-row outcome and refreshed list truth. |
 | Hidden global command mounts | Desktop FAB and mobile bottom-bar containers mount insurance/support hooks before deciding they are hidden. | Action-owned command dependencies only; no route-independent sensitive list acquisition from shell controls. |
 
 ## Action Class And Receiver Map
@@ -132,6 +143,7 @@ Operator/support/content path:
 | Respond/assign ticket | Workflow/field contract repair | Supported response and assignment receiver still needs reconciliation | Do not claim response persistence while app/Console field contract differs. |
 | View FAQs | Scoped read projection | `support_faqs` public read | Patient app remains consumer; Console authoring stays dormant. |
 | Create/edit/publish health content | Excluded pending receiver | `health_news` currently published-read only | Remove or disable authoring promise until fields and policy exist. |
+| Import health-content rows or download import template | Dormant/excluded capability | `BulkImportModal` and `bulkImportHealthNews` have no mounted authorized receiver | Do not mount or treat the CSV template/import path as implemented until content write and provenance authority exists. |
 | View/manage insurance policy | Patient CRUD or missing admin command | `insurance_policies` owner policy | Administrative verify/CRUD needs guarded authority first. |
 | View insurance billing outcome | Backend-derived/scoped read evidence | `insurance_billing` trigger-created result | Add hospital/admin result visibility; do not recreate settlement from UI. |
 | Upload insurance card evidence | Sensitive storage command | Private object ownership and signed URL strategy | Verify Storage policy/object-path lifecycle before implementation. |
@@ -141,6 +153,8 @@ Operator/support/content path:
 | Open support ticket details | Scoped read projection | Ticket owner/admin projection | Details must be genuinely read-only unless actor has the proved command capability. |
 | Assign/update/delete support ticket | Conditional workflow/destructive command | Current source proves owner/admin operations only | Remove provider/org-admin management promises until RLS/RPC contract proves them. |
 | Load insurance/support data for a global action button | Excluded shell acquisition | No read is needed until an authorized care surface or opened command requires it | Do not mount full read/realtime hooks merely to retain command callbacks in hidden FAB/bottom-bar containers. |
+| Export insurance, ticket or content panel data | Unavailable operation until proven | No mounted export receiver or declared dataset found; current controls are disabled placeholders | Preserve disabled/unavailable state or remove the affordance until role scope, fields, completeness and secure export delivery are specified. |
+| Bulk delete selected insurance policies, support tickets or health-news rows | Destructive command, currently unsupported | No bulk receiver is invoked; current handlers only show success after placeholder code | Disable/remove immediately; any future bulk operation must specify selected-id scope, actor authority, failure result and list/count invalidation. |
 
 ## Field And Receiver Gate
 
@@ -162,7 +176,11 @@ Operator/support/content path:
 | Support response display | Staff response, responder id/name, response timestamp, visibility | Read and edit modes must be separate; unavailable response field must be explicit. | App-visible support replies match console actions instead of disappearing into local state. |
 | Support queue search/KPIs | Server count, page cursor, filters, role scope, failure/denied/empty state | Local slice metrics cannot be labeled full queue analytics. | Operators do not miss tickets outside the loaded page. |
 | FAQ/content/news row | Published id, title, category, body excerpt, publish status, source timestamp | Authoring stays dormant unless RLS/RPC authorizes write. | App sees only published content, not console drafts or unsupported edits. |
+| Health-news source destination | Published id, normalized `url`, source label, scheme/host validation result, provenance and unavailable/invalid state | Any retained view/preview opens only validated external destinations using safe new-tab handling; create/edit/publish remains blocked until authorized receiver validates the same field. | The patient discovery feed cannot direct users to arbitrary or malformed links created through unproved Console authoring. |
+| Health-news import input | Template fields, actor, source file, row count, validation failures, persisted fields, provenance/audit result | Dormant modal/hook remains excluded; any future import must use only receiver-supported fields and auditable authorization. | Batch input cannot silently publish or alter patient-visible content. |
 | Operator notification row | Notification id, user id, read state, action data, created time | Mark-read stays user scoped; delete/broadcast authority remains unavailable. | Console notifications do not expand into patient notification management. |
+| Care/content export control | Domain, actor role, selected filters, permitted fields, row/window scope, export format, generated timestamp and unavailable reason | No export can be enabled from the current placeholder without a scoped read/export owner and sensitive-field review. | Insurance evidence, patient support text and unpublished content are not leaked through an unproved download path. |
+| Care/content bulk deletion | Domain, selected ids, actor role, destructive authority, per-id result/failure, audit event and refreshed page/count | Existing toast-only actions remain unavailable; no success copy until rows are actually deleted by an authorized receiver and refreshed. | Operators cannot believe policy, support or patient-visible content was removed when database truth did not change. |
 | Global care/action shell | Route, actor role, opened command, active surface id | Hidden FAB/bottom-bar containers must not mount full insurance/support reads before an authorized action. | Sensitive patient support/insurance data is not acquired outside the needed surface. |
 
 Implementation rule: the first slice may normalize policy/support/content read projections, parser guards, and role-safe capability maps. It must not retain broad hidden reads, unsupported support assignment/deletion, insurance policy mutation, or evidence upload without receiver proof.
@@ -175,16 +193,17 @@ Storage evidence confirmation (May 25): no active App/Console `storage.objects` 
 | --- | --- | --- | --- |
 | `/insurance` directory and mobile surface | `useInsurance` loads the full accessible `insurance_policies` collection; page/mobile derive filters, pagination, totals, active/pending/expired/verified ratios and trend language locally. | Add, view, edit, delete and verify callbacks are wired through the page; mobile displays management controls when `canManage`. | No authoritative server page/count or billing-result projection exists. Replace local registry/analytics claims with scoped projection and do not expose policy management beyond proved authority. |
 | `InsuranceModal` | Displays provider, holder, policy/group number, coverage period/type, status, images and verification. | Uploads front/back evidence, then create/edit submit; edit calls the page receiver with an incompatible signature. | Current edit is functionally broken and private evidence handling is unproved. One policy command contract must own form payload, storage object lifecycle and verification authorization. |
-| `InsurancePanel` context surface | Reads `getInsuranceStats()` and `insuranceData.slice(0, 3)`, rendering total, active, pending and verification rate plus recent policy identifiers. | Emits create, analytics and filter events. | It is a separate exposure of protected policy data and management entry points; bind it to the authorized projection or suppress it for roles without policy authority. |
+| `InsurancePanel` context surface | Reads `getInsuranceStats()` and `insuranceData.slice(0, 3)`, rendering total, active, pending and verification rate plus recent policy identifiers. | Emits create, analytics and filter events; renders disabled `Export (Coming Soon)`. | It is a separate exposure of protected policy data and management entry points; bind it to the authorized projection or suppress it for roles without policy authority, and keep export unavailable until a private scoped dataset is defined. |
 | `insuranceService` and `insurancePoliciesService` | Duplicate table/read/realtime boundaries; full-list analytics in active service; org-admin all-policy assumption and empty-on-denied/error behavior. | Direct create/update/delete/status/verify/document update writers. | Consolidate active owner and distinguish unavailable, unauthorized and empty; neither duplicate service nor UI role promise authorizes cross-patient policy mutation. |
 | Missing billing-result surface | Types and shared schema include `insurance_billing`; completion automation creates billing rows scoped to user/hospital/admin read policies. | No mounted result/exception receiver found. | Add authorized result visibility tied to emergency/visit completion; keep trigger/RPC claim creation outside policy CRUD UI. |
 | Competing insurance claim receiver | Completion automation writes the canonical billing schema, while `process_insurance_claim()` is source-present with legacy insert field names and no proved rendered caller. | Available receiver cannot be treated as implemented command authority. | Keep result visibility read-only initially; repair or retire the legacy RPC before offering claim processing or billing exception mutation. |
-| `/support-tickets` route/mobile list | Hook/service obtain an unpaged list, route displays analytics from a separate full collection query, and mobile slices loaded data while local search/filtering is presented as queue browsing. | Create, detail/edit, delete and assign callbacks; provider route entry exists. | Establish server-scoped list/count/search and role-specific row projection; avoid claiming complete queue analytics from unrestricted or failed reads. |
+| `/support-tickets` route/mobile list | Hook/service obtain an unpaged list, route displays analytics from a separate full collection query, and mobile slices loaded data while local search/filtering is presented as queue browsing. Mobile also computes queue/resolution trends from received tickets and labels them `LIVE`. | Create, detail/edit, delete and assign callbacks; provider route entry exists. | Establish server-scoped list/count/search and role-specific row projection; mobile queue metrics require measured aggregate basis or unavailable/current-window labels, not complete-queue claims from unrestricted or failed reads. |
 | `SupportTicketModal` and grid/list/table variants | Modal renders subject, message, priority, category and status; no rendered staff response field exists. | View opens edit mode; list/table authorization sees truthy function object and can expose edit/delete irrespective of the actor. | Split read and edit modes; reconcile app-visible response contract; gate commands before view composition and before any optimistic success copy. |
-| `SupportTicketsPanel` global context | Uses global summary props but directly reads three latest rows and mounts its own unscoped realtime listener. | Emits create and filter events; Preview has no evidenced receiver. | Remove duplicate direct acquisition/realtime ownership and classify or disable each event receiver. |
+| `SupportTicketsPanel` global context | Uses global summary props but directly reads three latest rows and mounts its own unscoped realtime listener. | Emits create and filter events; Preview has no evidenced receiver; renders disabled `Export (Coming Soon)`. | Remove duplicate direct acquisition/realtime ownership and classify or disable each event receiver; do not expose support-message exports without explicit scope and redaction policy. |
 | `ContextAwareFAB` and `DynamicBottomBar` | Each is rendered by the app shell and calls `useInsurance()` plus `useSupportTickets()` before a viewport early return, causing route-independent policy/ticket reads and channels. | Their visible version can later open create command modals, but hidden versions still acquire data. | Do not load protected list truth to mount a command button; move create callbacks into opened authorized modal flow or a no-read command adapter. |
+| Care realtime browser output | `useInsurance` and `useSupportTickets` subscriptions can log policy/ticket change payloads from route or hidden shell-mounted hook instances. | No intended workflow command; browser console receives care-record payloads. | Remove data-bearing logs and hidden acquisition together; protected policy/ticket rows may appear only in authorized rendered projections. |
 | `supportFaqsService` | Exposes complete CRUD/search/realtime table capability, while app/shared policy evidence proves public FAQ reading and no Console route was found. | Dormant direct write capability only. | Record as available-table capability without an implemented authorized authoring surface; keep patient read truth, do not invent FAQ admin CRUD. |
-| `/health-news` route/mobile/context | Route performs five count requests plus paged article query; modal/service expose content fields while persisted model/policy is narrower; route/nav roles disagree. | Create/edit/delete/publish controls and notifications. | Keep curated published feed only until write receiver and fields are proven; summary failure must not suppress readable content. |
+| `/health-news` route/mobile/context | Route performs five count requests plus paged article query; modal/service expose content fields while persisted model/policy is narrower; route/nav roles disagree. Mobile derives total/draft/medical/recent and trend claims from articles when summary truth is absent and labels them `LIVE`. Detail view opens persisted source URLs directly while the patient app also opens published health-news URLs. | Create/edit/delete/publish controls and notifications; detail `Visit Source` performs external navigation; context panel renders disabled `Export (Coming Soon)`. | Keep curated published feed only until write receiver and fields are proven; summary failure must not suppress readable content, mobile summary must declare aggregate basis or unavailable state, source URLs require validated/safe external-link semantics, and export stays unavailable until the published-only dataset is explicit. |
 
 ## App And Backend Dependency Closure
 
@@ -206,7 +225,30 @@ Storage evidence confirmation (May 25): no active App/Console `storage.objects` 
 | Support context panel and realtime | Yes: summary plus direct recent read. | Yes: separate realtime and emitted events. | Consume one owner/invalidation path and disable unproved actions. | Audited drift. |
 | Support FAQ capability | Yes: service CRUD/search/realtime and shared public-read evidence. | Yes: no mounted Console receiver found. | Keep authoring dormant until write policy and surface exist. | Audited missing authorized surface. |
 | Health-news route, modal, mobile and panel | Yes: paged content, summary counts and editor fields. | Yes: write/publish/delete and notification operations. | Restrict to proved feed model; do not preserve unsupported authoring. | Audited blocker. |
+| Health-news bulk import/template utility | Yes: source-present CSV/template/import fields; no mounted consumer found. | Yes: service/hook import exists without proved UI or policy. | Keep dormant/excluded until authorized published-feed writer and audit trail exist. | Audited dormant capability. |
 | Notifications and evidence storage | Yes: operator notification/media dependency. | Yes: notification writes and insurance image upload URL generation. | Separate patient/operator notification policy; prove private storage lifecycle. | Audited dependency blocker. |
+| Disabled care/content exports | Yes: visible context-panel placeholders over insurance, support and health-news projections. | Yes: currently disabled with no receiver. | Keep unavailable until role-safe dataset/export receiver exists. | Audited unavailable operation. |
+| Care/content bulk deletion | Yes: selected-row destructive affordances on insurance, support and health-news routes. | Yes: handlers contain placeholder comments followed by success toasts. | Disable until authorized batch/delete receiver and per-row reflection exist. | Audited false-success blocker. |
+
+## Exact Care, Content, And Support Flow Exhibits
+
+These exhibits are the line-level contract map for implementation. They should be updated, not replaced, as code changes.
+
+| Exhibit | Code anchor | Current contract break | Implementation target |
+| --- | --- | --- | --- |
+| Insurance full-list hook mount | `frontend/src/components/pages/InsuranceManagementPage.jsx:41-53` and `frontend/src/hooks/useInsurance.js:15-39` | The page receives a full accessible policy collection and treats failures/denials through hook state rather than a typed read projection. | Create a scoped policy projection that distinguishes empty, unauthorized and unavailable. |
+| Insurance edit receiver mismatch | `frontend/src/components/pages/InsuranceManagementPage.jsx:231-238` | The save handler reports success after calling broad create/update paths, while modal payload/media authority is not proved. | One policy command receiver owns create/edit/verify/upload payload shape and result reflection. |
+| Insurance false bulk delete | `frontend/src/components/pages/InsuranceManagementPage.jsx:877-901` | The bulk action displays destructive success while no authorized per-row receiver is invoked in the documented handler path. | Disable/remove until batch policy deletion is authorized, audited and reflected in refreshed list/count truth. |
+| Insurance realtime disclosure | `frontend/src/hooks/useInsurance.js:141-146` | Realtime policy payloads are logged to the browser console from any mounted hook instance. | Remove data-bearing logs and prevent hidden shell mounts from acquiring policy rows. |
+| Support read/update role bug | `frontend/src/components/pages/SupportTicketsPage.jsx:210,674-675,713-737` | View can enter edit mode, list/table get `isAdmin` as a truthy function object, and bulk delete reports success without a receiver. | Split read-only detail from command mode; evaluate capabilities before props reach each variant; disable bulk delete. |
+| Support realtime disclosure | `frontend/src/hooks/useSupportTickets.js:123-128` | Support-ticket change payloads can be logged from route or hidden shell hook instances. | Use one invalidation owner and remove payload logs. |
+| Support staff response gap | `frontend/src/services/supportTicketsService.js:133-202` | Create/update payloads allow subject/message/category/priority/status/assignment, but the patient-visible staff response contract remains absent. | Add or explicitly omit a response projection; do not claim response persistence until app and Console fields align. |
+| Health-news URL entry/open | `frontend/src/components/modals/HealthNewsModal.jsx:225-236,315-319` | Operators can enter a URL and the view opens it directly; the patient app later consumes the same published URL. | Add validated external-link provenance, allowed schemes and safe-open behavior before publication or preview. |
+| Health-news write payload | `frontend/src/components/pages/HealthNewsManagementPage.jsx:260-281` and `frontend/src/services/healthNewsService.js:135-183` | Route and service accept authoring fields under an unproved content write authority. | Keep published-feed read model separate from dormant CMS/write commands until RLS and receiver proof exist. |
+| Health-news dormant bulk import | `frontend/src/components/modals/BulkImportModal.jsx:10-123,271` and `frontend/src/hooks/useHealthNews.js:86-88` | CSV template/import code exists but no mounted authorized route consumer was proved. | Keep dormant; future import must share the content write receiver, validation and audit trail. |
+| Health-news realtime disclosure | `frontend/src/hooks/useHealthNews.js:121-126` | Published/content row changes are logged to the browser console. | Remove payload logging and use owner invalidation only. |
+| Mobile local-live metrics | `frontend/src/components/mobile/MobileSupportTickets.jsx:56-66,132-208` and `frontend/src/components/mobile/MobileHealthNews.jsx:56-67,159-234` | Loaded-window counts and trends are labelled `LIVE` as if they are complete queue/content analytics. | Replace with server aggregate basis or label as current loaded window/unavailable. |
+| Panel export placeholders | `frontend/src/components/context/InsurancePanel.jsx:148-151`, `frontend/src/components/context/SupportTicketsPanel.jsx:204-207`, `frontend/src/components/context/HealthNewsPanel.jsx:203-206` | Disabled exports are visible over sensitive data without declared dataset, role scope or delivery receiver. | Keep unavailable or remove until each export projection is specified. |
 
 ## Cross-Pass Care And Support Register
 
@@ -289,7 +331,9 @@ Acceptance gate:
 ### 6. Health News Published-Feed Boundary
 
 - Treat current `health_news` as a curated published link/feed boundary.
+- Normalize and validate any retained published source URL and open preview links with safe external-navigation handling; patient app navigation must consume the same valid-link contract.
 - Remove or disable unsupported CMS-style article fields and draft/write claims until an authorized receiver/policy expansion exists.
+- Keep `BulkImportModal` and `bulkImportHealthNews` unmounted/dormant until bulk validation, field persistence, role authority and provenance logging are part of that receiver contract.
 
 Acceptance gate:
 
@@ -309,6 +353,7 @@ Acceptance gate:
 
 - Console operator notification actions remain self-scoped.
 - Patient notification delete/clear drift is routed to app/shared policy repair, not hidden under console UI polish.
+- Disabled panel exports remain unavailable unless a later pass proves permitted fields, complete/bounded dataset scope and a secure export receiver for that domain.
 
 ## Verification Plan
 
@@ -321,12 +366,15 @@ Frontend:
 
 - Browser smoke on support tickets, health news, insurance modal/surface if present, and notification center.
 - Empty/degraded/unauthorized states for support and insurance.
-- Health-news editor smoke for chosen content model.
+- Health-news editor/source-link smoke for chosen content model, including invalid URL/unavailable rendering and safe external-navigation behavior.
+- Confirm insurance, support and health-news panel export controls are absent or explicitly unavailable until a scoped export contract exists.
+- Confirm no health-news bulk import/template action is mounted while content write authority remains unproved.
 
 Backend/RLS/RPC/Storage:
 
 - RLS tests for support ticket owner/admin/org/provider roles.
 - Read-only schema proof for support ticket fields used by app and console.
+- Browser console smoke for insurance/support actions and realtime updates proves no policy or ticket payload is logged.
 - RLS tests for insurance admin/org/patient access before enabling admin CRUD.
 - Storage policy tests for insurance card images.
 - Health-news draft/write/read policy proof.

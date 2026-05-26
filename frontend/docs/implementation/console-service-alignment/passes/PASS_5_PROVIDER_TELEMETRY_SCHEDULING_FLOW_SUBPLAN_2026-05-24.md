@@ -14,8 +14,17 @@ Console files inspected:
 - `frontend/src/components/modals/AmbulanceModal.jsx`
 - `frontend/src/components/pages/DoctorsPage.jsx`
 - `frontend/src/components/modals/DoctorModal.jsx`
+- `frontend/src/components/pages/SettingsPage.jsx`
+- `frontend/src/components/pages/HospitalsPage.jsx`
+- `frontend/src/components/views/DoctorProfileCard.jsx`
+- `frontend/src/hooks/useDoctorProfile.js`
 - `frontend/src/components/modals/StaffSchedulingModal.jsx`
 - `frontend/src/components/pages/GodModeMap.jsx`
+- `frontend/src/components/mobile/MobileAmbulances.jsx`
+- `frontend/src/components/mobile/MobileDoctors.jsx`
+- `frontend/src/components/mobile/MobileMap.jsx`
+- `frontend/src/components/context/MapPanel.jsx`
+- `frontend/src/components/navigation/ContextPanel.jsx`
 - `frontend/src/components/map/MapRenderers/LeafletMapRenderer.jsx`
 - `frontend/src/contexts/MapContext.jsx`
 - `frontend/src/hooks/useAmbulances.js`
@@ -33,15 +42,21 @@ Observed source signals:
 - `GodModeMap` projects emergency requests, ambulances, hospitals, responder locations, telemetry freshness, and driver status actions.
 - `LeafletMapRenderer` uses third-party CARTO raster tile endpoints with OpenStreetMap/CARTO attribution. The map remains operationally dependent on an external base-map delivery path even after Console data ownership is repaired.
 - The shared `/map` primary action dispatches `centerMap`, and `MapPanel` dispatches `recenter-map-target`, while `MapContext` and the mounted map refiners receive `recenter-map`; neither visible centering command is connected to a proved mounted receiver.
+- `ContextPanel` mounts `MapPanel` on `/map`; its enabled `Export Data` control downloads JSON containing the raw `emergencyRequests` array, selected marker and local map settings. In its selected-emergency/ambulance branches it also renders Contact, Navigate, Call and Track buttons with no action receiver.
 - Ambulance and privileged doctor lists fetch at most `1000` rows, then sort/page locally and publish fetched length as total, silently truncating larger operational registries.
 - `AmbulancesPage` first obtains an exact filtered count, then discards it by resetting pagination total to the capped fetched-row length; its org-admin stats query also filters `hospital_id` with `orgId`, repeating facility-versus-organization identity ambiguity.
 - `DoctorsPage` uses the same privileged `1000`-row client-pagination path and derives visible management scope from the truncated collection.
+- `MobileAmbulances` and `MobileDoctors` render management and KPI variants from their route-provided provider/fleet projection; a responsive variant does not create a separate authority for totals, identity, CRUD or completeness.
+- `MobileAmbulances.jsx:94-104,212-237` and `MobileDoctors.jsx:91-101,196-221` fall back from missing statistics to loaded row status counts and filtered-row rating calculations while presenting operational trend labels including `LIVE`. Neither responsive surface has proved fleet/provider availability coverage or a measured trend window.
+- `SettingsPage` mounts `DoctorProfileCard` for a signed-in provider; `useDoctorProfile` reads the current provider's `doctors` row by `profile_id`, and the card submits self-service changes for `about`, `experience`, `consultation_fee`, `is_available` and `status` through the same broad `updateDoctor()` table update path used by administration.
 - `supabaseMapService` caps emergency map seed rows at `100` but loads ambulance and hospital seeds without comparable feed-window semantics, so operational map completeness is neither bounded consistently nor surfaced to operators.
 - `MapContext` applies broad emergency, ambulance and assumed `users` realtime streams into its local projection after an initially scoped seed query; the subscription/invalidation scope and patient-location table contract are not proved.
+- `MobileMap`, mounted by `GodModeMap`, renders a selected emergency's patient phone and location fields, then calls `dispatchEmergency()` when no ambulance id is present or `completeEmergency()` when an ambulance id is present. The mobile map is therefore an active emergency lifecycle/exposure surface, not only a telemetry renderer.
 - Driver map actions call `updateResponderLocation` and `driverManagementService.updateTripStatus`.
+- In driver mode `GodModeMap` resolves the signed-in responder's ambulance by matching `profile_id`/`driver_id`, but falls back to `processedAmbulances[0]` when no match exists; its active-request selector then accepts either responder identity or that fallback ambulance id before enabling telemetry/status actions.
 - `ambulancesService` and `useAmbulances` expose direct `ambulances.location` and `ambulances.status` mutation functions even though active responder telemetry already has the guarded `console_update_responder_location` receiver.
-- `AmbulanceModal` uploads images, selects drivers, checks existing assignments directly, and shows active assignment controls.
-- `StaffSchedulingModal` collects real doctor shift fields but `staffSchedulingService` never reads or writes `doctor_schedules`; it derives fixed same-day shifts from doctor and ambulance statuses.
+- `AmbulanceModal` uploads images, selects drivers, checks existing assignments directly, and shows active assignment controls. Its active-assignment load filters by `hospital_id`, not the opened ambulance id, so a modal labelled for one vehicle can render and command another vehicle's active requests at the same hospital.
+- `HospitalsPage` actively mounts `StaffSchedulingModal` for its facility scheduling action. The modal collects real doctor shift fields, but `staffSchedulingService` never reads or writes `doctor_schedules`; it derives fixed same-day shifts from doctor and ambulance statuses. Scheduling is therefore a live false-persistence workflow reached through facility operations, not a dormant modal.
 - `emergency_doctor_assignments` has a shared receiver/RPC boundary while Console has no persisted clinician handoff surface.
 - Backend automation assigns, releases and fails over doctors through `emergency_doctor_assignments`, `doctors.current_patients` and `emergency_requests.assigned_doctor_id`; a direct doctor availability/status edit can therefore change an active emergency handoff without any rendered Console assignment consequence.
 - Backend driver/resource failover can replace or clear responder/ambulance state and adjust hospital capacity when a vehicle becomes unavailable; generic fleet status edits are not isolated from in-flight emergency consequences.
@@ -69,10 +84,15 @@ Operator/provider path:
 | Map telemetry | GodModeMap derives telemetry and writes responder location. | Telemetry projection/command owner tied to active request truth. |
 | Base-map delivery | Operational map renders CARTO/OpenStreetMap tiles directly. | Deliberately approved external map-layer dependency with visible unavailable/degraded behavior; marker/dispatch truth must not be confused with tile availability. |
 | Map centering actions | Shared primary action and target-selection panel emit event names not consumed by mounted map implementations. | Single map command API/event shared by map controls and the rendered map receiver, with explicit target support where needed. |
+| Map data export and incident controls | Mounted map context exports raw emergency/selected-marker JSON and displays contact/navigation/tracking affordances without receivers. | Role-scoped map projection and operation registry: export permitted fields only from bounded truth; disable or implement every incident/responder control deliberately. |
 | Fleet and clinician pagination | Client-capped list retrieval is presented as complete paginated management data. | Server-backed filter/sort/page/count owner with truthful scoped totals. |
 | Map feed completeness | Mixed bounded/unbounded initial map queries provide no operator-visible coverage contract. | Explicit active/viewport feed bounds, refresh/invalidation ownership and incomplete-data state. |
+| Mobile map emergency lifecycle and exposure | The selected emergency sheet displays patient contact/location and enables dispatch or completion from marker state and ambulance-id presence. | Pass 1 emergency action/exposure projection shared by every map variant; no completion or patient disclosure unless actor scope, payment/cash legality and refreshed lifecycle truth are proved. |
 | Driver trip status | Map and modal can call driver management actions. | Trip lifecycle command owner. |
+| Driver-mode request identity | A driver without a matched ambulance is assigned the first map ambulance as a UI fallback, which can make another vehicle's active request eligible for telemetry/status controls. | Request-scoped responder projection that never invents vehicle assignment; absence of assignment is an unavailable action state. |
+| Ambulance modal trip scope | A vehicle modal obtains all active ambulance requests at its hospital and exposes Cancel/Arrived/Complete over that hospital-wide set. | Vehicle-scoped active-trip projection or deliberate request-detail command surface; do not command unrelated trips from a vehicle record. |
 | Doctor profile | Doctor record and profile linkage can drift. | Doctor/provider read and mutation owner. |
+| Provider self-service doctor profile | `/settings` lets the signed-in provider write availability/status, fee and profile presentation fields through broad doctor-row update without a named self-service field policy or active-assignment consequence check. | Provider-owned update command with a strict field allowlist, verification/readiness meaning and active-emergency impact projection before operational availability can change. |
 | Scheduling | Derived doctor/crew rows and status toggles bypass the real `doctor_schedules` receiver. | Stored doctor-shift owner; ambulance shift CRUD excluded without a receiver. |
 | Clinician assignment | Emergency/doctor context can render without a persisted assignment action/status. | Cross-pass assignment owner using `emergency_doctor_assignments` with Pass 1. |
 | Facility versus organization fleet scope | Org-admin statistics and lookup paths can filter hospital foreign keys with organization identity. | Canonical organization-to-hospital scope projection before counts, assignment or CRUD. |
@@ -82,14 +102,19 @@ Operator/provider path:
 
 | Surface and mounted path | What it reads and renders now | Mutation or receiver path | Deterministic audit result |
 | --- | --- | --- | --- |
-| `/ambulances` desktop/mobile fleet list | Filters, count, status/type/facility fields and KPI displays; retrieves up to `1000` then slices locally and overwrites exact total. | Create/edit/delete modal and bulk delete; exposed service/hook status/location writers. | **Blocked.** Registry completion, totals and bulk scope truncate; active status/location command authority is not separated from CRUD. |
+| `/ambulances` desktop/mobile fleet list | Filters, count, status/type/facility fields and KPI displays; retrieves up to `1000` then slices locally and overwrites exact total. Mobile can calculate availability/on-route/busy and rating trend claims from loaded rows and label them `LIVE`. | Create/edit/delete modal and bulk delete; exposed service/hook status/location writers. | **Blocked.** Registry completion, totals, trend claims and bulk scope truncate; active status/location command authority is not separated from CRUD. |
 | Ambulance detail/edit modal | Vehicle, facility, driver/profile, image and active-assignment/utilization context; reads assignments and driver availability. | Direct ambulance CRUD, driver assignment and storage image path. | **Blocked.** Driver/profile and facility/org relationship authority needs one receiver; image storage remains unproved. |
-| `/doctors` desktop/mobile directory | Doctor identity, hospital, specialty, status and pagination from privileged capped collection. | Create/edit/delete/bulk delete over doctor table. | **Blocked.** Count/completeness truncates and directory/profile automation and emergency assignment truth remain separate. |
+| `/doctors` desktop/mobile directory | Doctor identity, hospital, specialty, status and pagination from privileged capped collection; mobile derives availability/on-call/busy and rating trend claims from loaded rows when aggregate state is missing. | Create/edit/delete/bulk delete over doctor table. | **Blocked.** Count/completeness and mobile operational metrics truncate; directory/profile automation and emergency assignment truth remain separate. |
 | Doctor modal and readiness detail | Provider/profile/facility fields and status/edit controls. | Direct doctor CRUD/image path. | **Blocked.** Status cannot imply schedule or emergency handoff; media policy remains unproved. |
+| `/settings` provider professional profile card | For provider actors, renders doctor affiliation, rating, availability, fee, experience and bio; includes editable availability/status, fee, experience and bio inputs. | `useDoctorProfile.updateProfile()` calls broad `doctorsService.updateDoctor()` on the provider's row; no active assignment/preflight or field-specific receiver is rendered. | **Blocked self-service command boundary.** A provider may need allowed profile edits, but operational availability/status cannot silently activate doctor failover or alter app-facing fee/readiness truth. |
 | Staff scheduling modal | Collects doctor shift date/time/type/availability and displays generated doctor/ambulance rows. | Service changes doctor status rather than `doctor_schedules`; no ambulance shift receiver exists. | **Missing required implementation.** Use stored doctor schedules only and remove unavailable crew scheduling promises. |
 | `/map` initial operational projection | Up to `100` emergencies, unbounded ambulance/hospital seeds and visible selected markers/layers. | Local map refresh and marker lifecycle actions cross Pass 1. | **Blocked.** Operators cannot know omitted emergencies or unbounded resource coverage. |
 | `MapContext` realtime projection | Local emergency, ambulance and assumed user-location arrays. | Broad subscriptions merge inserts/updates/deletes; recenter event only matches one of several visible commands. | **Blocked.** Scoped acquisition, patient-location source and control receiver parity are unproved. |
+| `MapPanel` context controls and export | Renders emergency/responder details from `MapContext` and can serialize raw emergencies, selected marker and local settings to a JSON download. | Enabled Export Data download; Contact/Navigate/Call/Track affordances have no proved click receiver; recenter emits an unmatched event. | **Blocked exposure and receiver gap.** No raw emergency export until authorized fields/scope/completeness are explicit; unavailable controls must not look operational. |
+| `/map` mobile selected-emergency sheet | Renders selected marker identity, priority, patient phone and location through `LocationCell`, and uses ambulance-id presence as its action branch. | Calls `dispatchEmergency(id, row)` or `completeEmergency(id)` directly from the sheet. | **Blocked cross-pass lifecycle surface.** It must consume Pass 1 action eligibility and exposure truth; `ambulance_id` is not completion, payment or cash-settlement authority. |
 | Active responder telemetry | Marker and driver surfaces can expose location/status updates. | Guarded responder-location RPC exists; generic direct ambulance writers are also exported. | **Blocked.** Active-trip location/status must use request-coupled receiver and refreshed tracking truth only. |
+| Driver map action scope | Driver action panel derives one active request by responder match or by an ambulance row that may be a first-row fallback. | Location and lifecycle controls invoke request-scoped RPCs after client-side selection. | **Blocked safety and exposure defect.** No driver action is available unless backend-authorized responder-to-request assignment is positively projected; never use arbitrary fleet fallback. |
+| Ambulance modal active trips | A selected ambulance's view modal renders patient/trip rows loaded for every active ambulance request at `ambulance.hospital_id`. | Cancel/Arrived/Complete commands call emergency lifecycle RPC wrappers for each rendered request. | **Blocked scope defect.** A vehicle detail surface cannot expose or mutate hospital-wide trips; constrain to `ambulance_id` or route to an emergency-operation surface with correct role and preflight. |
 | Emergency clinician assignment | No rendered persisted assignment view/command found. | Shared assignment RPC/table exists. | **Missing required cross-pass surface.** Pass 1 detail and Pass 5 doctor selection share this authority. |
 | Provider and fleet automation consequences | Doctor or ambulance operational status appears editable as directory/fleet data. | Doctor/ambulance failover writers can reassign or clear active emergency responder/clinician state and update capacity. | **Blocked automation consequence.** Status commands need active-assignment impact state and refreshed emergency/assignment/capacity projections before mutation is exposed. |
 
@@ -108,16 +133,21 @@ Operator/provider path:
 | --- | --- | --- | --- | --- |
 | Ambulance route and modal | Fields, assignment and image exposure mapped. | CRUD/direct status/location paths mapped. | Cap overwrites count; org/hospital stat scope drift. | Blocked |
 | Doctor route and modal | Directory/status exposure mapped. | CRUD/media paths mapped. | Privileged `1000` cap and profile linkage remain open. | Blocked |
+| Provider settings professional card | Own doctor-row render and edit controls mapped. | Self-service update resolves through broad direct doctor update. | Allowed fields, fee visibility and active-assignment/status consequences remain unproved. | Blocked |
 | Staff scheduling | Visible shift promise mapped. | Stored `doctor_schedules` not consumed. | Generated rows/statistics are not persisted truth. | Missing required implementation |
 | Map operational feed | Seed fields/layers/marker dependencies mapped. | Lifecycle actions cross Pass 1. | Mixed bounds and broad subscriptions unclosed. | Blocked |
+| Map context export and quick controls | Raw downloadable emergency/marker data and visible control labels mapped. | Export is live; contact/navigation/tracking receivers absent. | Sensitive export scope and action parity unproved. | Blocked |
+| Mobile map selected-emergency commands | Patient/contact/location render and marker action branch mapped. | Direct dispatch/complete wrappers bypass the emergency command projection. | Actor exposure, payment/cash eligibility and refreshed lifecycle outcome are unclosed. | Blocked - Pass 1 dependency |
 | Active telemetry | Responder read/write paths mapped. | Guarded RPC and generic CRUD coexist. | Patient tracking-ready convergence unproved. | Blocked |
+| Driver map assignment identity | Driver-mode matching and fallback selection traced. | Telemetry/status commands operate on chosen request id. | Arbitrary first-ambulance fallback can select unrelated request. | Blocked - remove fallback first |
+| Ambulance modal trip controls | Hospital-scoped active request display traced inside vehicle modal. | Lifecycle commands use rendered emergency id. | Vehicle surface scope is broader than vehicle identity. | Blocked - scope or relocate |
 | Clinician handoff | Dependency mapped. | Assignment receiver absent from UI. | Emergency/detail integration required. | Missing required surface |
 
 ## Cross-Pass Provider Operations Register
 
 | Dependent pass | Provider/fleet dependency that must not be lost |
 | --- | --- |
-| Pass 1 - emergency lifecycle | Dispatch, marker actions, telemetry and persisted clinician handoff. |
+| Pass 1 - emergency lifecycle | Dispatch, desktop/mobile marker actions, patient contact/location exposure, completion payment/cash legality, telemetry and persisted clinician handoff. |
 | Pass 3 - facilities/capacity | Facility dispatch eligibility, hospital assignment and operational bed/ambulance availability. |
 | Pass 4 - identity/verification | Organization/facility identity, provider role and readiness authority. |
 | Pass 6 - visits/outcomes | Assigned clinician and responder context in clinical outcome projection. |
@@ -129,8 +159,14 @@ Operator/provider path:
 | --- | --- | --- | --- |
 | View/manage non-active fleet records | Authorized table CRUD after field repair | `ambulances` scoped policy | Use real hospital/org fields and valid status vocabulary. |
 | Dispatch/trip/responder telemetry for active emergency | Workflow command | Request-coupled dispatch/telemetry receivers | Direct fleet status/location editing cannot stand in for active-trip truth. |
+| Resolve driver's current ambulance/request | Scoped read/eligibility projection | Backend-authorized responder/ambulance/request relation | Do not fall back to the first visible ambulance; no matched assignment means telemetry/status actions are unavailable. |
+| Cancel/advance/complete trip from ambulance detail | Workflow command with selected-vehicle scope | Request lifecycle command facade consuming a request proven linked to the opened ambulance | Do not expose hospital-wide request commands in one ambulance modal; route to emergency detail or filter strictly by ambulance id plus role. |
 | Center operational map or selected request | UI command over rendered map state | Mounted map controller/refiner | Use the receiving map-control contract and verify the user sees immediate map movement or bounded feedback for both general and targeted centering. |
+| Export map operational data | Scoped sensitive data export | Map projection/export owner not yet present | Do not download raw emergency rows or local marker state; define role-safe fields, active-feed bounds, redaction and incomplete-data labels first. |
+| Contact, navigate to or track selected map entity | Workflow navigation/communication command or unavailable operation | No mounted receiver proved for current panel buttons | Remove/disable or implement through one explicit receiver; no inert operational affordance. |
+| Dispatch or complete an emergency from the mobile map sheet | Emergency lifecycle workflow command | Pass 1 emergency action projection and command facade | Do not infer completion legality from `ambulance_id`; the mobile map must use the same payment/cash/state transition and refreshed-result gates as emergency detail/list surfaces. |
 | Manage doctor directory fields | Authorized table CRUD with projection boundary | `doctors`, profile sync automation | Separate directory-owned from profile-projected identity fields. |
+| Edit own provider profile from settings | Scoped self-service workflow command | Provider-owned doctor profile command with field allowlist and active-assignment preflight | Bio/experience/fee edits and operational availability/status must not share unchecked broad-row update authority. |
 | Manage doctor shifts/conflicts/statistics | Authorized table CRUD | `doctor_schedules` | Replace generated/status-derived shifts with stored rows. |
 | Assign doctor to emergency | Workflow command | `assign_doctor_to_emergency`, `emergency_doctor_assignments` | Coordinate with Pass 1 and persist handoff truth. |
 | Upload provider/vehicle imagery | Scoped media/storage boundary | Doctor image field and Pass 3 media/storage authority | Do not upload ambulance media without row receiver; hospital provenance belongs to Pass 3. |
@@ -153,15 +189,21 @@ Operator/provider path:
 | Ambulance identity card | Ambulance id, display/call sign, plate, vehicle type, status, hospital/facility id, organization id, current request/trip if any | Reads must preserve uuid-native ids and display labels separately. | App tracking can resolve the same vehicle without confusing display id with canonical id. |
 | Fleet scope filters | Organization id, hospital/facility id, provider role, operator scope | Filter payloads must not treat hospital id as organization id. | Console users only see ambulances they can operate, while app request matching remains org/facility scoped. |
 | Driver assignment | Driver profile id, driver/provider id if separate, ambulance id, active assignment, active request/trip lock | Assignment mutation must name the canonical receiver table/RPC and reject active-trip conflicts. | Live ambulance tracking does not lose driver identity during dispatch handoff. |
+| Driver map command eligibility | Signed-in responder id, positively assigned ambulance id, request id, relation source, authorization/loading/unassigned state | `driverActiveEmergency` cannot be enabled through a client fallback ambulance; receiver eligibility must agree with displayed assignment. | A driver cannot publish telemetry or advance another responder's incident from a misleading map state. |
+| Ambulance detail active trips | Opened ambulance id, request id, responder id, hospital id, status, command eligibility and source-surface label | Active rows shown in a vehicle modal must be linked to that ambulance; otherwise commands remain absent and hospital operations use a deliberate request surface. | Hospital-wide incidents are not mutated while the operator believes they are managing one vehicle. |
 | Fleet status/location edits | Ambulance id, maintenance/availability status, non-active location fields, last updated timestamp | Generic fleet edits must not overwrite request-coupled responder telemetry. | App ETA and responder marker stay tied to live trip truth, not stale fleet maintenance coordinates. |
 | Responder telemetry row | Request id, responder id, ambulance id, lat, lng, timestamp, heading, route/ETA seed, freshness state | Telemetry publish/storage is out of first-slice scope until receiver and realtime invalidation are named. | App can distinguish fresh live tracking, stale tracking, and unavailable telemetry without fabricated confidence. |
 | Doctor identity card | Profile id, doctor id, display name, specialty, license/verification status, hospital/facility id, organization id | Reads must not collapse profile identity, doctor row identity, and provider role into one field. | App visit/emergency handoff can resolve clinician identity without ambiguous provider records. |
 | Provider readiness badge | Role, provider type, verification status, availability, current assignment | Badge projection must state which fields are evidence and which are unavailable. | Console does not imply a doctor is schedulable or dispatchable from role alone. |
+| Provider settings self-edit form | Actor profile id, doctor id, editable-field allowlist, consultation fee basis, availability/status, current assignment and verification/readiness state | Current broad `updateDoctor(doctorProfile.id, updates)` path remains blocked for operational status until self-service authorization and active-assignment effects are named; omit fields not authorized for self-edit. | A signed-in provider cannot unintentionally change emergency handoff availability or patient-facing fee/readiness truth without a reflected authorized result. |
 | Doctor schedule row | `doctor_schedules` doctor id, date, start/end, schedule type, availability, source timestamp | Schedule create/update controls stay disabled until exact receiver and required fields are charted. | App appointment/emergency routing can rely on schedule windows instead of generated/status-only rows. |
 | Ambulance/crew schedule row | Ambulance id, driver/crew ids, time window, exclusion/unavailable reason | Keep marked unavailable if no receiver table/RPC exists. | Console does not create phantom coverage that app dispatch cannot honor. |
 | Emergency clinician handoff | `emergency_doctor_assignments` request id, doctor id, assignment status, notes, timestamps | Assignment mutation must prove receiver table/RPC and status transition rules. | Patient emergency timeline reflects real clinician assignment rather than console-only intent. |
 | Map feed completeness | Emergency feed cap, ambulance feed bounds, hospital/facility feed bounds, pagination/incomplete marker | Feed readers must expose incomplete/degraded state instead of silently truncating. | Dispatch map does not hide active demand or supply while app requests are waiting. |
 | Map centering actions | Target type, target id, lat/lng, source row, active map event name | Consolidate `centerMap`, `recenter-map-target`, and `recenter-map` before new actions are added. | Operators can locate the same emergency/vehicle/hospital object the app is tracking. |
+| Map JSON export | Actor role/scope, selected filters, permitted incident/responder/facility fields, redaction rules, feed limit/incomplete state, generated timestamp | Export remains disabled until it consumes the bounded map projection rather than raw context arrays. | Emergency locations and responder context are not downloaded outside authorized operational need. |
+| Selected-marker quick actions | Entity type/id, callable/navigable target, tracking receiver, disabled reason and pending/result state | Current inert Contact/Navigate/Call/Track controls cannot remain as actionable UI. | Operators do not believe response coordination occurred when no command was sent. |
+| Mobile selected-emergency sheet | Request id, actor role/scope, patient-contact/location exposure, ambulance/responder relation, lifecycle state, payment/cash completion eligibility, command pending/result and refreshed truth | Direct `dispatchEmergency()` / `completeEmergency()` remain blocked until Pass 1 owns their action capability; ambulance presence alone cannot authorize completion. | A mobile operator cannot expose patient data unnecessarily or prematurely complete an unpaid/unsettled incident. |
 | Base map tiles | Tile provider, load/error state, attribution/degraded state | External tile dependency remains view-layer only; no service mutation. | Console map degradation is visible without changing dispatch data truth. |
 | Provider/vehicle images | Storage bucket/path, public/private visibility, source provenance, fallback image | Upload controls remain disabled until bucket policy and receiver ownership are documented. | App and console do not expose fragile direct provider URLs or private media by accident. |
 | Automation/failover status controls | Target object id, current lifecycle state, requested state, side effects on active request/trip/assignment | Any enablement must include downstream reassignment/clearance consequences. | Console status changes cannot orphan app trips, doctor assignments, or responder tracking. |
@@ -171,6 +213,158 @@ Implementation rule: the first slice may centralize read projections, paging, ma
 Generated trace confirmation (May 25): `doctor_schedules` and `emergency_doctor_assignments` now have cross-repo baseline traces and report zero matched Console CRUD surfaces. The scheduling modal's current status-derived behavior is not table-backed shift ownership, and clinician assignment must be added through the persisted command/projection boundary coordinated with Pass 1.
 
 Storage evidence confirmation (May 25): current source provides no active `images` bucket-policy authority outside archive material. Doctor image persistence remains conditional on deployed Storage proof; ambulance image upload remains disabled in scope because no audited row receiver owns the uploaded object.
+
+## Exact Provider, Telemetry, And Scheduling Exhibits
+
+These are the code anchors for the Pass 5 implementation handoff. The audit target is to separate ordinary provider registry edits from active emergency telemetry, shift truth and assignment lifecycle.
+
+| Exhibit | Current code location | Contract implication |
+| --- | --- | --- |
+| Ambulance page exact count then capped row read | `frontend/src/components/pages/AmbulancesPage.jsx:79-156` builds a count query and a data query capped at `1000`. | Keep exact count and row query in one server-paged owner; do not overwrite count with fetched length or derive bulk scope from capped rows. |
+| Ambulance org-admin stat mismatch | `AmbulancesPage.jsx:176-188` filters `ambulances.hospital_id` by `orgId`. | This repeats organization id versus hospital id drift; fleet stats must resolve facility ids under organization scope first. |
+| Ambulance direct create/update | `frontend/src/services/ambulancesService.js:83-178` inserts/updates `ambulances`, including status, location, current call, profile and organization fields. | Non-active fleet maintenance must be separated from active trip/responder telemetry and lifecycle status commands. |
+| Ambulance direct driver assignment | `ambulancesService.js:185-201` updates `ambulances.profile_id` directly. | Driver assignment needs conflict/active-trip proof and canonical profile/ambulance relationship receiver. |
+| Ambulance direct location writer | `ambulancesService.js:207-223` updates `ambulances.location`. | Active responder location must use request-coupled telemetry receiver; direct location update is maintenance-only or disabled. |
+| Ambulance status writer | `ambulancesService.js:302-319` updates `ambulances.status` directly. | Status changes can trigger or conflict with emergency failover; expose active-assignment impact before mutation. |
+| Ambulance modal org id as hospital id | `frontend/src/components/modals/AmbulanceModal.jsx:60-75` sets `hospital_id` from `orgId` for org-admin create. | Creation must select/resolve a real facility id under the organization, not submit organization id into hospital foreign key. |
+| Ambulance modal assignment reads | `AmbulanceModal.jsx:100-132` subscribes/loads active assignments and utilization by `ambulance.hospital_id`. | Detail surface should use provider operations projection with role and active-trip exposure, not modal-owned assignment truth. |
+| Ambulance modal hospital-wide commands | `AmbulanceModal.jsx:700-781` renders each row returned by the hospital-scoped assignment query and invokes `cancelTrip(assignment.id)`, `updateTripStatus(assignment.id, 'arrived')`, or `completeTrip(assignment.id)`. | The IDs are emergency request ids, but the selected vehicle surface has not proved those requests belong to that ambulance. Keep commands unavailable until vehicle/request scope is exact or move them to request operations. |
+| Ambulance modal profile filtering | `AmbulanceModal.jsx:150-173` filters provider profiles by `organization_id` and existing ambulance assignment. | Assignment candidate list needs backend-authorized relationship/conflict projection. |
+| Doctor service paged read | `frontend/src/services/doctorsService.js:22-76` reads doctors with count, filter and profile display-id enrichment. | This is closer to the desired owner, but profile display id and doctor id must be shown as separate identities. |
+| Doctor direct CRUD | `doctorsService.js:92-161` inserts/updates/deletes `doctors` directly. | Doctor directory CRUD must not imply profile role, schedule readiness or emergency assignment truth. |
+| Provider settings self-service update | `frontend/src/components/pages/SettingsPage.jsx:317` mounts `DoctorProfileCard`; `frontend/src/components/views/DoctorProfileCard.jsx:14-43,216-270` renders and submits fee/experience/availability/status/bio; `frontend/src/hooks/useDoctorProfile.js:11-47` reads by current profile and calls `updateDoctor(...)`. | This is a live provider-owned mutation surface separate from `/doctors`; define self-editable fields and active-assignment impact before retaining availability/status edits. |
+| Doctor modal org id as hospital id | `frontend/src/components/modals/DoctorModal.jsx:46-59` sets `hospital_id` from `orgId` for org-admin create. | Same facility identity defect as ambulances; doctor rows need real hospital id resolution. |
+| Doctor modal provider linkage | `DoctorModal.jsx:113-154` fetches provider profiles and defaults hospital id from profile organization id. | Profile organization id is not a hospital id; selected doctor linkage must resolve facility context separately. |
+| Doctor invite payload drift | `DoctorModal.jsx:178-191` invites provider role with `provider_type: doctor` and `organization_id: submitData.hospital_id`. | Invite metadata must carry organization id, not selected facility id; facility assignment needs separate field/receiver. |
+| Staff schedule generated rows | `frontend/src/services/staffSchedulingService.js:21-128` derives schedules from ambulance crew arrays and doctor status for the current day. | Not table-backed scheduling. Shift rows are fabricated projections unless sourced from `doctor_schedules`. |
+| Staff schedule create | `staffSchedulingService.js:226-259` creates a "schedule" by updating doctor status. | A successful schedule command must persist date/start/end/type into `doctor_schedules`, not only flip status. |
+| Staff schedule update/delete | `staffSchedulingService.js:267-312` parses synthetic `doctor_` ids and updates doctor status. | Editing/deleting synthetic rows cannot be retained as scheduling CRUD. |
+| Schedule stats | `staffSchedulingService.js:321-392` computes shift stats from doctor and ambulance status, with ambulance hospital-name matching. | Stats must come from stored schedules or be labelled operational status summary, not shift coverage. |
+| Schedule conflict check | `staffSchedulingService.js:399-423` uses doctor status only. | Conflict detection must compare persisted shift windows once scheduling is implemented. |
+| Schedule broad realtime | `staffSchedulingService.js:430-468` subscribes to all doctors and ambulances. | Scheduling owner should subscribe/invalidate scoped `doctor_schedules` and detail exceptions, not broad registry tables. |
+| Map seed bounds | `frontend/src/services/supabaseMapService.js:19-71` caps emergencies at `100` while ambulances/hospitals have no matching feed bounds. | Map projection must expose feed limits and incomplete-data state by source. |
+| Mobile fleet/provider KPI fallbacks | `frontend/src/components/mobile/MobileAmbulances.jsx:94-104,212-237` and `MobileDoctors.jsx:91-101,196-221` reduce received rows into status/rating metrics and `LIVE` trend copy whenever aggregate fields are missing. | Mobile variants must consume scoped operational aggregate projections with measurement/completeness state or show unavailable/current-window labels; row data is not provider-network performance truth. |
+| Map broad realtime | `supabaseMapService.js:80-146` subscribes broadly to emergency requests, ambulances and a `users` table. | Realtime topology must be scoped to active operations and confirmed patient/responder location tables. |
+| Nearby hospital fallback | `supabaseMapService.js:154-174` falls back from `nearby_hospitals` to all available hospitals ordered by name. | Fallback must be labelled non-nearby/unbounded or disabled; it cannot silently preserve proximity semantics. |
+| Map panel sensitive export | `frontend/src/components/context/MapPanel.jsx:65-87,253-259` serializes `emergencyRequests`, `selectedMarker` and settings into `map-data-<date>.json`. | Export is a mounted data-exposure path and must consume an authorized bounded/redacted projection, not raw map context. |
+| Map panel inert response actions | `MapPanel.jsx:156-160,182-186` renders Contact/Navigate or Call/Track buttons without click receivers in marker detail branches. | Mark unavailable or connect to proved commands with immediate feedback; labels alone are not workflow authority. |
+| Mobile map emergency action sheet | `frontend/src/components/mobile/MobileMap.jsx:247-303` renders selected-emergency phone/location fields and invokes `dispatchEmergency()` or `completeEmergency()` according to `ambulance_id`; `frontend/src/components/pages/GodModeMap.jsx:485` mounts this mobile variant. | This responsive map path directly participates in emergency lifecycle and patient-data exposure. It must consume Pass 1 action legality/payment/cash/exposure state rather than inventing mobile-only eligibility. |
+| Driver trip commands | `frontend/src/services/driverManagementService.js:130-224` calls console emergency RPCs and renders success toasts. | Trip status commands belong to emergency lifecycle projection and must refresh request, responder, wallet/capacity consequences. |
+| Driver map assignment fallback | `frontend/src/components/pages/GodModeMap.jsx:306-328` resolves `assignedAmbulance` with `processedAmbulances[0]` fallback, then selects a request when its `ambulance_id` matches that row; `:353-396` publishes location or status against the selected request. | This is an unauthorized-selection risk before the RPC even runs. Driver UI must project only a proven assignment relation; without one it displays no active trip and offers no command. |
+
+## Provider Operations Projection Boundary Target
+
+The first implementation slice should create provider operations projections for fleet, doctor and scheduling surfaces before mutating records.
+
+```ts
+type ProviderOperationsProjection = {
+  actor: { userId: string; role: string; organizationId: string | null };
+  fleet: {
+    rows: AmbulanceRow[];
+    totalCount: number | null;
+    aggregate: {
+      available: number | null;
+      onRoute: number | null;
+      busy: number | null;
+      maintenance: number | null;
+      basis: 'server_aggregate' | 'current_page' | 'unavailable';
+    };
+    feedState: 'ready' | 'truncated' | 'unauthorized' | 'degraded';
+  };
+  doctors: {
+    rows: DoctorRow[];
+    totalCount: number | null;
+    identityMode: 'doctor_and_profile_separate';
+    selfService: {
+      doctorId: string | null;
+      editableFields: string[];
+      activeAssignmentImpact: 'none' | 'requires_confirmation' | 'unavailable' | 'unknown';
+    };
+  };
+  assignments: {
+    activeTripsByAmbulance: Record<string, unknown>;
+    availableDrivers: DriverCandidate[];
+    conflictState: 'checked' | 'unchecked' | 'unavailable';
+    driverCommandScope: 'proved_assignment' | 'unassigned' | 'unauthorized' | 'degraded';
+  };
+  operations: {
+    canEditFleetMaintenance: boolean;
+    canPublishTelemetry: boolean;
+    canAssignDriver: boolean;
+    canEditDoctorDirectory: boolean;
+    canEditDoctorSchedule: boolean;
+  };
+};
+```
+
+Rules:
+
+- Resolve organization to allowed facility ids before any `hospital_id` filter or payload.
+- Display doctor id, profile id and display id separately when they differ.
+- Active request/trip/telemetry fields are read-only in registry surfaces unless a request-coupled command owns the mutation.
+- Provider self-service profile edits consume the same doctor projection, but must use a deliberately narrower command: ordinary profile presentation fields may not silently inherit operational status, assignment or fee authority.
+- A driver-mode map command requires a positively matched responder/ambulance/request relationship. It cannot derive eligibility from the first fleet row or another presentation fallback.
+- An ambulance modal may render request commands only for requests proved linked to that ambulance. Hospital-wide operations belong in a request/dispatch surface, not an individual vehicle card.
+- Provider media upload remains disabled/unavailable until Storage and row receiver authority are proved.
+
+## Scheduling Projection Boundary Target
+
+Scheduling must be built around `doctor_schedules`, not status-derived rows:
+
+```ts
+type DoctorScheduleProjection = {
+  rows: Array<{
+    id: string;
+    doctorId: string;
+    profileId: string | null;
+    hospitalId: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    scheduleType: string;
+    availability: 'available' | 'unavailable' | 'on_call' | 'booked';
+    source: 'doctor_schedules';
+  }>;
+  stats: {
+    scheduledToday: number;
+    availableToday: number;
+    conflicts: number;
+    basis: 'stored_shifts' | 'unavailable';
+  };
+  unsupported: {
+    ambulanceCrewScheduling: true;
+    reason: string;
+  };
+};
+```
+
+The first implementation must either consume stored `doctor_schedules` or explicitly mark scheduling unavailable. Do not preserve a flow where creating a shift only updates doctor status and then claims "Staff member scheduled successfully."
+
+## Map And Telemetry Projection Boundary Target
+
+Map truth should be a projection with feed bounds, not raw arrays:
+
+```ts
+type OperationsMapProjection = {
+  emergencies: { rows: EmergencyMapRow[]; limit: number | null; incomplete: boolean };
+  ambulances: { rows: AmbulanceMapRow[]; limit: number | null; incomplete: boolean };
+  hospitals: { rows: FacilityMapRow[]; limit: number | null; incomplete: boolean; fallback: 'nearby' | 'available_unbounded' | 'none' };
+  telemetry: {
+    freshnessByResponder: Record<string, 'fresh' | 'stale' | 'missing'>;
+    publishEnabled: boolean;
+    receiver: 'console_update_responder_location' | 'unavailable';
+  };
+  controls: {
+    recenterEvent: string;
+    targetTypes: Array<'emergency' | 'ambulance' | 'hospital' | 'user_location'>;
+    exportState: 'unavailable' | 'authorized_bounded';
+    unavailableQuickActions: Array<'contact' | 'navigate' | 'call' | 'track'>;
+    emergencyActionState: 'owned_by_pass_1' | 'unavailable';
+  };
+};
+```
+
+Do not add map visual work until this projection names what is missing, stale, truncated or unavailable. Tile availability is visual-layer health; it must not change the meaning of emergency/telemetry data.
 
 ## Implementation Packages
 
@@ -183,10 +377,12 @@ Create or refine facades for:
 - doctors/providers
 - schedules
 - telemetry/map projection
+- provider self-service profile/readiness editing
 
 Acceptance gate:
 
 - Pages and modals do not own independent counts, assignment filters, or active assignment lookups.
+- The settings professional card does not use an unrestricted doctor-row update for operational status/availability or unproved fee/readiness fields.
 
 ### 2. Ambulance And Driver Assignment
 
@@ -225,10 +421,13 @@ Define doctor/provider truth:
 - hospital/organization affiliation
 - verification requirement
 - schedule relation
+- self-service editable fields versus administrator/facility-owned fields
+- active emergency assignment effect before a provider changes operational availability/status
 
 Acceptance gate:
 
 - Doctor availability and verification copy does not imply clinical readiness from incomplete profile data.
+- Provider settings cannot change active-emergency-affecting status through an unscoped self-update path.
 
 ### 5. Staff Scheduling Scope
 
@@ -268,7 +467,10 @@ Static:
 Frontend:
 
 - Browser smoke on ambulances, doctors, scheduling modal, and map.
+- Provider-settings professional-card smoke for allowed and blocked self-edit fields.
 - Driver map action smoke in non-production account if available.
+- Map context smoke proves Export Data is unavailable until scoped/redacted projection exists and selected-marker communication/navigation controls are disabled or have mounted receivers.
+- Mobile map smoke proves selected-emergency dispatch/completion and patient contact/location rendering consume Pass 1 actor/action eligibility, or render unavailable without false completion/payment copy.
 - Image upload smoke for ambulance/doctor only after storage contract is confirmed.
 
 Backend/RLS/RPC:
@@ -282,5 +484,6 @@ Backend/RLS/RPC:
 Stop conditions:
 
 - Do not change map visuals before telemetry truth is defined.
+- Do not export raw emergency or responder map-context arrays during implementation or smoke testing.
 - Do not add driver scheduling if service/table support is still doctor-only.
 - Do not publish test telemetry against production active requests.
