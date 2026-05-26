@@ -261,6 +261,114 @@ These exhibits are the line-level contract map for implementation. They should b
 | Pass 6 visits/history | Completed care history and insurance indication | Visit modal exposes insurance while patient history reflects completed event. | Link outcome reads to request-derived visit evidence; do not let visit edit substitute for claim handling. |
 | Pass 8 global/dashboard | Context panels, analytics, notifications and event receivers | Protected counts/actions can leak outside route owners. | Consume same scoped projections and explicit receiver registry. |
 
+## Pass 7E Care/Content Implementation Sequence And Blocker Matrix
+
+This pass handles sensitive communication and evidence surfaces. Insurance policies, support tickets, insurance card images, billing outcomes and content publication all affect patient trust. The first implementation must centralize read projections, remove hidden protected reads, and disable false destructive/export actions before enabling any write path.
+
+### Work Order
+
+| Order | Slice | Can start now? | Target | Must not do |
+|---|---|---:|---|---|
+| 1 | Care/content projection contracts | Yes | Add read-only projections for insurance policies, insurance billing outcomes, support tickets, health-news feed rows, notifications and unavailable exports/imports. | Do not mutate policies, tickets, content, notifications, Storage or billing rows. |
+| 2 | Hidden shell acquisition removal | Yes | Stop `ContextAwareFAB` and `DynamicBottomBar` from mounting full insurance/support hooks before an authorized surface opens. | Do not load protected policy/ticket lists just to keep a hidden command button alive. |
+| 3 | Browser payload log cleanup | Yes | Remove/restrict realtime or action logs that expose policy, ticket, content or care update payloads. | Do not emit protected care records into ordinary browser console output. |
+| 4 | False command downgrade | Yes | Disable/remove toast-only bulk deletes, disabled exports that look like capability, support view-as-edit, unsupported FAQ authoring, health-news bulk import and unproved content write actions. | Do not show success for delete/export/import/respond/publish when no authorized receiver ran. |
+| 5 | Insurance read projection | After slice 1 | Consolidate duplicate insurance service ownership into one scoped policy projection with empty/unauthorized/unavailable states. | Do not treat provider denial or query failure as an empty policy list. |
+| 6 | Support read projection | After slice 1 | Add server-scoped list/count/search and role-specific support row projection with read versus edit modes. | Do not expose assignment/delete/provider management beyond proven owner/admin authority. |
+| 7 | Health-news published-feed projection | After slice 1 | Separate current published-feed fields from unsupported CMS/draft/import fields and validate source URL shape. | Do not publish arbitrary or malformed links into patient-facing navigation. |
+| 8 | Insurance billing result projection | Cross-pass with Pass 1/2/6 | Add read-only `insurance_billing` visibility tied to completed emergency/visit/payment truth. | Do not recreate claim creation or exception mutation from policy CRUD UI. |
+| 9 | Insurance evidence Storage | Blocked until Storage proof | Unify App/Console private card object path, signed URL lifetime, actor scope, retention and cleanup. | Do not persist one-year signed card URLs under unproved bucket policy. |
+| 10 | Care/content write receivers | Blocked until policy/RPC proof | Enable support responses, policy verification, content publish or notification sends only after exact receiver and reflected state are proved. | Do not infer write authority from service methods alone. |
+
+### Blocker Matrix
+
+| Status | Work item | Reason |
+|---|---|---|
+| Ready | Read-only projection scaffolds | Existing exhibits identify required fields, consumers, hidden acquisition paths and sensitive states. |
+| Ready | Disable false bulk deletes | Current handlers can toast success without receivers across care/content routes. |
+| Ready | Remove hidden support/insurance reads | Shell containers mount hooks even when hidden and unrelated to the current route. |
+| Ready | Remove care realtime payload logs | Data-bearing logs are exposure hazards and do not require backend changes. |
+| Ready | Keep exports/imports unavailable | Current export/import affordances do not have dataset, role or receiver proof. |
+| Ready after projection | Insurance/support/health-news route migration | Needs shared projections so desktop, mobile and panels stop deriving conflicting truth. |
+| Cross-pass | Insurance billing outcomes | Requires emergency, payment and visit truth from Passes 1, 2 and 6. |
+| Cross-pass | Route/action authority | Requires Pass 4 identity/access consistency. |
+| Cross-pass | Analytics/export shell | Requires Pass 8 export and dashboard ownership. |
+| Blocked | Insurance admin CRUD | Current policy proof does not authorize broad admin/org-admin policy mutation. |
+| Blocked | Insurance card upload | Active Storage policy and private object lifecycle are unproved. |
+| Blocked | Support staff response | App/Console field contract needs reconciliation before response persistence is claimed. |
+| Blocked | Health-news authoring/publish/import | Write policy and persisted field shape are not proved. |
+| Blocked | Notification sends | Content/support/system notification authority must be separated from display truth. |
+
+### First Implementation Ticket Contract
+
+The first code pass should be a read/disable pass:
+
+- Add or identify care/content projection services for:
+  - insurance policy list/detail,
+  - insurance billing result read-only evidence,
+  - support ticket list/detail,
+  - health-news published feed,
+  - operator notifications,
+  - unavailable export/import state.
+- Return explicit states for:
+  - empty,
+  - unauthorized,
+  - unavailable,
+  - partial current window,
+  - hidden shell acquisition blocked,
+  - receiver missing.
+- Expose command readiness as data:
+  - `canCreateSupportTicket`
+  - `canRespondToSupportTicket`
+  - `canAssignSupportTicket`
+  - `canDeleteSupportTicket`
+  - `canBulkDeleteSupportTickets`
+  - `canManageInsurancePolicy`
+  - `canVerifyInsurancePolicy`
+  - `canUploadInsuranceEvidence`
+  - `canViewInsuranceBillingOutcome`
+  - `canPublishHealthNews`
+  - `canImportHealthNews`
+  - `canExportCareData`
+- Default unsafe commands to `false` with `disabledReason`, source owner and pass dependency.
+- Keep `supportFaqsService` dormant and explicitly unmounted until authoring authority exists.
+
+The first implementation ticket should not touch:
+
+- insurance policy mutations,
+- insurance card uploads,
+- support ticket assignment/delete/response writes,
+- health-news create/edit/publish/import writes,
+- notification sends,
+- billing claim creation or exception mutation,
+- Storage policies,
+- browser-side `exec_sql` or diagnostic helpers,
+- database migrations or cleanup.
+
+### Acceptance Gates For Implementation
+
+Before the first implementation commit:
+
+- Hidden FAB/bottom-bar containers do not acquire full insurance or support lists.
+- Insurance, support and health-news mobile metrics label current-window values or use aggregate proof.
+- Support view mode cannot open editable fields unless command capability is true.
+- Insurance edit path has one typed payload contract before any save remains enabled.
+- Disabled exports remain explicitly unavailable and do not imply a downloadable dataset.
+- Bulk delete actions are unavailable unless a real receiver returns per-row results and refreshed counts.
+- Health-news source URLs are validated before preview/publication and use safe-open behavior.
+- Billing outcome is read-only and tied to request/visit/payment truth.
+- Browser console output contains no protected policy/ticket/content payloads from normal realtime/action flows.
+
+Suggested verification once code changes begin:
+
+```powershell
+git diff --check
+rg -n --pcre2 "[\x{00C2}\x{00C3}\x{00E2}\x{00EF}\x{00F0}\x{FFFD}]" frontend/src frontend/docs
+npm run build
+```
+
+Runtime smoke after code begins should include insurance, support tickets, health news, context panels, mobile variants, hidden global action containers and notification center. Storage upload, support response, policy mutation, content publishing, notification sending, imports, exports and billing exception mutation remain excluded until a separate implementation pass explicitly authorizes non-production receiver testing.
+
 ## Implementation Packages
 
 ### 1. Support Ticket Contract

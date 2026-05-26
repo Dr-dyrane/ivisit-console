@@ -205,6 +205,112 @@ These line exhibits define the next implementation edge: subscriber rows are mar
 | Pass 8 analytics/realtime/shell | Context panel, analytics/home consumers and broad subscriber channels. | Repeated full loads and realtime cannot be repaired from route UI alone. | Consolidate bounded read/invalidation ownership and truthful analytics labels. |
 | Public acquisition surface | Newsletter/signup entry and paid-tier semantics, if any. | Console cannot invent lifecycle or business meaning for rows created outside the patient app. | Prove subscriber intake, unsubscribe, tier and campaign outcome contracts before widening management. |
 
+## Pass 7E Subscription Implementation Sequence And Blocker Matrix
+
+This subpass is marketing/contact lifecycle, not billing or patient-account truth. The first implementation must narrow subscriber reads, remove unsupported management commands, and stop email lifecycle claims until deployed receivers and durable state writers are proved.
+
+### Work Order
+
+| Order | Slice | Can start now? | Target | Must not do |
+|---|---|---:|---|---|
+| 1 | Subscriber projection contract | Yes | Add a platform-admin read projection for subscriber rows, list state, filters, tier labels, welcome state, unsubscribe state and command readiness. | Do not send email, mutate subscribers, delete rows or export data. |
+| 2 | Hidden/global acquisition removal | Yes | Stop route-independent shell containers from mounting full subscriber hooks/channels before an authorized subscriber surface opens. | Do not read raw subscriber emails from hidden FAB/bottom-bar or non-subscription routes. |
+| 3 | Unsupported command downgrade | Yes | Disable edit/delete/status/type changes, bulk delete false-success, dead Broadcast event and revenue/payment labels. | Do not show destructive or paid-success copy from unsupported commands or `subscribers.type`. |
+| 4 | Duplicate owner consolidation | After slice 1 | Keep `subscriptionService.js` as the active facade and remove `subscribersService.js` from active UI flow after import proof. | Do not let two services own table mutation/realtime semantics. |
+| 5 | Paged subscriber read migration | After slice 1 | Replace full-list client pagination with a bounded admin projection distinguishing empty, unauthorized and unavailable. | Do not collapse failed/denied reads into `[]`. |
+| 6 | Welcome lifecycle proof | Blocked until receiver proof | Define one idempotent welcome command and one durable sent field used by manual and batch paths. | Do not claim welcome complete when only `new_user` changed or the row remains batch-eligible. |
+| 7 | Custom/bulk email lifecycle | Blocked until receiver proof | Add queued/sent/failed per-recipient result state before enabling broad sends. | Do not report aggregate success without receiver-confirmed recipient outcomes. |
+| 8 | Unsubscribe endpoint proof | Blocked until deployment proof | Verify deployed slug, token/privacy policy, idempotent status update and send-eligibility exclusion. | Do not ship templates that promise unsubscribe without a proved endpoint and durable writer. |
+| 9 | Export/campaign history | Blocked until product/receiver proof | Add scoped export or campaign audit only after dataset, fields, delivery and retention are defined. | Do not download raw global subscriber emails through an unproved export. |
+
+### Blocker Matrix
+
+| Status | Work item | Reason |
+|---|---|---|
+| Ready | Read-only subscriber projection | Source already proves public insert/admin read, fields, duplicate services and mounted consumers. |
+| Ready | Disable unsupported edit/delete/status controls | Current policy proof does not authorize browser management writes. |
+| Ready | Disable bulk delete false success | Handler can report success without a durable receiver. |
+| Ready | Remove hidden shell full-list reads | Hidden route-independent acquisition leaks platform-admin contact truth. |
+| Ready | Relabel tier analytics | `type = paid` is not revenue, invoice, entitlement or ledger proof. |
+| Ready after projection | Route/mobile/context migration | Needs one bounded projection so all variants share command capability and list state. |
+| Cross-pass | Identity/admin scope | Pass 4 owns admin role truth and raw-email visibility. |
+| Cross-pass | Analytics/dashboard labels | Pass 8 consumes subscriber counts and must not invent revenue. |
+| Blocked | Welcome email lifecycle | Manual and batch paths do not yet share one durable sent state. |
+| Blocked | Custom/bulk email send | Receiver deployment, per-recipient result and auditability are unproved. |
+| Blocked | Unsubscribe link lifecycle | Template endpoint topology and durable state writer are not proved. |
+| Blocked | Subscriber export | Export field allowlist, scope and secure delivery are not defined. |
+
+### First Implementation Ticket Contract
+
+The first code pass should be read/disable only:
+
+- Add or identify a subscriber projection service, for example `frontend/src/services/subscriberProjectionService.js`, or narrow `subscriptionService.js` behind a projection export.
+- Return stable projection slices for:
+  - paged subscriber rows,
+  - list/count/filter state,
+  - subscriber tier mix,
+  - welcome sent state,
+  - unsubscribe state,
+  - email command availability,
+  - export availability,
+  - duplicate-owner/dormant capability state.
+- Preserve separate lifecycle labels:
+  - subscribed,
+  - new user,
+  - welcome pending,
+  - welcome sent,
+  - welcome failed/unproved,
+  - unsubscribed,
+  - email receiver unavailable.
+- Expose command readiness as data:
+  - `canCreateSubscriber`
+  - `canCreateSubscriberWithWelcome`
+  - `canEditSubscriber`
+  - `canDeleteSubscriber`
+  - `canBulkDeleteSubscribers`
+  - `canSendWelcome`
+  - `canSendCustomEmail`
+  - `canSendBulkEmail`
+  - `canExportSubscribers`
+  - `canOpenBroadcast`
+- Default unsafe commands to `false` with `disabledReason`, source owner and receiver dependency.
+- Keep subscriber tier labels separate from payment, wallet, subscription billing and entitlement language.
+
+The first implementation ticket should not touch:
+
+- welcome/custom/bulk email sends,
+- unsubscribe endpoint behavior,
+- subscriber update/delete/status/type writes,
+- export generation,
+- Edge Function deployment,
+- database migrations,
+- cleanup/backfill,
+- billing/revenue analytics.
+
+### Acceptance Gates For Implementation
+
+Before the first implementation commit:
+
+- One active subscriber read owner supplies route, mobile, list/table/grid and context panel.
+- Hidden global action containers do not fetch or subscribe to subscriber rows.
+- Unsupported edit/delete/status/type controls are absent or explicitly unavailable in every variant.
+- Bulk delete cannot toast success or clear selection without a durable receiver.
+- Broadcast does not dispatch a dead event.
+- Subscriber tier copy does not say revenue, monetization, paid conversion or premium payment without billing proof.
+- Welcome success copy distinguishes queued, sent, failed and row-not-marked states.
+- Unsubscribe links are treated as unproved until deployed receiver and durable status update are verified.
+- Unauthorized and failed list reads are not rendered as empty subscriber lists.
+
+Suggested verification once code changes begin:
+
+```powershell
+git diff --check
+rg -n --pcre2 "[\x{00C2}\x{00C3}\x{00E2}\x{00EF}\x{00F0}\x{FFFD}]" frontend/src frontend/docs
+npm run build
+```
+
+Runtime smoke after code begins should include `/subscriptions`, grid/list/table/mobile variants, `SubscriptionsPanel`, hidden global action containers and create-subscriber flow without welcome email. Email send, unsubscribe, export, delete, Edge and database mutation testing remain excluded until a separate non-production receiver test pass is authorized.
+
 ## Implementation Packages
 
 ### 1. Subscriber Owner
