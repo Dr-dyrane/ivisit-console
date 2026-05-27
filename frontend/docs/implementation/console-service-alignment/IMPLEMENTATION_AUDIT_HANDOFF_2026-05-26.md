@@ -78,6 +78,28 @@ Still blocked after this slice:
 - Create/edit payload contract.
 - Map marker action parity.
 
+## Runtime Checkpoint - Pass 1A Cash Capability Downgrade
+
+Commit target: remove the normal-page manual cash settlement path from emergency completion.
+
+Runtime files touched:
+
+- `frontend/src/utils/emergencyActions.js`
+- `frontend/src/components/pages/EmergencyRequestsPage.jsx`
+
+Completed in this slice:
+
+- `getEmergencyActionState()` now reports unsettled cash as blocked instead of actionable.
+- Emergency completion no longer prompts the operator to run manual wallet cash settlement after terminal completion.
+- Completion now shows a deferred finance follow-up for unsettled cash.
+- Retry-payment method labels use ASCII separators to avoid recurring encoding drift.
+
+Still blocked after this slice:
+
+- Pass 2 finance authority for manual cash settlement, wallet ledger writes and organization fee deduction.
+- Canonical organization identity for cash eligibility; hospital UUID fallback remains a known risk in dispatch preflight and must not be treated as resolved.
+- Shared command facade for route, mobile and map dispatch/complete/retry.
+
 ## Required Proof Chain
 
 Every field, action, list, modal, panel, export, realtime path and global acquisition must remain traced through:

@@ -340,7 +340,7 @@ export const EmergencyRequestsPage = () => {
         <span>Live Buffer: {pendingCount} Active</span>
       </div>
       <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
-        <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Requests</span>
+        <span>Page {pagination.currentPage} of {pagination.totalPages} / {pagination.totalCount} Requests</span>
       </div>
     </div>
   ), [pendingCount, pagination]);
@@ -471,10 +471,12 @@ export const EmergencyRequestsPage = () => {
 
       // Auto-trigger cash processing if it's a cash job and not yet completed
       if (isCashPaymentMethod(request.payment_method) && request.payment_status !== 'completed') {
-        toast.info('Cash Payment Required', {
-          description: 'This was a cash job. Please confirm total amount received.'
+        // PULLBACK NOTE: Defer manual cash settlement to Pass 2 finance authority.
+        // OLD: prompt operator to run walletService.processCashPayment after completion.
+        // NEW: complete request only, then surface a blocked finance follow-up.
+        toast.warning('Cash settlement deferred', {
+          description: 'Emergency completion was recorded. Manual cash settlement needs the finance receiver pass before it can be processed here.'
         });
-        handleProcessCash(request);
       } else {
         toast.success('Emergency completed. Resources freed.');
       }
@@ -521,10 +523,10 @@ export const EmergencyRequestsPage = () => {
 
     const formatMethodLabel = (method, index) => {
       const brand = String(method?.brand || method?.provider || method?.type || 'Card').toUpperCase();
-      const last4 = method?.last4 ? ` •••• ${method.last4}` : '';
+      const last4 = method?.last4 ? ` **** ${method.last4}` : '';
       const exp =
         Number.isFinite(Number(method?.expiry_month)) && Number.isFinite(Number(method?.expiry_year))
-          ? ` • exp ${String(method.expiry_month).padStart(2, '0')}/${method.expiry_year}`
+          ? ` - exp ${String(method.expiry_month).padStart(2, '0')}/${method.expiry_year}`
           : '';
       const defaultTag = method?.is_default ? ' (default)' : '';
       return `${index + 1}. ${brand}${last4}${exp}${defaultTag}`;

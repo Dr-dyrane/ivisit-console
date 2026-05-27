@@ -20,7 +20,7 @@ export function getEmergencyActionState(request) {
   const canComplete =
     !isTerminal &&
     (status === 'accepted' || status === 'arrived');
-  const canProcessCash =
+  const hasUnsettledCash =
     status === 'completed' &&
     CASH_METHODS.has(paymentMethod) &&
     paymentStatus !== 'completed';
@@ -34,7 +34,11 @@ export function getEmergencyActionState(request) {
     isBedFlow,
     canDispatch,
     canComplete,
-    canProcessCash,
+    canProcessCash: false,
+    hasUnsettledCash,
+    cashDisabledReason: hasUnsettledCash
+      ? 'Manual cash settlement is blocked until Pass 2 finance authority is implemented.'
+      : null,
     canRetryPayment,
     showClinicalRecord,
   };
