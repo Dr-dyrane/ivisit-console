@@ -13,10 +13,25 @@ export const decodePostGISGeometry = (geometry) => {
 
   // Handle already decoded objects (e.g. GeoJSON format)
   if (typeof geometry === 'object') {
-    if (geometry.lat && geometry.lng) return { lat: geometry.lat, lng: geometry.lng };
+    const lat = Number(geometry.lat ?? geometry.latitude);
+    const lng = Number(geometry.lng ?? geometry.longitude);
+    if (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180
+    ) {
+      return { lat, lng };
+    }
     if (geometry.coordinates && geometry.coordinates.length >= 2) {
       // GeoJSON Point is [lng, lat]
-      return { lat: geometry.coordinates[1], lng: geometry.coordinates[0] };
+      const geoLng = Number(geometry.coordinates[0]);
+      const geoLat = Number(geometry.coordinates[1]);
+      if (Number.isFinite(geoLat) && Number.isFinite(geoLng)) {
+        return { lat: geoLat, lng: geoLng };
+      }
     }
   }
 
@@ -98,9 +113,10 @@ export const formatEmergencyLocation = (location, pickupLocation) => {
     return pickupLocation.address;
   }
 
-  // If location has coordinates, show them as fallback
-  if (location.lat && location.lng) {
-    return `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
+  // If location has coordinates, show them as fallback.
+  const coords = decodePostGISGeometry(location);
+  if (coords) {
+    return `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
   }
 
   // Default fallback
@@ -117,11 +133,9 @@ export const extractCoordinates = (location) => {
     return null;
   }
 
-  if (location.lat && location.lng) {
-    return {
-      lat: parseFloat(location.lat),
-      lng: parseFloat(location.lng)
-    };
+  const coords = decodePostGISGeometry(location);
+  if (coords) {
+    return coords;
   }
 
   return null;

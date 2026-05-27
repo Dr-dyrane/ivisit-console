@@ -176,10 +176,8 @@ export const EmergencyRequestTableView = ({
                         {actionState.showClinicalRecord && (
                           <DropdownMenuItem
                             onClick={async () => {
-                              console.log('EmergencyRequestTableView - Clinical Record clicked for request:', req);
                               try {
                                 const visitData = await getVisitByRequestId(req.id);
-                                console.log('EmergencyRequestTableView - Fetched visit data:', visitData);
                                 if (visitData) {
                                   // Navigate to Visits page with visit ID as parameter
                                   navigate(`/visits?view=${visitData.id}`);

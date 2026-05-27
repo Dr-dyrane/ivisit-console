@@ -29,6 +29,32 @@ export const normalizePaymentMethod = (value) => {
 
 export const isCashPaymentMethod = (value) => CASH_METHODS.has(normalizePaymentMethod(value));
 
+export const formatEmergencyServiceToken = (value, fallback = 'Standard') => {
+  if (!value) return fallback;
+
+  if (typeof value === 'object') {
+    return value.title || value.name || value.type || fallback;
+  }
+
+  if (typeof value !== 'string') return fallback;
+
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return fallback;
+
+  if (trimmedValue.startsWith('{') || trimmedValue.startsWith('[')) {
+    try {
+      const parsedValue = JSON.parse(trimmedValue);
+      return parsedValue?.title || parsedValue?.name || parsedValue?.type || trimmedValue;
+    } catch {
+      return trimmedValue;
+    }
+  }
+
+  return trimmedValue
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 export const buildLatestPaymentMap = (paymentRows = []) => {
   const paymentByRequestId = new Map();
   for (const payment of paymentRows) {

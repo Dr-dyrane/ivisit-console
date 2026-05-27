@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -33,37 +34,37 @@ import {
   subscribeToEmergencyDetail,
 } from '../../services/emergencyService';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
+import { formatEmergencyServiceToken } from '../../utils/emergencyRequestMapper';
 
-const formatAmbulanceType = (ambulanceType) => {
-  if (!ambulanceType) return 'Standard';
+const getCoordinatePair = (request) => {
+  const candidates = [
+    { lat: request?.latitude, lng: request?.longitude },
+    { lat: request?.patient_location?.lat, lng: request?.patient_location?.lng },
+    { lat: request?.patient_location?.latitude, lng: request?.patient_location?.longitude },
+    { lat: request?.pickup_location?.lat, lng: request?.pickup_location?.lng },
+    { lat: request?.pickup_location?.latitude, lng: request?.pickup_location?.longitude },
+  ];
 
-  if (typeof ambulanceType === 'object') {
-    return ambulanceType.title || ambulanceType.name || 'Standard';
-  }
-
-  if (typeof ambulanceType !== 'string') return 'Standard';
-
-  const trimmedType = ambulanceType.trim();
-  if (!trimmedType) return 'Standard';
-
-  if (trimmedType.startsWith('{') || trimmedType.startsWith('[')) {
-    try {
-      const parsedType = JSON.parse(trimmedType);
-      return parsedType?.title || parsedType?.name || trimmedType;
-    } catch (error) {
-      console.warn('[EmergencyDetailsModal] Invalid ambulance_type JSON; using raw value', {
-        ambulanceType,
-        message: error.message,
-      });
+  for (const candidate of candidates) {
+    const lat = Number(candidate.lat);
+    const lng = Number(candidate.lng);
+    if (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180
+    ) {
+      return { lat, lng };
     }
   }
 
-  return trimmedType
-    .replace(/[_-]+/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return null;
 };
 
 export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment }) => {
+  const navigate = useNavigate();
   const [visitOutcome, setVisitOutcome] = React.useState(null);
   const [loadingOutcome, setLoadingOutcome] = React.useState(false);
   const [paymentData, setPaymentData] = React.useState(null);
@@ -75,6 +76,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
   const normalizedStatus = canonicalizeEmergencyStatus(request?.status, request?.status);
   const isApprovalPending = normalizedStatus === 'pending_approval';
   const isPaymentDeclined = normalizedStatus === 'payment_declined';
+  const sceneCoordinates = React.useMemo(() => getCoordinatePair(request), [request]);
   const showCashApprovalCard = isApprovalPending && (
     request?.status === 'pending_approval' ||
     request?.payment_status === 'pending' ||
@@ -108,10 +110,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
   const handleApprove = async () => {
     if (!request) return;
     if (!paymentData) {
-      console.warn('[EmergencyDetailsModal] Cannot approve: payment record unavailable', {
-        requestId: request?.id,
-        requestStatus: request?.status,
-      });
+      console.warn('[EmergencyDetailsModal] Cannot approve: payment record unavailable');
       toast.error('Payment record unavailable for this request. Refreshing backend detail.');
       await refreshProjection();
       return;
@@ -140,10 +139,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
   const handleDecline = async () => {
     if (!request) return;
     if (!paymentData) {
-      console.warn('[EmergencyDetailsModal] Cannot decline: payment record unavailable', {
-        requestId: request?.id,
-        requestStatus: request?.status,
-      });
+      console.warn('[EmergencyDetailsModal] Cannot decline: payment record unavailable');
       toast.error('Payment record unavailable for this request. Refreshing backend detail.');
       await refreshProjection();
       return;
@@ -175,56 +171,8 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
     }
   };
 
-  // Debug: Log incoming request data (commented out for performance)
-  // React.useEffect(() => {
-  //   console.log('EmergencyDetailsModal - Request Data:', request);
-  // }, [request]);
-
   React.useEffect(() => {
     void refreshProjection();
-    return;
-    if (request?.id && (normalizedStatus === 'completed' || normalizedStatus === 'cancelled')) {
-      fetchVisitOutcome(request.id);
-    } else {
-      setVisitOutcome(null);
-    }
-
-    if (request?.id && isApprovalPending) {
-      fetchPaymentData(request.id);
-    } else {
-      setPaymentData(null);
-    }
-
-    if (!request && isOpen) {
-      // console.log('EmergencyDetailsModal - No request data provided');
-    }
-  }, [refreshProjection]);
-
-  const fetchPaymentData = React.useCallback(async () => {
-    await refreshProjection();
-  }, [refreshProjection]);
-
-  const fetchVisitOutcome = React.useCallback(async () => {
-    await refreshProjection();
-    return;
-    // console.log('EmergencyDetailsModal - Fetching visit outcome for ID:', id);
-    setLoadingOutcome(true);
-    try {
-      const projection = await refreshProjection();
-      const visitData = projection?.visitOutcome;
-      // console.log('EmergencyDetailsModal - Visit data received:', visitData);
-      if (visitData) {
-        setVisitOutcome(visitData);
-      } else {
-        // console.log('EmergencyDetailsModal - No visit data found for emergency ID:', id);
-        setVisitOutcome(null);
-      }
-    } catch (e) {
-      console.error('Error fetching visit outcome:', e);
-      setVisitOutcome(null);
-    } finally {
-      setLoadingOutcome(false);
-    }
   }, [refreshProjection]);
 
   React.useEffect(() => {
@@ -466,8 +414,10 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                           size="sm"
                           className="w-full justify-between h-8 text-green-500 hover:bg-green-500/5 text-xs font-semibold rounded-xl"
                           onClick={() => {
-                            const event = new CustomEvent('openVisitModal', { detail: { visit: visitOutcome, mode: 'view' } });
-                            window.dispatchEvent(event);
+                            // PULLBACK NOTE: Route to the mounted visits receiver from /emergencies.
+                            // OLD: dispatch unmounted openVisitModal custom event.
+                            // NEW: preserve visit identity through the existing VisitsPage route receiver.
+                            navigate(`/visits?view=${visitOutcome.id}`);
                             onClose(false);
                           }}
                         >
@@ -534,9 +484,9 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                             </span>
                           </div>
                         </div>
-                        <Button variant="outline" className="w-full rounded-2xl border-white/10 hover:bg-white/5 gap-2">
+                        <Button variant="outline" disabled className="w-full rounded-2xl border-white/10 hover:bg-white/5 gap-2 opacity-60">
                           <Phone className="w-4 h-4" />
-                          Call Patient
+                          Call Unavailable
                         </Button>
                       </div>
                     );
@@ -584,7 +534,8 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                         </div>
                       </div>
                       <Button
-                        onClick={() => window.open(`https://maps.google.com/?q=${request.latitude},${request.longitude}`, '_blank')}
+                        onClick={() => sceneCoordinates && window.open(`https://maps.google.com/?q=${sceneCoordinates.lat},${sceneCoordinates.lng}`, '_blank')}
+                        disabled={!sceneCoordinates}
                         className="w-full rounded-2xl bg-primary hover:bg-primary/90 text-white gap-2"
                       >
                         <Navigation className="w-4 h-4" />
@@ -601,7 +552,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                       <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Type</p>
                         <p className="font-semibold">
-                          {formatAmbulanceType(request.ambulance_type)}
+                          {formatEmergencyServiceToken(request.ambulance_type)}
                         </p>
                       </div>
                       <div className="p-4 rounded-2xl bg-white/5 ">
@@ -674,9 +625,10 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                   Dismiss
                 </Button>
                 <Button
+                  disabled
                   className="rounded-full px-8 h-12 bg-white/10 hover:bg-white/20  font-semibold"
                 >
-                  Generate Incident Report
+                  Report Unavailable
                 </Button>
               </div>
             </div>

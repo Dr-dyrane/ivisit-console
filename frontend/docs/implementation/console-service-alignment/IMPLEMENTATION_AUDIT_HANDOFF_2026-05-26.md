@@ -46,6 +46,38 @@ The first runtime implementation should be read-owner cleanup and false-capabili
 6. Verify with the exact commands in the checklist.
 7. Commit only after a coherent package is complete and resumable.
 
+## Runtime Checkpoint - Pass 1A First Slice
+
+Commit target: emergency render safety and false-action downgrade.
+
+Runtime files touched:
+
+- `frontend/src/utils/emergencyRequestMapper.js`
+- `frontend/src/utils/locationUtils.js`
+- `frontend/src/components/modals/EmergencyDetailsModal.jsx`
+- `frontend/src/components/views/EmergencyRequestTableView.jsx`
+- `frontend/src/components/mobile/MobileEmergency.jsx`
+
+Completed in this slice:
+
+- Moved mixed-shape emergency service token formatting into a utility boundary.
+- Removed the dead emergency detail modal fallback scaffold after the projection path.
+- Replaced the `/emergencies` clinical custom event with navigation to the mounted `/visits?view=<visitId>` receiver.
+- Removed table clinical-record payload logs.
+- Disabled unsupported detail actions for call patient and incident report instead of showing false capability.
+- Guarded external Google Maps handoff behind validated coordinates.
+- Repaired mobile emergency row display for patient, contact, location, responder, ETA, facility, action copy and mojibake separator risk.
+- Expanded location display helpers to accept finite `lat/lng`, `latitude/longitude`, and GeoJSON coordinates without object-truthiness checks.
+
+Still blocked after this slice:
+
+- Shared emergency list projection owner.
+- Shared command facade for route, mobile and map dispatch/complete/retry.
+- Manual cash completion and wallet settlement ownership.
+- Timeline, chat and clinician assignment surfaces.
+- Create/edit payload contract.
+- Map marker action parity.
+
 ## Required Proof Chain
 
 Every field, action, list, modal, panel, export, realtime path and global acquisition must remain traced through:

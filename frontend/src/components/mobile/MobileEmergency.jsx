@@ -11,7 +11,7 @@ import {
     Hospital,
     Shield,
     Zap,
-    Navigation,
+    Send,
     Eye,
     Edit,
     Trash2,
@@ -38,6 +38,8 @@ import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { canonicalizeEmergencyStatus, isActiveEmergencyStatus, isTerminalEmergencyStatus } from '../../utils/emergencyStatus';
 import { isCashPaymentMethod } from '../../utils/emergencyRequestMapper';
+import { getStandardizedPatient } from '../../utils/patientUtils';
+import { formatEmergencyLocation } from '../../utils/locationUtils';
 
 /**
  * MobileEmergency
@@ -342,6 +344,23 @@ export const MobileEmergency = ({
                     {displayEmergencies.map((emergency) => (
                         (() => {
                             const approvalNeeded = needsApproval(emergency);
+                            const patient = getStandardizedPatient(emergency);
+                            const locationLabel = formatEmergencyLocation(emergency.patient_location, emergency.pickup_location);
+                            const responderLabel =
+                                emergency.assignedAmbulance?.vehicleId ||
+                                emergency.ambulance_id ||
+                                emergency.responder_vehicle_plate ||
+                                emergency.responder_name ||
+                                null;
+                            const etaLabel =
+                                emergency.eta_display ||
+                                emergency.eta ||
+                                emergency.estimated_arrival ||
+                                'ETA pending';
+                            const facilityLabel =
+                                emergency.hospital_name ||
+                                emergency.assignedHospital?.name ||
+                                (emergency.hospital_id ? 'Linked facility' : null);
                             const rowColor = approvalNeeded ? 'hsl(var(--warning))' : getSeverityColor(emergency.service_type);
                             const canonicalStatus = canonicalizeEmergencyStatus(emergency.status, emergency.status);
                             const blade = approvalNeeded
@@ -367,7 +386,7 @@ export const MobileEmergency = ({
                             color={rowColor}
                             attentionPulse={approvalNeeded}
                             label={emergency.service_type?.replace('_', ' ').toUpperCase() || 'MEDICAL EMERGENCY'}
-                            value={emergency.patient_name || emergency.patient?.name || `Patient #${emergency.id?.slice(-4) || '??'}`}
+                            value={patient.name}
                             trend={formatDate(emergency.created_at)}
                             statusIndicators={approvalNeeded ? [{
                                 icon: AlertCircle,
@@ -401,31 +420,31 @@ export const MobileEmergency = ({
                                                 <MapPin size={14} className="text-muted-foreground/40" />
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Location</span>
-                                                    <span className="text-xs font-semibold truncate">{emergency.location || 'Location tracking...'}</span>
+                                                    <span className="text-xs font-semibold truncate">{locationLabel}</span>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
                                                 <Phone size={14} className="text-muted-foreground/40" />
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Contact</span>
-                                                    <span className="text-xs font-semibold">{emergency.contact_phone || emergency.patient?.phone || 'No contact'}</span>
+                                                    <span className="text-xs font-semibold">{patient.phone}</span>
                                                 </div>
                                             </div>
-                                            {emergency.assignedAmbulance && (
+                                            {responderLabel && (
                                                 <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
                                                     <Ambulance size={14} className="text-muted-foreground/40" />
                                                     <div className="flex flex-col">
                                                         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Ambulance</span>
-                                                        <span className="text-xs font-semibold">{emergency.assignedAmbulance.vehicleId} • ETA {emergency.eta || '3min'}</span>
+                                                        <span className="text-xs font-semibold">{responderLabel} - {etaLabel}</span>
                                                     </div>
                                                 </div>
                                             )}
-                                            {emergency.assignedHospital && (
+                                            {facilityLabel && (
                                                 <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
                                                     <Hospital size={14} className="text-muted-foreground/40" />
                                                     <div className="flex flex-col">
                                                         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Facility</span>
-                                                        <span className="text-xs font-semibold truncate">{emergency.hospital_name || emergency.assignedHospital?.name || 'Not assigned'}</span>
+                                                        <span className="text-xs font-semibold truncate">{facilityLabel}</span>
                                                     </div>
                                                 </div>
                                             )}
@@ -462,9 +481,9 @@ export const MobileEmergency = ({
                                                         {approvalNeeded ? (
                                                             <CheckCircle2 size={16} className="text-warning/70" />
                                                         ) : (
-                                                            <Navigation size={16} className="text-warning/60" />
+                                                            <Send size={16} className="text-warning/60" />
                                                         )}
-                                                        <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">{approvalNeeded ? 'Approve' : 'Navigate'}</span>
+                                                        <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">{approvalNeeded ? 'Approve' : 'Dispatch'}</span>
                                                     </Button>
                                                     {isAdmin && (
                                                         <Button
