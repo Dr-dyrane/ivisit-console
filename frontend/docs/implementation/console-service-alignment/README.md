@@ -18,6 +18,7 @@ This folder maps console services, surfaces, L5 ownership, and implementation pa
 | [passes](./passes/README.md) | Detailed implementation subplans by user flow and operational lane. |
 | [contracts](./contracts/README.md) | Exact UI-field to service-payload to SQL/RPC/function charts for drift-suspected paths. |
 | [checklists](./checklists/README.md) | Narrow executable implementation checklists derived from the pass audits. |
+| [Audit Coverage Ledger - 2026-05-29](./AUDIT_COVERAGE_LEDGER_2026-05-29.md) | Current audit-completeness ledger separating inventory, runtime closure, implementation state, and blockers. |
 | [Implementation Audit Handoff - 2026-05-26](./IMPLEMENTATION_AUDIT_HANDOFF_2026-05-26.md) | Current wrap-up state, commit checkpoints, next implementation entry point, and stop conditions. |
 
 ## Current Reading Order
@@ -28,7 +29,8 @@ This folder maps console services, surfaces, L5 ownership, and implementation pa
 4. The relevant [pass subplan](./passes/README.md)
 5. The relevant [contract exhibit](./contracts/README.md)
 6. The relevant [implementation checklist](./checklists/README.md)
-7. [Implementation Audit Handoff - 2026-05-26](./IMPLEMENTATION_AUDIT_HANDOFF_2026-05-26.md)
+7. [Audit Coverage Ledger - 2026-05-29](./AUDIT_COVERAGE_LEDGER_2026-05-29.md)
+8. [Implementation Audit Handoff - 2026-05-26](./IMPLEMENTATION_AUDIT_HANDOFF_2026-05-26.md)
 
 ## Operating Doctrine For Multi-Agent Continuation
 

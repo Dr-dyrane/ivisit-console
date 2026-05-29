@@ -6,6 +6,10 @@ Audit and implementation-planning wrap-up checkpoint. No runtime code, database 
 
 The implementation checklist set is now complete for Passes 1-8. Detailed runtime implementation should begin only from the relevant checklist, not from broad memory or a page symptom.
 
+Current audit-completeness status is tracked in [Audit Coverage Ledger - 2026-05-29](./AUDIT_COVERAGE_LEDGER_2026-05-29.md). That ledger is authoritative for whether a pass is inventory-complete, runtime-closure-complete, or only ready for a narrow first slice.
+
+Important correction: the audit tree is not fully complete by the Stage 5 standard. Service inventory, table inventory, subplans, and checklists exist; full runtime-truth closure remains open pass by pass.
+
 ## Completed Checklist Set
 
 | Pass | Checklist |
