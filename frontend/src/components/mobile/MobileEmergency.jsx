@@ -37,9 +37,7 @@ import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 import { canonicalizeEmergencyStatus, isActiveEmergencyStatus, isTerminalEmergencyStatus } from '../../utils/emergencyStatus';
-import { isCashPaymentMethod } from '../../utils/emergencyRequestMapper';
-import { getStandardizedPatient } from '../../utils/patientUtils';
-import { formatEmergencyLocation } from '../../utils/locationUtils';
+import { buildEmergencyRenderProjection, isCashPaymentMethod } from '../../utils/emergencyRequestMapper';
 
 /**
  * MobileEmergency
@@ -344,23 +342,16 @@ export const MobileEmergency = ({
                     {displayEmergencies.map((emergency) => (
                         (() => {
                             const approvalNeeded = needsApproval(emergency);
-                            const patient = getStandardizedPatient(emergency);
-                            const locationLabel = formatEmergencyLocation(emergency.patient_location, emergency.pickup_location);
-                            const responderLabel =
-                                emergency.assignedAmbulance?.vehicleId ||
-                                emergency.ambulance_id ||
-                                emergency.responder_vehicle_plate ||
-                                emergency.responder_name ||
-                                null;
-                            const etaLabel =
-                                emergency.eta_display ||
-                                emergency.eta ||
-                                emergency.estimated_arrival ||
-                                'ETA pending';
-                            const facilityLabel =
-                                emergency.hospital_name ||
-                                emergency.assignedHospital?.name ||
-                                (emergency.hospital_id ? 'Linked facility' : null);
+                            const renderProjection = buildEmergencyRenderProjection(emergency);
+                            const patient = renderProjection.patientDisplay;
+                            const locationLabel = renderProjection.locationDisplay.label;
+                            const responderLabel = renderProjection.responderDisplay.hasResponder
+                                ? renderProjection.responderDisplay.label
+                                : null;
+                            const etaLabel = renderProjection.responderDisplay.etaLabel;
+                            const facilityLabel = renderProjection.facilityDisplay.assignmentState === 'assigned'
+                                ? renderProjection.facilityDisplay.name
+                                : null;
                             const rowColor = approvalNeeded ? 'hsl(var(--warning))' : getSeverityColor(emergency.service_type);
                             const canonicalStatus = canonicalizeEmergencyStatus(emergency.status, emergency.status);
                             const blade = approvalNeeded

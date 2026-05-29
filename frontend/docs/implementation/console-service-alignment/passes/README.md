@@ -30,19 +30,21 @@ Current audit-planning shape:
 
 ## Current Pass Coverage Ledger
 
-This table is the handoff checkpoint after the route-by-route confirmation sweep. It does not authorize implementation; it identifies what has enough documentation to start a narrow implementation checklist and what still needs deeper exact-line or receiver proof.
+This is the canonical audit-completeness ledger. It does not authorize implementation by itself.
 
-| Pass | Current documentation coverage | Remaining audit before code |
-| --- | --- | --- |
-| Pass 1 Emergency detail | Evidence audit, route-by-route confirmation ledger, projection target, modal raw-field matrix, action contract and app-consequence chain are documented. | Before implementation, reread the current emergency source diffs and regenerate exact receiver checklist for any changed payment, visit, chat, assignment or realtime line. |
-| Pass 2 Wallet, Stripe and ledger | Surface ledger, top-up/payout readiness proof, implementation sequence and blocker matrix are documented. | Add fresh exact-line exhibits for any touched Stripe, payout, ledger export or self-healing path before editing money code. |
-| Pass 3 Facility, capacity and pricing | Surface ledger, field/payload gates, implementation sequence and blocker matrix are documented. | Confirm latest import/discovery, media, capacity reducer and pricing quote call sites before code; do not assume old facility scope paths are exhaustive. |
-| Pass 4 Identity, onboarding and verification | Surface ledger, deterministic surface register, route authority and implementation sequence are documented. | Confirm live auth/role/org/facility field availability and any invite/verification receiver shape immediately before editing. |
-| Pass 5 Provider operations and scheduling | Surface confirmation ledger, map/telemetry/scheduling target projections, exact exhibits and implementation sequence are documented. | Add exact field-to-UI rows only for the first selected implementation slice; telemetry, trip status, schedules, Storage and assignment writes remain blocked. |
-| Pass 6 Visits and medical history | Surface confirmation ledger, field-to-UI/payload-to-receiver closure, exact clinical exhibits and implementation sequence are documented. | Add current exact-line confirmation for any clinical log, incident lookup, row-source classifier or medical-profile consumer before touching source. |
-| Pass 7 Care/content/support | Surface confirmation ledger, exact care/content exhibits, cross-pass register and implementation sequence are documented. | Reconfirm hidden shell acquisition, false bulk deletes, panel exports, URL safety, Storage proof and billing-result source before code. |
-| Pass 7 Subscriptions | Surface confirmation ledger, exact subscriber/email exhibits, lifecycle blockers and implementation sequence are documented. | Prove deployed email/unsubscribe topology before any email lifecycle work; first code slice remains read/disable only. |
-| Pass 8 Analytics/search/realtime/feedback | Shell surface confirmation ledger, implementation sequence and blocker matrix are documented; shell-wide acquisition and fake/stub truth are mapped. | Before implementation, select only read/disable shell cleanup that does not recreate domain ownership; real dashboard/search/export truth waits on Passes 1-7 projections. |
+Important correction: service inventory, table inventory, subplans and checklists are complete as maintained planning artifacts. Full runtime-truth closure is not complete across the Console. A pass is not audit-complete until its source truth, service/query boundary, state owner, UI render, action payload, receiver and app consequence are all closed for every in-scope field/control/export/realtime path.
+
+| Pass | Planning coverage | Runtime-truth closure | Implementation state | Current disposition |
+| --- | --- | --- | --- | --- |
+| Pass 1 Emergency lifecycle, communication, clinical handoff and cash/payment truth | Strongest coverage: evidence audit, route ledger, projection target, modal raw-field matrix, action contract, checklist and app-consequence chain. | Partial. Detail render safety and cash false-capability paths improved; render projection boundary started; list owner, command facade, map parity, timeline, chat, clinician assignment, create/edit contract and dispatch org identity remain open. | Started. Commits `a48ca9f` and `2bf6a87`; current uncommitted slice starts Pass 1B render projection. | Continue Pass 1 in narrow packages. Next edge is schema guard reconciliation before create/update payload work. Do not call Pass 1 closed. |
+| Pass 2 Wallet, Stripe and ledger | Subplan, contract evidence, Edge/RPC references and checklist exist. | Partial planning only. Money surfaces need fresh exact-line confirmation before edits. | Not started in runtime. | Audit refresh required before code. No money mutation or repair without explicit receiver proof. |
+| Pass 3 Facility, capacity and pricing | Subplan, service map, contract chart, database matrices and checklist exist. | Partial planning only. Import/discovery, media provenance, capacity reducers, pricing scope and global hospital/map acquisition need current-source refresh. | Not started in runtime. | Audit refresh required before code. Facility totals and capacity claims remain high risk. |
+| Pass 4 Identity, onboarding and verification | Subplan, service map, L5 ownership rows and checklist exist. | Partial planning only. Auth, invite, verification, role/org/facility scope, report/export affordances and mobile variants need source refresh. | Not started in runtime. | Audit refresh required before code. Do not widen auth or verification actions casually. |
+| Pass 5 Provider operations and scheduling | Subplan, provider contract chart, service coverage and checklist exist. | Partial planning only. Telemetry, schedules, Storage, map layers, assignment/proximity, active trips and provider self-edit authority remain open. | Not started in runtime. | Audit refresh required before code. Provider readiness cannot be inferred from display rows. |
+| Pass 6 Visits and medical history | Subplan, identity/visits contract chart, exact clinical exhibits and checklist exist. | Partial planning only. Clinical payload logs, incident lookup, row-source classifier, medical profile consumers and payment/tip evidence need current-source refresh. | Not started in runtime. | Audit refresh required before code. Request-derived records need stricter read-only handling. |
+| Pass 7 Care/content/support | Subplan, care/content contract chart, service coverage and checklist exist. | Partial planning only. Hidden shell acquisition, false exports, URL safety, Storage proof, insurance billing outcomes, support response fields and content writes remain open. | Not started in runtime. | Audit refresh required before code. Read/disable cleanup only until receivers are proved. |
+| Pass 7 Subscriptions | Separate subplan, evidence audit, subscriber/email exhibits and checklist exist. | Partial planning only. Welcome lifecycle, custom/bulk email, unsubscribe topology, export scope, duplicate service ownership and RLS write authority remain open. | Not started in runtime. | Audit refresh required before code. No email send or subscriber lifecycle write during audit. |
+| Pass 8 Analytics/search/realtime/feedback | Subplan, shell surface ledger, blocker matrix and checklist exist. | Partial planning only. Dashboard/search/export truth depends on Passes 1-7 projections; shell/global acquisition and fake/stub truth remain open. | Not started in runtime. | Audit refresh required before code. Do not build analytics on unclosed domain truth. |
 
 ## How To Continue A Pass
 
@@ -56,3 +58,53 @@ For the active pass, work in this order:
 6. After documentation closure, implement only the first safe slice named in the pass subplan.
 
 This keeps the original Stage 6 sequence intact while making each pass deep enough for another engineer to continue without relying on memory or chat context.
+
+## Audit-Safe Verification Harness
+
+Use `ivisit-app/supabase` as the shared Supabase verification harness while auditing Console alignment. The Console repo has build, lint, Jest, and browser-smoke capacity, but the stronger schema, RPC, table-flow, field-runtime, and cross-repo contract tooling lives in `ivisit-app/supabase/tests`.
+
+Audit-safe default:
+
+1. Prefer static/source guards and existing validation artifacts before any live runtime matrix.
+2. Treat scripts named `matrix`, `e2e`, `cleanup`, `repair`, `seed`, `bootstrap`, `edge`, or `apply` as unsafe for audit until the script has been read and explicitly classified.
+3. Do not run database reset, migration push, cleanup apply, repair, seed, Edge Function smoke, email send, Storage upload, or live mutation during audit.
+4. When a pass touches database contracts, compare Console source against the latest generated artifacts under `ivisit-app/supabase/tests/validation`.
+
+Recommended single-command checks from `ivisit-app`:
+
+| Purpose | Command | Audit posture |
+| --- | --- | --- |
+| Emergency table field guard | `npm run hardening:emergency-requests-surface-field-guard` | Source/type/report write only; good first check for Pass 1. |
+| Emergency transitions field guard | `npm run hardening:emergency-status-transitions-surface-field-guard` | Source/type/report write only; good first check for Pass 1 lifecycle work. |
+| Table flow trace | `node supabase/tests/scripts/export_table_flow_trace.js --table <table_name>` | Source/schema-artifact scanner that writes validation reports; use per table. |
+| Runtime field coverage | `node supabase/tests/scripts/assert_table_field_runtime_coverage.js --table <table_name>` | Reads trace artifacts and writes coverage reports; run after table flow trace. |
+| Console CRUD contract matrix | `npm run hardening:console-ui-crud-matrix` | Static/source contract report; useful before route-level implementation. |
+| Modal domain guard | `npm run hardening:modal-domain-guard` | Static/source guard layered on the CRUD matrix. |
+| Contract drift guard | `npm run hardening:contract-drift-guard` | Cross-repo/source contract guard; verify before large shared-service edits. |
+| Cleanup dry-run guard | `npm run hardening:cleanup-dry-run-guard` | Dry-run only, but it queries planned cleanup state; run before push after approved runtime matrices. |
+
+High-risk checks requiring explicit classification before use:
+
+| Command | Why it is not audit-default |
+| --- | --- |
+| `npm run hardening:console-matrix` | Creates, updates, RPC-calls, and cleans up live test rows. |
+| `node supabase/tests/scripts/run_e2e_flow_matrix.js` | Creates full live emergency/payment/visit flows and cleanup records. |
+| `npm run hardening:emergency-runtime-confidence` | Runs Console matrix plus E2E flow before assertions. |
+| `npm run hardening:cash-matrix` | Exercises finance role isolation and likely live mutation paths. |
+| `npm run hardening:mutation-matrix` | Purpose is mutation isolation; not audit-default. |
+| `npm run hardening:edge-smoke` | Invokes Edge Functions; not audit-default. |
+| `npm run hardening:cleanup-apply` | Applies cleanup mutations. |
+| `npm run hardening:runtime-data-repair` | Repairs runtime data; never run during audit. |
+| `npm run hardening:bootstrap-demo-matrix:apply` | Applies demo bootstrap changes. |
+| `npm run hardening:full` | Includes live matrices, E2E, cleanup apply, and broad checks. |
+
+Console-local checks remain useful after a code slice:
+
+```powershell
+cd C:\Users\Dyrane\Documents\GitHub\ivisit-console\frontend
+npm run build
+npm run lint
+npm test -- --watchAll=false
+```
+
+For a narrow UI fix, pair the relevant `ivisit-app/supabase` source guard with one Console build or focused browser smoke. Do not expand into full matrices until the pass documentation names the receiver, payload, reflected read, cleanup posture, and app consequence.

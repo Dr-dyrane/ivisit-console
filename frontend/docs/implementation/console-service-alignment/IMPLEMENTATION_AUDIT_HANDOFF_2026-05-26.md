@@ -6,9 +6,7 @@ Audit and implementation-planning wrap-up checkpoint. No runtime code, database 
 
 The implementation checklist set is now complete for Passes 1-8. Detailed runtime implementation should begin only from the relevant checklist, not from broad memory or a page symptom.
 
-Current audit-completeness status is tracked in [Audit Coverage Ledger - 2026-05-29](./AUDIT_COVERAGE_LEDGER_2026-05-29.md). That ledger is authoritative for whether a pass is inventory-complete, runtime-closure-complete, or only ready for a narrow first slice.
-
-Important correction: the audit tree is not fully complete by the Stage 5 standard. Service inventory, table inventory, subplans, and checklists exist; full runtime-truth closure remains open pass by pass.
+Current audit-completeness status lives in [passes/README.md](./passes/README.md), under `Current Pass Coverage Ledger`. Important correction: the audit tree is not fully complete by the Stage 5 standard. Service inventory, table inventory, subplans, and checklists exist; full runtime-truth closure remains open pass by pass.
 
 ## Completed Checklist Set
 
@@ -103,6 +101,56 @@ Still blocked after this slice:
 - Pass 2 finance authority for manual cash settlement, wallet ledger writes and organization fee deduction.
 - Canonical organization identity for cash eligibility; hospital UUID fallback remains a known risk in dispatch preflight and must not be treated as resolved.
 - Shared command facade for route, mobile and map dispatch/complete/retry.
+
+## Runtime Checkpoint - Pass 1B Render Projection Start
+
+Commit target: emergency UI-to-DB render projection boundary.
+
+Runtime files touched:
+
+- `frontend/src/utils/emergencyRequestMapper.js`
+- `frontend/src/services/emergencyService.js`
+- `frontend/src/components/modals/EmergencyDetailsModal.jsx`
+- `frontend/src/components/views/EmergencyRequestListView.jsx`
+- `frontend/src/components/views/EmergencyRequestTableView.jsx`
+- `frontend/src/components/mobile/MobileEmergency.jsx`
+
+Completed in this slice:
+
+- Added `buildEmergencyRenderProjection()` as the first shared UI-facing emergency projection boundary.
+- Normalized patient, service, ambulance type, status, location coordinates, facility, payment, responder and clinical capability labels before render.
+- Moved the modal's external-map coordinate source to the projection instead of a modal-local parser.
+- Replaced modal/list/table/mobile patient/facility/payment display branches with projection fields where the slice touched them.
+- Removed normal clinical-record "not found" browser warnings from list and table actions; the user still receives a toast.
+- Contracted `console_create_emergency_request` and `console_update_emergency_request` payload builders to fields consumed by their SQL receivers.
+- Removed `updated_at` and UI-only/raw object pass-through from the update RPC payload; the receiver owns timestamp mutation.
+
+Verification result:
+
+- `git diff --check` passed with only CRLF warnings.
+- Mojibake scan on touched source/docs returned no matches.
+- `cd frontend && npm run build` passed.
+- Initial `npm run hardening:emergency-requests-surface-field-guard` from `ivisit-app` failed and produced `ivisit-app/supabase/tests/validation/emergency_requests_surface_field_guard_report.json`; follow-up sync/fix made the guard pass.
+
+Guard failure disposition and closure:
+
+- The guard found Console emergency type/schema drift: extra `emergency_requests` fields and relationship entries in `frontend/src/types/database.ts`.
+- Cross-check showed Console matched `ivisit-app/supabase/database.ts` and the current logistics pillar, while `ivisit-app/types/database.ts` was stale. The app type mirror was synced from `ivisit-app/supabase/database.ts` and rewritten as UTF-8 to avoid the recurrent binary-file build failure.
+- The guard also found `bed_type` and `estimated_arrival` inside `frontend/src/services/emergencyService.js` writable-field authority where those aliases belong in mapper compatibility only. They were removed from the emergency service writable-field set while remaining readable through the render mapper.
+- After the type sync and alias-boundary fix, `npm run hardening:emergency-requests-surface-field-guard` passed.
+- Follow-up read-only trace checks passed:
+  - `node supabase/tests/scripts/export_table_flow_trace.js --table emergency_requests`
+  - `node supabase/tests/scripts/assert_table_field_runtime_coverage.js --table emergency_requests`
+- The trace reported 43 `emergency_requests` columns, 2,688 source references, 2,208 runtime references scanned, and zero missing runtime columns.
+- After payload contraction, `npm run hardening:emergency-requests-surface-field-guard` and `cd frontend && npm run build` still passed.
+
+Still blocked after this slice:
+
+- Emergency create/update payload authority for extra logistics fields; payload work still needs receiver-by-receiver proof.
+- Shared list projection owner for server pagination, count, filters and payment enrichment.
+- Shared command facade for route, mobile and map dispatch/complete/retry.
+- Browser smoke on `/emergencies` detail with scalar `ambulance_type`.
+- App/Console generated type sync discipline after Supabase changes, including encoding check.
 
 ## Required Proof Chain
 

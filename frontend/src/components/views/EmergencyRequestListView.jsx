@@ -12,6 +12,7 @@ import { getServiceTypeBadge, getServiceTypeDisplay, getStatusDisplay, getStatus
 import { getVisitByRequestId } from '../../services/visitsService';
 import { toast } from 'sonner';
 import { getEmergencyActionState } from '../../utils/emergencyActions';
+import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapper';
 
 export const EmergencyRequestListView = ({
   requests,
@@ -42,6 +43,7 @@ export const EmergencyRequestListView = ({
     >
       {requests.map((req, index) => {
         const actionState = getEmergencyActionState(req);
+        const renderProjection = buildEmergencyRenderProjection(req);
         return (
         <motion.div
           key={req.id}
@@ -63,7 +65,7 @@ export const EmergencyRequestListView = ({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
                   <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
-                    {req.patient_snapshot?.fullName || req.requester_name || req.patient_name || 'Unknown Requester'}
+                    {renderProjection.patientDisplay.name}
                   </h3>
                   <Badge className={`squircle-sm ${getServiceTypeBadge(req.service_type)} border-0 font-bold`}>
                     {getServiceTypeDisplay(req.service_type)}
@@ -81,7 +83,7 @@ export const EmergencyRequestListView = ({
                   <div className="flex items-center gap-1">
                     <User className="h-4 w-4" />
                     <span className="truncate">
-                      {req.patient_snapshot?.phone || req.requester_phone || req.patient_phone || 'No contact info'}
+                      {renderProjection.patientDisplay.phone}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
@@ -101,7 +103,7 @@ export const EmergencyRequestListView = ({
                   {req.hospital_name && (
                     <div className="flex items-center gap-1">
                       <Hospital className="h-4 w-4" />
-                      <span className="truncate">{req.hospital_name}</span>
+                      <span className="truncate">{renderProjection.facilityDisplay.name}</span>
                     </div>
                   )}
                 </div>
@@ -131,8 +133,6 @@ export const EmergencyRequestListView = ({
                           // Navigate to Visits page with visit ID as parameter
                           navigate(`/visits?view=${visitData.id}`);
                         } else {
-                          console.warn('No visit data found for emergency:', req.id);
-                          // Show notification that no visit record exists
                           toast.warning('No clinical record found for this emergency request');
                         }
                       } catch (error) {

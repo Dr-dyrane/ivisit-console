@@ -26,7 +26,6 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
-import { getStandardizedPatient } from '../../utils/patientUtils';
 import {
   approveCashPayment,
   declineCashPayment,
@@ -34,34 +33,7 @@ import {
   subscribeToEmergencyDetail,
 } from '../../services/emergencyService';
 import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
-import { formatEmergencyServiceToken } from '../../utils/emergencyRequestMapper';
-
-const getCoordinatePair = (request) => {
-  const candidates = [
-    { lat: request?.latitude, lng: request?.longitude },
-    { lat: request?.patient_location?.lat, lng: request?.patient_location?.lng },
-    { lat: request?.patient_location?.latitude, lng: request?.patient_location?.longitude },
-    { lat: request?.pickup_location?.lat, lng: request?.pickup_location?.lng },
-    { lat: request?.pickup_location?.latitude, lng: request?.pickup_location?.longitude },
-  ];
-
-  for (const candidate of candidates) {
-    const lat = Number(candidate.lat);
-    const lng = Number(candidate.lng);
-    if (
-      Number.isFinite(lat) &&
-      Number.isFinite(lng) &&
-      lat >= -90 &&
-      lat <= 90 &&
-      lng >= -180 &&
-      lng <= 180
-    ) {
-      return { lat, lng };
-    }
-  }
-
-  return null;
-};
+import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapper';
 
 export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment }) => {
   const navigate = useNavigate();
@@ -73,10 +45,19 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
   const [detailLoading, setDetailLoading] = React.useState(false);
   const [isProcessingApproval, setIsProcessingApproval] = React.useState(false);
   const [isRetryingPayment, setIsRetryingPayment] = React.useState(false);
-  const normalizedStatus = canonicalizeEmergencyStatus(request?.status, request?.status);
+  const renderProjection = React.useMemo(
+    () => buildEmergencyRenderProjection(request, {
+      latestPayment: paymentData,
+      paymentVisibilityState,
+      visitOutcome,
+      visitVisibilityState,
+    }),
+    [request, paymentData, paymentVisibilityState, visitOutcome, visitVisibilityState]
+  );
+  const normalizedStatus = renderProjection.statusDisplay.status;
   const isApprovalPending = normalizedStatus === 'pending_approval';
   const isPaymentDeclined = normalizedStatus === 'payment_declined';
-  const sceneCoordinates = React.useMemo(() => getCoordinatePair(request), [request]);
+  const sceneCoordinates = renderProjection.locationDisplay.coordinates;
   const showCashApprovalCard = isApprovalPending && (
     request?.status === 'pending_approval' ||
     request?.payment_status === 'pending' ||
@@ -308,7 +289,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Fee Amount</p>
                       <p className="text-xl font-bold">
-                        {paymentData?.amount ?? request.total_cost ?? 0} {paymentData?.currency || 'USD'}
+                        {renderProjection.paymentDisplay.amountLabel}
                       </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -442,11 +423,11 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                     <div className="flex flex-wrap gap-4 pt-4 border-t border-white/5">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="w-4 h-4" />
-                        <span>{request.created_at ? format(new Date(request.created_at), 'EEEE, MMMM do yyyy') : 'Unknown Date'}</span>
+                        <span>{renderProjection.identity.createdAt ? format(new Date(renderProjection.identity.createdAt), 'EEEE, MMMM do yyyy') : 'Unknown Date'}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="w-4 h-4" />
-                        <span>{request.created_at ? format(new Date(request.created_at), 'HH:mm:ss') : 'Unknown Time'}</span>
+                        <span>{renderProjection.identity.createdAt ? format(new Date(renderProjection.identity.createdAt), 'HH:mm:ss') : 'Unknown Time'}</span>
                       </div>
                     </div>
                   </div>
@@ -455,7 +436,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                 {/* Requester Info */}
                 <GlassCard icon={<User className="text-purple-500" />} title="Requester">
                   {(() => {
-                    const patient = getStandardizedPatient(request);
+                    const patient = renderProjection.patientDisplay;
                     return (
                       <div className="space-y-6">
                         <div className="flex items-center gap-4">
@@ -499,7 +480,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                     <div className="space-y-4">
                       <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Hospital</p>
-                        <p className="text-lg font-semibold">{request.hospital_name || 'N/A'}</p>
+                        <p className="text-lg font-semibold">{renderProjection.facilityDisplay.name}</p>
                       </div>
                       {request.patient_location && (
                         <div className="p-4 rounded-2xl bg-white/5 ">
@@ -516,11 +497,11 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                       <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 rounded-2xl bg-white/5 ">
                           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Request ID</p>
-                          <p className="font-mono text-sm font-semibold">{request.request_id || 'N/A'}</p>
+                          <p className="font-mono text-sm font-semibold">{renderProjection.identity.displayId || 'N/A'}</p>
                         </div>
                         <div className="p-4 rounded-2xl bg-white/5 ">
                           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Service Type</p>
-                          <p className="font-mono text-sm font-semibold">{request.service_type || 'N/A'}</p>
+                          <p className="font-mono text-sm font-semibold">{renderProjection.serviceDisplay.label}</p>
                         </div>
                       </div>
                     </div>
@@ -546,22 +527,22 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                 </GlassCard>
 
                 {/* Service Details */}
-                {request.service_type === 'ambulance' && request.ambulance_type && (
+                {request.service_type === 'ambulance' && renderProjection.serviceDisplay.hasAmbulanceType && (
                   <GlassCard icon={<Ambulance className="text-blue-500" />} title="Ambulance Details" className="lg:col-span-3">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Type</p>
                         <p className="font-semibold">
-                          {formatEmergencyServiceToken(request.ambulance_type)}
+                          {renderProjection.serviceDisplay.ambulanceTypeLabel}
                         </p>
                       </div>
                       <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">ETA</p>
-                        <p className="font-semibold">{etaDisplay || 'N/A'}</p>
+                        <p className="font-semibold">{renderProjection.responderDisplay.etaLabel || etaDisplay || 'N/A'}</p>
                       </div>
                       <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Status</p>
-                        <p className="font-semibold capitalize">{request.status || 'N/A'}</p>
+                        <p className="font-semibold capitalize">{renderProjection.statusDisplay.label}</p>
                       </div>
                     </div>
                   </GlassCard>
@@ -580,7 +561,7 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
                       </div>
                       <div className="p-4 rounded-2xl bg-white/5 ">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Specialty</p>
-                        <p className="font-semibold">{request.specialty || 'N/A'}</p>
+                        <p className="font-semibold">{renderProjection.serviceDisplay.specialtyLabel}</p>
                       </div>
                     </div>
                   </GlassCard>

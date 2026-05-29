@@ -37,15 +37,56 @@ const EMERGENCY_REQUEST_WRITABLE_FIELDS = new Set([
   'confirmed_cost',
   // Bed booking metadata
   'bed_count',
-  'bed_type',
   // Patient/navigation metadata
   'patient_heading',
-  'estimated_arrival',
   'shared_data_snapshot',
   // Payment tracking
   'payment_method_id',
   'payment_id',
 ]);
+
+const CONSOLE_CREATE_EMERGENCY_PAYLOAD_FIELDS = [
+  'user_id',
+  'hospital_id',
+  'service_type',
+  'status',
+  'total_cost',
+  'payment_status',
+  'patient_snapshot',
+  'patient_location',
+  'latitude',
+  'longitude',
+  'description',
+  'transition_reason',
+  'reason',
+  'hospital_name',
+  'specialty',
+  'ambulance_type',
+  'bed_number',
+];
+
+const CONSOLE_UPDATE_EMERGENCY_PAYLOAD_FIELDS = [
+  'status',
+  'transition_reason',
+  'reason',
+  'hospital_id',
+  'hospital_name',
+  'service_type',
+  'specialty',
+  'ambulance_type',
+  'bed_number',
+  'responder_id',
+  'responder_name',
+  'responder_phone',
+  'responder_vehicle_type',
+  'responder_vehicle_plate',
+  'responder_heading',
+  'responder_location',
+  'patient_snapshot',
+  'patient_location',
+  'total_cost',
+  'payment_status',
+];
 
 function parsePointInput(input) {
   if (!input) return null;
@@ -103,6 +144,58 @@ function buildLegacyEmergencyPayload(input) {
   };
 
   // Strip undefined to avoid invalid column writes and let DB defaults apply.
+  Object.keys(payload).forEach((key) => payload[key] === undefined && delete payload[key]);
+  return payload;
+}
+
+function pickDefinedPayloadFields(input, allowedFields) {
+  const payload = {};
+  for (const field of allowedFields) {
+    if (input?.[field] !== undefined) {
+      payload[field] = input[field];
+    }
+  }
+  return payload;
+}
+
+function buildConsoleCreatePayload(input, fallbackPayload) {
+  const payload = pickDefinedPayloadFields(
+    {
+      ...fallbackPayload,
+      user_id: input?.user_id ?? fallbackPayload?.user_id ?? null,
+      service_type: input?.service_type ?? fallbackPayload?.service_type ?? 'ambulance',
+      status: fallbackPayload?.status ?? canonicalizeEmergencyStatus(input?.status, 'in_progress'),
+      latitude:
+        input?.latitude ??
+        input?.pickup_location?.latitude ??
+        input?.pickup_location?.lat ??
+        null,
+      longitude:
+        input?.longitude ??
+        input?.pickup_location?.longitude ??
+        input?.pickup_location?.lng ??
+        null,
+      description: input?.description ?? null,
+    },
+    CONSOLE_CREATE_EMERGENCY_PAYLOAD_FIELDS
+  );
+
+  Object.keys(payload).forEach((key) => payload[key] === undefined && delete payload[key]);
+  return payload;
+}
+
+function buildConsoleUpdatePayload(input, normalizedStatus) {
+  // PULLBACK NOTE: Pass 1B UI-to-DB payload contraction.
+  // OLD: updateEmergencyRequest forwarded the full UI object to the RPC.
+  // NEW: only fields consumed by console_update_emergency_request are submitted.
+  const payload = pickDefinedPayloadFields(
+    {
+      ...input,
+      ...(normalizedStatus ? { status: normalizedStatus } : {}),
+    },
+    CONSOLE_UPDATE_EMERGENCY_PAYLOAD_FIELDS
+  );
+
   Object.keys(payload).forEach((key) => payload[key] === undefined && delete payload[key]);
   return payload;
 }
@@ -367,23 +460,7 @@ export async function createEmergencyRequest(input) {
     } else {
       // Fallback path for console-created records with incomplete payment context.
       const payload = buildLegacyEmergencyPayload(input);
-      const fallbackPayload = {
-        ...payload,
-        user_id: input?.user_id ?? payload.user_id ?? null,
-        service_type: input?.service_type ?? payload.service_type ?? 'ambulance',
-        status: payload.status ?? canonicalizeEmergencyStatus(input?.status, 'in_progress'),
-        latitude:
-          input?.latitude ??
-          input?.pickup_location?.latitude ??
-          input?.pickup_location?.lat ??
-          null,
-        longitude:
-          input?.longitude ??
-          input?.pickup_location?.longitude ??
-          input?.pickup_location?.lng ??
-          null,
-        description: input?.description ?? null,
-      };
+      const fallbackPayload = buildConsoleCreatePayload(input, payload);
 
       const { data: rpcResult, error: rpcError } = await supabase.rpc('console_create_emergency_request', {
         p_payload: fallbackPayload,
@@ -429,11 +506,7 @@ export async function updateEmergencyRequest(requestId, input) {
       ? canonicalizeEmergencyStatus(input.status, null)
       : undefined;
 
-    const payload = {
-      ...input,
-      ...(normalizedStatus ? { status: normalizedStatus } : {}),
-      updated_at: new Date().toISOString(),
-    };
+    const payload = buildConsoleUpdatePayload(input, normalizedStatus);
 
     const { data: rpcResult, error } = await supabase.rpc('console_update_emergency_request', {
       p_request_id: requestId,

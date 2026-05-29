@@ -15,14 +15,12 @@ import {
   DropdownMenuSeparator
 } from '../ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
-import { formatEmergencyLocation } from '../../utils/locationUtils';
 import { LocationCell } from '../ui/LocationCell';
 import { getServiceTypeBadge, getServiceTypeDisplay, getStatusDisplay, getStatusBadge } from '../../constants/emergency';
 import { getVisitByRequestId } from '../../services/visitsService';
 import { toast } from 'sonner';
-import { getStandardizedPatient } from '../../utils/patientUtils';
 import { getEmergencyActionState } from '../../utils/emergencyActions';
-import { isCashPaymentMethod } from '../../utils/emergencyRequestMapper';
+import { buildEmergencyRenderProjection, isCashPaymentMethod } from '../../utils/emergencyRequestMapper';
 
 export const EmergencyRequestTableView = ({
   requests,
@@ -92,6 +90,7 @@ export const EmergencyRequestTableView = ({
           <TableBody>
             {requests.map((req, index) => {
               const actionState = getEmergencyActionState(req);
+              const renderProjection = buildEmergencyRenderProjection(req);
               return (
               <motion.tr
                 key={req.id}
@@ -108,7 +107,7 @@ export const EmergencyRequestTableView = ({
                     onClick={(e) => e.stopPropagation()}
                   />
                 </TableCell>
-                <TableCell className="font-bold">{getStandardizedPatient(req).name}</TableCell>
+                <TableCell className="font-bold">{renderProjection.patientDisplay.name}</TableCell>
                 <TableCell>
                   <Badge className={`squircle-sm ${getServiceTypeBadge(req.service_type)} border-0 font-bold`}>
                     {getServiceTypeDisplay(req.service_type)}
@@ -126,7 +125,7 @@ export const EmergencyRequestTableView = ({
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-sm">{getStandardizedPatient(req).phone}</TableCell>
+                <TableCell className="text-sm">{renderProjection.patientDisplay.phone}</TableCell>
                 <TableCell className="text-sm">
                   <LocationCell
                     location={req.patient_location}
@@ -134,12 +133,12 @@ export const EmergencyRequestTableView = ({
                     responderLocation={req.responder_location}
                   />
                 </TableCell>
-                <TableCell className="text-sm">{req.hospital_name || 'Not specified'}</TableCell>
+                <TableCell className="text-sm">{renderProjection.facilityDisplay.name}</TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-1.5">
                       <Badge className={`squircle-xs border-0 font-bold ${isCashPaymentMethod(req.payment_method) ? 'bg-yellow-500/20 text-yellow-600' : 'bg-blue-500/20 text-blue-600'}`}>
-                        {req.payment_method?.toUpperCase() || 'UNSET'}
+                        {renderProjection.paymentDisplay.methodLabel}
                       </Badge>
                       {req.payment_status === 'completed' ? (
                         <CheckCheck className="h-3 w-3 text-success" />
@@ -149,7 +148,7 @@ export const EmergencyRequestTableView = ({
                     </div>
                     {req.total_cost && (
                       <span className="text-[10px] font-bold text-muted-foreground ml-1">
-                        ${Number(req.total_cost).toFixed(2)}
+                        {renderProjection.paymentDisplay.amountLabel}
                       </span>
                     )}
                   </div>
@@ -182,8 +181,6 @@ export const EmergencyRequestTableView = ({
                                   // Navigate to Visits page with visit ID as parameter
                                   navigate(`/visits?view=${visitData.id}`);
                                 } else {
-                                  console.warn('No visit data found for emergency:', req.id);
-                                  // Show notification that no visit record exists
                                   toast.warning('No clinical record found for this emergency request');
                                 }
                               } catch (error) {
