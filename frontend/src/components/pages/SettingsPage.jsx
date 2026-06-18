@@ -102,7 +102,7 @@ export const SettingsPage = () => {
         </Button>
     ), [handleSignOut]);
 
-    usePageHeader("Control Center", headerActions);
+    usePageHeader("Account Settings", headerActions);
 
     const toggleDarkMode = () => {
         const newMode = !darkMode;

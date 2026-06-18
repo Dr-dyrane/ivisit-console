@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { ROLE_LEVELS } from '../../config/navigation';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useContextAction } from '../../hooks/useContextAction';
@@ -135,38 +136,45 @@ export const DynamicBottomBar = () => {
 
     const currentPath = location.pathname;
 
-    // Slot 1: Always Home
-    const slot1 = { path: '/', icon: LayoutDashboard, label: 'Home' };
+    // Role-deterministic nav slots — predictable per role
+    const userRole = profile?.role || 'viewer';
+    const userLevel = ROLE_LEVELS[userRole] || 0;
 
-    // Slot 2: Current Page (if not home, otherwise map/analytics)
-    let slot2 = { path: currentPath, icon: PATH_ICONS[currentPath] || Activity, label: 'Current' };
-    if (currentPath === '/') {
-        slot2 = { path: '/map', icon: Map, label: 'Map' };
-    }
-
-    // Slot 3: Smart Recommendation
-    const recPath = SMART_RECOMMENDATIONS[currentPath] || '/analytics';
-    const slot3 = { path: recPath, icon: PATH_ICONS[recPath] || Activity, label: 'Next' };
-
-    // Unique nav items for the bar
-    const navItems = [slot1, slot2, slot3].reduce((acc, current) => {
-        const x = acc.find(item => item.path === current.path);
-        if (!x) return acc.concat([current]);
-        return acc;
-    }, []);
-
-    // Ensure we always have 3 items if possible for a steady UI
-    if (navItems.length < 3) {
-        const fallbacks = [
-            { path: '/analytics', icon: BarChart3, label: 'Data' },
-            { path: '/map', icon: Map, label: 'Live' }
+    let navItems;
+    if (userLevel >= 100) {
+        // admin
+        navItems = [
+            { path: '/', icon: LayoutDashboard, label: 'Home' },
+            { path: '/emergencies', icon: AlertTriangle, label: 'Emergencies' },
+            { path: '/map', icon: Map, label: 'Map' },
         ];
-        fallbacks.forEach(f => {
-            if (navItems.length < 3 && !navItems.find(n => n.path === f.path)) {
-                navItems.push(f);
-            }
-        });
+    } else if (userLevel >= 80) {
+        // org_admin
+        navItems = [
+            { path: '/', icon: LayoutDashboard, label: 'Home' },
+            { path: '/visits', icon: Calendar, label: 'Visits' },
+            { path: '/emergencies', icon: AlertTriangle, label: 'Emergencies' },
+        ];
+    } else if (userLevel >= 40) {
+        // provider
+        navItems = [
+            { path: '/', icon: LayoutDashboard, label: 'Home' },
+            { path: '/emergencies', icon: AlertTriangle, label: 'Emergencies' },
+            { path: '/visits', icon: Calendar, label: 'Visits' },
+        ];
+    } else {
+        // viewer / below
+        navItems = [
+            { path: '/', icon: LayoutDashboard, label: 'Home' },
+            { path: '/health-news', icon: Newspaper, label: 'Health News' },
+            { path: '/settings', icon: Settings, label: 'Settings' },
+        ];
     }
+
+    // Handler to open the full nav menu sheet
+    const handleOpenMenu = () => {
+        window.dispatchEvent(new CustomEvent('openMobileMenu'));
+    };
 
     return (
         <>
@@ -201,6 +209,15 @@ export const DynamicBottomBar = () => {
                                 </Link>
                             );
                         })}
+                        {/* Hamburger — opens full nav menu */}
+                        <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            onClick={handleOpenMenu}
+                            className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 text-foreground/45 hover:text-foreground"
+                            aria-label="Open navigation menu"
+                        >
+                            <Menu className="w-5 h-5" />
+                        </motion.button>
                     </motion.div>
 
                     {/* CONTEXT FAB - Professional Detached Pill */}

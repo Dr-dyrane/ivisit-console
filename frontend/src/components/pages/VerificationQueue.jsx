@@ -221,7 +221,7 @@ export const VerificationQueue = () => {
     <ViewToggle value={viewMode} onChange={setViewMode} />
   ), [viewMode, setViewMode]);
 
-  usePageHeader("Identity Vault", null, !isMobile ? viewToggleComponent : null, filterButtonComponent);
+  usePageHeader("Verification Queue", null, !isMobile ? viewToggleComponent : null, filterButtonComponent);
 
   const footerContent = useMemo(() => (
     <div className="flex items-center gap-4">

@@ -507,14 +507,14 @@ export const WalletManagementPage = () => {
                         className={` font-bold tracking-tighter flex items-center gap-3 transition-all ${activeTab === 'ledger' ? 'text-primary scale-105' : 'text-muted-foreground opacity-50 hover:opacity-100'}`}
                     >
                         <History className="w-4 h-4" />
-                        Transaction Ledger
+                        Transaction History
                     </button>
                     <button
                         onClick={() => setActiveTab('payments')}
                         className={` font-bold tracking-tighter flex items-center gap-3 transition-all ${activeTab === 'payments' ? 'text-primary scale-105' : 'text-muted-foreground opacity-50 hover:opacity-100'}`}
                     >
                         <ShieldCheck className="w-4 h-4" />
-                        Service Payments
+                        Patient Payments
                     </button>
                 </div>
                 <Button variant="ghost" size="sm" onClick={fetchData} className="h-8 w-8 p-0 rounded-full hover:bg-primary/10">

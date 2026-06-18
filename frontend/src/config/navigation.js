@@ -54,10 +54,10 @@ export const NAV_CONFIG = {
             { id: 'news', path: '/health-news', icon: Newspaper, label: 'Health News', resource: 'news', minRole: 'provider' },
 
             // Org Admin+ items
-            { id: 'verification', path: '/verification', icon: FileCheck, label: 'Queue', resource: 'verification', minRole: 'org_admin' },
+            { id: 'verification', path: '/verification', icon: FileCheck, label: 'Pending Approvals', resource: 'verification', minRole: 'org_admin' },
             { id: 'users', path: '/users', icon: Users, label: 'Users', resource: 'users', minRole: 'org_admin' },
             { id: 'organizations', path: '/organizations', icon: Building2, label: 'Organizations', resource: 'organizations', minRole: 'admin' },
-            { id: 'subscriptions', path: '/subscriptions', icon: Mail, label: 'Subscriptions', resource: 'subscriptions', minRole: 'admin' },
+            { id: 'subscriptions', path: '/subscriptions', icon: Mail, label: 'Email Subscribers', resource: 'subscriptions', minRole: 'admin' },
         ]
     },
     finance: {

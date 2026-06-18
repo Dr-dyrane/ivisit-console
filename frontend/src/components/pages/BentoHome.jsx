@@ -30,7 +30,8 @@ import {
   BarChart3,
   ArrowRight,
   Mail,
-  ShieldAlert
+  ShieldAlert,
+  Settings
 } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
@@ -586,15 +587,12 @@ export const BentoHome = () => {
     if (isProvider()) {
       return (
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold">
             <Activity className="w-3 h-3" />
-            <span>Available: Ready</span>
+            <span>Patients Today: {appStats.todayRequests}</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
-            <span>Patients: {appStats.todayRequests}</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-info">
-            <span>Shift: Active</span>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
+            <span>Active Emergencies: {appStats.liveEmergencies}</span>
           </div>
         </div>
       );
@@ -804,7 +802,7 @@ export const BentoHome = () => {
           {(isAdmin() || isOrgAdmin() || isProvider()) && <MapViewCard />}
 
           {/* Verification Queue - Admin Only */}
-          {isAdmin() && <VerificationQueueCard verificationStats={verificationStats} />}
+          {(isAdmin() || isOrgAdmin()) && <VerificationQueueCard verificationStats={verificationStats} />}
 
           {/* Analytics Overview - Show based on role */}
           {(isAdmin() || isOrgAdmin() || isSponsor()) && (
@@ -938,16 +936,16 @@ export const BentoHome = () => {
 
                   <div className="relative z-10 flex flex-col flex-1">
                     <div className="space-y-2 flex-1">
-                      <h2 className="text-4xl lg:text-5xl font-semibold text-foreground leading-none tracking-tight">
-                        iVisit Platform
+                      <h2 className="text-3xl lg:text-4xl font-semibold text-foreground leading-tight tracking-tight">
+                        Welcome to iVisit Console
                       </h2>
-                      <p className="text-xl text-muted-foreground font-medium">Emergency Medical Services</p>
+                      <p className="text-xl text-muted-foreground font-medium">View-only access</p>
                     </div>
                   </div>
 
                   <div className="relative z-10">
                     <p className="text-sm text-muted-foreground">
-                      Real-time emergency response coordination platform connecting patients with medical providers.
+                      Your account has read-only access to this console. To manage providers, emergencies, or fleet, contact your organization administrator to request elevated permissions.
                     </p>
                   </div>
                 </div>
@@ -955,9 +953,9 @@ export const BentoHome = () => {
 
               {/* Quick Info for Viewers */}
               {[
-                { id: 'about', icon: Activity, label: 'About', sub: 'Platform info', color: 'primary', path: '/about' },
                 { id: 'health-news', icon: TrendingUp, label: 'Health News', sub: 'Latest updates', color: 'success', path: '/health-news' },
-                { id: 'contact', icon: Mail, label: 'Contact', sub: 'Get in touch', color: 'info', path: '/contact' },
+                { id: 'settings', icon: Settings, label: 'Settings', sub: 'Account & preferences', color: 'primary', path: '/settings' },
+                { id: 'support', icon: Mail, label: 'Support', sub: 'Get help', color: 'info', path: '/support-tickets' },
               ].map((item, idx) => (
                 <motion.div
                   layout

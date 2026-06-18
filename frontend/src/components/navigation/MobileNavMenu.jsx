@@ -125,7 +125,7 @@ export const MobileNavMenu = ({ onClose }) => {
                         className={`flex-1 relative z-10 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-center transition-colors duration-200 ${activeTab === 'context' ? 'text-[hsl(var(--spark)/0.92)]' : 'text-muted-foreground/50'
                             }`}
                     >
-                        Context
+                        Quick Actions
                     </button>
                 </div>
             </div>

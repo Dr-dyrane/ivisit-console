@@ -8,6 +8,7 @@ import { NotificationCenter } from '../common/NotificationCenter';
 import { Search, Menu, X, PanelRightOpen, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sheet, SheetContent, SheetOverlay } from '../ui/sheet';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { MobileNavMenu } from './MobileNavMenu';
 
 export const SmartHeader = () => {
@@ -24,8 +25,13 @@ export const SmartHeader = () => {
     // Listen for closeMobileMenu events from context panel actions
     useEffect(() => {
         const handleClose = () => setMenuOpen(false);
+        const handleOpen = () => setMenuOpen(true);
         window.addEventListener('closeMobileMenu', handleClose);
-        return () => window.removeEventListener('closeMobileMenu', handleClose);
+        window.addEventListener('openMobileMenu', handleOpen);
+        return () => {
+            window.removeEventListener('closeMobileMenu', handleClose);
+            window.removeEventListener('openMobileMenu', handleOpen);
+        };
     }, []);
 
     useEffect(() => {
@@ -197,16 +203,25 @@ export const SmartHeader = () => {
                             <div className="w-px h-6 bg-border/20 mx-2" />
                             <NotificationCenter />
                             <div className="w-px h-6 bg-border/20 mx-2" />
-                            <button
-                                onClick={isContextPanelOpen ? closeContextPanel : openContextPanel}
-                                className={`flex items-center justify-center h-9 w-9 rounded-xl transition-all duration-300 ${isContextPanelOpen
-                                    ? 'bg-primary/20 text-primary shadow-inner'
-                                    : 'bg-primary/5 text-muted-foreground hover:bg-white/10 hover:text-foreground'
-                                    }`}
-                                title={isContextPanelOpen ? "Close Context" : "Open Context"}
-                            >
-                                <PanelRightOpen className="h-4 w-4" />
-                            </button>
+                            <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            onClick={isContextPanelOpen ? closeContextPanel : openContextPanel}
+                                            className={`flex items-center justify-center h-9 w-9 rounded-xl transition-all duration-300 ${isContextPanelOpen
+                                                ? 'bg-primary/20 text-primary shadow-inner'
+                                                : 'bg-primary/5 text-muted-foreground hover:bg-white/10 hover:text-foreground'
+                                                }`}
+                                            aria-label={isContextPanelOpen ? "Close quick actions panel" : "Open quick actions panel"}
+                                        >
+                                            <PanelRightOpen className="h-4 w-4" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom">
+                                        <p>{isContextPanelOpen ? "Close quick actions panel" : "Quick Actions"}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
                     </>
                 )}
