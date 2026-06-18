@@ -72,7 +72,7 @@ export const ROUTE_PROTECTION = {
     title: 'Support'
   },
   '/health-news': {
-    minRole: 'provider',
+    minRole: 'org_admin',
     resource: 'news',
     title: 'Health News'
   },

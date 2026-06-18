@@ -51,7 +51,7 @@ export const NAV_CONFIG = {
         items: [
             // Provider-accessible (submit support, read own tickets)
             { id: 'support', path: '/support-tickets', icon: Headphones, label: 'Support', resource: 'support', minRole: 'provider' },
-            { id: 'news', path: '/health-news', icon: Newspaper, label: 'Health News', resource: 'news', minRole: 'provider' },
+            { id: 'news', path: '/health-news', icon: Newspaper, label: 'Health News', resource: 'news', minRole: 'org_admin' },
 
             // Org Admin+ items
             { id: 'verification', path: '/verification', icon: FileCheck, label: 'Pending Approvals', resource: 'verification', minRole: 'org_admin' },

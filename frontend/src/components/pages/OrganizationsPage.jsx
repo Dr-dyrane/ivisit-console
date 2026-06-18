@@ -111,6 +111,33 @@ export const OrganizationsPage = () => {
 
     const handleSave = async (e) => {
         e.preventDefault();
+
+        // 3.13: If editing and fee % changed, require confirmation
+        if (selectedOrg?.id) {
+            const original = organizations.find(o => o.id === selectedOrg.id);
+            const originalFee = parseFloat(original?.ivisit_fee_percentage || 0);
+            const newFee = parseFloat(selectedOrg.ivisit_fee_percentage || 0);
+            if (original && Math.abs(originalFee - newFee) > 0.001) {
+                setConfirmationModal({
+                    isOpen: true,
+                    title: 'Confirm Fee Change',
+                    description: `Change iVisit fee for "${selectedOrg.name}" from ${originalFee}% to ${newFee}%? This affects all future transactions for this organization.`,
+                    onConfirm: async () => {
+                        try {
+                            await saveOrganization(selectedOrg);
+                            toast.success('Organization updated successfully');
+                            setIsModalOpen(false);
+                            fetchOrganizations();
+                            setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+                        } catch (error) {
+                            handleApiError(error, 'update');
+                        }
+                    }
+                });
+                return;
+            }
+        }
+
         try {
             await saveOrganization(selectedOrg);
             toast.success(`Organization ${selectedOrg.id ? 'updated' : 'created'} successfully`);

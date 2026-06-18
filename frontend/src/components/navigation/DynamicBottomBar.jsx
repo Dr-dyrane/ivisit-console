@@ -26,7 +26,8 @@ import {
     DollarSign,
     Shield,
     Settings,
-    Activity
+    Activity,
+    Menu
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {

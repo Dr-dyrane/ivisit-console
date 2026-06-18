@@ -525,7 +525,7 @@ export const HospitalsPage = () => {
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Available</p>
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Active</p>
                     {kpiFilter === 'available' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
                   </div>
                   <h3 className="text-3xl font-bold tracking-tighter">{hospitalsData.stats.available || 0}</h3>
@@ -560,12 +560,12 @@ export const HospitalsPage = () => {
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Beds</p>
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">At Capacity</p>
                   </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{hospitalsData.stats.totalBeds || 0}</h3>
+                  <h3 className="text-3xl font-bold tracking-tighter">{(hospitalsData.stats.full || 0) + (hospitalsData.stats.busy || 0)}</h3>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge className="squircle-3xl bg-info/20 text-info border-0 font-bold text-xs uppercase">
-                      Network capacity
+                      Full or busy
                     </Badge>
                   </div>
                 </div>
@@ -594,12 +594,12 @@ export const HospitalsPage = () => {
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Ambulance Fleet</p>
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Low Capacity</p>
                   </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{hospitalsData.stats.totalAmbulances || 0}</h3>
+                  <h3 className="text-3xl font-bold tracking-tighter">{hospitalsData.stats.busy || 0}</h3>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge className="geo-wave bg-success/20 text-success border-0 font-bold text-xs uppercase">
-                      Active vehicles
+                      Busy / strained
                     </Badge>
                   </div>
                 </div>

@@ -1048,7 +1048,7 @@ export const EmergencyRequestsPage = () => {
                           </div>
                           <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
                             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">ACTIONS</div>
-                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mr-12">
+                            <div className="flex gap-2 mr-12">
                               {/* View Details - Always First */}
                               <Button
                                 variant="ghost"

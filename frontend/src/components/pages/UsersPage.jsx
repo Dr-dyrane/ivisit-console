@@ -70,7 +70,7 @@ export const UsersPage = () => {
     }
   }, [location.search]);
 
-  const { viewMode, setViewMode } = useViewMode('users-page', 'grid');
+  const { viewMode, setViewMode } = useViewMode('users-page', 'table');
   const pagination = usePagination(20);
 
   // Filter users based on KPI filter and other filters
@@ -584,11 +584,11 @@ export const UsersPage = () => {
       <Button
         onClick={handleInvite}
         className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-        aria-label="Invite new user"
+        aria-label="Add new user"
       >
         <Plus className="h-4 w-4 mr-2" />
-        <span className="hidden md:inline">INVITE USER</span>
-        <span className="md:hidden">INVITE</span>
+        <span className="hidden md:inline">ADD USER</span>
+        <span className="md:hidden">ADD</span>
       </Button>
     )
   ), [isAdmin, isOrgAdmin, handleInvite]);
@@ -1038,9 +1038,9 @@ export const UsersPage = () => {
                     Reset Filters
                   </Button>
                 )}
-                <Button onClick={handleInvite} className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase">
+                <Button onClick={handleInvite} className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase" aria-label="Add new user">
                   <Plus className="h-4 w-4 mr-2" />
-                  INVITE USER
+                  ADD USER
                 </Button>
               </div>
             </Card>

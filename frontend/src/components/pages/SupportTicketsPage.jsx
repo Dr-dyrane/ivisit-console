@@ -66,6 +66,8 @@ const CATEGORIES = [
 
 export const SupportTicketsPage = () => {
   const { isAdmin, isOrgAdmin, isProvider, profile } = useAuth();
+  // Role-split: providers see only their own tickets ("My Requests")
+  const isProviderOnly = () => !isAdmin() && !isOrgAdmin() && isProvider();
   const { isMobile } = useNavigation();
   const {
     supportTickets,
@@ -251,15 +253,23 @@ export const SupportTicketsPage = () => {
           aria-label="Create new ticket"
         >
           <Plus className="h-4 w-4 mr-2" />
-          NEW TICKET
+          {isProviderOnly() ? 'REPORT A PROBLEM' : 'NEW TICKET'}
         </Button>
       );
     }
     return null;
   }, [isAdmin, isOrgAdmin, isProvider, handleCreate]);
 
+  // Derived ticket list — filters to current user when provider-only
+  const displayedTickets = useMemo(() => {
+    if (isProviderOnly()) {
+      return supportTickets.filter(t => t.user_id === profile?.id);
+    }
+    return supportTickets;
+  }, [supportTickets, profile]);
+
   usePageHeader(
-    "Support Tickets",
+    isProviderOnly() ? "My Requests" : "Support Tickets",
     headerActions,
     !isMobile ? viewToggleComponent : null,
     filterButtonComponent
@@ -580,7 +590,7 @@ export const SupportTicketsPage = () => {
           {viewMode === 'grid' && (
             <LayoutGroup>
               <motion.div layout className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense">
-                {supportTickets.map((ticket, index) => (
+                {displayedTickets.map((ticket, index) => (
                   <motion.div
                     layout
                     key={ticket.id}
@@ -671,8 +681,8 @@ export const SupportTicketsPage = () => {
           )}
 
           {/* ListView fallback */}
-          {viewMode === 'list' && <SupportTicketListView tickets={supportTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} />}
-          {viewMode === 'table' && <SupportTicketTableView tickets={supportTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} selectedIds={selectedIds} onSelect={handleSelect} onSelectAll={handleSelectAll} />}
+          {viewMode === 'list' && <SupportTicketListView tickets={displayedTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} />}
+          {viewMode === 'table' && <SupportTicketTableView tickets={displayedTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} selectedIds={selectedIds} onSelect={handleSelect} onSelectAll={handleSelectAll} />}
         </>
       )}
 

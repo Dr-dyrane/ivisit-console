@@ -42,7 +42,7 @@ export const PricingManagementPage = () => {
     const [loading, setLoading] = useState(true);
     const [pricing, setPricing] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState('services'); // 'services' | 'rooms'
+    const [activeTab, setActiveTab] = useState('all'); // 'all' | 'services' | 'rooms'
     const [kpiFilter, setKpiFilter] = useState('all'); // 'all' | 'global' | 'override'
     const { viewMode, setViewMode } = useViewMode('pricing', 'grid');
     const pagination = usePagination(12);
@@ -71,9 +71,23 @@ export const PricingManagementPage = () => {
         setLoading(true);
         try {
             const orgId = isOrgAdmin() ? profile.organization_id : null;
-            const data = await getPricing(activeTab, orgId);
-            setPricing(data || []);
-            pagination.setTotalCount(data?.length || 0);
+            let data;
+            if (activeTab === 'all') {
+                const [services, rooms] = await Promise.all([
+                    getPricing('services', orgId),
+                    getPricing('rooms', orgId),
+                ]);
+                data = [
+                    ...(services || []).map(s => ({ ...s, _pricingType: 'service' })),
+                    ...(rooms || []).map(r => ({ ...r, _pricingType: 'room' })),
+                ];
+            } else {
+                const raw = await getPricing(activeTab, orgId);
+                const pType = activeTab === 'services' ? 'service' : 'room';
+                data = (raw || []).map(item => ({ ...item, _pricingType: pType }));
+            }
+            setPricing(data);
+            pagination.setTotalCount(data.length);
         } catch (error) {
             console.error('Error fetching pricing:', error);
             toast.error('Failed to load pricing data');
@@ -105,8 +119,10 @@ export const PricingManagementPage = () => {
         try {
             const orgId = isOrgAdmin() ? profile.organization_id : null;
 
+            // Determine save type: use item's type when editing in 'all' view, else use active tab
+            const saveType = editingItem?._pricingType || (activeTab === 'rooms' ? 'room' : 'service');
             let result;
-            if (activeTab === 'services') {
+            if (saveType === 'service') {
                 result = await saveServicePricing({
                     id: editingItem?.id,
                     service_name: formData.name,
@@ -137,13 +153,14 @@ export const PricingManagementPage = () => {
     };
 
     const handleDelete = (item) => {
+        const itemType = item._pricingType || (activeTab === 'rooms' ? 'room' : 'service');
         setConfirmationModal({
             isOpen: true,
             title: 'Delete Pricing',
-            description: `Are you sure you want to remove the ${activeTab === 'services' ? 'service' : 'room'} pricing for "${item.service_name || item.room_name}"?`,
+            description: `Are you sure you want to remove the ${itemType} pricing for "${item.service_name || item.room_name}"?`,
             onConfirm: async () => {
                 try {
-                    if (activeTab === 'services') {
+                    if (itemType === 'service') {
                         await deleteServicePricing(item.id);
                     } else {
                         await deleteRoomPricing(item.id);
@@ -166,16 +183,16 @@ export const PricingManagementPage = () => {
                 price: (item.base_price || item.price_per_night || '').toString(),
                 type: item.service_type || item.room_type || '',
                 description: item.description || item.metadata?.description || '',
-                unit: item.unit || (activeTab === 'rooms' ? 'Night' : 'Unit')
+                unit: item.unit || (item._pricingType === 'room' ? 'Night' : 'Unit')
             });
         } else {
             setEditingItem(null);
             setFormData({
                 name: '',
                 price: '',
-                type: activeTab === 'services' ? 'ambulance' : 'standard',
+                type: (activeTab === 'all' || activeTab === 'services') ? 'ambulance' : 'standard',
                 description: '',
-                unit: activeTab === 'services' ? 'Service' : 'Night'
+                unit: (activeTab === 'all' || activeTab === 'services') ? 'Service' : 'Night'
             });
         }
         setIsModalOpen(true);
@@ -561,6 +578,15 @@ export const PricingManagementPage = () => {
             {/* Controls */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div className="flex bg-muted/10 backdrop-blur-md p-1 rounded-2xl w-full md:w-fit gap-1 border border-white/5">
+                    <button
+                        onClick={() => setActiveTab('all')}
+                        className={`flex-1 md:flex-none px-8 py-2.5 rounded-xl text-[10px] font-black tracking-[0.2em] uppercase transition-all duration-300 ${activeTab === 'all'
+                            ? 'bg-primary text-white shadow-glow-primary scale-[1.02]'
+                            : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                    >
+                        All
+                    </button>
                     <button
                         onClick={() => setActiveTab('services')}
                         className={`flex-1 md:flex-none px-8 py-2.5 rounded-xl text-[10px] font-black tracking-[0.2em] uppercase transition-all duration-300 ${activeTab === 'services'

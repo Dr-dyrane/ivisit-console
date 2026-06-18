@@ -7,7 +7,7 @@ import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Mail, Shield, LogOut, Moon, Sun, Bell, Smartphone, Globe, CreditCard, ChevronRight, Laptop, Key, HelpCircle } from 'lucide-react';
+import { Mail, Shield, LogOut, Moon, Sun, Smartphone, CreditCard, ChevronRight, Laptop, Key, HelpCircle } from 'lucide-react';
 import { Switch } from '../ui/switch';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
@@ -91,18 +91,7 @@ export const SettingsPage = () => {
         }
     }, [signOut, navigate]);
 
-    const headerActions = React.useMemo(() => (
-        <Button
-            variant="ghost"
-            onClick={handleSignOut}
-            className="bg-muted/20 hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase text-destructive hover:bg-destructive/10"
-        >
-            <LogOut className="h-4 w-4 mr-2" />
-            SIGN OUT
-        </Button>
-    ), [handleSignOut]);
-
-    usePageHeader("Account Settings", headerActions);
+    usePageHeader("Account Settings");
 
     const toggleDarkMode = () => {
         const newMode = !darkMode;
@@ -287,19 +276,14 @@ export const SettingsPage = () => {
                                     </div>
 
                                     {/* Subscription Plan */}
-                                    <div className="p-5 squircle-2xl bg-muted/20 border border-white/5 hover:bg-muted/30 transition-all duration-300 group/item">
+                                    <div className="p-5 squircle-2xl bg-muted/20 border border-white/5 transition-all duration-300">
                                         <div className="flex items-center gap-3 mb-3">
-                                            <div className="p-2.5 squircle-lg bg-background shadow-sm text-secondary group-hover/item:scale-110 transition-transform">
+                                            <div className="p-2.5 squircle-lg bg-background shadow-sm text-secondary">
                                                 <CreditCard className="w-5 h-5" />
                                             </div>
                                             <span className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Current Plan</span>
                                         </div>
-                                        <div className="flex items-center justify-between">
-                                            <p className="font-bold text-lg tracking-tight">Free Tier</p>
-                                            <Button variant="link" className="h-auto p-0 text-primary font-semibold text-sm hover:no-underline hover:opacity-80">
-                                                Upgrade →
-                                            </Button>
-                                        </div>
+                                        <p className="font-bold text-lg tracking-tight">Free Tier</p>
                                     </div>
                                 </div>
                             </div>
@@ -358,34 +342,6 @@ export const SettingsPage = () => {
                                             onCheckedChange={toggleDarkMode}
                                             aria-label="Toggle dark mode"
                                         />
-                                    </div>
-
-                                    {/* Notifications Toggle */}
-                                    <div className="flex items-center justify-between p-3 rounded-2xl hover:bg-muted/20 transition-colors">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 squircle-lg bg-muted shadow-sm">
-                                                <Bell className="h-4 w-4" />
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className="font-semibold text-sm">Notifications</span>
-                                                <span className="text-xs text-muted-foreground">Push & Email alerts</span>
-                                            </div>
-                                        </div>
-                                        <Switch checked={true} aria-label="Toggle notifications" />
-                                    </div>
-
-                                    {/* Language */}
-                                    <div className="flex items-center justify-between p-3 rounded-2xl hover:bg-muted/20 transition-colors opacity-60 cursor-not-allowed">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 squircle-lg bg-muted shadow-sm">
-                                                <Globe className="h-4 w-4" />
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className="font-semibold text-sm">Language</span>
-                                                <span className="text-xs text-muted-foreground">English (US)</span>
-                                            </div>
-                                        </div>
-                                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Default</span>
                                     </div>
 
                                     {/* Sign Out */}

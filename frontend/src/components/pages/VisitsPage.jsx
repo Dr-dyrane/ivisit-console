@@ -76,7 +76,7 @@ export const VisitsPage = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [patients, setPatients] = useState([]);
   const [hospitals, setHospitals] = useState([]);
-  const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'status', direction: 'desc' });
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     title: '',
