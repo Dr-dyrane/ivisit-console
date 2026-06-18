@@ -45,7 +45,7 @@ export const Overview = () => {
         totalUsers: usersRes.count || 0,
         totalHospitals: hospitalsRes.count || 0,
         totalAmbulances: ambulancesRes.count || 0,
-        avgResponseTime: 12.5,
+        avgResponseTime: null,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -68,15 +68,7 @@ export const Overview = () => {
   }, []);
 
   const generateChartData = useCallback(() => {
-    const data = [
-      { name: 'Jan', requests: 400 },
-      { name: 'Feb', requests: 300 },
-      { name: 'Mar', requests: 600 },
-      { name: 'Apr', requests: 800 },
-      { name: 'May', requests: 500 },
-      { name: 'Jun', requests: 900 },
-    ];
-    setChartData(data);
+    setChartData([]);
   }, []);
 
   useEffect(() => {
@@ -119,30 +111,22 @@ export const Overview = () => {
           <StatsCard
             title="Active Requests"
             value={stats.activeRequests}
-            change="+12%"
             icon={Activity}
-            trend="up"
           />
           <StatsCard
             title="Total Users"
             value={stats.totalUsers}
-            change="+8%"
             icon={Users}
-            trend="up"
           />
           <StatsCard
             title="Hospitals"
             value={stats.totalHospitals}
-            change="+5%"
             icon={Hospital}
-            trend="up"
           />
           <StatsCard
             title="Fleet Size"
             value={stats.totalAmbulances}
-            change="+3%"
             icon={Ambulance}
-            trend="up"
           />
         </div>
 
@@ -153,43 +137,45 @@ export const Overview = () => {
                 <h3 className="text-lg font-medium">Emergency Requests Trend</h3>
                 <p className="text-sm text-muted-foreground">Last 7 days performance</p>
               </div>
-              <Badge variant="outline" className="squircle">
-                <TrendingUp className="h-3 w-3 mr-1" />
-                +15%
-              </Badge>
             </div>
 
-            <ResponsiveContainer width="100%" height={300} minWidth={300}>
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '1rem'
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="requests"
-                  stroke="hsl(var(--primary))"
-                  fillOpacity={1}
-                  fill="url(#colorRequests)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300} minWidth={300}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '1rem'
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="requests"
+                    stroke="hsl(var(--primary))"
+                    fillOpacity={1}
+                    fill="url(#colorRequests)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px]">
+                <p className="text-sm text-muted-foreground">Historical data will appear after 30 days of operation.</p>
+              </div>
+            )}
           </Card>
 
           <Card className="squircle-lg p-6 bg-background/35 backdrop-blur-xs">
@@ -202,13 +188,16 @@ export const Overview = () => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-muted-foreground">Avg Response Time</span>
-                  <span className="text-2xl font-semibold text-success">{stats.avgResponseTime}m</span>
+                  <span className="text-2xl font-semibold text-success">
+                    {stats.avgResponseTime != null ? `${stats.avgResponseTime}m` : '—'}
+                  </span>
                 </div>
+                {/* Progress bar requires real response time data */}
                 <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-success rounded-full"
                     initial={{ width: 0 }}
-                    animate={{ width: '75%' }}
+                    animate={{ width: '0%' }}
                     transition={{ duration: 1, delay: 0.2 }}
                   />
                 </div>
@@ -217,13 +206,14 @@ export const Overview = () => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-muted-foreground">Success Rate</span>
-                  <span className="text-2xl font-semibold text-primary">94%</span>
+                  <span className="text-2xl font-semibold text-primary">—</span>
                 </div>
+                {/* Progress bar requires real success rate data */}
                 <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-primary rounded-full"
                     initial={{ width: 0 }}
-                    animate={{ width: '94%' }}
+                    animate={{ width: '0%' }}
                     transition={{ duration: 1, delay: 0.4 }}
                   />
                 </div>

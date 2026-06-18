@@ -631,10 +631,6 @@ export async function cancelEmergencyRequest(requestId, reason) {
  */
 export async function approveCashPayment(paymentId, requestId) {
   try {
-    console.log('[console.emergencyService] approveCashPayment RPC call', {
-      paymentId,
-      requestId,
-    });
     const { data, error } = await supabase.rpc('approve_cash_payment', {
       p_payment_id: paymentId,
       p_request_id: requestId,
@@ -642,8 +638,6 @@ export async function approveCashPayment(paymentId, requestId) {
 
     if (error) throw error;
     if (!data?.success) throw new Error(data?.error || 'Approval failed');
-
-    console.log('[console.emergencyService] approveCashPayment RPC success', data);
 
     return data;
   } catch (error) {
@@ -671,10 +665,6 @@ export async function approveCashPayment(paymentId, requestId) {
  */
 export async function declineCashPayment(paymentId, requestId) {
   try {
-    console.log('[console.emergencyService] declineCashPayment RPC call', {
-      paymentId,
-      requestId,
-    });
     const { data, error } = await supabase.rpc('decline_cash_payment', {
       p_payment_id: paymentId,
       p_request_id: requestId,
@@ -682,8 +672,6 @@ export async function declineCashPayment(paymentId, requestId) {
 
     if (error) throw error;
     if (!data?.success) throw new Error(data?.error || 'Decline failed');
-
-    console.log('[console.emergencyService] declineCashPayment RPC success', data);
 
     return data;
   } catch (error) {

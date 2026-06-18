@@ -64,8 +64,8 @@ export const VerificationModal = ({
         onClose();
       }
     } catch (error) {
-      console.error(error);
-      handleApiError(error, 'update');
+      console.error('VerificationModal save failed:', error);
+      toast.error(error?.message || 'Failed to save verification. Please try again.');
     } finally {
       setLoading(false);
     }

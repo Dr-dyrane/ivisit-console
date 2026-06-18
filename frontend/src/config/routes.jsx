@@ -25,7 +25,9 @@ export const ROUTE_PROTECTION = {
     title: 'Unauthorized'
   },
   '/map': {
-    public: true,
+    public: false,
+    minRole: 'provider',
+    resource: 'map',
     title: 'Live Map'
   },
 
@@ -48,7 +50,7 @@ export const ROUTE_PROTECTION = {
     title: 'Emergencies'
   },
   '/hospitals': {
-    minRole: 'admin',
+    minRole: 'org_admin',
     resource: 'hospitals',
     title: 'Hospitals'
   },
@@ -109,6 +111,24 @@ export const ROUTE_PROTECTION = {
     resource: 'settings',
     title: 'Settings'
   },
+
+  '/organizations': {
+    minRole: 'admin',
+    resource: 'organizations',
+    title: 'Organizations'
+  },
+  '/set-password': {
+    public: true,
+    title: 'Set Password'
+  },
+  '/onboarding': {
+    public: true,
+    title: 'Onboarding'
+  },
+  '/onboarding-success': {
+    public: true,
+    title: 'Onboarding Complete'
+  }
 };
 
 /**

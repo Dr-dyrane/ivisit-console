@@ -105,6 +105,8 @@ export const Analytics = () => {
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [demandHeatmap, setDemandHeatmap] = useState([]);
   const [hospitalCapacity, setHospitalCapacity] = useState({ total: 0, occupied: 0, icu: 0 });
+  const [sparseBannerDismissed, setSparseBannerDismissed] = useState(false);
+  const isDataSparse = !sparseBannerDismissed && (!stats?.totalEmergencies || stats.totalEmergencies < 5);
 
   const handleExport = useCallback(() => {
     // Create CSV data from analytics
@@ -611,6 +613,12 @@ export const Analytics = () => {
   return (
     <>
       <div className="min-h-screen py-6 md:py-8">
+        {isDataSparse && (
+          <div className="mb-4 mx-4 md:mx-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300 flex items-center justify-between">
+            <span>Activity charts show estimated baseline data. Actuals will appear after 7 days of operational data.</span>
+            <button onClick={() => setSparseBannerDismissed(true)} className="ml-4 shrink-0 text-amber-600 hover:text-amber-800 dark:text-amber-400">✕</button>
+          </div>
+        )}
         {/* Layout padding adjustment */}
         <div className="pt-2" />
 

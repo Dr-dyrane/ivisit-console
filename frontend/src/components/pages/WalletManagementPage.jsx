@@ -129,7 +129,7 @@ export const WalletManagementPage = () => {
             setPayments(enrichedPayments);
         } catch (error) {
             console.error('Error fetching wallet data:', error);
-            // toast.error('Connection to Stripe timed out. Showing last synced balance.');
+            toast.error('Failed to load wallet data. Please try again.');
         } finally {
             setLoading(false);
         }

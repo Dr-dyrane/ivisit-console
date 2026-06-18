@@ -151,12 +151,12 @@ export const PageDataProvider = ({ children }) => {
   const activityTimeoutRef = useRef(null);
   const DEBOUNCE_DELAY = 1000; // 1 second debounce
 
-  const [emergencyData, setEmergencyData] = useState(mockEmergencyData);
-  const [analyticsData, setAnalyticsData] = useState(mockAnalyticsData);
-  const [doctorsData, setDoctorsData] = useState(mockDoctorsData);
-  const [visitsData, setVisitsData] = useState(mockVisitsData);
+  const [emergencyData, setEmergencyData] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [doctorsData, setDoctorsData] = useState(null);
+  const [visitsData, setVisitsData] = useState(null);
   const [verificationData, setVerificationData] = useState(mockVerificationData);
-  const [supportTicketsData, setSupportTicketsData] = useState(mockSupportTicketsData);
+  const [supportTicketsData, setSupportTicketsData] = useState(null);
   const [insurancePolicies, setInsurancePolicies] = useState([]);
   const [activityData, setActivityData] = useState([]);
   const [userData, setUserData] = useState({ users: [], statistics: null });
@@ -512,9 +512,8 @@ export const PageDataProvider = ({ children }) => {
         averageResolutionTime: Math.round(averageResolutionTime * 10) / 10
       });
     } catch (error) {
-      console.error('Error fetching support tickets data:', error);
+      console.error('[PageDataContext] Support tickets fetch failed:', error.message);
       setSupportTicketsData(mockSupportTicketsData);
-      setUseMockData(true);
     } finally {
       setPageLoading(false);
     }
@@ -936,9 +935,9 @@ export const PageDataProvider = ({ children }) => {
     emergencyStats,
     analyticsData,
     doctorsData,
-    doctorsStats: doctorsData.stats,
+    doctorsStats: doctorsData?.stats,
     visitsData,
-    visitsStats: visitsData.stats,
+    visitsStats: visitsData?.stats,
     verificationData,
     supportTicketsData,
     activityData,

@@ -202,7 +202,7 @@ const AnalyticsQuickCard = React.memo(({ totalVisits, completionRate }) => (
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Conversion</p>
-              <p className="text-lg font-semibold text-success">{completionRate}%</p>
+              <p className="text-lg font-semibold text-success">{completionRate != null ? `${completionRate}%` : '—'}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -211,7 +211,7 @@ const AnalyticsQuickCard = React.memo(({ totalVisits, completionRate }) => (
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Patient Satisfaction</p>
-              <p className="text-lg font-semibold text-info">4.8/5.0</p>
+              <p className="text-lg font-semibold text-info">—</p>
             </div>
           </div>
         </div>
@@ -251,19 +251,21 @@ const EmergencyCounterCard = React.memo(({ liveEmergencies, chartData, isPatient
             </p>
           </div>
         </div>
-        <div className="relative z-10 h-20 min-w-[100px]">
-          <ResponsiveContainer width="100%" height={80} minWidth={100}>
-            <AreaChart data={chartData}>
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke="hsl(var(--primary))"
-                fill="hsl(var(--primary) / 0.1)"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        {chartData && chartData.length > 0 && (
+          <div className="relative z-10 h-20 min-w-[100px]">
+            <ResponsiveContainer width="100%" height={80} minWidth={100}>
+              <AreaChart data={chartData}>
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke="hsl(var(--primary))"
+                  fill="hsl(var(--primary) / 0.1)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
         <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
           <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center border border-primary/30">
             <ChevronRight className="h-5 w-5 text-primary" />
@@ -293,14 +295,10 @@ const ResponseTimeCard = React.memo(({ responseTime }) => (
       <div className="relative z-10 flex flex-col flex-1">
         <div className="space-y-2 flex-1">
           <h3 className="text-6xl lg:text-7xl font-semibold text-foreground leading-none tracking-tight">
-            {responseTime}<span className="text-2xl text-muted-foreground ml-2">m</span>
+            {responseTime != null ? <>{responseTime}<span className="text-2xl text-muted-foreground ml-2">m</span></> : '—'}
           </h3>
           <p className="text-xl text-muted-foreground font-medium">Response Time</p>
         </div>
-      </div>
-      <div className="flex items-center gap-2 text-success font-medium text-sm relative z-10">
-        <CheckCircle2 className="h-5 w-5" />
-        <span>23% faster today</span>
       </div>
       <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
         <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center border border-success/30">
@@ -336,10 +334,6 @@ const RequestsCard = React.memo(({ requests, isPatient }) => (
             {isPatient ? "Your Requests" : "Today's Requests"}
           </p>
         </div>
-      </div>
-      <div className="flex items-center gap-2 text-info font-medium text-sm relative z-10">
-        <TrendingUp className="h-5 w-5" />
-        <span>+8% vs yesterday</span>
       </div>
       <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
         <div className="w-10 h-10 bg-info/20 rounded-full flex items-center justify-center border border-info/30">
@@ -480,14 +474,14 @@ export const BentoHome = () => {
 
     return {
       liveEmergencies: emergencyStats?.active || 0,
-      responseTime: Math.round((analyticsData?.avgResponseTime || 4.2) * 10) / 10, // Round to 1 decimal place
+      responseTime: analyticsData?.avgResponseTime != null ? Math.round(analyticsData.avgResponseTime * 10) / 10 : null,
       activeProviders: doctorsStats?.totalDoctors || 0,
       todayRequests: todayRequests, // ✅ Shows actual today's count
       yesterdayRequests: yesterdayRequests, // ✅ For comparison
       totalUsers: userData?.statistics?.totalUsers || 0, // Fixed: Use actual user count from profiles table
-      completionRate: analyticsData?.completionRate || 94,
-      availableAmbulances: analyticsData?.availableAmbulances || 12,
-      pendingVerifications: verificationData?.pending || 15,
+      completionRate: analyticsData?.completionRate ?? null,
+      availableAmbulances: analyticsData?.availableAmbulances ?? null,
+      pendingVerifications: verificationData?.pending ?? null,
       totalVisits: visitsStats?.total || 0, // Added for AnalyticsQuickCard
     };
   }, [emergencyData, emergencyStats, analyticsData, doctorsStats, verificationData, userData, visitsStats]);
@@ -549,14 +543,7 @@ export const BentoHome = () => {
     }
   }, [isAdmin, isOrgAdmin, isSponsor, profile]);
 
-  const chartData = [
-    { time: '00:00', value: 5 },
-    { time: '04:00', value: 8 },
-    { time: '08:00', value: 15 },
-    { time: '12:00', value: 22 },
-    { time: '16:00', value: 18 },
-    { time: '20:00', value: 12 },
-  ];
+  const chartData = [];
 
   usePageHeader("Overview", headerActions);
 
@@ -570,7 +557,7 @@ export const BentoHome = () => {
             <span>System: Nominal</span>
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
-            <span>Nodes: {appStats.totalUsers || 3} Active</span>
+            <span>Nodes: {appStats.totalUsers ?? 0} Active</span>
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
             <span>Emergencies: {appStats.liveEmergencies}</span>
@@ -590,7 +577,7 @@ export const BentoHome = () => {
             <span>Staff: {appStats.activeProviders} Active</span>
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
-            <span>Response: {appStats.responseTime}min</span>
+            <span>Response: {appStats.responseTime != null ? `${appStats.responseTime}min` : '—'}</span>
           </div>
         </div>
       );
@@ -638,7 +625,7 @@ export const BentoHome = () => {
             <span>Impact: Active</span>
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
-            <span>Success: {appStats.completionRate}%</span>
+            <span>Success: {appStats.completionRate != null ? `${appStats.completionRate}%` : '—'}</span>
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-1 uppercase tracking-widest text-[10px] font-bold text-warning">
             <span>Lives: {appStats.totalUsers}</span>
@@ -858,19 +845,21 @@ export const BentoHome = () => {
                       </div>
                     </div>
 
-                    <div className="relative z-10 h-20 min-w-[100px]">
-                      <ResponsiveContainer width="100%" height={80} minWidth={100}>
-                        <AreaChart data={chartData}>
-                          <Area
-                            type="monotone"
-                            dataKey="value"
-                            stroke="hsl(var(--primary))"
-                            fill="hsl(var(--primary) / 0.1)"
-                            strokeWidth={2}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
+                    {chartData && chartData.length > 0 && (
+                      <div className="relative z-10 h-20 min-w-[100px]">
+                        <ResponsiveContainer width="100%" height={80} minWidth={100}>
+                          <AreaChart data={chartData}>
+                            <Area
+                              type="monotone"
+                              dataKey="value"
+                              stroke="hsl(var(--primary))"
+                              fill="hsl(var(--primary) / 0.1)"
+                              strokeWidth={2}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
 
                     <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
                       <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center border border-primary/30">
@@ -1034,25 +1023,27 @@ export const BentoHome = () => {
                     <div className="relative z-10 flex flex-col flex-1">
                       <div className="space-y-2 flex-1">
                         <h2 className="text-6xl lg:text-7xl font-semibold text-foreground leading-none tracking-tight">
-                          {appStats.completionRate}%
+                          {appStats.completionRate != null ? `${appStats.completionRate}%` : '—'}
                         </h2>
                         <p className="text-xl text-muted-foreground font-medium">Success Rate</p>
                       </div>
                     </div>
 
-                    <div className="relative z-10 h-20 min-w-[100px]">
-                      <ResponsiveContainer width="100%" height={80} minWidth={100}>
-                        <AreaChart data={chartData}>
-                          <Area
-                            type="monotone"
-                            dataKey="value"
-                            stroke="hsl(var(--success))"
-                            fill="hsl(var(--success) / 0.1)"
-                            strokeWidth={2}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
+                    {chartData && chartData.length > 0 && (
+                      <div className="relative z-10 h-20 min-w-[100px]">
+                        <ResponsiveContainer width="100%" height={80} minWidth={100}>
+                          <AreaChart data={chartData}>
+                            <Area
+                              type="monotone"
+                              dataKey="value"
+                              stroke="hsl(var(--success))"
+                              fill="hsl(var(--success) / 0.1)"
+                              strokeWidth={2}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
 
                     <div className="absolute bottom-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300">
                       <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center border border-success/30">
@@ -1109,9 +1100,9 @@ export const BentoHome = () => {
 
           {/* Quick Actions - Admin/Org Admin Only */}
           {(isAdmin() || isOrgAdmin()) && [
-            { id: 'hospitals', icon: Hospital, label: 'Hospitals', sub: `${analyticsData?.activeHospitals || 8}`, color: 'primary', path: '/hospitals' },
-            { id: 'ambulances', icon: Ambulance, label: 'Fleet', sub: `${appStats.availableAmbulances}`, color: 'success', path: '/ambulances' },
-            { id: 'doctors', icon: Stethoscope, label: 'Doctors', sub: `${doctorsStats?.totalDoctors || 48}`, color: 'info', path: '/doctors' },
+            { id: 'hospitals', icon: Hospital, label: 'Hospitals', sub: analyticsData?.activeHospitals != null ? `${analyticsData.activeHospitals}` : '—', color: 'primary', path: '/hospitals' },
+            { id: 'ambulances', icon: Ambulance, label: 'Fleet', sub: appStats.availableAmbulances != null ? `${appStats.availableAmbulances}` : '—', color: 'success', path: '/ambulances' },
+            { id: 'doctors', icon: Stethoscope, label: 'Doctors', sub: doctorsStats?.totalDoctors != null ? `${doctorsStats.totalDoctors}` : '—', color: 'info', path: '/doctors' },
             { id: 'users', icon: Users, label: 'Users', sub: `${appStats.totalUsers}`, color: 'secondary', path: '/users', minRole: 'admin' },
           ].filter(item => !item.minRole || hasMinRole(item.minRole)).map((item, idx) => (
             <motion.div
@@ -1157,7 +1148,7 @@ export const BentoHome = () => {
 
           {/* Provider-Specific Quick Actions */}
           {isProvider() && !isAdmin() && !isOrgAdmin() && [
-            { id: 'visits', icon: Calendar, label: 'My Visits', sub: `${visitsStats?.today || 24}`, color: 'warning', path: '/visits' },
+            { id: 'visits', icon: Calendar, label: 'My Visits', sub: visitsStats?.today != null ? `${visitsStats.today}` : '—', color: 'warning', path: '/visits' },
             { id: 'emergencies', icon: AlertTriangle, label: 'My Emergencies', sub: `${emergencyStats?.total || 0}`, color: 'destructive', path: '/emergencies' },
           ].map((item, idx) => (
             <motion.div
@@ -1408,27 +1399,19 @@ export const BentoHome = () => {
                   {[
                     {
                       label: 'Success Rate',
-                      value: `${appStats.completionRate}%`,
-                      progress: appStats.completionRate,
+                      value: appStats.completionRate != null ? `${appStats.completionRate}%` : '—',
+                      progress: appStats.completionRate ?? 0,
                       color: 'success'
                     },
                     {
                       label: 'Fleet Active',
-                      value: `${Math.round((appStats.availableAmbulances / (appStats.availableAmbulances + 4)) * 100)}%`,
-                      progress: Math.round((appStats.availableAmbulances / (appStats.availableAmbulances + 4)) * 100),
+                      value: appStats.availableAmbulances != null
+                        ? `${Math.round((appStats.availableAmbulances / (appStats.availableAmbulances + 4)) * 100)}%`
+                        : '—',
+                      progress: appStats.availableAmbulances != null
+                        ? Math.round((appStats.availableAmbulances / (appStats.availableAmbulances + 4)) * 100)
+                        : 0,
                       color: 'primary'
-                    },
-                    {
-                      label: 'Beds Available',
-                      value: appStats.availableAmbulances * 13, // Estimate beds per ambulance
-                      progress: Math.min(65, appStats.availableAmbulances * 5),
-                      color: 'info'
-                    },
-                    {
-                      label: 'System Health',
-                      value: '99%',
-                      progress: 99,
-                      color: 'success'
                     },
                   ].map((stat, idx) => (
                     <div key={idx} className="space-y-2">

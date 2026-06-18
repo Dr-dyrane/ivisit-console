@@ -448,7 +448,7 @@ export const PricingManagementPage = () => {
         <div className="min-h-screen py-8">
             {/* KPI Cards */}
             <LayoutGroup>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8">
                     <motion.div layout className="col-span-1">
                         <Card
                             className={`h-full min-h-[140px] geo-block glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 border-0 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
@@ -555,15 +555,6 @@ export const PricingManagementPage = () => {
                         </Card>
                     </motion.div>
 
-                    <motion.div layout className="col-span-1">
-                        <Card className="h-full min-h-[140px] geo-sharp glass-card-premium shadow-2xl p-6 hover-lift relative overflow-hidden group border-0 text-center flex flex-col items-center justify-center">
-                            <div className="p-3 bg-primary/10 rounded-full mb-2">
-                                <Activity className="h-5 w-5 text-primary" />
-                            </div>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Efficiency</p>
-                            <h3 className="text-2xl font-black">94%</h3>
-                        </Card>
-                    </motion.div>
                 </div>
             </LayoutGroup>
 

@@ -16,11 +16,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { fetchVisitContext, fetchEmergencyContext, formatVisitDateTime, isEmergencyVisit } from '../../utils/visitContextUtils';
 
 export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], hospitals = [] }) => {
-  // Debug: Log incoming visit data
-  React.useEffect(() => {
-    console.log('🔍 VisitModal - Visit Data:', visit);
-    console.log('🔍 VisitModal - Mode:', mode);
-  }, [visit, mode]);
 
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
@@ -105,6 +100,11 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!onSave) {
+      console.error('VisitModal: onSave prop is required but was not provided');
+      toast.error('Configuration error: cannot save. Please reload the page.');
+      return;
+    }
     setLoading(true);
 
     try {
@@ -116,18 +116,12 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
       delete submitData.hospital_name;
       delete submitData.hospital; // Remove hospital text field to prevent UUID conflicts
 
-      // Debug: Log what's being submitted
-      console.log('🔍 VisitModal - Submitting data:', submitData);
-      console.log('🔍 VisitModal - hospital_id:', submitData.hospital_id, typeof submitData.hospital_id);
-
       // Convert preparation back to array if string
       if (typeof submitData.preparation === 'string') {
         submitData.preparation = submitData.preparation.split('\n').filter(line => line.trim() !== '');
       }
 
-      if (onSave) {
-        await onSave(submitData);
-      }
+      await onSave(submitData);
       toast.success(isCreate ? 'Visit scheduled successfully' : 'Visit updated successfully');
       onClose(true);
     } catch (error) {

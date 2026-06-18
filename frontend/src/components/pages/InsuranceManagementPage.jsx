@@ -885,10 +885,18 @@ export const InsuranceManagementPage = () => {
                 description: `Are you sure you want to delete ${selectedIds.length} policies? This action cannot be undone.`,
                 onConfirm: async () => {
                   try {
-                    // Bulk delete logic would go here
-                    toast.success(`${selectedIds.length} policies deleted`);
+                    let failed = 0;
+                    for (const id of selectedIds) {
+                      try { await deletePolicy(id); } catch { failed++; }
+                    }
                     setSelectedIds([]);
                     setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+                    await fetchInsurancePolicies();
+                    if (failed > 0) {
+                      toast.error(`${failed} deletions failed.`);
+                    } else {
+                      toast.success(`${selectedIds.length} policies deleted`);
+                    }
                   } catch (err) {
                     handleApiError(err, 'delete');
                   }

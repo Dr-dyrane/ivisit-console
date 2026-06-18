@@ -51,7 +51,6 @@ export const ProtectedRoute = ({
 	const isPathAccessible = checkPathAccess(currentPath, accessibleNav);
 
 	if (!isPathAccessible) {
-		console.log(`[ProtectedRoute] Access denied for ${profile?.role} to path: ${currentPath}`);
 		return <Navigate to="/unauthorized" replace />;
 	}
 
@@ -66,7 +65,6 @@ export const ProtectedRoute = ({
 
 	// Additional resource-based check if specified
 	if (resource && !can('view', resource)) {
-		console.log(`[ProtectedRoute] Resource access denied for ${profile?.role} to resource: ${resource}`);
 		return <Navigate to="/unauthorized" replace />;
 	}
 

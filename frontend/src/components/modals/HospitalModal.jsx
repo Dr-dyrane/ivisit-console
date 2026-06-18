@@ -314,12 +314,15 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!onSave) {
+      console.error('HospitalModal: onSave prop is required but was not provided');
+      toast.error('Configuration error: cannot save. Please reload the page.');
+      return;
+    }
     setLoading(true);
 
     try {
-      if (onSave) {
-        await onSave(formData);
-      }
+      await onSave(formData);
       toast.success(isCreate ? 'Hospital created successfully' : 'Hospital updated successfully');
       onClose(true);
     } catch (error) {

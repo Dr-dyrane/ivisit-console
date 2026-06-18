@@ -124,6 +124,11 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
       return;
     }
 
+    if (!onSave) {
+      console.error('UserModal: onSave prop is required but was not provided');
+      toast.error('Configuration error: cannot save. Please reload the page.');
+      return;
+    }
     setLoading(true);
 
     try {
@@ -135,9 +140,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
         email: normalizedEmail,
       };
 
-      if (onSave) {
-        await onSave(payload);
-      }
+      await onSave(payload);
       toast.success(isCreate ? 'User created successfully' : 'User updated successfully');
       onClose(true);
     } catch (error) {

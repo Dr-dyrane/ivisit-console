@@ -379,7 +379,7 @@ export const OrganizationsPage = () => {
     return (
         <div className="min-h-screen py-8">
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8">
                 <Card className="col-span-1 geo-block glass-card p-6 flex items-center gap-4 border-l-4 border-l-primary/50 relative overflow-hidden group hover-lift transition-all">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-110" />
                     <div className="p-3 bg-primary/20 rounded-2xl relative z-10">
@@ -388,21 +388,6 @@ export const OrganizationsPage = () => {
                     <div className="relative z-10">
                         <p className="text-[10px] font-bold text-primary/60 uppercase tracking-widest">Active Nodes</p>
                         <h3 className="text-2xl font-black">{organizations.filter(o => o.is_active).length}</h3>
-                    </div>
-                </Card>
-
-                <Card className="col-span-1 geo-sharp glass-card-premium p-6 flex flex-col gap-3 group hover-lift transition-all">
-                    <div className="flex items-center justify-between">
-                        <div className="p-2 bg-success/20 rounded-xl">
-                            <Activity className="h-5 w-5 text-success" />
-                        </div>
-                        <Badge className="bg-success text-white border-0 text-[8px] font-black tracking-tighter uppercase px-2 py-0.5">LITE</Badge>
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Network Health</p>
-                        <h3 className="text-xl font-bold flex items-center gap-2">
-                            99.8% <span className="text-[10px] text-success font-normal tracking-tight">↑ Optimal</span>
-                        </h3>
                     </div>
                 </Card>
 

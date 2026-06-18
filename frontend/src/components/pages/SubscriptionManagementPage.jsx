@@ -913,10 +913,18 @@ export const SubscriptionManagementPage = () => {
                 description: `Are you sure you want to delete ${selectedIds.length} subscribers? This action cannot be undone.`,
                 onConfirm: async () => {
                   try {
-                    // Bulk delete logic would go here
-                    toast.success(`${selectedIds.length} subscribers deleted`);
+                    let failed = 0;
+                    for (const id of selectedIds) {
+                      try { await deleteSubscriber(id); } catch { failed++; }
+                    }
                     setSelectedIds([]);
                     setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+                    await fetchSubscribers();
+                    if (failed > 0) {
+                      toast.error(`${failed} deletions failed.`);
+                    } else {
+                      toast.success(`${selectedIds.length} subscribers deleted`);
+                    }
                   } catch (err) {
                     handleApiError(err, 'delete');
                   }

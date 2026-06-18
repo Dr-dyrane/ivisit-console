@@ -792,11 +792,11 @@ export const DoctorsPage = () => {
                               <Star className="h-4 w-4 text-warning fill-warning" />
                               <p className="text-xs text-muted-foreground font-medium">Rating</p>
                             </div>
-                            <p className="font-bold text-xl">{doctor.rating || '4.5'}</p>
+                            <p className="font-bold text-xl">{doctor.rating ?? '—'}</p>
                           </div>
                           <div className="p-3 geo-shard bg-muted/30 hover:bg-muted/50 transition-colors">
                             <p className="text-xs text-muted-foreground font-medium mb-1">Experience</p>
-                            <p className="font-bold text-xl">{doctor.experience || '5'}y</p>
+                            <p className="font-bold text-xl">{doctor.experience != null ? `${doctor.experience}y` : '—'}</p>
                           </div>
                         </div>
 

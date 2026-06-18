@@ -733,6 +733,20 @@ export const VerificationQueue = () => {
         </TabsContent>
 
         <TabsContent value="organizations" className="mt-0">
+          {!canVerify && !loading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="py-20 text-center"
+            >
+              <div className="w-20 h-20 squircle bg-warning/20 flex items-center justify-center mx-auto mb-6">
+                <Shield className="h-10 w-10 text-warning" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2">Access Restricted</h3>
+              <p className="text-muted-foreground font-normal">Admin access required to view verification queue.</p>
+            </motion.div>
+          )}
+
           {loading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-pulse">
               {[...Array(8)].map((_, i) => (
@@ -835,10 +849,14 @@ export const VerificationQueue = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => {
-                // Bulk approve logic would go here
-                toast.success(`${selectedIds.length} providers approved`);
+              onClick={async () => {
+                let failed = 0;
+                for (const id of selectedIds) {
+                  try { await handleVerify(id, true); } catch { failed++; }
+                }
                 setSelectedIds([]);
+                if (failed > 0) { toast.error(`${failed} approvals failed.`); }
+                else { toast.success(`${selectedIds.length} providers approved`); }
               }}
               className="h-10 w-10 rounded-full bg-success/20 text-success hover:bg-success hover:text-white transition-all"
               title="Approve Selected"
@@ -848,10 +866,14 @@ export const VerificationQueue = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => {
-                // Bulk reject logic would go here
-                toast.success(`${selectedIds.length} providers rejected`);
+              onClick={async () => {
+                let failed = 0;
+                for (const id of selectedIds) {
+                  try { await handleVerify(id, false); } catch { failed++; }
+                }
                 setSelectedIds([]);
+                if (failed > 0) { toast.error(`${failed} rejections failed.`); }
+                else { toast.success(`${selectedIds.length} providers rejected`); }
               }}
               className="h-10 w-10 rounded-full bg-warning/20 text-warning hover:bg-warning hover:text-white transition-all"
               title="Reject Selected"

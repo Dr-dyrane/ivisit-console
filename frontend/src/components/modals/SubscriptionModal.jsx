@@ -231,7 +231,8 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
       await onSave(formData);
       onClose();
     } catch (error) {
-      console.error('Error saving subscriber:', error);
+      console.error('SubscriptionModal save failed:', error);
+      toast.error(error?.message || 'Failed to save subscription. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -51,7 +51,7 @@ export const NAV_CONFIG = {
         items: [
             // Provider-accessible (submit support, read own tickets)
             { id: 'support', path: '/support-tickets', icon: Headphones, label: 'Support', resource: 'support', minRole: 'provider' },
-            { id: 'news', path: '/health-news', icon: Newspaper, label: 'Health News', resource: 'news', minRole: 'viewer' },
+            { id: 'news', path: '/health-news', icon: Newspaper, label: 'Health News', resource: 'news', minRole: 'provider' },
 
             // Org Admin+ items
             { id: 'verification', path: '/verification', icon: FileCheck, label: 'Queue', resource: 'verification', minRole: 'org_admin' },
@@ -67,7 +67,7 @@ export const NAV_CONFIG = {
         items: [
             { id: 'wallet', path: '/wallet', icon: Wallet, label: 'Wallet', resource: 'wallet', minRole: 'org_admin' },
             { id: 'pricing', path: '/pricing', icon: DollarSign, label: 'Pricing', resource: 'pricing', minRole: 'org_admin' },
-            { id: 'insurance', path: '/insurance', icon: Shield, label: 'Insurance', resource: 'insurance', minRole: 'org_admin' },
+            { id: 'insurance', path: '/insurance', icon: Shield, label: 'Insurance', resource: 'insurance', minRole: 'admin' },
         ]
     },
     user: {

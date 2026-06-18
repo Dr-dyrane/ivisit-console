@@ -87,18 +87,18 @@ export const MobileAnalytics = ({
 
         const predictedTotal = responseTimeData.reduce((sum, row) => sum + (Number(row.requests) || 0), 0);
         const completed = requestsByStatus.find((s) => String(s.name).toLowerCase().includes('completed'))?.value || 0;
-        const predictedSuccessRate = predictedTotal > 0 ? (completed / predictedTotal) * 100 : 78;
+        const predictedSuccessRate = predictedTotal > 0 ? (completed / predictedTotal) * 100 : null;
         const nonZeroAvg = responseTimeData.filter((row) => Number(row.avgTime) > 0);
         const predictedAvg = nonZeroAvg.length
             ? nonZeroAvg.reduce((sum, row) => sum + Number(row.avgTime), 0) / nonZeroAvg.length
             : 4.2;
 
         return {
-            totalEmergencies: predictedTotal || 12,
+            totalEmergencies: predictedTotal ?? 0,
             avgResponseTime: Math.round(predictedAvg * 10) / 10,
             successRate: Math.round(predictedSuccessRate),
-            totalHospitals: Number(source.totalHospitals) || Math.max(2, Math.ceil((predictedTotal || 12) / 10)),
-            totalAmbulances: Number(source.totalAmbulances) || Math.max(3, Math.ceil((predictedTotal || 12) / 5))
+            totalHospitals: Number(source.totalHospitals) || 0,
+            totalAmbulances: Number(source.totalAmbulances) || 0
         };
     }, [stats, responseTimeData, requestsByStatus]);
 

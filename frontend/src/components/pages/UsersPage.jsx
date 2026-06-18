@@ -242,7 +242,7 @@ export const UsersPage = () => {
             totalUsers,
             totalProfiles: totalUsers,
             recentSignups,
-            emailVerifiedUsers: totalUsers, // Fallback as auth data isn't fully available
+            emailVerifiedUsers: null, // Cannot derive from client-side data — requires auth.users query
             bvnVerifiedUsers,
             roleDistribution: {
               admin: data.filter(u => u.role === 'admin').length,

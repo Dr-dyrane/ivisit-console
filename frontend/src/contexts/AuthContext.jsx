@@ -6,7 +6,6 @@ import { updateProfile as updateProfileService, uploadProfileAvatar } from '../s
 import { updatePassword as updatePasswordService } from '../services/authService';
 
 const AuthContext = createContext({});
-const DEBUG_AUTH = process.env.REACT_APP_DEBUG_AUTH === 'true';
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -46,9 +45,6 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   const fetchProfile = async (userId, email) => {
     // Prevent concurrent fetches for same user
     if (activeFetchRef.current === userId) {
-      if (DEBUG_AUTH) {
-        console.log('[AuthContext] Fetch already in progress for this user, skipping...');
-      }
       return;
     }
 
@@ -59,9 +55,6 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
 
     try {
       activeFetchRef.current = userId;
-      if (DEBUG_AUTH) {
-        console.log(`[AuthContext] Fetching profile for ${email}...`);
-      }
 
       const profilePromise = supabase
         .from('profiles')
@@ -74,15 +67,8 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
       if (error && error.code !== 'PGRST116') throw error;
 
       if (data) {
-        if (DEBUG_AUTH) {
-          console.log('[AuthContext] Profile found:', data.role);
-        }
-
         // Check if this is the admin email and update role if needed
         if (email === 'halodyrane@gmail.com' && data.role !== 'admin') {
-          if (DEBUG_AUTH) {
-            console.log('[AuthContext] Auto-elevating admin role...');
-          }
           await supabase
             .from('profiles')
             .update({ role: 'admin' })
@@ -94,9 +80,6 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
         setProfileState(data);
       } else {
         // Create new profile if doesn't exist
-        if (DEBUG_AUTH) {
-          console.log('[AuthContext] Profile not found, attempting creation/sync...');
-        }
         const role = email === 'halodyrane@gmail.com' ? 'admin' : 'viewer';
         const newProfile = {
           id: userId,
@@ -124,9 +107,6 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
 
           setProfileState(finalProfile || newProfile);
         } else {
-          if (DEBUG_AUTH) {
-            console.log('[AuthContext] Profile successfully created/synced');
-          }
           setProfileState(createdProfile);
         }
       }
@@ -156,7 +136,6 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
       if (mounted) {
         setInitializing(prev => {
           if (prev) {
-            console.warn('[AuthContext] Initialization timeout - forcing load state');
             setLoading(false);
             return false;
           }
@@ -176,15 +155,9 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
         if (error) throw error;
 
         if (session?.user) {
-          if (DEBUG_AUTH) {
-            console.log('[AuthContext] Initial session found for:', session.user.email);
-          }
           setUser(session.user);
           await fetchProfile(session.user.id, session.user.email);
         } else {
-          if (DEBUG_AUTH) {
-            console.log('[AuthContext] No initial session');
-          }
           setUser(null);
           setProfileState(null);
           setLoading(false);
@@ -204,10 +177,6 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
-
-      if (DEBUG_AUTH) {
-        console.log(`[AuthContext] Auth Event: ${event}`);
-      }
 
       const currentUser = session?.user ?? null;
       setUser(currentUser);

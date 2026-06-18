@@ -105,6 +105,10 @@ export const EmergencyRequestsPage = () => {
     variant: 'destructive',
     confirmLabel: 'Delete'
   });
+  const [bulkCancelModal, setBulkCancelModal] = useState({ open: false });
+  const [completeModal, setCompleteModal] = useState({ open: false, request: null });
+  const [cashModal, setCashModal] = useState({ open: false, request: null, amount: '50.00' });
+  const [retryModal, setRetryModal] = useState({ open: false, request: null, methods: [], selectedId: null });
 
   const { viewMode, setViewMode } = useViewMode('emergency-requests-page', 'grid');
   const pagination = usePagination(20);
@@ -402,8 +406,12 @@ export const EmergencyRequestsPage = () => {
     }));
   }, []);
 
-  const handleBulkDelete = useCallback(async () => {
-    if (!confirm(`Cancel ${selectedIds.length} emergencies?`)) return;
+  const handleBulkDelete = useCallback(() => {
+    setBulkCancelModal({ open: true });
+  }, []);
+
+  const executeBulkCancel = useCallback(async () => {
+    setBulkCancelModal({ open: false });
     try {
       await Promise.all(selectedIds.map((id) => cancelEmergencyRequest(id, 'bulk_cancel_from_console')));
       toast.success(`${selectedIds.length} emergencies cancelled`);
@@ -463,9 +471,12 @@ export const EmergencyRequestsPage = () => {
     }
   }, [fetchRequests, isAdmin, isOrgAdmin, orgId]);
 
-  const handleComplete = useCallback(async (request) => {
-    if (!confirm('Mark this emergency as completed?')) return;
+  const handleComplete = useCallback((request) => {
+    setCompleteModal({ open: true, request });
+  }, []);
 
+  const executeComplete = useCallback(async (request) => {
+    setCompleteModal({ open: false, request: null });
     try {
       await completeEmergency(request.id);
 
@@ -488,16 +499,20 @@ export const EmergencyRequestsPage = () => {
     }
   }, [fetchRequests]);
 
-  const handleProcessCash = useCallback(async (request) => {
+  const handleProcessCash = useCallback((request) => {
+    setCashModal({ open: true, request, amount: '50.00' });
+  }, []);
+
+  const executeCashPayment = useCallback(async (request, amount) => {
+    setCashModal({ open: false, request: null, amount: '50.00' });
     try {
-      const amount = prompt("Enter the total cash amount received (USD):", "50.00");
-      if (!amount || isNaN(amount)) return;
-
+      if (!amount || isNaN(amount)) {
+        toast.error('Invalid amount entered');
+        return;
+      }
       toast.loading('Processing cash payment...', { id: 'cash-pay' });
-
       const targetOrgId = orgId || request.organization_id || request.hospital_id;
       await walletService.processCashPayment(request.id, targetOrgId, amount);
-
       toast.success('Cash payment confirmed and fee deducted.', { id: 'cash-pay' });
       fetchRequests();
     } catch (error) {
@@ -505,6 +520,17 @@ export const EmergencyRequestsPage = () => {
       toast.error(error.message || 'Failed to process cash payment', { id: 'cash-pay' });
     }
   }, [fetchRequests, orgId]);
+
+  const formatMethodLabel = useCallback((method, index) => {
+    const brand = String(method?.brand || method?.provider || method?.type || 'Card').toUpperCase();
+    const last4 = method?.last4 ? ` **** ${method.last4}` : '';
+    const exp =
+      Number.isFinite(Number(method?.expiry_month)) && Number.isFinite(Number(method?.expiry_year))
+        ? ` - exp ${String(method.expiry_month).padStart(2, '0')}/${method.expiry_year}`
+        : '';
+    const defaultTag = method?.is_default ? ' (default)' : '';
+    return `${index + 1}. ${brand}${last4}${exp}${defaultTag}`;
+  }, []);
 
   const handleRetryPayment = useCallback(async (request, preferredPaymentMethodId = null) => {
     const actionState = getEmergencyActionState(request);
@@ -521,66 +547,60 @@ export const EmergencyRequestsPage = () => {
       return false;
     }
 
-    const formatMethodLabel = (method, index) => {
-      const brand = String(method?.brand || method?.provider || method?.type || 'Card').toUpperCase();
-      const last4 = method?.last4 ? ` **** ${method.last4}` : '';
-      const exp =
-        Number.isFinite(Number(method?.expiry_month)) && Number.isFinite(Number(method?.expiry_year))
-          ? ` - exp ${String(method.expiry_month).padStart(2, '0')}/${method.expiry_year}`
-          : '';
-      const defaultTag = method?.is_default ? ' (default)' : '';
-      return `${index + 1}. ${brand}${last4}${exp}${defaultTag}`;
-    };
-
     try {
       toast.loading('Preparing payment retry...', { id: 'retry-pay' });
 
-      let selectedMethodId = preferredPaymentMethodId;
-      if (!selectedMethodId) {
-        const methods = await getUserActivePaymentMethods(userId);
-        if (!Array.isArray(methods) || methods.length === 0) {
-          throw new Error('No active payment methods found for this patient');
-        }
-
-        if (methods.length === 1) {
-          selectedMethodId = methods[0].id;
-        } else {
-          const defaultIndex = Math.max(0, methods.findIndex((m) => m.is_default));
-          const options = methods.map((m, i) => formatMethodLabel(m, i)).join('\n');
-          const selection = window.prompt(
-            `Select payment method for retry:\n\n${options}\n\nEnter number (default ${defaultIndex + 1}) or method ID:`,
-            String(defaultIndex + 1)
-          );
-
-          if (selection === null) {
-            toast.dismiss('retry-pay');
-            return false;
-          }
-
-          const token = String(selection || '').trim();
-          const indexNum = Number.parseInt(token, 10);
-          const selectedMethod =
-            Number.isFinite(indexNum) && indexNum >= 1 && indexNum <= methods.length
-              ? methods[indexNum - 1]
-              : methods.find((m) => m.id === token);
-
-          if (!selectedMethod?.id) {
-            throw new Error('Invalid payment method selection');
-          }
-          selectedMethodId = selectedMethod.id;
-        }
+      if (preferredPaymentMethodId) {
+        await retryPaymentWithDifferentMethod(requestId, preferredPaymentMethodId, userId);
+        toast.success('Payment retry created. Ask patient to complete payment.', { id: 'retry-pay' });
+        await fetchRequests();
+        return true;
       }
 
-      await retryPaymentWithDifferentMethod(requestId, selectedMethodId, userId);
-      toast.success('Payment retry created. Ask patient to complete payment.', { id: 'retry-pay' });
-      await fetchRequests();
-      return true;
+      const methods = await getUserActivePaymentMethods(userId);
+      if (!Array.isArray(methods) || methods.length === 0) {
+        throw new Error('No active payment methods found for this patient');
+      }
+
+      toast.dismiss('retry-pay');
+
+      if (methods.length === 1) {
+        await retryPaymentWithDifferentMethod(requestId, methods[0].id, userId);
+        toast.success('Payment retry created. Ask patient to complete payment.', { id: 'retry-pay' });
+        await fetchRequests();
+        return true;
+      }
+
+      // Multiple methods: open selection modal
+      const defaultIndex = Math.max(0, methods.findIndex((m) => m.is_default));
+      setRetryModal({
+        open: true,
+        request,
+        methods,
+        selectedId: methods[defaultIndex]?.id || methods[0]?.id
+      });
+      return false;
     } catch (error) {
       console.error('Payment retry failed:', error);
       toast.error(error.message || 'Failed to retry payment', { id: 'retry-pay' });
       return false;
     }
   }, [fetchRequests]);
+
+  const executeRetryPayment = useCallback(async () => {
+    const { request, selectedId } = retryModal;
+    setRetryModal({ open: false, request: null, methods: [], selectedId: null });
+    if (!request?.id || !selectedId) return;
+    try {
+      toast.loading('Retrying payment...', { id: 'retry-pay' });
+      await retryPaymentWithDifferentMethod(request.id, selectedId, request.user_id);
+      toast.success('Payment retry created. Ask patient to complete payment.', { id: 'retry-pay' });
+      await fetchRequests();
+    } catch (error) {
+      console.error('Payment retry failed:', error);
+      toast.error(error.message || 'Failed to retry payment', { id: 'retry-pay' });
+    }
+  }, [retryModal, fetchRequests]);
 
   // Handle custom events from context panel
   useEffect(() => {
@@ -1237,6 +1257,7 @@ export const EmergencyRequestsPage = () => {
         type="emergency"
       />
 
+      {/* Existing delete/cancel single-item confirmation modal */}
       <ConfirmationModal
         isOpen={confirmationModal.isOpen}
         onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
@@ -1246,6 +1267,82 @@ export const EmergencyRequestsPage = () => {
         variant={confirmationModal.variant}
         confirmLabel={confirmationModal.confirmLabel}
       />
+
+      {/* Bulk cancel confirmation */}
+      <ConfirmationModal
+        isOpen={bulkCancelModal.open}
+        onClose={() => setBulkCancelModal({ open: false })}
+        onConfirm={executeBulkCancel}
+        title={`Cancel ${selectedIds.length} Emergencies`}
+        description={`Are you sure you want to cancel ${selectedIds.length} selected emergency requests? This action cannot be undone.`}
+        variant="destructive"
+        confirmLabel="Cancel All"
+      />
+
+      {/* Mark complete confirmation */}
+      <ConfirmationModal
+        isOpen={completeModal.open}
+        onClose={() => setCompleteModal({ open: false, request: null })}
+        onConfirm={() => executeComplete(completeModal.request)}
+        title="Mark Emergency Completed"
+        description="Are you sure you want to mark this emergency as completed? Resources will be freed."
+        variant="default"
+        confirmLabel="Mark Complete"
+      />
+
+      {/* Cash payment modal */}
+      {cashModal.open && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCashModal({ open: false, request: null, amount: '50.00' })} />
+          <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-[32px] bg-background/90 dark:bg-muted/50 backdrop-blur-sm shadow-2xl p-6 flex flex-col gap-4">
+            <h3 className="text-xl font-semibold tracking-tight text-foreground">Record Cash Payment</h3>
+            <p className="text-sm text-muted-foreground">Enter the total cash amount received from the patient (USD).</p>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              className="w-full rounded-2xl border border-border bg-muted/30 px-4 py-3 text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary"
+              value={cashModal.amount}
+              onChange={(e) => setCashModal(prev => ({ ...prev, amount: e.target.value }))}
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <Button variant="ghost" className="flex-1 rounded-2xl" onClick={() => setCashModal({ open: false, request: null, amount: '50.00' })}>Cancel</Button>
+              <Button className="flex-1 rounded-2xl font-bold" onClick={() => executeCashPayment(cashModal.request, cashModal.amount)}>Confirm Payment</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment method retry modal */}
+      {retryModal.open && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setRetryModal({ open: false, request: null, methods: [], selectedId: null })} />
+          <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-[32px] bg-background/90 dark:bg-muted/50 backdrop-blur-sm shadow-2xl p-6 flex flex-col gap-4">
+            <h3 className="text-xl font-semibold tracking-tight text-foreground">Select Payment Method</h3>
+            <p className="text-sm text-muted-foreground">Choose a payment method to retry for this emergency request.</p>
+            <div className="flex flex-col gap-2">
+              {retryModal.methods.map((method, i) => (
+                <label key={method.id} className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-colors ${retryModal.selectedId === method.id ? 'border-primary bg-primary/10' : 'border-border bg-muted/20 hover:bg-muted/40'}`}>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value={method.id}
+                    checked={retryModal.selectedId === method.id}
+                    onChange={() => setRetryModal(prev => ({ ...prev, selectedId: method.id }))}
+                    className="accent-primary"
+                  />
+                  <span className="text-sm font-medium">{formatMethodLabel(method, i)}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <Button variant="ghost" className="flex-1 rounded-2xl" onClick={() => setRetryModal({ open: false, request: null, methods: [], selectedId: null })}>Cancel</Button>
+              <Button className="flex-1 rounded-2xl font-bold" onClick={executeRetryPayment} disabled={!retryModal.selectedId}>Retry Payment</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
         </>
       )}
