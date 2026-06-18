@@ -1,5 +1,7 @@
 # Repository Agent Instructions
 
+> **Start here before anything else:** `frontend/docs/_MASTER.md` — system map, current sprint state, full doc index, and collaboration rules for all agents.
+
 These instructions apply to the whole `ivisit-console` repository unless a more specific `AGENTS.md` exists in a subdirectory.
 
 ## Product Role

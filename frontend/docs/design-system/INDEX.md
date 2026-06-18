@@ -11,6 +11,12 @@ Complete UI/UX design system following Apple Human Interface Guidelines with cus
 #### **🍎 [APPLE_GLASS_DESIGN_SYSTEM.md](./APPLE_GLASS_DESIGN_SYSTEM.md)**
 Complete Apple-inspired design system with glassmorphism, animations, and component library.
 
+##### **📱 [CONSOLE_DESIGN_SYSTEM_FROM_APP.md](./CONSOLE_DESIGN_SYSTEM_FROM_APP.md)** ← START HERE for new component work
+Tokens, patterns, and rules extracted directly from ivisit-app's map/sheet UI. The authoritative reference for making console feel as simple and calm as the patient app. Covers CSS tokens, radius, spacing, typography, glass surfaces, motion, and component patterns (cards, panels, modals, buttons).
+
+##### **🗺️ [../ux/CONSOLE_UX_REVAMP_PLAN.md](../ux/CONSOLE_UX_REVAMP_PLAN.md)** ← START HERE for page/flow work
+Full UX revamp plan synthesised from a 4-agent deep audit (2026-06-18). Maps how every token in this design system should be applied across all 17 pages. Includes: role experience targets, fabricated-data removal checklist, page-by-page simplification decisions, ModalShell + design token unification targets, and a 5-sprint sequencing plan that respects data-layer blocking dependencies.
+
 #### **👨‍💻 [DYRANE_UI_DESIGN_SYSTEM.md](./DYRANE_UI_DESIGN_SYSTEM.md)**
 Custom design implementation with specific iVisit branding and unique features.
 

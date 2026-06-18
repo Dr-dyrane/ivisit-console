@@ -1,5 +1,7 @@
 # Frontend Agent Instructions
 
+> **Start here before anything else:** `docs/_MASTER.md` — system map, current sprint state, full doc index, and collaboration rules for all agents.
+
 These instructions apply to `ivisit-console/frontend` unless a deeper `AGENTS.md` exists.
 
 ## Mission
