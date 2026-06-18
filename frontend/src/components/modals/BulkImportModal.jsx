@@ -140,6 +140,10 @@ export const BulkImportModal = ({ open, onClose, onImport }) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            role="dialog"
+
+            aria-modal="true"
+
             className="relative z-10 w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl"
           >
             {/* Header Area */}

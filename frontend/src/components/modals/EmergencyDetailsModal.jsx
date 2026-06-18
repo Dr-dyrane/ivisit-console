@@ -215,6 +215,10 @@ export const EmergencyDetailsModal = ({ isOpen, onClose, request, onRetryPayment
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            role="dialog"
+
+            aria-modal="true"
+
             className="relative z-10 w-full h-[100dvh] sm:h-auto sm:max-w-5xl sm:max-h-[90vh] overflow-hidden rounded-none sm:rounded-[32px] shadow-2xl"
           >
             {/* Header Area */}

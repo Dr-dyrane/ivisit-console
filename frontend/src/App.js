@@ -20,6 +20,7 @@ import { motion } from "framer-motion";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { PWAProvider } from "./contexts/PWAContext";
 import { FeedbackProvider } from "./contexts/FeedbackContext";
+import { PageActionsProvider } from "./contexts/PageActionsContext";
 // PULLBACK NOTE: Pass A1 — TanStack Query foundation
 // OLD: no QueryClientProvider, no server data caching
 // NEW: QueryClientProvider wraps full tree; ReactQueryDevtools in dev only
@@ -193,6 +194,7 @@ function App() {
 		<QueryClientProvider client={queryClient}>
 			<ErrorBoundary>
 				<ThemeProvider>
+					<PageActionsProvider>
 					<PWAProvider>
 						<FeedbackProvider>
 							<Router>
@@ -204,6 +206,7 @@ function App() {
 							</Router>
 						</FeedbackProvider>
 					</PWAProvider>
+					</PageActionsProvider>
 				</ThemeProvider>
 			</ErrorBoundary>
 			{process.env.NODE_ENV === 'development' && (

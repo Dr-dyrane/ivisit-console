@@ -1,15 +1,13 @@
-"use client";
-
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
+import { ModalShell } from '../ui/ModalShell';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { X, User, Phone, Mail, MapPin, Calendar, Shield, CreditCard, BadgeCheck, Building2 } from 'lucide-react';
+import { User, Phone, Mail, MapPin, Calendar, Shield, CreditCard, BadgeCheck, Building2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { useAuth } from '../../contexts/AuthContext';
@@ -152,63 +150,34 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/30 backdrop-blur-md"
-            onClick={() => onClose(false)}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl"
-          >
-            {/* Header Area */}
-            <div className="flex items-center justify-between p-2 md:p-8 pb-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-12 w-12 md:h-16 md:w-16 rounded-2xl border-4 border-background shadow-xl">
-                  <AvatarImage
-                    src={getAvatarUrl(formData)}
-                    className="object-cover"
-                  />
-                  <AvatarFallback className="text-xl md:text-2xl font-bold bg-muted text-muted-foreground rounded-2xl">
-                    {getAvatarFallback(formData)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-foreground/90">
-                    {formData.username || formData.profile_username || 'New User'}
-                  </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge className="rounded-full bg-primary/10 text-primary border-0 font-semibold px-3 py-0.5 text-xs">
-                      {formData.role?.toUpperCase() || 'PATIENT'}
-                    </Badge>
-                    {formData.bvn_verified && (
-                      <Badge className="rounded-full bg-green-500/10 text-green-500 border-0 font-semibold px-3 py-0.5 text-xs flex items-center gap-1">
-                        <BadgeCheck className="w-3 h-3" /> VERIFIED
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                onClick={() => onClose(false)}
-                className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-
-            <div className="p-2 md:p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
+    <ModalShell
+      isOpen={isOpen}
+      onClose={() => onClose(false)}
+      title={formData.username || formData.profile_username || 'New User'}
+      icon={
+        <Avatar className="h-9 w-9 rounded-inner border-2 border-background shadow-md">
+          <AvatarImage src={getAvatarUrl(formData)} className="object-cover" />
+          <AvatarFallback className="text-sm font-bold bg-muted text-muted-foreground rounded-inner">
+            {getAvatarFallback(formData)}
+          </AvatarFallback>
+        </Avatar>
+      }
+      badge={
+        <div className="flex items-center gap-1.5">
+          <Badge className="rounded-full bg-primary/10 text-primary border-0 font-semibold px-2.5 py-0.5 text-xs">
+            {formData.role?.toUpperCase() || 'PATIENT'}
+          </Badge>
+          {formData.bvn_verified && (
+            <Badge className="rounded-full bg-green-500/10 text-green-500 border-0 font-semibold px-2.5 py-0.5 text-xs flex items-center gap-1">
+              <BadgeCheck className="w-3 h-3" /> VERIFIED
+            </Badge>
+          )}
+        </div>
+      }
+      size="lg"
+      managed
+    >
+      <div className="p-2 md:p-8 pt-2 overflow-y-auto flex-1 min-h-0 space-y-6 no-scrollbar">
               <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* Personal Information Section */}
@@ -439,10 +408,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                 </div>
               </form>
             </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    </ModalShell>
   );
 };
 

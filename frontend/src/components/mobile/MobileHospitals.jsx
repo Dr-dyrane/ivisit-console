@@ -30,6 +30,7 @@ import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
+import { calcDeltaPercent, formatSignedPercent, toDeltaBadge } from '../../utils/metricsUtils';
 
 export const MobileHospitals = ({
     hospitals,
@@ -57,23 +58,8 @@ export const MobileHospitals = ({
     const selectionMode = selectedIds.length > 0;
     const { triggerFromEvent } = useFeedback();
 
-    const formatSignedPercent = (value) => {
-        if (!Number.isFinite(value)) return null;
-        const rounded = Math.abs(value) >= 10 ? value.toFixed(0) : value.toFixed(1);
-        return `${value > 0 ? '+' : ''}${rounded}%`;
-    };
 
-    const calcDeltaPercent = (current, previous) => {
-        const c = Number(current);
-        const p = Number(previous);
-        if (!Number.isFinite(c) || !Number.isFinite(p) || p === 0) return null;
-        return ((c - p) / Math.abs(p)) * 100;
-    };
 
-    const toDeltaBadge = (value) => ({
-        delta: formatSignedPercent(value) || 'LIVE',
-        direction: Number.isFinite(value) ? (value > 0 ? 'up' : value < 0 ? 'down' : 'flat') : 'flat'
-    });
 
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 

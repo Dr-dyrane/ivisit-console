@@ -279,6 +279,8 @@ export const SubscriptionModal = ({ isOpen, onClose, subscriber, mode, onSave })
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 100 }}
           transition={{ type: "spring", damping: 30, stiffness: 350 }}
+          role="dialog"
+          aria-modal="true"
           className={`ios-material ios-sheet relative z-10 w-full ${mode === 'bulk' ? 'max-w-5xl' : 'max-w-lg'} max-h-[calc(100dvh-5rem)] md:max-h-[90vh] md:rounded-[40px] shadow-2xl border border-foreground/10 overflow-y-auto no-scrollbar`}
           onClick={(e) => e.stopPropagation()}
         >

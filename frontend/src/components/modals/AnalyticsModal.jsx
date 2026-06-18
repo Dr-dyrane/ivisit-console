@@ -330,6 +330,10 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ type: "spring", damping: 25, stiffness: 350 }}
+            role="dialog"
+
+            aria-modal="true"
+
             className="relative z-10 w-full max-w-[400px] max-h-[85vh] overflow-hidden rounded-[32px] flex flex-col bg-background/90 dark:bg-transparent apple-glass-heavy border-0 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]"
           >
             {/* Header (Canon #30, #39) */}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
+import { ModalShell } from '../ui/ModalShell';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -9,7 +9,7 @@ import { Switch } from '../ui/switch';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { X, Stethoscope, Mail, Phone, Building, Award, Star, Activity, User, Shield } from 'lucide-react';
+import { Stethoscope, Mail, Phone, Building, Award, Star, Activity, User, Shield } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
@@ -91,21 +91,6 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
       fetchAvailableProfiles();
     }
   }, [isCreate]);
-
-  // Keep mobile bottom bar from overlapping the modal layer.
-  useEffect(() => {
-    const bottomBar = document.getElementById('dynamic-bottom-bar');
-    if (!bottomBar) return undefined;
-
-    const previousDisplay = bottomBar.style.display;
-    if (isOpen) {
-      bottomBar.style.display = 'none';
-    }
-
-    return () => {
-      bottomBar.style.display = previousDisplay;
-    };
-  }, [isOpen]);
 
   const fetchAvailableProfiles = async () => {
     try {
@@ -227,65 +212,26 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
     }
   };
 
+  const statusBadgeClass = formData.status === 'available' ? 'bg-green-500/10 text-green-500' :
+    formData.status === 'busy' ? 'bg-orange-500/10 text-orange-500' :
+    formData.status === 'on_call' ? 'bg-purple-500/10 text-purple-500' : 'bg-muted/10 text-muted-foreground';
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4"
-          style={{
-            paddingTop: 'max(12px, var(--safe-top, 0px))',
-            paddingBottom: 'max(12px, calc(var(--safe-bottom, 0px) + 12px))'
-          }}
-        >
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/30 backdrop-blur-md"
-            onClick={() => onClose(false)}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative z-10 w-full max-w-5xl max-h-[92dvh] overflow-hidden rounded-[32px] shadow-2xl flex flex-col"
-            style={{
-              maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 24px)'
-            }}
-          >
-            {/* Header Area */}
-            <div className="flex items-center justify-between p-2 md:p-8 pb-4">
-              <div className="flex items-center gap-4">
-                <div className="p-2 md:p-2.5 bg-primary/20 rounded-2xl">
-                  <Stethoscope className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-                </div>
-                <div className="hidden sm:block">
-                  <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-foreground/90">
-                    {formData.name || 'Professional Profile'}
-                  </h2>
-                  <p className="text-xs md:text-sm text-muted-foreground">{formData.specialization || 'Medical Specialist'}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge className={`rounded-full px-3 md:px-4 py-1 text-xs border-0 ${formData.status === 'available' ? 'bg-green-500/10 text-green-500' :
-                  formData.status === 'busy' ? 'bg-orange-500/10 text-orange-500' :
-                    formData.status === 'on_call' ? 'bg-purple-500/10 text-purple-500' : 'bg-muted/10 text-muted-foreground'
-                  }`}>
-                  {formData.status?.toUpperCase()}
-                </Badge>
-                <Button
-                  variant="ghost"
-                  onClick={() => onClose(false)}
-                  className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+    <ModalShell
+      isOpen={isOpen}
+      onClose={() => onClose(false)}
+      title={formData.name || 'Professional Profile'}
+      subtitle={formData.specialization || 'Medical Specialist'}
+      icon={<Stethoscope className="h-5 w-5 md:h-6 md:w-6 text-primary" />}
+      badge={
+        <Badge className={`rounded-full px-3 md:px-4 py-1 text-xs border-0 ${statusBadgeClass}`}>
+          {formData.status?.toUpperCase()}
+        </Badge>
+      }
+      size="xl"
+      managed
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
               <div className="flex-1 overflow-y-auto p-2 md:p-8 pt-2 space-y-6 no-scrollbar relative">
 
                 {/* Profile Summary Bubbles */}
@@ -566,11 +512,7 @@ export const DoctorModal = ({ isOpen, onClose, doctor, mode }) => {
                 )}
               </div>
             </form>
-          </motion.div>
-        </div>
-      )
-      }
-    </AnimatePresence >
+    </ModalShell>
   );
 
 };

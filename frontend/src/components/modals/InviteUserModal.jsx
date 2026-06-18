@@ -96,6 +96,10 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 10 }}
                         transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                        role="dialog"
+
+                        aria-modal="true"
+
                         className="relative z-10 w-full max-w-md bg-background rounded-3xl shadow-xl border border-border/10 overflow-hidden"
                     >
                         {/* Header */}

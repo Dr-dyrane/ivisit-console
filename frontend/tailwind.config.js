@@ -10,9 +10,16 @@ module.exports = {
                 borderRadius: {
                         lg: 'var(--radius)',
                         md: 'calc(var(--radius) - 2px)',
-                        sm: 'calc(var(--radius) - 4px)'
+                        sm: 'calc(var(--radius) - 4px)',
+                        // Design system tokens (CONSOLE_DESIGN_SYSTEM_FROM_APP.md)
+                        card:  'var(--radius-card,  30px)',  // Management cards, entity cards
+                        inner: 'var(--radius-inner, 22px)',  // Nested surfaces, inner cards
+                        icon:  'var(--radius-icon,  14px)',  // Icon tiles, avatar wells
+                        modal: 'var(--radius-modal, 38px)',  // Modal / dialog sheets
                 },
                 colors: {
+                        // Design system tokens
+                        brand: 'var(--color-brand, #86100E)',
                         background: 'hsl(var(--background))',
                         foreground: 'hsl(var(--foreground))',
                         card: {

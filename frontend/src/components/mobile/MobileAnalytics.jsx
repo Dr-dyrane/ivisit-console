@@ -22,6 +22,7 @@ import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
+import { calcDeltaPercent, formatSignedPercent, toDeltaBadge } from '../../utils/metricsUtils';
 
 /**
  * MobileAnalytics
@@ -47,11 +48,6 @@ export const MobileAnalytics = ({
 }) => {
     const { isAdmin, isOrgAdmin, isSponsor, isProvider } = roleContext;
 
-    const formatSignedPercent = (value) => {
-        if (!Number.isFinite(value)) return null;
-        const rounded = Math.abs(value) >= 10 ? value.toFixed(0) : value.toFixed(1);
-        return `${value > 0 ? '+' : ''}${rounded}%`;
-    };
 
     const seriesDelta = (series = [], key = 'value', invert = false) => {
         if (!Array.isArray(series) || series.length < 2) return { badge: 'LIVE', direction: 'flat' };

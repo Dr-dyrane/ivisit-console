@@ -27,6 +27,7 @@ import { MobileActivityRow } from './MobileActivityRow';
 import { PullToRefresh } from './PullToRefresh';
 import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobilePageShell } from './MobilePageShell';
+import { calcDeltaPercent, formatSignedPercent, toDeltaBadge } from '../../utils/metricsUtils';
 
 /**
  * MobileDashboard
@@ -45,18 +46,7 @@ export const MobileDashboard = ({
 }) => {
     const { isAdmin, isProvider, isPatient, isOrgAdmin, isSponsor } = roleContext;
 
-    const formatSignedPercent = (value) => {
-        if (!Number.isFinite(value)) return null;
-        const rounded = Math.abs(value) >= 10 ? value.toFixed(0) : value.toFixed(1);
-        return `${value > 0 ? '+' : ''}${rounded}%`;
-    };
 
-    const calcDeltaPercent = (current, previous) => {
-        const c = Number(current);
-        const p = Number(previous);
-        if (!Number.isFinite(c) || !Number.isFinite(p) || p === 0) return null;
-        return ((c - p) / Math.abs(p)) * 100;
-    };
 
     const demandDelta = calcDeltaPercent(appStats.todayRequests || 0, appStats.yesterdayRequests || 0);
     const walletDelta = Number.isFinite(Number(walletStats?.trend)) ? Number(walletStats.trend) : null;

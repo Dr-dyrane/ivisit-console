@@ -1,21 +1,18 @@
-"use client";
-
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../ui/button';
+import { ModalShell } from '../ui/ModalShell';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { X, Hospital, MapPin, Phone, Bed, Ambulance, Star, Clock, Activity, User, UserCheck, AlertCircle } from 'lucide-react';
+import { Hospital, MapPin, Phone, Bed, Ambulance, Star, Clock, Activity, User, UserCheck, AlertCircle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 
 import { uploadImage } from '../../services/storageService';
 import { Loader2, Upload } from 'lucide-react';
 import hospitalImportService from '../../services/hospitalImportService';
-import { useEffect, useRef } from 'react';
 import { bedManagementService } from '../../services/bedManagementService';
 
 const DEFAULT_HOSPITAL_FORM = {
@@ -218,21 +215,6 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
     };
   }, [showSearchResults]);
 
-  // Keep mobile bottom bar from overlapping the modal layer.
-  useEffect(() => {
-    const bottomBar = document.getElementById('dynamic-bottom-bar');
-    if (!bottomBar) return undefined;
-
-    const previousDisplay = bottomBar.style.display;
-    if (isOpen) {
-      bottomBar.style.display = 'none';
-    }
-
-    return () => {
-      bottomBar.style.display = previousDisplay;
-    };
-  }, [isOpen]);
-
   // Load bed reservations and utilization when modal opens
   useEffect(() => {
     if (isOpen && hospital && isView) {
@@ -334,69 +316,21 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4"
-          style={{
-            paddingTop: 'max(12px, var(--safe-top, 0px))',
-            paddingBottom: 'max(12px, calc(var(--safe-bottom, 0px) + 12px))'
-          }}
-        >
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/30 backdrop-blur-md"
-            onClick={() => onClose(false)}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative z-10 w-full max-w-2xl max-h-[92dvh] overflow-hidden rounded-[32px] shadow-2xl"
-            style={{
-              maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 24px)'
-            }}
-          >
-            {/* Header Area */}
-            <div className="flex items-center justify-between p-2 md:p-8 pb-4">
-              <div className="flex items-center gap-4">
-                <div className="p-2 md:p-2.5 bg-blue-500/20 rounded-2xl">
-                  <Hospital className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
-                </div>
-                <div>
-                  <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-foreground/90">
-                    {formData.name || 'New Facility'}
-                  </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs uppercase tracking-wider ${formData.status === 'available' ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
-                      {formData.status || 'AVAILABLE'}
-                    </Badge>
-                    <Badge className="rounded-full bg-white/10 border-0 font-semibold px-3 py-0.5 text-xs uppercase tracking-wider text-blue-400">
-                      {formData.type}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                onClick={() => onClose(false)}
-                className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-
-            <div
-              className="p-2 md:p-8 pt-2 overflow-y-auto space-y-6 no-scrollbar"
-              style={{
-                maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 170px)'
-              }}
-            >
+    <ModalShell
+      isOpen={isOpen}
+      onClose={() => onClose(false)}
+      title={formData.name || 'New Facility'}
+      subtitle={formData.type}
+      icon={<Hospital className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />}
+      badge={
+        <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs uppercase tracking-wider ${formData.status === 'available' ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
+          {formData.status || 'AVAILABLE'}
+        </Badge>
+      }
+      size="lg"
+      managed
+    >
+      <div className="p-2 md:p-8 pt-2 overflow-y-auto space-y-6 no-scrollbar flex-1 min-h-0">
               <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* --- GOOGLE AUTOFILL SECTION --- */}
@@ -940,10 +874,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                 </div>
               </form>
             </div>
-          </motion.div>
-        </div >
-      )}
-    </AnimatePresence >
+    </ModalShell>
   );
 };
 
