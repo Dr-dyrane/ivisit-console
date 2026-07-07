@@ -13,6 +13,17 @@ This is the operating rule for the console revamp:
 
 Do not start the next page until the current page proves the full gate below.
 
+## CHECKPOINT PUSH DECISION - 2026-07-07
+
+This decision is intentionally loud so the next session sees it before touching Git:
+
+- Do not push this revamp checkpoint directly to `main`.
+- Push only the safety checkpoint branch: `codex/ivisit-console-revamp-checkpoint-20260707`.
+- The checkpoint branch is a remote backup and recovery point, not merge approval, release approval, or deployment approval.
+- Initial checkpoint commit: `15acf6c checkpoint: preserve console revamp gate work`.
+- Main stays protected until the revamp branch gets an explicit user approval after PR-style review, current tests, rendered proof for admitted surfaces, and a page-by-page gate audit.
+- Future agents should continue from this checkpoint branch or branch from it. Do not fast-forward, force-push, or merge into `main` from this checkpoint without explicit user approval.
+
 ## Canonical Audit Reset - 2026-06-25
 
 Before expanding the revamp again, treat Today plus Requests as the canonical layout audit pair.
