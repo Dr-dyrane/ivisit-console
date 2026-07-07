@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { getPricingPageData } from '../../services/pricingService';
@@ -67,6 +67,134 @@ const formatPricingAmount = (value) => {
     const amount = Number(value);
     if (!Number.isFinite(amount)) return 'N/A';
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+};
+
+const PRICING_STATE_OPTIONS = [
+    {
+        id: 'all', label: 'Points', icon: BadgeDollarSign, tone: 'sky',
+        activeClass: 'bg-sky-500/10 text-sky-800 shadow-[0_18px_54px_rgba(14,165,233,0.16)] dark:text-sky-100',
+        restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+        iconClass: 'text-sky-600 dark:text-sky-200',
+    },
+    {
+        id: 'override', label: 'Overrides', icon: TrendingUp, tone: 'emerald',
+        activeClass: 'bg-emerald-500/10 text-emerald-800 shadow-[0_18px_54px_rgba(16,185,129,0.16)] dark:text-emerald-100',
+        restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+        iconClass: 'text-emerald-600 dark:text-emerald-200',
+    },
+    {
+        id: 'global', label: 'Global', icon: Globe, tone: 'amber',
+        activeClass: 'bg-amber-500/10 text-amber-800 shadow-[0_18px_54px_rgba(245,158,11,0.16)] dark:text-amber-100',
+        restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+        iconClass: 'text-amber-600 dark:text-amber-200',
+    },
+];
+
+const pricingToneClass = {
+    sky: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
+    emerald: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+    amber: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+    muted: 'bg-muted/30 text-muted-foreground',
+};
+
+const normalizePricingCount = (value, fallback = 0) => {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : fallback;
+};
+
+const getPricingStateCount = ({ id, summary, totalCount }) => {
+    switch (id) {
+        case 'override':
+            return normalizePricingCount(summary?.facilityPriceCount, 0);
+        case 'global':
+            return normalizePricingCount(summary?.globalFallbackCount, 0);
+        default:
+            return normalizePricingCount(totalCount, 0);
+    }
+};
+
+const getPricingSignal = ({ summary, totalCount, kpiFilter }) => {
+    const activeId = kpiFilter || 'all';
+    const option = PRICING_STATE_OPTIONS.find((item) => item.id === activeId) || PRICING_STATE_OPTIONS[0];
+    const count = getPricingStateCount({ id: option.id, summary, totalCount });
+    const nounMap = { all: 'price point', override: 'facility override', global: 'global rule' };
+    const emptyMap = { all: 'price points', override: 'facility overrides', global: 'global rules' };
+    return {
+        icon: option.icon,
+        tone: option.tone,
+        label: option.label,
+        headline: count > 0 ? `${count} ${nounMap[option.id] || 'price point'}${count === 1 ? '' : 's'}` : `No ${emptyMap[option.id] || 'price points'}`,
+        subhead: count > 0
+            ? 'Review price basis and coverage. Price changes stay read-only until a facility scope is selected.'
+            : 'Price records for this scope will appear here.',
+    };
+};
+
+const PricingStateStrip = ({ summary, totalCount, loading, kpiFilter, setKpiFilter }) => (
+    <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-3">
+        {PRICING_STATE_OPTIONS.map((item) => {
+            const Icon = item.icon;
+            const active = (kpiFilter || 'all') === item.id;
+            const count = loading ? '...' : getPricingStateCount({ id: item.id, summary, totalCount });
+            return (
+                <motion.button
+                    key={item.id}
+                    type="button"
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setKpiFilter(item.id)}
+                    className={`group min-h-[78px] rounded-[24px] px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
+                    aria-pressed={active}
+                    aria-label={`Show ${item.label.toLowerCase()}`}
+                    data-state={active ? 'selected' : 'idle'}
+                >
+                    <span className="flex items-start justify-between gap-2">
+                        <span className="min-w-0">
+                            <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
+                            <span className="mt-1 block text-2xl font-semibold text-foreground">{count}</span>
+                        </span>
+                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/45 transition-transform group-hover:scale-105 ${active ? item.iconClass : ''}`}>
+                            <Icon className="h-4 w-4" />
+                        </span>
+                    </span>
+                </motion.button>
+            );
+        })}
+    </div>
+);
+
+const PricingSignalPanel = ({ summary, totalCount, loading, kpiFilter, setKpiFilter }) => {
+    const signal = loading
+        ? { icon: BadgeDollarSign, tone: 'muted', label: 'Loading', headline: 'Loading pricing', subhead: 'One moment while the pricing registry comes in.' }
+        : getPricingSignal({ summary, totalCount, kpiFilter });
+    const SignalIcon = signal.icon;
+    return (
+        <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.42 }}
+            className="flex min-h-[240px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[288px]"
+            aria-live="polite"
+        >
+            <div className="min-w-0">
+                <div className="max-w-2xl">
+                    <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${pricingToneClass[signal.tone] || pricingToneClass.muted}`}>
+                        <SignalIcon className="h-4 w-4" />
+                        {signal.label}
+                    </div>
+                    <h1 className="max-w-2xl text-[34px] font-semibold leading-[1.05] text-foreground md:text-6xl">{signal.headline}</h1>
+                    <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">{signal.subhead}</p>
+                </div>
+                <PricingStateStrip
+                    summary={summary}
+                    totalCount={totalCount}
+                    loading={loading}
+                    kpiFilter={kpiFilter}
+                    setKpiFilter={setKpiFilter}
+                />
+            </div>
+        </motion.section>
+    );
 };
 
 export const PricingManagementPage = () => {
@@ -213,7 +341,7 @@ export const PricingManagementPage = () => {
             data-state="unavailable"
             title={PRICING_SCOPE_UNAVAILABLE_MESSAGE}
             aria-label={`Add pricing unavailable. ${PRICING_SCOPE_UNAVAILABLE_MESSAGE}`}
-            className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+            className="bg-card/70 h-9 px-4 text-[10px] font-bold"
         >
             <Plus className="w-4 h-4 mr-2" />
             Add Pricing
@@ -221,12 +349,12 @@ export const PricingManagementPage = () => {
     ), [showPricingCommandUnavailable]);
 
     const viewToggle = useMemo(() => (
-        <div className="flex bg-muted/20 p-1 rounded-xl mr-2">
+        <div className="flex bg-muted/20 p-1 rounded-inner mr-2">
             <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setViewMode('grid')}
-                className={`h-8 w-8 rounded-lg ${viewMode === 'grid' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+                className={`h-8 w-8 rounded-inner ${viewMode === 'grid' ? 'bg-background shadow-sm text-muted-foreground' : 'text-muted-foreground'}`}
             >
                 <LayoutGrid className="h-4 w-4" />
             </Button>
@@ -234,7 +362,7 @@ export const PricingManagementPage = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setViewMode('list')}
-                className={`h-8 w-8 rounded-lg ${viewMode === 'list' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+                className={`h-8 w-8 rounded-inner ${viewMode === 'list' ? 'bg-background shadow-sm text-muted-foreground' : 'text-muted-foreground'}`}
             >
                 <ListIcon className="h-4 w-4" />
             </Button>
@@ -242,7 +370,7 @@ export const PricingManagementPage = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setViewMode('table')}
-                className={`h-8 w-8 rounded-lg ${viewMode === 'table' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+                className={`h-8 w-8 rounded-inner ${viewMode === 'table' ? 'bg-background shadow-sm text-muted-foreground' : 'text-muted-foreground'}`}
             >
                 <TableIcon className="h-4 w-4" />
             </Button>
@@ -253,13 +381,15 @@ export const PricingManagementPage = () => {
 
     const footerContent = useMemo(() => (
         <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill bg-muted/30 text-[10px] font-bold">
                 <span>Page {pagination.currentPage} of {pagination.totalPages} - {pricingTotalCount} Rules</span>
             </div>
         </div>
     ), [pagination.currentPage, pagination.totalPages, pricingTotalCount]);
 
     usePageFooter(footerContent, 'pagination', !loading && pricing.length > 0);
+
+    usePageShell({ bleed: true, hideFab: true });
 
     /**
      * NOTE (2026-02-16): Removed initial context panel auto-open and 
@@ -324,125 +454,21 @@ export const PricingManagementPage = () => {
 
     return (
         <div className="min-h-screen py-8">
-            {/* KPI Cards */}
-            <LayoutGroup>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8">
-                    <motion.div layout className="col-span-1">
-                        <Card
-                            className={`h-full min-h-[140px] geo-block glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 border-0 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
-                            onClick={() => setKpiFilter('all')}
-                        >
-                            <div className="hover-glow hover-glow-primary" />
-                            <div className="absolute top-0 right-0 p-4 z-20">
-                                <div className="relative">
-                                    <div className={`absolute inset-0 ${kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                                        <BadgeDollarSign className={`h-5 w-5 ${kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'}`} />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="relative z-10">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active Points</p>
-                                    {kpiFilter === 'all' && <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />}
-                                </div>
-                                <h3 className="text-3xl font-black">{pricingTotalCount}</h3>
-                                <div className="flex items-center gap-2 mt-2">
-                                    <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-[8px] uppercase tracking-tighter">
-                                        {kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
-                                    </Badge>
-                                </div>
-                            </div>
-                        </Card>
-                    </motion.div>
-
-                    <motion.div layout className="col-span-1">
-                        <Card
-                            className={`h-full min-h-[140px] geo-shard glass-card-premium shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 border-0 ${kpiFilter === 'override' ? 'ring-2 ring-success shadow-lg' : ''}`}
-                            onClick={() => setKpiFilter('override')}
-                        >
-                            <div className="hover-glow hover-glow-success" />
-                            <div className="absolute top-0 right-0 p-4 z-20">
-                                <div className="relative">
-                                    <div className={`absolute inset-0 ${kpiFilter === 'override' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                                        <TrendingUp className={`h-5 w-5 ${kpiFilter === 'override' ? 'text-success' : 'text-muted-foreground'}`} />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="relative z-10">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Avg Base Cost</p>
-                                    {kpiFilter === 'override' && <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />}
-                                </div>
-                                <h3 className="text-3xl font-bold flex items-center gap-2">
-                                    {formatPricingAmount(pricingSummary.averageAmount)}
-                                </h3>
-                                <div className="flex items-center gap-2 mt-2">
-                                    <Badge className={`geo-sharp border-0 font-bold text-[8px] uppercase tracking-tighter ${kpiFilter === 'override' ? 'bg-success/20 text-success' : 'bg-muted/10 text-muted-foreground'}`}>
-                                        {kpiFilter === 'override' ? 'FILTERED' : 'OVERRIDE'}
-                                    </Badge>
-                                </div>
-                            </div>
-                        </Card>
-                    </motion.div>
-
-                    <motion.div layout className="col-span-1">
-                        <Card
-                            className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 border-0 ${kpiFilter === 'global' ? 'ring-2 ring-info shadow-lg' : ''}`}
-                            onClick={() => setKpiFilter('global')}
-                        >
-                            <div className="hover-glow hover-glow-info" />
-                            <div className="absolute top-0 right-0 p-4 z-20">
-                                <div className="relative">
-                                    <div className={`absolute inset-0 ${kpiFilter === 'global' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                                        <Globe className={`h-5 w-5 ${kpiFilter === 'global' ? 'text-info' : 'text-muted-foreground'}`} />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="relative z-10">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Global Coverage</p>
-                                    {kpiFilter === 'global' && <div className="h-1.5 w-1.5 rounded-full bg-info animate-pulse" />}
-                                </div>
-                                <h3 className="text-3xl font-black">
-                                    {pricingSummary.globalFallbackCount || 0} <span className="text-[10px] text-muted-foreground font-medium uppercase font-sans">Rules</span>
-                                </h3>
-                                <div className="flex items-center gap-2 mt-2">
-                                    <Badge className={`geo-sharp border-0 font-bold text-[8px] uppercase tracking-tighter ${kpiFilter === 'global' ? 'bg-info/20 text-info' : 'bg-muted/10 text-muted-foreground'}`}>
-                                        {kpiFilter === 'global' ? 'FILTERED' : 'UNIFY'}
-                                    </Badge>
-                                </div>
-                            </div>
-                        </Card>
-                    </motion.div>
-
-                    <motion.div layout className="col-span-1">
-                        <Card className="h-full min-h-[140px] geo-block glass-card shadow-2xl p-6 hover-lift relative overflow-hidden group border-0">
-                            <div className="absolute inset-0 dot-grid opacity-5" />
-                            <div className="absolute top-0 right-0 p-4 z-20">
-                                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                                    <DollarSign className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                            </div>
-                            <div className="relative z-10">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Data Basis</p>
-                                <h3 className="text-3xl font-black">Current</h3>
-                            </div>
-                        </Card>
-                    </motion.div>
-
-                </div>
-            </LayoutGroup>
+            <PricingSignalPanel
+                summary={pricingSummary}
+                totalCount={pricingTotalCount}
+                loading={loading}
+                kpiFilter={kpiFilter}
+                setKpiFilter={setKpiFilter}
+            />
 
             {/* Controls */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div className="flex bg-muted/10 backdrop-blur-md p-1 rounded-2xl w-full md:w-fit gap-1 border border-white/5">
+                <div className="flex bg-muted/10 p-1 rounded-card w-full md:w-fit gap-1  ">
                     <button
                         onClick={() => setActiveTab('all')}
-                        className={`flex-1 md:flex-none px-8 py-2.5 rounded-xl text-[10px] font-black tracking-[0.2em] uppercase transition-all duration-300 ${activeTab === 'all'
-                            ? 'bg-primary text-white shadow-glow-primary scale-[1.02]'
+                        className={`flex-1 md:flex-none px-8 py-2.5 rounded-inner text-[10px] font-black tracking-[0.2em] transition-all duration-300 ${activeTab === 'all'
+                            ? 'bg-muted text-foreground scale-[1.02]'
                             : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
@@ -450,8 +476,8 @@ export const PricingManagementPage = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('services')}
-                        className={`flex-1 md:flex-none px-8 py-2.5 rounded-xl text-[10px] font-black tracking-[0.2em] uppercase transition-all duration-300 ${activeTab === 'services'
-                            ? 'bg-primary text-white shadow-glow-primary scale-[1.02]'
+                        className={`flex-1 md:flex-none px-8 py-2.5 rounded-inner text-[10px] font-black tracking-[0.2em] transition-all duration-300 ${activeTab === 'services'
+                            ? 'bg-muted text-foreground scale-[1.02]'
                             : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
@@ -459,8 +485,8 @@ export const PricingManagementPage = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('rooms')}
-                        className={`flex-1 md:flex-none px-8 py-2.5 rounded-xl text-[10px] font-black tracking-[0.2em] uppercase transition-all duration-300 ${activeTab === 'rooms'
-                            ? 'bg-primary text-white shadow-glow-primary scale-[1.02]'
+                        className={`flex-1 md:flex-none px-8 py-2.5 rounded-inner text-[10px] font-black tracking-[0.2em] transition-all duration-300 ${activeTab === 'rooms'
+                            ? 'bg-muted text-foreground scale-[1.02]'
                             : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
@@ -469,10 +495,10 @@ export const PricingManagementPage = () => {
                 </div>
 
                 <div className="relative w-full md:w-80 group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-muted-foreground transition-colors" />
                     <input
                         placeholder="Filter configuration registry..."
-                        className="w-full h-12 bg-white/5  rounded-2xl pl-12 pr-6 text-[10px] font-bold uppercase tracking-widest focus:ring-2 ring-primary/20 transition-all outline-none placeholder:text-muted-foreground/40"
+                        className="w-full h-12 bg-muted/30  rounded-card pl-12 pr-6 text-[10px] font-bold transition-all  placeholder:text-muted-foreground/40"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -480,7 +506,7 @@ export const PricingManagementPage = () => {
             </div>
 
             {actionNotice && (
-                <p role="status" aria-live="polite" className="mb-4 rounded-2xl bg-muted/15 px-4 py-3 text-sm text-muted-foreground">
+                <p role="status" aria-live="polite" className="mb-4 rounded-card bg-muted/15 px-4 py-3 text-sm text-muted-foreground">
                     {actionNotice}
                 </p>
             )}
@@ -490,21 +516,21 @@ export const PricingManagementPage = () => {
                 {loading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {[1, 2, 3, 4, 5, 6].map(i => (
-                            <Skeleton key={i} className="h-64 rounded-[32px] bg-muted/20" />
+                            <Skeleton key={i} className="h-64 rounded-card bg-muted/20" />
                         ))}
                     </div>
                 ) : filteredPricing.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 bg-muted/5 rounded-[40px] border border-dashed border-muted/20">
+                    <div className="flex flex-col items-center justify-center py-20 bg-muted/5 rounded-card   ">
                         <BadgeDollarSign className="h-12 w-12 text-muted-foreground/20 mb-4" />
                         <h4 className="text-lg font-bold text-muted-foreground">No price points found</h4>
                         <p className="text-sm text-muted-foreground/60 mb-6">Modify your search or add a new override.</p>
                         <Button
-                            variant="outline"
+                            variant=""
                             onClick={showPricingCommandUnavailable}
                             data-state="unavailable"
                             title={PRICING_SCOPE_UNAVAILABLE_MESSAGE}
                             aria-label={`Initialize first override unavailable. ${PRICING_SCOPE_UNAVAILABLE_MESSAGE}`}
-                            className="rounded-2xl px-8 uppercase tracking-widest text-[10px] font-bold"
+                            className="rounded-card px-8 text-[10px] font-bold"
                         >
                             Initialize First Override
                         </Button>
