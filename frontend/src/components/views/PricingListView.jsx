@@ -62,18 +62,18 @@ export const PricingListView = ({ pricing, onView, onEdit, onDelete, canEdit }) 
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
                     >
-                        <Card className="h-full squircle-xl glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col border-0">
+                        <Card className="h-full rounded-card bg-card/70 p-6 group relative overflow-hidden flex flex-col">
                             <div className="absolute inset-0 dot-grid opacity-10" />
-                            <div className={`hover-glow ${isGlobal ? 'hover-glow-primary' : 'hover-glow-success'}`} />
+                            <div className={` ${isGlobal ? '' : ''}`} />
 
                             <div className="flex justify-between items-start mb-6 relative z-10 transition-colors duration-300">
-                                <Badge className={`geo-sharp border-0 px-2.5 py-1 shadow-sm ${isGlobal ? 'bg-primary/20 text-primary shadow-glow-primary/10' : 'bg-success/20 text-success shadow-glow-success/10'}`}>
+                                <Badge className={`rounded-inner px-2.5 py-1 shadow-sm ${isGlobal ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'}`}>
                                     <div className="flex items-center gap-1.5 uppercase tracking-tighter font-black text-[9px]">
                                         {isGlobal ? <Globe className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
                                         {sourceLabel}
                                     </div>
                                 </Badge>
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 shadow-inner shadow-primary/5 transition-transform duration-300">
+                                <div className="w-10 h-10 rounded-inner bg-muted flex items-center justify-center text-muted-foreground group-hover:scale-110 shadow-inner transition-transform duration-300">
                                     {getTypeIcon(item.service_type || item.room_type)}
                                 </div>
                             </div>
@@ -99,7 +99,7 @@ export const PricingListView = ({ pricing, onView, onEdit, onDelete, canEdit }) 
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
+                            <div className="flex items-center justify-between mt-auto pt-4   relative z-10 px-2">
                                 <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                                     <Clock className="w-3 h-3" />
                                     {updatedAt ? new Date(updatedAt).toLocaleDateString() : 'N/A'}
@@ -109,7 +109,7 @@ export const PricingListView = ({ pricing, onView, onEdit, onDelete, canEdit }) 
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => onView(item)}
-                                        className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                        className="rounded-card h-8 w-8 p-0 hover:bg-muted hover:text-foreground"
                                     >
                                         <Eye className="h-4 w-4" />
                                     </Button>
@@ -118,7 +118,7 @@ export const PricingListView = ({ pricing, onView, onEdit, onDelete, canEdit }) 
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => onEdit(item)}
-                                            className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                            className="rounded-card h-8 w-8 p-0 hover:bg-muted hover:text-foreground"
                                         >
                                             <Edit className="h-4 w-4" />
                                         </Button>
@@ -128,7 +128,7 @@ export const PricingListView = ({ pricing, onView, onEdit, onDelete, canEdit }) 
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => onDelete(item)}
-                                            className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                            className="rounded-card h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>

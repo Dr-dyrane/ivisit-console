@@ -67,11 +67,11 @@ export const PricingTableView = ({
     };
 
     return (
-        <div className="bg-background/35 backdrop-blur-xs squircle-lg border-0 shadow-premium overflow-hidden">
+        <div className="bg-background/35 rounded-card overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full">
                     <thead>
-                        <tr className="border-b border-border/20">
+                        <tr className=" ">
                             {selectionEnabled && (
                                 <th className="w-12 p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
                                     <Checkbox
@@ -114,7 +114,7 @@ export const PricingTableView = ({
                             return (
                                 <tr
                                     key={item.id}
-                                    className={`border-b border-border/10 hover:bg-muted/20 transition-colors ${index % 2 === 0 ? 'bg-background/20' : 'bg-transparent'
+                                    className={`  hover:bg-muted/20 transition-colors ${index % 2 === 0 ? 'bg-background/20' : 'bg-transparent'
                                         }`}
                                 >
                                     {selectionEnabled && (
@@ -128,7 +128,7 @@ export const PricingTableView = ({
                                     )}
                                     <td className="p-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 geo-round bg-primary/10 flex items-center justify-center shrink-0">
+                                            <div className="w-8 h-8 rounded-card bg-muted flex items-center justify-center shrink-0">
                                                 {getTypeIcon(type)}
                                             </div>
                                             <div>
@@ -152,7 +152,7 @@ export const PricingTableView = ({
                                         {item.unit || item.room_type || 'Per Unit'}
                                     </td>
                                     <td className="p-4">
-                                        <Badge className={`geo-sharp border-0 px-2 py-1 ${isGlobal ? 'bg-primary/20 text-primary' : 'bg-success/20 text-success'}`}>
+                                        <Badge className={`rounded-inner px-2 py-1 ${isGlobal ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'}`}>
                                             <div className="flex items-center gap-1.5 uppercase tracking-tighter font-black text-[9px]">
                                                 {isGlobal ? <Globe className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
                                                 {sourceLabel}
@@ -174,12 +174,12 @@ export const PricingTableView = ({
                                         <div className="flex justify-end">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10 dark:hover:bg-white/10">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-pill hover:bg-white/10 dark:hover:bg-white/10">
                                                         <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                                                         <span className="sr-only">Open menu</span>
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-[160px] rounded-xl bg-background/70 backdrop-blur-xl border-white/10 shadow-premium">
+                                                <DropdownMenuContent align="end" className="w-[160px] rounded-inner bg-background/70 ">
                                                     <DropdownMenuItem onClick={() => onView(item)} className="cursor-pointer font-medium text-xs py-2">
                                                         <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                                                         View Details

@@ -84,9 +84,9 @@ export const MobilePricing = ({
   }, [allPricing, projectionSummary, projectionTotalCount]);
 
   const kpis = [
-    { id: 'all', label: 'Rules', value: counts.all, color: 'hsl(var(--primary))', delta: currentBasisLabel, direction: 'flat' },
-    { id: 'global', label: 'Platform', value: counts.global, color: 'hsl(var(--info))', delta: currentBasisLabel, direction: 'flat' },
-    { id: 'override', label: 'Facility', value: counts.override, color: 'hsl(var(--success))', delta: currentBasisLabel, direction: 'flat' }
+    { id: 'all', label: 'Rules', value: counts.all, color: 'hsl(var(--foreground))', delta: currentBasisLabel, direction: 'flat' },
+    { id: 'global', label: 'Platform', value: counts.global, color: 'hsl(var(--foreground))', delta: currentBasisLabel, direction: 'flat' },
+    { id: 'override', label: 'Facility', value: counts.override, color: 'hsl(var(--foreground))', delta: currentBasisLabel, direction: 'flat' }
   ];
 
   function getItemPrice(item) {
@@ -142,7 +142,7 @@ export const MobilePricing = ({
               value: `$${avgPrice.toFixed(2)}`,
               trend: currentBasisLabel,
               icon: BadgeDollarSign,
-              color: 'hsl(var(--primary))',
+              color: 'hsl(var(--foreground))',
               chartData: [{ value: avgPrice }]
             },
             {
@@ -150,7 +150,7 @@ export const MobilePricing = ({
               value: `${Math.round((counts.global / (counts.all || 1)) * 100)}%`,
               trend: periodTrends.globalRatio.deltaText,
               icon: Globe,
-              color: 'hsl(var(--info))',
+              color: 'hsl(var(--foreground))',
               chartData: [{ value: counts.global }]
             },
             {
@@ -158,7 +158,7 @@ export const MobilePricing = ({
               value: `${Math.round((counts.override / (counts.all || 1)) * 100)}%`,
               trend: periodTrends.overrideLoad.deltaText,
               icon: Building2,
-              color: 'hsl(var(--warning))',
+              color: 'hsl(var(--foreground))',
               chartData: [{ value: counts.override }]
             },
             {
@@ -166,7 +166,7 @@ export const MobilePricing = ({
               value: counts.all,
               trend: currentBasisLabel,
               icon: Layers,
-              color: 'hsl(var(--secondary))',
+              color: 'hsl(var(--foreground))',
               chartData: [{ value: counts.all }]
             }
           ]}
@@ -176,7 +176,7 @@ export const MobilePricing = ({
           <MobileSectionHeader
             label="Pricing basis"
             count={counts.all}
-            color="hsl(var(--info))"
+            color="hsl(var(--foreground))"
             labelTone="plain"
           />
           <MobileSecondaryMetricRail
@@ -187,7 +187,7 @@ export const MobilePricing = ({
                 title: 'Platform',
                 subtitle: 'Fallback',
                 value: `${Math.round((counts.global / (counts.all || 1)) * 100)}%`,
-                color: 'hsl(var(--primary))',
+                color: 'hsl(var(--foreground))',
                 trendDirection: periodTrends.globalRatio.direction,
                 trendText: periodTrends.globalRatio.deltaText,
                 onClick: onViewAnalytics
@@ -197,7 +197,7 @@ export const MobilePricing = ({
                 title: 'Facility',
                 subtitle: 'Scoped',
                 value: `${Math.round((counts.override / (counts.all || 1)) * 100)}%`,
-                color: 'hsl(var(--primary))',
+                color: 'hsl(var(--foreground))',
                 trendDirection: periodTrends.overrideLoad.direction,
                 trendText: periodTrends.overrideLoad.deltaText,
                 onClick: onViewAnalytics
@@ -207,7 +207,7 @@ export const MobilePricing = ({
                 title: 'Average',
                 subtitle: 'Current mean',
                 value: `$${avgPrice.toFixed(2)}`,
-                color: 'hsl(var(--info))',
+                color: 'hsl(var(--foreground))',
                 trendDirection: 'flat',
                 trendText: currentBasisLabel,
                 onClick: onViewAnalytics
@@ -217,7 +217,7 @@ export const MobilePricing = ({
                 title: 'Total',
                 subtitle: 'Items',
                 value: counts.all,
-                color: 'hsl(var(--secondary))',
+                color: 'hsl(var(--foreground))',
                 trendDirection: 'flat',
                 trendText: currentBasisLabel,
                 onClick: onViewAnalytics
@@ -227,7 +227,7 @@ export const MobilePricing = ({
         </section>
 
         <div className="flex items-center gap-2 mb-3 px-1">
-          <div className="p-1 rounded-inner bg-muted/20 backdrop-blur-md flex relative w-full">
+          <div className="p-1 rounded-inner bg-muted/20 flex relative w-full">
             <motion.div
               className="absolute top-1 bottom-1 bg-[hsl(var(--spark)/0.10)] shadow-sm rounded-button"
               initial={false}
@@ -296,7 +296,7 @@ export const MobilePricing = ({
         <MobileSectionHeader
           label={getSectionLabel()}
           count={pricing.length}
-          color="hsl(var(--primary))"
+          color="hsl(var(--foreground))"
           onSelectAll={selectionEnabled && onSelectAll ? () => onSelectAll(selectedIds.length !== pricing.length) : null}
           isAllSelected={selectionEnabled && pricing.length > 0 && selectedIds.length === pricing.length}
         />
@@ -321,7 +321,7 @@ export const MobilePricing = ({
                 <MobileMetricRow
                   key={item.id}
                   icon={BadgeDollarSign}
-                  color={globalRule ? 'hsl(var(--info))' : 'hsl(var(--success))'}
+                  color={globalRule ? 'hsl(var(--foreground))' : 'hsl(var(--foreground))'}
                   label={formatLabel(getItemType(item))}
                   value={getItemName(item)}
                   rightBlade={{
@@ -329,7 +329,7 @@ export const MobilePricing = ({
                     direction: globalRule ? 'flat' : 'up',
                     label: itemFamily === 'room' ? 'Night' : 'Unit',
                     value: `$${price.toFixed(2)}`,
-                    color: globalRule ? 'hsl(var(--info))' : 'hsl(var(--success))'
+                    color: globalRule ? 'hsl(var(--foreground))' : 'hsl(var(--foreground))'
                   }}
                   isExpanded={expandedId === item.id}
                   onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
@@ -369,20 +369,20 @@ export const MobilePricing = ({
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <Badge className={`rounded-pill ${globalRule ? 'bg-info/20 text-info' : 'bg-success/20 text-success'} text-[11px]`}>
+                        <Badge className={`rounded-pill ${globalRule ? 'bg-sky-500/15 text-sky-700 dark:text-sky-200' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'} text-[11px]`}>
                           {sourceLabel}
                         </Badge>
                       </div>
 
                       <div className="flex gap-2 pt-1">
                         <Button variant="ghost" className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2" onClick={() => onView(item)}>
-                          <Eye size={16} className="text-primary/60" />
+                          <Eye size={16} className="text-muted-foreground" />
                           <span className="text-[11px] font-semibold">Details</span>
                         </Button>
                         {editable && (
                           <>
                             <Button variant="ghost" className="h-12 rounded-button apple-glass px-3" onClick={() => onEdit(item)}>
-                              <Edit size={16} className="text-warning/60" />
+                              <Edit size={16} className="text-amber-700 dark:text-amber-200" />
                             </Button>
                             <Button variant="ghost" className="h-12 rounded-button apple-glass px-3 hover:bg-destructive/10 hover:text-destructive" onClick={() => onDelete(item)}>
                               <Trash2 size={16} className="text-destructive/60" />
