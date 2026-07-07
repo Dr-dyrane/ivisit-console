@@ -112,7 +112,7 @@ const SubscriptionStateStrip = ({ stats, subscribers, loading, kpiFilter, setKpi
       return (
         <motion.button key={item.id} type="button" whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}
           onClick={() => setKpiFilter(item.id)}
-          className={`group min-h-[78px] rounded-[24px] px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
+          className={`group min-h-[78px] rounded-inner px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
           aria-pressed={active} aria-label={`Show ${item.label.toLowerCase()}`} data-state={active ? 'selected' : 'idle'}>
           <span className="flex items-start justify-between gap-2">
             <span className="min-w-0">
@@ -139,7 +139,7 @@ const SubscriptionSignalPanel = ({ stats, subscribers, loading, kpiFilter, setKp
       className="flex min-h-[240px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[288px]" aria-live="polite">
       <div className="min-w-0">
         <div className="max-w-2xl">
-          <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${subscriptionToneClass[signal.tone] || subscriptionToneClass.muted}`}>
+          <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${subscriptionToneClass[signal.tone] || subscriptionToneClass.muted}`}>
             <SignalIcon className="h-4 w-4" />
             {signal.label}
           </div>

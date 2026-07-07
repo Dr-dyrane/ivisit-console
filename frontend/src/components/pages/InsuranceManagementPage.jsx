@@ -186,7 +186,7 @@ const InsuranceStateStrip = ({ stats, policies, loading, kpiFilter, setKpiFilter
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setKpiFilter(item.id)}
-          className={`group min-h-[78px] rounded-[24px] px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
+          className={`group min-h-[78px] rounded-inner px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
           aria-pressed={active}
           aria-label={`Show ${item.label.toLowerCase()} policies`}
           data-state={active ? 'selected' : 'idle'}
@@ -222,7 +222,7 @@ const InsuranceSignalPanel = ({ stats, policies, loading, kpiFilter, setKpiFilte
     >
       <div className="min-w-0">
         <div className="max-w-2xl">
-          <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${insuranceToneClass[signal.tone] || insuranceToneClass.muted}`}>
+          <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${insuranceToneClass[signal.tone] || insuranceToneClass.muted}`}>
             <SignalIcon className="h-4 w-4" />
             {signal.label}
           </div>
@@ -637,7 +637,7 @@ export const InsuranceManagementPage = () => {
     >
       <FilterIcon className="h-4 w-4" />
       {hasActiveFilters && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-muted" />
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-pill bg-muted" />
       )}
     </Button>
   ), [hasActiveFilters]);
@@ -669,7 +669,7 @@ export const InsuranceManagementPage = () => {
   // Footer Configuration
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/30 text-[11px] font-semibold text-muted-foreground">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill bg-muted/30 text-[11px] font-semibold text-muted-foreground">
         <span>Page {pagination.currentPage} of {pagination.totalPages} / {pagination.totalCount} policies</span>
       </div>
     </div>

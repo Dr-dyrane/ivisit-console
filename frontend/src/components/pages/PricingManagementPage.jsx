@@ -143,7 +143,7 @@ const PricingStateStrip = ({ summary, totalCount, loading, kpiFilter, setKpiFilt
                     whileHover={{ y: -2 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setKpiFilter(item.id)}
-                    className={`group min-h-[78px] rounded-[24px] px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
+                    className={`group min-h-[78px] rounded-inner px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
                     aria-pressed={active}
                     aria-label={`Show ${item.label.toLowerCase()}`}
                     data-state={active ? 'selected' : 'idle'}
@@ -178,7 +178,7 @@ const PricingSignalPanel = ({ summary, totalCount, loading, kpiFilter, setKpiFil
         >
             <div className="min-w-0">
                 <div className="max-w-2xl">
-                    <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${pricingToneClass[signal.tone] || pricingToneClass.muted}`}>
+                    <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${pricingToneClass[signal.tone] || pricingToneClass.muted}`}>
                         <SignalIcon className="h-4 w-4" />
                         {signal.label}
                     </div>
