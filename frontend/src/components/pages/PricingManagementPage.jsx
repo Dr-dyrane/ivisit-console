@@ -462,6 +462,8 @@ export const PricingManagementPage = () => {
                 setKpiFilter={setKpiFilter}
             />
 
+            <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] md:rounded-sheet">
+                <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
             {/* Controls */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div className="flex bg-muted/10 p-1 rounded-card w-full md:w-fit gap-1  ">
@@ -568,6 +570,7 @@ export const PricingManagementPage = () => {
                 hasNextPage={pagination.hasNextPage}
                 loading={loading}
             />
+            </div>
 
             {/* Pagination Placeholder */}
             {/* pass pagination to smart footer like other pages do */}
