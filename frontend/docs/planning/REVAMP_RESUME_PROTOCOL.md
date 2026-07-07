@@ -93,10 +93,16 @@ Branch / commit: codex/ivisit-console-revamp-checkpoint-20260707 @ <sha>, pushed
   neutral foreground/muted. Seven visual files are now in the default hardgate (88 files).
   Registration-flow receivers (account/org/hospital/claim/Storage/verification/submit/skip) stay
   backend-blocked; `OnboardingContext.jsx`/`onboardingService.js` stay out of the hardgate.
-- NEXT: Page 19 Login and Page 20 Set Password (visual pass only; auth receiver/redirect/MFA
-  blockers stay intake-only). Both need a signed-out session for rendered admission (Login redirects
-  signed-in users; Set Password needs a recovery deep-link). Authenticated intake pages (12-18)
-  remain backend-authority blocked.
+- Page 19 Login: ADMITTED (commit `4d5c109`), visual surface only. Signed out via the app's own
+  Settings sign-out (localStorage-clear alone re-hydrates from other tabs), then rendered `/login`
+  signed out. Neutralized the red `bg-primary`/`text-primary`/`shadow-primary` submit buttons,
+  brand period, shield tiles/icons, and Register/Forgot links to foreground/muted; removed
+  `backdrop-blur-sm`/`focus-within:shadow-xl`/`animate-pulse`/`glass-card`. `LoginPage.jsx` in the
+  default hardgate (89 files). Auth receivers (Supabase Auth, `check-user` Edge, MFA, OAuth, reset)
+  stay backend-blocked; did NOT submit the email step (live Edge call + real reset email).
+- NEXT: Page 20 Set Password (visual pass only; auth receiver stays intake-only). Needs a recovery
+  deep-link session to render (the form only mounts under a `?type=recovery` / `PASSWORD_RECOVERY`
+  session). Authenticated intake pages (12-18) remain backend-authority blocked.
 - Concurrency note (2026-07-07): a parallel "interactive-cowork" session may leave uncommitted
   working-tree WIP (see the handshake table in `tools/automation/revamp-queue.md`). As checkpoint
   owner, stage ONLY your own page's files; leave `in_progress` cowork lanes (e.g. Visits, Insurance
