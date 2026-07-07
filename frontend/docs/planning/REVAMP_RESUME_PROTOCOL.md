@@ -86,13 +86,22 @@ Branch / commit: codex/ivisit-console-revamp-checkpoint-20260707 @ <sha>, pushed
 - Page 24 Catch-All Not Found: ADMITTED (commit `3dbbff7`).
 - Page 23 Unauthorized: ADMITTED (commit `c6b1330`).
 - Page 22 Onboarding Success: ADMITTED (commit `efac625`).
-- NEXT: Page 21 Onboarding (`src/components/pages/OnboardingPage.jsx`, `OnboardingWizard.jsx`).
-  Visual pass only (canonical squircle tokens, calm non-danger color, no glow/orb/blur, no
-  tracking chrome); preserve wizard/step/submit behavior. Account/org/facility creation,
-  document upload, and Storage receivers stay backend-blocked (excluded until receiver proof).
-  Render `/onboarding` proof, then admit via gate Page 21 + `OnboardingPage.contract.test.js`.
-- After Page 21: Page 20 Set Password, Page 19 Login (visual pass only; auth receiver/redirect/
-  MFA blockers stay intake-only). Authenticated intake pages (12-18) remain backend-authority blocked.
+- Page 21 Onboarding: ADMITTED (commit `a7f7d10`), visual surface only. Signed-out rendered proof
+  exposed that the earlier cleanup only touched the route/wizard shells; this pass canonicalized all
+  five step components + the wizard step indicator and neutralized the theme's brand-red
+  `bg-primary`/`text-primary`/`variant="secondary"` (—primary renders `rgb(115,17,22)`) to
+  neutral foreground/muted. Seven visual files are now in the default hardgate (88 files).
+  Registration-flow receivers (account/org/hospital/claim/Storage/verification/submit/skip) stay
+  backend-blocked; `OnboardingContext.jsx`/`onboardingService.js` stay out of the hardgate.
+- NEXT: Page 19 Login and Page 20 Set Password (visual pass only; auth receiver/redirect/MFA
+  blockers stay intake-only). Both need a signed-out session for rendered admission (Login redirects
+  signed-in users; Set Password needs a recovery deep-link). Authenticated intake pages (12-18)
+  remain backend-authority blocked.
+- Concurrency note (2026-07-07): a parallel "interactive-cowork" session may leave uncommitted
+  working-tree WIP (see the handshake table in `tools/automation/revamp-queue.md`). As checkpoint
+  owner, stage ONLY your own page's files; leave `in_progress` cowork lanes (e.g. Visits, Insurance
+  doc) untouched until their owner flips them to `done`. A stale `.git/index.lock` (no running git
+  process, minutes old) may be safely removed per git's own guidance.
 
 ## 7. How resumption actually works (and why not cloud cron)
 
