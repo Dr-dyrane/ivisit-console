@@ -803,8 +803,10 @@ export const UsersPage = () => {
         kpiFilter={filters.kpiFilter}
         setKpiFilter={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
       />
-      {/* Admin Statistics Section */}
-      {isAdmin() && showStatistics && statistics && (
+      <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
+        <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+        {/* Admin Statistics Section */}
+        {isAdmin() && showStatistics && statistics && (
         <div className="rounded-card bg-background/35 p-6 mb-6">
           <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-muted-foreground" />
@@ -1054,16 +1056,17 @@ export const UsersPage = () => {
         </>
       )}
 
-      {/* Pagination Controls */}
-      <PaginationControls
-        currentPage={pagination.currentPage}
-        totalPages={pagination.totalPages}
-        onPrevPage={pagination.prevPage}
-        onNextPage={pagination.nextPage}
-        hasPrevPage={pagination.hasPrevPage}
-        hasNextPage={pagination.hasNextPage}
-        loading={loading}
-      />
+        {/* Pagination Controls */}
+        <PaginationControls
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          onPrevPage={pagination.prevPage}
+          onNextPage={pagination.nextPage}
+          hasPrevPage={pagination.hasPrevPage}
+          hasNextPage={pagination.hasNextPage}
+          loading={loading}
+        />
+      </div>
 
       {/* Modals & Overlays */}
       {BulkActionBar}
