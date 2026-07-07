@@ -23,13 +23,18 @@ Page 22 Onboarding Success (`efac625`).
 
 ## Active queue (priority order)
 
-1. **Page 19 Login** — visual pass + rendered proof
-   - executor: `browser` · status: `todo`
-   - files: `src/components/pages/LoginPage.jsx` + `LoginPage.contract.test.js` + gate Page 19
-   - do: convert any decorative chrome (blur/glow/heavy-shadow/glass, non-canonical radius) to
-     calm canonical tokens; keep OAuth/reset/MFA logic + copy. Render `/login` desktop + mobile
-     (renders signed-out — fully verifiable). Admit gate Page 19 + test; add LoginPage.jsx to hardgate.
-   - note: **highest-value fast win.** headless loop must SKIP (needs browser).
+1. **Page 19 Login** — split into two sub-tasks by capability
+   - 1a. Chrome cleanup — executor: `headless` · status: `todo`
+     - `LoginPage.jsx` has ~6 non-canonical tokens (blur/glow/heavy-shadow/glass/non-canonical radius).
+       Convert to calm canonical tokens; keep OAuth/reset/MFA logic + copy. Source + strict-radius
+       only (no admission, no hardgate add) — exactly like the Page 21 chrome cleanup (`afe71b2`).
+   - 1b. Rendered admission — executor: `browser` · status: `blocked`
+     - `/login` REDIRECTS signed-in users to `/` (LoginPage.jsx L54-55), so the form only renders
+       signed-out. Needs a signed-out session (sign-out disrupts the user's active login, or use a
+       separate/incognito browser context). Then admit gate Page 19 + test + add to hardgate.
+
+   GENERAL RULE for public/auth pages (Login/Onboarding/Set-Password): the source-side chrome
+   cleanup is `headless`-doable; the rendered *admission* is `browser` + needs a signed-out session.
 
 2. **Page 21 Onboarding** — wizard rendered proof + admit
    - executor: `browser` · status: `blocked` (chrome cleaned `afe71b2`; not admitted)
