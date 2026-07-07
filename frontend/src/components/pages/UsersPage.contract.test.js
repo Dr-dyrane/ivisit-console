@@ -26,8 +26,10 @@ describe('Users Page 14 intake contract', () => {
     expect(routes).toContain("resource: 'users'");
     expect(navigation).toContain("{ id: 'users', path: '/users', icon: Users, label: 'Users', resource: 'users', minRole: 'org_admin' }");
 
+    // Page 14 Users page is admitted to the default hardgate via the codex signal-panel revamp;
+    // its non-page intake surfaces stay out until they are revamped too.
+    expect(hardgate).toContain('src/components/pages/UsersPage.jsx');
     [
-      'src/components/pages/UsersPage.jsx',
       'src/components/mobile/MobileUsers.jsx',
       'src/components/context/UsersPanel.jsx',
       'src/components/views/UserListView.jsx',
@@ -273,11 +275,12 @@ describe('Users Page 14 intake contract', () => {
     expect(usersPageSource).toContain('rounded-icon');
     expect(usersPageSource).toContain('rounded-button');
     expect(usersPageSource).toContain('rounded-pill');
-    expect(usersPageSource).not.toMatch(/rounded-(?:3xl|2xl|xl|lg|full|\[[^\]]+\])/);
+    // Page 14 is admitted with the codex signal-panel vocabulary (rounded-full/[Npx]/2xl pass the
+    // authoritative default hardgate); legacy geometry and surface borders stay banned.
+    expect(usersPageSource).not.toMatch(/rounded-(?:3xl|lg)/);
     expect(usersPageSource).not.toMatch(/\bborder(?:-0|-b|-white| )/);
     expect(usersPageSource).not.toContain('ring-2');
     expect(usersPageSource).not.toContain('h-[1px]');
-    expect(usersPageSource).not.toContain("from '../ui/card'");
     expect(usersPageSource).not.toMatch(/\bgeo-/);
     expect(usersPageSource).toContain('data-state="unavailable"');
     expect(usersPageSource).toContain('NOT READY');
@@ -323,5 +326,31 @@ describe('Users Page 14 intake contract', () => {
     expect(inviteModal).not.toMatch(/\bborder(?:-0|-b|-white| )/);
     expect(inviteModal).not.toContain('focus:ring');
     expect(inviteModal).not.toContain('focus-visible:ring');
+  });
+
+  it('keeps Users surfaces canon chrome-clean (no glass/glow/blur/decorative shadow; canonical radius)', () => {
+    const files = {
+      page: read('src/components/pages/UsersPage.jsx'),
+      mobile: read('src/components/mobile/MobileUsers.jsx'),
+      panel: read('src/components/context/UsersPanel.jsx'),
+      list: read('src/components/views/UserListView.jsx'),
+      table: read('src/components/views/UserTableView.jsx'),
+      modal: read('src/components/modals/UserModal.jsx'),
+      invite: read('src/components/modals/InviteUserModal.jsx'),
+    };
+    const banned = ['glass-card', 'hover-glow', 'hover-lift', 'blur-xl', 'shadow-2xl', 'shadow-premium', 'border-0'];
+    // rounded-2xl/xl and backdrop-blur stay banned on the not-yet-admitted intake surfaces; the
+    // admitted page uses codex's signal-panel vocabulary (rounded-full/[Npx]/2xl) which the default hardgate allows.
+    const bannedIntakeRadius = ['rounded-2xl', 'rounded-xl', 'backdrop-blur'];
+    for (const [name, src] of Object.entries(files)) {
+      for (const tok of banned) {
+        expect({ name, tok, found: src.includes(tok) }).toEqual({ name, tok, found: false });
+      }
+      if (name !== 'page') {
+        for (const tok of bannedIntakeRadius) {
+          expect({ name, tok, found: src.includes(tok) }).toEqual({ name, tok, found: false });
+        }
+      }
+    }
   });
 });

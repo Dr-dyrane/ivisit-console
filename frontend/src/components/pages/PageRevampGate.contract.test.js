@@ -652,7 +652,6 @@ describe('Today/Requests revamp gate contract', () => {
       'src/components/pages/Analytics.jsx',
       'src/components/mobile/MobileAnalytics.jsx',
       'src/components/context/AnalyticsPanel.jsx',
-      'src/components/pages/UsersPage.jsx',
       'src/components/mobile/MobileUsers.jsx',
       'src/components/context/UsersPanel.jsx',
       'src/components/pages/OrganizationsPage.jsx',
@@ -673,6 +672,8 @@ describe('Today/Requests revamp gate contract', () => {
       expect(hardgate).not.toContain(file);
     });
     expect(hardgate).toContain('src/components/pages/OnboardingSuccessPage.jsx');
+    // Page 14 Users page admitted 2026-07-07 via the codex signal-panel revamp: UsersPage.jsx is in the default hardgate.
+    expect(hardgate).toContain('src/components/pages/UsersPage.jsx');
     // Page 19 Login visual surface admitted 2026-07-07: LoginPage.jsx is in the default hardgate; the auth-authority files stay out.
     expect(hardgate).toContain('src/components/pages/LoginPage.jsx');
     expect(gate).toContain('### Page 19 Admission - Login');
