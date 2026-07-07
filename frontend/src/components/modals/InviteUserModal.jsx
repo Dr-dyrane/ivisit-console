@@ -79,7 +79,7 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
 
     const showOrgSelect = isAdmin() && (role === 'org_admin' || role === 'provider');
     const fieldShellClass = 'relative group';
-    const fieldIconClass = 'absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors';
+    const fieldIconClass = 'absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-foreground transition-colors';
     const fieldControlClass = 'pl-10 h-11 bg-muted/30 rounded-button focus-visible:shadow';
 
     return (
@@ -89,8 +89,8 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
             size="md"
             title="Invite User"
             subtitle="Send a secure access link"
-            icon={<Send className="w-5 h-5 text-primary" />}
-            className="shadow-xl"
+            icon={<Send className="w-5 h-5 text-muted-foreground" />}
+            className="shadow-sm"
         >
             <div className="p-4 md:p-6">
                 <form onSubmit={handleInvite} className="space-y-5">
@@ -117,7 +117,7 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
                                 <SelectTrigger className={fieldControlClass}>
                                     <SelectValue placeholder="Select role" />
                                 </SelectTrigger>
-                                <SelectContent className="rounded-inner bg-background/95 backdrop-blur-xl">
+                                <SelectContent className="rounded-inner bg-background/95">
                                     <SelectItem value="viewer">Viewer</SelectItem>
                                     <SelectItem value="provider">Provider</SelectItem>
                                     {isAdmin() && (
@@ -148,7 +148,7 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
                                     <SelectTrigger className={fieldControlClass}>
                                         <SelectValue placeholder="Select organization" />
                                     </SelectTrigger>
-                                    <SelectContent className="rounded-inner bg-background/95 backdrop-blur-xl">
+                                    <SelectContent className="rounded-inner bg-background/95">
                                         {hospitals.map(hospital => (
                                             <SelectItem key={hospital.id} value={hospital.id}>
                                                 {hospital.name}
@@ -164,7 +164,7 @@ export const InviteUserModal = ({ isOpen, onClose, onInviteSuccess }) => {
                         <Button
                             type="submit"
                             disabled={loading}
-                            className="w-full h-12 rounded-button text-sm font-semibold uppercase tracking-wider bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+                            className="w-full h-12 rounded-button text-sm font-semibold uppercase tracking-wider bg-foreground text-background hover:bg-foreground/90 shadow-lg"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Invitation'}
                         </Button>

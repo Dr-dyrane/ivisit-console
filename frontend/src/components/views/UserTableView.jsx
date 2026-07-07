@@ -44,8 +44,8 @@ export const UserTableView = ({
   const SortIcon = ({ columnKey }) => {
     if (sortConfig?.key !== columnKey) return <ArrowUpDown className="ml-2 h-3 w-3 text-muted-foreground/30" />;
     return sortConfig.direction === 'asc'
-      ? <ChevronUp className="ml-2 h-3 w-3 text-primary" />
-      : <ChevronDown className="ml-2 h-3 w-3 text-primary" />;
+      ? <ChevronUp className="ml-2 h-3 w-3 text-muted-foreground" />
+      : <ChevronDown className="ml-2 h-3 w-3 text-muted-foreground" />;
   };
 
   const headClass = 'h-10 px-2 text-left align-middle font-bold uppercase tracking-wider text-muted-foreground';
@@ -66,9 +66,9 @@ export const UserTableView = ({
 
   const getRoleBadge = (role) => {
     switch (role) {
-      case 'admin': return 'bg-warning/10 text-warning';
-      case 'provider': return 'bg-success/10 text-success';
-      case 'patient': return 'bg-info/10 text-info';
+      case 'admin': return 'bg-amber-500/15 text-amber-700 dark:text-amber-200';
+      case 'provider': return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200';
+      case 'patient': return 'bg-sky-500/15 text-sky-700 dark:text-sky-200';
       default: return 'bg-muted text-muted-foreground';
     }
   };
@@ -78,7 +78,7 @@ export const UserTableView = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <div className="rounded-card bg-background/35 backdrop-blur-xs shadow-premium overflow-hidden">
+      <div className="rounded-card bg-background/35 overflow-hidden">
         <div className="relative w-full overflow-auto">
           <table className="w-full caption-bottom text-sm">
             <thead>
@@ -110,7 +110,7 @@ export const UserTableView = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: index * 0.02 }}
-                    className={`transition-colors group ${isSelected ? 'bg-primary/5' : 'hover:bg-white/5'}`}
+                    className={`transition-colors group ${isSelected ? 'bg-muted' : 'hover:bg-white/5'}`}
                   >
                     <td className={cellClass}>
                       <Checkbox
@@ -119,7 +119,7 @@ export const UserTableView = ({
                         aria-label={`Select ${user.username}`}
                       />
                     </td>
-                    <td className={`${cellClass} font-mono text-[10px] font-bold text-primary/80`}>
+                    <td className={`${cellClass} font-mono text-[10px] font-bold text-muted-foreground`}>
                       {user.display_id || user.profile_display_id || '-'}
                     </td>
                     <td className={`${cellClass} font-bold`}>
@@ -130,7 +130,7 @@ export const UserTableView = ({
                     </td>
                     <td className={`${cellClass} text-muted-foreground`}>{user.email || '-'}</td>
                     <td className={cellClass}>
-                      <Badge className={`rounded-pill ${getRoleBadge(user.role)} font-black text-[10px] tracking-widest uppercase px-2 py-0.5 backdrop-blur-md`}>
+                      <Badge className={`rounded-pill ${getRoleBadge(user.role)} font-black text-[10px] tracking-widest uppercase px-2 py-0.5`}>
                         {user.role}
                       </Badge>
                     </td>
@@ -140,7 +140,7 @@ export const UserTableView = ({
                     <td className={`${cellClass} text-muted-foreground capitalize`}>{user.provider_type || '-'}</td>
                     <td className={cellClass}>
                       {user.bvn_verified ? (
-                        <Badge className="rounded-pill bg-success/10 text-success font-black text-[10px] tracking-widest uppercase px-2 py-0.5">Verified</Badge>
+                        <Badge className="rounded-pill bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 font-black text-[10px] tracking-widest uppercase px-2 py-0.5">Verified</Badge>
                       ) : (
                         <Badge className="rounded-pill bg-white/5 text-muted-foreground/60 font-black text-[10px] tracking-widest uppercase px-2 py-0.5">Pending</Badge>
                       )}
@@ -157,7 +157,7 @@ export const UserTableView = ({
                               <span className="sr-only">Open menu</span>
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-[160px] rounded-inner bg-background/70 backdrop-blur-xl shadow-premium">
+                          <DropdownMenuContent align="end" className="w-[160px] rounded-inner bg-background/70">
                             <DropdownMenuItem onClick={() => onView(user)} className="cursor-pointer font-medium text-xs py-2">
                               <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                               View Details
@@ -168,7 +168,7 @@ export const UserTableView = ({
                             </DropdownMenuItem>
                             {user.role === 'provider' && onSchedule && (
                               <DropdownMenuItem onClick={() => onSchedule(user)} className="cursor-pointer font-medium text-xs py-2">
-                                <CalendarDays className="mr-2 h-3.5 w-3.5 text-info" />
+                                <CalendarDays className="mr-2 h-3.5 w-3.5 text-sky-600 dark:text-sky-200" />
                                 Schedule Shift
                               </DropdownMenuItem>
                             )}

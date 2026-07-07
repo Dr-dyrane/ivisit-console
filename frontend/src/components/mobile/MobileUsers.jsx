@@ -143,7 +143,7 @@ export const MobileUsers = ({
             id: 'all',
             label: hasMeasuredStatistics ? 'Total Users' : 'Visible Users',
             value: totalUsers,
-            color: 'hsl(var(--primary))',
+            color: 'hsl(var(--foreground))',
             delta: totalTrend.delta,
             direction: totalTrend.direction
         },
@@ -151,7 +151,7 @@ export const MobileUsers = ({
             id: 'verified',
             label: 'Verified',
             value: verifiedUsersCount,
-            color: 'hsl(var(--success))',
+            color: 'hsl(160 84% 39%)',
             delta: verifiedTrend.delta,
             direction: verifiedTrend.direction
         },
@@ -159,7 +159,7 @@ export const MobileUsers = ({
             id: 'staff',
             label: 'Staff',
             value: staffMembers,
-            color: 'hsl(var(--warning))',
+            color: 'hsl(38 92% 50%)',
             delta: staffTrend.delta,
             direction: staffTrend.direction
         },
@@ -179,10 +179,10 @@ export const MobileUsers = ({
 
     const getRoleColor = (role) => {
         switch (role) {
-            case 'admin': return 'hsl(var(--warning))';
-            case 'org_admin': return 'hsl(var(--warning))';
-            case 'provider': return 'hsl(var(--info))';
-            default: return 'hsl(var(--primary))';
+            case 'admin': return 'hsl(38 92% 50%)';
+            case 'org_admin': return 'hsl(38 92% 50%)';
+            case 'provider': return 'hsl(199 89% 48%)';
+            default: return 'hsl(var(--foreground))';
         }
     };
 
@@ -212,28 +212,28 @@ export const MobileUsers = ({
                                 value: activeUsers,
                                 trend: activeTrend.delta,
                                 icon: Activity,
-                                color: 'hsl(var(--success))'
+                                color: 'hsl(160 84% 39%)'
                             },
                             {
                                 label: hasMeasuredStatistics ? 'Total Users' : 'Visible Users',
                                 value: totalUsers,
                                 trend: totalTrend.delta,
                                 icon: Users,
-                                color: 'hsl(var(--primary))'
+                                color: 'hsl(var(--foreground))'
                             },
                             {
                                 label: 'Verified',
                                 value: verifiedUsersCount,
                                 trend: verifiedTrend.delta,
                                 icon: BadgeCheck,
-                                color: 'hsl(var(--info))'
+                                color: 'hsl(199 89% 48%)'
                             },
                             {
                                 label: 'Staff',
                                 value: staffMembers,
                                 trend: staffTrend.delta,
                                 icon: Shield,
-                                color: 'hsl(var(--warning))'
+                                color: 'hsl(38 92% 50%)'
                             }
                         ]}
                     />
@@ -245,7 +245,7 @@ export const MobileUsers = ({
                         <MobileSectionHeader
                             label="User Summary"
                             count={recentSignups}
-                            color="hsl(var(--info))"
+                            color="hsl(199 89% 48%)"
                         />
                     )}
                     <MobileSecondaryMetricRail
@@ -258,9 +258,9 @@ export const MobileUsers = ({
                                 title: 'Recent Signups',
                                 subtitle: hasMeasuredStatistics ? 'Last 30 days' : 'Source pending',
                                 value: recentSignups ?? 'Pending',
-                                color: 'hsl(var(--info))',
-                                iconColorClass: 'text-info',
-                                iconBgClass: 'bg-info/5',
+                                color: 'hsl(199 89% 48%)',
+                                iconColorClass: 'text-sky-600 dark:text-sky-200',
+                                iconBgClass: 'bg-sky-500/10',
                                 onClick: onViewAnalytics
                             },
                             {
@@ -268,9 +268,9 @@ export const MobileUsers = ({
                                 title: hasMeasuredStatistics ? 'Verification' : 'Visible Verification',
                                 subtitle: scopeLabel,
                                 value: `${Math.round(verificationRate)}%`,
-                                color: 'hsl(var(--success))',
-                                iconColorClass: 'text-success',
-                                iconBgClass: 'bg-success/5',
+                                color: 'hsl(160 84% 39%)',
+                                iconColorClass: 'text-emerald-700 dark:text-emerald-200',
+                                iconBgClass: 'bg-emerald-500/10',
                                 onClick: onViewAnalytics
                             },
                             {
@@ -278,9 +278,9 @@ export const MobileUsers = ({
                                 title: hasMeasuredStatistics ? 'Total Users' : 'Visible Users',
                                 subtitle: scopeLabel,
                                 value: totalUsers,
-                                color: 'hsl(var(--primary))',
-                                iconColorClass: 'text-primary',
-                                iconBgClass: 'bg-primary/5',
+                                color: 'hsl(var(--foreground))',
+                                iconColorClass: 'text-muted-foreground',
+                                iconBgClass: 'bg-muted',
                                 onClick: onViewAnalytics
                             },
                             {
@@ -288,9 +288,9 @@ export const MobileUsers = ({
                                 title: 'Staff',
                                 subtitle: scopeLabel,
                                 value: staffMembers,
-                                color: 'hsl(var(--warning))',
-                                iconColorClass: 'text-warning',
-                                iconBgClass: 'bg-warning/5',
+                                color: 'hsl(38 92% 50%)',
+                                iconColorClass: 'text-amber-700 dark:text-amber-200',
+                                iconBgClass: 'bg-amber-500/10',
                                 onClick: onViewAnalytics
                             }
                         ]}
@@ -308,13 +308,13 @@ export const MobileUsers = ({
                     ) : (
                         <div className="flex items-center gap-2 px-1">
                         <div className="flex-1 relative group">
-                            <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
+                            <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-foreground transition-colors" />
                             <input
                                 type="text"
                                 placeholder="Search users..."
                                 value={filters.search || ''}
                                 onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                                className="w-full h-11 pl-10 pr-4 rounded-button apple-glass-heavy text-[12px] font-normal placeholder:text-muted-foreground/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)] transition-all"
+                                className="w-full h-11 pl-10 pr-4 rounded-button apple-glass-heavy text-[12px] font-normal placeholder:text-muted-foreground/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--foreground)/0.16)] transition-all"
                             />
                         </div>
                         <motion.button
@@ -348,7 +348,7 @@ export const MobileUsers = ({
                 <MobileSectionHeader
                     label="User Directory"
                     count={displayUsers.length}
-                    color="hsl(var(--primary))"
+                    color="hsl(var(--foreground))"
                     selectionMode={selectionMode}
                     selectedCount={selectedIds.length}
                     onSelectAll={displayUsers.length > 0 ? () => onSelectAll?.(displayUsers) : null}
@@ -380,17 +380,17 @@ export const MobileUsers = ({
                                     direction: user.bvn_verified ? 'up' : 'down',
                                     label: user.is_active !== false ? 'Active' : 'Inactive',
                                     value: (user.role || 'user').replace('_', ' ').toUpperCase(),
-                                    color: user.bvn_verified ? 'hsl(var(--success))' : 'hsl(var(--warning))'
+                                    color: user.bvn_verified ? 'hsl(160 84% 39%)' : 'hsl(38 92% 50%)'
                                 }}
                                 statusIndicators={[
                                     {
                                         icon: user.bvn_verified ? BadgeCheck : BadgeX,
-                                        color: user.bvn_verified ? 'hsl(var(--success))' : 'hsl(var(--muted-foreground)/0.4)',
+                                        color: user.bvn_verified ? 'hsl(160 84% 39%)' : 'hsl(var(--muted-foreground)/0.4)',
                                         label: user.bvn_verified ? 'Verified' : 'Unverified'
                                     },
                                     {
                                         icon: user.is_active !== false ? Zap : ZapOff,
-                                        color: user.is_active !== false ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground)/0.4)',
+                                        color: user.is_active !== false ? 'hsl(160 84% 39%)' : 'hsl(var(--muted-foreground)/0.4)',
                                         label: user.is_active !== false ? 'Active' : 'Inactive'
                                     }
                                 ]}
@@ -420,12 +420,12 @@ export const MobileUsers = ({
 
                                         {/* Status Indicators */}
                                         <div className="flex gap-2">
-                                            <Badge className={`rounded-pill font-semibold tracking-tight text-[9px] py-1 px-3 ${user.bvn_verified ? 'bg-success/20 text-success' : 'bg-muted/20 text-muted-foreground'
+                                            <Badge className={`rounded-pill font-semibold tracking-tight text-[9px] py-1 px-3 ${user.bvn_verified ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200' : 'bg-muted/20 text-muted-foreground'
                                                 }`}>
                                                 {user.bvn_verified ? 'VERIFIED' : 'NOT VERIFIED'}
                                             </Badge>
                                             {user.is_active !== false && (
-                                                <Badge className="rounded-pill font-semibold tracking-tight text-[9px] py-1 px-3 bg-info/20 text-info">
+                                                <Badge className="rounded-pill font-semibold tracking-tight text-[9px] py-1 px-3 bg-sky-500/15 text-sky-700 dark:text-sky-200">
                                                     ACTIVE
                                                 </Badge>
                                             )}
@@ -438,7 +438,7 @@ export const MobileUsers = ({
                                                 className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                 onClick={() => onView(user)}
                                             >
-                                                <Eye size={16} className="text-primary/60" />
+                                                <Eye size={16} className="text-muted-foreground" />
                                                 <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Details</span>
                                             </Button>
                                             <Button
@@ -446,7 +446,7 @@ export const MobileUsers = ({
                                                 className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                 onClick={() => onEdit(user)}
                                             >
-                                                <Edit size={16} className="text-warning/60" />
+                                                <Edit size={16} className="text-amber-700 dark:text-amber-200" />
                                                 <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Edit</span>
                                             </Button>
                                             {canDelete && isAdmin && (

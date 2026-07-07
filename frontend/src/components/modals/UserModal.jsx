@@ -155,7 +155,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
       onClose={() => onClose(false)}
       title={formData.username || formData.profile_username || 'New User'}
       icon={
-        <Avatar className="h-9 w-9 rounded-inner border-2 border-background shadow-md">
+        <Avatar className="h-9 w-9 rounded-inner shadow-md">
           <AvatarImage src={getAvatarUrl(formData)} className="object-cover" />
           <AvatarFallback className="text-sm font-bold bg-muted text-muted-foreground rounded-inner">
             {getAvatarFallback(formData)}
@@ -164,11 +164,11 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
       }
       badge={
         <div className="flex items-center gap-1.5">
-          <Badge className="rounded-full bg-primary/10 text-primary border-0 font-semibold px-2.5 py-0.5 text-xs">
+          <Badge className="rounded-pill bg-muted text-muted-foreground font-semibold px-2.5 py-0.5 text-xs">
             {formData.role?.toUpperCase() || 'PATIENT'}
           </Badge>
           {formData.bvn_verified && (
-            <Badge className="rounded-full bg-green-500/10 text-green-500 border-0 font-semibold px-2.5 py-0.5 text-xs flex items-center gap-1">
+            <Badge className="rounded-pill bg-green-500/10 text-green-500 font-semibold px-2.5 py-0.5 text-xs flex items-center gap-1">
               <BadgeCheck className="w-3 h-3" /> VERIFIED
             </Badge>
           )}
@@ -181,7 +181,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
               <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* Personal Information Section */}
-                <GlassCard icon={<User className="text-primary" />} title="Personal Information">
+                <GlassCard icon={<User className="text-muted-foreground" />} title="Personal Information">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="full_name" className="text-xs font-semibold text-muted-foreground uppercase">Full Name</Label>
@@ -191,7 +191,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                         value={formData.full_name || ''}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-11 md:h-12 font-medium"
+                        className="rounded-card bg-muted/30 h-11 md:h-12 font-medium"
                         placeholder="John Doe"
                       />
                     </div>
@@ -203,7 +203,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                         value={formData.username || ''}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-11 md:h-12 font-medium"
+                        className="rounded-card bg-muted/30 h-11 md:h-12 font-medium"
                         placeholder="johndoe123"
                       />
                     </div>
@@ -218,7 +218,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                           value={formData.email || ''}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-11 md:h-12 pl-10 font-normal"
+                          className="rounded-card bg-muted/30 h-11 md:h-12 pl-10 font-normal"
                           placeholder="john@example.com"
                         />
                       </div>
@@ -233,7 +233,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                           value={formData.phone || ''}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-11 md:h-12 pl-10 font-mono"
+                          className="rounded-card bg-muted/30 h-11 md:h-12 pl-10 font-mono"
                           placeholder="+234..."
                         />
                       </div>
@@ -249,7 +249,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                           value={formData.date_of_birth || ''}
                           onChange={handleChange}
                           disabled={isView}
-                          className="w-full min-w-0 max-w-full rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-11 md:h-12 pl-10 pr-2 text-sm md:text-base font-normal"
+                          className="w-full min-w-0 max-w-full rounded-card bg-muted/30 h-11 md:h-12 pl-10 pr-2 text-sm md:text-base font-normal"
                         />
                       </div>
                     </div>
@@ -257,7 +257,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                 </GlassCard>
 
                 {/* Role & Access Section */}
-                <GlassCard icon={<Shield className="text-primary" />} title="Role & Access">
+                <GlassCard icon={<Shield className="text-muted-foreground" />} title="Role & Access">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="role" className="text-xs font-semibold text-muted-foreground uppercase">System Role</Label>
@@ -266,10 +266,10 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                         onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                        <SelectTrigger className="rounded-card bg-muted/30 h-12 font-medium">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                        <SelectContent className="rounded-card shadow-sm bg-background/95">
                           <SelectItem value="patient">Patient</SelectItem>
                           <SelectItem value="viewer">Viewer</SelectItem>
                           <SelectItem value="provider">Provider</SelectItem>
@@ -290,7 +290,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                         <div className="relative">
                           <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
                           {isView ? (
-                            <div className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 font-medium flex items-center text-sm">
+                            <div className="pl-10 h-12 rounded-card bg-muted/30 font-medium flex items-center text-sm">
                               {formData.organization_name || '-'}
                             </div>
                           ) : isAdmin() ? (
@@ -299,10 +299,10 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                               onValueChange={(value) => setFormData(prev => ({ ...prev, organization_id: value }))}
                               disabled={isView}
                             >
-                              <SelectTrigger className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 font-medium">
+                              <SelectTrigger className="pl-10 h-12 rounded-card bg-muted/30 font-medium">
                                 <SelectValue placeholder="Select Organization" />
                               </SelectTrigger>
-                              <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                              <SelectContent className="rounded-card shadow-sm bg-background/95">
                                 {hospitals?.filter(h => h.organization_id).map(hospital => (
                                   <SelectItem key={hospital.organization_id} value={hospital.organization_id}>
                                     {hospital.name}
@@ -311,7 +311,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                               </SelectContent>
                             </Select>
                           ) : (
-                            <div className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 font-medium flex items-center text-sm">
+                            <div className="pl-10 h-12 rounded-card bg-muted/30 font-medium flex items-center text-sm">
                               {formData.organization_name || '-'}
                             </div>
                           )}
@@ -327,10 +327,10 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                           onValueChange={(value) => setFormData(prev => ({ ...prev, provider_type: value }))}
                           disabled={isView}
                         >
-                          <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-medium">
+                          <SelectTrigger className="rounded-card bg-muted/30 h-12 font-medium">
                             <SelectValue placeholder="Select type" />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                          <SelectContent className="rounded-card shadow-sm bg-background/95">
                             <SelectItem value="ambulance">Ambulance</SelectItem>
                             <SelectItem value="doctor">Doctor</SelectItem>
                             <SelectItem value="nurse">Nurse</SelectItem>
@@ -340,9 +340,9 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                       </div>
                     )}
 
-                    <div className="col-span-1 md:col-span-2 p-4 rounded-2xl bg-primary/5 flex items-center justify-between border border-primary/10">
+                    <div className="col-span-1 md:col-span-2 p-4 rounded-card bg-muted/40 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                        <div className="w-10 h-10 rounded-inner bg-muted flex items-center justify-center text-muted-foreground">
                           <BadgeCheck className="w-5 h-5" />
                         </div>
                         <div>
@@ -360,7 +360,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                 </GlassCard>
 
                 {/* Address Section */}
-                <GlassCard icon={<MapPin className="text-primary" />} title="Location">
+                <GlassCard icon={<MapPin className="text-muted-foreground" />} title="Location">
                   <div className="space-y-2">
                     <Label htmlFor="address" className="text-xs font-semibold text-muted-foreground uppercase">Full Address</Label>
                     <Input
@@ -369,28 +369,28 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                       value={formData.address || ''}
                       onChange={handleChange}
                       disabled={isView}
-                      className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-normal"
+                      className="rounded-card bg-muted/30 h-12 font-normal"
                       placeholder="Street address, City, State"
                     />
                   </div>
                 </GlassCard>
 
                 {/* Footer Actions */}
-                <div className="p-4 rounded-[24px] bg-muted/30 flex gap-3 justify-end">
+                <div className="p-4 rounded-inner bg-muted/30 flex gap-3 justify-end">
                   {!isView ? (
                     <>
                       <Button
                         type="button"
                         variant="ghost"
                         onClick={() => onClose(false)}
-                        className="rounded-2xl font-semibold text-muted-foreground hover:bg-muted"
+                        className="rounded-card font-semibold text-muted-foreground hover:bg-muted"
                         disabled={loading}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
-                        className="rounded-2xl bg-primary hover:bg-primary/90 font-semibold px-8"
+                        className="rounded-card bg-foreground text-background hover:bg-foreground/90 font-semibold px-8"
                         disabled={loading}
                       >
                         {loading ? 'Saving...' : (isCreate ? 'Create Profile' : 'Save Changes')}
@@ -400,7 +400,7 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
                     <Button
                       type="button"
                       onClick={() => onClose(false)}
-                      className="rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-semibold px-8"
+                      className="rounded-card bg-muted text-foreground hover:bg-muted/80 font-semibold px-8"
                     >
                       Close
                     </Button>
@@ -414,9 +414,9 @@ export const UserModal = ({ isOpen, onClose, user, mode, onSave }) => {
 
 /* Sub-components */
 const GlassCard = ({ children, title, icon }) => (
-  <div className="p-4 rounded-[28px] bg-muted/30 ">
+  <div className="p-4 rounded-card bg-muted/30 ">
     <div className="flex items-center gap-3 mb-4 sm:mb-6">
-      <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
+      <div className="p-1.5 sm:p-2 bg-muted/50 rounded-inner">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
       <h3 className="font-semibold tracking-tight text-sm sm:text-base uppercase">{title}</h3>

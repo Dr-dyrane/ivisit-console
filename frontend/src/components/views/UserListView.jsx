@@ -7,9 +7,9 @@ import { motion } from 'framer-motion';
 export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMobile = false }) => {
   const getRoleBadge = (role) => {
     switch (role) {
-      case 'admin': return 'bg-warning/20 text-warning';
-      case 'provider': return 'bg-success/20 text-success';
-      case 'patient': return 'bg-info/20 text-info';
+      case 'admin': return 'bg-amber-500/15 text-amber-700 dark:text-amber-200';
+      case 'provider': return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200';
+      case 'patient': return 'bg-sky-500/15 text-sky-700 dark:text-sky-200';
       default: return 'bg-muted text-muted-foreground';
     }
   };
@@ -27,12 +27,12 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <div className="rounded-card bg-background/35 backdrop-blur-xs shadow-sm p-4 hover:shadow-md transition-shadow group">
+          <div className="rounded-card bg-background/35 shadow-sm p-4 hover:shadow-md transition-shadow group">
             <div className="flex items-center gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-col gap-1 mb-2">
                   <div className="flex items-center gap-3">
-                    <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
+                    <h3 className="font-bold text-lg truncate group-hover:text-foreground transition-colors">
                       {user.full_name || user.profile_full_name || 'Unknown User'}
                     </h3>
                     <Badge className={`rounded-pill ${getRoleBadge(user.role)} font-bold`}>
@@ -48,7 +48,7 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 {user.bvn_verified && (
-                  <Badge className="rounded-pill bg-success/20 text-success px-2">
+                  <Badge className="rounded-pill bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 px-2">
                     Verified
                   </Badge>
                 )}
@@ -57,7 +57,7 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
                     variant="ghost"
                     size="sm"
                     onClick={() => onView(user)}
-                    className="rounded-icon h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                    className="rounded-icon h-8 w-8 p-0 hover:bg-muted hover:text-foreground"
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -65,7 +65,7 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
                     variant="ghost"
                     size="sm"
                     onClick={() => onEdit(user)}
-                    className="rounded-icon h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                    className="rounded-icon h-8 w-8 p-0 hover:bg-muted hover:text-foreground"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -74,7 +74,7 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
                       variant="ghost"
                       size="sm"
                       onClick={() => onSchedule(user)}
-                      className="rounded-icon h-8 w-8 p-0 hover:bg-info/10 hover:text-info"
+                      className="rounded-icon h-8 w-8 p-0 hover:bg-sky-500/15 hover:text-sky-700 dark:hover:text-sky-200"
                     >
                       <CalendarDays className="h-4 w-4" />
                     </Button>
