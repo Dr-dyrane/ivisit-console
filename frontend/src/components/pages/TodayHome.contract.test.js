@@ -638,7 +638,8 @@ describe('TodayHome role contract', () => {
     const dashboardPanel = fs.readFileSync('src/components/context/DashboardPanel.jsx', 'utf8');
     const contextPanel = fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
     const hardgate = fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
-    const oldDashboardPanel = execFileSync('git', ['-C', '..', 'show', 'HEAD:frontend/src/components/context/DashboardPanel.jsx'], { encoding: 'utf8' });
+    // Preservation baseline f31f29f: the revamp landed on top of it and checkpoint commits advanced HEAD past it, so this old-behavior proof reads the baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
+    const oldDashboardPanel = execFileSync('git', ['-C', '..', 'show', 'f31f29f:frontend/src/components/context/DashboardPanel.jsx'], { encoding: 'utf8' });
 
     expect(oldDashboardPanel).toContain("import { usePageData } from '../../contexts/PageDataContext';");
     expect(oldDashboardPanel).toContain('refreshAllData');

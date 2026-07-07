@@ -24,6 +24,17 @@ This decision is intentionally loud so the next session sees it before touching 
 - Main stays protected until the revamp branch gets an explicit user approval after PR-style review, current tests, rendered proof for admitted surfaces, and a page-by-page gate audit.
 - Future agents should continue from this checkpoint branch or branch from it. Do not fast-forward, force-push, or merge into `main` from this checkpoint without explicit user approval.
 
+## Preservation Baseline Re-Anchor - 2026-07-07
+
+This note is loud on purpose: the checkpoint commits advanced `HEAD` past the preservation baseline `f31f29f`, so any evidence phrased as `git show HEAD:<old page>` no longer reads the old page.
+
+- The console revamp was uncommitted worktree source on top of `f31f29f` when the earlier ledgers were written, so at that time `HEAD` and the preservation baseline were the same commit. That is why older notes say the baseline "remains committed `HEAD` at `f31f29f`."
+- The safety checkpoint then committed the revamp: `15acf6c checkpoint: preserve console revamp gate work` and `988ccf9 docs: record checkpoint branch push decision`. `HEAD` is now `988ccf9`, and `git show HEAD:<page>` returns the revamped file, not the old one.
+- The preservation baseline is now the explicit commit `f31f29f` (the last pre-revamp committed sprint pack). So every `git show HEAD:<old page>` reference in this gate and earlier ledgers means the preservation baseline commit `f31f29f` now that `HEAD` has advanced. Read old behavior with `git show f31f29f:<old page>`.
+- The contract-test preservation helpers are pinned to `f31f29f`: `PageRevampGate.contract.test.js`, `TodayHome.contract.test.js`, and every page intake/admission contract test now resolve their `gitShowHead`/`headSource` old-behavior reads through the `f31f29f` baseline instead of the moving `HEAD` ref, so preservation proofs stay honest after the checkpoint.
+- No page admission status changed from this re-anchor. It is a proof-mechanism repair only: the default UI hardgate, the strict-radius revamp hardgate for the Today/Requests pair, and the full contract suite pass against the now-committed source.
+- Future rule: if the preservation baseline is ever re-pinned to a newer pre-change commit, update this note and the contract-test baseline constant together, and never let a preservation proof read the moving `HEAD` ref again.
+
 ## Canonical Audit Reset - 2026-06-25
 
 Before expanding the revamp again, treat Today plus Requests as the canonical layout audit pair.

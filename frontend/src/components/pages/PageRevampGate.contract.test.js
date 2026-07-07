@@ -30,7 +30,9 @@ describe('Today/Requests revamp gate contract', () => {
   const mobileEmergencySource = () => fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');
   const emergencyDetailsModalSource = () => fs.readFileSync('src/components/modals/EmergencyDetailsModal.jsx', 'utf8');
   const emergencyRequestModalSource = () => fs.readFileSync('src/components/modals/EmergencyRequestModal.jsx', 'utf8');
-  const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `HEAD:${path}`], { encoding: 'utf8' });
+  // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See "Preservation Baseline Re-Anchor - 2026-07-07" in PAGE_REVAMP_GATE.md.
+  const PRESERVATION_BASELINE = 'f31f29f';
+  const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
   const nonCanonicalRadiusPattern = /rounded-(?:\[[^\]]+\]|full|sm|md|lg|xl|2xl|3xl)(?=[\s"'`])/;
 
   it('enforces the global squircle geometry canon through CSS, Tailwind, and hardgate', () => {
@@ -130,6 +132,19 @@ describe('Today/Requests revamp gate contract', () => {
       expect(source).not.toMatch(/\bsquircle-(?:3xl|2xl|xl|lg|md|sm|xs)\b/);
       expect(source).not.toMatch(/\bgeo-/);
     });
+  });
+
+  it('re-anchors the preservation baseline to f31f29f after the checkpoint advanced HEAD', () => {
+    const gate = gateSource();
+
+    expect(gate).toContain('## Preservation Baseline Re-Anchor - 2026-07-07');
+    expect(gate).toContain('checkpoint commits advanced `HEAD` past the preservation baseline `f31f29f`');
+    expect(gate).toContain('every `git show HEAD:<old page>` reference in this gate and earlier ledgers means the preservation baseline commit `f31f29f`');
+    expect(gate).toContain('The contract-test preservation helpers are pinned to `f31f29f`');
+
+    // The pinned helper must still read the OLD Requests behavior from the baseline commit.
+    const baselineRequests = gitShowHead('frontend/src/components/pages/EmergencyRequestsPage.jsx');
+    expect(baselineRequests).toContain("import { useViewMode } from '../../hooks/useViewMode';");
   });
 
   it('proves the old Git-backed Today and Requests anchors before reuse', () => {

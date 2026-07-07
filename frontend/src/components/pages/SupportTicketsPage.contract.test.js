@@ -16,7 +16,9 @@ describe('SupportTicketsPage canonical source contract', () => {
   const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
   const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
   const pageDataSource = () => fs.readFileSync('src/config/pageDataAccess.js', 'utf8');
-  const headSource = (path) => execFileSync('git', ['show', `HEAD:${path}`], {
+  // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
+  const PRESERVATION_BASELINE = 'f31f29f';
+  const headSource = (path) => execFileSync('git', ['show', `${PRESERVATION_BASELINE}:${path}`], {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024,
   });

@@ -3,7 +3,9 @@ import { execFileSync } from 'child_process';
 import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
-const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `HEAD:${path}`], { encoding: 'utf8' });
+// Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
+const PRESERVATION_BASELINE = 'f31f29f';
+const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
 
 describe('Analytics Page 13 intake contract', () => {
   it('keeps Analytics in intake only and out of the default visual hardgate', () => {

@@ -20,7 +20,9 @@ describe('HospitalsPage admission audit contract', () => {
   const securitySource = () => fs.readFileSync('supabase/migrations/20260219000700_security.sql', 'utf8');
   const gateSource = () => fs.readFileSync('docs/planning/PAGE_REVAMP_GATE.md', 'utf8');
   const hardgateSource = () => fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
-  const headSource = (path) => execFileSync('git', ['show', `HEAD:${path}`], {
+  // Preservation baseline: the console revamp landed on top of f31f29f; checkpoint commits advanced HEAD past it, so old-behavior proofs read this baseline commit, not the moving HEAD ref. See docs/planning/PAGE_REVAMP_GATE.md "Preservation Baseline Re-Anchor - 2026-07-07".
+  const PRESERVATION_BASELINE = 'f31f29f';
+  const headSource = (path) => execFileSync('git', ['show', `${PRESERVATION_BASELINE}:${path}`], {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024,
   });
