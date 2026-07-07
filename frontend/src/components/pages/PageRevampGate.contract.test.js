@@ -674,7 +674,6 @@ describe('Today/Requests revamp gate contract', () => {
       'src/components/onboarding/OnboardingWizard.jsx',
       'src/services/onboardingService.js',
       'src/components/pages/OnboardingSuccessPage.jsx',
-      'src/components/pages/NotFoundPage.jsx',
     ].forEach((file) => {
       expect(hardgate).not.toContain(file);
     });

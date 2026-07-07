@@ -6,16 +6,16 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const PRESERVATION_BASELINE = 'f31f29f';
 const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
 
-describe('Catch-All Not Found Page 24 intake contract', () => {
-  it('keeps the catch-all route in intake until auth and shell behavior are decided', () => {
+describe('Catch-All Not Found Page 24 admission contract', () => {
+  it('admits the catch-all route as a public route-recovery surface in the default hardgate', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const app = read('src/App.js');
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
-    expect(gate).toContain('### Page 24 Intake Audit - Catch-All Not Found');
-    expect(gate).toContain('the `*` catch-all route is intake only and is not admitted under the Today/Requests canon.');
-    expect(gate).toContain('No visual revamp, 404 copy rewrite, unknown-route redirect behavior, app-shell rendering, public-shell hardgate promotion, or Requests pattern reuse is authorized yet.');
-    expect(gate).toContain('Promotion rule: the first Catch-All visual pass must close this blocker map before adding `NotFoundPage.jsx` to the default hardgate.');
+    expect(gate).toContain('### Page 24 Admission - Catch-All Not Found');
+    expect(gate).toContain('the `*` catch-all `NotFoundPage` is admitted under the Today/Requests canon as a public route-recovery surface only.');
+    expect(gate).toContain('First Catch-All visual pass on 2026-07-07 admitted `NotFoundPage.jsx` as a public route-recovery surface.');
+    expect(gate).toContain('Promotion note: the first Catch-All visual pass is complete.');
 
     expect(app).toContain('const NotFoundPage = React.lazy(() => import("./components/pages/NotFoundPage").then(m => ({ default: m.NotFoundPage })));');
     expect(app).toContain('<Route path="*" element={<NotFoundPage />} />');
@@ -26,10 +26,12 @@ describe('Catch-All Not Found Page 24 intake contract', () => {
     expect(app).toContain('return PUBLIC_SHELL_ROUTES.includes(currentPath) || !AUTHENTICATED_SHELL_ROUTES.includes(currentPath);');
     expect(app).toContain('const hideNav = shouldHideShellChrome(location.pathname);');
     expect(app).not.toContain('"/not-found"');
-    expect(hardgate).not.toContain('src/components/pages/NotFoundPage.jsx');
+
+    // The catch-all page is now in the default UI hardgate.
+    expect(hardgate).toContain("'src/components/pages/NotFoundPage.jsx'");
   });
 
-  it('preserves the old Not Found behavior inventory while documenting shell exposure blockers', () => {
+  it('converts old Not Found chrome to canonical calm tokens while preserving recovery targets and feedback', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const oldPage = gitShowHead('frontend/src/components/pages/NotFoundPage.jsx');
     const page = read('src/components/pages/NotFoundPage.jsx');
@@ -40,59 +42,86 @@ describe('Catch-All Not Found Page 24 intake contract', () => {
     expect(gate).toContain('lazy `NotFoundPage` import, catch-all route outside `ProtectedRoute`, `usePageHeader("Lost Signal", null)`');
     expect(gate).toContain('decorative destructive gradient and blurred orb, `404`, `Signal Lost`, haiku copy, `Go Back`, `Return to Dashboard`');
     expect(gate).toContain('First catch-all shell/action cleanup on 2026-07-06 removed `usePageHeader("Lost Signal", null)` from the active catch-all page');
+    expect(gate).toContain('Catch-All preservation ledger: the old `usePageHeader("Lost Signal")` shared-header write is converted');
 
     for (const source of [oldApp, app]) {
       expect(source).toContain('NotFoundPage');
       expect(source).toContain('<Route path="*" element={<NotFoundPage />} />');
     }
 
+    // Preservation baseline (f31f29f) still holds the OLD Not Found behavior inventory.
     expect(oldPage).toContain('usePageHeader("Lost Signal", null);');
+    expect(oldPage).toContain('Card');
+    expect(oldPage).toContain('bg-gradient-to-br from-destructive/5');
+    expect(oldPage).toContain('bg-destructive/10 rounded-full blur-[80px]');
+    expect(oldPage).toContain('Signal Lost');
+    expect(oldPage).toContain('Every second counts,');
+    expect(oldPage).toContain('But this path leads to void space,');
+    expect(oldPage).toContain('Return to the pulse.');
+    expect(oldPage).toContain('Go Back');
+    expect(oldPage).toContain('Return to Dashboard');
+    expect(oldPage).toContain('squircle-3xl');
+    expect(oldPage).toContain('animate-pulse-slow');
 
-    for (const source of [oldPage, page]) {
-      expect(source).toContain('export const NotFoundPage = () => {');
-      expect(source).toContain('Card');
-      expect(source).toContain('bg-gradient-to-br from-destructive/5');
-      expect(source).toContain('bg-destructive/10 rounded-full blur-[80px]');
-      expect(source).toContain('404');
-      expect(source).toContain('Signal Lost');
-      expect(source).toContain('Every second counts,');
-      expect(source).toContain('But this path leads to void space,');
-      expect(source).toContain('Return to the pulse.');
-      expect(source).toContain('navigate(-1)');
-      expect(source).toContain('Go Back');
-      expect(source).toContain("navigate('/')");
-      expect(source).toContain('Return to Dashboard');
-    }
-
+    // Active page converts the decorative, scary, and stale chrome.
     expect(page).not.toContain('usePageHeader');
     expect(page).not.toContain('Lost Signal');
+    expect(page).not.toContain('Signal Lost');
+    expect(page).not.toContain('Every second counts,');
+    expect(page).not.toContain('But this path leads to void space,');
+    expect(page).not.toContain('Return to the pulse.');
+    expect(page).not.toContain('Return to Dashboard');
+    expect(page).not.toContain('bg-gradient-to-br from-destructive/5');
+    expect(page).not.toContain('rounded-full blur-[80px]');
+    expect(page).not.toContain('animate-pulse-slow');
+    expect(page).not.toContain('tracking-tighter');
+    expect(page).not.toContain("'../ui/card'");
+    expect(page).not.toContain('<Card');
+    expect(page).not.toMatch(/rounded-(?:3xl|2xl|xl|lg|full|\[[^\]]+\])/);
+    expect(page).not.toMatch(/\bsquircle-(?:3xl|2xl|xl|lg|md|sm|xs)\b/);
+    expect(page).not.toMatch(/\bgeo-/);
+
+    // Active page keeps preserved recovery targets + feedback and uses canonical calm tokens.
+    expect(page).toContain('404');
+    expect(page).toContain('Page not found');
+    expect(page).toContain('This page does not exist or may have moved. Go back, or head to Today.');
+    expect(page).toContain('rounded-card');
+    expect(page).toContain('rounded-icon');
+    expect(page).toContain('rounded-button');
+    expect(page).toContain('bg-foreground');
+    expect(page).toContain('Compass');
     expect(page).toContain('const [pendingAction, setPendingAction] = React.useState(null);');
     expect(page).toContain("setPendingAction('back');");
     expect(page).toContain("setPendingAction('today');");
+    expect(page).toContain('navigate(-1)');
+    expect(page).toContain("navigate('/')");
     expect(page).toContain('disabled={Boolean(pendingAction)}');
-    expect(page).toContain("pendingAction === 'back' ? 'Opening previous page...' : 'Go Back'");
-    expect(page).toContain("pendingAction === 'today' ? 'Opening Today...' : 'Return to Dashboard'");
+    expect(page).toContain("pendingAction === 'back' ? 'Opening previous page...' : 'Go back'");
+    expect(page).toContain("pendingAction === 'today' ? 'Opening Today...' : 'Go to Today'");
 
-    expect(gate).toContain('Auth/shell exposure: safer, not admitted.');
+    expect(gate).toContain('Auth/shell exposure: proven for this page.');
     expect(gate).toContain('Unknown paths no longer inherit app chrome, context panel, FAB, bottom bar, footer, or startup overlay');
     expect(gate).toContain('`App.js` now centralizes shell visibility with `PUBLIC_SHELL_ROUTES`, `AUTHENTICATED_SHELL_ROUTES`, `normalizeShellPath()`, and `shouldHideShellChrome()`');
-    expect(gate).toContain('Copy: not admitted.');
-    expect(gate).toContain('Shell/layout: safer, unresolved.');
+    expect(gate).toContain('Copy: converted and admitted.');
+    expect(gate).toContain('Shell/layout: resolved for this page.');
   });
 
-  it('blocks Catch-All canon reuse until unknown-route ownership and recovery proof close', () => {
+  it('keeps the catch-all a route-recovery exception with rendered proof and cross-route flow work named', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const app = read('src/App.js');
     const page = read('src/components/pages/NotFoundPage.jsx');
 
-    expect(gate).toContain('Catch-All intake decisions:');
-    expect(gate).toContain('Route ownership: not admitted.');
-    expect(gate).toContain('Missing-route recovery: not admitted.');
-    expect(gate).toContain('Action feedback: safer, not admitted.');
-    expect(gate).toContain('Hardgate: intentionally absent.');
+    expect(gate).toContain('Catch-All admission decisions:');
+    expect(gate).toContain('Route ownership: render-404 admitted for unknown URLs.');
+    expect(gate).toContain('Missing-route recovery: generic recovery admitted.');
+    expect(gate).toContain('Action feedback: proven.');
+    expect(gate).toContain('Hardgate: `NotFoundPage.jsx` is now in the default `scripts/check-ui-surface-hardgate.js` set and passes strict-radius');
+    expect(gate).toContain('Rendered proof, 2026-07-07:');
+    expect(gate).toContain('clicking `Go to Today` rendered the disabled `Opening Today...` pending state and navigated to `/`.');
+    expect(gate).toContain('zero horizontal overflow (`scrollWidth - innerWidth = 0`)');
     expect(gate).toContain('Catch-All Requests-canon blocker map:');
     expect(gate).toContain('Page 24 may not reuse Requests visual language because the catch-all is a route-recovery handoff, not a multi-data work stage.');
-    expect(gate).toContain('Prove `/login`, `/set-password`, `/onboarding`, `/onboarding-success`, `/unauthorized`, and `*` redirect/deep-link behavior together before changing public auth/route-recovery copy or flow order.');
+    expect(gate).toContain('Prove `/login`, `/set-password`, `/onboarding`, `/onboarding-success`, `/unauthorized`, and `*` redirect/deep-link behavior together before changing coordinated public auth/route-recovery flow order.');
     expect(gate).toContain('Data quieting | AuthProvider and app providers wrap the route; `AppShell` now hides chrome for unknown paths through `shouldHideShellChrome()`.');
 
     expect(app).not.toContain('<Route path="*" element={<ProtectedRoute');

@@ -83,6 +83,7 @@ const defaultFiles = [
   'src/components/views/HealthNewsTableView.jsx',
   'src/components/modals/HealthNewsModal.jsx',
   'src/components/modals/AnalyticsModal.jsx',
+  'src/components/pages/NotFoundPage.jsx',
 ];
 
 const rawArgs = process.argv.slice(2);
