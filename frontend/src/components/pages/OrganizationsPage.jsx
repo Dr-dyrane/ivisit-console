@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { getOrganizations } from '../../services/organizationsService';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -36,6 +36,108 @@ import { useViewMode } from '../../hooks/useViewMode';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 
 const ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE = 'Organization changes are not ready until organization authority is verified.';
+
+const ORG_STATE_OPTIONS = [
+  { id: 'total', label: 'Registry', icon: Building2, tone: 'sky',
+    activeClass: 'bg-sky-500/10 text-sky-800 shadow-[0_18px_54px_rgba(14,165,233,0.16)] dark:text-sky-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34', iconClass: 'text-sky-600 dark:text-sky-200' },
+  { id: 'active', label: 'Active', icon: Activity, tone: 'emerald',
+    activeClass: 'bg-emerald-500/10 text-emerald-800 shadow-[0_18px_54px_rgba(16,185,129,0.16)] dark:text-emerald-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34', iconClass: 'text-emerald-600 dark:text-emerald-200' },
+  { id: 'wallet', label: 'Funded', icon: Wallet, tone: 'amber',
+    activeClass: 'bg-amber-500/10 text-amber-800 shadow-[0_18px_54px_rgba(245,158,11,0.16)] dark:text-amber-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34', iconClass: 'text-amber-600 dark:text-amber-200' },
+];
+
+const orgToneClass = {
+  sky: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
+  emerald: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+  amber: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+  muted: 'bg-muted/30 text-muted-foreground',
+};
+
+const normalizeOrgCount = (value, fallback = 0) => {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : fallback;
+};
+
+const getOrgStateCount = ({ id, stats, organizations }) => {
+  const rows = Array.isArray(organizations) ? organizations : [];
+  switch (id) {
+    case 'active':
+      return normalizeOrgCount(stats?.active, rows.filter((org) => !!org.is_active).length);
+    case 'wallet':
+      return normalizeOrgCount(stats?.funded, rows.filter((org) => Number(org.wallet_balance) > 0).length);
+    default:
+      return normalizeOrgCount(stats?.total, rows.length);
+  }
+};
+
+const getOrgSignal = ({ stats, organizations, kpiFilter }) => {
+  const activeId = kpiFilter || 'total';
+  const option = ORG_STATE_OPTIONS.find((item) => item.id === activeId) || ORG_STATE_OPTIONS[0];
+  const count = getOrgStateCount({ id: option.id, stats, organizations });
+  const nounMap = { total: 'organization', active: 'active organization', wallet: 'funded organization' };
+  const emptyMap = { total: 'organizations', active: 'active organizations', wallet: 'funded organizations' };
+  return {
+    icon: option.icon,
+    tone: option.tone,
+    label: option.label,
+    headline: count > 0 ? `${count} ${nounMap[option.id] || 'organization'}${count === 1 ? '' : 's'}` : `No ${emptyMap[option.id] || 'organizations'}`,
+    subhead: count > 0
+      ? 'Review registry identity, wallet float, and revenue share. Organization commands stay disabled until organization authority is verified.'
+      : 'Organization records for this scope will appear here.',
+  };
+};
+
+const OrgStateStrip = ({ stats, organizations, loading, kpiFilter, setKpiFilter }) => (
+  <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-3">
+    {ORG_STATE_OPTIONS.map((item) => {
+      const Icon = item.icon;
+      const active = (kpiFilter || 'total') === item.id;
+      const count = loading ? '...' : getOrgStateCount({ id: item.id, stats, organizations });
+      return (
+        <motion.button key={item.id} type="button" whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}
+          onClick={() => setKpiFilter(item.id)}
+          className={`group min-h-[78px] rounded-card px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
+          aria-pressed={active} aria-label={`Show ${item.label.toLowerCase()} organizations`} data-state={active ? 'selected' : 'idle'}>
+          <span className="flex items-start justify-between gap-2">
+            <span className="min-w-0">
+              <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
+              <span className="mt-1 block text-2xl font-semibold text-foreground">{count}</span>
+            </span>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-inner bg-background/45 transition-transform group-hover:scale-105 ${active ? item.iconClass : ''}`}>
+              <Icon className="h-4 w-4" />
+            </span>
+          </span>
+        </motion.button>
+      );
+    })}
+  </div>
+);
+
+const OrgSignalPanel = ({ stats, organizations, loading, kpiFilter, setKpiFilter }) => {
+  const signal = loading
+    ? { icon: Building2, tone: 'muted', label: 'Loading', headline: 'Loading organizations', subhead: 'One moment while the registry list comes in.' }
+    : getOrgSignal({ stats, organizations, kpiFilter });
+  const SignalIcon = signal.icon;
+  return (
+    <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42 }}
+      className="flex min-h-[240px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[288px]" aria-live="polite">
+      <div className="min-w-0">
+        <div className="max-w-2xl">
+          <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${orgToneClass[signal.tone] || orgToneClass.muted}`}>
+            <SignalIcon className="h-4 w-4" />
+            {signal.label}
+          </div>
+          <h1 className="max-w-2xl text-[34px] font-semibold leading-[1.05] text-foreground md:text-6xl">{signal.headline}</h1>
+          <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">{signal.subhead}</p>
+        </div>
+        <OrgStateStrip stats={stats} organizations={organizations} loading={loading} kpiFilter={kpiFilter} setKpiFilter={setKpiFilter} />
+      </div>
+    </motion.section>
+  );
+};
 
 export const OrganizationsPage = () => {
     const { isAdmin } = useAuth();
@@ -188,7 +290,7 @@ export const OrganizationsPage = () => {
             {isAdmin() && (
                 <Button
                     onClick={handleCreate}
-                    className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+                    className="bg-card/70 h-9 px-4 text-[10px] font-bold"
                     aria-label="Add organization unavailable"
                     aria-describedby={organizationCommandNotice ? 'organizations-action-feedback' : undefined}
                     data-state="unavailable"
@@ -206,7 +308,7 @@ export const OrganizationsPage = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setViewMode('grid')}
-                className={`h-8 w-8 rounded-icon ${viewMode === 'grid' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+                className={`h-8 w-8 rounded-icon ${viewMode === 'grid' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
             >
                 <LayoutGrid className="h-4 w-4" />
             </Button>
@@ -214,7 +316,7 @@ export const OrganizationsPage = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setViewMode('table')}
-                className={`h-8 w-8 rounded-icon ${viewMode === 'table' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+                className={`h-8 w-8 rounded-icon ${viewMode === 'table' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
             >
                 <TableIcon className="h-4 w-4" />
             </Button>
@@ -225,14 +327,16 @@ export const OrganizationsPage = () => {
 
     const footerContent = useMemo(() => (
             <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1.5 rounded-pill bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
-                    <div className={`h-1.5 w-1.5 rounded-pill ${loading ? 'bg-zinc-500 animate-pulse' : 'bg-success'}`} />
+                <div className="flex items-center gap-1.5 rounded-pill bg-muted/30 px-3 py-1 text-[10px] font-bold">
+                    <div className={`h-1.5 w-1.5 rounded-pill ${loading ? 'bg-zinc-500 animate-pulse' : 'bg-emerald-500'}`} />
                     <span>Page {pagination.currentPage} of {pagination.totalPages} - {filteredOrgs.length} Organizations</span>
                 </div>
             </div>
     ), [pagination.currentPage, pagination.totalPages, filteredOrgs.length, loading]);
 
     usePageFooter(footerContent, 'pagination', !loading && filteredOrgs.length > 0);
+
+    usePageShell({ bleed: true, hideFab: true });
 
     /**
      * NOTE (2026-02-16): Removed initial context panel auto-open to adhere
@@ -290,15 +394,15 @@ export const OrganizationsPage = () => {
                         if (!open) setSelectedOrg(null);
                     }}
                 >
-                    <DialogContent className="z-[120] mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))] max-h-[calc(100dvh-5rem)] w-[calc(100vw-1rem)] overflow-hidden overflow-y-auto rounded-modal glass-card p-2 shadow-2xl sm:max-w-[425px] md:max-h-[90vh] md:p-6">
-                        <div className="absolute top-0 left-0 w-full h-1.5 bg-success/20">
-                            <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} className="h-full bg-success origin-left" />
+                    <DialogContent className="z-[120] mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))] max-h-[calc(100dvh-5rem)] w-[calc(100vw-1rem)] overflow-hidden overflow-y-auto rounded-modal bg-card/70 p-2 shadow-sm sm:max-w-[425px] md:max-h-[90vh] md:p-6">
+                        <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500/20">
+                            <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} className="h-full bg-emerald-500 origin-left" />
                         </div>
 
                         <DialogHeader className="pt-4">
-                            <DialogTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
-                                <div className="rounded-icon bg-success/10 p-2">
-                                    <Building2 className="h-5 w-5 text-success" />
+                            <DialogTitle className="text-2xl font-black flex items-center gap-3">
+                                <div className="rounded-icon bg-emerald-500/15 p-2">
+                                    <Building2 className="h-5 w-5 text-emerald-700 dark:text-emerald-200" />
                                 </div>
                                 {selectedOrg?.id ? 'Entity Configuration' : 'Entity Provisioning'}
                             </DialogTitle>
@@ -306,7 +410,7 @@ export const OrganizationsPage = () => {
 
                         <form onSubmit={handleSave} className="space-y-5 py-6">
                             <div className="space-y-1.5">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Legal_Name</Label>
+                                <Label className="text-[10px] font-black text-muted-foreground ml-4 opacity-50">Legal_Name</Label>
                                 <Input
                                     value={selectedOrg?.name || ''}
                                     onChange={(e) => setSelectedOrg({ ...selectedOrg, name: e.target.value })}
@@ -317,7 +421,7 @@ export const OrganizationsPage = () => {
                             </div>
 
                             <div className="space-y-1.5">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Registry_Contact</Label>
+                                <Label className="text-[10px] font-black text-muted-foreground ml-4 opacity-50">Registry_Contact</Label>
                                 <Input
                                     value={selectedOrg?.contact_email || ''}
                                     onChange={(e) => setSelectedOrg({ ...selectedOrg, contact_email: e.target.value })}
@@ -329,7 +433,7 @@ export const OrganizationsPage = () => {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Revenue_Share (%)</Label>
+                                    <Label className="text-[10px] font-black text-muted-foreground ml-4 opacity-50">Revenue_Share (%)</Label>
                                     <Input
                                         type="number"
                                         step="0.01"
@@ -339,13 +443,13 @@ export const OrganizationsPage = () => {
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Lifecycle_State</Label>
+                                    <Label className="text-[10px] font-black text-muted-foreground ml-4 opacity-50">Lifecycle_State</Label>
                                     <div className="flex h-12 items-center gap-4 rounded-button bg-muted/20 px-5">
                                         <input
                                             type="checkbox"
                                             checked={selectedOrg?.is_active || false}
                                             onChange={(e) => setSelectedOrg({ ...selectedOrg, is_active: e.target.checked })}
-                                            className="h-5 w-5 rounded-icon accent-success"
+                                            className="h-5 w-5 rounded-icon accent-emerald-500"
                                         />
                                         <span className="text-sm font-bold opacity-60">Active Node</span>
                                     </div>
@@ -353,7 +457,7 @@ export const OrganizationsPage = () => {
                             </div>
 
                             <div className="space-y-1.5">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Connected_Stripe_ID</Label>
+                                <Label className="text-[10px] font-black text-muted-foreground ml-4 opacity-50">Connected_Stripe_ID</Label>
                                 <Input
                                     value={selectedOrg?.stripe_account_id || ''}
                                     onChange={(e) => setSelectedOrg({ ...selectedOrg, stripe_account_id: e.target.value })}
@@ -363,8 +467,8 @@ export const OrganizationsPage = () => {
                             </div>
 
                             <DialogFooter className="gap-3 pt-4">
-                                <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)} className="h-12 rounded-button px-8 text-[10px] font-bold uppercase tracking-widest">Return</Button>
-                                <Button type="submit" className="h-12 rounded-button bg-success px-10 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-xl shadow-success/20">
+                                <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)} className="h-12 rounded-button px-8 text-[10px] font-bold">Return</Button>
+                                <Button type="submit" className="h-12 rounded-button bg-foreground px-10 text-[10px] font-bold text-background shadow-sm">
                                     Deploy Config
                                 </Button>
                             </DialogFooter>
@@ -418,50 +522,14 @@ export const OrganizationsPage = () => {
                 </p>
             )}
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8">
-                <div className="col-span-1 rounded-card glass-card p-6 flex items-center gap-4 relative overflow-hidden group hover-lift transition-all">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-pill -mr-12 -mt-12 transition-transform group-hover:scale-110" />
-                    <div className="p-3 bg-primary/20 rounded-icon relative z-10">
-                        <Building2 className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="relative z-10">
-                        <p className="text-[10px] font-bold text-primary/60 uppercase tracking-widest">Active Nodes</p>
-                        <h3 className="text-2xl font-black">{organizations.filter(o => o.is_active).length}</h3>
-                    </div>
-                </div>
-
-                <div className="col-span-1 rounded-card glass-card p-6 flex items-center gap-4 bg-gradient-to-br from-info/5 to-transparent overflow-hidden hover-lift transition-all shadow-premium">
-                    <div className="p-3 bg-info/20 rounded-icon">
-                        <Wallet className="h-6 w-6 text-info" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-info/60 uppercase tracking-widest">Network Float</p>
-                        <h3 className="text-2xl font-black">
-                            ${totalWallet.toLocaleString()}
-                        </h3>
-                    </div>
-                </div>
-
-                <div className="col-span-1 rounded-card glass-card p-6 flex items-center gap-4 bg-white/5 hover-lift transition-all">
-                    <div className="p-3 bg-white/10 rounded-icon">
-                        <Globe className="h-6 w-6 text-white/50" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Regions</p>
-                        <h3 className="text-2xl font-black">Global</h3>
-                    </div>
-                </div>
-                <div className="col-span-1 rounded-card glass-card-premium p-6 flex flex-col justify-center items-center gap-1 group hover-lift transition-all">
-                    <div className="p-2 bg-primary/10 rounded-icon mb-1">
-                        <DollarSign className="h-4 w-4 text-primary" />
-                    </div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Avg_Fee</p>
-                    <h3 className="text-xl font-black">
-                        {(organizations.length > 0 ? (organizations.reduce((acc, o) => acc + (parseFloat(o.ivisit_fee_percentage) || 0), 0) / organizations.length) : 0).toFixed(1)}%
-                    </h3>
-                </div>
-            </div>
+            {/* Signal Panel - Network Float / Avg_Fee context retained in headline + strip */}
+            <OrgSignalPanel
+                stats={organizationSummary}
+                organizations={organizations}
+                loading={loading}
+                kpiFilter={kpiFilter}
+                setKpiFilter={setKpiFilter}
+            />
 
             {/* Controls */}
             <div className="flex items-center justify-between gap-4 mb-8">
@@ -469,7 +537,7 @@ export const OrganizationsPage = () => {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <input
                         placeholder="Search registry by name, email or ID..."
-                        className="w-full h-12 bg-muted/20 rounded-button pl-12 pr-6 text-xs font-medium transition-all focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)]"
+                        className="w-full h-12 bg-muted/20 rounded-button pl-12 pr-6 text-xs font-medium transition-all focus-visible:shadow-[0_0_0_3px_hsl(var(--foreground)/0.12)]"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -504,7 +572,7 @@ export const OrganizationsPage = () => {
                             <Button
                                 variant="outline"
                                 onClick={handleCreate}
-                                className="rounded-button px-8 text-[10px] font-bold uppercase tracking-widest"
+                                className="rounded-button px-8 text-[10px] font-bold"
                                 aria-label="Add organization unavailable"
                                 aria-describedby={organizationCommandNotice ? 'organizations-action-feedback' : undefined}
                                 data-state="unavailable"
@@ -551,15 +619,15 @@ export const OrganizationsPage = () => {
                     if (!open) setSelectedOrg(null);
                 }}
             >
-                <DialogContent className="z-[120] mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))] max-h-[calc(100dvh-5rem)] w-[calc(100vw-1rem)] overflow-hidden overflow-y-auto rounded-modal glass-card p-2 shadow-2xl sm:max-w-[425px] md:max-h-[90vh] md:p-6">
-                    <div className="absolute top-0 left-0 w-full h-1.5 bg-success/20">
-                        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} className="h-full bg-success origin-left" />
+                <DialogContent className="z-[120] mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))] max-h-[calc(100dvh-5rem)] w-[calc(100vw-1rem)] overflow-hidden overflow-y-auto rounded-modal bg-card/70 p-2 shadow-sm sm:max-w-[425px] md:max-h-[90vh] md:p-6">
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500/20">
+                        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} className="h-full bg-emerald-500 origin-left" />
                     </div>
 
                     <DialogHeader className="pt-4">
-                        <DialogTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
-                            <div className="rounded-icon bg-success/10 p-2">
-                                <Building2 className="h-5 w-5 text-success" />
+                        <DialogTitle className="text-2xl font-black flex items-center gap-3">
+                            <div className="rounded-icon bg-emerald-500/15 p-2">
+                                <Building2 className="h-5 w-5 text-emerald-700 dark:text-emerald-200" />
                             </div>
                             {selectedOrg?.id ? 'Entity Configuration' : 'Entity Provisioning'}
                         </DialogTitle>
@@ -567,7 +635,7 @@ export const OrganizationsPage = () => {
 
                     <form onSubmit={handleSave} className="space-y-5 py-6">
                         <div className="space-y-1.5">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Legal_Name</Label>
+                            <Label className="text-[10px] font-black text-muted-foreground ml-4 opacity-50">Legal_Name</Label>
                             <Input
                                 value={selectedOrg?.name || ''}
                                 onChange={(e) => setSelectedOrg({ ...selectedOrg, name: e.target.value })}
@@ -578,7 +646,7 @@ export const OrganizationsPage = () => {
                         </div>
 
                         <div className="space-y-1.5">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Registry_Contact</Label>
+                            <Label className="text-[10px] font-black text-muted-foreground ml-4 opacity-50">Registry_Contact</Label>
                             <Input
                                 value={selectedOrg?.contact_email || ''}
                                 onChange={(e) => setSelectedOrg({ ...selectedOrg, contact_email: e.target.value })}
@@ -590,7 +658,7 @@ export const OrganizationsPage = () => {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Revenue_Share (%)</Label>
+                                <Label className="text-[10px] font-black text-muted-foreground ml-4 opacity-50">Revenue_Share (%)</Label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -600,13 +668,13 @@ export const OrganizationsPage = () => {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Lifecycle_State</Label>
+                                <Label className="text-[10px] font-black text-muted-foreground ml-4 opacity-50">Lifecycle_State</Label>
                                 <div className="flex h-12 items-center gap-4 rounded-button bg-muted/20 px-5">
                                     <input
                                         type="checkbox"
                                         checked={selectedOrg?.is_active || false}
                                         onChange={(e) => setSelectedOrg({ ...selectedOrg, is_active: e.target.checked })}
-                                        className="h-5 w-5 rounded-icon accent-success"
+                                        className="h-5 w-5 rounded-icon accent-emerald-500"
                                     />
                                     <span className="text-sm font-bold opacity-60">Active Node</span>
                                 </div>
@@ -614,7 +682,7 @@ export const OrganizationsPage = () => {
                         </div>
 
                         <div className="space-y-1.5">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Connected_Stripe_ID</Label>
+                            <Label className="text-[10px] font-black text-muted-foreground ml-4 opacity-50">Connected_Stripe_ID</Label>
                             <Input
                                 value={selectedOrg?.stripe_account_id || ''}
                                 onChange={(e) => setSelectedOrg({ ...selectedOrg, stripe_account_id: e.target.value })}
@@ -625,8 +693,8 @@ export const OrganizationsPage = () => {
                         </div>
 
                         <DialogFooter className="gap-3 pt-4">
-                            <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)} className="h-12 rounded-button px-8 text-[10px] font-bold uppercase tracking-widest">Return</Button>
-                            <Button type="submit" className="h-12 rounded-button bg-success px-10 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-xl shadow-success/20">
+                            <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)} className="h-12 rounded-button px-8 text-[10px] font-bold">Return</Button>
+                            <Button type="submit" className="h-12 rounded-button bg-foreground px-10 text-[10px] font-bold text-background shadow-sm">
                                 Deploy Config
                             </Button>
                         </DialogFooter>
