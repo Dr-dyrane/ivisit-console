@@ -34,7 +34,7 @@ export const OrganizationTableView = ({
     if (!organizations || organizations.length === 0) return null;
 
     return (
-        <div className="bg-background/35 backdrop-blur-xs rounded-card shadow-premium overflow-hidden">
+        <div className="bg-background/35 rounded-card overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full">
                     <thead>
@@ -82,8 +82,8 @@ export const OrganizationTableView = ({
                                 </td>
                                 <td className="p-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-icon bg-primary/10 flex items-center justify-center shrink-0">
-                                            <Building2 className="h-4 w-4 text-primary" />
+                                        <div className="w-8 h-8 rounded-icon bg-muted flex items-center justify-center shrink-0">
+                                            <Building2 className="h-4 w-4 text-muted-foreground" />
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">
@@ -100,20 +100,20 @@ export const OrganizationTableView = ({
                                 </td>
                                 <td className="p-4">
                                     <div className="flex items-center gap-2">
-                                        <Wallet className={`h-3.5 w-3.5 ${org.wallet_balance >= 0 ? 'text-success' : 'text-destructive'}`} />
+                                        <Wallet className={`h-3.5 w-3.5 ${org.wallet_balance >= 0 ? 'text-emerald-700 dark:text-emerald-200' : 'text-destructive'}`} />
                                         <span className={`font-bold ${org.wallet_balance < 0 ? 'text-destructive' : 'text-foreground'}`}>
                                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(org.wallet_balance)}
                                         </span>
                                     </div>
                                 </td>
                                 <td className="p-4">
-                                    <Badge className="rounded-pill bg-primary/10 text-primary font-black text-[10px]">
+                                    <Badge className="rounded-pill bg-muted text-muted-foreground font-black text-[10px]">
                                         {org.ivisit_fee_percentage}%
                                     </Badge>
                                 </td>
                                 <td className="p-4">
                                     {org.is_active ? (
-                                        <Badge className="rounded-pill bg-success/20 text-success font-bold uppercase tracking-widest text-[9px] px-2 py-1">
+                                        <Badge className="rounded-pill bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 font-bold uppercase tracking-widest text-[9px] px-2 py-1">
                                             Active
                                         </Badge>
                                     ) : (
@@ -125,7 +125,7 @@ export const OrganizationTableView = ({
                                 <td className="p-4">
                                     <div className="flex items-center gap-2">
                                         {org.stripe_account_id ? (
-                                            <Activity className="h-3.5 w-3.5 text-success" />
+                                            <Activity className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-200" />
                                         ) : (
                                             <Activity className="h-3.5 w-3.5 text-muted-foreground/30" />
                                         )}
@@ -142,7 +142,7 @@ export const OrganizationTableView = ({
                                                     <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-[160px] rounded-inner bg-background/70 backdrop-blur-xl shadow-premium">
+                                            <DropdownMenuContent align="end" className="w-[160px] rounded-inner bg-background/70">
                                                 <DropdownMenuItem onClick={() => onView(org)} className="cursor-pointer font-medium text-xs py-2">
                                                     <Globe className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                                                     Public Profile

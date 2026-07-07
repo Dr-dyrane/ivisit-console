@@ -24,16 +24,16 @@ export const OrganizationListView = ({ organizations, onView, onEdit, onDelete }
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.05 }}
                 >
-                    <div className="h-full rounded-card glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col">
-                        <div className={`hover-glow ${org.is_active ? 'hover-glow-primary' : 'hover-glow-destructive'}`} />
+                    <div className="h-full rounded-card bg-card/70 p-6 group relative overflow-hidden flex flex-col">
+                        <div className={` ${org.is_active ? '' : ''}`} />
 
                         <div className="flex justify-between items-start mb-6 relative z-10 transition-colors duration-300">
-                            <Badge className={`rounded-pill px-2.5 py-1 ${org.is_active ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
+                            <Badge className={`rounded-pill px-2.5 py-1 ${org.is_active ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200' : 'bg-destructive/20 text-destructive'}`}>
                                 <div className="flex items-center gap-1.5 uppercase tracking-widest font-black text-[9px]">
                                     {org.is_active ? 'ACTIVE' : 'INACTIVE'}
                                 </div>
                             </Badge>
-                            <div className="w-10 h-10 rounded-icon bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
+                            <div className="w-10 h-10 rounded-icon bg-muted flex items-center justify-center text-muted-foreground group-hover:scale-110 transition-transform duration-300">
                                 <Building2 className="h-5 w-5" />
                             </div>
                         </div>
@@ -49,13 +49,13 @@ export const OrganizationListView = ({ organizations, onView, onEdit, onDelete }
                         <div className="space-y-3 mb-8 relative z-10">
                             <div className="flex items-center justify-between p-3 rounded-inner bg-muted/20">
                                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Fee Rate</span>
-                                <Badge className="rounded-pill bg-primary/10 text-primary font-black text-xs px-3">
+                                <Badge className="rounded-pill bg-muted text-muted-foreground font-black text-xs px-3">
                                     {org.ivisit_fee_percentage}%
                                 </Badge>
                             </div>
-                            <div className="flex items-center justify-between p-3 rounded-inner bg-primary/5">
+                            <div className="flex items-center justify-between p-3 rounded-inner bg-muted">
                                 <div className="flex items-center gap-2">
-                                    <Wallet className="w-4 h-4 text-primary" />
+                                    <Wallet className="w-4 h-4 text-muted-foreground" />
                                     <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Liquid Wallet</span>
                                 </div>
                                 <span className={`font-black tracking-tighter ${org.wallet_balance < 0 ? 'text-destructive' : 'text-foreground'}`}>
@@ -66,7 +66,7 @@ export const OrganizationListView = ({ organizations, onView, onEdit, onDelete }
 
                         <div className="flex items-center justify-between mt-auto pt-4 relative z-10">
                             <div className="flex items-center gap-2">
-                                <div className={`w-2 h-2 rounded-pill ${org.stripe_account_id ? 'bg-success animate-pulse' : 'bg-muted-foreground/30'}`} />
+                                <div className={`w-2 h-2 rounded-pill ${org.stripe_account_id ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
                                 <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
                                     {org.stripe_account_id ? 'STRIPE_LIVE' : 'WAITING_INTEGRATION'}
                                 </span>
@@ -76,7 +76,7 @@ export const OrganizationListView = ({ organizations, onView, onEdit, onDelete }
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => onEdit(org)}
-                                    className="rounded-icon h-9 w-9 p-0 hover:bg-primary/10 hover:text-primary"
+                                    className="rounded-icon h-9 w-9 p-0 hover:bg-muted hover:text-muted-foreground"
                                 >
                                     <Edit className="h-4 w-4" />
                                 </Button>

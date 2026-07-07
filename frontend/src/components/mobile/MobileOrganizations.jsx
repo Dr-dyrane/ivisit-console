@@ -87,7 +87,7 @@ export const MobileOrganizations = ({
       id: 'total',
       label: 'Organizations',
       value: organizations.length,
-      color: 'hsl(var(--primary))',
+      color: 'hsl(var(--foreground))',
       delta: 'LIVE',
       direction: 'flat'
     },
@@ -95,7 +95,7 @@ export const MobileOrganizations = ({
       id: 'active',
       label: 'Active',
       value: activeCount,
-      color: 'hsl(var(--success))',
+      color: 'hsl(var(--foreground))',
       delta: 'LIVE',
       direction: 'flat'
     },
@@ -103,7 +103,7 @@ export const MobileOrganizations = ({
       id: 'wallet',
       label: 'Float',
       value: `$${totalWallet.toLocaleString()}`,
-      color: 'hsl(var(--info))',
+      color: 'hsl(var(--foreground))',
       delta: 'LIVE',
       direction: 'flat'
     }
@@ -164,7 +164,7 @@ export const MobileOrganizations = ({
               value: `${avgFee.toFixed(1)}%`,
               trend: periodTrends.avgFee.deltaText,
               icon: DollarSign,
-              color: 'hsl(var(--warning))',
+              color: 'hsl(var(--foreground))',
               chartData: [{ value: 32 }, { value: 45 }, { value: 41 }, { value: 54 }, { value: 57 }, { value: 60 }]
             },
             {
@@ -172,7 +172,7 @@ export const MobileOrganizations = ({
               value: `${Math.round((activeCount / (organizations.length || 1)) * 100)}%`,
               trend: periodTrends.activeRatio.deltaText,
               icon: Building2,
-              color: 'hsl(var(--primary))',
+              color: 'hsl(var(--foreground))',
               chartData: [{ value: 20 }, { value: 35 }, { value: 30 }, { value: 42 }, { value: 48 }, { value: 55 }]
             },
             {
@@ -180,7 +180,7 @@ export const MobileOrganizations = ({
               value: organizations.length,
               trend: 'LIVE',
               icon: Users,
-              color: 'hsl(var(--info))',
+              color: 'hsl(var(--foreground))',
               chartData: [{ value: 12 }, { value: 18 }, { value: 24 }, { value: 28 }, { value: 31 }, { value: 36 }]
             },
             {
@@ -188,7 +188,7 @@ export const MobileOrganizations = ({
               value: `${Math.round(((activeCount || 0) / Math.max(organizations.length || 1, 1)) * 100)}%`,
               trend: 'LIVE',
               icon: CheckCircle2,
-              color: 'hsl(var(--success))',
+              color: 'hsl(var(--foreground))',
               chartData: [{ value: 28 }, { value: 40 }, { value: 44 }, { value: 52 }, { value: 60 }, { value: 66 }]
             }
           ]}
@@ -198,7 +198,7 @@ export const MobileOrganizations = ({
           <MobileSectionHeader
             label="Network Dynamics"
             count={organizations.length}
-            color="hsl(var(--info))"
+            color="hsl(var(--foreground))"
           />
           <MobileSecondaryMetricRail
             loading={showTopSectionLoading}
@@ -208,7 +208,7 @@ export const MobileOrganizations = ({
                 title: 'Active Ratio',
                 subtitle: 'Node health',
                 value: `${Math.round((activeCount / (organizations.length || 1)) * 100)}%`,
-                color: 'hsl(var(--primary))',
+                color: 'hsl(var(--foreground))',
                 trendDirection: periodTrends.activeRatio.direction,
                 trendText: periodTrends.activeRatio.deltaText,
                 onClick: onViewAnalytics
@@ -218,7 +218,7 @@ export const MobileOrganizations = ({
                 title: 'Avg Fee',
                 subtitle: 'Revenue share',
                 value: `${avgFee.toFixed(1)}%`,
-                color: 'hsl(var(--primary))',
+                color: 'hsl(var(--foreground))',
                 trendDirection: periodTrends.avgFee.direction,
                 trendText: periodTrends.avgFee.deltaText,
                 onClick: onViewAnalytics
@@ -228,7 +228,7 @@ export const MobileOrganizations = ({
                 title: 'Total Orgs',
                 subtitle: 'Registered',
                 value: organizations.length,
-                color: 'hsl(var(--info))',
+                color: 'hsl(var(--foreground))',
                 trendDirection: 'flat',
                 trendText: 'LIVE',
                 onClick: onViewAnalytics
@@ -238,7 +238,7 @@ export const MobileOrganizations = ({
                 title: 'Active Count',
                 subtitle: 'Live nodes',
                 value: activeCount,
-                color: 'hsl(var(--success))',
+                color: 'hsl(var(--foreground))',
                 trendDirection: 'up',
                 trendText: 'LIVE',
                 onClick: onViewAnalytics
@@ -293,7 +293,7 @@ export const MobileOrganizations = ({
         <MobileSectionHeader
           label="Organization Registry"
           count={displayOrganizations.length}
-          color="hsl(var(--primary))"
+          color="hsl(var(--foreground))"
           onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== displayOrganizations.length) : null}
           isAllSelected={displayOrganizations.length > 0 && selectedIds.length === displayOrganizations.length}
         />
@@ -306,7 +306,7 @@ export const MobileOrganizations = ({
                 <MobileMetricRow
                   key={org.id}
                   icon={Building2}
-                  color={isActive ? 'hsl(var(--success))' : 'hsl(var(--muted-foreground))'}
+                  color={isActive ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'}
                   label={isActive ? 'ACTIVE' : 'INACTIVE'}
                   value={org.name || 'Unnamed Organization'}
                   rightBlade={{
@@ -314,7 +314,7 @@ export const MobileOrganizations = ({
                     direction: isActive ? 'up' : 'flat',
                     label: 'Wallet',
                     value: `$${Number(org.wallet_balance || 0).toLocaleString()}`,
-                    color: isActive ? 'hsl(var(--success))' : 'hsl(var(--muted-foreground))'
+                    color: isActive ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'
                   }}
                   isExpanded={expandedId === org.id}
                   onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
@@ -349,7 +349,7 @@ export const MobileOrganizations = ({
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <Badge className={`rounded-pill ${isActive ? 'bg-success/20 text-success' : 'bg-muted/20 text-muted-foreground'}`}>
+                        <Badge className={`rounded-pill ${isActive ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200' : 'bg-muted/20 text-muted-foreground'}`}>
                           <CheckCircle2 className="w-3 h-3 mr-1" />
                           {isActive ? 'Active Node' : 'Inactive Node'}
                         </Badge>
@@ -361,7 +361,7 @@ export const MobileOrganizations = ({
                           className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2"
                           onClick={() => onView(org)}
                         >
-                          <Eye size={16} className="text-primary/60" />
+                          <Eye size={16} className="text-muted-foreground" />
                           <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Details</span>
                         </Button>
                         {canManage && (
@@ -371,7 +371,7 @@ export const MobileOrganizations = ({
                               className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2"
                               onClick={() => onEdit(org)}
                             >
-                              <Edit size={16} className="text-warning/60" />
+                              <Edit size={16} className="text-amber-700 dark:text-amber-200" />
                               <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Edit</span>
                             </Button>
                             <Button
