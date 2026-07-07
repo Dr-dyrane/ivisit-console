@@ -35,6 +35,16 @@ This note is loud on purpose: the checkpoint commits advanced `HEAD` past the pr
 - No page admission status changed from this re-anchor. It is a proof-mechanism repair only: the default UI hardgate, the strict-radius revamp hardgate for the Today/Requests pair, and the full contract suite pass against the now-committed source.
 - Future rule: if the preservation baseline is ever re-pinned to a newer pre-change commit, update this note and the contract-test baseline constant together, and never let a preservation proof read the moving `HEAD` ref again.
 
+## Post-Checkpoint Canon And Intake Safety Recertification - 2026-07-07
+
+After the preservation baseline re-anchor above, the canon and the six unadmitted authenticated intake pages were re-verified against the now-committed source. This is a verified-state recertification, not a new admission.
+
+- Canon proof, green: the full contract suite passes (38 suites, 235 tests), the default UI hardgate passes (79 files), the strict-radius revamp hardgate passes for the Today/Requests canonical pair (7 files), and `npm run build` (database-types-encoding + hardgate + production compile) succeeds.
+- Strict-radius scope, unchanged by this pass: only the Today/Requests canonical pair is strict-radius clean. Every other admitted page passes the default hardgate but still carries legacy-compatible radius utilities pending its own future strict pass with rendered proof. This is by design. A repo-wide radius sweep is not authorized and would violate one-page-at-a-time.
+- Intake safety audit, zero remaining source-closable violations: an adversarially-verified source audit of Users (14), Settings (16), Pricing (18), and Insurance (12) returned zero confirmed findings, and the Organizations (15) and Subscriptions (17) ledgers plus source were reviewed directly and show the same fail-closed, source-clean state. Across all six pages, unproven create/edit/delete/status/email/pricing/invite commands fail closed with honest unavailable feedback, fake/`LIVE`/revenue metrics are removed or labeled source-pending, PageData startup and right panels are route-owned or quieted, and generic FABs are hidden on those routes.
+- Remaining blockers are not source-closable in this repo: each intake page still needs a named backend-owned projection (exact counts, scoped reads), receiver/RLS/RPC/Edge authority for its commands, app-consequence proof against `ivisit-app`, and rendered desktop/tablet/mobile proof before admission. These require shared backend truth and a browser proof session, not console-source edits.
+- Goal status: the console revamp is NOT complete. The source-closable safety layer is essentially done across all pages, but the remaining work is per-page backend-authority proof, projection-owner design, action-model decisions, strict-radius visual admission, and rendered proof. Do not mark the goal complete until each admitted page has current triad plus rendered proof and each intake page is either admitted through the gate or explicitly kept out of scope with its backend blocker named.
+
 ## Canonical Audit Reset - 2026-06-25
 
 Before expanding the revamp again, treat Today plus Requests as the canonical layout audit pair.

@@ -142,6 +142,10 @@ describe('Today/Requests revamp gate contract', () => {
     expect(gate).toContain('every `git show HEAD:<old page>` reference in this gate and earlier ledgers means the preservation baseline commit `f31f29f`');
     expect(gate).toContain('The contract-test preservation helpers are pinned to `f31f29f`');
 
+    expect(gate).toContain('## Post-Checkpoint Canon And Intake Safety Recertification - 2026-07-07');
+    expect(gate).toContain('Intake safety audit, zero remaining source-closable violations:');
+    expect(gate).toContain('Goal status: the console revamp is NOT complete.');
+
     // The pinned helper must still read the OLD Requests behavior from the baseline commit.
     const baselineRequests = gitShowHead('frontend/src/components/pages/EmergencyRequestsPage.jsx');
     expect(baselineRequests).toContain("import { useViewMode } from '../../hooks/useViewMode';");
