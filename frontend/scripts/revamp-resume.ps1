@@ -91,19 +91,32 @@ Write-Host ''
 Write-Host 'Preflight OK. This script made no edits, commits, pushes, or secret reads.' -ForegroundColor Green
 
 # 8. Optional auto-continue: run Claude Code headless on the emitted prompt.
-# Off by default. Requires the `claude` CLI on PATH. An unattended run may commit/push to the
-# checkpoint branch, so configure claude's tool permissions beforehand for a fully non-interactive
-# run. The preflight guards above still gate this: a dirty tree or an ahead origin already exited
-# (Stop-Cycle) before reaching here, so -Launch never runs on top of unreviewed changes.
+# Off by default. The preflight guards above still gate this: a dirty tree or an ahead origin
+# already exited (Stop-Cycle) before reaching here, so -Launch never runs on top of unreviewed
+# changes. To disable the unattended run, remove the -Launch switch (the preflight/notify still runs).
 if ($Launch) {
-  $claude = Get-Command claude -ErrorAction SilentlyContinue
-  if ($claude) {
+  # Resolve the claude CLI: PATH first, then known install locations. A scheduled task's process
+  # often lacks the user's freshly-updated PATH, so fall back to the native/npm install path.
+  $claudeCmd = $null
+  $onPath = Get-Command claude -ErrorAction SilentlyContinue
+  if ($onPath) { $claudeCmd = $onPath.Source }
+  else {
+    foreach ($p in @("$HOME\.local\bin\claude.exe", "$env:APPDATA\npm\claude.cmd", "$env:APPDATA\npm\claude.ps1")) {
+      if (Test-Path $p) { $claudeCmd = $p; break }
+    }
+  }
+  if ($claudeCmd) {
     Write-Host ''
-    Write-Host 'Auto-continue (-Launch): starting Claude Code on the resume prompt...' -ForegroundColor Cyan
-    & $claude.Source -p $prompt
+    Write-Host "Auto-continue (-Launch): starting $claudeCmd on the resume prompt..." -ForegroundColor Cyan
+    # UNATTENDED: --dangerously-skip-permissions lets the model run tools (edit/bash/git) without
+    # prompting, so it can complete a cycle and commit/push on its own. This runs the model
+    # unsupervised on a live branch. It is gated by the preflight above (right branch / clean tree /
+    # origin not ahead), but review the branch regularly. Remove --dangerously-skip-permissions to
+    # require confirmations (it will then need an interactive session or pre-approved tool settings).
+    & $claudeCmd -p $prompt --dangerously-skip-permissions
   } else {
     Write-Host ''
-    Write-Host 'Auto-continue requested (-Launch) but the "claude" CLI is not on PATH.' -ForegroundColor Yellow
-    Write-Host 'Install Claude Code (or add it to PATH), then re-run with -Launch.'
+    Write-Host 'Auto-continue requested (-Launch) but the "claude" CLI was not found on PATH, in ~/.local/bin, or in the npm global dir.' -ForegroundColor Yellow
+    Write-Host 'Install Claude Code or set the full path in this script, then re-run with -Launch.'
   }
 }
