@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../lib/supabase";
@@ -10,7 +10,6 @@ import {
 	ArrowLeft,
 	ShieldCheck,
 	Zap,
-	Globe,
 	Server,
 	CheckCircle2,
 	AlertCircle,
@@ -75,7 +74,6 @@ export const LoginPage = () => {
 			});
 
 			if (checkError) {
-				console.error("Check user error:", checkError);
 				// Fallback to password prompt if check fails (connectivity/server error)
 				// so we don't lock users out.
 			}
@@ -106,8 +104,7 @@ export const LoginPage = () => {
 							redirectTo: `${window.location.origin}/set-password`,
 						});
 						toast.success("We sent a setup link to your email, just in case.");
-					} catch (resetErr) {
-						console.error("Auto-reset warning", resetErr);
+					} catch {
 					}
 
 					// 3. We DO NOT BLOCK. We proceed to the password screen below.
@@ -123,7 +120,6 @@ export const LoginPage = () => {
 			if (err instanceof z.ZodError) {
 				setError(err.errors[0].message);
 			} else {
-				console.error(err);
 				setError("Unable to verify identity");
 			}
 			toast.error("Invalid Email Format");
@@ -136,6 +132,7 @@ export const LoginPage = () => {
 	};
 
 	// --- 2FA State ---
+	const [mfaFactorId, setMfaFactorId] = useState(null);
 	const [mfaChallengeId, setMfaChallengeId] = useState(null);
 	const [mfaCode, setMfaCode] = useState("");
 
@@ -143,6 +140,9 @@ export const LoginPage = () => {
 		e.preventDefault();
 		setError("");
 		setIsLoading(true);
+		setMfaFactorId(null);
+		setMfaChallengeId(null);
+		setMfaCode("");
 
 		try {
 			// 1. Attempt Sign In
@@ -167,6 +167,7 @@ export const LoginPage = () => {
 
 				if (challengeError) throw challengeError;
 
+				setMfaFactorId(factor.id);
 				setMfaChallengeId(challenge.id);
 				setDirection(1);
 				setStep("2fa");
@@ -177,8 +178,7 @@ export const LoginPage = () => {
 				navigate("/");
 			}
 
-		} catch (err) {
-			console.error("Login caught:", err);
+		} catch {
 			setError("Invalid credentials. Please try again.");
 			toast.error("Authentication Failed");
 		} finally {
@@ -190,17 +190,31 @@ export const LoginPage = () => {
 		e.preventDefault();
 		setError("");
 		setIsLoading(true);
+		const normalizedMfaCode = mfaCode.trim();
+
+		if (normalizedMfaCode.length !== 6) {
+			setError("Enter the 6-digit code.");
+			setIsLoading(false);
+			return;
+		}
+
+		if (!mfaFactorId || !mfaChallengeId) {
+			setMfaFactorId(null);
+			setMfaChallengeId(null);
+			setMfaCode("");
+			setDirection(-1);
+			setStep("password");
+			setError("Security check expired. Sign in again.");
+			toast.error("Security check expired. Sign in again.");
+			setIsLoading(false);
+			return;
+		}
 
 		try {
 			const { data, error } = await supabase.auth.mfa.verify({
-				factorId: mfaChallengeId, // We actually need the factorID here, let's store it or re-fetch? 
-				// Wait, the verify method needs factorId AND challengeId usually, 
-				// but the method signature in v2 is verify({ factorId, challengeId, code })
-
-				// Let's refine the state to hold the factorID too
-				// For now, let's assume valid challenge
+				factorId: mfaFactorId,
 				challengeId: mfaChallengeId,
-				code: mfaCode
+				code: normalizedMfaCode
 			});
 
 			if (error) throw error;
@@ -208,8 +222,7 @@ export const LoginPage = () => {
 			toast.success("Login Complete");
 			navigate("/");
 
-		} catch (err) {
-			console.error("2FA Error:", err);
+		} catch {
 			setError("Invalid code. Please try again.");
 			toast.error("Verification Failed");
 		} finally {
@@ -246,12 +259,6 @@ export const LoginPage = () => {
 
 	return (
 		<div className="relative min-h-[100dvh] bg-background text-foreground flex flex-col items-center overflow-hidden">
-			{/* PERFORMANCE BACKGROUND: Optimized for iOS (No double blur) */}
-			<div className="fixed inset-0 z-0 pointer-events-none">
-				<div className="absolute top-[-10%] right-[-10%] w-[70%] h-[50%] opacity-20 bg-orb" />
-				<div className="absolute bottom-[-5%] left-[-10%] w-[60%] h-[40%] opacity-10 bg-orb" />
-			</div>
-
 			<div className="relative z-10 w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 min-h-[100dvh]">
 				{/* LEFT: BRANDING (Hidden on Mobile) */}
 				<div className="hidden lg:flex col-span-5 flex-col justify-center p-12 space-y-8">
@@ -260,19 +267,19 @@ export const LoginPage = () => {
 						animate={{ opacity: 1, x: 0 }}
 						transition={{ duration: 0.8, ease: "easeOut" }}
 					>
-						<div className="w-16 h-16 bg-primary/10 rounded-2xl border border-primary/20 flex items-center justify-center mb-8 backdrop-blur-md">
+						<div className="w-16 h-16 bg-primary/10 rounded-icon flex items-center justify-center mb-8 shadow-sm">
 							<ShieldCheck className="text-primary w-8 h-8" />
 						</div>
 						<div className="space-y-2 mb-6">
-							<p className="text-2xl font-medium tracking-tight text-muted-foreground">
+							<p className="text-2xl font-medium text-muted-foreground">
 								{greeting},
 							</p>
-							<h1 className="text-7xl font-bold tracking-tighter leading-none text-foreground">
+							<h1 className="text-7xl font-bold leading-none text-foreground">
 								iVisit<span className="text-primary">.</span>
 							</h1>
 						</div>
 						<p className="text-xl text-muted-foreground font-light leading-relaxed max-w-sm">
-							Mission-critical emergency response coordination link.
+							Care team console access.
 						</p>
 					</motion.div>
 
@@ -283,16 +290,16 @@ export const LoginPage = () => {
 						transition={{ delay: 0.4 }}
 						className="flex gap-3"
 					>
-						<div className="flex items-center gap-2 px-3 py-1.5 bg-background/50 backdrop-blur-sm rounded-full border border-border/50 shadow-sm">
-							<div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-							<span className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
-								System Online
+						<div className="flex items-center gap-2 px-3 py-1.5 bg-background/50 backdrop-blur-sm rounded-pill shadow-sm">
+							<div className="w-2 h-2 rounded-pill bg-emerald-500 animate-pulse" />
+							<span className="text-[11px] font-semibold text-muted-foreground">
+								Email first
 							</span>
 						</div>
-						<div className="flex items-center gap-2 px-3 py-1.5 bg-background/50 backdrop-blur-sm rounded-full border border-border/50 shadow-sm">
+						<div className="flex items-center gap-2 px-3 py-1.5 bg-background/50 backdrop-blur-sm rounded-pill shadow-sm">
 							<Server size={12} className="text-primary" />
-							<span className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
-								Encrypted
+							<span className="text-[11px] font-semibold text-muted-foreground">
+								Step by step
 							</span>
 						</div>
 					</motion.div>
@@ -303,10 +310,10 @@ export const LoginPage = () => {
 
 					{/* MOBILE LOGO */}
 					<div className="lg:hidden mb-12 flex flex-col items-center">
-						<div className="w-12 h-12 bg-primary/10 rounded-xl border border-primary/20 flex items-center justify-center mb-6">
+						<div className="w-12 h-12 bg-primary/10 rounded-icon flex items-center justify-center mb-6 shadow-sm">
 							<ShieldCheck className="text-primary w-6 h-6" />
 						</div>
-						<h1 className="text-4xl font-bold tracking-tighter">
+						<h1 className="text-4xl font-bold">
 							iVisit<span className="text-primary">.</span>
 						</h1>
 					</div>
@@ -327,17 +334,17 @@ export const LoginPage = () => {
 									className="w-full"
 								>
 									<div className="text-center mb-8">
-										<h2 className="text-2xl font-semibold tracking-tight">Welcome Back</h2>
+										<h2 className="text-2xl font-semibold">Welcome Back</h2>
 										<p className="text-muted-foreground mt-2">Enter your email to continue</p>
 									</div>
 
 									<form onSubmit={handleEmailSubmit} className="space-y-6">
 										<div className="space-y-2">
 											<div className={`
-												group relative rounded-2xl bg-muted/30 border border-transparent 
-												focus-within:bg-background focus-within:border-primary/20 focus-within:shadow-xl focus-within:shadow-primary/5
+												group relative rounded-inner bg-muted/30
+												focus-within:bg-background focus-within:shadow-xl focus-within:shadow-primary/5
 												transition-all duration-300
-												${error ? "border-destructive/50 bg-destructive/5" : ""}
+												${error ? "bg-destructive/5" : ""}
 											`}>
 												<div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
 													<Mail size={20} />
@@ -347,7 +354,7 @@ export const LoginPage = () => {
 													autoFocus
 													value={email}
 													onChange={(e) => setEmail(e.target.value)}
-													className="w-full bg-transparent border-none py-4 pl-12 pr-4 text-base placeholder:text-muted-foreground/50 focus:outline-none"
+													className="w-full bg-transparent py-4 pl-12 pr-4 text-base placeholder:text-muted-foreground/50"
 													placeholder="name@organization.com"
 													disabled={isLoading}
 												/>
@@ -366,7 +373,7 @@ export const LoginPage = () => {
 										<button
 											type="submit"
 											disabled={isLoading}
-											className="w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-2xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
+											className="w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-button shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
 										>
 											{isLoading ? (
 												<Loader2 size={20} className="animate-spin" />
@@ -393,19 +400,18 @@ export const LoginPage = () => {
 													});
 													if (error) throw error;
 												} catch (err) {
-													console.error("Google Login Error:", err);
 													handleAuthError(err, 'authenticate');
 													setIsLoading(false);
 												}
 											}}
 											disabled={isLoading}
-											className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-border hover:bg-muted/50 transition-colors bg-background text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+											className="flex items-center justify-center gap-2 w-full py-3 rounded-button hover:bg-muted/50 transition-colors bg-background text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
 										>
 											<img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
 											Continue with Google
 										</button>
 
-										<div className="pt-4 border-t border-border">
+										<div className="pt-4">
 											<p className="text-sm text-muted-foreground mb-3">
 												New to iVisit?
 											</p>
@@ -442,15 +448,15 @@ export const LoginPage = () => {
 									<div className="text-center mb-8 relative">
 										<button
 											onClick={handleBack}
-											className="absolute left-0 top-1 p-2 rounded-full hover:bg-muted transition-colors -ml-2"
+											className="absolute left-0 top-1 p-2 rounded-button hover:bg-muted transition-colors -ml-2"
 										>
 											<ArrowLeft size={20} className="text-muted-foreground" />
 										</button>
 										<div className="flex flex-col items-center gap-2">
-											<div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-xl font-bold text-muted-foreground ring-4 ring-background shadow-lg">
+											<div className="w-16 h-16 rounded-icon bg-muted flex items-center justify-center text-xl font-bold text-muted-foreground shadow-lg">
 												{email[0]?.toUpperCase()}
 											</div>
-											<div className="text-sm text-muted-foreground font-medium bg-muted/30 px-3 py-1 rounded-full flex items-center gap-1.5">
+											<div className="text-sm text-muted-foreground font-medium bg-muted/30 px-3 py-1 rounded-pill flex items-center gap-1.5">
 												{email}
 												<CheckCircle2 size={12} className="text-emerald-500" />
 											</div>
@@ -460,10 +466,10 @@ export const LoginPage = () => {
 									<form onSubmit={handlePasswordSubmit} className="space-y-6">
 										<div className="space-y-2">
 											<div className={`
-												group relative rounded-2xl bg-muted/30 border border-transparent 
-												focus-within:bg-background focus-within:border-primary/20 focus-within:shadow-xl focus-within:shadow-primary/5
+												group relative rounded-inner bg-muted/30
+												focus-within:bg-background focus-within:shadow-xl focus-within:shadow-primary/5
 												transition-all duration-300
-												${error ? "border-destructive/50 bg-destructive/5" : ""}
+												${error ? "bg-destructive/5" : ""}
 											`}>
 												<div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
 													<Lock size={20} />
@@ -473,8 +479,8 @@ export const LoginPage = () => {
 													autoFocus
 													value={password}
 													onChange={(e) => setPassword(e.target.value)}
-													className="w-full bg-transparent border-none py-4 pl-12 pr-12 text-base placeholder:text-muted-foreground/50 focus:outline-none"
-													placeholder="••••••••"
+													className="w-full bg-transparent py-4 pl-12 pr-12 text-base placeholder:text-muted-foreground/50"
+													placeholder="Password"
 													disabled={isLoading}
 												/>
 												<button
@@ -499,7 +505,7 @@ export const LoginPage = () => {
 										<button
 											type="submit"
 											disabled={isLoading}
-											className="w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-2xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+											className="w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-button shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
 										>
 											{isLoading ? (
 												<Loader2 size={20} className="animate-spin" />
@@ -524,7 +530,6 @@ export const LoginPage = () => {
 													if (error) throw error;
 													toast.success("Password reset link sent to your email");
 												} catch (err) {
-													console.error("Password reset error:", err);
 													handleAuthError(err, 'reset');
 												} finally {
 													setIsLoading(false);
@@ -552,27 +557,27 @@ export const LoginPage = () => {
 									className="w-full"
 								>
 									<div className="text-center mb-8">
-										<div className="w-16 h-16 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center mb-6 ring-4 ring-background shadow-lg">
+										<div className="w-16 h-16 mx-auto bg-primary/10 rounded-icon flex items-center justify-center mb-6 shadow-lg">
 											<ShieldCheck className="text-primary w-8 h-8" />
 										</div>
-										<h2 className="text-2xl font-semibold tracking-tight">Security Check</h2>
+										<h2 className="text-2xl font-semibold">Security Check</h2>
 										<p className="text-muted-foreground mt-2">Enter the code from your app</p>
 									</div>
 
 									<form onSubmit={handle2FASubmit} className="space-y-6">
 										<div className="space-y-2">
 											<div className={`
-												group relative rounded-2xl bg-muted/30 border border-transparent 
-												focus-within:bg-background focus-within:border-primary/20 focus-within:shadow-xl focus-within:shadow-primary/5
+												group relative rounded-inner bg-muted/30
+												focus-within:bg-background focus-within:shadow-xl focus-within:shadow-primary/5
 												transition-all duration-300
-												${error ? "border-destructive/50 bg-destructive/5" : ""}
+												${error ? "bg-destructive/5" : ""}
 											`}>
 												<input
 													type="text"
 													autoFocus
 													value={mfaCode}
 													onChange={(e) => setMfaCode(e.target.value)}
-													className="w-full bg-transparent border-none py-4 text-center text-3xl font-mono tracking-[0.5em] placeholder:text-muted-foreground/20 focus:outline-none"
+													className="w-full bg-transparent py-4 text-center text-3xl font-mono placeholder:text-muted-foreground/20"
 													placeholder="000000"
 													maxLength={6}
 													disabled={isLoading}
@@ -592,7 +597,7 @@ export const LoginPage = () => {
 										<button
 											type="submit"
 											disabled={isLoading || mfaCode.length !== 6}
-											className="w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-2xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+											className="w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-button shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
 										>
 											{isLoading ? (
 												<Loader2 size={20} className="animate-spin" />
@@ -611,7 +616,11 @@ export const LoginPage = () => {
 											className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
 											onClick={() => {
 												setStep('email');
+												setMfaFactorId(null);
+												setMfaChallengeId(null);
 												setMfaCode('');
+												setPassword('');
+												setError('');
 											}}
 										>
 											Use a different account
@@ -625,14 +634,14 @@ export const LoginPage = () => {
 
 					{/* FOOTER */}
 					<div className="absolute bottom-6 text-center w-full opacity-30">
-						<p className="text-[10px] font-bold tracking-[0.3em] uppercase">
-							SECURE CONNECTION • 256-BIT
+						<p className="text-[11px] font-semibold">
+							Public sign-in
 						</p>
 					</div>
 				</div>
 			</div>
 
-			<div className="fixed bottom-6 right-6 z-50 p-1.5 rounded-full glass-card shadow-lg">
+			<div className="fixed bottom-6 right-6 z-50 p-1.5 rounded-button glass-card shadow-lg">
 				<ThemeToggle />
 			</div>
 		</div>

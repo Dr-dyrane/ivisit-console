@@ -1,150 +1,60 @@
-import { useState, useEffect, useCallback } from 'react';
-import { 
-  getInsurancePolicies, 
-  createInsurancePolicy, 
-  updateInsurancePolicy, 
-  deleteInsurancePolicy,
-  updatePolicyStatus,
-  verifyInsurancePolicy,
-  getInsuranceAnalytics,
-  subscribeToInsurancePolicies
-} from '../services/insuranceService';
-import { subscribeToInsurancePolicies as subscribe } from '../services/insurancePoliciesService';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useCallback } from 'react';
 
 export const useInsurance = () => {
-  const { user, profile } = useAuth();
   const [insurancePolicies, setInsurancePolicies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [analytics, setAnalytics] = useState(null);
+  const [analytics] = useState(null);
 
-  // Fetch insurance policies
-  const fetchInsurancePolicies = useCallback(async (filter) => {
-    // PULLBACK NOTE: Only fetch if user is authenticated
-    // OLD: Fetch on mount regardless of auth state
-    // NEW: Only fetch when user is available
-    if (!user || !user.id) {
-      console.log('User not authenticated, skipping insurance policies fetch');
-      return;
-    }
+  const showUnavailableCommand = useCallback((message) => {
+    const unavailableError = new Error(message);
+    setError(message);
+    throw unavailableError;
+  }, []);
 
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getInsurancePolicies(filter);
-      setInsurancePolicies(data);
-    } catch (err) {
-      setError(err.message || 'Failed to fetch insurance policies');
-      console.error('Error fetching insurance policies:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+  // Legacy hook compatibility. Active reads are route-owned by getInsurancePage().
+  const fetchInsurancePolicies = useCallback(async () => {
+    setInsurancePolicies([]);
+    setLoading(false);
+    return showUnavailableCommand(
+      'Insurance policy list reads are unavailable; use getInsurancePage() from insuranceService.'
+    );
+  }, [showUnavailableCommand]);
 
   // Create insurance policy
-  const createPolicy = useCallback(async (policyData) => {
-    try {
-      const newPolicy = await createInsurancePolicy(policyData);
-      setInsurancePolicies((prev) => [newPolicy, ...prev]);
-      return newPolicy;
-    } catch (err) {
-      setError(err.message || 'Failed to create insurance policy');
-      throw err;
-    }
-  }, []);
+  const createPolicy = useCallback(async () => showUnavailableCommand(
+    'Insurance policy create is unavailable until admin policy authority is verified.'
+  ), [showUnavailableCommand]);
 
   // Update insurance policy
-  const updatePolicy = useCallback(async (id, updates) => {
-    try {
-      const updatedPolicy = await updateInsurancePolicy(id, updates);
-      setInsurancePolicies((prev) => 
-        prev.map((policy) => policy.id === id ? { ...policy, ...updatedPolicy } : policy)
-      );
-      return updatedPolicy;
-    } catch (err) {
-      setError(err.message || 'Failed to update insurance policy');
-      throw err;
-    }
-  }, []);
+  const updatePolicy = useCallback(async () => showUnavailableCommand(
+    'Insurance policy update is unavailable until admin policy authority is verified.'
+  ), [showUnavailableCommand]);
 
   // Delete insurance policy
-  const deletePolicy = useCallback(async (id) => {
-    try {
-      await deleteInsurancePolicy(id);
-      setInsurancePolicies((prev) => prev.filter((policy) => policy.id !== id));
-    } catch (err) {
-      setError(err.message || 'Failed to delete insurance policy');
-      throw err;
-    }
-  }, []);
+  const deletePolicy = useCallback(async () => showUnavailableCommand(
+    'Insurance policy delete is unavailable until admin policy authority is verified.'
+  ), [showUnavailableCommand]);
 
   // Update policy status
-  const updateStatus = useCallback(async (id, status) => {
-    try {
-      const updatedPolicy = await updatePolicyStatus(id, status);
-      setInsurancePolicies((prev) => 
-        prev.map((policy) => policy.id === id ? { ...policy, ...updatedPolicy } : policy)
-      );
-      return updatedPolicy;
-    } catch (err) {
-      setError(err.message || 'Failed to update policy status');
-      throw err;
-    }
-  }, []);
+  const updateStatus = useCallback(async () => showUnavailableCommand(
+    'Insurance policy status update is unavailable until admin policy authority is verified.'
+  ), [showUnavailableCommand]);
 
   // Verify policy
-  const verifyPolicy = useCallback(async (id, verified) => {
-    try {
-      const updatedPolicy = await verifyInsurancePolicy(id, verified);
-      setInsurancePolicies((prev) => 
-        prev.map((policy) => policy.id === id ? { ...policy, ...updatedPolicy } : policy)
-      );
-      return updatedPolicy;
-    } catch (err) {
-      setError(err.message || 'Failed to verify policy');
-      throw err;
-    }
-  }, []);
+  const verifyPolicy = useCallback(async () => showUnavailableCommand(
+    'Insurance policy verification is unavailable until admin policy authority is verified.'
+  ), [showUnavailableCommand]);
 
   // Fetch analytics
-  const fetchAnalytics = useCallback(async () => {
-    try {
-      const data = await getInsuranceAnalytics();
-      setAnalytics(data);
-      return data;
-    } catch (err) {
-      setError(err.message || 'Failed to fetch analytics');
-      throw err;
-    }
-  }, []);
+  const fetchAnalytics = useCallback(async () => showUnavailableCommand(
+    'Insurance analytics are unavailable until route-wide distribution scope is verified.'
+  ), [showUnavailableCommand]);
 
   // Clear error
   const clearError = useCallback(() => {
     setError(null);
   }, []);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchInsurancePolicies();
-  }, [fetchInsurancePolicies]);
-
-  // Set up real-time subscription
-  useEffect(() => {
-    // PULLBACK NOTE: Only subscribe if user is authenticated
-    // OLD: Subscribe regardless of auth state
-    // NEW: Only subscribe when user is available
-    if (!user || !user.id) {
-      return;
-    }
-
-    const unsubscribe = subscribeToInsurancePolicies((payload) => {
-      console.log('Insurance policy change:', payload);
-      fetchInsurancePolicies(); // Refetch on any change
-    });
-
-    return unsubscribe;
-  }, [fetchInsurancePolicies, user]);
 
   return {
     insurancePolicies,

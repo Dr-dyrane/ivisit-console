@@ -26,6 +26,23 @@ import {
     Info
 } from 'lucide-react';
 
+const formatSourceLabel = (value, fallback) => {
+    const label = String(value || fallback || '').trim();
+    if (!label) return 'Source pending';
+    return label
+        .split(' ')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+};
+
+const getPricingAmount = (item) => {
+    const value = item.amount ?? item.base_price ?? item.price_per_night ?? 0;
+    const amount = Number(value);
+    return Number.isFinite(amount) ? amount : 0;
+};
+
+const getUpdatedAt = (item) => item.updatedAt || item.updated_at || item.created_at;
+
 export const PricingTableView = ({
     pricing,
     onView,
@@ -34,7 +51,8 @@ export const PricingTableView = ({
     selectedIds = [],
     onSelect,
     onSelectAll,
-    canEdit
+    canEdit,
+    selectionEnabled = true
 }) => {
     if (!pricing || pricing.length === 0) return null;
 
@@ -54,13 +72,15 @@ export const PricingTableView = ({
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-border/20">
-                            <th className="w-12 p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
-                                <Checkbox
-                                    checked={selectedIds.length === pricing.length && pricing.length > 0}
-                                    onCheckedChange={(checked) => onSelectAll(checked)}
-                                    aria-label="Select all"
-                                />
-                            </th>
+                            {selectionEnabled && (
+                                <th className="w-12 p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
+                                    <Checkbox
+                                        checked={selectedIds.length === pricing.length && pricing.length > 0}
+                                        onCheckedChange={(checked) => onSelectAll?.(checked)}
+                                        aria-label="Select all"
+                                    />
+                                </th>
+                            )}
                             <th className="text-left p-4 font-bold text-sm uppercase tracking-wider text-muted-foreground">
                                 Service / Item
                             </th>
@@ -85,6 +105,11 @@ export const PricingTableView = ({
                         {pricing.map((item, index) => {
                             const isGlobal = !item.organization_id && !item.hospital_id;
                             const isEditable = canEdit(item);
+                            const name = item.name || item.service_name || item.room_name || 'Unnamed price';
+                            const type = item.type || item.service_type || item.room_type || 'General';
+                            const sourceLabel = formatSourceLabel(item.sourceLabel || item.source_label, isGlobal ? 'platform fallback' : 'facility price');
+                            const facilityLabel = item.facilityName || item.facility_name;
+                            const updatedAt = getUpdatedAt(item);
 
                             return (
                                 <tr
@@ -92,33 +117,35 @@ export const PricingTableView = ({
                                     className={`border-b border-border/10 hover:bg-muted/20 transition-colors ${index % 2 === 0 ? 'bg-background/20' : 'bg-transparent'
                                         }`}
                                 >
-                                    <td className="p-4">
-                                        <Checkbox
-                                            checked={selectedIds.includes(item.id)}
-                                            onCheckedChange={(checked) => onSelect(item.id, checked)}
-                                            aria-label={`Select item ${item.service_name || item.room_name}`}
-                                        />
-                                    </td>
+                                    {selectionEnabled && (
+                                        <td className="p-4">
+                                            <Checkbox
+                                                checked={selectedIds.includes(item.id)}
+                                                onCheckedChange={(checked) => onSelect?.(item.id, checked)}
+                                                aria-label={`Select item ${name}`}
+                                            />
+                                        </td>
+                                    )}
                                     <td className="p-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 geo-round bg-primary/10 flex items-center justify-center shrink-0">
-                                                {getTypeIcon(item.service_type || item.room_type)}
+                                                {getTypeIcon(type)}
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-normal text-foreground">
-                                                        {item.service_name || item.room_name}
+                                                        {name}
                                                     </span>
                                                 </div>
                                                 <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                                                    {item.service_type || item.room_type}
+                                                    {type}
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="p-4">
                                         <span className="font-bold text-foreground">
-                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency || 'USD' }).format(item.base_price || item.price_per_night || 0)}
+                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency || 'USD' }).format(getPricingAmount(item))}
                                         </span>
                                     </td>
                                     <td className="p-4 text-sm text-muted-foreground">
@@ -128,14 +155,19 @@ export const PricingTableView = ({
                                         <Badge className={`geo-sharp border-0 px-2 py-1 ${isGlobal ? 'bg-primary/20 text-primary' : 'bg-success/20 text-success'}`}>
                                             <div className="flex items-center gap-1.5 uppercase tracking-tighter font-black text-[9px]">
                                                 {isGlobal ? <Globe className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
-                                                {isGlobal ? 'Global' : 'Override'}
+                                                {sourceLabel}
                                             </div>
                                         </Badge>
+                                        {facilityLabel && (
+                                            <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+                                                {facilityLabel}
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="p-4 text-sm text-muted-foreground">
                                         <div className="flex items-center gap-2">
                                             <Clock className="h-3.5 w-3.5" />
-                                            <span>{new Date(item.updated_at || item.created_at).toLocaleDateString()}</span>
+                                            <span>{updatedAt ? new Date(updatedAt).toLocaleDateString() : 'N/A'}</span>
                                         </div>
                                     </td>
                                     <td className="p-4">

@@ -28,6 +28,278 @@
     <meta property="og:image" content="%PUBLIC_URL%/og-image.png" />
     <meta name="twitter:card" content="summary_large_image" />
 
+    <script>
+        (function () {
+            var staleAssetReloadKey = "ivisit-console:stale-asset-reload";
+            var staleAssetCooldownMs = 60000;
+            var staleAssetOverlaySuppressMs = 5000;
+
+            function isHtmlAssetParseFailureMessage(message) {
+                return (
+                    /Unexpected token ['"]?</i.test(message) ||
+                    /Unexpected token .*?</i.test(message) ||
+                    /expected expression, got ['"]?</i.test(message) ||
+                    /<!doctype html/i.test(message)
+                );
+            }
+
+            function isStaleAssetMessage(value) {
+                var message = String((value && value.message) || value || "");
+
+                return (
+                    /ChunkLoadError/i.test(message) ||
+                    /Loading chunk .+ failed/i.test(message) ||
+                    /Loading hot update chunk .+ failed/i.test(message) ||
+                    /dynamically imported module/i.test(message) ||
+                    /hot-update/i.test(message) ||
+                    isHtmlAssetParseFailureMessage(message)
+                );
+            }
+
+            function isStaleAssetStack(value) {
+                var stack = String((value && value.stack) || "");
+
+                return (
+                    stack.indexOf("/static/js/") !== -1 ||
+                    /\.chunk\.js/i.test(stack) ||
+                    /\.hot-update\.js/i.test(stack) ||
+                    /webpackChunk/i.test(stack)
+                );
+            }
+
+            function markStaleAssetOverlaySuppressed() {
+                try {
+                    window.__ivisitConsoleStaleAssetSuppressUntil = Date.now() + staleAssetOverlaySuppressMs;
+                } catch (_error) { }
+            }
+
+            function isStaleAssetRecoveryActive() {
+                try {
+                    var url = new URL(window.location.href);
+                    if (url.searchParams.has("__asset_refresh")) return true;
+
+                    var key = staleAssetReloadKey + ":" + window.location.pathname;
+                    var previousReloadAt = Number(sessionStorage.getItem(key) || 0);
+
+                    return Boolean(previousReloadAt && Date.now() - previousReloadAt < staleAssetCooldownMs);
+                } catch (_error) {
+                    return false;
+                }
+            }
+
+            function shouldSuppressRuntimeOverlay(value) {
+                var suppressUntil = Number(window.__ivisitConsoleStaleAssetSuppressUntil || 0);
+                var isMarkedStaleAsset = suppressUntil && Date.now() < suppressUntil;
+                var isKnownStaleAsset = isStaleAssetMessage(value);
+
+                if (isKnownStaleAsset) return true;
+
+                return (
+                    (isMarkedStaleAsset || isStaleAssetRecoveryActive()) &&
+                    isStaleAssetStack(value)
+                );
+            }
+
+            window.__ivisitConsoleShouldSuppressRuntimeOverlay = shouldSuppressRuntimeOverlay;
+
+            function isAppAssetUrl(value) {
+                if (!value) return false;
+
+                try {
+                    var url = new URL(String(value), window.location.href);
+                    var pathname = url.pathname || "";
+
+                    return (
+                        url.origin === window.location.origin &&
+                        (
+                            pathname.indexOf("/static/js/") !== -1 ||
+                            /\.chunk\.js$/.test(pathname) ||
+                            /\.hot-update\.js$/.test(pathname) ||
+                            /\.(?:jsx|mjs)$/.test(pathname) ||
+                            /\/(?:bundle|main|runtime~main)(?:\.[^/]+)?\.js$/.test(pathname)
+                        )
+                    );
+                } catch (_error) {
+                    return false;
+                }
+            }
+
+            function isConsoleCacheName(name) {
+                return /ivisit|workbox|precache|webpack|runtime|static/i.test(String(name || ""));
+            }
+
+            function clearConsoleCaches() {
+                try {
+                    if (!("caches" in window) || !window.caches.keys) {
+                        return Promise.resolve();
+                    }
+
+                    return window.caches.keys()
+                        .then(function (keys) {
+                            return Promise.all(keys
+                                .filter(isConsoleCacheName)
+                                .map(function (key) {
+                                    return window.caches.delete(key);
+                                }));
+                        })
+                        .catch(function () { });
+                } catch (_error) {
+                    return Promise.resolve();
+                }
+            }
+
+            function isSupabaseAuthLockAbort(value) {
+                var name = String((value && value.name) || "");
+                var message = String((value && value.message) || value || "");
+
+                return (
+                    /AbortError/i.test(name + " " + message) &&
+                    /signal is aborted without reason/i.test(message)
+                );
+            }
+
+            function getStaleAssetReloadUrl() {
+                try {
+                    var url = new URL(window.location.href);
+                    url.searchParams.set("__asset_refresh", String(Date.now()));
+                    return url.toString();
+                } catch (_error) {
+                    return window.location.href;
+                }
+            }
+
+            function showStaleAssetFallback() {
+                try {
+                    var root = document.getElementById("root");
+                    if (!root) return;
+
+                    root.innerHTML = [
+                        '<main role="alert" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0b0b0f;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:24px;">',
+                        '<section style="width:min(420px,100%);border-radius:24px;background:rgba(255,255,255,0.08);padding:24px;box-shadow:0 24px 80px rgba(0,0,0,0.28);">',
+                        '<p style="margin:0 0 8px;font-size:13px;color:#a7f3d0;">Refresh needed</p>',
+                        '<h1 style="margin:0 0 10px;font-size:24px;line-height:1.15;">The console updated.</h1>',
+                        '<p style="margin:0 0 20px;color:#cbd5e1;font-size:15px;line-height:1.45;">Refresh to continue with the latest files.</p>',
+                        '<button id="ivisit-stale-asset-refresh" type="button" style="width:100%;border:0;border-radius:16px;background:#f8fafc;color:#0b0b0f;font-weight:700;font-size:15px;padding:13px 16px;cursor:pointer;">Refresh</button>',
+                        '</section>',
+                        '</main>'
+                    ].join("");
+
+                    var refreshButton = document.getElementById("ivisit-stale-asset-refresh");
+                    if (refreshButton) {
+                        refreshButton.addEventListener("click", function () {
+                            window.location.replace(getStaleAssetReloadUrl());
+                        });
+                    }
+                } catch (_error) { }
+            }
+
+            function reloadOnceForStaleAsset() {
+                try {
+                    markStaleAssetOverlaySuppressed();
+
+                    var key = staleAssetReloadKey + ":" + window.location.pathname;
+                    var previousReloadAt = Number(sessionStorage.getItem(key) || 0);
+                    var now = Date.now();
+
+                    if (previousReloadAt && now - previousReloadAt < staleAssetCooldownMs) {
+                        return false;
+                    }
+
+                    sessionStorage.setItem(key, String(now));
+                    window.setTimeout(function () {
+                        clearConsoleCaches().then(function () {
+                            window.location.replace(getStaleAssetReloadUrl());
+                        });
+                    }, 0);
+                    return true;
+                } catch (_error) {
+                    return false;
+                }
+            }
+
+            function handleStaleAssetFailure() {
+                if (!reloadOnceForStaleAsset()) showStaleAssetFallback();
+            }
+
+            window.__ivisitConsoleHandleStaleAssetFailure = handleStaleAssetFailure;
+
+            window.addEventListener("error", function (event) {
+                var target = event && event.target;
+                var scriptSrc = target && target.tagName === "SCRIPT" ? String(target.src || "") : "";
+                var filename = String((event && event.filename) || "");
+                var isAppScript = isAppAssetUrl(scriptSrc || filename);
+
+                if (isSupabaseAuthLockAbort(event && (event.error || event.message))) {
+                    event.preventDefault();
+                    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+                    return;
+                }
+
+                if (!isAppScript && !isStaleAssetMessage(event && (event.error || event.message))) return;
+                handleStaleAssetFailure();
+
+                event.preventDefault();
+                if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            }, true);
+
+            var previousWindowOnError = window.onerror;
+            window.onerror = function (message, source, lineno, colno, error) {
+                if (isSupabaseAuthLockAbort(error || message)) {
+                    return true;
+                }
+
+                if (isAppAssetUrl(source) || isStaleAssetMessage(error || message)) {
+                    handleStaleAssetFailure();
+                    return true;
+                }
+
+                if (typeof previousWindowOnError === "function") {
+                    return previousWindowOnError.apply(window, arguments);
+                }
+
+                return false;
+            };
+
+            window.addEventListener("unhandledrejection", function (event) {
+                if (isSupabaseAuthLockAbort(event && event.reason)) {
+                    event.preventDefault();
+                    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+                    return;
+                }
+
+                if (!isStaleAssetMessage(event && event.reason)) return;
+                handleStaleAssetFailure();
+
+                event.preventDefault();
+                if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            }, true);
+
+            var isLocalhost =
+                window.location.hostname === "localhost" ||
+                window.location.hostname === "127.0.0.1" ||
+                window.location.hostname === "[::1]";
+
+            if (!isLocalhost || !("serviceWorker" in navigator)) return;
+
+            var reloadKey = "ivisit-console:localhost-service-worker-cleanup";
+
+            navigator.serviceWorker.getRegistrations()
+                .then(function (registrations) {
+                    return Promise.all(registrations.map(function (registration) {
+                        return registration.unregister();
+                    })).then(function () {
+                        return clearConsoleCaches();
+                    }).then(function () {
+                        if (!registrations.length) return;
+                        if (!navigator.serviceWorker.controller || sessionStorage.getItem(reloadKey)) return;
+                        sessionStorage.setItem(reloadKey, String(Date.now()));
+                        window.location.reload();
+                    });
+                })
+                .catch(function () { });
+        })();
+    </script>
+
     <title>iVisit Console</title>
 </head>
 
@@ -35,7 +307,16 @@
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <script>
-        !(function (t, e) {
+        (function () {
+            var isLocalhost =
+                window.location.hostname === "localhost" ||
+                window.location.hostname === "127.0.0.1" ||
+                window.location.hostname === "::1" ||
+                window.location.hostname === "[::1]";
+
+            if (isLocalhost) return;
+
+            !(function (t, e) {
             var o, n, p, r;
             e.__SV ||
                 ((window.posthog = e),
@@ -70,15 +351,16 @@
                         e._i.push([i, s, a]);
                     }),
                     (e.__SV = 1));
-        })(document, window.posthog || []);
-        posthog.init("phc_xAvL2Iq4tFmANRE7kzbKwaSqp1HJjN7x48s3vr0CMjs", {
-            api_host: "https://us.i.posthog.com",
-            person_profiles: "identified_only",
-            session_recording: {
-                recordCrossOriginIframes: true,
-                recordCanvas: false,
-            },
-        });
+            })(document, window.posthog || []);
+            posthog.init("phc_xAvL2Iq4tFmANRE7kzbKwaSqp1HJjN7x48s3vr0CMjs", {
+                api_host: "https://us.i.posthog.com",
+                person_profiles: "identified_only",
+                session_recording: {
+                    recordCrossOriginIframes: true,
+                    recordCanvas: false,
+                },
+            });
+        })();
     </script>
 </body>
 

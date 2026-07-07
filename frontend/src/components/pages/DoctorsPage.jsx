@@ -1,207 +1,221 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '../../lib/supabase';
-import { getDoctors, deleteDoctor } from '../../services/doctorsService';
+import { useDoctorsQuery } from '../../hooks/useDoctorsQuery';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
-import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
-import { getCurrentUser, applyAuthFilter } from '../../services/authService';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
-import { Stethoscope, Plus, Edit, Trash2, Eye, Hospital, Star, Phone, ChevronRight, Filter, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { motion, LayoutGroup } from 'framer-motion';
-import { toast } from "sonner";
-import { handleApiError } from "../../utils/errorHandler";
+import {
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Edit,
+  Eye,
+  Filter,
+  Hospital,
+  Phone,
+  Plus,
+  Stethoscope,
+  UserRound,
+  Users,
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { DoctorModal } from '../modals/DoctorModal';
 import { ViewToggle } from '../common/ViewToggle';
-import { BulkActionBar } from '../common/BulkActionBar';
 import { FilterSheet } from '../common/FilterSheet';
 import { DoctorListView } from '../views/DoctorListView';
 import { DoctorTableView } from '../views/DoctorTableView';
-import { withTimeout } from '../../lib/utils';
 import { SEOHead } from '../common/SEOHead';
-import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { MobileDoctors } from '../mobile/MobileDoctors';
 
-import { usePageData } from '../../contexts/PageDataContext';
+const staffStatusMeta = {
+  available: {
+    label: 'Available',
+    className: 'bg-emerald-400/12 text-emerald-300 shadow-[0_12px_36px_rgba(16,185,129,0.12)]',
+    icon: CheckCircle2,
+  },
+  on_call: {
+    label: 'On call',
+    className: 'bg-sky-400/12 text-sky-300 shadow-[0_12px_36px_rgba(14,165,233,0.12)]',
+    icon: Phone,
+  },
+  busy: {
+    label: 'Busy',
+    className: 'bg-amber-400/12 text-amber-300 shadow-[0_12px_36px_rgba(245,158,11,0.12)]',
+    icon: Clock,
+  },
+  off_duty: {
+    label: 'Away',
+    className: 'bg-muted/34 text-muted-foreground',
+    icon: UserRound,
+  },
+};
+
+const normalizeStaffStatus = (status) => String(status || 'available').toLowerCase();
+
+const getStaffStatusMeta = (status) => staffStatusMeta[normalizeStaffStatus(status)] || staffStatusMeta.available;
+
+const getInitials = (name = 'Staff') => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  return `${parts[0]?.[0] || 'S'}${parts[1]?.[0] || ''}`.toUpperCase();
+};
+
+const staffFilterCards = [
+  {
+    id: 'all',
+    label: 'Staff',
+    icon: Users,
+    activeClass: 'bg-sky-400/12 text-sky-300 shadow-[0_18px_54px_rgba(14,165,233,0.18)]',
+    restClass: 'bg-muted/28 text-muted-foreground hover:bg-sky-400/10 hover:text-sky-300',
+  },
+  {
+    id: 'available',
+    label: 'Available',
+    icon: CheckCircle2,
+    activeClass: 'bg-emerald-400/12 text-emerald-300 shadow-[0_18px_54px_rgba(16,185,129,0.16)]',
+    restClass: 'bg-muted/28 text-muted-foreground hover:bg-emerald-400/10 hover:text-emerald-300',
+  },
+  {
+    id: 'on_call',
+    label: 'On call',
+    icon: Phone,
+    activeClass: 'bg-sky-400/12 text-sky-300 shadow-[0_18px_54px_rgba(14,165,233,0.16)]',
+    restClass: 'bg-muted/28 text-muted-foreground hover:bg-sky-400/10 hover:text-sky-300',
+  },
+  {
+    id: 'busy',
+    label: 'Busy',
+    icon: Clock,
+    activeClass: 'bg-amber-400/12 text-amber-300 shadow-[0_18px_54px_rgba(245,158,11,0.16)]',
+    restClass: 'bg-muted/28 text-muted-foreground hover:bg-amber-400/10 hover:text-amber-300',
+  },
+  {
+    id: 'off_duty',
+    label: 'Away',
+    icon: UserRound,
+    activeClass: 'bg-muted/50 text-foreground shadow-[0_18px_54px_rgba(0,0,0,0.12)]',
+    restClass: 'bg-muted/28 text-muted-foreground hover:bg-muted/40 hover:text-foreground',
+  },
+];
+
+const getStaffFilterCount = (id, stats) => {
+  if (id === 'all') return stats.total || 0;
+  return stats[id] || 0;
+};
+
+const getStatusList = (value) => {
+  if (Array.isArray(value)) return value.map((entry) => String(entry || '').trim()).filter(Boolean);
+  const text = String(value || '').trim();
+  return text ? [text] : [];
+};
+
+const resolveStaffStatusFilter = (filters = {}) => {
+  const sheetStatuses = getStatusList(filters.status);
+  const kpiStatus = filters.kpiFilter && filters.kpiFilter !== 'all' ? filters.kpiFilter : null;
+
+  if (!kpiStatus) {
+    return { status: sheetStatuses, forceEmpty: false, statsStatus: sheetStatuses };
+  }
+
+  if (sheetStatuses.length === 0 || sheetStatuses.includes(kpiStatus)) {
+    return { status: kpiStatus, forceEmpty: false, statsStatus: sheetStatuses };
+  }
+
+  return { status: kpiStatus, forceEmpty: true, statsStatus: sheetStatuses };
+};
+
+const hasDateFilter = (value) => Boolean(value && typeof value === 'object' && (value.start || value.end));
 
 export const DoctorsPage = () => {
-  const { isAdmin, isOrgAdmin, isProvider, orgId, profile, can } = useAuth();
+  const { isAdmin, isOrgAdmin } = useAuth();
   const { isMobile } = useNavigation();
-  const { doctorsData, refreshAllData } = usePageData();
-  const [doctors, setDoctors] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
-  const [selectedIds, setSelectedIds] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
-  const [confirmationModal, setConfirmationModal] = useState({
-    isOpen: false,
-    title: '',
-    description: '',
-    onConfirm: () => { },
-    variant: 'default'
-  });
 
   const { viewMode, setViewMode } = useViewMode('doctors-page', 'grid');
   const pagination = usePagination(20);
+  const canManageStaff = isAdmin() || isOrgAdmin();
 
-  // Filter doctors based on KPI filter and other filters
-  const filteredDoctors = useMemo(() => {
-    let filtered = [...doctors];
-
-    // Apply KPI filter
-    if (filters.kpiFilter && filters.kpiFilter !== 'all') {
-      filtered = filtered.filter(d => d.status === filters.kpiFilter);
-    }
-
-    // Apply search filter
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(d =>
-        (d.name || '').toLowerCase().includes(searchTerm) ||
-        (d.first_name ? `${d.first_name} ${d.last_name}`.toLowerCase().includes(searchTerm) : false) ||
-        (d.specialization || '').toLowerCase().includes(searchTerm) ||
-        (d.phone || '').toLowerCase().includes(searchTerm)
-      );
-    }
-
-    // Apply status filter (from FilterSheet, can intersect with KPI)
-    if (filters.status && filters.status.length > 0) {
-      filtered = filtered.filter(d => filters.status.includes(d.status));
-    }
-
-    // Apply specialization filter
-    if (filters.specialization && filters.specialization.length > 0) {
-      filtered = filtered.filter(d => filters.specialization.includes(d.specialization));
-    }
-
-    // Apply Date Range filter
-    if (filters.created_at) {
-      const { start, end } = filters.created_at;
-      if (start) {
-        filtered = filtered.filter(d => new Date(d.created_at) >= new Date(start));
-      }
-      if (end) {
-        const endDate = new Date(end);
-        endDate.setHours(23, 59, 59, 999);
-        filtered = filtered.filter(d => new Date(d.created_at) <= endDate);
-      }
-    }
-
-    return filtered;
-  }, [doctors, filters]);
-
-  // Apply Client-Side Sorting
-  const processedDoctors = useMemo(() => {
-    let result = [...filteredDoctors];
+  const queryFilter = useMemo(() => {
+    const statusFilter = resolveStaffStatusFilter(filters);
+    const nextFilter = {
+      limit: isMobile ? pagination.currentPage * pagination.itemsPerPage : pagination.itemsPerPage,
+      offset: isMobile ? 0 : pagination.paginationRange.start,
+      quiet: true,
+      status: statusFilter.status,
+      forceEmpty: statusFilter.forceEmpty,
+      statsStatus: statusFilter.statsStatus,
+    };
+    if (filters.search) nextFilter.search = filters.search;
+    if (filters.specialization) nextFilter.specialization = filters.specialization;
+    if (hasDateFilter(filters.created_at)) nextFilter.created_at = filters.created_at;
     if (sortConfig.key) {
-      result.sort((a, b) => {
-        const aVal = a[sortConfig.key] || '';
-        const bVal = b[sortConfig.key] || '';
-        if (typeof aVal === 'string' && typeof bVal === 'string') {
-          return sortConfig.direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-        }
-        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
+      nextFilter.sortKey = sortConfig.key;
+      nextFilter.sortDirection = sortConfig.direction;
     }
-    return result;
-  }, [filteredDoctors, sortConfig]);
+    return nextFilter;
+  }, [
+    filters.kpiFilter,
+    filters.search,
+    filters.specialization,
+    filters.status,
+    filters.created_at,
+    isMobile,
+    pagination.currentPage,
+    pagination.itemsPerPage,
+    pagination.paginationRange.start,
+    sortConfig.direction,
+    sortConfig.key,
+  ]);
 
-  const paginatedDoctors = useMemo(() => {
-    if (isAdmin() || isOrgAdmin()) {
-      const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
-      return processedDoctors.slice(startIndex, startIndex + pagination.itemsPerPage);
-    }
-    return processedDoctors;
-  }, [processedDoctors, pagination.currentPage, pagination.itemsPerPage, isAdmin, isOrgAdmin]);
+  const { doctors, count, stats: staffStats, loading, refetch } = useDoctorsQuery(queryFilter);
 
-  const mobileVisibleDoctors = useMemo(() => {
-    if (isAdmin() || isOrgAdmin()) {
-      const visibleCount = pagination.currentPage * pagination.itemsPerPage;
-      return processedDoctors.slice(0, visibleCount);
-    }
-    return processedDoctors;
-  }, [processedDoctors, pagination.currentPage, pagination.itemsPerPage, isAdmin, isOrgAdmin]);
+  const derivedStats = useMemo(() => {
+    const stats = staffStats || {};
+    return {
+      total: Number(stats.total) || count,
+      totalDoctors: Number(stats.totalDoctors) || Number(stats.total) || count,
+      available: Number(stats.available) || 0,
+      on_call: Number(stats.on_call) || 0,
+      onCall: Number(stats.onCall ?? stats.on_call) || 0,
+      busy: Number(stats.busy) || 0,
+      off_duty: Number(stats.off_duty) || 0,
+      exactCounts: Boolean(stats.exactCounts),
+    };
+  }, [staffStats, count]);
 
-  // Reset pagination when filters change
+  const staffRows = useMemo(() => (Array.isArray(doctors) ? doctors : []), [doctors]);
+
+  useEffect(() => {
+    pagination.setTotalCount(count);
+  }, [count, pagination.setTotalCount]);
+
+  const paginatedDoctors = staffRows;
+  const mobileVisibleDoctors = staffRows;
+
   useEffect(() => {
     pagination.resetPagination();
-  }, [filters, pagination.resetPagination]);
+  }, [filters, pagination.resetPagination, sortConfig]);
 
-  const fetchDoctors = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      // For admins and org admins, fetch all doctors for client-side filtering/sorting
-      const isPrivileged = isAdmin() || isOrgAdmin();
-      const limit = isPrivileged ? 1000 : pagination.itemsPerPage;
-      const offset = isPrivileged ? 0 : pagination.paginationRange.start;
-
-      const filter = { limit, offset };
-
-      // Apply any additional filters from the UI
-      if (filters.search) {
-        filter.search = filters.search;
-      }
-      if (filters.specialization) {
-        filter.specialization = filters.specialization;
-      }
-      if (filters.status) {
-        filter.status = filters.status;
-      }
-
-      // Call Service - RBAC is handled in the service layer
-      const { data, count } = await withTimeout(getDoctors(filter), 8000, 'Failed to load doctors - timeout');
-
-      if (isPrivileged) {
-        // For privileged users, manage pagination client-side
-        pagination.setTotalCount(data?.length || 0);
-        setDoctors(data || []); // Store all for client-side filtering
-      } else {
-        pagination.setTotalCount(count || 0);
-        setDoctors(data || []);
-      }
-
-    } catch (error) {
-      console.error('Error fetching doctors:', error);
-      toast.error(error.message || 'Failed to load doctors');
-    } finally {
-      setLoading(false);
-    }
-  }, [isAdmin, isOrgAdmin, pagination.itemsPerPage, pagination.paginationRange.start, filters]);
-
-  useEffect(() => {
-    fetchDoctors();
-  }, [fetchDoctors, pagination.currentPage]);
+  const fetchDoctors = refetch;
 
   const handleCreate = useCallback(() => {
+    if (!canManageStaff) return;
     setSelectedDoctor(null);
     setModalMode('create');
-  }, []);
+  }, [canManageStaff]);
 
-  // Handle custom events from context panel
   useEffect(() => {
-    const handleOpenModal = () => {
-      handleCreate();
-    };
-    const handleOpenFilters = () => {
-      setFilterSheetOpen(true);
-    };
-    const handleOpenAnalytics = () => {
-      setAnalyticsModalOpen(true);
-    };
+    const handleOpenModal = () => handleCreate();
+    const handleOpenFilters = () => setFilterSheetOpen(true);
+    const handleOpenAnalytics = () => setAnalyticsModalOpen(true);
 
     window.addEventListener('openDoctorModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
@@ -220,120 +234,35 @@ export const DoctorsPage = () => {
   }, []);
 
   const handleEdit = useCallback((doctor) => {
+    if (!canManageStaff) return;
     setSelectedDoctor(doctor);
     setModalMode('edit');
-  }, []);
-
-  const handleDelete = useCallback(async (doctor) => {
-    try {
-      await deleteDoctor(doctor.id);
-
-      await createNotification(
-        NotificationTypes.DOCTOR,
-        NotificationActions.DELETED,
-        doctor.id,
-        { message: `Dr. ${doctor.name} has been removed from the system` }
-      );
-      toast.success('Doctor deleted successfully');
-      setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-      fetchDoctors();
-    } catch (error) {
-      console.error('Error deleting doctor:', error);
-      toast.error('Failed to delete doctor');
-    }
-  }, [fetchDoctors]);
-
-  // Confirmation modal for delete
-  const confirmDelete = useCallback((doctor) => {
-    setConfirmationModal({
-      isOpen: true,
-      title: 'Delete Doctor',
-      description: `Are you sure you want to delete Dr. ${doctor.name}? This action cannot be undone.`,
-      variant: 'destructive',
-      confirmLabel: 'Delete',
-      onConfirm: () => handleDelete(doctor)
-    });
-  }, [handleDelete]);
-
-  // Selection Handlers
-  const handleSelect = useCallback((id, checked) => {
-    setSelectedIds(prev => {
-      if (checked === undefined) {
-        return prev.includes(id) ? prev.filter(did => did !== id) : [...prev, id];
-      }
-      return checked ? [...prev, id] : prev.filter(did => did !== id);
-    });
-  }, []);
-
-  const handleSelectAll = useCallback((checked, source = paginatedDoctors) => {
-    const ids = Array.isArray(source) ? source.map(d => d.id) : [];
-    if (checked) {
-      setSelectedIds(ids);
-    } else {
-      setSelectedIds([]);
-    }
-  }, [paginatedDoctors]);
+  }, [canManageStaff]);
 
   const handleSort = useCallback((key) => {
     setSortConfig(prev => {
-      if (prev.key === key && prev.direction === 'desc') {
-        return { key: '', direction: 'asc' }; // Reset
-      }
+      if (prev.key === key && prev.direction === 'desc') return { key: '', direction: 'asc' };
       return {
         key,
-        direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+        direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
       };
     });
   }, []);
 
-  // Bulk delete handler
-  const handleBulkDelete = useCallback(() => {
-    setConfirmationModal({
-      isOpen: true,
-      title: 'Delete Selected Doctors',
-      description: `Are you sure you want to delete ${selectedIds.length} doctors? This action cannot be undone.`,
-      variant: 'destructive',
-      confirmLabel: 'Delete All',
-      onConfirm: async () => {
-        try {
-          // Delete all selected doctors
-          await Promise.all(selectedIds.map(id => deleteDoctor(id)));
-          toast.success(`${selectedIds.length} doctors deleted successfully`);
-          setSelectedIds([]);
-          fetchDoctors();
-        } catch (err) {
-          console.error("Bulk delete failed", err);
-          handleApiError(err, 'delete');
-        }
-        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-      }
-    });
-  }, [selectedIds, fetchDoctors]);
-
   const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
     setSelectedDoctor(null);
-    if (shouldRefresh) {
-      fetchDoctors();
-    }
+    if (shouldRefresh) fetchDoctors();
   }, [fetchDoctors]);
 
-  const getStatusBadge = (status) => {
-    const badges = {
-      available: 'bg-success/20 text-success',
-      busy: 'bg-warning/20 text-warning',
-      off_duty: 'bg-muted text-muted-foreground',
-      on_call: 'bg-purple-500/20 text-purple-500',
-    };
-    return badges[status] || badges.available;
-  };
+  const getStatusBadge = (status) => getStaffStatusMeta(status).className;
 
-  const filterSchema = React.useMemo(() => [
+  const filterSchema = useMemo(() => [
     {
       key: 'search',
       type: 'text',
       label: 'Search',
-      placeholder: 'Search doctors...'
+      placeholder: 'Search staff...',
     },
     {
       key: 'status',
@@ -342,9 +271,9 @@ export const DoctorsPage = () => {
       options: [
         { value: 'available', label: 'Available' },
         { value: 'busy', label: 'Busy' },
-        { value: 'off_duty', label: 'Off Duty' },
-        { value: 'on_call', label: 'On Call' },
-      ]
+        { value: 'off_duty', label: 'Away' },
+        { value: 'on_call', label: 'On call' },
+      ],
     },
     {
       key: 'specialization',
@@ -354,101 +283,116 @@ export const DoctorsPage = () => {
         { value: 'cardiology', label: 'Cardiology' },
         { value: 'neurology', label: 'Neurology' },
         { value: 'pediatrics', label: 'Pediatrics' },
-        { value: 'general', label: 'General Practitioner' },
+        { value: 'general', label: 'General' },
         { value: 'orthopedics', label: 'Orthopedics' },
         { value: 'dermatology', label: 'Dermatology' },
-      ]
+      ],
     },
     {
       key: 'created_at',
       type: 'date',
-      label: 'Added Date',
+      label: 'Added',
       placeholder: 'Select dates',
       shortcuts: [
         { label: 'Today', value: 'today' },
-        { label: 'Last 7 Days', value: '7days' },
-        { label: 'Last 30 Days', value: '30days' },
-        { label: 'This Month', value: 'month' }
-      ]
-    }
+        { label: 'Last 7 days', value: '7days' },
+        { label: 'Last 30 days', value: '30days' },
+        { label: 'This month', value: 'month' },
+      ],
+    },
   ], []);
 
-  const viewToggleComponent = React.useMemo(() => (
+  const viewToggleComponent = useMemo(() => (
     <ViewToggle value={viewMode} onChange={setViewMode} />
   ), [viewMode, setViewMode]);
 
-  const filterButtonComponent = React.useMemo(() => (
+  const filterButtonComponent = useMemo(() => (
     <Button
       variant="ghost"
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
-      aria-label="Filter doctors"
+      className="relative h-9 w-9 rounded-full bg-muted/28 text-muted-foreground shadow-sm transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
+      aria-label="Filter staff"
     >
       <Filter className="h-4 w-4" />
       {(filters.search || (filters.status && filters.status.length > 0) || (filters.specialization && filters.specialization.length > 0)) && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-sky-300" />
       )}
     </Button>
   ), [filters]);
 
-  const headerActions = React.useMemo(() => {
-    // Only Admins and Org Admins can create new doctors
-    if (isAdmin() || isOrgAdmin()) {
-      return (
-        <Button
-          onClick={handleCreate}
-          className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          ADD DOCTOR
-        </Button>
-      );
-    }
-    return null;
-  }, [isAdmin, isOrgAdmin, handleCreate]);
+  const headerActions = useMemo(() => {
+    if (!canManageStaff) return null;
+
+    return (
+      <Button
+        onClick={handleCreate}
+        className="h-9 rounded-full bg-sky-400/12 px-4 text-sm font-semibold text-sky-300 shadow-sm transition-all hover:bg-sky-400/18 active:scale-95 focus-visible:shadow-[0_0_0_3px_rgba(14,165,233,0.22)]"
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        Add staff
+      </Button>
+    );
+  }, [canManageStaff, handleCreate]);
 
   usePageHeader(
-    "Medical Staff",
+    'Staff',
     headerActions,
     !isMobile ? viewToggleComponent : null,
     filterButtonComponent
   );
 
-  const footerContent = React.useMemo(() => (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
-        <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Doctors</span>
-      </div>
-    </div>
-  ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
+  usePageFooter(null, 'status', false);
 
-  usePageFooter(footerContent, 'pagination', !loading && doctors.length > 0);
+  const activeStaffFilter = filters.kpiFilter || 'all';
+  const visibleStaffCount = count;
+  const staffPanelContext = useMemo(() => ({
+    stats: derivedStats,
+    recent: staffRows.slice(0, 4),
+    loading,
+    count,
+    canManage: canManageStaff,
+  }), [canManageStaff, count, derivedStats, loading, staffRows]);
+
+  const publishStaffRouteContext = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('doctorsRouteContextUpdated', {
+      detail: staffPanelContext,
+    }));
+  }, [staffPanelContext]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    publishStaffRouteContext();
+    window.addEventListener('requestDoctorsRouteContext', publishStaffRouteContext);
+
+    return () => {
+      window.removeEventListener('requestDoctorsRouteContext', publishStaffRouteContext);
+    };
+  }, [publishStaffRouteContext]);
 
   if (isMobile) {
     return (
       <div className="min-h-screen">
-        <SEOHead title="Medical Staff" description="Manage doctors, specialists, and medical personnel." />
+        <SEOHead title="Staff" description="Review and update staff directory records." />
 
         <MobileDoctors
           doctors={mobileVisibleDoctors}
           loading={loading}
-          statistics={doctorsData?.stats}
+          statistics={derivedStats}
           filters={filters}
           setFilters={setFilters}
           onView={handleView}
           onEdit={handleEdit}
-          onDelete={confirmDelete}
           onRefresh={fetchDoctors}
           onViewAnalytics={() => setAnalyticsModalOpen(true)}
           isAdmin={isAdmin()}
           isOrgAdmin={isOrgAdmin()}
+          canManage={canManageStaff}
           onOpenFilters={() => setFilterSheetOpen(true)}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
-          selectedIds={selectedIds}
-          onSelect={handleSelect}
-          onSelectAll={handleSelectAll}
         />
 
         {modalMode && (
@@ -467,440 +411,109 @@ export const DoctorsPage = () => {
           onApply={setFilters}
           initialValues={filters}
           viewToggle={null}
-          isMobile={true}
-        />
-
-        <ConfirmationModal
-          isOpen={confirmationModal.isOpen}
-          title={confirmationModal.title}
-          description={confirmationModal.description}
-          onConfirm={confirmationModal.onConfirm}
-          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-          variant={confirmationModal.variant}
-          confirmLabel={confirmationModal.confirmLabel}
+          isMobile
         />
 
         <AnalyticsModal
           open={analyticsModalOpen}
           onClose={() => setAnalyticsModalOpen(false)}
-          analytics={doctorsData?.stats}
+          analytics={derivedStats}
           type="doctor"
         />
       </div>
     );
   }
 
-
-
   return (
-    <div className="min-h-screen py-6 md:py-8">
-      <SEOHead title="Medical Staff" description="Manage doctors, specialists, and medical personnel." />
-      <div className="pt-2" />
+    <div className="min-h-screen py-6 md:py-8 text-foreground">
+      <SEOHead title="Staff" description="Review and update staff directory records." />
 
-      {/* Bento Overview Cards - Show in all view modes */}
-      {!loading && doctorsData?.stats && (
-        <LayoutGroup>
-          <motion.div
-            layout
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8"
-          >
-            {/* Total Doctors Card */}
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-            >
-              <Card
-                className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
-                  }`}
-                onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
-                role="button"
-                tabIndex={0}
-                aria-label="Show all doctors"
-              >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-primary" />
-                <div className="absolute top-0 right-0 p-4 z-20">
-                  <div className="relative">
-                    <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                      <Stethoscope className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
-                    </div>
-                  </div>
-                </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Staff</p>
-                    {filters.kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
-                  </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{doctorsData.stats.total || 0}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
-                      {filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
+      <div className="space-y-5 pb-10">
+        <StaffFilterStrip
+          stats={derivedStats}
+          activeFilter={activeStaffFilter}
+          setFilter={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
+        />
 
-            {/* Available Card */}
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.15 }}
-            >
-              <Card
-                className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'available' ? 'ring-2 ring-success shadow-lg' : ''
-                  }`}
-                onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'available' }))}
-                role="button"
-                tabIndex={0}
-                aria-label="Filter by available doctors"
-              >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-success" />
-                <div className="absolute top-0 right-0 p-4 z-20">
-                  <div className="relative">
-                    <div className={`absolute inset-0 ${filters.kpiFilter === 'available' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                      <Badge className={`h-5 w-5 ${filters.kpiFilter === 'available' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200 p-0 border-0 bg-transparent flex items-center justify-center`}>
-                        ✓
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Available</p>
-                    {filters.kpiFilter === 'available' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
-                  </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{doctorsData.stats.available || 0}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className="geo-round bg-success/20 text-success border-0 font-bold text-xs">
-                      ONLINE
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
+        <section className="space-y-4">
+          <div className="flex items-center justify-between px-1 text-xs font-semibold text-muted-foreground">
+            <span>{loading ? 'Loading staff' : `${visibleStaffCount} staff`}</span>
+            <span>{loading ? 'One moment' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
+          </div>
 
-            {/* On Call Card */}
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-            >
-              <Card
-                className={`h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'on_call' ? 'ring-2 ring-purple-500 shadow-lg' : ''
-                  }`}
-                onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'on_call' }))}
-                role="button"
-                tabIndex={0}
-                aria-label="Filter by on call doctors"
-              >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-info" />
-                <div className="absolute top-0 right-0 p-4 z-20">
-                  <div className="relative">
-                    <div className={`absolute inset-0 ${filters.kpiFilter === 'on_call' ? 'bg-purple-500/30' : 'bg-purple-500/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                      <Phone className={`h-5 w-5 ${filters.kpiFilter === 'on_call' ? 'text-purple-500' : 'text-muted-foreground'} transition-colors duration-200`} />
-                    </div>
-                  </div>
-                </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">On Call</p>
-                    {filters.kpiFilter === 'on_call' && <div className="h-2 w-2 rounded-full bg-purple-500 animate-pulse" />}
-                  </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{doctorsData.stats.onCall || 0}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className="squircle-3xl bg-purple-500/20 text-purple-500 border-0 font-bold text-xs">
-                      STANDBY
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
+          {loading ? (
+            <StaffSkeletonGrid />
+          ) : (
+            <>
+              {viewMode === 'grid' && (
+                visibleStaffCount === 0 ? (
+                  <StaffEmptyState canManage={canManageStaff} onCreate={handleCreate} />
+                ) : (
+                  <motion.div
+                    layout
+                    className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                    data-testid="doctors-grid"
+                  >
+                    {paginatedDoctors.map((doctor, index) => (
+                      <StaffMemberCard
+                        key={doctor.id}
+                        doctor={doctor}
+                        index={index}
+                        canManage={canManageStaff}
+                        onView={handleView}
+                        onEdit={handleEdit}
+                      />
+                    ))}
+                  </motion.div>
+                )
+              )}
 
-            {/* Busy Card */}
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.25 }}
-            >
-              <Card
-                className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'busy' ? 'ring-2 ring-warning shadow-lg' : ''
-                  }`}
-                onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'busy' }))}
-                role="button"
-                tabIndex={0}
-                aria-label="Filter by busy doctors"
-              >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-warning" />
-                <div className="absolute top-0 right-0 p-4 z-20">
-                  <div className="relative">
-                    <div className={`absolute inset-0 ${filters.kpiFilter === 'busy' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                      <Stethoscope className={`h-5 w-5 ${filters.kpiFilter === 'busy' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
-                    </div>
-                  </div>
-                </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Busy</p>
-                    {filters.kpiFilter === 'busy' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
-                  </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{doctorsData.stats.busy || 0}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className="squircle-3xl bg-warning/20 text-warning border-0 font-bold text-xs">
-                      WITH PATIENTS
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
+              {viewMode === 'list' && (
+                <DoctorListView
+                  doctors={paginatedDoctors}
+                  onView={handleView}
+                  onEdit={handleEdit}
+                  getStatusBadge={getStatusBadge}
+                  isMobile={isMobile}
+                  canManage={canManageStaff}
+                />
+              )}
 
-            {/* Off Duty Card */}
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
-            >
-              <Card
-                className={`h-full min-h-[140px] geo-wave glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'off_duty' ? 'ring-2 ring-muted shadow-lg' : ''
-                  }`}
-                onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'off_duty' }))}
-                role="button"
-                tabIndex={0}
-                aria-label="Filter by off-duty doctors"
-              >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-secondary" />
-                <div className="absolute top-0 right-0 p-4 z-20">
-                  <div className="relative">
-                    <div className={`absolute inset-0 ${filters.kpiFilter === 'off_duty' ? 'bg-muted/30' : 'bg-muted/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                      <Star className={`h-5 w-5 ${filters.kpiFilter === 'off_duty' ? 'text-muted-foreground' : 'text-muted-foreground'} transition-colors duration-200`} />
-                    </div>
-                  </div>
-                </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Off Duty</p>
-                    {filters.kpiFilter === 'off_duty' && <div className="h-2 w-2 rounded-full bg-muted animate-pulse" />}
-                  </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{doctorsData.stats.off_duty || 0}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className="geo-wave bg-muted/20 text-muted-foreground border-0 font-bold text-xs">
-                      AWAY
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          </motion.div>
-        </LayoutGroup>
+              {viewMode === 'table' && (
+                <DoctorTableView
+                  doctors={paginatedDoctors}
+                  onView={handleView}
+                  onEdit={handleEdit}
+                  getStatusBadge={getStatusBadge}
+                  isMobile={isMobile}
+                  canManage={canManageStaff}
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                />
+              )}
+            </>
+          )}
+        </section>
+
+        <PaginationControls
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          onPrevPage={pagination.prevPage}
+          onNextPage={pagination.nextPage}
+          hasPrevPage={pagination.hasPrevPage}
+          hasNextPage={pagination.hasNextPage}
+          loading={loading}
+        />
+      </div>
+
+      {modalMode && (
+        <DoctorModal
+          isOpen={!!modalMode}
+          onClose={handleModalClose}
+          doctor={selectedDoctor}
+          mode={modalMode}
+        />
       )}
-
-      {loading ? (
-        <TableSkeleton rows={8} />
-      ) : (
-        <>
-          {viewMode === 'grid' && (
-            doctors.length === 0 ? (
-              <Card className="squircle-lg glass-card-premium p-12 text-center">
-                <Stethoscope className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="font-bold text-xl mb-2">No Doctors Yet</h3>
-                <p className="text-muted-foreground mb-6">Get started by adding your first doctor</p>
-                <Button onClick={handleCreate} className="glass-card-premium" data-testid="add-first-doctor-btn" aria-label="Add your first doctor">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add First Doctor
-                </Button>
-              </Card>
-            ) : (
-              <LayoutGroup>
-                <motion.div
-                  layout
-                  className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
-                  data-testid="doctors-grid"
-                >
-                  {paginatedDoctors.map((doctor, index) => (
-                    <motion.div
-                      layout
-                      key={doctor.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="col-span-1"
-                    >
-                      <Card className="h-full geo-chamfer glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col" data-testid={`doctor - card - ${doctor.id} `}>
-                        {/* Apple hover glow effect */}
-                        <div className="hover-glow hover-glow-primary" />
-
-                        {/* Top Right Icon */}
-                        <div className="absolute top-0 right-0 p-5 z-20">
-                          <div className="relative">
-                            <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full scale-150" />
-                            <div className="w-10 h-10 geo-round surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
-                              <Stethoscope className="h-5 w-5 text-primary" />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 mb-4 relative z-10">
-                          <Badge className={`geo - badge ${getStatusBadge(doctor.status)} border - 0 font - black editorial - subtitle px - 3 py - 1`}>
-                            {doctor.status || 'available'}
-                          </Badge>
-                        </div>
-
-                        <h3 className="font-bold text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
-                          {doctor.name || 'Unknown Doctor'}
-                        </h3>
-
-                        <p className="text-sm text-primary font-medium mb-6 relative z-10">{doctor.specialization || 'General Practitioner'}</p>
-
-                        <div className="space-y-3 mb-6 relative z-10">
-                          {doctor.hospitals?.name && (
-                            <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
-                              <Hospital className="h-4 w-4 text-info" />
-                              <span className="truncate font-normal">{doctor.hospitals.name}</span>
-                            </div>
-                          )}
-                          {doctor.phone && (
-                            <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
-                              <Phone className="h-4 w-4 text-success" />
-                              <span className="font-normal">{doctor.phone}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 mb-6 relative z-10">
-                          <div className="p-3 geo-shard bg-muted/30 hover:bg-muted/50 transition-colors">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Star className="h-4 w-4 text-warning fill-warning" />
-                              <p className="text-xs text-muted-foreground font-medium">Rating</p>
-                            </div>
-                            <p className="font-bold text-xl">{doctor.rating ?? '—'}</p>
-                          </div>
-                          <div className="p-3 geo-shard bg-muted/30 hover:bg-muted/50 transition-colors">
-                            <p className="text-xs text-muted-foreground font-medium mb-1">Experience</p>
-                            <p className="font-bold text-xl">{doctor.experience != null ? `${doctor.experience}y` : '—'}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
-                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                            ACTIONS
-                          </div>
-
-                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mr-4">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleView(doctor)}
-                              className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                              data-testid={`view - doctor - ${doctor.id} `}
-                              aria-label={`View details for Dr. ${doctor.name}`}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            {/* RBAC: Only Admins and Org Admins can edit/delete doctors */}
-                            {(isAdmin() || isOrgAdmin()) && (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleEdit(doctor)}
-                                  className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                                  data-testid={`edit - doctor - ${doctor.id} `}
-                                  aria-label={`Edit Dr. ${doctor.name}`}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => confirmDelete(doctor)}
-                                  className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                                  data-testid={`delete -doctor - ${doctor.id} `}
-                                  aria-label={`Delete Dr. ${doctor.name}`}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </LayoutGroup>
-            )
-          )}
-
-          {viewMode === 'list' && (
-            <DoctorListView
-              doctors={paginatedDoctors}
-              onView={handleView}
-              onEdit={handleEdit}
-              onDelete={confirmDelete}
-              getStatusBadge={getStatusBadge}
-              isMobile={isMobile}
-            />
-          )}
-
-          {viewMode === 'table' && (
-            <DoctorTableView
-              doctors={paginatedDoctors}
-              onView={handleView}
-              onEdit={handleEdit}
-              onDelete={confirmDelete}
-              getStatusBadge={getStatusBadge}
-              isMobile={isMobile}
-              selectedIds={selectedIds}
-              onSelect={handleSelect}
-              onSelectAll={handleSelectAll}
-              sortConfig={sortConfig}
-              onSort={handleSort}
-            />
-          )}
-        </>
-      )}
-
-      {/* Pagination Controls */}
-      <PaginationControls
-        currentPage={pagination.currentPage}
-        totalPages={pagination.totalPages}
-        onPrevPage={pagination.prevPage}
-        onNextPage={pagination.nextPage}
-        hasPrevPage={pagination.hasPrevPage}
-        hasNextPage={pagination.hasNextPage}
-        loading={loading}
-      />
-
-      {
-        modalMode && (
-          <DoctorModal
-            isOpen={!!modalMode}
-            onClose={handleModalClose}
-            doctor={selectedDoctor}
-            mode={modalMode}
-          />
-        )
-      }
 
       <FilterSheet
         isOpen={filterSheetOpen}
@@ -912,39 +525,185 @@ export const DoctorsPage = () => {
         isMobile={isMobile}
       />
 
-      <ConfirmationModal
-        isOpen={confirmationModal.isOpen}
-        title={confirmationModal.title}
-        description={confirmationModal.description}
-        onConfirm={confirmationModal.onConfirm}
-        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-        variant={confirmationModal.variant}
-        confirmLabel={confirmationModal.confirmLabel}
-      />
-
       <AnalyticsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        analytics={doctorsData?.stats}
+        analytics={derivedStats}
         type="doctor"
       />
 
-      <BulkActionBar
-        selectedCount={selectedIds.length}
-        onClear={() => setSelectedIds([])}
-      >
-        {(isAdmin() || isOrgAdmin()) && (
+    </div>
+  );
+};
+
+const StaffFilterStrip = ({ stats, activeFilter, setFilter }) => (
+  <div className="rounded-[32px] bg-background/45 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.16)] backdrop-blur-xl dark:bg-white/[0.035]">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      {staffFilterCards.map((item) => {
+        const Icon = item.icon;
+        const active = activeFilter === item.id;
+        const count = getStaffFilterCount(item.id, stats);
+
+        return (
+          <motion.button
+            key={item.id}
+            type="button"
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setFilter(item.id)}
+            className={`group flex min-h-[92px] items-center justify-between rounded-[26px] px-5 py-4 text-left transition-all duration-200 ${active ? item.activeClass : item.restClass}`}
+            aria-pressed={active}
+          >
+            <span className="flex min-w-0 items-center gap-4">
+              <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-background/50 shadow-sm transition-transform group-hover:scale-105 ${active ? '' : 'text-muted-foreground'}`}>
+                <Icon className="h-5 w-5" />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold">{item.label}</span>
+                <span className="mt-1 block text-3xl font-semibold tracking-normal text-foreground">{count}</span>
+              </span>
+            </span>
+            <ChevronRight className="h-5 w-5 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5" />
+          </motion.button>
+        );
+      })}
+    </div>
+  </div>
+);
+
+const StaffMemberCard = ({ doctor, index, canManage, onView, onEdit }) => {
+  const status = getStaffStatusMeta(doctor.status);
+  const StatusIcon = status.icon;
+  const name = doctor.name || 'Unknown staff';
+  const facility = doctor.hospitals?.name || 'No facility';
+  const phone = doctor.phone || 'No phone';
+
+  const openDetails = () => onView(doctor);
+  const stopAndRun = (handler) => (event) => {
+    event.stopPropagation();
+    handler(doctor);
+  };
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openDetails();
+    }
+  };
+
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.025 }}
+      role="button"
+      tabIndex={0}
+      onClick={openDetails}
+      onKeyDown={handleKeyDown}
+      className="group flex min-h-[260px] cursor-pointer flex-col overflow-hidden rounded-[32px] bg-background/45 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.14)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-background/60 focus-visible:shadow-[0_0_0_3px_rgba(14,165,233,0.22),0_24px_80px_rgba(0,0,0,0.14)] dark:bg-white/[0.035]"
+      data-testid={`doctor-card-${doctor.id}`}
+      aria-label={`Open ${name}`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sky-400/12 text-sm font-semibold text-sky-300">
+          {getInitials(name)}
+        </span>
+        <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold ${status.className}`}>
+          <StatusIcon className="h-3.5 w-3.5" />
+          {status.label}
+        </span>
+      </div>
+
+      <div className="mt-6 min-w-0">
+        <h3 className="truncate text-2xl font-semibold tracking-normal text-foreground transition-colors group-hover:text-sky-300">
+          {name}
+        </h3>
+        <p className="mt-2 truncate text-sm font-medium text-muted-foreground">
+          {doctor.specialization || 'General'}
+        </p>
+      </div>
+
+      <div className="mt-6 space-y-2">
+        <StaffInfoLine icon={Hospital} label="Facility" value={facility} />
+        <StaffInfoLine icon={Phone} label="Contact" value={phone} />
+      </div>
+
+      <div className="mt-auto flex items-center justify-between gap-3 rounded-[24px] bg-muted/22 p-2">
+        <span className="px-2 text-xs font-semibold text-muted-foreground">
+          {doctor.experience != null ? `${doctor.experience} years` : 'Experience not set'}
+        </span>
+        <span className="flex gap-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
           <Button
             variant="ghost"
             size="icon"
-            onClick={handleBulkDelete}
-            className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
-            title="Delete Selected"
+            onClick={stopAndRun(onView)}
+            className="h-9 w-9 rounded-full bg-background/40 text-muted-foreground shadow-sm transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
+            data-testid={`view-doctor-${doctor.id}`}
+            aria-label={`View details for ${name}`}
           >
-            <Trash2 className="h-5 w-5" />
+            <Eye className="h-4 w-4" />
           </Button>
-        )}
-      </BulkActionBar>
-    </div >
+          {canManage && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={stopAndRun(onEdit)}
+                className="h-9 w-9 rounded-full bg-background/40 text-muted-foreground shadow-sm transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
+                data-testid={`edit-doctor-${doctor.id}`}
+                aria-label={`Edit ${name}`}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </span>
+      </div>
+    </motion.article>
   );
 };
+
+const StaffInfoLine = ({ icon: Icon, label, value }) => (
+  <div className="flex items-center gap-3 rounded-[20px] bg-muted/22 p-3">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-background/42 text-muted-foreground">
+      <Icon className="h-4 w-4" />
+    </span>
+    <span className="min-w-0">
+      <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
+      <span className="mt-1 block truncate text-sm font-semibold text-foreground">{value}</span>
+    </span>
+  </div>
+);
+
+const StaffEmptyState = ({ canManage, onCreate }) => (
+  <div className="flex min-h-[360px] flex-col items-center justify-center rounded-[32px] bg-background/45 p-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.14)] backdrop-blur-xl dark:bg-white/[0.035]">
+    <Stethoscope className="mb-4 h-12 w-12 text-muted-foreground/65" />
+    <h3 className="text-xl font-semibold">No staff found</h3>
+    <p className="mt-2 max-w-md text-sm text-muted-foreground">
+      Change filters or add the first staff member.
+    </p>
+    {canManage && (
+      <Button
+        onClick={onCreate}
+        className="mt-5 rounded-full bg-sky-400/12 px-5 font-semibold text-sky-300 shadow-sm transition-all hover:bg-sky-400/18 active:scale-95"
+        data-testid="add-first-doctor-btn"
+        aria-label="Add staff"
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        Add staff
+      </Button>
+    )}
+  </div>
+);
+
+const StaffSkeletonGrid = () => (
+  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+    {Array.from({ length: 6 }).map((_, index) => (
+      <div
+        key={index}
+        className="h-64 animate-pulse rounded-[32px] bg-muted/20 shadow-sm"
+      >
+        <div className="h-full rounded-[32px] bg-gradient-to-br from-background/42 to-muted/14" />
+      </div>
+    ))}
+  </div>
+);

@@ -1,5 +1,25 @@
 import { supabase } from '../lib/supabase';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const DISPLAY_ID_LOOKUP_CHUNK_SIZE = 80;
+
+function normalizeUuidList(ids) {
+    if (!Array.isArray(ids)) return [];
+    return [...new Set(
+        ids
+            .map(id => (typeof id === 'string' ? id.trim() : ''))
+            .filter(id => UUID_PATTERN.test(id))
+    )];
+}
+
+function chunkList(items, size) {
+    const chunks = [];
+    for (let index = 0; index < items.length; index += size) {
+        chunks.push(items.slice(index, index + size));
+    }
+    return chunks;
+}
+
 
 /**
  * Fluid Display ID Service (v2.0)
@@ -82,29 +102,34 @@ export const getDisplayId = getProfileDisplayId;
  * @param {string[]} ids - Array of UUIDs
  * @returns {Promise<Map>} Map of UUID -> Display ID
  */
-export async function getDisplayIds(ids) {
+export async function getDisplayIds(ids, options = {}) {
     if (!ids || ids.length === 0) return new Map();
 
-    // De-duplicate IDs
-    const uniqueIds = [...new Set(ids)];
-
-    // Query 'hospitals' first since this is primarily used by OrgVerificationService
-    const { data, error } = await supabase
-        .from('hospitals')
-        .select('id, display_id')
-        .in('id', uniqueIds);
-
-    if (error) {
-        console.error('[DisplayID] Bulk fetch error:', error);
-        return new Map();
-    }
-
     const idMap = new Map();
-    data?.forEach(item => {
-        if (item.display_id) {
-            idMap.set(item.id, item.display_id);
+    const uniqueIds = normalizeUuidList(ids);
+    if (uniqueIds.length === 0) return idMap;
+
+    for (const chunk of chunkList(uniqueIds, DISPLAY_ID_LOOKUP_CHUNK_SIZE)) {
+        // Query 'hospitals' first since this is primarily used by OrgVerificationService
+        const { data, error } = await supabase
+            .from('hospitals')
+            .select('id, display_id')
+            .in('id', chunk);
+
+        if (error) {
+            if (options?.quiet) {
+                return idMap;
+            }
+            console.error('[DisplayID] Bulk fetch error:', error);
+            return idMap;
         }
-    });
+
+        data?.forEach(item => {
+            if (item.display_id) {
+                idMap.set(item.id, item.display_id);
+            }
+        });
+    }
 
     return idMap;
 }

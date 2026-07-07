@@ -81,8 +81,8 @@ const ProgressSidebar = () => {
 
     return (
         <div className="hidden lg:flex flex-col gap-2 p-4">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">
-                Registration Steps
+            <h3 className="text-sm font-semibold text-muted-foreground mb-4">
+                Registration steps
             </h3>
             {steps.map((step, index) => {
                 const isCompleted = index < currentStep;
@@ -96,9 +96,9 @@ const ProgressSidebar = () => {
                         onClick={() => isAccessible && goToStep(index)}
                         disabled={!isAccessible}
                         className={`
-                            group relative flex items-center gap-3 p-3 rounded-xl text-left transition-all
+                            group relative flex items-center gap-3 p-3 rounded-inner text-left transition-all
                             ${isCurrent
-                                ? 'bg-primary/10 border border-primary/30 shadow-lg shadow-primary/10'
+                                ? 'bg-primary/10 shadow-lg shadow-primary/10'
                                 : isCompleted
                                     ? 'bg-muted/30 hover:bg-muted/50'
                                     : 'opacity-40 cursor-not-allowed'}
@@ -108,7 +108,7 @@ const ProgressSidebar = () => {
                     >
                         {/* Step number/check */}
                         <div className={`
-                            flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold
+                            flex-shrink-0 w-8 h-8 rounded-icon flex items-center justify-center text-sm font-bold
                             ${isCurrent
                                 ? 'bg-primary text-primary-foreground'
                                 : isCompleted
@@ -135,7 +135,7 @@ const ProgressSidebar = () => {
                         {isCurrent && (
                             <motion.div
                                 layoutId="activeStep"
-                                className="absolute left-0 inset-y-0 my-auto w-1 h-8 bg-primary rounded-r-full"
+                                className="absolute left-0 inset-y-0 my-auto w-1 h-8 bg-primary rounded-r-pill"
                                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                             />
                         )}
@@ -162,7 +162,7 @@ const MobileProgress = () => {
                     <motion.div
                         key={step.id}
                         className={`
-                            relative flex items-center justify-center h-2 rounded-full
+                            relative flex items-center justify-center h-2 rounded-pill
                             transition-all duration-300
                             ${isCompleted ? 'bg-primary' : isCurrent ? 'bg-primary' : 'bg-muted-foreground/30'}
                         `}
@@ -286,7 +286,7 @@ const NavigationButtons = () => {
 
     const handleContinue = async () => {
         if (isLastStep) {
-            submitOnboarding();
+            await submitOnboarding();
         } else if (currentStepConfig?.id === 'account') {
             // Step 2: Create admin account before continuing
             // This authenticates the user and sets onboarding_status = 'pending'
@@ -303,7 +303,7 @@ const NavigationButtons = () => {
     }
 
     return (
-        <div className="flex justify-between items-center pt-6 border-t border-border/30">
+        <div className="flex justify-between items-center pt-6">
             <div className="flex items-center gap-4">
                 <Button
                     variant="ghost"
@@ -365,7 +365,7 @@ export const OnboardingWizard = () => {
         <div className="min-h-[calc(100vh-120px)] flex flex-col lg:flex-row gap-6">
             {/* Desktop: Progress Sidebar */}
             <aside className="hidden lg:block w-80 flex-shrink-0">
-                <div className="sticky top-4 glass-card-premium rounded-2xl overflow-hidden  shadow-premium">
+                <div className="sticky top-4 bg-card/80 backdrop-blur-xl rounded-card overflow-hidden shadow-premium">
                     {/* Progress bar */}
                     <div className="h-1 bg-white/5">
                         <motion.div
@@ -384,7 +384,7 @@ export const OnboardingWizard = () => {
 
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col">
-                <div className="h-auto bg-background/80 dark:bg-white/[0.02] backdrop-blur-xl rounded-2xl p-6 lg:p-8">
+                <div className="h-auto bg-background/80 dark:bg-white/[0.02] backdrop-blur-xl rounded-card p-6 lg:p-8 shadow-xl">
                     {/* Desktop: Step Header */}
                     <div className="hidden lg:block mb-8">
                         <StepHeader />
@@ -416,9 +416,9 @@ const StepHeader = () => {
         <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-4 pb-6 border-b border-border/30"
+            className="flex items-center gap-4 pb-6"
         >
-            <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-icon bg-primary/10 flex items-center justify-center shadow-sm">
                 <Icon className="w-6 h-6 text-primary" />
             </div>
             <div>

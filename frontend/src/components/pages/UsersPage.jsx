@@ -6,13 +6,11 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import { getCurrentUser, applyAuthFilter } from '../../services/authService';
 import { getProfiles, getUserStatistics, searchUsers, createProfile, updateProfile } from '../../services/profilesService';
 import { getOrganizations } from '../../services/organizationsService';
 import { getDoctorByProfileId, createDoctor } from '../../services/doctorsService';
 import { createAmbulance } from '../../services/ambulancesService';
-import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
@@ -35,6 +33,9 @@ import { AnalyticsModal } from '../modals/AnalyticsModal';
 import { MobileUsers } from '../mobile/MobileUsers';
 import { CheckSquare, Archive } from 'lucide-react'; // Additional icons
 
+const USER_DELETE_UNAVAILABLE_MESSAGE = 'Delete is unavailable until identity authority is verified.';
+const USER_IDENTITY_ACTION_UNAVAILABLE_MESSAGE = 'Invites are not ready until identity authority is verified.';
+
 export const UsersPage = () => {
   const { isAdmin, isOrgAdmin, orgId, profile, can } = useAuth();
   const { isMobile } = useNavigation();
@@ -49,6 +50,7 @@ export const UsersPage = () => {
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
   const [showStatistics, setShowStatistics] = useState(false);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [usersCommandNotice, setUsersCommandNotice] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
   const [confirmationModal, setConfirmationModal] = useState({
@@ -148,6 +150,37 @@ export const UsersPage = () => {
     return result;
   }, [filteredUsers, sortConfig]);
 
+  const usersRouteContext = useMemo(() => {
+    const recentUsers = [...users]
+      .filter(user => user.last_sign_in_at)
+      .sort((a, b) => new Date(b.last_sign_in_at) - new Date(a.last_sign_in_at))
+      .slice(0, 5);
+
+    return {
+      users: processedUsers.slice(0, 25),
+      recentUsers,
+      statistics,
+      loading,
+    };
+  }, [loading, processedUsers, statistics, users]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const publishUsersRouteContext = () => {
+      window.dispatchEvent(new CustomEvent('usersRouteContextUpdated', {
+        detail: usersRouteContext,
+      }));
+    };
+
+    publishUsersRouteContext();
+    window.addEventListener('requestUsersRouteContext', publishUsersRouteContext);
+
+    return () => {
+      window.removeEventListener('requestUsersRouteContext', publishUsersRouteContext);
+    };
+  }, [usersRouteContext]);
+
   // Reset pagination when filters change
   useEffect(() => {
     pagination.resetPagination();
@@ -242,7 +275,7 @@ export const UsersPage = () => {
             totalUsers,
             totalProfiles: totalUsers,
             recentSignups,
-            emailVerifiedUsers: null, // Cannot derive from client-side data — requires auth.users query
+            emailVerifiedUsers: null, // Cannot derive from client-side data - requires auth.users query
             bvnVerifiedUsers,
             roleDistribution: {
               admin: data.filter(u => u.role === 'admin').length,
@@ -292,14 +325,22 @@ export const UsersPage = () => {
     }
   }, [modalMode, selectedUser, fetchUsers]);
 
-  const handleInvite = useCallback(() => {
-    setSelectedUser(null);
-    setModalMode('invite');
+  const handleIdentityActionUnavailable = useCallback(() => {
+    setUsersCommandNotice(USER_IDENTITY_ACTION_UNAVAILABLE_MESSAGE);
+    toast.info(USER_IDENTITY_ACTION_UNAVAILABLE_MESSAGE);
+    return false;
   }, []);
 
+  const handleInvite = useCallback(() => {
+    handleIdentityActionUnavailable();
+  }, [handleIdentityActionUnavailable]);
+
   const handleCreate = useCallback(() => {
-    setSelectedUser(null);
-    setModalMode('create');
+    handleIdentityActionUnavailable();
+  }, [handleIdentityActionUnavailable]);
+
+  const handleOpenAnalytics = useCallback(() => {
+    setAnalyticsModalOpen(true);
   }, []);
 
   // Open "Add" modal on page load if requested via URL
@@ -315,17 +356,20 @@ export const UsersPage = () => {
     const handleOpenModal = () => handleCreate();
     const handleOpenInviteModal = () => handleInvite();
     const handleOpenFilters = () => setFilterSheetOpen(true);
+    const handleOpenUserAnalytics = () => handleOpenAnalytics();
 
     window.addEventListener('openUserModal', handleOpenModal);
     window.addEventListener('openInviteUserModal', handleOpenInviteModal);
     window.addEventListener('openFilters', handleOpenFilters);
+    window.addEventListener('openUserAnalytics', handleOpenUserAnalytics);
 
     return () => {
       window.removeEventListener('openUserModal', handleOpenModal);
       window.removeEventListener('openInviteUserModal', handleOpenInviteModal);
       window.removeEventListener('openFilters', handleOpenFilters);
+      window.removeEventListener('openUserAnalytics', handleOpenUserAnalytics);
     };
-  }, [handleCreate, handleInvite]);
+  }, [handleCreate, handleInvite, handleOpenAnalytics]);
 
   const handleView = useCallback((user) => {
     setSelectedUser(user);
@@ -337,66 +381,11 @@ export const UsersPage = () => {
     setModalMode('edit');
   }, []);
 
-  const handleDelete = useCallback(async (user) => {
-    try {
-      const targetId = user.id || user.user_id;
-      if (!targetId) {
-        throw new Error("Could not determine user ID for deletion");
-      }
-
-      // FIX: Direct supabase.from('profiles').delete() fails silently (200, 0 rows)
-      // because the FOR ALL RLS policy using get_current_user_role() doesn't match
-      // rows for DELETE operations even when the caller IS admin.
-      // SECURITY DEFINER RPC bypasses RLS entirely. See migration 20260216070500.
-      const displayName =
-        user.full_name ||
-        user.username ||
-        user.profile_username ||
-        user.email ||
-        'user';
-
-      const { data, error } = await supabase.rpc('delete_user_by_admin', { target_user_id: targetId });
-      if (error) throw error;
-      if (data && data.success === false) throw new Error(data.error || 'User deletion failed');
-
-      await createNotification(
-        NotificationTypes.USER,
-        NotificationActions.DELETED,
-        targetId,
-        {
-          message: `User ${displayName} has been removed from the system`,
-          targetName: displayName
-        }
-      );
-
-      // Optimistic removal for instant UX
-      setUsers(prev => prev.filter(u => u.id !== targetId));
-      setSelectedIds(prev => prev.filter(id => id !== targetId));
-      setSelectedUser(prev => {
-        if (!prev) return prev;
-        const prevId = prev.id || prev.user_id;
-        return prevId === targetId ? null : prev;
-      });
-      setModalMode(prev => (prev === 'view' || prev === 'edit') ? null : prev);
-      if (statistics) {
-        setStatistics(prev => prev ? {
-          ...prev,
-          totalUsers: (prev.totalUsers || 0) - 1,
-          totalProfiles: (prev.totalProfiles || 0) - 1,
-        } : prev);
-      }
-
-      toast.success('User deleted successfully');
-
-      // Background sync to ensure consistency
-      fetchUsers();
-      return true;
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      handleApiError(error, 'delete');
-      return false;
-    }
-  }, [fetchUsers, statistics]);
+  const handleDeleteUnavailable = useCallback(() => {
+    setUsersCommandNotice(USER_DELETE_UNAVAILABLE_MESSAGE);
+    toast.info(USER_DELETE_UNAVAILABLE_MESSAGE);
+    return false;
+  }, []);
 
 
   const handleViewAnalytics = useCallback(() => {
@@ -428,86 +417,17 @@ export const UsersPage = () => {
     });
   }, []);
 
-  // Delete handlers with Confirmation
   const confirmDelete = useCallback((user) => {
-    setConfirmationModal({
-      isOpen: true,
-      isLoading: false,
-      title: 'Delete User',
-      description: `Are you sure you want to delete ${user.full_name || user.username || user.email || 'this user'}? This action cannot be undone.`,
-      variant: 'destructive',
-      confirmLabel: 'Delete',
-      onConfirm: async () => {
-        setConfirmationModal(prev => ({ ...prev, isLoading: true }));
-        const ok = await handleDelete(user);
-        if (ok) {
-          setConfirmationModal(prev => ({ ...prev, isOpen: false, isLoading: false }));
-        } else {
-          setConfirmationModal(prev => ({ ...prev, isLoading: false }));
-        }
-      }
-    });
-  }, [handleDelete]);
+    handleDeleteUnavailable(user);
+  }, [handleDeleteUnavailable]);
 
   const handleBulkDelete = useCallback(() => {
-    setConfirmationModal({
-      isOpen: true,
-      isLoading: false,
-      title: 'Delete Selected Users',
-      description: `Are you sure you want to delete ${selectedIds.length} users? This action cannot be undone.`,
-      variant: 'destructive',
-      confirmLabel: 'Delete All',
-      onConfirm: async () => {
-        // Logic to delete multiple
-        try {
-          setConfirmationModal(prev => ({ ...prev, isLoading: true }));
-
-          const failedIds = [];
-          for (const targetId of selectedIds) {
-            const { data, error } = await supabase.rpc('delete_user_by_admin', { target_user_id: targetId });
-            if (error || (data && data.success === false)) {
-              failedIds.push(targetId);
-            }
-          }
-
-          if (failedIds.length > 0) {
-            throw new Error(`Failed to delete ${failedIds.length} of ${selectedIds.length} users`);
-          }
-
-          toast.success(`${selectedIds.length} users deleted successfully`);
-          setUsers(prev => prev.filter(u => !selectedIds.includes(u.id)));
-          setSelectedIds([]);
-          fetchUsers();
-        } catch (err) {
-          console.error("Bulk delete failed", err);
-          handleApiError(err, 'delete');
-        }
-        setConfirmationModal(prev => ({ ...prev, isOpen: false, isLoading: false }));
-      }
-    });
-  }, [selectedIds, fetchUsers]);
+    handleDeleteUnavailable();
+  }, [handleDeleteUnavailable]);
 
   const handleModalClose = useCallback(() => {
     setSelectedUser(null);
     setModalMode(null);
-  }, []);
-  useEffect(() => {
-    const handleOpenModal = () => {
-      setSelectedUser(null);
-      setModalMode('create');
-    };
-
-    const handleOpenAnalytics = () => {
-      setAnalyticsModalOpen(true);
-    };
-
-    window.addEventListener('openUserModal', handleOpenModal);
-    window.addEventListener('openUserAnalytics', handleOpenAnalytics);
-
-    return () => {
-      window.removeEventListener('openUserModal', handleOpenModal);
-      window.removeEventListener('openUserAnalytics', handleOpenAnalytics);
-    };
   }, []);
 
   const filterSchema = React.useMemo(() => [
@@ -573,7 +493,7 @@ export const UsersPage = () => {
     >
       <Filter className="h-4 w-4" />
       {(filters.search || (filters.role && filters.role.length > 0) || (filters.bvn_verified && filters.bvn_verified.length > 0)) && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-pill bg-primary" />
       )}
     </Button>
   ), [filters]);
@@ -584,20 +504,22 @@ export const UsersPage = () => {
       <Button
         onClick={handleInvite}
         className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-        aria-label="Add new user"
+        aria-label="Add user unavailable"
+        aria-describedby={usersCommandNotice ? 'users-action-feedback' : undefined}
+        data-state="unavailable"
       >
         <Plus className="h-4 w-4 mr-2" />
         <span className="hidden md:inline">ADD USER</span>
         <span className="md:hidden">ADD</span>
       </Button>
     )
-  ), [isAdmin, isOrgAdmin, handleInvite]);
+  ), [isAdmin, isOrgAdmin, handleInvite, usersCommandNotice]);
 
   // Footer Configuration
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
-        <span>Page {pagination.currentPage} of {pagination.totalPages} • {users.length} Users</span>
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill bg-white/5 uppercase tracking-widest text-[10px] font-bold">
+        <span>Page {pagination.currentPage} of {pagination.totalPages} / {users.length} Users</span>
       </div>
     </div>
   ), [pagination.currentPage, pagination.totalPages, users.length]);
@@ -630,9 +552,9 @@ export const UsersPage = () => {
           initial={{ x: 50, opacity: 0, scale: 0.9 }}
           animate={{ x: 0, opacity: 1, scale: 1 }}
           exit={{ x: 50, opacity: 0, scale: 0.9 }}
-          className="fixed top-1/2 -translate-y-1/2 right-6 z-50 flex flex-col items-center gap-3 p-2 bg-background/15 backdrop-blur-sm border-0 shadow-none rounded-full"
+          className="fixed top-1/2 -translate-y-1/2 right-6 z-50 flex flex-col items-center gap-3 p-2 bg-background/15 backdrop-blur-sm shadow-none rounded-pill"
         >
-          <div className="bg-primary text-primary-foreground text-[10px] font-bold h-6 min-w-[24px] px-1.5 rounded-full flex items-center justify-center shadow-sm mb-1">
+          <div className="bg-primary text-primary-foreground text-[10px] font-bold h-6 min-w-[24px] px-1.5 rounded-pill flex items-center justify-center shadow-sm mb-1">
             {selectedIds.length}
           </div>
 
@@ -641,20 +563,22 @@ export const UsersPage = () => {
               variant="ghost"
               size="icon"
               onClick={handleBulkDelete}
-              className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
-              title="Delete Selected"
+              className="h-10 w-10 rounded-icon bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all"
+              title="Delete unavailable"
+              aria-label="Delete unavailable"
+              data-state="unavailable"
             >
               <Trash2 className="h-5 w-5" />
             </Button>
           )}
 
-          <div className="w-8 h-[1px] bg-white/10 my-0.5" />
+          <div className="w-8 h-2 my-0.5" aria-hidden="true" />
 
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setSelectedIds([])}
-            className="h-8 w-8 rounded-full hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all"
+            className="h-8 w-8 rounded-icon hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all"
             title="Clear Selection"
           >
             <X className="h-4 w-4" />
@@ -668,6 +592,16 @@ export const UsersPage = () => {
     return (
       <div className="min-h-screen">
         <SEOHead title="Users" description="User Management Mission Control" />
+        {usersCommandNotice && (
+          <div
+            id="users-action-feedback"
+            role="status"
+            aria-live="polite"
+            className="mx-4 mb-3 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
+          >
+            {usersCommandNotice}
+          </div>
+        )}
         <MobileUsers
           users={processedUsers}
           loading={loading}
@@ -681,6 +615,7 @@ export const UsersPage = () => {
           onViewAnalytics={handleViewAnalytics}
           isAdmin={isAdmin()}
           isOrgAdmin={isOrgAdmin()}
+          canDelete={false}
           onOpenFilters={() => setFilterSheetOpen(true)}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
@@ -740,6 +675,16 @@ export const UsersPage = () => {
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
       <SEOHead title="User Management" description="Manage user profiles, roles, and verifications." />
+      {usersCommandNotice && (
+        <div
+          id="users-action-feedback"
+          role="status"
+          aria-live="polite"
+          className="mb-4 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
+        >
+          {usersCommandNotice}
+        </div>
+      )}
       {/* KPI Filter Cards */}
       {/* KPI Filter Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
@@ -751,16 +696,16 @@ export const UsersPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
         >
-          <Card
-            className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
+          <div
+            className={`h-full min-h-[140px] rounded-card glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'bg-primary/10 shadow-lg' : ''}`}
             onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
           >
             {/* Apple hover glow effect */}
             <div className="hover-glow hover-glow-primary" />
             <div className="absolute top-0 right-0 p-4 z-20">
               <div className="relative">
-                <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-pill scale-150 transition-all duration-200 group-hover:scale-200`} />
+                <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                   <Users className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
                 </div>
               </div>
@@ -769,12 +714,12 @@ export const UsersPage = () => {
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Total Users</p>
               <h3 className="text-3xl font-bold tracking-tighter">{statistics?.totalUsers || pagination.totalCount || processedUsers.length}</h3>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
+                <Badge className="rounded-pill bg-primary/20 text-primary font-bold text-xs">
                   {filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
                 </Badge>
               </div>
             </div>
-          </Card>
+          </div>
         </motion.div>
 
         {/* Verified Users Card - Visible to Everyone */}
@@ -785,16 +730,16 @@ export const UsersPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <Card
-            className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'verified' ? 'ring-2 ring-success shadow-lg' : ''}`}
+          <div
+            className={`h-full min-h-[140px] rounded-card glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'verified' ? 'bg-success/10 shadow-lg' : ''}`}
             onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'verified' }))}
           >
             {/* Apple hover glow effect */}
             <div className="hover-glow hover-glow-success" />
             <div className="absolute top-0 right-0 p-4 z-20">
               <div className="relative">
-                <div className={`absolute inset-0 ${filters.kpiFilter === 'verified' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                <div className={`absolute inset-0 ${filters.kpiFilter === 'verified' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-pill scale-150 transition-all duration-200 group-hover:scale-200`} />
+                <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                   <UserCheck className={`h-5 w-5 ${filters.kpiFilter === 'verified' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
                 </div>
               </div>
@@ -806,10 +751,10 @@ export const UsersPage = () => {
                 {statistics?.bvnVerifiedUsers !== undefined ? statistics.bvnVerifiedUsers : processedUsers.filter(u => u.bvn_verified).length}
               </h3>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className="geo-round bg-success/20 text-success border-0 font-bold text-xs">VERIFIED</Badge>
+                <Badge className="rounded-pill bg-success/20 text-success font-bold text-xs">VERIFIED</Badge>
               </div>
             </div>
-          </Card>
+          </div>
         </motion.div>
 
         {/* Role Based Card 1: Admins (Platform) or Providers (Org) */}
@@ -822,16 +767,16 @@ export const UsersPage = () => {
         >
           {isAdmin() ? (
             /* Admin View: Admins & Org Admins */
-            <Card
-              className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'admin' ? 'ring-2 ring-warning shadow-lg' : ''}`}
+            <div
+              className={`h-full min-h-[140px] rounded-card glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'admin' ? 'bg-warning/10 shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'admin' }))}
             >
               {/* Apple hover glow effect */}
               <div className="hover-glow hover-glow-warning" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'admin' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'admin' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-pill scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Shield className={`h-5 w-5 ${filters.kpiFilter === 'admin' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -842,22 +787,22 @@ export const UsersPage = () => {
                   {(statistics?.roleDistribution?.admin || 0) + (statistics?.roleDistribution?.org_admin || 0) || processedUsers.filter(u => ['admin', 'org_admin'].includes(u.role)).length}
                 </h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-ticket bg-warning/20 text-warning border-0 font-bold text-xs">MANAGEMENT</Badge>
+                  <Badge className="rounded-pill bg-warning/20 text-warning font-bold text-xs">MANAGEMENT</Badge>
                 </div>
               </div>
-            </Card>
+            </div>
           ) : (
             /* Org Admin View: Providers */
-            <Card
-              className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'provider' ? 'ring-2 ring-info shadow-lg' : ''}`}
+            <div
+              className={`h-full min-h-[140px] rounded-card glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'provider' ? 'bg-info/10 shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'provider' }))}
             >
               {/* Apple hover glow effect */}
               <div className="hover-glow hover-glow-info" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'provider' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'provider' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-pill scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Users className={`h-5 w-5 ${filters.kpiFilter === 'provider' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -868,10 +813,10 @@ export const UsersPage = () => {
                   {statistics?.roleDistribution?.provider || processedUsers.filter(u => u.role === 'provider').length}
                 </h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-round bg-info/20 text-info border-0 font-bold text-xs">MEDICAL STAFF</Badge>
+                  <Badge className="rounded-pill bg-info/20 text-info font-bold text-xs">MEDICAL STAFF</Badge>
                 </div>
               </div>
-            </Card>
+            </div>
           )}
         </motion.div>
 
@@ -885,16 +830,16 @@ export const UsersPage = () => {
         >
           {isAdmin() ? (
             /* Admin View: Providers */
-            <Card
-              className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'provider' ? 'ring-2 ring-info shadow-lg' : ''}`}
+            <div
+              className={`h-full min-h-[140px] rounded-card glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'provider' ? 'bg-info/10 shadow-lg' : ''}`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'provider' }))}
             >
               {/* Apple hover glow effect */}
               <div className="hover-glow hover-glow-info" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'provider' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'provider' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-pill scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Users className={`h-5 w-5 ${filters.kpiFilter === 'provider' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
@@ -903,22 +848,22 @@ export const UsersPage = () => {
                 <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Providers</p>
                 <h3 className="text-3xl font-bold tracking-tighter">{statistics?.roleDistribution?.provider || processedUsers.filter(u => u.role === 'provider').length}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-round bg-info/20 text-info border-0 font-bold text-xs">HEALTHCARE</Badge>
+                  <Badge className="rounded-pill bg-info/20 text-info font-bold text-xs">HEALTHCARE</Badge>
                 </div>
               </div>
-            </Card>
+            </div>
           ) : (
             /* Org Admin View: Patients */
-            <Card
-              className="h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
+            <div
+              className="h-full min-h-[140px] rounded-card glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'patient' }))} // Note: need to handle patient filter
             >
               {/* Apple hover glow effect */}
               <div className="hover-glow hover-glow-secondary" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-secondary/10 blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200" />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                  <div className="absolute inset-0 bg-secondary/10 blur-xl rounded-pill scale-150 transition-all duration-200 group-hover:scale-200" />
+                  <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                     <Users className="h-5 w-5 text-secondary" />
                   </div>
                 </div>
@@ -929,10 +874,10 @@ export const UsersPage = () => {
                   {statistics?.roleDistribution?.patient || processedUsers.filter(u => u.role === 'patient').length}
                 </h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-round bg-secondary/20 text-secondary border-0 font-bold text-xs">CONSUMERS</Badge>
+                  <Badge className="rounded-pill bg-secondary/20 text-secondary font-bold text-xs">CONSUMERS</Badge>
                 </div>
               </div>
-            </Card>
+            </div>
           )}
         </motion.div>
 
@@ -944,16 +889,16 @@ export const UsersPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.4 }}
         >
-          <Card
-            className="h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
+          <div
+            className="h-full min-h-[140px] rounded-card glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
             onClick={handleViewAnalytics}
           >
             {/* Apple hover glow effect */}
             <div className="hover-glow hover-glow-primary" />
             <div className="absolute top-0 right-0 p-4 z-20">
               <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200" />
-                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
+                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-pill scale-150 transition-all duration-200 group-hover:scale-200" />
+                <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
                   <BarChart3 className="h-5 w-5 text-primary" />
                 </div>
               </div>
@@ -962,33 +907,33 @@ export const UsersPage = () => {
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Analytics</p>
               <h3 className="text-3xl font-bold tracking-tighter">View All</h3>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">DEEP DIVE</Badge>
+                <Badge className="rounded-pill bg-primary/20 text-primary font-bold text-xs">DEEP DIVE</Badge>
               </div>
             </div>
-          </Card>
+          </div>
         </motion.div>
       </div>
       {/* Admin Statistics Section */}
       {isAdmin() && showStatistics && statistics && (
-        <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium p-6 border-0 mb-6">
+        <div className="rounded-card bg-background/35 backdrop-blur-xs shadow-premium p-6 mb-6">
           <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-primary" />
             User Statistics
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-muted/20 rounded-lg">
+            <div className="text-center p-4 bg-muted/20 rounded-inner">
               <div className="text-2xl font-semibold text-primary">{statistics.totalUsers}</div>
               <div className="text-sm text-muted-foreground">Total Users</div>
             </div>
-            <div className="text-center p-4 bg-muted/20 rounded-lg">
+            <div className="text-center p-4 bg-muted/20 rounded-inner">
               <div className="text-2xl font-semibold text-success">{statistics.emailVerifiedUsers}</div>
               <div className="text-sm text-muted-foreground">Email Verified</div>
             </div>
-            <div className="text-center p-4 bg-muted/20 rounded-lg">
+            <div className="text-center p-4 bg-muted/20 rounded-inner">
               <div className="text-2xl font-semibold text-info">{statistics.recentSignups}</div>
               <div className="text-sm text-muted-foreground">Recent (30d)</div>
             </div>
-            <div className="text-center p-4 bg-muted/20 rounded-lg">
+            <div className="text-center p-4 bg-muted/20 rounded-inner">
               <div className="text-2xl font-semibold text-warning">{statistics.totalProfiles}</div>
               <div className="text-sm text-muted-foreground">Profiles</div>
             </div>
@@ -997,13 +942,13 @@ export const UsersPage = () => {
             <h4 className="font-medium mb-2">Role Distribution</h4>
             <div className="flex flex-wrap gap-2">
               {Object.entries(statistics.roleDistribution).map(([role, count]) => (
-                <Badge key={role} className={`bg-primary/20 text-primary border-0 font-bold editorial-subtitle px-3 py-1`}>
+                <Badge key={role} className="rounded-pill bg-primary/20 text-primary font-bold editorial-subtitle px-3 py-1">
                   {role}: {count}
                 </Badge>
               ))}
             </div>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* User List Content */}
@@ -1012,7 +957,7 @@ export const UsersPage = () => {
       ) : (
         <>
           {users.length === 0 ? (
-            <Card className="squircle-lg glass-card-premium p-12 text-center">
+            <div className="rounded-card glass-card-premium p-12 text-center">
               <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="font-bold text-xl mb-2">
                 {filters.search ? 'No Users Found' :
@@ -1027,23 +972,29 @@ export const UsersPage = () => {
               </p>
               <div className="flex items-center justify-center gap-3 flex-wrap">
                 {filters.search && (
-                  <Button onClick={() => setFilters(prev => ({ ...prev, search: '' }))} variant="outline" className="squircle">
+                  <Button onClick={() => setFilters(prev => ({ ...prev, search: '' }))} variant="outline" className="rounded-button">
                     <X className="h-4 w-4 mr-2" />
                     Clear Search
                   </Button>
                 )}
                 {(filters.kpiFilter !== 'all' || Object.keys(filters).filter(k => k !== 'kpiFilter').some(k => filters[k])) && (
-                  <Button onClick={() => setFilters({ kpiFilter: 'all', role: '', bvn_verified: '', provider_type: '', search: '' })} variant="outline" className="squircle">
+                  <Button onClick={() => setFilters({ kpiFilter: 'all', role: '', bvn_verified: '', provider_type: '', search: '' })} variant="outline" className="rounded-button">
                     <Filter className="h-4 w-4 mr-2" />
                     Reset Filters
                   </Button>
                 )}
-                <Button onClick={handleInvite} className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase" aria-label="Add new user">
+                <Button
+                  onClick={handleInvite}
+                  className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+                  aria-label="Add user unavailable"
+                  aria-describedby={usersCommandNotice ? 'users-action-feedback' : undefined}
+                  data-state="unavailable"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   ADD USER
                 </Button>
               </div>
-            </Card>
+            </div>
           ) : (
             <>
               {/* Grid View */}
@@ -1062,32 +1013,32 @@ export const UsersPage = () => {
                         transition={{ delay: index * 0.05 }}
                         className="col-span-1"
                       >
-                        <Card className="h-full geo-ticket glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col">
+                        <div className="h-full rounded-card glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col">
                           {/* Apple hover glow effect */}
                           <div className="hover-glow hover-glow-primary" />
                           {/* Top Right Icon */}
                           <div className="absolute top-0 right-0 p-5 z-20">
                             <div className="relative">
-                              <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full scale-150" />
-                              <div className="w-10 h-10 geo-round surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
+                              <div className="absolute inset-0 bg-primary/10 blur-xl rounded-pill scale-150" />
+                              <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
                                 {user.role === 'admin' ? <Shield className="h-5 w-5 text-primary" /> : <Users className="h-5 w-5 text-primary" />}
                               </div>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2 mb-4 relative z-10">
-                            <Badge className={`geo-badge bg-primary/20 text-primary border-0 font-bold editorial-subtitle px-3 py-1`}>
+                            <Badge className="rounded-pill bg-primary/20 text-primary font-bold editorial-subtitle px-3 py-1">
                               {user.role || 'patient'}
                             </Badge>
                             {user.bvn_verified && (
-                              <Badge className="geo-badge bg-success/20 text-success border-0 px-2 py-1">
+                              <Badge className="rounded-pill bg-success/20 text-success px-2 py-1">
                                 Verified
                               </Badge>
                             )}
                           </div>
 
                           <div className="flex items-center gap-4 mb-4 relative z-10">
-                            <div className="w-16 h-16 geo-hexagon bg-muted/20 flex items-center justify-center overflow-hidden shadow-inner">
+                            <div className="w-16 h-16 rounded-icon bg-muted/20 flex items-center justify-center overflow-hidden shadow-inner">
                               {(user.image_uri || user.avatar_url) ? (
                                 <img
                                   src={user.image_uri || user.avatar_url}
@@ -1116,18 +1067,18 @@ export const UsersPage = () => {
                           </div>
 
                           <div className="space-y-3 mb-6 relative z-10">
-                            <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
+                            <div className="flex items-center gap-3 text-sm p-2 rounded-inner bg-muted/30">
                               <Mail className="h-4 w-4 text-info" />
                               <span className="truncate font-normal">{user.email || 'No email'}</span>
                             </div>
                             {user.phone && (
-                              <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
+                              <div className="flex items-center gap-3 text-sm p-2 rounded-inner bg-muted/30">
                                 <Phone className="h-4 w-4 text-success" />
                                 <span className="font-normal">{user.phone}</span>
                               </div>
                             )}
                             {user.last_sign_in_at && (
-                              <div className="flex items-center gap-3 text-sm p-2 geo-round bg-muted/30">
+                              <div className="flex items-center gap-3 text-sm p-2 rounded-inner bg-muted/30">
                                 <UserCheck className="h-4 w-4 text-primary" />
                                 <span className="font-normal">
                                   Last login: {new Date(user.last_sign_in_at).toLocaleDateString()}
@@ -1142,7 +1093,7 @@ export const UsersPage = () => {
                               size="sm"
                               variant="ghost"
                               onClick={() => handleView(user)}
-                              className="flex-1 h-8 bg-muted/20 hover:bg-muted/30 border border-border/20 text-[10px] font-bold tracking-widest uppercase text-foreground"
+                              className="flex-1 h-8 rounded-button bg-muted/20 hover:bg-muted/30 text-[10px] font-bold tracking-widest uppercase text-foreground"
                               aria-label={`View details for ${user.username || user.profile_username || 'user'}`}
                             >
                               <Eye className="h-3 w-3 mr-1" />
@@ -1154,7 +1105,7 @@ export const UsersPage = () => {
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleEdit(user)}
-                                  className="flex-1 h-8 bg-muted/20 hover:bg-muted/30 border border-border/20 text-[10px] font-bold tracking-widest uppercase text-foreground"
+                                  className="flex-1 h-8 rounded-button bg-muted/20 hover:bg-muted/30 text-[10px] font-bold tracking-widest uppercase text-foreground"
                                   aria-label={`Edit ${user.username || user.profile_username || 'user'}`}
                                 >
                                   <Edit className="h-3 w-3 mr-1" />
@@ -1164,16 +1115,18 @@ export const UsersPage = () => {
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => confirmDelete(user)}
-                                  className="flex-1 h-8 bg-destructive/20 hover:bg-destructive/30 border border-destructive/20 text-[10px] font-bold tracking-widest uppercase text-destructive"
-                                  aria-label={`Delete ${user.username || user.profile_username || 'user'}`}
+                                  className="flex-1 h-8 rounded-button bg-muted/20 hover:bg-muted/30 text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
+                                  aria-label={`Delete unavailable for ${user.username || user.profile_username || 'user'}`}
+                                  aria-describedby={usersCommandNotice ? 'users-action-feedback' : undefined}
+                                  data-state="unavailable"
                                 >
                                   <Trash2 className="h-3 w-3 mr-1" />
-                                  DELETE
+                                  NOT READY
                                 </Button>
                               </>
                             )}
                           </div>
-                        </Card>
+                        </div>
                       </motion.div>
                     ))}
                   </motion.div>

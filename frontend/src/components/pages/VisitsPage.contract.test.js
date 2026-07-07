@@ -1,0 +1,649 @@
+import fs from 'fs';
+import { execFileSync } from 'child_process';
+import { getAccessibleNav } from '../../config/navigation';
+import { getMobileNavigationItems } from '../../config/mobileNavigation';
+import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
+import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
+
+describe('VisitsPage admission contract', () => {
+  const appSource = () => fs.readFileSync('src/App.js', 'utf8');
+  const pageSource = () => fs.readFileSync('src/components/pages/VisitsPage.jsx', 'utf8');
+  const mobileSource = () => fs.readFileSync('src/components/mobile/MobileVisits.jsx', 'utf8');
+  const panelSource = () => fs.readFileSync('src/components/context/VisitsPanel.jsx', 'utf8');
+  const contextPanelSource = () => fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
+  const listSource = () => fs.readFileSync('src/components/views/VisitListView.jsx', 'utf8');
+  const tableSource = () => fs.readFileSync('src/components/views/VisitTableView.jsx', 'utf8');
+  const modalSource = () => fs.readFileSync('src/components/modals/VisitModal.jsx', 'utf8');
+  const modalShellSource = () => fs.readFileSync('src/components/ui/ModalShell.jsx', 'utf8');
+  const serviceSource = () => fs.readFileSync('src/services/visitsService.js', 'utf8');
+  const pageDataSource = () => fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+  const bottomBarSource = () => fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+  const fabSource = () => fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
+  const gateSource = () => fs.readFileSync('docs/planning/PAGE_REVAMP_GATE.md', 'utf8');
+  const headSource = (path) => execFileSync('git', ['show', `HEAD:${path}`], {
+    encoding: 'utf8',
+    maxBuffer: 1024 * 1024,
+  });
+
+  it('keeps Visits provider-accessible while excluding sponsor routes', () => {
+    expect(getRouteProtection('/visits')).toEqual({
+      minRole: 'provider',
+      resource: 'visits',
+      title: 'Visits',
+      excludedRoles: ['sponsor'],
+    });
+
+    expect(getProtectedRoutesForRole('provider')).toContain('/visits');
+    expect(getProtectedRoutesForRole('org_admin')).toContain('/visits');
+    expect(getProtectedRoutesForRole('admin')).toContain('/visits');
+    expect(getProtectedRoutesForRole('sponsor')).not.toContain('/visits');
+    expect(getProtectedRoutesForRole('viewer')).not.toContain('/visits');
+
+    expect(getAccessibleNav({ role: 'provider' }).ops.items.find((item) => item.path === '/visits')?.label)
+      .toBe('Visits');
+    expect(getAccessibleNav({ role: 'sponsor' }).ops)
+      .toBeNull();
+    expect(getMobileNavigationItems('provider').map((item) => item.path)).toEqual(['/', '/emergencies', '/visits']);
+  });
+
+  it('keeps Visits route-owned so PageData does not duplicate the page on /visits', () => {
+    const page = pageSource();
+    const contextPanel = contextPanelSource();
+
+    expect(routeOwnsStartupDomains('/visits')).toBe(true);
+    expect(getPageDataStartupDomainsForRole('provider', '/visits')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('org_admin', '/visits')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('admin', '/visits')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('provider')).toEqual(['emergency', 'visits']);
+
+    const pageData = pageDataSource();
+    expect(pageData).toContain('const fetchVisitsData = useCallback(async () => {');
+    expect(pageData).toContain("const data = await getVisits({ quiet: true });");
+    expect(pageData).toContain("if (!user || useMockData || !startupDomains.includes('visits')) return;");
+
+    expect(page).toContain('const visitPanelContext = React.useMemo(() => ({');
+    expect(page).toContain("window.dispatchEvent(new CustomEvent('visitsRouteContextUpdated', {");
+    expect(page).toContain("window.addEventListener('requestVisitsRouteContext', publishVisitsRouteContext);");
+    expect(contextPanel).toContain('const [visitsRouteContext, setVisitsRouteContext] = React.useState(null);');
+    expect(contextPanel).toContain("window.addEventListener('visitsRouteContextUpdated', handleVisitsRouteContext);");
+    expect(contextPanel).toContain("window.dispatchEvent(new CustomEvent('requestVisitsRouteContext'));");
+    expect(contextPanel).toContain('<VisitsPanel visitContext={visitsRouteContext} />');
+    expect(contextPanel).not.toContain('<VisitsPanel visitsData={visitsData} />');
+  });
+
+  it('keeps the route action local instead of mounting global FAB hooks on Visits', () => {
+    const bottomBar = bottomBarSource();
+    const fab = fabSource();
+
+    expect(fab).toContain("location.pathname.startsWith('/visits')");
+    expect(bottomBar).toContain("location.pathname.startsWith('/visits')");
+    expect(bottomBar).toContain("pathname.startsWith('/visits') && ['provider', 'org_admin', 'admin'].includes(userRole)");
+    expect(bottomBar).toContain("label: 'New visit'");
+    expect(bottomBar).toContain("window.dispatchEvent(new CustomEvent('openVisitModal'))");
+    expect(pageSource()).toContain("window.addEventListener('openVisitModal', handleOpenModal)");
+  });
+
+  it('records old Visits behavior that must be preserved or explicitly converted', () => {
+    const page = pageSource();
+    const mobile = mobileSource();
+    const list = listSource();
+    const table = tableSource();
+    const modal = modalSource();
+    const service = serviceSource();
+
+    expect(appSource()).toContain('<Route path="/visits" element={<ProtectedRoute minRole="provider"><VisitsPage /></ProtectedRoute>} />');
+    expect(page).toContain("useViewMode('visits-page', 'grid')");
+    expect(page).toContain('<ViewToggle value={viewMode} onChange={setViewMode} />');
+    expect(page).toContain("viewMode === 'grid'");
+    expect(page).toContain("viewMode === 'list'");
+    expect(page).toContain("viewMode === 'table'");
+    expect(page).toContain('<VisitListView');
+    expect(page).toContain('<VisitTableView');
+    expect(page).toContain('<FilterSheet');
+    expect(page).toContain('<AnalyticsModal');
+    expect(page).toContain('<EmergencyDetailsModal');
+    expect(page).toContain('const viewVisitId = urlParams.get(\'view\')');
+    expect(page).toContain(".channel('visits')");
+    expect(page).toContain('setTotalCount(pageData.count || 0)');
+    expect(page).toContain('createVisit({');
+    expect(page).toContain('updateVisit(selectedVisit.id, formData)');
+    expect(page).toContain('canDelete={false}');
+    expect(page).toContain('selectionEnabled={false}');
+    expect(page).not.toContain('selectedIds.map((id) => deleteVisit(id))');
+    expect(page).not.toContain('deleteVisit(visit.id)');
+    expect(page).not.toContain('<BulkActionBar');
+    expect(page).not.toContain('<ConfirmationModal');
+
+    expect(mobile).toContain('<PullToRefresh onRefresh={onRefresh}>');
+    expect(mobile).toContain('new IntersectionObserver(');
+    expect(mobile).toContain('<MobileVisitsAtlasLayer />');
+    expect(mobile).toContain('data-testid="mobile-visits-activity-sheet"');
+    expect(mobile).toContain('onViewAnalytics');
+    expect(mobile).toContain('onOpenFilters');
+    expect(mobile).toContain('onLoadMore');
+    expect(mobile).toContain("id: 'in_progress'");
+    expect(mobile).toContain("activeKpi || 'all'");
+    expect(mobile).toContain('onClick={() => onKpiChange?.(item.id)}');
+    expect(mobile).toContain('selectionEnabled = false');
+    expect(mobile).toContain('canDelete = false');
+    expect(list).toContain('onView(visit)');
+    expect(list).toContain('onEdit(visit)');
+    expect(list).toContain('canDelete = false');
+    expect(list).toContain('selectionEnabled = false');
+    expect(table).toContain('onSelectAll');
+    expect(table).toContain('onSort');
+    expect(table).toContain('canDelete = false');
+    expect(table).toContain('selectionEnabled = false');
+    expect(modal).toContain('mode === \'view\'');
+    expect(modal).toContain('mode === \'edit\'');
+    expect(modal).toContain("import { ModalShell } from '../ui/ModalShell'");
+    expect(modal).toContain('<ModalShell');
+    expect(modal).not.toContain('fixed inset-0');
+    expect(modal).not.toContain('role="dialog"');
+    expect(modal).not.toContain('aria-modal="true"');
+    expect(service).toContain('export async function getVisits(filter = {})');
+    expect(service).toContain('export async function createVisit(input)');
+    expect(service).toContain('export async function updateVisit(visitId, input)');
+    expect(service).toContain('export async function deleteVisit(visitId)');
+  });
+
+  it('anchors the Visits preservation ledger to old Git-backed behavior', () => {
+    const oldPage = headSource('frontend/src/components/pages/VisitsPage.jsx');
+    const oldMobile = headSource('frontend/src/components/mobile/MobileVisits.jsx');
+    const gate = gateSource();
+
+    expect(oldPage).toContain('usePageData');
+    expect(oldPage).toContain('visitsData');
+    expect(oldPage).toContain('refreshAllData');
+    expect(oldPage).toContain('deleteVisit');
+    expect(oldPage).toContain('<BulkActionBar');
+    expect(oldPage).toContain('<ConfirmationModal');
+    expect(oldPage).toContain('handleBulkDelete');
+    expect(oldPage).toContain('handleDelete');
+    expect(oldPage).toContain("viewMode === 'grid'");
+    expect(oldPage).toContain("viewMode === 'list'");
+    expect(oldPage).toContain("viewMode === 'table'");
+    expect(oldPage).toContain('<VisitListView');
+    expect(oldPage).toContain('<VisitTableView');
+    expect(oldPage).toContain('<FilterSheet');
+    expect(oldPage).toContain('<AnalyticsModal');
+    expect(oldPage).toContain('<EmergencyDetailsModal');
+    expect(oldPage).toContain('<PaginationControls');
+
+    expect(oldMobile).toContain('growthData');
+    expect(oldMobile).toContain('filteredVisits');
+    expect(oldMobile).toContain('chartData');
+    expect(oldMobile).toContain('Active Queue');
+    expect(oldMobile).toContain('Visit Velocity');
+    expect(oldMobile).toContain("'LIVE'");
+
+    expect(gate).toContain('HEAD snapshot evidence for this ledger');
+    expect(gate).toContain('| PageDataContext `visitsData`, `refreshAllData`, old page-level stats consumption, and old right-panel `visitsData` consumption.');
+    expect(gate).toContain('| Confirmation modal for single delete and bulk delete.');
+    expect(gate).toContain('| Mobile fake trend charts, dashboard stack, and local-only mobile filtering.');
+  });
+
+  it('declares the Visits conversion contract before visual implementation starts', () => {
+    const gate = gateSource();
+    const hardgate = fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
+
+    expect(gate).toContain('Visits canonical conversion contract:');
+    expect(gate).toContain('convert Visits from normal content into a full-bleed stage using the shared app shell');
+    expect(gate).toContain('hidden global FAB');
+    expect(gate).toContain('no private sidebar, header, footer, notification, or modal chrome');
+    expect(gate).toContain('keep `getVisitsPageData()` as the single route read owner');
+    expect(gate).toContain('`PageDataContext` must stay quiet on `/visits`');
+    expect(gate).toContain('one signal field for the current visit work');
+    expect(gate).toContain('The first visible command is `New visit` for allowed roles only');
+    expect(gate).toContain('keep `all`, `scheduled`, `in_progress`, `completed`, and `cancelled` as route-query state choices');
+    expect(gate).toContain('convert old grid/list/table scanning into one handled sheet');
+    expect(gate).toContain('one focused detail rail or sheet for the selected visit');
+    expect(gate).toContain('Terminal status changes, delete, bulk delete, and clinical/lifecycle outcomes remain unavailable');
+    expect(gate).toContain('Mobile should render signal, state choices, compact search/filter, handled visit sheet, row reveal, load more, and route-owned `New visit`');
+    expect(gate).toContain('it must not restore hamburger navigation, fake trend charts, `LIVE` badges, local-only search/KPI truth, or destructive selection');
+    expect(gate).toContain('`VisitsPage.jsx`, `MobileVisits.jsx`, `VisitListView.jsx`, `VisitTableView.jsx`, and `VisitModal.jsx` are now in the active UI hardgate because visual implementation has started');
+
+    expect(hardgate).toContain("'src/components/pages/VisitsPage.jsx'");
+    expect(hardgate).toContain("'src/components/mobile/MobileVisits.jsx'");
+    expect(hardgate).toContain("'src/components/context/VisitsPanel.jsx'");
+    expect(hardgate).toContain("'src/components/views/VisitListView.jsx'");
+    expect(hardgate).toContain("'src/components/views/VisitTableView.jsx'");
+    expect(hardgate).toContain("'src/components/modals/VisitModal.jsx'");
+  });
+
+  it('starts Visits visual implementation with the shared shell but without admission', () => {
+    const page = pageSource();
+    const gate = gateSource();
+
+    expect(page).toContain("import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext'");
+    expect(page).toContain("usePageFooter(null, 'status', false)");
+    expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
+    expect(page).toContain("useViewMode('visits-page', 'grid')");
+    expect(page).toContain("viewMode === 'grid'");
+    expect(page).toContain("viewMode === 'list'");
+    expect(page).toContain("viewMode === 'table'");
+
+    expect(gate).toContain('Visual implementation start proof, 2026-06-29');
+    expect(gate).toContain('This starts the visual implementation but does not admit Visits.');
+  });
+
+  it('adds a focused Visits detail rail while preserving old view modes', () => {
+    const page = pageSource();
+    const gate = gateSource();
+
+    expect(page).toContain('const [focusedVisitId, setFocusedVisitId] = useState(null)');
+    expect(page).toContain('const focusedVisit = React.useMemo(() => (');
+    expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
+    expect(page).toContain('<VisitsDetailRail');
+    expect(page).toContain('visit={focusedVisit}');
+    expect(page).toContain('const VisitsDetailRail = ({ visit, loading, canEdit, onView, onEdit, activeActionFeedback }) => {');
+    expect(page).toContain('const VisitFocusRow = ({ icon: Icon, label, value }) => (');
+    expect(page).toContain('onClick={() => setFocusedVisitId(visit.id)}');
+    expect(page).toContain('aria-pressed={focusedVisit?.id === visit.id}');
+    expect(page).toContain('event.stopPropagation();');
+    expect(page).toContain('Outcome and delete actions are locked for now.');
+    expect(page).toContain("viewMode === 'grid'");
+    expect(page).toContain("viewMode === 'list'");
+    expect(page).toContain("viewMode === 'table'");
+
+    expect(gate).toContain('Focused detail rail proof, 2026-06-29');
+    expect(gate).toContain('The old grid, list, and table modes remain preserved during this pass.');
+  });
+
+  it('converts the Visits opener into a signal and service-backed state choices', () => {
+    const page = pageSource();
+    const gate = gateSource();
+
+    expect(page).toContain('const visitStateOptions = [');
+    expect(page).toContain("id: 'all'");
+    expect(page).toContain("id: 'scheduled'");
+    expect(page).toContain("id: 'in_progress'");
+    expect(page).toContain("id: 'completed'");
+    expect(page).toContain("id: 'cancelled'");
+    expect(page).toContain('const getVisitSignal = ({ stats, visits, kpiFilter }) => {');
+    expect(page).toContain('const VisitSignalPanel = ({ stats, visits, loading, kpiFilter, setKpiFilter }) => {');
+    expect(page).toContain('const VisitStateStrip = ({ stats, visits, loading, kpiFilter, setKpiFilter }) => (');
+    expect(page).toContain('<VisitSignalPanel');
+    expect(page).toContain('setKpiFilter(item.id)');
+    expect(page).toContain('Loading visits');
+    expect(page).toContain('Pick one record, then view details or edit scheduling.');
+    expect(page).not.toContain('Bento Overview Cards');
+    expect(page).not.toContain('Total Visits Card');
+    expect(page).not.toContain('FILTERED');
+    expect(page).not.toContain('UPCOMING');
+    expect(page).not.toContain('VOID');
+    expect(page).toContain("viewMode === 'grid'");
+    expect(page).toContain("viewMode === 'list'");
+    expect(page).toContain("viewMode === 'table'");
+
+    expect(gate).toContain('Signal and state-choice opener proof, 2026-06-29');
+    expect(gate).toContain('The old five-card metric opener is converted into one signal field plus compact state choices.');
+  });
+
+  it('wraps Visits scan modes in one handled activity sheet', () => {
+    const page = pageSource();
+    const gate = gateSource();
+
+    expect(page).toContain('<VisitActivitySheet');
+    expect(page).toContain('data-testid="visits-activity-sheet"');
+    expect(page).toContain('const VisitActivitySheet = ({ filters, setFilters, openFilters, loading, pagination, errorMessage, onRetry, activeActionFeedback, children }) => (');
+    expect(page).toContain('const VisitSheetToolbar = ({ filters, setFilters, openFilters, activeActionFeedback }) => {');
+    expect(page).toContain('data-testid="visits-sheet-search"');
+    expect(page).toContain('placeholder="Search visits..."');
+    expect(page).toContain('onChange={(event) => setFilters(prev => ({ ...prev, search: event.target.value }))}');
+    expect(page).toContain('`${pagination.totalCount} visits`');
+    expect(page).toContain('`Page ${pagination.currentPage} of ${pagination.totalPages}`');
+    expect(page).toContain('<PaginationControls');
+    expect(page).toContain('totalCount={pagination.totalCount}');
+    expect(page).toContain('itemsPerPage={pagination.itemsPerPage}');
+    expect(page).toContain("viewMode === 'grid'");
+    expect(page).toContain("viewMode === 'list'");
+    expect(page).toContain("viewMode === 'table'");
+
+    expect(gate).toContain('Handled activity sheet proof, 2026-06-29');
+    expect(gate).toContain('The old grid, list, and table scan modes now live inside one route-owned activity sheet with inline search');
+  });
+
+  it('keeps failed Visits reads visible inside the canonical sheet with retry', () => {
+    const page = pageSource();
+    const mobile = mobileSource();
+    const gate = gateSource();
+
+    expect(page).toContain('const [visitPageError, setVisitPageError] = useState(null)');
+    expect(page).toContain('setVisitPageError(null)');
+    expect(page).toContain("setVisitPageError('Visits could not load. Try again.')");
+    expect(page).toContain('errorMessage={visitPageError}');
+    expect(page).toContain('onRetry={fetchVisits}');
+    expect(page).toContain('const VisitErrorBanner = ({ message, onRetry }) => (');
+    expect(page).toContain('data-testid="visits-error-state"');
+    expect(page).toContain('Visits could not load');
+    expect(page).toContain('Retry');
+
+    expect(mobile).toContain('errorMessage,');
+    expect(mobile).toContain('onRetry,');
+    expect(mobile).toContain('<MobileVisitErrorBanner message={errorMessage} onRetry={onRetry || onRefresh} />');
+    expect(mobile).toContain('const MobileVisitErrorBanner = ({ message, onRetry }) => (');
+    expect(mobile).toContain('data-testid="mobile-visits-error-state"');
+    expect(mobile).toContain('Visits could not load');
+    expect(mobile).toContain('Retry');
+
+    expect(gate).toContain('Visible degraded-state proof, 2026-06-30');
+    expect(gate).toContain('failed Visits reads stay visible inside the activity sheet');
+  });
+
+  it('adds immediate interaction feedback for route actions and reveal states', () => {
+    const page = pageSource();
+    const mobile = mobileSource();
+    const gate = gateSource();
+
+    expect(page).toContain('const actionFeedbackTimerRef = useRef(null)');
+    expect(page).toContain('const [activeActionFeedback, setActiveActionFeedback] = useState(null)');
+    expect(page).toContain('const markActionFeedback = useCallback((actionId) => {');
+    expect(page).toContain("markActionFeedback('create')");
+    expect(page).toContain("markActionFeedback('filters')");
+    expect(page).toContain("markActionFeedback('analytics')");
+    expect(page).toContain("markActionFeedback('emergency-context')");
+    expect(page).toContain("markActionFeedback(`view-${visit?.id || 'unknown'}`)");
+    expect(page).toContain("markActionFeedback(`edit-${visit?.id || 'unknown'}`)");
+    expect(page).toContain("data-state={activeActionFeedback === 'create' ? 'opening' : 'idle'}");
+    expect(page).toContain("data-state={activeActionFeedback === 'filters' ? 'opening' : 'idle'}");
+    expect(page).toContain("data-state={active ? 'selected' : 'idle'}");
+    expect(page).toContain("{activeActionFeedback === 'create' ? 'Opening...' : 'New visit'}");
+    expect(page).toContain("{activeActionFeedback === 'filters' ? 'Opening' : 'Filters'}");
+    expect(page).toContain("{viewOpening ? 'Opening...' : 'View'}");
+    expect(page).toContain("{editOpening ? 'Opening...' : 'Edit'}");
+    expect(page).toContain('aria-busy={activeActionFeedback === \'create\'}');
+    expect(page).toContain('aria-busy={viewOpening}');
+
+    expect(mobile).toContain("data-state={active ? 'selected' : 'idle'}");
+    expect(mobile).toContain("data-state={hasFilter ? 'filtered' : 'idle'}");
+    expect(mobile).toContain("data-state={expanded ? 'open' : 'closed'}");
+    expect(mobile).toContain('whileTap={{ scale: 0.97 }}');
+    expect(mobile).toContain('whileTap={{ scale: 0.95 }}');
+
+    expect(gate).toContain('Interaction feedback proof, 2026-06-30');
+    expect(gate).toContain('Visits route actions now expose immediate opening, selected, and reveal states');
+  });
+
+  it('keeps the Visits right panel route-owned and hardgate-clean', () => {
+    const page = pageSource();
+    const panel = panelSource();
+    const contextPanel = contextPanelSource();
+    const gate = gateSource();
+
+    expect(page).toContain('const canCreateVisits = isAdmin() || isOrgAdmin() || isProvider()');
+    expect(page).toContain('canCreate: canCreateVisits');
+    expect(page).toContain('canEdit: canEditVisits');
+    expect(page).toContain("window.dispatchEvent(new CustomEvent('visitsRouteContextUpdated', {");
+    expect(page).toContain("window.addEventListener('requestVisitsRouteContext', publishVisitsRouteContext);");
+
+    expect(contextPanel).toContain('<VisitsPanel visitContext={visitsRouteContext} />');
+    expect(contextPanel).not.toContain('visitsData,');
+
+    expect(panel).toContain('export const VisitsPanel = ({ visitContext }) =>');
+    expect(panel).toContain("const [panelNotice, setPanelNotice] = React.useState('Visit actions ready.');");
+    expect(panel).toContain("window.dispatchEvent(new CustomEvent('openVisitModal'))");
+    expect(panel).toContain("window.dispatchEvent(new CustomEvent('openAnalyticsModal'))");
+    expect(panel).toContain('Visits overview');
+    expect(panel).toContain('Current route scope');
+    expect(panel).toContain('Panel actions');
+    expect(panel).toContain('Current list');
+    expect(panel).toContain('No visits in the current view.');
+    expect(panel).toContain('role="status"');
+    expect(panel).toContain('aria-live="polite"');
+    expect(panel).toContain('title="New visit"');
+    expect(panel).toContain('title="View visit statistics"');
+
+    expect(panel).not.toContain('visitsData');
+    expect(panel).not.toContain('Daily Pulse');
+    expect(panel).not.toContain("Today's Visits");
+    expect(panel).not.toContain('Live Queue');
+    expect(panel).not.toContain('Ambulatory Care');
+    expect(panel).not.toContain('Active Session');
+    expect(panel).not.toContain('Queue clear');
+    expect(panel).not.toContain('border');
+    expect(panel).not.toContain('ring');
+    expect(panel).not.toContain('outline');
+    expect(panel).not.toContain('divide');
+
+    expect(gate).toContain('Visits right-panel route-context proof, 2026-07-06');
+    expect(gate).toContain('`VisitsPanel.jsx` now consumes `visitContext`, not `PageDataContext` `visitsData`');
+  });
+
+  it('keeps Visits modals and secondary reveals on canonical chrome', () => {
+    const page = pageSource();
+    const modal = modalSource();
+    const modalShell = modalShellSource();
+    const gate = gateSource();
+
+    expect(page).toContain('<VisitModal');
+    expect(page).toContain('<FilterSheet');
+    expect(page).toContain('isMobile={isMobile}');
+    expect(page).toContain('<AnalyticsModal');
+    expect(page).toContain('<EmergencyDetailsModal');
+
+    expect(modal).toContain('<ModalShell');
+    expect(modal).toContain('managed');
+    expect(modal).toContain('const patientLabel = (');
+    expect(modal).toContain('const facilityLabel = (');
+    expect(modal).toContain('const ReadOnlyField = ({ value, subtext, icon, multiline = false }) => {');
+    expect(modal).toContain("value={formData.notes || 'No clinical notes'}");
+    expect(modal).toContain('View Full Incident Log');
+
+    expect(modalShell).toContain('role="dialog"');
+    expect(modalShell).toContain('aria-modal="true"');
+    expect(modalShell).toContain('data-modal-chrome="true"], #dynamic-bottom-bar');
+
+    expect(gate).toContain('Modal and secondary reveal proof, 2026-06-30');
+    expect(gate).toContain('view-mode `VisitModal` renders read-only evidence fields');
+  });
+
+  it('keeps delete and bulk delete excluded from the active Visits UI until authority is proved', () => {
+    const page = pageSource();
+    const list = listSource();
+    const table = tableSource();
+    const mobile = mobileSource();
+
+    expect(page).not.toContain('deleteVisit');
+    expect(page).not.toContain('handleBulkDelete');
+    expect(page).not.toContain('handleDelete');
+    expect(page).not.toContain('<BulkActionBar');
+    expect(page).not.toContain('selectedIds');
+    expect(page).toContain('canDelete={false}');
+    expect(page).toContain('selectionEnabled={false}');
+
+    expect(list).toContain('canDelete = false');
+    expect(list).toContain('selectionEnabled = false');
+    expect(list).toContain('{canDelete && (');
+    expect(table).toContain('canDelete = false');
+    expect(table).toContain('selectionEnabled = false');
+    expect(table).toContain('{canDelete && (');
+    expect(mobile).toContain('canDelete = false');
+    expect(mobile).toContain('selectionEnabled = false');
+    expect(mobile).toContain('{canDelete && (');
+  });
+
+  it('guards Visits realtime refreshes and async list results after route cleanup', () => {
+    const page = pageSource();
+
+    expect(page).toContain('const isMountedRef = useRef(false)');
+    expect(page).toContain('const fetchRequestRef = useRef(0)');
+    expect(page).toContain('isMountedRef.current = false');
+    expect(page).toContain('fetchRequestRef.current += 1');
+    expect(page).toContain('if (!isMountedRef.current || fetchRequestRef.current !== requestId)');
+    expect(page).toContain('let active = true');
+    expect(page).toContain('if (active && isMountedRef.current)');
+    expect(page).toContain('active = false');
+    expect(page).toContain('supabase.removeChannel(channel)');
+  });
+
+  it('limits generic visit create and update writes to scheduling metadata', () => {
+    const modal = modalSource();
+    const service = serviceSource();
+
+    expect(service).toContain('const VISIT_PAGE_WRITE_COLUMNS = new Set');
+    expect(service).toContain("'user_id'");
+    expect(service).toContain("'hospital_id'");
+    expect(service).toContain("'date'");
+    expect(service).toContain("'type'");
+    expect(service).toContain("'status'");
+    expect(service).toContain("'notes'");
+    expect(service).toContain("'cost'");
+    expect(service).toContain("'preparation'");
+    expect(service).toContain("'room_number'");
+    expect(service).toContain("'estimated_duration'");
+    expect(service).toContain("'insurance_covered'");
+    expect(service).toContain('const VISIT_PAGE_STATUS_VALUES = new Set');
+    expect(service).toContain("'scheduled'");
+    expect(service).toContain("'upcoming'");
+    expect(service).toContain("'in_progress'");
+    expect(service).toContain("if (!VISIT_PAGE_WRITE_COLUMNS.has(targetKey)) continue");
+    expect(service).toContain("if (targetKey === 'status' && !VISIT_PAGE_STATUS_VALUES.has(value)) continue");
+    expect(service).not.toContain("if (!payload.doctor_name");
+
+    expect(modal).toContain("const terminalStatusValues = new Set(['completed', 'cancelled', 'no-show'])");
+    expect(modal).toContain('const isTerminalStatus = terminalStatusValues.has');
+    expect(modal).toContain('disabled={isTerminalStatus}');
+    expect(modal).toContain('const ReadOnlyField = ({ value, subtext, icon, multiline = false }) => {');
+    expect(modal).toContain('<SelectItem value="completed" disabled>');
+    expect(modal).toContain('<SelectItem value="cancelled" disabled>');
+    expect(modal).toContain('<SelectItem value="no-show" disabled>');
+    expect(modal).toContain('Status changes here stay in scheduling.');
+  });
+
+  it('moves route list, count, stats, and enrichment reads behind visitsService before visual admission', () => {
+    const page = pageSource();
+    const service = serviceSource();
+
+    expect(page).toContain('getVisitsPageData({');
+    expect(page).toContain('setVisitPageStats(pageData.stats || null)');
+    expect(page).not.toContain("supabase.from('visits').select('*', { count: 'exact', head: true })");
+    expect(page).not.toContain(".from('profiles')");
+    expect(page).not.toContain(".from('emergency_requests')");
+    expect(page).not.toContain(".from('doctors')");
+    expect(page).not.toContain(".from('hospitals')");
+    expect(page).not.toContain('getCurrentUser');
+    expect(page).not.toContain('applyAuthFilter');
+
+    expect(service).toContain('export async function getVisitsPageData');
+    expect(service).toContain("supabase.from(TABLE_NAME).select('*', { count: 'exact', head: true })");
+    expect(service).toContain('applyVisitPageAuth(countQuery, user)');
+    expect(service).toContain('applyVisitPageFilters(countQuery, filters, kpiFilter)');
+    expect(service).toContain('const { data, error } = await withTimeout(dataQuery, 8000');
+    expect(service).toContain("from('profiles')");
+    expect(service).toContain("from('emergency_requests')");
+    expect(service).toContain("from('doctors')");
+    expect(service).toContain("from('hospitals')");
+    expect(service).toContain('getVisitPageStats(user)');
+  });
+
+  it('keeps Visits search and KPI filtering service-owned instead of mobile-local', () => {
+    const page = pageSource();
+    const mobile = mobileSource();
+    const service = serviceSource();
+
+    expect(page).toContain('activeKpi={kpiFilter}');
+    expect(page).toContain('onKpiChange={setKpiFilter}');
+    expect(page).toContain("placeholder: 'Search visits...'");
+
+    expect(mobile).not.toContain("const search = String(filters?.search");
+    expect(mobile).not.toContain("const kpi = String(filters?.kpiFilter");
+    expect(mobile).not.toContain('patientName.includes(search)');
+    expect(mobile).not.toContain("if (kpi !== 'all')");
+    expect(mobile).toContain('useStableList(visitRows, loading)');
+    expect(mobile).toContain("id: 'in_progress'");
+    expect(mobile).toContain('onClick={() => onKpiChange?.(item.id)}');
+
+    expect(service).toContain('const sanitizeVisitSearchTerm');
+    expect(service).toContain('const search = sanitizeVisitSearchTerm(filters.search)');
+    expect(service).toContain('nextQuery = nextQuery.or([');
+    expect(service).toContain('display_id.ilike');
+    expect(service).toContain('hospital_name.ilike');
+    expect(service).toContain('doctor_name.ilike');
+    expect(service).toContain('room_number.ilike');
+  });
+
+  it('converts mobile Visits into the Requests-style signal and handled sheet', () => {
+    const mobile = mobileSource();
+    const gate = gateSource();
+
+    expect(mobile).toContain('const MobileVisitsAtlasLayer = () => (');
+    expect(mobile).toContain('const mobileVisitStates = [');
+    expect(mobile).toContain("id: 'all'");
+    expect(mobile).toContain("id: 'scheduled'");
+    expect(mobile).toContain("id: 'in_progress'");
+    expect(mobile).toContain("id: 'completed'");
+    expect(mobile).toContain("id: 'cancelled'");
+    expect(mobile).toContain('const getMobileVisitSignal = ({ states, activeKpi }) => {');
+    expect(mobile).toContain('data-testid="mobile-visits-activity-sheet"');
+    expect(mobile).toContain('data-testid="mobile-visits-sheet-search"');
+    expect(mobile).toContain('aria-label="Filter visits"');
+    expect(mobile).toContain('aria-label="Open visit statistics"');
+    expect(mobile).toContain('const MobileVisitRow = ({');
+    expect(mobile).toContain('setExpandedVisitId(expanded ? null : visit.id)');
+    expect(mobile).toContain('<MobileListLoadMore armed={armed} onRequest={requestLoad} />');
+    expect(mobile).toContain('<MobileListEnd label="End of visits" />');
+    expect(mobile).toContain('Details');
+    expect(mobile).toContain('Edit');
+
+    expect(mobile).not.toContain('MobileKPIStrip');
+    expect(mobile).not.toContain('MobileFeaturedMetric');
+    expect(mobile).not.toContain('MobileSecondaryMetricRail');
+    expect(mobile).not.toContain('MobileSectionHeader');
+    expect(mobile).not.toContain("Today's Appointments");
+    expect(mobile).not.toContain('Visit Summary');
+    expect(mobile).not.toContain('Visit Directory');
+
+    expect(gate).toContain('Mobile handled-sheet proof, 2026-06-29');
+    expect(gate).toContain('Mobile Visits now follows the Requests mobile rhythm');
+  });
+
+  it('records responsive and deep-link proof before admitting Visits', () => {
+    const page = pageSource();
+    const mobile = mobileSource();
+    const gate = gateSource();
+
+    expect(page).toContain('usePageShell({ bleed: true, hideFab: true })');
+    expect(page).toContain('const viewVisitId = urlParams.get(\'view\')');
+    expect(page).toContain('const visitData = await getVisit(viewVisitId)');
+    expect(page).toContain('className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"');
+    expect(page).toContain('data-testid="visits-activity-sheet"');
+    expect(mobile).toContain('data-testid="mobile-visits-activity-sheet"');
+    expect(mobile).toContain('aria-label="Filter visits"');
+    expect(gate).toContain('Responsive and deep-link admission proof, 2026-07-02');
+    expect(gate).toContain('wide desktop, tablet, 390px mobile, and `?view=` deep-link');
+  });
+
+  it('admits Visits only as a guarded Page 7 with destructive actions still excluded', () => {
+    const page = pageSource();
+    const gate = gateSource();
+
+    expect(gate).toContain('| Visits | `/visits` | Admitted for guarded continuation after the 2026-07-02 responsive and deep-link proof.');
+    expect(gate).toContain('Decision: Visits is admitted for guarded continuation under the Today/Requests canon');
+    expect(gate).toContain('it does not make Visits a new global layout source');
+    expect(gate).toContain('it does not admit destructive delete, bulk delete, terminal lifecycle outcomes, or clinical/history mutation authority');
+    expect(gate).toContain('Remaining guarded constraints after Page 7 admission:');
+    expect(gate).toContain('Prove a delete receiver/RLS/app consequence before reintroducing single delete or bulk delete');
+    expect(page).not.toContain('deleteVisit');
+    expect(page).not.toContain('<BulkActionBar');
+    expect(page).not.toContain('<ConfirmationModal');
+  });
+
+  it('keeps mobile Visits free of fake trend charts and stale live copy', () => {
+    const mobile = mobileSource();
+
+    expect(mobile).not.toContain('growthData');
+    expect(mobile).not.toContain('chartData');
+    expect(mobile).not.toContain('filteredVisits');
+    expect(mobile).not.toContain("'LIVE'");
+    expect(mobile).not.toContain('Visit Velocity');
+    expect(mobile).not.toContain('Active Queue');
+    expect(mobile).not.toContain('calcDeltaPercent');
+    expect(mobile).not.toContain('formatSignedPercent');
+    expect(mobile).not.toContain('formatSignedPercent(completionRate - 50)');
+    expect(mobile).toContain('const totalCount = countNumber(statistics?.total, visitRows.length)');
+    expect(mobile).toContain('Pick one visit, then view details or edit scheduling.');
+    expect(mobile).toContain('Use completed visits as read-only care history.');
+    expect(mobile).toContain('Review these records without changing outcomes.');
+  });
+});

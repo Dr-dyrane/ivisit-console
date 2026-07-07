@@ -15,11 +15,15 @@ module.exports = {
                         card:  'var(--radius-card,  30px)',  // Management cards, entity cards
                         inner: 'var(--radius-inner, 22px)',  // Nested surfaces, inner cards
                         icon:  'var(--radius-icon,  14px)',  // Icon tiles, avatar wells
+                        sheet: 'var(--radius-sheet, 44px)',  // Full sheets, drawers, side panels
+                        button: 'var(--radius-button, 20px)', // Action buttons and compact controls
+                        pill: 'var(--radius-pill, 999px)',   // Chips, badges, handles
                         modal: 'var(--radius-modal, 38px)',  // Modal / dialog sheets
+                        squircle: 'var(--squircle, 1.75rem)',
                 },
                 colors: {
                         // Design system tokens
-                        brand: 'var(--color-brand, #86100E)',
+                        brand: 'hsl(var(--primary))',
                         background: 'hsl(var(--background))',
                         foreground: 'hsl(var(--foreground))',
                         card: {

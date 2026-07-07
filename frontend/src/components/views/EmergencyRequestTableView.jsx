@@ -214,11 +214,7 @@ export const EmergencyRequestTableView = ({
                         {/* Cash Payment Action */}
                         {canManage && actionState.canProcessCash && (
                           <DropdownMenuItem
-                            onClick={() => {
-                              if (window.confirm(`Process cash payment for this request? This will deduct the 2.5% platform fee from your organization's wallet.`)) {
-                                onProcessCash?.(req);
-                              }
-                            }}
+                            onClick={() => onProcessCash?.(req)}
                             className="cursor-pointer font-medium text-xs py-2 text-yellow-500 focus:text-yellow-500 focus:bg-yellow-500/10"
                           >
                             <svg
@@ -238,7 +234,7 @@ export const EmergencyRequestTableView = ({
                               <path d="M7 6h1v4" />
                               <path d="m16.71 13.88.7.71-2.82 2.82" />
                             </svg>
-                            Process Cash
+                            Cash not ready
                           </DropdownMenuItem>
                         )}
 

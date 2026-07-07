@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Shield, ShieldCheck, Search, Eye, Edit, Trash2, CheckCircle, FileCheck, Calendar, DollarSign, SlidersHorizontal, BarChart3, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { Shield, ShieldCheck, Search, Eye, CheckCircle, FileCheck, Calendar, DollarSign, SlidersHorizontal, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
@@ -13,28 +13,28 @@ import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadM
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 
+const formatPolicyStatusLabel = (status) => {
+  const value = String(status || 'unknown').replace(/_/g, ' ').trim();
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Unknown';
+};
+
 export const MobileInsurance = ({
   policies = [],
   filters,
   setFilters,
   onView,
-  onEdit,
-  onDelete,
-  onVerify,
   onRefresh,
-  canManage = false,
   loading = false,
+  error = null,
+  onRetry,
   onOpenFilters,
   onViewAnalytics,
-  selectedIds = [],
-  onSelect,
-  onSelectAll,
+  stats,
   hasMore = false,
   onLoadMore
 }) => {
   const [expandedId, setExpandedId] = useState(null);
   const observerTarget = useRef(null);
-  const selectionMode = selectedIds.length > 0;
 
   const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 
@@ -50,70 +50,44 @@ export const MobileInsurance = ({
     return () => observer.disconnect();
   }, [hasMore, triggerLoad]);
 
-  const counts = useMemo(() => ({
-    total: policies.length,
-    active: policies.filter(p => p.status === 'active').length,
-    pending: policies.filter(p => p.status === 'pending').length,
-    expired: policies.filter(p => p.status === 'expired').length
-  }), [policies]);
+  const counts = useMemo(() => {
+    const loaded = {
+      total: policies.length,
+      active: policies.filter(p => p.status === 'active').length,
+      pending: policies.filter(p => p.status === 'pending').length,
+      expired: policies.filter(p => p.status === 'expired').length,
+      verified: policies.filter(p => p.verified).length,
+      unverified: policies.filter(p => !p.verified).length
+    };
+
+    const readStat = (key) => {
+      const value = Number(stats?.[key]);
+      return Number.isFinite(value) ? value : loaded[key];
+    };
+
+    return {
+      total: readStat('total'),
+      active: readStat('active'),
+      pending: readStat('pending'),
+      expired: readStat('expired'),
+      verified: readStat('verified'),
+      unverified: readStat('unverified')
+    };
+  }, [policies, stats]);
+
+  const verificationRate = counts.total > 0 ? Math.round((counts.verified / counts.total) * 100) : 0;
+  const activeRatio = counts.total > 0 ? Math.round((counts.active / counts.total) * 100) : 0;
+  const currentLabel = loading ? 'Loading' : 'Current';
 
   const kpis = [
-    { id: 'all', label: 'Policies', value: counts.total, color: 'hsl(var(--primary))', delta: 'LIVE', direction: 'flat' },
-    { id: 'active', label: 'Active', value: counts.active, color: 'hsl(var(--success))', delta: 'LIVE', direction: 'flat' },
-    { id: 'pending', label: 'Pending', value: counts.pending, color: 'hsl(var(--warning))', delta: 'LIVE', direction: 'flat' },
-    { id: 'expired', label: 'Expired', value: counts.expired, color: 'hsl(var(--destructive))', delta: 'LIVE', direction: 'flat' }
+    { id: 'all', label: 'Policies', value: counts.total, color: 'hsl(var(--info))', delta: currentLabel, direction: 'flat' },
+    { id: 'active', label: 'Active', value: counts.active, color: 'hsl(var(--success))', delta: currentLabel, direction: 'flat' },
+    { id: 'pending', label: 'Pending', value: counts.pending, color: 'hsl(var(--warning))', delta: currentLabel, direction: 'flat' },
+    { id: 'expired', label: 'Expired', value: counts.expired, color: 'hsl(var(--destructive))', delta: currentLabel, direction: 'flat' }
   ];
 
-  const filteredPolicies = useMemo(() => {
-    let result = [...policies];
-    const search = String(filters?.search || '').toLowerCase();
-    const kpi = String(filters?.kpiFilter || 'all');
-
-    if (search) {
-      result = result.filter(p =>
-        String(p.policy_number || '').toLowerCase().includes(search) ||
-        String(p.policy_holder_name || '').toLowerCase().includes(search) ||
-        String(p.provider_name || '').toLowerCase().includes(search)
-      );
-    }
-    if (kpi !== 'all') {
-      if (kpi === 'unverified') result = result.filter(p => !p.verified);
-      else result = result.filter(p => p.status === kpi);
-    }
-
-    return result;
-  }, [policies, filters]);
-  const { displayItems: displayPolicies, isBuffering } = useStableList(filteredPolicies, loading);
+  const { displayItems: displayPolicies } = useStableList(policies, loading);
   const showTopSectionLoading = loading && displayPolicies.length === 0;
-
-  const periodTrends = useMemo(() => {
-    const periodMs = 30 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    const getTime = (item) => new Date(item.created_at || item.updated_at || item.start_date || 0).getTime();
-    const currentWindow = policies.filter((item) => {
-      const ts = getTime(item);
-      return Number.isFinite(ts) && ts >= now - periodMs;
-    });
-    const previousWindow = policies.filter((item) => {
-      const ts = getTime(item);
-      return Number.isFinite(ts) && ts < now - periodMs && ts >= now - (2 * periodMs);
-    });
-    const buildTrend = (currentValue, previousValue) => {
-      if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue) || currentValue === 0 || previousValue === 0) {
-        return { direction: 'flat', deltaText: 'N/A' };
-      }
-      const delta = ((currentValue - previousValue) / Math.abs(previousValue)) * 100;
-      return { direction: delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat', deltaText: `${delta > 0 ? '+' : ''}${delta.toFixed(Math.abs(delta) >= 10 ? 0 : 1)}%` };
-    };
-    const currentVerificationRatio = currentWindow.length > 0 ? currentWindow.filter((p) => p.verified).length / currentWindow.length : 0;
-    const previousVerificationRatio = previousWindow.length > 0 ? previousWindow.filter((p) => p.verified).length / previousWindow.length : 0;
-    const currentActiveRatio = currentWindow.length > 0 ? currentWindow.filter((p) => p.status === 'active').length / currentWindow.length : 0;
-    const previousActiveRatio = previousWindow.length > 0 ? previousWindow.filter((p) => p.status === 'active').length / previousWindow.length : 0;
-    return {
-      verificationRate: buildTrend(currentVerificationRatio, previousVerificationRatio),
-      activeLoad: buildTrend(currentActiveRatio, previousActiveRatio)
-    };
-  }, [policies]);
 
   return (
     <PullToRefresh onRefresh={onRefresh}>
@@ -128,34 +102,30 @@ export const MobileInsurance = ({
             {
               label: 'Active Coverage',
               value: counts.active,
-              trend: periodTrends.activeLoad.deltaText,
+              trend: currentLabel,
               icon: Shield,
-              color: 'hsl(var(--success))',
-              chartData: [{ value: 28 }, { value: 35 }, { value: 40 }, { value: 44 }, { value: 52 }, { value: 57 }]
+              color: 'hsl(var(--success))'
             },
             {
               label: 'Verification Rate',
-              value: `${Math.round(((policies.filter(p => p.verified).length || 0) / (counts.total || 1)) * 100)}%`,
-              trend: periodTrends.verificationRate.deltaText,
+              value: `${verificationRate}%`,
+              trend: currentLabel,
               icon: CheckCircle,
-              color: 'hsl(var(--info))',
-              chartData: [{ value: 32 }, { value: 38 }, { value: 44 }, { value: 49 }, { value: 54 }, { value: 60 }]
+              color: 'hsl(var(--info))'
             },
             {
-              label: 'Total Policies',
+              label: 'Total policies',
               value: counts.total,
-              trend: 'LIVE',
+              trend: currentLabel,
               icon: FileCheck,
-              color: 'hsl(var(--primary))',
-              chartData: [{ value: 18 }, { value: 24 }, { value: 29 }, { value: 34 }, { value: 38 }, { value: 42 }]
+              color: 'hsl(var(--info))'
             },
             {
               label: 'Active Ratio',
-              value: `${Math.round(((counts.active || 0) / (counts.total || 1)) * 100)}%`,
-              trend: periodTrends.activeLoad.deltaText,
+              value: `${activeRatio}%`,
+              trend: currentLabel,
               icon: ShieldCheck,
-              color: 'hsl(var(--warning))',
-              chartData: [{ value: 22 }, { value: 28 }, { value: 32 }, { value: 37 }, { value: 41 }, { value: 45 }]
+              color: 'hsl(var(--warning))'
             }
           ]}
         />
@@ -172,38 +142,38 @@ export const MobileInsurance = ({
               {
                 icon: CheckCircle,
                 title: 'Verification Rate',
-                subtitle: 'Trust score',
-                value: `${Math.round(((policies.filter(p => p.verified).length || 0) / (counts.total || 1)) * 100)}%`,
+                subtitle: 'Current scope',
+                value: `${verificationRate}%`,
                 color: 'hsl(var(--info))',
-                trendDirection: periodTrends.verificationRate.direction,
-                trendText: periodTrends.verificationRate.deltaText
+                trendDirection: 'flat',
+                trendText: currentLabel
               },
               {
                 icon: Shield,
                 title: 'Active Load',
-                subtitle: 'Portfolio',
-                value: `${Math.round(((counts.active || 0) / (counts.total || 1)) * 100)}%`,
+                subtitle: 'Current scope',
+                value: `${activeRatio}%`,
                 color: 'hsl(var(--success))',
-                trendDirection: periodTrends.activeLoad.direction,
-                trendText: periodTrends.activeLoad.deltaText
+                trendDirection: 'flat',
+                trendText: currentLabel
               },
               {
                 icon: FileCheck,
-                title: 'Total Policies',
-                subtitle: 'Registry',
+                title: 'Total policies',
+                subtitle: 'Current scope',
                 value: counts.total,
-                color: 'hsl(var(--primary))',
+                color: 'hsl(var(--info))',
                 trendDirection: 'flat',
-                trendText: 'LIVE'
+                trendText: currentLabel
               },
               {
                 icon: ShieldCheck,
                 title: 'Active',
-                subtitle: 'Verified',
+                subtitle: 'Current scope',
                 value: counts.active,
                 color: 'hsl(var(--warning))',
                 trendDirection: 'flat',
-                trendText: 'LIVE'
+                trendText: currentLabel
               }
             ]}
           />
@@ -217,7 +187,7 @@ export const MobileInsurance = ({
               placeholder="Search policies..."
               value={filters?.search || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy border-0 text-[12px] placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary/20 outline-none"
+              className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy border-0 text-[12px] placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-info/20 outline-none"
             />
           </div>
           {onOpenFilters && (
@@ -243,12 +213,32 @@ export const MobileInsurance = ({
         </div>
 
         <MobileSectionHeader
-          label="Insurance Policies"
+          label="Insurance policies"
           count={displayPolicies.length}
-          color="hsl(var(--primary))"
-          onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== displayPolicies.length) : null}
-          isAllSelected={displayPolicies.length > 0 && selectedIds.length === displayPolicies.length}
+          color="hsl(var(--info))"
         />
+
+        {error && displayPolicies.length > 0 && (
+          <div
+            className="mb-3 rounded-3xl bg-warning/10 p-4 text-warning"
+            data-testid="mobile-insurance-degraded-state"
+          >
+            <p className="text-sm font-semibold">Insurance did not refresh</p>
+            <p className="mt-1 text-xs text-warning/80">
+              Showing the last loaded policy rows.
+            </p>
+            {onRetry && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="mt-3 h-9 rounded-2xl bg-warning/10 px-4 text-xs font-semibold text-warning hover:bg-warning/15"
+                onClick={onRetry}
+              >
+                Try again
+              </Button>
+            )}
+          </div>
+        )}
 
         <div className="space-y-1">
           <AnimatePresence mode="popLayout">
@@ -261,10 +251,10 @@ export const MobileInsurance = ({
                   key={policy.id}
                   icon={Shield}
                   color={color}
-                  label={String(policy.status || 'unknown').toUpperCase()}
+                  label={formatPolicyStatusLabel(policy.status)}
                   value={policy.policy_holder_name || policy.policy_number || 'Unnamed Policy'}
                   rightBlade={{
-                    badge: policy.verified ? 'VERIFIED' : 'UNVERIFIED',
+                    badge: policy.verified ? 'Verified' : 'Unverified',
                     direction: policy.verified ? 'up' : 'flat',
                     label: 'Provider',
                     value: policy.provider_name || 'N/A',
@@ -273,9 +263,6 @@ export const MobileInsurance = ({
                   isExpanded={expandedId === policy.id}
                   onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
                   itemId={policy.id}
-                  isSelected={selectedIds.includes(policy.id)}
-                  onSelect={onSelect ? (id) => onSelect(id, !selectedIds.includes(id)) : null}
-                  selectionMode={selectionMode}
                   expandedContent={(
                     <div className="space-y-4 py-3">
                       <div className="grid grid-cols-1 gap-2">
@@ -291,24 +278,9 @@ export const MobileInsurance = ({
 
                       <div className="flex gap-2 pt-1">
                         <Button variant="ghost" className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2" onClick={() => onView(policy)}>
-                          <Eye size={16} className="text-primary/60" />
-                          <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Details</span>
+                          <Eye size={16} className="text-info/70" />
+                          <span className="text-xs font-semibold">Details</span>
                         </Button>
-                        {canManage && (
-                          <>
-                            {!policy.verified && (
-                              <Button variant="ghost" className="h-12 rounded-2xl apple-glass border-0 px-3" onClick={() => onVerify(policy)}>
-                                <CheckCircle className="h-4 w-4 text-success/70" />
-                              </Button>
-                            )}
-                            <Button variant="ghost" className="h-12 rounded-2xl apple-glass border-0 px-3" onClick={() => onEdit(policy)}>
-                              <Edit size={16} className="text-warning/60" />
-                            </Button>
-                            <Button variant="ghost" className="h-12 rounded-2xl apple-glass border-0 px-3 hover:bg-destructive/10 hover:text-destructive" onClick={() => onDelete(policy)}>
-                              <Trash2 size={16} className="text-destructive/60" />
-                            </Button>
-                          </>
-                        )}
                       </div>
                     </div>
                   )}

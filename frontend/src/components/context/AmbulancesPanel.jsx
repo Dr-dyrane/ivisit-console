@@ -1,135 +1,224 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import {
+  AlertCircle,
   Ambulance,
   Activity,
-  Clock,
-  Plus,
-  MapPin,
-  List,
+  BarChart3,
   Filter,
-  BarChart3
+  Plus,
+  RefreshCw,
+  Wrench,
 } from 'lucide-react';
 
-export const AmbulancesPanel = ({ ambulancesData }) => {
-  const stats = ambulancesData?.stats || { total: 0, available: 0, onRoute: 0, busy: 0, maintenance: 0 };
-  const recent = ambulancesData?.recent || [];
+const emptyContext = {
+  status: 'loading',
+  loading: true,
+  error: null,
+  stats: {
+    total: 0,
+    available: 0,
+    onRoute: 0,
+    active: 0,
+    maintenance: 0,
+    visible: 0,
+    totalCount: 0,
+  },
+  recent: [],
+};
 
-  const handleCreateAmbulance = () => {
-    window.dispatchEvent(new CustomEvent('openAmbulanceModal'));
-  };
+const toneByStatus = {
+  available: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+  en_route: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+  on_route: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+  dispatched: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+  on_trip: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+  on_scene: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+  maintenance: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+  offline: 'bg-muted/32 text-muted-foreground',
+};
 
-  const handleAnalytics = () => {
-    window.dispatchEvent(new CustomEvent('openAnalyticsModal'));
-  };
+const contextStatusCopy = {
+  loading: {
+    title: 'Loading fleet',
+    body: 'One moment while this page shares its fleet details.',
+    icon: RefreshCw,
+  },
+  failed: {
+    title: 'Details not ready',
+    body: 'The fleet list needs to load before this panel can show details.',
+    icon: AlertCircle,
+  },
+  empty: {
+    title: 'No units found',
+    body: 'Clear filters or add a unit when the fleet action is allowed.',
+    icon: Ambulance,
+  },
+};
+
+const readNumber = (value) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : 0;
+};
+
+const dispatchPanelEvent = (eventName) => {
+  window.dispatchEvent(new CustomEvent(eventName));
+};
+
+const FleetMetric = ({ icon: Icon, label, value, tone }) => (
+  <div className={`rounded-[24px] p-3 ${tone}`}>
+    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-2xl bg-background/45">
+      <Icon className="h-4 w-4" />
+    </div>
+    <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
+    <p className="mt-1 text-xl font-semibold text-foreground">{value}</p>
+  </div>
+);
+
+const PanelAction = ({ icon: Icon, label, onClick, tone = 'text-primary bg-primary/10 hover:bg-primary/15' }) => (
+  <motion.button
+    type="button"
+    whileTap={{ scale: 0.97 }}
+    onClick={onClick}
+    className={`flex min-h-16 flex-col items-center justify-center gap-2 rounded-[24px] px-3 py-3 text-xs font-semibold transition-all active:scale-95 ${tone}`}
+  >
+    <Icon className="h-5 w-5 transition-transform group-hover:scale-105" />
+    <span>{label}</span>
+  </motion.button>
+);
+
+export const AmbulancesPanel = ({ ambulanceContext }) => {
+  const context = ambulanceContext || emptyContext;
+  const stats = context.stats || emptyContext.stats;
+  const recent = Array.isArray(context.recent) ? context.recent : [];
+  const contextState = context.status || (context.loading ? 'loading' : 'ready');
+  const stateCopy = contextStatusCopy[contextState];
+
+  const total = readNumber(stats.total || stats.totalCount);
+  const ready = readNumber(stats.available);
+  const active = readNumber(stats.active);
+  const service = readNumber(stats.maintenance);
+  const StateIcon = stateCopy?.icon;
+
+  const handleCreateAmbulance = () => dispatchPanelEvent('openAmbulanceModal');
+  const handleAnalytics = () => dispatchPanelEvent('openAnalyticsModal');
+  const handleFilters = () => dispatchPanelEvent('openFilters');
 
   return (
     <div className="space-y-3">
-      {/* Fleet Status */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
         className="space-y-2"
       >
-        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Fleet Status</h3>
-
-        <div className="bg-success/5 p-4 rounded-3xl flex items-center justify-between group transition-all">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-success/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Ambulance className="h-5 w-5 text-success" />
-            </div>
-            <span className="text-sm font-bold tracking-tight">Ready Units</span>
-          </div>
-          <Badge className="bg-success/20 text-success border-0 rounded-full">{stats.available}</Badge>
+        <div className="ml-1">
+          <h3 className="text-[11px] font-semibold text-muted-foreground">Fleet context</h3>
+          <p className="text-xs text-muted-foreground/80">From this page</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-info/5 p-3 rounded-3xl flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-info/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Activity className="h-4 w-4 text-info" />
-            </div>
-            <div>
-              <p className="font-bold text-xs">{stats.onRoute}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">En Route</p>
-            </div>
-          </div>
-
-          <div className="bg-warning/5 p-3 rounded-3xl flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-warning/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Clock className="h-4 w-4 text-warning" />
-            </div>
-            <div>
-              <p className="font-bold text-xs">{stats.busy}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Busy</p>
+        {stateCopy ? (
+          <div className="rounded-[28px] bg-muted/24 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-background/55 text-muted-foreground">
+                <StateIcon className={`h-5 w-5 ${contextState === 'loading' ? 'animate-spin' : ''}`} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">{stateCopy.title}</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{context.error || stateCopy.body}</p>
+              </div>
             </div>
           </div>
-        </div>
-      </motion.div>
-
-      {/* Actions */}
-      <div className="grid grid-cols-3 gap-2">
-        <button
-          onClick={handleCreateAmbulance}
-          className="flex flex-col items-center justify-center gap-2 p-3 rounded-3xl bg-primary/10 hover:bg-primary/20 transition-all border-0 group"
-        >
-          <Plus className="h-5 w-5 text-primary group-hover:rotate-90 transition-transform" />
-          <span className="text-[8px] font-bold uppercase tracking-widest text-primary">Unit</span>
-        </button>
-        <button
-          onClick={handleAnalytics}
-          className="flex flex-col items-center justify-center gap-2 p-3 rounded-3xl bg-info/10 hover:bg-info/20 transition-all border-0 group"
-        >
-          <BarChart3 className="h-5 w-5 text-info group-hover:scale-110 transition-transform" />
-          <span className="text-[8px] font-bold uppercase tracking-widest text-info">Data</span>
-        </button>
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('openFilters'))}
-          className="flex flex-col items-center justify-center gap-2 p-3 rounded-3xl bg-muted/10 hover:bg-muted/20 transition-all border-0 group"
-        >
-          <Filter className="h-5 w-5 text-muted-foreground group-hover:scale-110 transition-transform" />
-          <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">Filter</span>
-        </button>
-      </div>
-
-      {/* Recent Fleet */}
-      <div className="space-y-2">
-        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Live Fleet</h3>
-        <div className="space-y-1">
-          {recent.map((ambulance, idx) => (
-            <div key={ambulance.id || idx} className="bg-white/5 p-3 rounded-2xl flex items-center justify-between border-0 transition-colors hover:bg-white/10 group">
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${ambulance.status === 'available' ? 'bg-success/20' :
-                  ambulance.status === 'on_route' ? 'bg-info/20' :
-                    'bg-warning/20'
-                  } group-hover:scale-105 transition-transform`}>
-                  <Ambulance className={`h-4 w-4 ${ambulance.status === 'available' ? 'text-success' :
-                    ambulance.status === 'on_route' ? 'text-info' :
-                      'text-warning'
-                    }`} />
+        ) : (
+          <div className="rounded-[30px] bg-card/64 p-4 shadow-[0_20px_56px_rgba(0,0,0,0.12)] dark:bg-white/[0.05]">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[20px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">
+                  <Ambulance className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-bold text-xs truncate max-w-[120px]">
-                    {ambulance.call_sign || 'Ambulance'}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground truncate">
-                    {ambulance.plate_number || 'Unit ID'}
-                  </p>
+                  <p className="text-sm font-semibold text-foreground">{ready} ready</p>
+                  <p className="truncate text-xs text-muted-foreground">{total} fleet units</p>
                 </div>
               </div>
-              <Badge variant="ghost" className="text-[8px] font-bold uppercase tracking-widest p-0 h-auto opacity-60">
-                {ambulance.status}
+              <Badge className="rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-200">
+                Ready
               </Badge>
             </div>
-          ))}
-          {recent.length === 0 && (
-            <div className="text-center py-4 text-xs text-muted-foreground">
-              Off duty
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2">
+          <FleetMetric
+            icon={Activity}
+            label="Active"
+            value={active}
+            tone="bg-cyan-500/10 text-cyan-700 dark:text-cyan-200"
+          />
+          <FleetMetric
+            icon={Wrench}
+            label="Service"
+            value={service}
+            tone="bg-amber-500/10 text-amber-700 dark:text-amber-200"
+          />
+        </div>
+      </motion.section>
+
+      <section className="grid grid-cols-3 gap-2">
+        <PanelAction icon={Plus} label="Add unit" onClick={handleCreateAmbulance} />
+        <PanelAction
+          icon={BarChart3}
+          label="Stats"
+          onClick={handleAnalytics}
+          tone="bg-cyan-500/10 text-cyan-700 hover:bg-cyan-500/15 dark:text-cyan-200"
+        />
+        <PanelAction
+          icon={Filter}
+          label="Filter"
+          onClick={handleFilters}
+          tone="bg-muted/28 text-muted-foreground hover:bg-muted/40"
+        />
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="ml-1 text-[11px] font-semibold text-muted-foreground">Fleet list</h3>
+        <div className="space-y-1">
+          {recent.map((unit) => {
+            const status = unit.status || 'available';
+            const tone = toneByStatus[status] || 'bg-muted/28 text-muted-foreground';
+
+            return (
+              <div
+                key={unit.id}
+                className="flex items-center justify-between gap-3 rounded-[24px] bg-muted/22 p-3 transition-colors hover:bg-muted/34"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl ${tone}`}>
+                    <Ambulance className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-foreground">
+                      {unit.call_sign || 'Unknown unit'}
+                    </p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {unit.vehicle_number || unit.license_plate || unit.station || 'No vehicle'}
+                    </p>
+                  </div>
+                </div>
+                <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
+                  {unit.statusLabel || status}
+                </span>
+              </div>
+            );
+          })}
+
+          {recent.length === 0 && !stateCopy && (
+            <div className="rounded-[24px] bg-muted/22 py-6 text-center text-xs text-muted-foreground">
+              No units in this view
             </div>
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 };

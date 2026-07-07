@@ -1,32 +1,43 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
+import { ModalShell } from '../ui/ModalShell';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { X, Save, ExternalLink, Globe, Newspaper, Eye, EyeOff, Plus, Edit, FileText, File, FileCheck } from 'lucide-react';
+import { ExternalLink, Globe, Newspaper, Plus, Edit, FileText, File, FileCheck } from 'lucide-react';
+
+const CATEGORY_OPTIONS = [
+  'general', 'medical', 'research', 'wellness', 'emergency', 'policy'
+];
+
+const SOURCE_OPTIONS = [
+  'Hospital Update', 'Medical Journal', 'Health Authority', 'Research Institute',
+  'Government Health', 'WHO Update', 'CDC Alert', 'Medical News'
+];
+
+const EMPTY_FORM = {
+  title: '',
+  source: '',
+  category: 'general',
+  icon: 'medical',
+  url: '',
+  published: true,
+  description: '',
+  content: ''
+};
 
 export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
   const isCreate = mode === 'create';
 
-  const [formData, setFormData] = useState({
-    title: '',
-    source: '',
-    category: 'general',
-    icon: 'medical-outline',
-    url: '',
-    published: true,
-    description: '',
-    content: ''
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -37,36 +48,27 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
         title: news.title || '',
         source: news.source || '',
         category: news.category || 'general',
-        icon: news.icon || 'medical-outline',
+        icon: news.icon || 'medical',
         url: news.url || '',
         published: news.published !== undefined ? news.published : true,
         description: news.description || '',
         content: news.content || ''
       }));
     } else if (isCreate) {
-      setFormData({
-        title: '',
-        source: '',
-        category: 'general',
-        icon: 'medical-outline',
-        url: '',
-        published: true,
-        description: '',
-        content: ''
-      });
+      setFormData(EMPTY_FORM);
     }
   }, [news, isCreate]);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (event) => {
+    const { name, value, type, checked } = event.target;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setLoading(true);
 
     try {
@@ -83,269 +85,289 @@ export const HealthNewsModal = ({ isOpen, onClose, news, mode, onSave }) => {
     }
   };
 
-  const categories = [
-    'general', 'medical', 'research', 'wellness', 'emergency', 'policy'
-  ];
-
-  const sources = [
-    'Hospital Update', 'Medical Journal', 'Health Authority', 'Research Institute',
-    'Government Health', 'WHO Update', 'CDC Alert', 'Medical News'
-  ];
-
-  if (!isOpen) return null;
+  const title = isCreate ? 'Create News' : isEdit ? 'Edit News' : 'News Details';
+  const subtitle = isCreate
+    ? 'Add a source item.'
+    : isEdit
+      ? 'Edit source details.'
+      : 'Review source details.';
+  const icon = isCreate ? (
+    <Plus className="h-5 w-5 text-primary" />
+  ) : isEdit ? (
+    <Edit className="h-5 w-5 text-primary" />
+  ) : (
+    <Newspaper className="h-5 w-5 text-primary" />
+  );
+  const statusBadge = (isEdit || isView) ? (
+    <Badge className={`rounded-full px-3 py-1.5 text-xs font-semibold ${formData.published
+      ? 'bg-green-500/10 text-green-500'
+      : 'bg-orange-500/10 text-orange-500'
+      }`}>
+      {formData.published ? 'Published' : 'Draft'}
+    </Badge>
+  ) : null;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[120] flex items-end md:items-center justify-center p-2 md:p-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/30 backdrop-blur-md"
-            onClick={() => onClose()}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            role="dialog"
-
-            aria-modal="true"
-
-            className="relative z-10 w-full max-w-2xl max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-hidden rounded-[24px] md:rounded-[32px] shadow-2xl"
-          >
-            {/* Header Area */}
-            <div className="flex items-center justify-between p-2 md:p-8 pb-2 md:pb-4">
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-primary/20 rounded-2xl">
-                  {isCreate ? (
-                    <Plus className="h-6 w-6 text-primary" />
-                  ) : isEdit ? (
-                    <Edit className="h-6 w-6 text-primary" />
-                  ) : (
-                    <Newspaper className="h-6 w-6 text-primary" />
-                  )}
-                </div>
-                <div>
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
-                    {isCreate ? 'Create News' : isEdit ? 'Edit News' : 'News Details'}
-                  </h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {isCreate ? 'Publish new health updates and announcements.' :
-                      isEdit ? 'Modify existing article content.' :
-                        'View article details and metadata.'}
-                  </p>
-                </div>
+    <ModalShell
+      isOpen={isOpen}
+      onClose={() => onClose()}
+      title={title}
+      subtitle={subtitle}
+      icon={icon}
+      badge={statusBadge}
+      size="lg"
+      managed
+    >
+      {isView ? (
+        <HealthNewsReadView formData={formData} onClose={onClose} />
+      ) : (
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-4 md:px-6 pb-4 md:pb-6 space-y-4 md:space-y-5">
+          <GlassCard title="Article Info" icon={<Newspaper />}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-xs font-semibold text-muted-foreground uppercase px-1">Title</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  disabled={isView}
+                  className="rounded-2xl bg-white/5 shadow-none h-12 font-semibold focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
+                  placeholder="Enter news title"
+                  required
+                />
               </div>
-              <div className="flex items-center gap-3">
-                {(isEdit || isView) && (
-                  <Badge className={`rounded-full px-3 py-1.5 text-sm font-semibold border-0 ${formData.published
-                    ? 'bg-green-500/10 text-green-500'
-                    : 'bg-orange-500/10 text-orange-500'
-                    }`}>
-                    {formData.published ? 'Published' : 'Draft'}
-                  </Badge>
-                )}
-                <Button
-                  variant="ghost"
-                  onClick={() => onClose()}
-                  className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
+
+              <div className="space-y-2">
+                <Label htmlFor="source" className="text-xs font-semibold text-muted-foreground uppercase px-1">Source</Label>
+                <Select
+                  value={formData.source}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, source: value }))}
+                  disabled={isView}
                 >
-                  <X className="h-5 w-5" />
-                </Button>
+                  <SelectTrigger className="rounded-2xl bg-white/5 shadow-none h-12 font-normal focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]">
+                    <SelectValue placeholder="Select source" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl shadow-xl bg-background/95 backdrop-blur-xl">
+                    {SOURCE_OPTIONS.map(source => (
+                      <SelectItem key={source} value={source} className="font-normal">
+                        {source}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+          </GlassCard>
 
-            <div className="p-2 md:p-8 pt-1 md:pt-2 overflow-y-auto max-h-[calc(100dvh-9rem)] md:max-h-[calc(90vh-120px)] space-y-4 md:space-y-6 no-scrollbar">
-              <form onSubmit={handleSubmit} className="space-y-6">
+          <GlassCard title="Classification" icon={<Globe />}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="category" className="text-xs font-semibold text-muted-foreground uppercase px-1">Category</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                  disabled={isView}
+                >
+                  <SelectTrigger className="rounded-2xl bg-white/5 shadow-none h-12 font-normal focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl shadow-xl bg-background/95 backdrop-blur-xl">
+                    {CATEGORY_OPTIONS.map(category => (
+                      <SelectItem key={category} value={category} className="font-normal capitalize">
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                {/* Basic Info */}
-                <GlassCard title="Article Info" icon={<Newspaper />}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="title" className="text-xs font-semibold text-muted-foreground uppercase px-1">Title</Label>
-                      <Input
-                        id="title"
-                        name="title"
-                        value={formData.title}
-                        onChange={handleChange}
-                        disabled={isView}
-                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-semibold"
-                        placeholder="Enter news title"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="source" className="text-xs font-semibold text-muted-foreground uppercase px-1">Source</Label>
-                      <Select
-                        value={formData.source}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, source: value }))}
-                        disabled={isView}
-                      >
-                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-normal">
-                          <SelectValue placeholder="Select source" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-white/10 shadow-xl bg-background/95 backdrop-blur-xl">
-                          {sources.map(source => (
-                            <SelectItem key={source} value={source} className="font-normal">
-                              {source}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </GlassCard>
-
-                {/* Category & URL */}
-                <GlassCard title="Classification" icon={<Globe />}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="category" className="text-xs font-semibold text-muted-foreground uppercase px-1">Category</Label>
-                      <Select
-                        value={formData.category}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-                        disabled={isView}
-                      >
-                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-normal">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-white/10 shadow-xl bg-background/95 backdrop-blur-xl">
-                          {categories.map(category => (
-                            <SelectItem key={category} value={category} className="font-normal capitalize">
-                              {category.charAt(0).toUpperCase() + category.slice(1)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="url" className="text-xs font-semibold text-muted-foreground uppercase px-1">External URL</Label>
-                      <div className="relative">
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="url"
-                          name="url"
-                          value={formData.url}
-                          onChange={handleChange}
-                          disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-normal"
-                          placeholder="https://example.com"
-                          type="url"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </GlassCard>
-
-                {/* Content */}
-                <GlassCard title="Content" icon={<FileText />}>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="description" className="text-xs font-semibold text-muted-foreground uppercase px-1">Short Description</Label>
-                      <Textarea
-                        id="description"
-                        name="description"
-                        value={formData.description}
-                        onChange={handleChange}
-                        disabled={isView}
-                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px] font-normal resize-none p-4"
-                        placeholder="Brief summary..."
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="content" className="text-xs font-semibold text-muted-foreground uppercase px-1">Full Content</Label>
-                      <Textarea
-                        id="content"
-                        name="content"
-                        value={formData.content}
-                        onChange={handleChange}
-                        disabled={isView}
-                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[150px] font-normal p-4"
-                        placeholder="Write the full article here..."
-                      />
-                    </div>
-                  </div>
-                </GlassCard>
-
-                {/* Publish Toggle */}
-                {!isView && (
-                  <div
-                    className="p-4 sm:p-5 rounded-[24px] bg-white/5  flex items-center hover:bg-white/10 transition-colors cursor-pointer"
-                    onClick={() => setFormData(prev => ({ ...prev, published: !prev.published }))}
-                  >
-                    <div className={`p-2 rounded-xl mr-4 transition-colors ${formData.published ? 'bg-green-500/20 text-green-500' : 'bg-white/10 text-muted-foreground'}`}>
-                      {formData.published ? <FileCheck className="h-5 w-5" /> : <File className="h-5 w-5" />}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-sm">Publish Immediately</div>
-                      <div className="text-xs text-muted-foreground">Make this article visible to all users upon saving</div>
-                    </div>
-                    <div className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${formData.published ? 'bg-primary' : 'bg-white/20'}`}>
-                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${formData.published ? 'left-7' : 'left-1'}`} />
-                    </div>
-                  </div>
-                )}
-
-                {/* Footer Actions */}
-                <div className="p-4 sm:p-6 rounded-[24px] bg-white/5  flex gap-3 justify-end">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => onClose()}
-                    disabled={loading}
-                    className="rounded-2xl font-semibold hover:bg-white/10"
-                  >
-                    Cancel
-                  </Button>
-
-                  {!isView && (
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                      className="rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 shadow-lg shadow-primary/20"
-                    >
-                      {loading ? 'Saving...' : (isCreate ? 'Create Article' : 'Save Changes')}
-                    </Button>
-                  )}
-
-                  {isView && formData.url && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => window.open(formData.url, '_blank')}
-                      className="rounded-2xl border-white/10 hover:bg-white/5 font-semibold bg-transparent"
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Visit Source
-                    </Button>
-                  )}
+              <div className="space-y-2">
+                <Label htmlFor="url" className="text-xs font-semibold text-muted-foreground uppercase px-1">External URL</Label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="url"
+                    name="url"
+                    value={formData.url}
+                    onChange={handleChange}
+                    disabled={isView}
+                    className="rounded-2xl bg-white/5 shadow-none h-12 pl-10 font-normal focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
+                    placeholder="https://example.com"
+                    type="url"
+                  />
                 </div>
-              </form>
+              </div>
             </div>
-          </motion.div>
+          </GlassCard>
+
+          <GlassCard title="Content" icon={<FileText />}>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-xs font-semibold text-muted-foreground uppercase px-1">Short Description</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  disabled={isView}
+                  className="rounded-2xl bg-white/5 shadow-none min-h-[80px] font-normal resize-none p-4 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
+                  placeholder="Brief summary..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="content" className="text-xs font-semibold text-muted-foreground uppercase px-1">Full Content</Label>
+                <Textarea
+                  id="content"
+                  name="content"
+                  value={formData.content}
+                  onChange={handleChange}
+                  disabled={isView}
+                  className="rounded-2xl bg-white/5 shadow-none min-h-[150px] font-normal p-4 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
+                  placeholder="Write the full article here..."
+                />
+              </div>
+            </div>
+          </GlassCard>
+
+          {!isView && (
+            <button
+              type="button"
+              className="w-full p-4 sm:p-5 rounded-[24px] bg-white/5 flex items-center hover:bg-white/10 transition-colors text-left"
+              onClick={() => setFormData(prev => ({ ...prev, published: !prev.published }))}
+            >
+              <div className={`p-2 rounded-xl mr-4 transition-colors ${formData.published ? 'bg-green-500/20 text-green-500' : 'bg-white/10 text-muted-foreground'}`}>
+                {formData.published ? <FileCheck className="h-5 w-5" /> : <File className="h-5 w-5" />}
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-sm">Publish now</div>
+                <div className="text-xs text-muted-foreground">Make this article visible after saving</div>
+              </div>
+              <div className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${formData.published ? 'bg-primary' : 'bg-white/20'}`}>
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${formData.published ? 'left-7' : 'left-1'}`} />
+              </div>
+            </button>
+          )}
         </div>
+
+        <div className="shrink-0 p-4 md:p-6 pt-3 md:pt-4 bg-white/5 flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onClose()}
+            disabled={loading}
+            className="rounded-2xl font-semibold hover:bg-white/10"
+          >
+            Cancel
+          </Button>
+
+          {!isView && (
+            <Button
+              type="submit"
+              disabled={loading}
+              className="rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 shadow-lg shadow-primary/20"
+            >
+              {loading ? 'Saving...' : (isCreate ? 'Create Article' : 'Save Changes')}
+            </Button>
+          )}
+
+          {isView && formData.url && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => window.open(formData.url, '_blank', 'noopener,noreferrer')}
+              className="rounded-2xl font-semibold bg-transparent"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Visit Source
+            </Button>
+          )}
+        </div>
+      </form>
       )}
-    </AnimatePresence>
+    </ModalShell>
   );
 };
 
-/* Sub-components */
+const HealthNewsReadView = ({ formData, onClose }) => {
+  const hasUrl = Boolean(formData.url);
+  const category = formData.category || 'General';
+  const source = formData.source || 'Unknown source';
+  const description = formData.description || 'No short summary was provided.';
+  const content = formData.content || 'Full article text is not stored in Console for this source.';
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-4 md:px-6 pb-4 md:pb-6 space-y-4 md:space-y-5">
+        <section className="rounded-[28px] bg-background/70 p-5 shadow-[0_18px_58px_rgba(15,23,42,0.08)]">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              {category}
+            </Badge>
+            <Badge className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+              {source}
+            </Badge>
+          </div>
+          <h3 className="mt-4 text-2xl font-semibold leading-tight tracking-normal text-foreground">
+            {formData.title || 'Untitled health news'}
+          </h3>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            {description}
+          </p>
+        </section>
+
+        <section className="rounded-[28px] bg-background/55 p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Source note</p>
+              <p className="text-xs text-muted-foreground">Read-only until the writer receiver is proved.</p>
+            </div>
+          </div>
+          <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-foreground/80">
+            {content}
+          </p>
+        </section>
+      </div>
+
+      <div className="shrink-0 bg-background/55 p-4 md:p-6 pt-3 md:pt-4 flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => onClose()}
+          className="rounded-2xl font-semibold hover:bg-white/10"
+        >
+          Close
+        </Button>
+
+        {hasUrl && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => window.open(formData.url, '_blank', 'noopener,noreferrer')}
+            className="rounded-2xl font-semibold bg-transparent"
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Visit Source
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const GlassCard = ({ children, title, icon }) => (
-  <div className="p-4 sm:p-6 rounded-[28px] bg-white/5  ">
-    <div className="flex items-center gap-3 mb-4 sm:mb-6">
+  <section className="p-4 sm:p-5 rounded-[24px] bg-white/5">
+    <div className="flex items-center gap-3 mb-4 sm:mb-5">
       <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5 text-primary' })}
       </div>
       <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>
     </div>
     {children}
-  </div>
+  </section>
 );

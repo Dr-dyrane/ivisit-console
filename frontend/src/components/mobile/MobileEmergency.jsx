@@ -1,52 +1,240 @@
-import React, { useMemo, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-    AlertTriangle,
-    Activity,
-    Phone,
-    MapPin,
-    Clock,
-    Users,
-    Ambulance,
-    Hospital,
-    Shield,
-    Zap,
-    Send,
-    Eye,
-    Edit,
-    Trash2,
-    CheckCircle2,
     AlertCircle,
-    TrendingUp,
-    Calendar,
-    BarChart3,
-    SlidersHorizontal
+    Ambulance,
+    BedDouble,
+    CheckCheck,
+    ChevronDown,
+    ChevronRight,
+    ClipboardCheck,
+    Filter,
+    Hospital,
+    Info,
+    MapPin,
+    Search,
+    ShieldCheck,
 } from 'lucide-react';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { MobileKPIStrip } from './MobileKPIStrip';
-import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
-import { MobileFeaturedMetric } from './MobileFeaturedMetric';
-import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
-import { formatDate } from '../../lib/utils';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
-import { canonicalizeEmergencyStatus, isActiveEmergencyStatus, isTerminalEmergencyStatus } from '../../utils/emergencyStatus';
-import { buildEmergencyRenderProjection, isCashPaymentMethod } from '../../utils/emergencyRequestMapper';
-import { calcDeltaPercent, formatSignedPercent, toDeltaBadge } from '../../utils/metricsUtils';
+import { canonicalizeEmergencyStatus } from '../../utils/emergencyStatus';
+import { buildEmergencyRenderProjection } from '../../utils/emergencyRequestMapper';
 
-/**
- * MobileEmergency
- * Emergency Response Mission Control - Real-time critical incident management
- * Canon #1: Clarity Under Pressure
- * Canon #10: Dashboard = Control
- * Features: Live emergencies, ambulance tracking, hospital coordination
- */
+const mobileKpis = [
+    {
+        id: 'pending',
+        label: 'Needs attention',
+        icon: AlertCircle,
+        activeClass: 'bg-destructive/16 text-destructive shadow-[0_18px_54px_rgba(239,68,68,0.18)]',
+        restClass: 'bg-muted/28 text-muted-foreground',
+    },
+    {
+        id: 'critical',
+        label: 'Critical care',
+        icon: ShieldCheck,
+        activeClass: 'bg-rose-500/10 text-rose-700 shadow-[0_18px_54px_rgba(244,63,94,0.16)] dark:text-rose-200',
+        restClass: 'bg-muted/28 text-muted-foreground',
+    },
+    {
+        id: 'bed',
+        label: 'Beds',
+        icon: BedDouble,
+        activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_18px_54px_rgba(6,182,212,0.14)] dark:text-cyan-200',
+        restClass: 'bg-muted/28 text-muted-foreground',
+    },
+    {
+        id: 'ambulance',
+        label: 'Ambulance',
+        icon: Ambulance,
+        activeClass: 'bg-sky-500/10 text-sky-700 shadow-[0_18px_54px_rgba(14,165,233,0.14)] dark:text-sky-200',
+        restClass: 'bg-muted/28 text-muted-foreground',
+    },
+];
+
+const statusMeta = {
+    pending_approval: {
+        label: 'Needs attention',
+        className: 'bg-destructive/14 text-destructive',
+    },
+    in_progress: {
+        label: 'Active',
+        className: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+    },
+    accepted: {
+        label: 'Accepted',
+        className: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+    },
+    arrived: {
+        label: 'Arrived',
+        className: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
+    },
+    completed: {
+        label: 'Completed',
+        className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+    },
+    cancelled: {
+        label: 'Cancelled',
+        className: 'bg-muted/34 text-muted-foreground',
+    },
+    payment_declined: {
+        label: 'Payment issue',
+        className: 'bg-destructive/14 text-destructive',
+    },
+};
+
+const countNumber = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const getInitials = (name = 'Request') => {
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    return `${parts[0]?.[0] || 'R'}${parts[1]?.[0] || ''}`.toUpperCase();
+};
+
+const formatRequestTime = (value) => {
+    if (!value) return 'No time';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'No time';
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+};
+
+const serviceLabel = (request) => {
+    const raw = String(request?.service_type || 'request').replace(/_/g, ' ');
+    return raw.replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
+const getStatusMeta = (request) => {
+    const key = canonicalizeEmergencyStatus(request?.status, 'pending_approval');
+    return statusMeta[key] || { label: 'New', className: 'bg-muted/34 text-muted-foreground' };
+};
+
+const getMobileRequestAvatarClass = (request) => {
+    const key = canonicalizeEmergencyStatus(request?.status, 'pending_approval');
+    if (key === 'pending_approval' || key === 'payment_declined') {
+        return 'bg-destructive/14 text-destructive';
+    }
+    if (key === 'completed') {
+        return 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200';
+    }
+    if (key === 'cancelled') {
+        return 'bg-muted/34 text-muted-foreground';
+    }
+    if (key === 'in_progress') {
+        return 'bg-amber-500/10 text-amber-700 dark:text-amber-200';
+    }
+    if (key === 'accepted') {
+        return 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200';
+    }
+    if (key === 'arrived') {
+        return 'bg-sky-500/10 text-sky-700 dark:text-sky-200';
+    }
+    return 'bg-muted/34 text-muted-foreground';
+};
+
+const hasMobileRequestFilters = (filters = {}) => Boolean(
+    filters.search ||
+    (Array.isArray(filters.status) && filters.status.length > 0) ||
+    filters.created_at?.start ||
+    filters.created_at?.end
+);
+
+const getKpiValue = ({ id, statistics, emergencies }) => {
+    if (id === 'pending') {
+        const rowCount = emergencies.filter((item) => item.status === 'pending_approval').length;
+        return countNumber(statistics?.pending, rowCount);
+    }
+    if (id === 'critical') {
+        const rowCount = emergencies.filter((item) => item.service_type === 'critical_care').length;
+        return countNumber(statistics?.critical, rowCount);
+    }
+    if (id === 'bed') {
+        const rowCount = emergencies.filter((item) => item.service_type === 'bed').length;
+        return countNumber(statistics?.bed, rowCount);
+    }
+    if (id === 'ambulance') {
+        const rowCount = emergencies.filter((item) => item.service_type === 'ambulance').length;
+        return countNumber(statistics?.ambulance, rowCount);
+    }
+    return countNumber(statistics?.total, emergencies.length);
+};
+
+const mobileSignalTone = {
+    pending: 'bg-destructive/14 text-destructive shadow-[0_16px_42px_rgba(239,68,68,0.16)]',
+    clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_16px_42px_rgba(16,185,129,0.14)] dark:text-emerald-200',
+    active: 'bg-amber-500/10 text-amber-700 shadow-[0_16px_42px_rgba(245,158,11,0.14)] dark:text-amber-200',
+    critical: 'bg-rose-500/10 text-rose-700 shadow-[0_16px_42px_rgba(244,63,94,0.14)] dark:text-rose-200',
+    bed: 'bg-cyan-500/10 text-cyan-700 shadow-[0_16px_42px_rgba(6,182,212,0.14)] dark:text-cyan-200',
+    ambulance: 'bg-sky-500/10 text-sky-700 shadow-[0_16px_42px_rgba(14,165,233,0.14)] dark:text-sky-200',
+};
+
+const MobileRequestsAtlasLayer = () => (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden bg-background">
+        <div
+            className="absolute inset-0 opacity-[0.30] dark:opacity-[0.24]"
+            style={{
+                backgroundImage:
+                    'linear-gradient(115deg, transparent 0 45%, hsl(var(--foreground) / 0.06) 45% 48%, transparent 48%), linear-gradient(28deg, transparent 0 42%, hsl(var(--foreground) / 0.05) 42% 45%, transparent 45%), linear-gradient(155deg, transparent 0 64%, hsl(var(--destructive) / 0.07) 64% 67%, transparent 67%)',
+                backgroundSize: '260px 180px, 340px 240px, 420px 280px',
+                backgroundPosition: '20px 10px, -80px 50px, 18% 38%',
+            }}
+        />
+        <div
+            className="absolute inset-0"
+            style={{
+                background:
+                    'radial-gradient(circle at 22% 34%, hsl(var(--destructive) / 0.11), transparent 28%), radial-gradient(circle at 78% 62%, hsl(var(--foreground) / 0.06), transparent 26%), linear-gradient(180deg, hsl(var(--background) / 0.22), hsl(var(--background)) 92%)',
+            }}
+        />
+    </div>
+);
+
+const getMobileRequestSignal = ({ kpis, kpiFilter }) => {
+    const activeId = kpiFilter || 'pending';
+    const active = kpis.find((item) => item.id === activeId) || kpis[0];
+    const count = countNumber(active?.value, 0);
+
+    if (active?.id === 'critical') {
+        return {
+            ...active,
+            headline: count > 0 ? `${count} critical care request${count === 1 ? '' : 's'}` : 'No critical care requests',
+            subhead: count > 0 ? 'Review high-acuity care needs first.' : 'Critical care requests will appear here.',
+        };
+    }
+
+    if (active?.id === 'bed') {
+        return {
+            ...active,
+            headline: count > 0 ? `${count} bed request${count === 1 ? '' : 's'}` : 'No bed requests',
+            subhead: count > 0 ? 'Review facility needs first.' : 'Bed requests will appear here.',
+        };
+    }
+
+    if (active?.id === 'ambulance') {
+        return {
+            ...active,
+            headline: count > 0 ? `${count} ambulance request${count === 1 ? '' : 's'}` : 'No ambulance requests',
+            subhead: count > 0 ? 'Check response state before acting.' : 'Ambulance requests will appear here.',
+        };
+    }
+
+    const hasPending = count > 0;
+    return {
+        ...active,
+        id: hasPending ? active.id : 'clear',
+        label: hasPending ? active.label : 'Clear',
+        icon: hasPending ? active.icon : CheckCheck,
+        headline: hasPending ? `${count} request${count === 1 ? '' : 's'} to review` : 'No requests need review',
+        subhead: hasPending ? 'Start with the newest request.' : 'Keep Requests open for new care needs.',
+    };
+};
+
 export const MobileEmergency = ({
     emergencies,
     loading,
@@ -54,28 +242,27 @@ export const MobileEmergency = ({
     filters,
     setFilters,
     onView,
-    onEdit,
-    onDelete,
     onRefresh,
     onViewAnalytics,
     isAdmin,
     onOpenFilters,
+    filterSheetOpen = false,
+    analyticsOpen = false,
     hasMore,
     onLoadMore,
+    loadError,
+    onRetry,
     kpiFilter,
     setKpiFilter
 }) => {
-    // 1. Infinite scroll setup with Intersection Observer
     const observerTarget = useRef(null);
-    const [expandedEmergencyId, setExpandedEmergencyId] = useState(null);
+    const [expandedRequestId, setExpandedRequestId] = useState(null);
     const { triggerFromEvent } = useFeedback();
-    const { displayItems: displayEmergencies, isBuffering } = useStableList(emergencies, loading);
-  const showTopSectionLoading = loading && displayEmergencies.length === 0;
-
-
-
-
+    const { displayItems, isBuffering } = useStableList(emergencies, loading);
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
+    const showSkeleton = loading && displayItems.length === 0;
+    const filterTriggerState = filterSheetOpen ? 'open' : hasMobileRequestFilters(filters) ? 'filtered' : 'idle';
+    const analyticsTriggerState = analyticsOpen ? 'open' : 'idle';
 
     useEffect(() => {
         if (!hasMore) return;
@@ -89,414 +276,277 @@ export const MobileEmergency = ({
         return () => observer.disconnect();
     }, [hasMore, triggerLoad]);
 
-    const totals = {
-        all: Number(statistics?.total) || emergencies.length,
-        ambulance: Number(statistics?.ambulance) || emergencies.filter(e => e.service_type === 'ambulance').length,
-        bed: Number(statistics?.bed) || emergencies.filter(e => e.service_type === 'bed').length,
-        active: Number(statistics?.active) || emergencies.filter(e => isActiveEmergencyStatus(e.status)).length
-    };
-
-    const previous = {
-        all: statistics?.previous?.total ?? statistics?.previousTotal,
-        ambulance: statistics?.previous?.ambulance ?? statistics?.previousAmbulance,
-        bed: statistics?.previous?.bed ?? statistics?.previousBed,
-        active: statistics?.previous?.active ?? statistics?.previousActive
-    };
-
-    // Emergency KPIs matching EmergencyRequestsPage filters with tiny live deltas
-    const emergencyKPIs = [
-        (() => {
-            const trend = toDeltaBadge(calcDeltaPercent(totals.all, previous.all));
-            return { id: 'all', label: 'All', value: totals.all, color: 'hsl(var(--primary))', delta: trend.delta, direction: trend.direction };
-        })(),
-        (() => {
-            const trend = toDeltaBadge(calcDeltaPercent(totals.ambulance, previous.ambulance));
-            return { id: 'ambulance', label: 'Ambulance', value: totals.ambulance, color: 'hsl(var(--destructive))', delta: trend.delta, direction: trend.direction };
-        })(),
-        (() => {
-            const trend = toDeltaBadge(calcDeltaPercent(totals.bed, previous.bed));
-            return { id: 'bed', label: 'Beds', value: totals.bed, color: 'hsl(var(--warning))', delta: trend.delta, direction: trend.direction };
-        })(),
-        ...(isAdmin ? [(() => {
-            const trend = toDeltaBadge(calcDeltaPercent(totals.active, previous.active));
-            return { id: 'inProgress', label: 'Active', value: totals.active, color: 'hsl(var(--spark))', delta: trend.delta, direction: trend.direction };
-        })()] : [])
-    ];
-
-    const growthData = useMemo(() => [
-        { value: 45 }, { value: 60 }, { value: 40 }, { value: 75 }, { value: 85 }, { value: 95 }
-    ], []);
-
-    const activeCount = emergencies.filter(e => isActiveEmergencyStatus(e.status)).length;
-    const resolvedCount = emergencies.filter(e => isTerminalEmergencyStatus(e.status)).length;
-    const responseSuccess = Number(statistics?.successRate) || (emergencies.length ? (resolvedCount / emergencies.length) * 100 : 0);
-    const trendBadge = formatSignedPercent(responseSuccess - 50) || 'LIVE';
-
-    const getSeverityColor = (service_type) => {
-        switch (service_type) {
-            case 'ambulance': return 'hsl(var(--destructive))';
-            case 'bed': return 'hsl(var(--warning))';
-            case 'critical_care': return 'hsl(var(--destructive))';
-            default: return 'hsl(var(--primary))';
-        }
-    };
-
-    const getStatusIcon = (status) => {
-        switch (canonicalizeEmergencyStatus(status, null)) {
-            case 'pending_approval':
-                return AlertCircle;
-            case 'in_progress':
-            case 'accepted':
-            case 'arrived':
-                return Activity;
-            case 'completed':
-            case 'cancelled':
-            case 'payment_declined':
-                return CheckCircle2;
-            default: return AlertTriangle;
-        }
-    };
-
-    const getStatusColor = (status) => {
-        switch (canonicalizeEmergencyStatus(status, null)) {
-            case 'pending_approval': return 'hsl(var(--warning))';
-            case 'in_progress': return 'hsl(var(--destructive))';
-            case 'accepted': return 'hsl(var(--info))';
-            case 'arrived': return 'hsl(var(--spark))';
-            case 'completed': return 'hsl(var(--success))';
-            case 'cancelled':
-            case 'payment_declined':
-                return 'hsl(var(--muted-foreground))';
-            default: return 'hsl(var(--primary))';
-        }
-    };
-
-    const needsApproval = (emergency) =>
-        canonicalizeEmergencyStatus(emergency?.status, null) === 'pending_approval' ||
-        (isCashPaymentMethod(emergency?.payment_method) && emergency?.payment_status && emergency.payment_status !== 'completed');
+    const kpis = useMemo(() => mobileKpis.map((item) => ({
+        ...item,
+        value: getKpiValue({ id: item.id, statistics, emergencies }),
+    })), [statistics, emergencies]);
+    const signal = useMemo(() => getMobileRequestSignal({ kpis, kpiFilter }), [kpis, kpiFilter]);
+    const SignalIcon = signal.icon || AlertCircle;
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
                 animatePageLoad={false}
-                kpiStrip={(
-                    <MobileKPIStrip
-            loading={showTopSectionLoading}
-                        animateOnMount={false}
-                        kpis={emergencyKPIs}
-                        activeKpi={kpiFilter || 'all'}
-                        onKpiClick={(id) => setKpiFilter?.(id)}
-                    />
-                )}
-                contentClassName="pt-4 pb-4 text-foreground"
+                contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-16 text-foreground"
             >
-                {/* B. LIVE EMERGENCIES */}
-                <MobileFeaturedMetric
-          loading={showTopSectionLoading}
-                    items={[
-                        {
-                            label: 'Live Emergencies',
-                            value: activeCount,
-                            trend: trendBadge,
-                            icon: AlertTriangle,
-                            color: 'hsl(var(--destructive))',
-                            chartData: growthData
-                        },
-                        {
-                            label: 'Total Requests',
-                            value: totals.all,
-                            trend: formatSignedPercent(calcDeltaPercent(totals.all, previous.all)) || 'LIVE',
-                            icon: Activity,
-                            color: 'hsl(var(--primary))',
-                            chartData: growthData
-                        },
-                        {
-                            label: 'Ambulance Calls',
-                            value: totals.ambulance,
-                            trend: formatSignedPercent(calcDeltaPercent(totals.ambulance, previous.ambulance)) || 'LIVE',
-                            icon: Ambulance,
-                            color: 'hsl(var(--warning))',
-                            chartData: growthData
-                        },
-                        {
-                            label: 'Bed Requests',
-                            value: totals.bed,
-                            trend: formatSignedPercent(calcDeltaPercent(totals.bed, previous.bed)) || 'LIVE',
-                            icon: Hospital,
-                            color: 'hsl(var(--info))',
-                            chartData: growthData
-                        }
-                    ]}
-                />
-
-                {/* C. RESPONSE METRICS */}
-                <section className="mb-3">
-                    <MobileSectionHeader
-                        label="Response Metrics"
-                        count={statistics?.responseTime || '2.3min'}
-                        color="hsl(var(--warning))"
-                    />
-                    <MobileSecondaryMetricRail
-            loading={showTopSectionLoading}
-                        variant="icon"
-                        items={[
-                            {
-                                icon: Clock,
-                                title: 'Avg Response',
-                                subtitle: 'Last 24h',
-                                value: statistics?.avgResponseTime || '2.3m',
-                                color: 'hsl(var(--warning))',
-                                iconColorClass: 'text-warning',
-                                iconBgClass: 'bg-warning/5'
-                            },
-                            {
-                                icon: TrendingUp,
-                                title: 'Success Rate',
-                                subtitle: 'This month',
-                                value: statistics?.successRate || '0%',
-                                color: 'hsl(var(--success))',
-                                iconColorClass: 'text-success',
-                                iconBgClass: 'bg-success/5'
-                            },
-                            {
-                                icon: Shield,
-                                title: 'Active',
-                                subtitle: 'Live queue',
-                                value: totals.active,
-                                color: 'hsl(var(--destructive))',
-                                iconColorClass: 'text-destructive',
-                                iconBgClass: 'bg-destructive/5'
-                            },
-                            {
-                                icon: AlertCircle,
-                                title: 'Total',
-                                subtitle: 'All requests',
-                                value: totals.all,
-                                color: 'hsl(var(--info))',
-                                iconColorClass: 'text-info',
-                                iconBgClass: 'bg-info/5'
-                            }
-                        ]}
-                    />
-                </section>
-
-                {/* D. SEARCH & FILTER */}
-                <div className="flex items-center gap-2 mb-3 px-1">
-                    <div className="flex-1 relative group">
-                        <AlertTriangle size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Search emergencies..."
-                            value={filters?.search || ''}
-                            onChange={(e) => setFilters?.(prev => ({ ...prev, search: e.target.value }))}
-                            className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy border-0 text-[12px] font-normal placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary/20 outline-none transition-all"
-                        />
-                    </div>
-                    <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={(event) => {
-                            onOpenFilters?.();
-                            triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
-                        }}
-                        className="w-11 h-11 rounded-2xl apple-glass-heavy border-0 flex items-center justify-center active:scale-90 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] text-muted-foreground/60 hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
+                <MobileRequestsAtlasLayer />
+                <div className="relative z-10 space-y-5">
+                    <motion.section
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35 }}
+                        className="space-y-4 px-5"
                     >
-                        <SlidersHorizontal size={18} />
-                    </motion.button>
+                        <div className={`inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${mobileSignalTone[signal.id] || mobileSignalTone.pending}`}>
+                            <SignalIcon size={15} />
+                            {signal.label}
+                        </div>
+                        <div>
+                            <h1 className="text-[34px] font-semibold leading-[1.03] tracking-normal text-foreground">
+                                {signal.headline}
+                            </h1>
+                            <p className="mt-3 max-w-[22rem] text-[15px] leading-6 text-muted-foreground">
+                                {signal.subhead}
+                            </p>
+                        </div>
 
-                    {isAdmin && (
-                        <motion.button
-                            whileTap={{ scale: 0.95 }}
-                            onClick={(event) => {
-                                onViewAnalytics?.();
-                                triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
-                            }}
-                            className="w-11 h-11 rounded-2xl apple-glass-heavy border-0 flex items-center justify-center active:scale-90 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] text-[hsl(var(--spark)/0.78)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
-                        >
-                            <BarChart3 size={18} />
-                        </motion.button>
-                    )}
-                </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            {kpis.map((item) => {
+                                const Icon = item.icon;
+                                const active = (kpiFilter || 'pending') === item.id;
+                                const clearPending = item.id === 'pending' && countNumber(item.value, 0) === 0;
+                                const activeClass = clearPending
+                                    ? 'bg-emerald-500/10 text-emerald-700 shadow-[0_18px_54px_rgba(16,185,129,0.16)] dark:text-emerald-200'
+                                    : item.activeClass;
+                                return (
+                                    <motion.button
+                                        key={item.id}
+                                        type="button"
+                                        whileTap={{ scale: 0.97 }}
+                                        onClick={() => setKpiFilter?.(item.id)}
+                                        data-request-kpi={item.id}
+                                        data-state={active ? 'selected' : 'idle'}
+                                        className={`min-h-[86px] rounded-card px-4 py-3 text-left transition-all ${active ? activeClass : item.restClass}`}
+                                        aria-pressed={active}
+                                        aria-label={`${item.label}: ${item.value}`}
+                                    >
+                                        <span className="flex items-start justify-between gap-3">
+                                            <span className="min-w-0">
+                                                <span className="block text-xs font-semibold leading-tight">{item.label}</span>
+                                                <span className="mt-2 block text-2xl font-semibold tracking-normal text-foreground">{item.value}</span>
+                                            </span>
+                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-icon bg-background/40">
+                                                <Icon size={16} />
+                                            </span>
+                                        </span>
+                                    </motion.button>
+                                );
+                            })}
+                        </div>
+                    </motion.section>
 
-                {/* E. EMERGENCY DIRECTORY */}
-                <MobileSectionHeader
-                    label="Emergency Directory"
-                    count={displayEmergencies.length}
-                    color="hsl(var(--destructive))"
-                />
+                    <section className="-mx-1 rounded-t-sheet bg-card/78 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55">
+                        <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+                        <div className="flex items-center gap-2 rounded-modal bg-background/42 p-2 dark:bg-black/[0.10]">
+                            <div className="relative flex-1">
+                                <Search size={15} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                                <input
+                                    type="search"
+                                    placeholder="Search requests..."
+                                    value={filters?.search || ''}
+                                    onChange={(event) => setFilters?.(prev => ({ ...prev, search: event.target.value }))}
+                                    className="h-11 w-full rounded-inner bg-background/60 pl-10 pr-4 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
+                                />
+                            </div>
+                            <motion.button
+                                type="button"
+                                whileTap={{ scale: 0.95 }}
+                                onClick={(event) => {
+                                    onOpenFilters?.();
+                                    triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--foreground))', haptic: true, sound: true });
+                                }}
+                                data-state={filterTriggerState}
+                                className="flex h-11 w-11 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 dark:bg-white/[0.06]"
+                                aria-label="Filter requests"
+                                aria-haspopup="dialog"
+                                aria-expanded={filterSheetOpen}
+                            >
+                                <Filter size={18} />
+                            </motion.button>
 
-                <div className="space-y-1">
-                    {displayEmergencies.map((emergency) => (
-                        (() => {
-                            const approvalNeeded = needsApproval(emergency);
-                            const renderProjection = buildEmergencyRenderProjection(emergency);
-                            const patient = renderProjection.patientDisplay;
-                            const locationLabel = renderProjection.locationDisplay.label;
-                            const responderLabel = renderProjection.responderDisplay.hasResponder
-                                ? renderProjection.responderDisplay.label
-                                : null;
-                            const etaLabel = renderProjection.responderDisplay.etaLabel;
-                            const facilityLabel = renderProjection.facilityDisplay.assignmentState === 'assigned'
-                                ? renderProjection.facilityDisplay.name
-                                : null;
-                            const rowColor = approvalNeeded ? 'hsl(var(--warning))' : getSeverityColor(emergency.service_type);
-                            const canonicalStatus = canonicalizeEmergencyStatus(emergency.status, emergency.status);
-                            const blade = approvalNeeded
-                                ? {
-                                    badge: 'APPROVAL',
-                                    direction: 'flat',
-                                    label: 'Cash Gate',
-                                    value: String(emergency.payment_status || 'pending').toUpperCase(),
-                                    color: 'hsl(var(--warning))'
-                                }
-                                : {
-                                    badge: isActiveEmergencyStatus(canonicalStatus) ? 'LIVE' : 'RESOLVED',
-                                    direction: canonicalStatus === 'completed' ? 'up' : isActiveEmergencyStatus(canonicalStatus) ? 'down' : 'flat',
-                                    label: 'Priority',
-                                    value: String(emergency.priority || 'normal').toUpperCase(),
-                                    color: getStatusColor(canonicalStatus)
-                                };
-                            return (
-                        <MobileMetricRow
-                            key={emergency.id}
-                            layoutEnabled={false}
-                            icon={getStatusIcon(canonicalStatus)}
-                            color={rowColor}
-                            attentionPulse={approvalNeeded}
-                            label={emergency.service_type?.replace('_', ' ').toUpperCase() || 'MEDICAL EMERGENCY'}
-                            value={patient.name}
-                            trend={formatDate(emergency.created_at)}
-                            statusIndicators={approvalNeeded ? [{
-                                icon: AlertCircle,
-                                color: 'hsl(var(--warning))',
-                                label: 'Approval Needed'
-                            }] : []}
-                            rightBlade={blade}
-                            isExpanded={expandedEmergencyId === emergency.id}
-                            onExpand={setExpandedEmergencyId}
-                            itemId={emergency.id}
-                            expandedContent={
-                                <div className="space-y-4 py-3">
-                                        {approvalNeeded && (
-                                            <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-warning/10 border border-warning/15">
-                                                <div className="min-w-0">
-                                                    <div className="text-[9px] uppercase tracking-[0.18em] font-semibold text-warning/90">Approval Needed</div>
-                                                    <div className="text-xs font-semibold text-foreground truncate">Cash payment awaiting verification</div>
-                                                </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    className="shrink-0 h-10 px-3 rounded-xl bg-warning/15 hover:bg-warning/20 text-warning border-0 active:scale-95"
-                                                    onClick={() => onView(emergency)}
-                                                >
-                                                    <span className="text-[9px] uppercase font-semibold tracking-[0.18em]">Review</span>
-                                                </Button>
-                                            </div>
-                                        )}
-                                        {/* Emergency Details */}
-                                        <div className="grid grid-cols-1 gap-2">
-                                            <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
-                                                <MapPin size={14} className="text-muted-foreground/40" />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Location</span>
-                                                    <span className="text-xs font-semibold truncate">{locationLabel}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
-                                                <Phone size={14} className="text-muted-foreground/40" />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Contact</span>
-                                                    <span className="text-xs font-semibold">{patient.phone}</span>
-                                                </div>
-                                            </div>
-                                            {responderLabel && (
-                                                <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
-                                                    <Ambulance size={14} className="text-muted-foreground/40" />
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Ambulance</span>
-                                                        <span className="text-xs font-semibold">{responderLabel} - {etaLabel}</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {facilityLabel && (
-                                                <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
-                                                    <Hospital size={14} className="text-muted-foreground/40" />
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Facility</span>
-                                                        <span className="text-xs font-semibold truncate">{facilityLabel}</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
+                            {isAdmin && (
+                                <motion.button
+                                    type="button"
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={(event) => {
+                                        onViewAnalytics?.();
+                                        triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--foreground))', haptic: true, sound: true });
+                                    }}
+                                    data-state={analyticsTriggerState}
+                                    className="flex h-11 w-11 items-center justify-center rounded-button bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95 dark:bg-white/[0.06]"
+                                    aria-label="Open request statistics"
+                                    aria-haspopup="dialog"
+                                    aria-expanded={analyticsOpen}
+                                >
+                                    <Info size={18} />
+                                </motion.button>
+                            )}
+                        </div>
 
-                                        {/* Emergency Information */}
-                                        <div className="flex items-center justify-between px-1">
-                                            <div className="flex flex-col">
-                                                <span className="text-[8px] uppercase tracking-widest text-muted-foreground font-medium">Emergency ID</span>
-                                                <span className="text-[10px] font-mono text-foreground/40 font-normal">#{emergency.id?.slice(0, 12).toUpperCase()}</span>
-                                            </div>
-                                            <Badge className={`squircle-sm border-0 font-semibold tracking-tight text-[9px] py-1 px-3 ${getSeverityColor(emergency.service_type).replace('hsl(var(', 'bg-').replace('))', '/20 text-')}`}>
-                                                {emergency.service_type?.replace('_', ' ').toUpperCase() || 'AMBULANCE'}
-                                            </Badge>
-                                        </div>
+                        <div className="mt-4 flex items-center justify-between px-2">
+                            <h2 className="text-lg font-semibold tracking-tight">Requests</h2>
+                            {isBuffering && (
+                                <span className="rounded-pill bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                                    Updating
+                                </span>
+                            )}
+                        </div>
 
-                                        {/* Quick Actions */}
-                                        <div className="flex gap-2 pt-2">
-                                            <Button
-                                                variant="ghost"
-                                                className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
-                                                onClick={() => onView(emergency)}
-                                            >
-                                                <Eye size={16} className="text-primary/60" />
-                                                <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">{approvalNeeded ? 'Review' : 'Details'}</span>
-                                            </Button>
-                                            {(isAdmin || emergency.status === 'active' || approvalNeeded) && (
-                                                <>
-                                                    <Button
-                                                        variant="ghost"
-                                                        className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
-                                                        onClick={() => approvalNeeded ? onView(emergency) : onEdit(emergency)}
-                                                    >
-                                                        {approvalNeeded ? (
-                                                            <CheckCircle2 size={16} className="text-warning/70" />
-                                                        ) : (
-                                                            <Send size={16} className="text-warning/60" />
-                                                        )}
-                                                        <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">{approvalNeeded ? 'Approve' : 'Dispatch'}</span>
-                                                    </Button>
-                                                    {isAdmin && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            className="w-12 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-destructive/10 active:bg-destructive/15 hover:text-destructive"
-                                                            onClick={() => onDelete(emergency)}
-                                                        >
-                                                            <Trash2 size={16} className="text-destructive/60" />
-                                                        </Button>
-                                                    )}
-                                                </>
-                                            )}
-                                        </div>
-                                </div>
-                            }
-                        />
-                            );
-                        })()
-                    ))}
-
-                    {/* Infinite Scroll Sentinel */}
-                    <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
-                        {loading && <MobileListSkeletonRows />}
-                        {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
-                        {!loading && !hasMore && displayEmergencies.length > 0 && (
-                            <MobileListEnd label="End of emergency list" />
+                        <div className="mt-3 space-y-2">
+                        {!loading && loadError && displayItems.length > 0 && (
+                            <div className="rounded-inner bg-destructive/10 p-4 text-sm text-destructive shadow-[0_18px_54px_rgba(239,68,68,0.10)]">
+                                <p className="font-semibold">Requests could not refresh</p>
+                                <p className="mt-1 text-xs text-destructive/75">{loadError}</p>
+                                <button
+                                    type="button"
+                                    onClick={() => onRetry?.()}
+                                    className="mt-3 h-9 rounded-pill bg-destructive/10 px-4 text-xs font-semibold transition-all hover:bg-destructive/15 active:scale-95"
+                                >
+                                    Retry
+                                </button>
+                            </div>
                         )}
-                    </div>
 
-                    {displayEmergencies.length === 0 && !loading && (
-                        <MobileListEmpty icon={AlertTriangle} label="No active emergencies" />
-                    )}
+                        {displayItems.map((request) => (
+                            <MobileRequestRow
+                                key={request.id}
+                                request={request}
+                                expanded={expandedRequestId === request.id}
+                                setExpandedRequestId={setExpandedRequestId}
+                                onView={onView}
+                                isAdmin={isAdmin}
+                            />
+                        ))}
+
+                        <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
+                            {showSkeleton && <MobileListSkeletonRows />}
+                            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
+                            {!loading && !hasMore && displayItems.length > 0 && (
+                                <MobileListEnd label="End of requests" />
+                            )}
+                        </div>
+
+                        {displayItems.length === 0 && !loading && loadError && (
+                            <MobileListEmpty
+                                icon={AlertCircle}
+                                label="Requests did not load"
+                                hint={loadError}
+                                onRecover={onRetry}
+                                recoverLabel="Retry"
+                                labelTone="plain"
+                            />
+                        )}
+
+                        {displayItems.length === 0 && !loading && !loadError && (
+                            <MobileListEmpty icon={ClipboardCheck} label="No requests found" />
+                        )}
+                        </div>
+                    </section>
                 </div>
             </MobilePageShell>
         </PullToRefresh>
     );
 };
 
+const MobileRequestRow = ({
+    request,
+    expanded,
+    setExpandedRequestId,
+    onView,
+    isAdmin,
+}) => {
+    const projection = buildEmergencyRenderProjection(request);
+    const status = getStatusMeta(request);
+    const avatarClass = getMobileRequestAvatarClass(request);
+    const name = projection.patientDisplay.name;
+    const facility = projection.facilityDisplay.name;
+    const location = projection.locationDisplay.label;
+    const canAct = isAdmin && canonicalizeEmergencyStatus(request.status, null) === 'pending_approval';
 
+    return (
+        <motion.div
+            layout
+            data-mobile-request-row={request.id}
+            data-state={expanded ? 'expanded' : 'idle'}
+            className={`overflow-hidden rounded-card bg-muted/22 shadow-sm transition-all ${expanded ? 'bg-muted/34 shadow-[0_20px_60px_rgba(0,0,0,0.18)]' : ''}`}
+        >
+            <button
+                type="button"
+                onClick={() => setExpandedRequestId(expanded ? null : request.id)}
+                data-state={expanded ? 'expanded' : 'idle'}
+                className="flex w-full items-center gap-3 p-4 text-left"
+                aria-label={`${expanded ? 'Close' : 'Open'} ${name}`}
+                aria-expanded={expanded}
+            >
+                <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-icon text-sm font-semibold ${avatarClass}`}>
+                    {getInitials(name)}
+                </span>
+                <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[15px] font-semibold text-foreground">{name}</span>
+                    <span className="mt-1 block truncate text-sm text-muted-foreground">{serviceLabel(request)}</span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end gap-2">
+                    <span className={`rounded-pill px-3 py-1 text-[11px] font-semibold ${status.className}`}>{status.label}</span>
+                    <span className="text-xs font-medium text-muted-foreground">{formatRequestTime(request.created_at)}</span>
+                </span>
+                {expanded ? (
+                    <ChevronDown size={18} className="text-muted-foreground" />
+                ) : (
+                    <ChevronRight size={18} className="text-muted-foreground" />
+                )}
+            </button>
+
+            {expanded && (
+                <div className="space-y-3 px-4 pb-4">
+                    <MobileDetailLine icon={Hospital} label="Facility" value={facility} />
+                    <MobileDetailLine icon={MapPin} label="Location" value={location} />
+                    <MobileDetailLine icon={ClipboardCheck} label="Service" value={serviceLabel(request)} />
+
+                    <div className={`grid gap-2 pt-1 ${canAct ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                        <Button
+                            variant="ghost"
+                            className="h-12 rounded-button bg-background/36 font-semibold transition-all hover:bg-foreground hover:text-background active:scale-95"
+                            onClick={() => onView(request)}
+                        >
+                            <Info className="mr-2 h-4 w-4" />
+                            Details
+                        </Button>
+                        {canAct ? (
+                            <Button
+                                variant="ghost"
+                                className="h-12 rounded-button bg-destructive text-white shadow-[0_16px_46px_rgba(239,68,68,0.25)] transition-all hover:bg-destructive/90 active:scale-95"
+                                onClick={() => onView(request)}
+                            >
+                                <ClipboardCheck className="mr-2 h-4 w-4" />
+                                Review
+                            </Button>
+                        ) : null}
+                    </div>
+
+                </div>
+            )}
+        </motion.div>
+    );
+};
+
+const MobileDetailLine = ({ icon: Icon, label, value }) => (
+    <div className="flex items-center gap-3 rounded-inner bg-background/30 p-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-icon bg-muted/28 text-muted-foreground">
+            <Icon size={15} />
+        </span>
+        <span className="min-w-0">
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
+            <span className="mt-1 block truncate text-sm font-semibold text-foreground">{value || 'Not set'}</span>
+        </span>
+    </div>
+);

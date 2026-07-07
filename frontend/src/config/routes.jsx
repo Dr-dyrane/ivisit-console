@@ -11,10 +11,12 @@ import { NAV_CONFIG } from './navigation';
  * Each route specifies how it should be protected
  */
 export const ROUTE_PROTECTION = {
-  // Public routes
+  // Console home
   '/': {
-    public: true,
-    title: 'Dashboard'
+    public: false,
+    minRole: 'viewer',
+    resource: 'dashboard',
+    title: 'Today'
   },
   '/login': {
     public: true,
@@ -28,7 +30,8 @@ export const ROUTE_PROTECTION = {
     public: false,
     minRole: 'provider',
     resource: 'map',
-    title: 'Live Map'
+    title: 'Live Map',
+    excludedRoles: ['sponsor']
   },
 
   // Protected routes - use navigation config for access control
@@ -38,16 +41,18 @@ export const ROUTE_PROTECTION = {
     title: 'Statistics'
   },
 
-  // Operations routes
+  // Care routes
   '/visits': {
     minRole: 'provider',
     resource: 'visits',
-    title: 'Visits'
+    title: 'Visits',
+    excludedRoles: ['sponsor']
   },
   '/emergencies': {
     minRole: 'provider',
-    resource: 'emergencies',
-    title: 'Emergencies'
+    resource: 'emergency_requests',
+    title: 'Requests',
+    excludedRoles: ['sponsor']
   },
   '/hospitals': {
     minRole: 'org_admin',
@@ -62,14 +67,15 @@ export const ROUTE_PROTECTION = {
   '/doctors': {
     minRole: 'org_admin',
     resource: 'doctors',
-    title: 'Doctors'
+    title: 'Staff'
   },
 
-  // Management routes
+  // Admin routes
   '/support-tickets': {
     minRole: 'provider',
     resource: 'support',
-    title: 'Support'
+    title: 'Support',
+    excludedRoles: ['sponsor']
   },
   '/health-news': {
     minRole: 'org_admin',
@@ -79,7 +85,7 @@ export const ROUTE_PROTECTION = {
   '/verification': {
     minRole: 'org_admin',
     resource: 'verification',
-    title: 'Queue'
+    title: 'Approvals'
   },
   '/users': {
     minRole: 'org_admin',
@@ -99,7 +105,7 @@ export const ROUTE_PROTECTION = {
   '/wallet': {
     minRole: 'org_admin',
     resource: 'wallet',
-    title: 'Wallet'
+    title: 'Payments'
   },
   '/pricing': {
     minRole: 'org_admin',
@@ -159,6 +165,8 @@ export function getProtectedRoutesForRole(userRole) {
  * Check if a role is allowed for a route configuration
  */
 function isRoleAllowed(userRole, config) {
+  if (config.excludedRoles?.includes(userRole)) return false;
+
   if (!config.minRole) return true;
 
   const ROLE_LEVELS = {

@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import {
   BarChart3,
@@ -10,18 +9,21 @@ import {
   FileText
 } from 'lucide-react';
 
-export const AnalyticsPanel = ({ analyticsData }) => {
-  const handleOpenReports = () => {
-    // Trigger reports modal on analytics page
-    const event = new CustomEvent('openAnalyticsModal');
-    window.dispatchEvent(event);
-  };
+const SOURCE_PENDING_LABEL = 'Source pending';
+const ANALYTICS_UNAVAILABLE_MESSAGE = 'Reports unavailable until analytics scope is verified.';
 
-  const handleExportData = () => {
-    // Trigger export on analytics page
-    const event = new CustomEvent('exportAnalytics');
-    window.dispatchEvent(event);
-  };
+const panelSignals = [
+  { label: 'Request volume', Icon: BarChart3 },
+  { label: 'Completion', Icon: TrendingUp },
+  { label: 'Response time', Icon: Clock },
+];
+
+export const AnalyticsPanel = () => {
+  const [panelNotice, setPanelNotice] = useState('Analytics scope pending.');
+
+  const handleUnavailableAction = useCallback(() => {
+    setPanelNotice(ANALYTICS_UNAVAILABLE_MESSAGE);
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -33,35 +35,29 @@ export const AnalyticsPanel = ({ analyticsData }) => {
       >
         <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Overview</h3>
 
-        <div className="bg-primary/5 p-4 rounded-3xl flex items-center justify-between group transition-all">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <BarChart3 className="h-5 w-5 text-primary" />
-            </div>
-            <span className="text-sm font-bold tracking-tight">Total Requests</span>
+        <div className="bg-muted/20 p-4 rounded-3xl flex items-start gap-3">
+          <div className="w-10 h-10 bg-muted/40 rounded-2xl flex items-center justify-center">
+            <Activity className="h-5 w-5 text-muted-foreground" />
           </div>
-          <Badge className="bg-primary/20 text-primary border-0 rounded-full">{analyticsData.totalRequests}</Badge>
+          <div className="min-w-0 space-y-1">
+            <p className="text-sm font-bold tracking-tight">Analytics scope</p>
+            <p className="text-xs leading-5 text-muted-foreground">
+              Verified reporting is not ready yet.
+            </p>
+          </div>
         </div>
 
-        <div className="bg-success/5 p-4 rounded-3xl flex items-center justify-between group transition-all">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-success/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <TrendingUp className="h-5 w-5 text-success" />
+        {panelSignals.map(({ label, Icon }) => (
+          <div key={label} className="bg-muted/15 p-4 rounded-3xl flex items-center justify-between group transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-muted/30 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Icon className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <span className="text-sm font-bold tracking-tight">{label}</span>
             </div>
-            <span className="text-sm font-bold tracking-tight">Completion Rate</span>
+            <Badge className="bg-muted/40 text-muted-foreground border-0 rounded-full">{SOURCE_PENDING_LABEL}</Badge>
           </div>
-          <Badge className="bg-success/20 text-success border-0 rounded-full">{analyticsData.completionRate}%</Badge>
-        </div>
-
-        <div className="bg-info/5 p-4 rounded-3xl flex items-center justify-between group transition-all">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-info/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Clock className="h-5 w-5 text-info" />
-            </div>
-            <span className="text-sm font-bold tracking-tight">Avg Response</span>
-          </div>
-          <Badge className="bg-info/20 text-info border-0 rounded-full">{Math.round((analyticsData.avgResponseTime || 0) * 10) / 10}m</Badge>
-        </div>
+        ))}
       </motion.div>
 
       {/* Quick Actions */}
@@ -74,21 +70,32 @@ export const AnalyticsPanel = ({ analyticsData }) => {
         <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Reporting</h3>
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={handleOpenReports}
-            className="flex flex-col items-center justify-center gap-2 p-4 rounded-3xl bg-primary/10 hover:bg-primary/20 transition-all border-0 group"
+            type="button"
+            onClick={handleUnavailableAction}
+            aria-disabled="true"
+            data-state="unavailable"
+            title={ANALYTICS_UNAVAILABLE_MESSAGE}
+            className="flex flex-col items-center justify-center gap-2 p-4 rounded-3xl bg-muted/30 hover:bg-muted/40 transition-all border-0 group"
           >
-            <FileText className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Reports</span>
+            <FileText className="h-5 w-5 text-muted-foreground group-hover:scale-110 transition-transform" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Reports</span>
           </button>
 
           <button
-            onClick={handleExportData}
-            className="flex flex-col items-center justify-center gap-2 p-4 rounded-3xl bg-success/10 hover:bg-success/20 transition-all border-0 group"
+            type="button"
+            onClick={handleUnavailableAction}
+            aria-disabled="true"
+            data-state="unavailable"
+            title={ANALYTICS_UNAVAILABLE_MESSAGE}
+            className="flex flex-col items-center justify-center gap-2 p-4 rounded-3xl bg-muted/30 hover:bg-muted/40 transition-all border-0 group"
           >
-            <TrendingUp className="h-5 w-5 text-success group-hover:scale-110 transition-transform" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-success">Export</span>
+            <TrendingUp className="h-5 w-5 text-muted-foreground group-hover:scale-110 transition-transform" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Export</span>
           </button>
         </div>
+        <p role="status" aria-live="polite" className="px-1 text-xs leading-5 text-muted-foreground">
+          {panelNotice}
+        </p>
       </motion.div>
     </div>
   );

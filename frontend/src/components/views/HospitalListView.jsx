@@ -1,27 +1,43 @@
 import React from 'react';
-import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Edit, Trash2, Eye, Star, Hospital, CalendarDays } from 'lucide-react';
+import { Edit, Eye, Star, Hospital, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, onSchedule, isMobile = false }) => {
-  // Helper function to get status badge styling
+export const HospitalListView = ({
+  hospitals,
+  onView,
+  onEdit,
+  canDelete = false,
+  onDelete,
+  onSchedule,
+  isMobile = false
+}) => {
   const getStatusBadge = (status) => {
     switch (status?.toLowerCase()) {
       case 'verified':
-        return 'bg-green-500/20 text-green-500 border-green-500/30';
+        return 'bg-green-500/18 text-green-600 dark:text-green-300';
       case 'unverified':
-        return 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30';
+        return 'bg-yellow-500/18 text-yellow-700 dark:text-yellow-300';
       case 'pending':
-        return 'bg-blue-500/20 text-blue-500 border-blue-500/30';
+        return 'bg-blue-500/18 text-blue-600 dark:text-blue-300';
       case 'closed':
       case 'inactive':
-        return 'bg-red-500/20 text-red-500 border-red-500/30';
+        return 'bg-red-500/18 text-red-600 dark:text-red-300';
       default:
-        return 'bg-gray-500/20 text-gray-500 border-gray-500/30';
+        return 'bg-muted/45 text-muted-foreground';
     }
   };
+
+  const formatWaitTime = (minutes) => {
+    if (minutes === null || minutes === undefined || minutes === '') {
+      return 'Unknown';
+    }
+
+    const numericMinutes = Number(minutes);
+    return Number.isFinite(numericMinutes) ? `${numericMinutes}m` : 'Unknown';
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -35,12 +51,11 @@ export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, onSchedu
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-sm p-4 border-0 hover:shadow-md transition-shadow group">
+          <div className="group rounded-card bg-background/35 p-4 shadow-sm backdrop-blur-xs transition-[background,box-shadow,transform] duration-200 hover:bg-background/55 hover:shadow-md">
             <div className="flex items-center gap-4 justify-between">
-              {/* Hospital Image */}
               <div className="flex-shrink-0">
                 {hospital.image ? (
-                  <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-black/20">
+                  <div className="relative h-16 w-16 rounded-icon overflow-hidden bg-black/20">
                     <img
                       src={hospital.image}
                       alt={hospital.name}
@@ -50,37 +65,36 @@ export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, onSchedu
                         e.target.nextSibling.style.display = 'flex';
                       }}
                     />
-                    {/* Fallback placeholder */}
                     <div className="absolute inset-0 flex items-center justify-center bg-muted/20 hidden">
                       <Hospital className="h-6 w-6 text-muted-foreground/50" />
                     </div>
                   </div>
                 ) : (
-                  <div className="h-16 w-16 rounded-xl bg-muted/20 flex items-center justify-center">
+                  <div className="h-16 w-16 rounded-icon bg-muted/20 flex items-center justify-center">
                     <Hospital className="h-6 w-6 text-muted-foreground/50" />
                   </div>
                 )}
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
                   <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
                     {hospital.name || 'Unknown Hospital'}
                   </h3>
-                  <Badge className={`squircle-sm ${getStatusBadge(hospital.status)} border-0 font-bold`}>
+                  <Badge className={`squircle-sm ${getStatusBadge(hospital.status)} font-bold`}>
                     {hospital.status}
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground truncate">
-                  {hospital.address || 'No address'} • Beds: {hospital.available_beds || 0}/{hospital.total_beds || 0} • ICU: {hospital.icu_beds_available || 0} • Fleet: {hospital.ambulances_count || 0}
+                  {hospital.address || 'No address'} / Beds: {hospital.available_beds || 0}/{hospital.total_beds || 0} / ICU: {hospital.icu_beds_available || 0} / Fleet: {hospital.ambulances_count || 0}
                 </p>
                 <p className="text-xs text-muted-foreground truncate mt-1">
-                  ER wait: {Number.isFinite(Number(hospital.emergency_wait_time_minutes)) ? `${hospital.emergency_wait_time_minutes}m` : 'Unknown'} • Updated: {hospital.last_availability_update ? new Date(hospital.last_availability_update).toLocaleString() : 'Unknown'}
+                  ER wait: {formatWaitTime(hospital.emergency_wait_time_minutes)} / Updated: {hospital.last_availability_update ? new Date(hospital.last_availability_update).toLocaleString() : 'Unknown'}
                 </p>
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="text-right pr-4 border-r border-white/10">
+                <div className="rounded-inner bg-muted/24 px-3 py-2 text-right">
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 text-warning fill-warning" />
                     <p className="font-bold text-lg">{hospital.rating || 'N/A'}</p>
@@ -111,23 +125,26 @@ export const HospitalListView = ({ hospitals, onView, onEdit, onDelete, onSchedu
                       size="sm"
                       onClick={() => onSchedule(hospital)}
                       className="squircle h-8 w-8 p-0 hover:bg-purple-500/10 hover:text-purple-500"
+                      aria-label={`Manage schedule for ${hospital.name}`}
                     >
                       <CalendarDays className="h-4 w-4" />
                     </Button>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDelete(hospital)}
-                    className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                    aria-label={`Delete ${hospital.name}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {canDelete && onDelete && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDelete(hospital)}
+                      className="squircle h-8 px-3 hover:bg-destructive/10 hover:text-destructive"
+                      aria-label={`Delete ${hospital.name}`}
+                    >
+                      Delete
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
         </motion.div>
       ))}
     </motion.div>

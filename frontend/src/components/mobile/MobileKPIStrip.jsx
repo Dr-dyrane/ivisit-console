@@ -18,7 +18,8 @@ export const MobileKPIStrip = ({
     activeKpi,
     animateOnMount = true,
     loading = false,
-    loadingCount = 4
+    loadingCount = 4,
+    labelTone = 'caps'
 }) => {
     const reduceMotion = useReducedMotion();
     const { isScrolling, bind } = useScrollCooldown(180);
@@ -50,7 +51,7 @@ export const MobileKPIStrip = ({
 
     if (loading) {
         return (
-            <div className="sticky top-0 z-40 w-full px-2 py-3 border-0 shadow-none relative overflow-hidden">
+            <div className="sticky top-0 z-40 w-full px-2 py-3 shadow-none relative overflow-hidden">
                 <div className="flex gap-2 overflow-hidden">
                     {Array.from({ length: Math.max(1, loadingCount) }).map((_, idx) => (
                         <div
@@ -71,7 +72,7 @@ export const MobileKPIStrip = ({
             initial={mountMotion.initial}
             animate={mountMotion.animate}
             transition={mountMotion.transition}
-            className="sticky top-0 z-40 w-full px-2 py-3 border-0 shadow-none relative overflow-hidden"
+            className="sticky top-0 z-40 w-full px-2 py-3 shadow-none relative overflow-hidden"
         >
             {/* Rail: overflow-x, hidden scrollbars, same height */}
             <div
@@ -80,6 +81,9 @@ export const MobileKPIStrip = ({
             >
                 {allKpis.map((kpi, idx) => {
                     const isActive = activeKpi === kpi.id;
+                    const labelClassName = labelTone === 'plain'
+                        ? 'text-[8px] normal-case tracking-tight'
+                        : 'text-[7px] uppercase tracking-[0.2em]';
                     return (
                         <React.Fragment key={kpi.id || idx}>
                             <motion.button
@@ -87,7 +91,8 @@ export const MobileKPIStrip = ({
                                 transition={mobileMotion.quick}
                                 onClick={isScrolling ? undefined : (event) => handleKpiClick(event, kpi)}
                                 aria-pressed={isActive}
-                                className={`relative shrink-0 flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-[14px] border-0 transition-[background,transform,box-shadow,outline] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden kpi-rail ${isActive
+                                data-state={isActive ? 'selected' : 'idle'}
+                                className={`relative shrink-0 flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-[14px] transition-[background,transform,box-shadow] duration-200 ease-out overflow-hidden kpi-rail ${isActive
                                     ? 'bg-background/80 dark:bg-muted/40'
                                     : 'bg-muted/20'
                                     }`}
@@ -95,7 +100,7 @@ export const MobileKPIStrip = ({
                                     minWidth: allKpis.length <= 4 ? `calc((100% - ${(allKpis.length - 1) * 8}px) / ${allKpis.length})` : 'auto',
                                     WebkitTapHighlightColor: 'transparent',
                                     ...(isActive ? {
-                                        boxShadow: `0 0 0 0.5px ${(kpi.color || 'hsl(var(--primary))').replace(')', ' / 0.25)')}, 0 2px 12px -4px ${(kpi.color || 'hsl(var(--primary))').replace(')', ' / 0.15)')}`
+                                        boxShadow: `0 8px 18px -12px ${(kpi.color || 'hsl(var(--primary))').replace(')', ' / 0.28)')}`
                                     } : null)
                                 }}
                             >
@@ -132,7 +137,7 @@ export const MobileKPIStrip = ({
                                     <span className={`text-[12px] tracking-tight leading-none truncate transition-colors duration-300 font-dashboard-numbers ${isActive ? 'text-foreground font-semibold neon-accent-text' : 'text-foreground/75 font-medium'}`}>
                                         {kpi.value}
                                     </span>
-                                    <span className={`text-[7px] uppercase tracking-[0.2em] leading-none truncate mt-1 transition-colors duration-300 ${isActive ? 'text-foreground/55 font-semibold' : 'text-muted-foreground/35 font-normal'}`}>
+                                    <span className={`${labelClassName} leading-none truncate mt-1 transition-colors duration-300 ${isActive ? 'text-foreground/55 font-semibold' : 'text-muted-foreground/35 font-normal'}`}>
                                         {kpi.label}
                                     </span>
                                     {Boolean(kpi.delta) && (

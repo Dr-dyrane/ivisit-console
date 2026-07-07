@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -8,12 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { X, Siren, MapPin, Clock, Activity, Phone, User, AlertTriangle, Navigation, CheckCircle2 } from 'lucide-react';
+import { Siren, MapPin, Clock, Activity, Phone, User, AlertTriangle, Navigation, CheckCircle2 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import { createEmergencyRequest, updateEmergencyRequest } from '../../services/emergencyService';
+import { ModalShell } from '../ui/ModalShell';
 
 const STATUS_STEPS = ['pending_approval', 'in_progress', 'accepted', 'arrived', 'completed'];
 const STATUS_LABELS = {
@@ -22,6 +22,13 @@ const STATUS_LABELS = {
   accepted: 'en route',
   arrived: 'arrived',
   completed: 'completed',
+};
+const STATUS_SHORT_LABELS = {
+  pending_approval: 'new',
+  in_progress: 'active',
+  accepted: 'sent',
+  arrived: 'arrived',
+  completed: 'done',
 };
 
 const STATUS_ALIAS_TO_DB = {
@@ -39,10 +46,14 @@ const normalizeEmergencyStatus = (value, fallback = 'pending_approval') => {
   return STATUS_ALIAS_TO_DB[status] || status;
 };
 
+const requestFieldClassName = 'rounded-button bg-black/5 shadow-[0_12px_30px_rgb(0_0_0/0.05)] transition-[background,box-shadow] focus:bg-background/80 focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)] dark:bg-white/5 dark:focus:bg-white/[0.08]';
+const requestSelectContentClassName = 'rounded-inner bg-background/95 shadow-2xl backdrop-blur-xl';
+
 export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
   const isCreate = mode === 'create';
+  const formId = 'emergency-request-form';
 
   const [users, setUsers] = useState([]);
   const [formData, setFormData] = useState({
@@ -55,20 +66,16 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
     latitude: null,
     longitude: null,
     description: '',
-    ...request // ✅ Pattern B: Merge initial props
+    ...request // Pattern B: merge initial props
   });
 
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  useEffect(() => {
     if (request) {
       setFormData(prev => ({
-        ...prev, // ✅ Keep existing
-        ...request, // ✅ Merge new
+        ...prev, // Keep existing
+        ...request, // Merge new
         // Explicit fallbacks for Selects
         priority: request.priority || prev.priority || 'medium',
         status: normalizeEmergencyStatus(request.status || prev.status || 'pending_approval'),
@@ -79,14 +86,19 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
     }
   }, [request]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const { data } = await supabase.from('profiles').select('id, username, email, phone, avatar_url');
       setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    fetchUsers();
+  }, [fetchUsers, isOpen]);
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
@@ -143,7 +155,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
           );
         }
 
-        toast.success('Emergency request created successfully');
+        toast.success('Request created');
       } else if (isEdit) {
         await updateEmergencyRequest(request.id, payload);
 
@@ -154,7 +166,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
           { message: `Emergency request updated - Status: ${normalizedStatus || submitData.status}` }
         );
 
-        toast.success('Incident report updated');
+        toast.success('Request updated');
       }
 
       onClose(true);
@@ -189,62 +201,54 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
   const selectedUser = users.find(u => u.id === formData.user_id);
   const currentStatus = normalizeEmergencyStatus(formData.status);
   const currentStepIndex = STATUS_STEPS.indexOf(currentStatus);
+  const modalTitle = isCreate ? 'New request' : isEdit ? 'Edit request' : 'Request details';
+  const modalSubtitle = isCreate
+    ? 'Create a request and send it to the care queue.'
+    : isEdit
+      ? 'Update request details from the approved receiver.'
+      : 'Review request details.';
+  const submitLabel = loading ? 'Saving...' : isCreate ? 'Create request' : 'Save changes';
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/30 backdrop-blur-md"
+    <ModalShell
+      isOpen={isOpen}
+      onClose={() => onClose(false)}
+      title={modalTitle}
+      subtitle={modalSubtitle}
+      icon={<Siren className={`h-4 w-4 ${getPriorityColor(formData.priority)}`} />}
+      badge={(
+        <Badge className={`rounded-pill px-4 py-1 shadow-sm ${getPriorityBg(formData.priority)} ${getPriorityColor(formData.priority)}`}>
+          {formData.priority || 'medium'}
+        </Badge>
+      )}
+      size="xl"
+      footer={(
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="ghost"
             onClick={() => onClose(false)}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            role="dialog"
-
-            aria-modal="true"
-
-            className="relative z-10 w-full h-[100dvh] sm:h-auto sm:max-w-5xl sm:max-h-[90vh] overflow-hidden rounded-none sm:rounded-[32px] shadow-2xl"
+            className="h-12 rounded-button px-8 font-semibold"
           >
-            {/* Header Area */}
-            <div className="flex items-center justify-between p-4 sm:p-8 pb-3 sm:pb-4">
-              <div className="flex items-center gap-4">
-                <div className={`p-2.5 rounded-2xl ${getPriorityBg(formData.priority)} ${getPriorityColor(formData.priority)}`}>
-                  <Siren className="h-6 w-6" />
-                </div>
-                <div className="hidden sm:block">
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
-                    {formData.emergency_type ? formData.emergency_type.replace('_', ' ').toUpperCase() : 'NEW EMERGENCY'}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">Incident dispatch and reporting system</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge className={`rounded-full px-4 py-1 border-0 ${getPriorityBg(formData.priority)} ${getPriorityColor(formData.priority)}`}>
-                  {formData.priority?.toUpperCase()}
-                </Badge>
-                <Button
-                  variant="ghost"
-                  onClick={() => onClose(false)}
-                  className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="p-4 sm:p-8 pt-1 sm:pt-2 overflow-y-auto h-[calc(100dvh-88px)] sm:max-h-[calc(90vh-120px)] space-y-5 sm:space-y-6 no-scrollbar">
-              <form onSubmit={handleSubmit} className="space-y-6">
+            {isView ? 'Close' : 'Cancel'}
+          </Button>
+          {!isView && (
+            <Button
+              type="submit"
+              form={formId}
+              disabled={loading}
+              className="h-12 rounded-button bg-primary px-10 font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
+            >
+              {submitLabel}
+            </Button>
+          )}
+        </div>
+      )}
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-6 px-4 pb-4 pt-1 sm:px-8 sm:pb-8 sm:pt-2">
 
                 {/* Status Bar */}
-                <div className="p-1.5 rounded-[20px] bg-white/5  flex items-center justify-between gap-2">
+                <div className="flex items-center justify-between gap-2 rounded-inner bg-black/5 p-1.5 dark:bg-white/5">
                   {STATUS_STEPS.map((step, i) => {
                     const isCurrent = currentStatus === step;
                     const isPast = currentStepIndex > i;
@@ -252,12 +256,15 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                       <button
                         key={step}
                         type="button"
+                        disabled={isView}
+                        aria-pressed={isCurrent}
                         onClick={!isView ? () => setFormData(prev => ({ ...prev, status: step })) : undefined}
-                        className={`flex-1 py-2 px-3 rounded-xl transition-all text-[10px] font-semibold uppercase tracking-wider ${isCurrent ? 'bg-primary text-white shadow-lg shadow-primary/20' :
+                        className={`min-w-0 flex-1 rounded-button px-1.5 py-2 text-[9px] font-semibold uppercase tracking-wide transition-all sm:px-3 sm:text-[10px] sm:tracking-wider ${isCurrent ? 'bg-primary text-white shadow-lg shadow-primary/20' :
                           isPast ? 'text-primary/70 bg-primary/5' : 'text-muted-foreground/40'
                           }`}
                       >
-                        {STATUS_LABELS[step] || step.replace(/_/g, ' ')}
+                        <span className="hidden sm:inline">{STATUS_LABELS[step] || step.replace(/_/g, ' ')}</span>
+                        <span className="sm:hidden">{STATUS_SHORT_LABELS[step] || STATUS_LABELS[step] || step.replace(/_/g, ' ')}</span>
                       </button>
                     );
                   })}
@@ -273,10 +280,10 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                             value={formData.user_id}
                             onValueChange={(value) => setFormData(prev => ({ ...prev, user_id: value }))}
                           >
-                            <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12">
+                            <SelectTrigger className={`${requestFieldClassName} h-12`}>
                               <SelectValue placeholder="Select user" />
                             </SelectTrigger>
-                            <SelectContent className="rounded-2xl border-white/10 bg-background/95 backdrop-blur-xl">
+                            <SelectContent className={requestSelectContentClassName}>
                               {users.map(u => (
                                 <SelectItem key={u.id} value={u.id}>
                                   <div className="flex items-center gap-2">
@@ -292,7 +299,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                           </Select>
                         ) : (
                           <div className="flex items-center gap-4 p-2">
-                            <Avatar className="w-12 h-12 rounded-xl ">
+                            <Avatar className="h-12 w-12 rounded-icon">
                               <AvatarImage src={selectedUser?.avatar_url} />
                               <AvatarFallback>{selectedUser?.username?.[0] || 'U'}</AvatarFallback>
                             </Avatar>
@@ -313,7 +320,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                           name="location"
                           disabled={isView}
                           placeholder="Location address..."
-                          className="rounded-xl bg-white/5 border-white/10"
+                          className={requestFieldClassName}
                         />
                         <div className="grid grid-cols-2 gap-3">
                           <Input
@@ -323,7 +330,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                             onChange={handleChange}
                             disabled={isView}
                             placeholder="Lat"
-                            className="rounded-xl bg-white/5 border-white/10 font-mono text-xs"
+                            className={`${requestFieldClassName} font-mono text-xs`}
                           />
                           <Input
                             type="number"
@@ -332,7 +339,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                             onChange={handleChange}
                             disabled={isView}
                             placeholder="Lng"
-                            className="rounded-xl bg-white/5 border-white/10 font-mono text-xs"
+                            className={`${requestFieldClassName} font-mono text-xs`}
                           />
                         </div>
                       </div>
@@ -357,10 +364,10 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                               }
                               disabled={isView}
                             >
-                              <SelectTrigger className="rounded-xl bg-white/5 border-white/10">
+                              <SelectTrigger className={requestFieldClassName}>
                                 <SelectValue placeholder="Type" />
                               </SelectTrigger>
-                              <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
+                              <SelectContent className={requestSelectContentClassName}>
                                 <SelectItem value="cardiac">Cardiac</SelectItem>
                                 <SelectItem value="accident">Accident</SelectItem>
                                 <SelectItem value="respiratory">Respiratory</SelectItem>
@@ -377,10 +384,10 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                               onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
                               disabled={isView}
                             >
-                              <SelectTrigger className="rounded-xl bg-white/5 border-white/10">
+                              <SelectTrigger className={requestFieldClassName}>
                                 <SelectValue placeholder="Priority" />
                               </SelectTrigger>
-                              <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
+                              <SelectContent className={requestSelectContentClassName}>
                                 <SelectItem value="critical">Critical</SelectItem>
                                 <SelectItem value="high">High</SelectItem>
                                 <SelectItem value="medium">Medium</SelectItem>
@@ -397,7 +404,7 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                             onChange={handleChange}
                             disabled={isView}
                             placeholder="Detailed situation report..."
-                            className="rounded-xl bg-white/5 border-white/10 min-h-[100px] resize-none"
+                            className={`${requestFieldClassName} min-h-[100px] resize-none`}
                           />
                           <Input
                             type="hidden"
@@ -411,41 +418,17 @@ export const EmergencyRequestModal = ({ isOpen, onClose, request, mode }) => {
                   </div>
                 </div>
 
-                {/* Footer Actions */}
-                <div className="sticky bottom-0 z-10 flex items-center justify-end gap-3 pt-4 pb-2 border-t border-white/5 bg-background/70 backdrop-blur-sm">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => onClose(false)}
-                    className="rounded-full px-8 h-12 font-semibold"
-                  >
-                    {isView ? 'Close' : 'Cancel'}
-                  </Button>
-                  {!isView && (
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                      className="rounded-full px-12 h-12 bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg shadow-primary/20"
-                    >
-                      {loading ? 'Processing...' : (isCreate ? 'Dispatch Unit' : 'Update Record')}
-                    </Button>
-                  )}
-                </div>
-              </form>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+      </form>
+    </ModalShell>
   );
 };
 
 /* Sub-components */
 
 const GlassCard = ({ children, title, icon, className }) => (
-  <div className={`p-4 sm:p-6 rounded-[28px] bg-white/5 border-white/10 ${className}`}>
+  <div className={`rounded-card bg-black/5 p-4 shadow-[0_18px_55px_rgb(0_0_0/0.06)] dark:bg-white/5 sm:p-6 ${className}`}>
     <div className="flex items-center gap-3 mb-4 sm:mb-6">
-      <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
+      <div className="rounded-icon bg-white/5 p-1.5 sm:p-2">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
       </div>
       <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>

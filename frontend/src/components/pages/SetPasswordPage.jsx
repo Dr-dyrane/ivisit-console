@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { motion } from 'framer-motion';
-import { Lock, Eye, EyeOff, ShieldCheck, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
+import { Lock, Eye, EyeOff, ShieldCheck, ArrowRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleAuthError } from "../../utils/errorHandler";
 import { z } from 'zod';
@@ -11,41 +11,68 @@ const passwordSchema = z.string().min(8, "Password must be at least 8 characters
 
 export const SetPasswordPage = () => {
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
+    const isMountedRef = useRef(true);
+    const redirectTimerRef = useRef(null);
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [sessionVerified, setSessionVerified] = useState(false);
+    const [recoveryStatus, setRecoveryStatus] = useState('checking'); // checking | ready | missing
 
     useEffect(() => {
-        // Verify we have a session (handled by Supabase auto-refresh from URL fragment)
-        const checkSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                setSessionVerified(true);
-            } else {
-                // If no session found, maybe the hash wasn't processed yet or link is invalid
-                // Allow a small grace period or show error?
-                // Supabase usually processes hash immediately on load.
-
-                // Check if hash exists in URL manually if needed, but usually redundant.
-                const hash = window.location.hash;
-                if (!hash || !hash.includes('access_token')) {
-                    // toast.error("Invalid or expired link");
-                    // navigate('/login');
-                }
+        return () => {
+            isMountedRef.current = false;
+            if (redirectTimerRef.current) {
+                window.clearTimeout(redirectTimerRef.current);
             }
         };
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        let retryTimer;
+
+        const checkSession = async (attempt = 0) => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (cancelled || !isMountedRef.current) return;
+
+            if (session) {
+                setSessionVerified(true);
+                setRecoveryStatus('ready');
+            } else {
+                const hash = window.location.hash;
+                if (hash.includes('access_token') && attempt < 2) {
+                    retryTimer = window.setTimeout(() => checkSession(attempt + 1), 500);
+                    return;
+                }
+
+                setSessionVerified(false);
+                setRecoveryStatus('missing');
+            }
+        };
+
         checkSession();
+
+        return () => {
+            cancelled = true;
+            if (retryTimer) window.clearTimeout(retryTimer);
+        };
     }, [navigate]);
 
     const handleSetPassword = async (e) => {
         e.preventDefault();
-        setLoading(true);
+
+        if (!sessionVerified) {
+            setRecoveryStatus('missing');
+            toast.error("Open the latest password link and try again.");
+            return;
+        }
 
         try {
+            setLoading(true);
+
             if (password !== confirmPassword) {
                 throw new Error("Passwords do not match");
             }
@@ -58,61 +85,84 @@ export const SetPasswordPage = () => {
 
             if (error) throw error;
 
+            if (!isMountedRef.current) return;
+
             toast.success("Password set successfully!");
 
             // Redirect to dashboard after short delay
-            setTimeout(() => navigate('/'), 1000);
+            redirectTimerRef.current = window.setTimeout(() => {
+                if (isMountedRef.current) {
+                    navigate('/');
+                }
+            }, 1000);
 
         } catch (error) {
+            if (!isMountedRef.current) return;
+
             if (error instanceof z.ZodError) {
                 toast.error(error.errors[0].message);
             } else {
                 handleAuthError(error, 'update');
             }
         } finally {
-            setLoading(false);
+            if (isMountedRef.current) {
+                setLoading(false);
+            }
         }
     };
 
     return (
         <div className="relative min-h-[100dvh] bg-background text-foreground flex flex-col items-center justify-center overflow-hidden">
-            {/* Background */}
-            <div className="fixed inset-0 z-0 pointer-events-none">
-                <div className="absolute top-[-10%] right-[-10%] w-[70%] h-[50%] opacity-20 bg-orb" />
-                <div className="absolute bottom-[-5%] left-[-10%] w-[60%] h-[40%] opacity-10 bg-orb" />
-            </div>
-
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="relative z-10 w-full max-w-[440px] px-6"
             >
-                <div className="bg-background/60 backdrop-blur-xl  shadow-2xl rounded-[32px] overflow-hidden glass-card-premium">
+                <div className="bg-card/80 backdrop-blur-xl shadow-2xl rounded-modal overflow-hidden">
                     <div className="p-8 sm:p-10">
                         <div className="text-center mb-8">
-                            <div className="w-16 h-16 surface-raised rounded-2xl flex items-center justify-center mx-auto mb-6">
+                            <div className="w-16 h-16 surface-raised rounded-icon flex items-center justify-center mx-auto mb-6">
                                 <ShieldCheck className="w-8 h-8 text-primary" />
                             </div>
-                            <h1 className="text-2xl font-bold tracking-tight mb-2">Secure Your Account</h1>
+                            <h1 className="text-2xl font-bold mb-2">Set your password</h1>
                             <p className="text-muted-foreground text-sm">Create a strong password to access the console.</p>
                         </div>
 
+                        {recoveryStatus !== 'ready' && (
+                            <div
+                                role="status"
+                                aria-live="polite"
+                                className="mb-5 flex items-start gap-3 rounded-inner bg-muted/40 px-4 py-3 text-sm text-muted-foreground"
+                            >
+                                {recoveryStatus === 'checking' ? (
+                                    <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-primary" />
+                                ) : (
+                                    <AlertCircle className="mt-0.5 h-4 w-4 text-destructive" />
+                                )}
+                                <span>
+                                    {recoveryStatus === 'checking'
+                                        ? 'Checking your password link.'
+                                        : 'This password link is missing or expired. Request a new link from Login.'}
+                                </span>
+                            </div>
+                        )}
+
                         <form onSubmit={handleSetPassword} className="space-y-5">
                             <div className="space-y-2">
-                                <div className="relative group rounded-2xl bg-muted/40 border-0 focus-within:bg-background focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                <div className="relative group rounded-inner bg-muted/40 focus-within:bg-background focus-within:shadow-xl focus-within:shadow-primary/5 transition-all">
                                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                     <input
                                         type={showPassword ? "text" : "password"}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder="New Password"
-                                        className="w-full bg-transparent border-none h-14 pl-12 pr-12 text-base placeholder:text-muted-foreground/50 focus:outline-none"
+                                        className="w-full bg-transparent h-14 pl-12 pr-12 text-base placeholder:text-muted-foreground/50"
                                         required
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 rounded-button p-1 text-muted-foreground hover:text-foreground transition-colors"
                                     >
                                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                     </button>
@@ -120,20 +170,20 @@ export const SetPasswordPage = () => {
                             </div>
 
                             <div className="space-y-2">
-                                <div className="relative group rounded-2xl bg-muted/40 border-0 focus-within:bg-background focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                <div className="relative group rounded-inner bg-muted/40 focus-within:bg-background focus-within:shadow-xl focus-within:shadow-primary/5 transition-all">
                                     <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                     <input
                                         type={showConfirmPassword ? "text" : "password"}
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         placeholder="Confirm Password"
-                                        className="w-full bg-transparent border-none h-14 pl-12 pr-12 text-base placeholder:text-muted-foreground/50 focus:outline-none"
+                                        className="w-full bg-transparent h-14 pl-12 pr-12 text-base placeholder:text-muted-foreground/50"
                                         required
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 rounded-button p-1 text-muted-foreground hover:text-foreground transition-colors"
                                     >
                                         {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                     </button>
@@ -142,18 +192,24 @@ export const SetPasswordPage = () => {
 
                             <button
                                 type="submit"
-                                disabled={loading}
-                                className="w-full h-14 glass-card-premium text-primary-foreground font-semibold rounded-2xl shadow-lg shadow-primary/20 mt-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-70"
+                                disabled={loading || !sessionVerified}
+                                className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-button shadow-lg shadow-primary/20 mt-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-70"
                             >
-                                {loading ? <Loader2 className="animate-spin" /> : <>Determine Credentials <ArrowRight size={18} /></>}
+                                {loading ? (
+                                    <Loader2 className="animate-spin" />
+                                ) : (
+                                    <>
+                                        {sessionVerified ? 'Set password' : 'Open latest link'}
+                                        <ArrowRight size={18} />
+                                    </>
+                                )}
                             </button>
                         </form>
                     </div>
 
-                    {/* Security Footer */}
-                    <div className="px-8 py-4 bg-muted/30 border-t border-white/5 text-center">
-                        <p className="text-[10px] font-bold tracking-widest uppercase opacity-40">
-                            End-to-End Encrypted Handshake
+                    <div className="px-8 py-4 bg-muted/30 text-center">
+                        <p className="text-[11px] font-semibold opacity-50">
+                            Password recovery
                         </p>
                     </div>
                 </div>

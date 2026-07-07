@@ -5,9 +5,107 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { getCurrentUser, applyAuthFilter } from './authService';
+import { getCurrentUser } from './authService';
 
 const TABLE_NAME = 'insurance_policies';
+const BILLING_TABLE_NAME = 'insurance_billing';
+const INSURANCE_SORT_FIELDS = new Set([
+  'created_at',
+  'updated_at',
+  'provider_name',
+  'policy_number',
+  'status',
+  'verified',
+  'plan_type',
+  'expires_at',
+]);
+const INSURANCE_BILLING_SORT_FIELDS = new Set([
+  'created_at',
+  'updated_at',
+  'billing_date',
+  'paid_date',
+  'status',
+  'claim_number',
+  'total_amount',
+  'insurance_amount',
+  'user_amount',
+]);
+
+const EMPTY_INSURANCE_STATS = {
+  total: 0,
+  active: 0,
+  pending: 0,
+  expired: 0,
+  unverified: 0,
+  verified: 0,
+  expiringSoon: 0,
+  exactCounts: true,
+  scope: 'admin_policy_projection',
+};
+
+const EMPTY_INSURANCE_BILLING_STATS = {
+  total: 0,
+  pending: 0,
+  approved: 0,
+  paid: 0,
+  rejected: 0,
+  exactCounts: true,
+  scope: 'admin_billing_outcome_projection',
+};
+
+const throwLegacyInsuranceReadUnavailable = () => {
+  throw new Error('Legacy insurance policy reads are unavailable; use getInsurancePage() from insuranceService.');
+};
+
+const toFailureMessage = (error) => {
+  const message = String(error?.message || error || '').trim();
+  return message || 'Insurance data could not load.';
+};
+
+const buildInsuranceFailedPage = (error) => ({
+  data: [],
+  count: 0,
+  stats: {
+    ...EMPTY_INSURANCE_STATS,
+    failed: true,
+    reason: 'query_failed',
+  },
+  denied: false,
+  reason: 'query_failed',
+  failed: true,
+  errorMessage: toFailureMessage(error),
+  exactCounts: false,
+  scope: 'admin_policy_projection',
+});
+
+const buildInsuranceBillingFailedPage = (error) => ({
+  data: [],
+  count: 0,
+  stats: {
+    ...EMPTY_INSURANCE_BILLING_STATS,
+    failed: true,
+    reason: 'query_failed',
+  },
+  denied: false,
+  reason: 'query_failed',
+  failed: true,
+  errorMessage: toFailureMessage(error),
+  exactCounts: false,
+  scope: 'admin_billing_outcome_projection',
+});
+
+const sanitizeSearchTerm = (value) => String(value || '')
+  .trim()
+  .replace(/[%_,]/g, ' ')
+  .replace(/\s+/g, ' ');
+
+function normalizeFilterList(value) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry || '').trim()).filter(Boolean);
+  }
+  const text = String(value || '').trim();
+  return text && text !== 'all' ? [text] : [];
+}
 
 function parseCoverageDetails(value) {
   if (!value) return {};
@@ -25,13 +123,6 @@ function parseCoverageDetails(value) {
   return {};
 }
 
-function toNullableNumber(value) {
-  if (value === undefined) return undefined;
-  if (value === null || value === '') return null;
-  const asNumber = Number(value);
-  return Number.isFinite(asNumber) ? asNumber : null;
-}
-
 function parseLinkedPaymentSnapshot(value) {
   if (!value) return null;
   if (typeof value === 'object' && !Array.isArray(value)) return value;
@@ -46,78 +137,6 @@ function parseLinkedPaymentSnapshot(value) {
     }
   }
   return null;
-}
-
-function normalizeLinkedPaymentValue(value) {
-  if (value === undefined) {
-    return { normalized: undefined, snapshot: undefined };
-  }
-  if (value === null || value === '') {
-    return { normalized: null, snapshot: null };
-  }
-  if (typeof value === 'string') {
-    return { normalized: value, snapshot: undefined };
-  }
-  if (typeof value === 'object' && !Array.isArray(value)) {
-    const methodId =
-      value.id ||
-      value.method_id ||
-      value.payment_method_id ||
-      value.reference_id ||
-      null;
-
-    return {
-      normalized: methodId || undefined,
-      snapshot: value,
-    };
-  }
-  return { normalized: null, snapshot: undefined };
-}
-
-function buildCoverageDetails(input = {}, existingDetails = {}) {
-  const details = {
-    ...parseCoverageDetails(existingDetails),
-  };
-
-  const legacyKeys = [
-    'group_number',
-    'policy_holder_name',
-    'front_image_url',
-    'back_image_url',
-    'coverage_amount',
-  ];
-
-  for (const key of legacyKeys) {
-    if (input[key] === undefined) continue;
-    if (input[key] === null || input[key] === '') {
-      delete details[key];
-      continue;
-    }
-    details[key] = input[key];
-  }
-
-  if (input.coverage_details && typeof input.coverage_details === 'object') {
-    Object.assign(details, input.coverage_details);
-  }
-
-  if (input.coverage_type !== undefined || input.plan_type !== undefined || input.policy_type !== undefined) {
-    const nextCoverageType = input.coverage_type ?? input.plan_type ?? input.policy_type;
-    if (nextCoverageType === null || nextCoverageType === '') {
-      delete details.coverage_type;
-    } else {
-      details.coverage_type = nextCoverageType;
-    }
-  }
-
-  if (input.linked_payment_method_snapshot !== undefined) {
-    if (input.linked_payment_method_snapshot === null || input.linked_payment_method_snapshot === '') {
-      delete details.linked_payment_method_snapshot;
-    } else {
-      details.linked_payment_method_snapshot = input.linked_payment_method_snapshot;
-    }
-  }
-
-  return details;
 }
 
 export function normalizeInsurancePolicy(record) {
@@ -146,368 +165,503 @@ export function normalizeInsurancePolicy(record) {
   };
 }
 
-export function buildInsuranceWritePayload(
-  input = {},
-  { userId = null, forInsert = false, existingCoverageDetails = {} } = {}
-) {
-  const now = new Date().toISOString();
-  const payload = {};
+function applyInsurancePageScope(query, user) {
+  if (!user?.id || user.role !== 'admin') {
+    return {
+      query,
+      denied: true,
+      reason: !user?.id ? 'not_authenticated' : 'admin_only',
+    };
+  }
 
-  const assignIfDefined = (key, value) => {
-    if (value !== undefined) payload[key] = value;
+  return {
+    query,
+    denied: false,
+    reason: null,
   };
+}
 
-  assignIfDefined('provider_name', input.provider_name);
-  assignIfDefined('policy_number', input.policy_number);
-
-  if (input.coverage_type !== undefined || input.plan_type !== undefined || input.policy_type !== undefined) {
-    assignIfDefined('plan_type', input.coverage_type ?? input.plan_type ?? input.policy_type ?? null);
-  }
-  if (input.start_date !== undefined || input.starts_at !== undefined) {
-    assignIfDefined('starts_at', input.start_date ?? input.starts_at ?? null);
-  }
-  if (input.end_date !== undefined || input.expires_at !== undefined) {
-    assignIfDefined('expires_at', input.end_date ?? input.expires_at ?? null);
-  }
-  if (input.status !== undefined) {
-    assignIfDefined('status', input.status || 'active');
-  }
-  if (input.verified !== undefined) {
-    assignIfDefined('verified', !!input.verified);
-  }
-  if (input.is_default !== undefined) {
-    assignIfDefined('is_default', !!input.is_default);
+function applyInsuranceBillingScope(query, user) {
+  if (!user?.id || user.role !== 'admin') {
+    return {
+      query,
+      denied: true,
+      reason: !user?.id ? 'not_authenticated' : 'admin_only',
+    };
   }
 
-  const { normalized: linkedPaymentMethod, snapshot: linkedPaymentSnapshot } =
-    normalizeLinkedPaymentValue(input.linked_payment_method);
-  assignIfDefined('linked_payment_method', linkedPaymentMethod);
+  return {
+    query,
+    denied: false,
+    reason: null,
+  };
+}
 
-  const coveragePercentage =
-    input.coverage_percentage !== undefined
-      ? input.coverage_percentage
-      : input.coverage_amount;
-  const parsedCoveragePercentage = toNullableNumber(coveragePercentage);
-  if (parsedCoveragePercentage !== undefined) {
-    payload.coverage_percentage = parsedCoveragePercentage;
+function applyInsurancePageFilters(query, filter = {}) {
+  const kpiFilter = String(filter.kpiFilter || 'all');
+  if (['active', 'pending', 'expired'].includes(kpiFilter)) {
+    query = query.eq('status', kpiFilter);
+  }
+  if (kpiFilter === 'unverified') {
+    query = query.eq('verified', false);
   }
 
-  const hasLegacyCoverageInput =
-    input.group_number !== undefined ||
-    input.policy_holder_name !== undefined ||
-    input.front_image_url !== undefined ||
-    input.back_image_url !== undefined ||
-    input.coverage_amount !== undefined ||
-    input.coverage_details !== undefined ||
-    input.coverage_type !== undefined ||
-    input.plan_type !== undefined ||
-    input.policy_type !== undefined ||
-    linkedPaymentSnapshot !== undefined ||
-    input.linked_payment_method_snapshot !== undefined;
+  const statusValues = normalizeFilterList(filter.status);
+  if (statusValues.length === 1) {
+    query = query.eq('status', statusValues[0]);
+  } else if (statusValues.length > 1) {
+    query = query.in('status', statusValues);
+  }
 
-  if (hasLegacyCoverageInput) {
-    payload.coverage_details = buildCoverageDetails(
-      {
-        ...input,
-        linked_payment_method_snapshot:
-          input.linked_payment_method_snapshot !== undefined
-            ? input.linked_payment_method_snapshot
-            : linkedPaymentSnapshot,
-      },
-      existingCoverageDetails
+  const typeValues = normalizeFilterList(filter.type || filter.policy_type || filter.plan_type);
+  if (typeValues.length === 1) {
+    query = query.eq('plan_type', typeValues[0]);
+  } else if (typeValues.length > 1) {
+    query = query.in('plan_type', typeValues);
+  }
+
+  if (filter.provider_name) {
+    query = query.eq('provider_name', filter.provider_name);
+  }
+
+  if (filter.expiresBefore) {
+    query = query.lte('expires_at', filter.expiresBefore);
+  }
+  if (filter.expiresAfter) {
+    query = query.gte('expires_at', filter.expiresAfter);
+  }
+
+  if (filter.verified === 'verified' || filter.verified === true) {
+    query = query.eq('verified', true);
+  } else if (filter.verified === 'unverified' || filter.verified === false) {
+    query = query.eq('verified', false);
+  }
+
+  const dateRange = filter.created_at;
+  if (dateRange?.start) {
+    query = query.gte('created_at', new Date(`${dateRange.start}T00:00:00`).toISOString());
+  }
+  if (dateRange?.end) {
+    query = query.lte('created_at', new Date(`${dateRange.end}T23:59:59`).toISOString());
+  }
+
+  const search = sanitizeSearchTerm(filter.search);
+  if (search) {
+    query = query.or(
+      `policy_number.ilike.%${search}%,provider_name.ilike.%${search}%,plan_type.ilike.%${search}%`
     );
   }
 
-  if (forInsert) {
-    payload.user_id = input.user_id || userId || null;
-    if (payload.status === undefined) payload.status = 'active';
-    if (payload.verified === undefined) payload.verified = false;
-    payload.created_at = now;
-  } else if (input.user_id !== undefined) {
-    payload.user_id = input.user_id || null;
-  }
-
-  payload.updated_at = now;
-  return payload;
+  return query;
 }
 
-/**
- * Get all insurance policies with optional filters
- * Admin users can see all policies, others see only their own
- */
-export async function getInsurancePolicies(filter = {}) {
+function normalizeInsuranceBillingStatus(value) {
+  const status = String(value || '').trim().toLowerCase();
+  return ['pending', 'approved', 'paid', 'rejected'].includes(status) ? status : '';
+}
+
+function applyInsuranceBillingFilters(query, filter = {}) {
+  const status = normalizeInsuranceBillingStatus(filter.status);
+  if (status) {
+    query = query.eq('status', status);
+  }
+
+  if (filter.policyId) {
+    query = query.eq('insurance_policy_id', filter.policyId);
+  }
+  if (Array.isArray(filter.policyIds) && filter.policyIds.length > 0) {
+    query = query.in('insurance_policy_id', filter.policyIds);
+  }
+  if (filter.userId) {
+    query = query.eq('user_id', filter.userId);
+  }
+  if (filter.hospitalId) {
+    query = query.eq('hospital_id', filter.hospitalId);
+  }
+  if (filter.emergencyRequestId) {
+    query = query.eq('emergency_request_id', filter.emergencyRequestId);
+  }
+
+  const search = sanitizeSearchTerm(filter.search);
+  if (search) {
+    query = query.or(`claim_number.ilike.%${search}%`);
+  }
+
+  return query;
+}
+
+function toCurrencyNumber(value) {
+  const number = Number(value || 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+export function normalizeInsuranceBillingOutcome(record) {
+  if (!record) return record;
+
+  return {
+    ...record,
+    status: normalizeInsuranceBillingStatus(record.status) || 'pending',
+    claim_number: record.claim_number || '',
+    total_amount: toCurrencyNumber(record.total_amount),
+    insurance_amount: toCurrencyNumber(record.insurance_amount),
+    user_amount: toCurrencyNumber(record.user_amount),
+    coverage_percentage:
+      record.coverage_percentage === null || record.coverage_percentage === undefined
+        ? null
+        : Number(record.coverage_percentage),
+    billing_date: record.billing_date || '',
+    paid_date: record.paid_date || '',
+  };
+}
+
+async function getInsuranceExactCount(filter = {}, user, quiet = false) {
   try {
-    const user = await getCurrentUser();
-    
-    // PULLBACK NOTE: Early return if user not authenticated
-    // OLD: Proceed with query even if user is undefined
-    // NEW: Return empty array if no user to prevent UUID errors
-    if (!user || !user.id) {
-      console.log('User not authenticated, returning empty insurance policies');
-      return [];
-    }
+    let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
+    const scope = applyInsurancePageScope(query, user);
+    if (scope.denied) return 0;
+    query = applyInsurancePageFilters(scope.query, filter);
 
-    let query = supabase.from(TABLE_NAME).select('*');
-
-    // 1. Apply RBAC Scoping
-    // Insurance policies table doesn't have organization_id, only user_id
-    if (user?.role === 'admin') {
-      // Admin gets all policies
-    } else if (user?.role === 'org_admin') {
-      // Org Admin gets all policies (no organization_id field to filter by)
-    } else if (user?.role === 'provider') {
-      // Providers shouldn't access insurance data
-      return [];
-    } else {
-      // Patients see only their own policies
-      query = query.eq('user_id', user.id);
-    }
-
-    // 2. Apply Custom Filters
-    if (filter.provider_name) {
-      query = query.eq('provider_name', filter.provider_name);
-    }
-    if (filter.coverage_type) {
-      query = query.eq('plan_type', filter.coverage_type);
-    }
-    if (filter.plan_type) {
-      query = query.eq('plan_type', filter.plan_type);
-    }
-    if (filter.status) {
-      query = query.eq('status', filter.status);
-    }
-
-    query = query.order('created_at', { ascending: false });
-
-    if (filter.limit) {
-      query = query.limit(filter.limit);
-    }
-    if (filter.offset) {
-      query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
-    }
-
-    const { data, error } = await query;
+    const { count, error } = await query;
     if (error) throw error;
 
-    return (data || []).map(normalizeInsurancePolicy);
+    return Number.isFinite(count) ? count : 0;
   } catch (error) {
-    console.error('Error fetching insurance policies:', error);
-    return [];
+    if (!quiet) {
+      console.error('Error fetching insurance exact count:', error);
+    }
+    throw error;
   }
 }
 
+async function getInsuranceExpiringSoonCount(filter = {}, user, quiet = false) {
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+  return getInsuranceExactCount(
+    {
+      ...filter,
+      status: 'active',
+      expiresBefore: thirtyDaysFromNow.toISOString(),
+    },
+    user,
+    quiet
+  );
+}
+
+export async function getInsurancePageStats(filter = {}, user, quiet = false) {
+  if (!user?.id || user.role !== 'admin') {
+    return {
+      ...EMPTY_INSURANCE_STATS,
+      denied: true,
+      reason: !user?.id ? 'not_authenticated' : 'admin_only',
+    };
+  }
+
+  const [total, active, pending, expired, verified, unverified, expiringSoon] = await Promise.all([
+    getInsuranceExactCount(filter, user, quiet),
+    getInsuranceExactCount({ ...filter, status: 'active', kpiFilter: 'all' }, user, quiet),
+    getInsuranceExactCount({ ...filter, status: 'pending', kpiFilter: 'all' }, user, quiet),
+    getInsuranceExactCount({ ...filter, status: 'expired', kpiFilter: 'all' }, user, quiet),
+    getInsuranceExactCount({ ...filter, verified: 'verified', kpiFilter: 'all' }, user, quiet),
+    getInsuranceExactCount({ ...filter, verified: 'unverified', kpiFilter: 'all' }, user, quiet),
+    getInsuranceExpiringSoonCount({ ...filter, kpiFilter: 'all' }, user, quiet),
+  ]);
+
+  return {
+    ...EMPTY_INSURANCE_STATS,
+    total,
+    active,
+    pending,
+    expired,
+    verified,
+    unverified,
+    expiringSoon,
+  };
+}
+
 /**
- * Get single insurance policy by ID
+ * Get the Insurance page projection with route-owned paging and exact counts.
+ * Current Console policy management remains blocked; this is read projection only.
  */
-export async function getInsurancePolicy(policyId) {
+export async function getInsurancePage(filter = {}) {
   try {
     const user = await getCurrentUser();
-    let query = supabase.from(TABLE_NAME).select('*');
-
-    // Apply authorization for single policy
-    if (user?.role !== 'admin') {
-      query = query.eq('user_id', user?.id);
+    if (!user?.id || user.role !== 'admin') {
+      const reason = !user?.id ? 'not_authenticated' : 'admin_only';
+      return {
+        data: [],
+        count: 0,
+        stats: {
+          ...EMPTY_INSURANCE_STATS,
+          denied: true,
+          reason,
+        },
+        denied: true,
+        reason,
+        failed: false,
+        exactCounts: true,
+        scope: 'admin_policy_projection',
+      };
     }
 
-    const { data, error } = await query.eq('id', policyId).single();
+    const statsFilter = filter.statsFilter || {};
+    const countPromise = getInsuranceExactCount(filter, user, true);
+    const statsPromise = getInsurancePageStats(statsFilter, user, true);
 
-    if (error && error.code !== 'PGRST116') throw error;
+    let dataQuery = supabase.from(TABLE_NAME).select('*');
+    const scope = applyInsurancePageScope(dataQuery, user);
+    if (scope.denied) {
+      return {
+        data: [],
+        count: 0,
+        stats: {
+          ...EMPTY_INSURANCE_STATS,
+          denied: true,
+          reason: scope.reason,
+        },
+        denied: true,
+        reason: scope.reason,
+        failed: false,
+        exactCounts: true,
+        scope: 'admin_policy_projection',
+      };
+    }
 
-    return normalizeInsurancePolicy(data || null);
+    dataQuery = applyInsurancePageFilters(scope.query, filter);
+    const sortKey = INSURANCE_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';
+    dataQuery = dataQuery.order(sortKey, { ascending: filter.sortDirection === 'asc' });
+
+    const limit = Number(filter.limit);
+    const offset = Number(filter.offset) || 0;
+    if (Number.isFinite(limit) && limit > 0) {
+      dataQuery = dataQuery.range(offset, offset + limit - 1);
+    }
+
+    const [{ count }, { data, error }, stats] = await Promise.all([
+      countPromise.then((value) => ({ count: value })),
+      dataQuery,
+      statsPromise,
+    ]);
+
+    if (error) throw error;
+
+    return {
+      data: (data || []).map(normalizeInsurancePolicy),
+      count: count || 0,
+      stats,
+      denied: false,
+      reason: null,
+      failed: false,
+      exactCounts: true,
+      scope: 'admin_policy_projection',
+    };
   } catch (error) {
-    console.error(`Error fetching insurance policy ${policyId}:`, error);
+    if (!filter?.quiet) {
+      console.error('Error fetching insurance page:', error);
+    }
+    return buildInsuranceFailedPage(error);
+  }
+}
+
+async function getInsuranceBillingExactCount(filter = {}, user, quiet = false) {
+  try {
+    let query = supabase.from(BILLING_TABLE_NAME).select('id', { count: 'exact', head: true });
+    const scope = applyInsuranceBillingScope(query, user);
+    if (scope.denied) return 0;
+    query = applyInsuranceBillingFilters(scope.query, filter);
+
+    const { count, error } = await query;
+    if (error) throw error;
+
+    return Number.isFinite(count) ? count : 0;
+  } catch (error) {
+    if (!quiet) {
+      console.error('Error fetching insurance billing exact count:', error);
+    }
     throw error;
   }
+}
+
+export async function getInsuranceBillingOutcomeStats(filter = {}, user, quiet = false) {
+  if (!user?.id || user.role !== 'admin') {
+    return {
+      ...EMPTY_INSURANCE_BILLING_STATS,
+      denied: true,
+      reason: !user?.id ? 'not_authenticated' : 'admin_only',
+    };
+  }
+
+  const [total, pending, approved, paid, rejected] = await Promise.all([
+    getInsuranceBillingExactCount(filter, user, quiet),
+    getInsuranceBillingExactCount({ ...filter, status: 'pending' }, user, quiet),
+    getInsuranceBillingExactCount({ ...filter, status: 'approved' }, user, quiet),
+    getInsuranceBillingExactCount({ ...filter, status: 'paid' }, user, quiet),
+    getInsuranceBillingExactCount({ ...filter, status: 'rejected' }, user, quiet),
+  ]);
+
+  return {
+    ...EMPTY_INSURANCE_BILLING_STATS,
+    total,
+    pending,
+    approved,
+    paid,
+    rejected,
+  };
+}
+
+/**
+ * Read-only projection for trigger-created insurance billing outcomes.
+ * This observes claim/billing truth; it does not create, settle, or repair billing rows.
+ */
+export async function getInsuranceBillingOutcomes(filter = {}) {
+  try {
+    const user = await getCurrentUser();
+    if (!user?.id || user.role !== 'admin') {
+      const reason = !user?.id ? 'not_authenticated' : 'admin_only';
+      return {
+        data: [],
+        count: 0,
+        stats: {
+          ...EMPTY_INSURANCE_BILLING_STATS,
+          denied: true,
+          reason,
+        },
+        denied: true,
+        reason,
+        failed: false,
+        exactCounts: true,
+        scope: 'admin_billing_outcome_projection',
+      };
+    }
+
+    const statsFilter = filter.statsFilter || filter;
+    const countPromise = getInsuranceBillingExactCount(filter, user, true);
+    const statsPromise = getInsuranceBillingOutcomeStats(statsFilter, user, true);
+
+    let dataQuery = supabase.from(BILLING_TABLE_NAME).select('*');
+    const scope = applyInsuranceBillingScope(dataQuery, user);
+    if (scope.denied) {
+      return {
+        data: [],
+        count: 0,
+        stats: {
+          ...EMPTY_INSURANCE_BILLING_STATS,
+          denied: true,
+          reason: scope.reason,
+        },
+        denied: true,
+        reason: scope.reason,
+        failed: false,
+        exactCounts: true,
+        scope: 'admin_billing_outcome_projection',
+      };
+    }
+
+    dataQuery = applyInsuranceBillingFilters(scope.query, filter);
+    const sortKey = INSURANCE_BILLING_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';
+    dataQuery = dataQuery.order(sortKey, { ascending: filter.sortDirection === 'asc' });
+
+    const limit = Number(filter.limit);
+    const offset = Number(filter.offset) || 0;
+    if (Number.isFinite(limit) && limit > 0) {
+      dataQuery = dataQuery.range(offset, offset + limit - 1);
+    }
+
+    const [{ count }, { data, error }, stats] = await Promise.all([
+      countPromise.then((value) => ({ count: value })),
+      dataQuery,
+      statsPromise,
+    ]);
+
+    if (error) throw error;
+
+    return {
+      data: (data || []).map(normalizeInsuranceBillingOutcome),
+      count: count || 0,
+      stats,
+      denied: false,
+      reason: null,
+      failed: false,
+      exactCounts: true,
+      scope: 'admin_billing_outcome_projection',
+    };
+  } catch (error) {
+    if (!filter?.quiet) {
+      console.error('Error fetching insurance billing outcomes:', error);
+    }
+    return buildInsuranceBillingFailedPage(error);
+  }
+}
+
+export function buildInsuranceWritePayload(
+  _input = {},
+  _options = {}
+) {
+  throw new Error('Insurance write payload construction is unavailable until admin policy authority is verified.');
+}
+
+/**
+ * Compatibility export. Reads are owned by getInsurancePage().
+ */
+export async function getInsurancePolicies() {
+  return throwLegacyInsuranceReadUnavailable();
+}
+
+/**
+ * Compatibility export. Reads are owned by getInsurancePage().
+ */
+export async function getInsurancePolicy() {
+  return throwLegacyInsuranceReadUnavailable();
 }
 
 /**
  * Create new insurance policy
  */
-export async function createInsurancePolicy(input) {
-  try {
-    const user = await getCurrentUser();
-    const payload = buildInsuranceWritePayload(input, {
-      userId: user?.id,
-      forInsert: true,
-    });
-
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .insert([payload])
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return normalizeInsurancePolicy(data);
-  } catch (error) {
-    console.error('Error creating insurance policy:', error);
-    throw error;
-  }
+export async function createInsurancePolicy() {
+  throw new Error('Insurance policy create is unavailable until admin policy authority is verified.');
 }
 
 /**
  * Update insurance policy
  */
-export async function updateInsurancePolicy(policyId, input) {
-  try {
-    const { data: existingPolicy, error: existingError } = await supabase
-      .from(TABLE_NAME)
-      .select('coverage_details')
-      .eq('id', policyId)
-      .single();
-
-    if (existingError && existingError.code !== 'PGRST116') throw existingError;
-
-    const payload = buildInsuranceWritePayload(input, {
-      forInsert: false,
-      existingCoverageDetails: existingPolicy?.coverage_details || {},
-    });
-
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update(payload)
-      .eq('id', policyId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return normalizeInsurancePolicy(data);
-  } catch (error) {
-    console.error(`Error updating insurance policy ${policyId}:`, error);
-    throw error;
-  }
+export async function updateInsurancePolicy() {
+  throw new Error('Insurance policy update is unavailable until admin policy authority is verified.');
 }
 
 /**
  * Delete insurance policy
  */
-export async function deleteInsurancePolicy(policyId) {
-  try {
-    const { error } = await supabase
-      .from(TABLE_NAME)
-      .delete()
-      .eq('id', policyId);
-
-    if (error) throw error;
-
-    return true;
-  } catch (error) {
-    console.error(`Error deleting insurance policy ${policyId}:`, error);
-    throw error;
-  }
+export async function deleteInsurancePolicy() {
+  throw new Error('Insurance policy delete is unavailable until admin policy authority is verified.');
 }
 
 /**
  * Update policy status
  */
-export async function updatePolicyStatus(policyId, status) {
-  try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', policyId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return normalizeInsurancePolicy(data);
-  } catch (error) {
-    console.error(`Error updating policy status for ${policyId}:`, error);
-    throw error;
-  }
+export async function updatePolicyStatus() {
+  throw new Error('Insurance policy status update is unavailable until admin policy authority is verified.');
 }
 
 /**
  * Verify insurance policy
  */
-export async function verifyInsurancePolicy(policyId, verified) {
-  try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-        verified,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', policyId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return normalizeInsurancePolicy(data);
-  } catch (error) {
-    console.error(`Error verifying insurance policy ${policyId}:`, error);
-    throw error;
-  }
+export async function verifyInsurancePolicy() {
+  throw new Error('Insurance policy verification is unavailable until admin policy authority is verified.');
 }
 
 /**
  * Get insurance analytics
  */
 export async function getInsuranceAnalytics() {
-  try {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('provider_name, plan_type, status, verified, created_at, starts_at, expires_at');
-
-    if (error) throw error;
-
-    // Calculate analytics
-    const analytics = {
-      total: data?.length || 0,
-      byProvider: {},
-      byCoverageType: {},
-      byStatus: {},
-      verified: data?.filter(item => item.verified).length || 0,
-      active: data?.filter(item => item.status === 'active').length || 0,
-      expired: data?.filter(item => {
-        if (!item.expires_at) return false;
-        const endDate = new Date(item.expires_at);
-        return endDate < new Date();
-      }).length || 0,
-      expiringSoon: data?.filter(item => {
-        if (!item.expires_at) return false;
-        const endDate = new Date(item.expires_at);
-        const thirtyDaysFromNow = new Date();
-        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-        return endDate > new Date() && endDate <= thirtyDaysFromNow;
-      }).length || 0,
-    };
-
-    // Group by provider
-    data?.forEach(item => {
-      analytics.byProvider[item.provider_name] = (analytics.byProvider[item.provider_name] || 0) + 1;
-    });
-
-    // Group by coverage type
-    data?.forEach(item => {
-      analytics.byCoverageType[item.plan_type] = (analytics.byCoverageType[item.plan_type] || 0) + 1;
-    });
-
-    // Group by status
-    data?.forEach(item => {
-      analytics.byStatus[item.status] = (analytics.byStatus[item.status] || 0) + 1;
-    });
-
-    return analytics;
-  } catch (error) {
-    console.error('Error fetching insurance analytics:', error);
-    throw error;
-  }
+  throw new Error('Insurance analytics export is unavailable until route-wide distribution scope is verified.');
 }
 
 /**
  * Subscribe to insurance policy changes
  */
-export function subscribeToInsurancePolicies(callback) {
+export function subscribeToInsurancePolicies(callback, channelName = 'insurance_policies_changes') {
   const channel = supabase
-    .channel('insurance_policies_changes')
+    .channel(channelName)
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: TABLE_NAME },
@@ -519,30 +673,24 @@ export function subscribeToInsurancePolicies(callback) {
 }
 
 /**
- * Upload insurance card image
+ * Subscribe to trigger-created insurance billing outcome changes.
  */
-export async function uploadInsuranceCardImage(file) {
-  try {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-    const filePath = `insurance-cards/${fileName}`;
+export function subscribeToInsuranceBillingOutcomes(callback, channelName = 'insurance_billing_changes') {
+  const channel = supabase
+    .channel(channelName)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: BILLING_TABLE_NAME },
+      callback
+    )
+    .subscribe();
 
-    const { error: uploadError } = await supabase.storage
-      .from('documents')
-      .upload(filePath, file);
+  return () => supabase.removeChannel(channel);
+}
 
-    if (uploadError) throw uploadError;
-
-    // Use Signed URL for private buckets. 1 year expiry (31536000 seconds).
-    const { data, error: urlError } = await supabase.storage
-      .from('documents')
-      .createSignedUrl(filePath, 31536000);
-
-    if (urlError) throw urlError;
-
-    return data.signedUrl;
-  } catch (error) {
-    console.error('Error uploading insurance card image:', error);
-    throw error;
-  }
+/**
+ * Insurance card uploads are disabled until Console/App storage ownership is proved.
+ */
+export async function uploadInsuranceCardImage() {
+  throw new Error('Insurance card upload is unavailable until private storage ownership is verified.');
 }

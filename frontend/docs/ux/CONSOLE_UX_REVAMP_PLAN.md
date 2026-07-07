@@ -26,7 +26,7 @@ The four audit violations that most block this feeling, in order of severity:
 1. **Fabricated numbers shown as real data.** Twelve-plus hardcoded fallback values populate dashboard metrics confidently. This destroys trust the moment anyone notices.
 2. **Analytics generates and displays entirely synthetic data without disclosure.** A doctor reviewing their response times on day one sees a plausible chart. Every number is invented. This is a clinical governance risk, not just a UX problem.
 3. **Platform-wide metrics shown to users who need personal metrics.** Every dashboard shows aggregate counts, not the individual user's queue. A doctor cannot find "my patients today" anywhere.
-4. **The console does not know what role you are.** Navigation group labels (Operations, Management, Finance), menu structure, and home state are identical in organisation across all roles. A doctor and an admin see the same architecture.
+4. **The console does not know what role you are.** The old navigation grouped everyone under generic labels like Operations, Management, and Finance, with the same menu structure and home state across roles. Active shell canon uses simple visible groups (`Care`, `Admin`, `Payments`, `Account`) and role-specific Today surfaces instead.
 
 ---
 
@@ -36,38 +36,38 @@ The four audit violations that most block this feeling, in order of severity:
 
 **What they need in one session:**
 1. See their assigned visits for today — names, times, status
-2. Check the emergency queue — are there any dispatched to them or their facility
+2. Check Requests: are there any assigned to them or their facility
 3. File a support ticket if something is broken
 
 **What must change:**
-- Home screen must show *their* queue, not the platform's aggregate counts. `appStats.liveEmergencies` is a platform-wide number and must not be the largest element a doctor sees.
+- Today must show *their* work, not the platform's aggregate counts. `appStats.liveEmergencies` is a platform-wide number and must not be the largest element a doctor sees.
 - "Shift: Active" in the footer is always hardcoded. Either compute it from real provider availability state or remove it.
 - Live Map in the primary nav is noise for a doctor. It should be deprioritised (hidden from main nav, accessible through the map page itself).
 - Analytics (platform-wide stats) is accessible to providers but is not scoped to them. Either scope it to their personal performance or gate it at org_admin.
-- The mobile bottom bar should be fixed for doctors: Home, My Visits, Emergencies. Not a smart-recommendation system.
+- The mobile bottom bar should be fixed for doctors: `Today`, `Requests`, `Visits`. Not a smart-recommendation system.
 - Support ticket creation must be surfaced as "Report a Problem" in a visible, labelled location — not buried in Management > Support.
 
 **Post-revamp home state for a doctor:**
-A "Your day" summary card showing 3 upcoming visits with patient names and times, an emergency queue count scoped to their facility, and a single "Quick actions" strip (Start Visit, Report Problem). No platform-wide metrics anywhere in the doctor's home screen.
+A "Your day" summary card showing 3 upcoming visits with patient names and times, a Requests count scoped to their facility, and a single "Quick actions" strip (Start Visit, Report Problem). No platform-wide metrics anywhere on the doctor's Today screen.
 
 ---
 
 ### 1.2 Hospital Admin / Org Admin (level 80)
 
 **What they need in one session:**
-1. Process the credential verification queue — approve pending doctor registrations
+1. Process Approvals: approve pending doctor registrations
 2. Check staff availability — which doctors are on shift
 3. Review the wallet balance and recent transactions
 4. Add or update a doctor profile
 
 **What must change:**
-- The verification queue card must appear on the org_admin home screen. Currently it is admin-only. An org_admin's primary administrative task (approving credentials) has zero home screen representation.
-- The nav label "Queue" must be renamed to "Pending Approvals" or "Staff Verification". "Queue" communicates nothing.
+- The Approvals card must appear on the org_admin Today screen. Currently it is admin-only. An org_admin's primary administrative task (approving credentials) has zero Today representation.
+- The nav label `Queue` must be renamed to `Approvals`. The old label communicates nothing to hospital admins.
 - **Critical bug: route/nav mismatch.** `navigation.js` shows Hospitals with `minRole: 'org_admin'` but `routes.jsx` protects `/hospitals` at `minRole: 'admin'`. An org_admin can see the nav item and will be denied on click. Fix required before any UX work on this page.
 - **Critical bug: same mismatch on Insurance.** Nav shows org_admin, route requires admin.
 - WalletManagementPage tab labels "Ledger" and "Payments" must become "Transaction History" and "Patient Payments". Hospital admins do not think in accounting terms.
 - PricingManagementPage tabs "Services" vs "Rooms" map to database table names, not to how an admin thinks. Merge into a single pricing list with a Type column.
-- The mobile bottom bar for org_admin should be fixed: Home, Staff (Doctors), Approvals (Verification). Not dynamic.
+- The mobile bottom bar for org_admin should be fixed: `Today`, `Approvals`, `Staff`. Not dynamic.
 
 ---
 
@@ -82,7 +82,7 @@ A "Your day" summary card showing 3 upcoming visits with patient names and times
 **What must change:**
 - **Critical bug: `/organizations` route is absent from `routes.jsx`.** It exists in `navigation.js` and renders at `/organizations` but has no explicit route protection entry. Verify that the fallback in `getRouteProtection()` correctly protects it, then add an explicit entry.
 - The "Subscriptions" page in the admin nav manages a newsletter email list (`subscribers` table), not patient/clinical subscriptions. This must be renamed "Newsletter Subscribers" or moved out of the primary nav into a Marketing sub-section under Settings. An admin arriving here expecting to manage pricing plans or patient subscriptions will be confused.
-- SubscriptionManagementPage should not appear alongside Hospitals, Doctors, and Emergencies in the nav. It is an email marketing CRM record, categorically different from every other page in the console.
+- SubscriptionManagementPage should not appear alongside Hospitals, Staff, and Requests in the nav. It is an email marketing CRM record, categorically different from every other page in the console.
 - The `ivisit_fee_percentage` field in OrganizationsPage create/edit modal has no validation guard. A typo (25 vs 2.5) affects every transaction for that org. Add a confirmation step on save when this field changes.
 
 ---
@@ -92,13 +92,13 @@ A "Your day" summary card showing 3 upcoming visits with patient names and times
 **What they need:**
 Currently undefined in the console. The role exists in the RBAC hierarchy but no page, widget, or workflow is purpose-built for sponsors. They land on an operations dashboard designed for people who dispatch ambulances and see platform-wide emergency counts.
 
-**Minimum viable fix:** Give sponsors a dedicated "Impact" view on the home screen (funded programs, lives impacted, outcomes summary) and replace their nav defaults (Visits, Emergencies) with the Statistics page as the primary destination. The full sponsor workflow is a future sprint.
+**Minimum viable fix:** Give sponsors a dedicated "Impact" view on Today (funded programs, lives impacted, outcomes summary) and replace their nav defaults with the Statistics page as the primary destination. The full sponsor workflow is a future sprint.
 
 ---
 
 ### 1.5 Viewer (level 20)
 
-The viewer role is a pre-activation placeholder. There is nothing to do as a viewer except read Health News. The home screen shows a near-empty bento grid with a "Public Information" card. The experience communicates "your account is not set up" even when it is.
+The viewer role is a pre-activation placeholder. There is nothing to do as a viewer except confirm their account state. Today should not show a near-empty bento grid with a "Public Information" card. That experience communicates "your account is not set up" even when it is.
 
 **Minimum viable fix:** Show a clear orientation card: "Your account is pending activation. Contact your administrator to receive a role assignment." Remove the decorative empty bento cards for this role.
 
@@ -148,10 +148,10 @@ The Analytics page generates plausible-looking chart data (cardiac/trauma/respir
 
 **Decision:** Role-branch the home state into purpose-built "today" views, not generic metric cards.
 
-| Role | Home card set |
+| Role | Today card set |
 |---|---|
-| Doctor | "Your visits today" (next 3, names + times), Emergency queue count for their facility, Quick actions (Start Visit, Report Problem) |
-| Org Admin | "Pending approvals" (count + link), "Staff on shift" count, Wallet balance, Quick actions (Add Doctor, Review Approvals) |
+| Doctor | "Your visits today" (next 3, names + times), Requests count for their facility, Quick actions (Start Visit, Report Problem) |
+| Org Admin | "Approvals" (count + link), "Staff on shift" count, Wallet balance, Quick actions (Add Doctor, Review Approvals) |
 | Admin | System-wide counts (real, with explicit — for missing data), Active emergencies, Verification backlog, Quick actions (Add Org, User Management) |
 | Sponsor | Impact summary (future sprint), links to Analytics and HealthNews |
 | Viewer | Orientation card ("Awaiting role assignment") |
@@ -175,10 +175,10 @@ After data is fixed: Collapse the 4 near-duplicate chart blocks (admin/org_admin
 The render projection was hardened in Pass 1A/1B. This page is architecturally the safest to revamp first.
 
 **Changes:**
-1. Make primary actions (Dispatch, Complete) permanently visible on the card. Remove the `opacity-0 group-hover:opacity-100` pattern. On touch devices, hover does not exist and these actions are invisible.
-2. Replace `window.prompt()` for payment method selection with an inline modal. A native browser prompt that asks the user to type a number is not acceptable in any clinical environment.
-3. Replace `confirm()` for bulk cancel and mark-complete with `ConfirmationModal` — consistent with the single-delete flow already on the same page.
-4. "Needs Attention" KPI consolidation: Pending + Active are the same state from an operational standpoint. Consider collapsing them into a single "Needs Action: N" card and using the freed card slot for "Critical Priority: N" if priority filtering is available.
+1. Active Requests no longer hides primary actions behind `opacity-0 group-hover:opacity-100`. Desktop uses one visible detail-rail primary action plus visible receiver-gated secondary actions; mobile uses row reveal with visible actions. Legacy inactive list/table density cannot be reintroduced until hover-only action chrome is converted.
+2. Active Requests no longer uses `window.prompt()` for payment method selection. Saved-method retry uses shared `ModalShell` with route-owned radio choices and the existing payment retry receiver.
+3. Active Requests no longer uses native `confirm()` for request actions. Single cancel and mark-complete use `ConfirmationModal`; bulk cancel/select stays excluded until destructive receiver authority, role scope, confirmation design, and app consequence are proved.
+4. "Needs Attention" KPI consolidation: completed as a source-backed state-choice correction. Pending remains the first `Needs attention` card, the duplicate `Active` KPI slot is removed from active desktop/mobile choices, and the freed slot now uses service-owned `Critical care` (`service_type = critical_care`) for filtering, counts, and analytics fallback instead of claiming unproved priority filtering.
 
 ---
 
@@ -234,13 +234,13 @@ The Payments tab fires one Supabase query per payment row to enrich with user pr
 
 ---
 
-### 3.9 VerificationQueue — Fix the silent failure
+### 3.9 Approvals — Fix the silent failure
 
 When `canVerify` is false (permission check fails), the page renders empty with no feedback. The `catch (error) { }` block swallows the error entirely.
 
-**Fix:** Add an explicit access-denied state: "You don't have permission to access the verification queue. Contact your administrator." This is a one-function change in the permission check error path.
+**Fix:** Add an explicit access-denied state: "You don't have permission to access Approvals. Contact your administrator." This is a one-function change in the permission check error path.
 
-**Rename:** Page title "Identity Vault" → "Verification Queue". Nav label "Queue" → "Pending Approvals". Route `/verification` is fine. Three names for one page is one of the most confusing nomenclature problems in the console.
+**Rename:** Page title "Identity Vault" and nav label "Queue" both become `Approvals`. Route `/verification` is fine. Three names for one page is one of the most confusing nomenclature problems in the console.
 
 ---
 
@@ -275,7 +275,7 @@ Providers have no write actions on this page. They can see the article list but 
 
 ### 3.13 SubscriptionManagementPage — Rename and relocate
 
-This page manages a newsletter email subscriber list (`subscribers` table), not clinical or pricing subscriptions. In the admin nav it sits alongside Hospitals, Doctors, Insurance, and Emergencies.
+This page manages a newsletter email subscriber list (`subscribers` table), not clinical or pricing subscriptions. In the admin nav it sits alongside Hospitals, Staff, Insurance, and Requests.
 
 **Decision:** Rename to "Email Subscribers" or "Newsletter List". Move out of the main Management nav group. Place under a new "Communications" or "Marketing" section, or under Settings > Platform > Email. This is a nav config change only.
 
@@ -299,18 +299,53 @@ These must be fixed before any revamp ships — they are correctness issues, not
 
 | Current label | Renamed to | Rationale |
 |---|---|---|
-| Queue | Pending Approvals | A hospital admin's primary task — naming should say what it is |
+| Queue | Approvals | A hospital admin's primary task should say what it is |
 | Control Center (Settings) | Account Settings | "Control Center" is dramatic naming for a profile page |
-| Identity Vault (Verification page title) | Verification Queue | Consistent with nav label |
+| Identity Vault (verification page title) | Approvals | Consistent with nav label |
 | Subscriptions (email list) | Email Subscribers | Disambiguates from clinical subscriptions |
 | Ledger (Wallet tab) | Transaction History | Hospital admins do not think in ledger terms |
 | Payments (Wallet tab) | Patient Payments | Clearer what these records are |
 
+Active shell note: `SmartHeader` fallback labels now follow this naming canon, so `/verification` renders as `Approvals` in shared chrome instead of reverting to `Verification`. The Approvals filter trigger and right context panel also use `Filter approvals`, `Approvals overview`, and `Approval rate`; old `Verification Queue`, `Queue`, `Identity Vault`, and generic `Success Rate` language is historical only.
+
+Active search note: shared Quick Search uses `Requests` for `/emergencies` results and prompt copy. `Emergency Requests` is old proof/history language, not current shell copy.
+
+Active group-label note: visible navigation groups are `Care`, `Admin`, `Payments`, and `Account`. `Operations`, `Management`, and `Finance` remain internal/history language only and should not return as user-facing group labels.
+
 ### 4.3 Mobile nav entry point
 
-The full navigation is currently behind the user's **avatar image** in the top-left. A non-technical doctor will not intuit that tapping their photo opens a navigation menu.
+The full navigation was previously treated as a separate mobile hamburger concern.
 
-**Decision:** Add a visible hamburger/menu icon to the top-left of the SmartHeader on mobile (3-line icon, optionally labelled "Menu"). Keep the avatar for profile/settings access only. The avatar-as-nav pattern is a UX discovery barrier for anyone not familiar with the pattern.
+**Current canonical:** do not add a duplicate hamburger to the mobile shell. The top-left avatar opens the account/overflow sheet, the bottom island owns role-primary navigation, and the contextual FAB appears only when a page has one clear action. This supersedes the earlier hamburger recommendation for the Today revamp.
+
+The avatar sheet must reveal the current route's group automatically for Care, Admin, and Payments routes, so a mobile user never opens the sheet to a hidden active page.
+
+### 4.3.1 Canonical page audit before reuse
+
+Before any further page revamp, use `planning/PAGE_REVAMP_GATE.md` as the operating contract.
+
+Current canonical reference pair:
+
+- Today defines the role-first first-glance experience.
+- Requests defines the multi-data stage/sheet/detail-rail experience.
+
+Every page must follow this sequence before implementation:
+
+`audit old behavior -> preserve function/data -> revamp UI -> confirm canonical -> reuse globally`
+
+No page should invent private shell chrome, modal chrome, filter language, dropdown styling, sidebar/header/footer behavior, or data-rendering behavior unless the page ledger records a product-approved canonical exception.
+
+The design-system pattern is descriptive. `planning/PAGE_REVAMP_GATE.md` is the admission authority.
+
+Requests reuse requires an explicit slot map for signal field, state choices, handled sheet, focused detail, route-owned action, shared modal/sheet, mobile recomposition, data quieting, local semantic color, and interaction feedback.
+
+That reuse slot map must be backed by the same three-part proof now required by the gate: targeted recent Git history, `git show HEAD:<old page>` behavior inventory, and active-source proof for shell ownership, data owner, side effects, actions, feedback states, and mobile recomposition.
+
+The canonical interaction surfaces also live in `planning/PAGE_REVAMP_GATE.md`: modal triggers, modal design, drawers, dropdowns, filters, tabs, cards, tables, empty/loading/error states, right-panel behavior, notifications, and responsive behavior. Pages may configure these shared surfaces through the shell/component system, but cannot invent private chrome or private responsive navigation without a ledger-approved exception.
+
+Shared modal, sheet, and drawer surfaces must animate open with immediate visible feedback, then unmount when closed. A close/dismiss action must leave no active `role="dialog"`, no hidden backdrop, no focus trap, no pointer-catching invisible surface, and no lingering app-chrome or bottom-island suppression.
+
+Any enabled page action must prove `source truth -> receiver -> app consequence` before it remains clickable. Visual resemblance to Requests is not enough, and no page is promoted until its old Git-backed behavior is classified, RBAC/action authority is named, desktop/mobile rendered proof is complete, and local process cleanup is checked.
 
 ### 4.4 Role-fixed bottom bar slots
 
@@ -318,19 +353,19 @@ Replace the smart recommendation system with deterministic role-fixed slots:
 
 | Role | Bottom bar slot 1 | Slot 2 | Slot 3 |
 |---|---|---|---|
-| Doctor | Home | My Visits | Emergencies |
-| Org Admin | Home | Staff (Doctors) | Approvals (Verification) |
-| Admin | Home | Users | Emergencies |
-| Sponsor | Home | Analytics | Health News |
-| Viewer | Home | — | — |
+| Doctor | Today | Requests | Visits |
+| Org Admin | Today | Approvals | Staff |
+| Admin | Today | Requests | Map |
+| Sponsor | Today | Statistics | Settings |
+| Viewer | Today | Settings | - |
 
 The fourth slot (the existing smart recommendation) can remain dynamic for "currently open page" or be removed.
 
 ### 4.5 Context panel labelling
 
-The desktop context panel is triggered by an unlabeled `PanelRightOpen` icon in the SmartHeader. Add a visible tooltip on hover. For first-time users, consider a one-time "Quick Info Panel" callout that disappears after first click. The context panel contains the most useful per-entity quick-actions in the console and it is effectively invisible to non-technical users.
+Completed in the active shell: the desktop `PanelRightOpen` trigger is labelled as the quick actions panel, exposes open/closed state, links to the shared panel shell, and shows a visible hover tooltip. The context panel contains useful per-page quick actions, so it must stay discoverable without adding a second navigation surface.
 
-On mobile, the "Context" tab in `MobileNavMenu` must be renamed "Quick Actions" or "This Page". "Context" is an engineering term that communicates nothing to a doctor or hospital admin.
+Completed in the active mobile account sheet: the tab is `Quick Actions`, not `Context`. "Context" is an engineering term and should not return as visible mobile navigation copy.
 
 ---
 
@@ -339,7 +374,7 @@ On mobile, the "Context" tab in `MobileNavMenu` must be renamed "Quick Actions" 
 ### 5.1 Shared ModalShell component — Highest leverage
 
 Every entity modal (Doctor, Hospital, User, Ambulance, Emergency, Health News, Insurance…) re-implements:
-- AnimatePresence + motion.div enter/exit
+- motion.div enter/exit
 - backdrop `bg-black/30 backdrop-blur-md`
 - rounded container
 - header (icon + name + badge + close button)
@@ -348,7 +383,7 @@ Every entity modal (Doctor, Hospital, User, Ambulance, Emergency, Health News, I
 
 The `GlassCard` sub-component is copy-pasted in at least three modal files. Label styles, input heights, button shapes, and z-index values all diverge between files.
 
-**Target:** Create `src/components/ui/ModalShell.jsx` and `src/components/ui/GlassSection.jsx`. All entity modals become thin data+config wrappers. This eliminates the three-different-footer-patterns problem and makes modal close-on-backdrop, z-index, and ARIA semantics consistent everywhere.
+**Target:** Create `src/components/ui/ModalShell.jsx` and `src/components/ui/GlassSection.jsx`. All entity modals become thin data+config wrappers. This eliminates the three-different-footer-patterns problem and makes modal close-on-backdrop, z-index, and ARIA semantics consistent everywhere. Shared modal chrome may animate open, but closed state must unmount instead of relying on exit animation cleanup.
 
 **Also fix:** Add `role="dialog" aria-modal="true" aria-labelledby` to all modals. Currently only ConfirmationModal has ARIA semantics.
 
@@ -401,11 +436,11 @@ Add these to `tailwind.config.js` as `theme.extend` entries. Inconsistencies the
 
 | Page/Component | Safe work |
 |---|---|
-| EmergencyRequestsPage | Remove hover-hidden actions, replace window.prompt/confirm, visible primary actions |
+| EmergencyRequestsPage | Keep visible primary actions, shared ModalShell/ConfirmationModal paths, and no native browser dialogs |
 | SettingsPage | Remove dead UI, rename, fix duplicate sign-out |
 | LoginPage / OnboardingPage | Visual polish only — isolated from data architecture |
 | Navigation config | Fix route/nav mismatches, rename labels, fix bottom bar role-slots |
-| VerificationQueue | Fix silent permission failure, rename page and nav labels |
+| Approvals (`VerificationQueue`) | Fix silent permission failure, rename page and nav labels |
 | All modals | ModalShell extraction — structural, not data-dependent |
 | Context panels | Replace window events with usePageActions, rename "Context" tab |
 
@@ -445,8 +480,8 @@ These are correctness and trust issues, not UX decisions. They must be fixed in 
 1. **Hospitals route/nav mismatch** — org_admin sees Hospitals in nav, is denied on click. One-line fix in either routes.jsx or navigation.js.
 2. **Insurance route/nav mismatch** — same pattern.
 3. **Organizations absent from routes.jsx** — add explicit route protection entry.
-4. **`window.prompt()` for payment method selection** — EmergencyRequestsPage. Native browser prompt in a production clinical flow. Replace with inline modal.
-5. **`confirm()` for bulk emergency cancel and mark-complete** — same page, same severity. Replace with ConfirmationModal.
+4. **Resolved in active Requests: no `window.prompt()` for payment method selection** — EmergencyRequestsPage now uses a shared `ModalShell` saved-method chooser with the receiver-backed retry submit.
+5. **Resolved or excluded in active Requests: no native `confirm()` for request actions** — single cancel and mark-complete use `ConfirmationModal`; bulk emergency cancel/select remains excluded until destructive authority and app consequence are proved.
 6. **VerificationQueue silent empty on permission failure** — `catch (error) { }` swallows the error. Add access-denied UI.
 7. **`appStats.availableAmbulances * 13` labeled as "Beds Available"** — fabricated metric in BentoHome. Remove.
 8. **Wallet Payments N+1 query** — 50 Supabase round-trips per page load. Fix with a join at the query level.
@@ -462,15 +497,15 @@ These are correctness and trust issues, not UX decisions. They must be fixed in 
 - Add "Estimated baseline data" banner to Analytics page
 - Fix all 10 critical bugs above
 - Fix route/nav mismatches (Hospitals, Insurance, Organizations)
-- Rename VerificationQueue nav label, page title, and wallet tab labels
+- Rename Approvals nav label, page title, and wallet tab labels
 
-### Sprint 2: Home and Navigation (parallel with data layer Pass D2)
+### Sprint 2: Today and Navigation (parallel with data layer Pass D2)
 - Extract `ModalShell` + `GlassSection` shared components
 - Replace `window.dispatchEvent` with `usePageActions` context (first 5 pages)
 - Role-fixed mobile bottom bar slots
-- Add hamburger menu icon to mobile nav (separate from avatar)
+- Keep mobile nav canonical: avatar opens account/overflow sheet, bottom island has no hamburger
 - Doctor home state: scoped visits today card + facility emergency count
-- Org_admin home state: add verification queue card
+- Org_admin Today state: add Approvals card
 
 ### Sprint 3: High-traffic page polish (EmergencyRequestsPage + Settings + Support)
 - EmergencyRequestsPage: visible actions, consistent modals
@@ -499,8 +534,8 @@ These are correctness and trust issues, not UX decisions. They must be fixed in 
 
 The revamp is complete when:
 
-1. A doctor logging in for the first time can find their patient queue within 10 seconds without being shown any metric they cannot act on.
-2. A hospital admin can process a credential approval within 3 taps on mobile without needing to know the word "Queue."
+1. A doctor logging in for the first time can find their patient work within 10 seconds without being shown any metric they cannot act on.
+2. A hospital admin can process a credential approval within 3 taps on mobile without needing to know the old word "Queue."
 3. No number on the dashboard is hardcoded, fabricated, or derived from a formula unrelated to its label.
 4. Every chart or statistical display in Analytics has an explicit empty state instead of synthetic baseline data.
 5. All clinical actions (dispatch, complete, approve, reject) use in-app modal confirmation, not native browser dialogs.

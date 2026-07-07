@@ -14,7 +14,11 @@ import {
 } from '../services/subscriptionService';
 import { toast } from 'sonner';
 
-export const useSubscription = () => {
+export const useSubscription = (options = {}) => {
+  const {
+    autoFetch = true,
+    autoSubscribe = true,
+  } = options;
   const [subscribers, setSubscribers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -28,7 +32,9 @@ export const useSubscription = () => {
       setSubscribers(data);
     } catch (err) {
       setError(err.message);
-      toast.error('Failed to fetch subscribers');
+      if (!filters?.quiet) {
+        toast.error('Failed to fetch subscribers');
+      }
     } finally {
       setLoading(false);
     }
@@ -168,17 +174,24 @@ export const useSubscription = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchSubscribers();
-  }, [fetchSubscribers]);
+    if (!autoFetch) {
+      setLoading(false);
+      return;
+    }
+
+    fetchSubscribers({ quiet: true });
+  }, [autoFetch, fetchSubscribers]);
 
   // Set up real-time subscription
   useEffect(() => {
+    if (!autoSubscribe) return undefined;
+
     const unsubscribe = subscribeToChanges();
 
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [subscribeToChanges]);
+  }, [autoSubscribe, subscribeToChanges]);
 
   return {
     // Data

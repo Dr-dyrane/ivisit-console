@@ -6,9 +6,234 @@
 
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
-import { isValidUUID } from '../lib/utils';
+import { isValidUUID, withTimeout } from '../lib/utils';
 
 const TABLE_NAME = 'ambulances';
+
+const ACTIVE_AMBULANCE_STATUSES = ['dispatched', 'on_trip', 'en_route', 'on_scene'];
+const VALID_AMBULANCE_STATUSES = [
+  'available',
+  'dispatched',
+  'on_trip',
+  'en_route',
+  'on_scene',
+  'returning',
+  'maintenance',
+  'offline',
+  'pending_approval',
+];
+const AMBULANCE_PAGE_SORT_COLUMNS = new Set([
+  'call_sign',
+  'vehicle_number',
+  'license_plate',
+  'type',
+  'status',
+  'eta',
+  'created_at',
+  'updated_at',
+  'hospital_id',
+]);
+
+function normalizeFilterList(value) {
+  if (!value || value === 'all') return [];
+  const values = Array.isArray(value) ? value : [value];
+  return values
+    .flatMap((item) => (Array.isArray(item) ? item : [item]))
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .filter((item) => item !== 'all');
+}
+
+function sanitizeAmbulanceSearchTerm(value) {
+  return String(value || '').replace(/[,%]/g, ' ').trim();
+}
+
+function normalizeAmbulanceStatusValues(value) {
+  return normalizeFilterList(value)
+    .flatMap((status) => {
+      if (status === 'on_route') return ['en_route'];
+      if (status === 'busy') return ACTIVE_AMBULANCE_STATUSES;
+      return [status];
+    })
+    .filter((status, index, statuses) => (
+      VALID_AMBULANCE_STATUSES.includes(status) && statuses.indexOf(status) === index
+    ));
+}
+
+function applyAmbulancePageAuth(query, user) {
+  return applyAuthFilter(query, user, {
+    userIdField: 'profile_id',
+    orgIdField: 'organization_id',
+    resourceType: 'ambulances',
+  });
+}
+
+function applyAmbulancePageStatusFilter(query, statusValues) {
+  if (statusValues.length === 1) {
+    return query.eq('status', statusValues[0]);
+  }
+  if (statusValues.length > 1) {
+    return query.in('status', statusValues);
+  }
+  return query;
+}
+
+function applyAmbulancePageFilters(query, filters = {}, kpiFilter = 'all') {
+  const search = sanitizeAmbulanceSearchTerm(filters.search);
+  if (search) {
+    const pattern = `%${search}%`;
+    query = query.or(`call_sign.ilike.${pattern},vehicle_number.ilike.${pattern},license_plate.ilike.${pattern}`);
+  }
+
+  const statusValues = normalizeAmbulanceStatusValues(filters.status);
+  query = applyAmbulancePageStatusFilter(query, statusValues);
+
+  const kpiStatusValues = normalizeAmbulanceStatusValues(kpiFilter);
+  query = applyAmbulancePageStatusFilter(query, kpiStatusValues);
+
+  const typeValues = normalizeFilterList(filters.type);
+  if (typeValues.length === 1) {
+    query = query.eq('type', typeValues[0]);
+  } else if (typeValues.length > 1) {
+    query = query.in('type', typeValues);
+  }
+
+  if (filters.hospital && filters.hospital !== 'all' && isValidUUID(filters.hospital)) {
+    query = query.eq('hospital_id', filters.hospital);
+  }
+
+  const dateRange = filters.dateRange || filters.created_at;
+
+  if (dateRange?.start) {
+    query = query.gte('created_at', dateRange.start);
+  }
+
+  if (dateRange?.end) {
+    const endDate = new Date(dateRange.end);
+    endDate.setHours(23, 59, 59, 999);
+    query = query.lte('created_at', endDate.toISOString());
+  }
+
+  return query;
+}
+
+function applyAmbulancePageSort(query, sortConfig = {}) {
+  const hasSortKey = AMBULANCE_PAGE_SORT_COLUMNS.has(sortConfig?.key);
+  const sortKey = hasSortKey ? sortConfig.key : 'created_at';
+  const ascending = hasSortKey ? sortConfig.direction === 'asc' : false;
+  return query.order(sortKey, { ascending });
+}
+
+async function readAmbulanceCount(query) {
+  const { count, error } = await query;
+  if (error) throw error;
+  return count || 0;
+}
+
+async function enrichAmbulanceRowsForPage(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return [];
+
+  const hospitalIds = [...new Set(rows.map((row) => row.hospital_id).filter(isValidUUID))];
+  let hospitalNameById = new Map();
+
+  if (hospitalIds.length > 0) {
+    const { data, error } = await supabase
+      .from('hospitals')
+      .select('id,name')
+      .in('id', hospitalIds);
+
+    if (error) throw error;
+    hospitalNameById = new Map((data || []).map((hospital) => [hospital.id, hospital.name]));
+  }
+
+  return rows.map((ambulance) => {
+    const stationName = hospitalNameById.get(ambulance.hospital_id) || ambulance.hospital || null;
+
+    return {
+      ...ambulance,
+      hospital: stationName,
+      station_name: stationName,
+      vehicle_label: ambulance.license_plate
+        || ambulance.vehicle_number
+        || ambulance.call_sign
+        || null,
+    };
+  });
+}
+
+async function getAmbulancePageStats(user, filters = {}) {
+  const createCountQuery = (status) => {
+    let query = supabase
+      .from(TABLE_NAME)
+      .select('*', { count: 'exact', head: true });
+
+    query = applyAmbulancePageAuth(query, user);
+    query = applyAmbulancePageFilters(query, { ...filters, status }, 'all');
+    return query;
+  };
+
+  const [total, available, onRoute, busy, maintenance] = await Promise.all([
+    readAmbulanceCount(createCountQuery(filters.status)),
+    readAmbulanceCount(createCountQuery('available')),
+    readAmbulanceCount(createCountQuery('en_route')),
+    readAmbulanceCount(createCountQuery(ACTIVE_AMBULANCE_STATUSES)),
+    readAmbulanceCount(createCountQuery('maintenance')),
+  ]);
+
+  return {
+    total,
+    available,
+    onRoute,
+    busy,
+    maintenance,
+    exactCounts: true,
+    source: 'ambulances.status',
+  };
+}
+
+export async function getAmbulancesPageData({
+  filters = {},
+  statsFilters = filters,
+  kpiFilter = 'all',
+  sortConfig = {},
+  limit = 20,
+  offset = 0,
+} = {}) {
+  const user = await getCurrentUser();
+  const safeLimit = Math.max(1, Number(limit) || 20);
+  const safeOffset = Math.max(0, Number(offset) || 0);
+
+  let countQuery = supabase
+    .from(TABLE_NAME)
+    .select('*', { count: 'exact', head: true });
+  countQuery = applyAmbulancePageAuth(countQuery, user);
+  countQuery = applyAmbulancePageFilters(countQuery, filters, kpiFilter);
+
+  let dataQuery = supabase
+    .from(TABLE_NAME)
+    .select('*');
+  dataQuery = applyAmbulancePageAuth(dataQuery, user);
+  dataQuery = applyAmbulancePageFilters(dataQuery, filters, kpiFilter);
+  dataQuery = applyAmbulancePageSort(dataQuery, sortConfig)
+    .range(safeOffset, safeOffset + safeLimit - 1);
+
+  const [count, pageResult, stats] = await Promise.all([
+    readAmbulanceCount(countQuery),
+    withTimeout(dataQuery, 8000, 'Ambulance page data query timed out'),
+    getAmbulancePageStats(user, statsFilters),
+  ]);
+
+  if (pageResult.error) throw pageResult.error;
+
+  const rows = await enrichAmbulanceRowsForPage(pageResult.data || []);
+
+  return {
+    data: rows,
+    count,
+    stats,
+    recent: rows.slice(0, 5),
+  };
+}
 
 /**
  * Get all ambulances with optional filters
@@ -57,7 +282,9 @@ export async function getAmbulances(filter = {}) {
 
     return data || [];
   } catch (error) {
-    console.error('Error fetching ambulances:', error);
+    if (!filter?.quiet) {
+      console.error('Error fetching ambulances:', error);
+    }
     throw error;
   }
 }
@@ -102,7 +329,7 @@ export async function createAmbulance(input) {
     if (input.call_sign) payload.call_sign = input.call_sign;
     payload.status = input.status || 'available';
 
-    // Optional fields — only include if truthy
+    // Optional fields - only include if truthy
     if (input.location) payload.location = input.location;
     if (input.eta) payload.eta = input.eta;
     if (input.crew) payload.crew = input.crew;

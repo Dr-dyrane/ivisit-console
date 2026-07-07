@@ -195,9 +195,14 @@ export const GoogleMapsRenderer = ({
 	routePrimaryColor,
 	setSelectedMarker,
 	selectedMarker,
+	fallback,
 }) => {
 	if (!GOOGLE_MAPS_API_KEY) {
-		return <div>Google Maps API key not configured</div>;
+		return fallback || (
+			<div className="flex h-full w-full items-center justify-center bg-background text-sm font-medium text-muted-foreground">
+				Map provider unavailable
+			</div>
+		);
 	}
 
 	const useCloudMapStyling = Boolean(GOOGLE_MAP_ID);

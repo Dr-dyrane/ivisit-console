@@ -25,6 +25,7 @@ export function getEmergencyActionState(request) {
     CASH_METHODS.has(paymentMethod) &&
     paymentStatus !== 'completed';
   const canRetryPayment = status === 'payment_declined' && Boolean(request?.user_id);
+  const canCancel = !isTerminal;
   const showClinicalRecord = status === 'completed' || status === 'cancelled';
 
   return {
@@ -35,6 +36,7 @@ export function getEmergencyActionState(request) {
     canDispatch,
     canComplete,
     canProcessCash: false,
+    canCancel,
     hasUnsettledCash,
     cashDisabledReason: hasUnsettledCash
       ? 'Manual cash settlement is blocked until Pass 2 finance authority is implemented.'

@@ -33,11 +33,18 @@ export const InsuranceTableView = ({
     onDelete,
     onVerify,
     getStatusBadge,
+    canDelete = false,
+    canVerify = false,
     selectedIds = [],
+    selectionEnabled = false,
     onSelect,
     onSelectAll
 }) => {
     if (!policies || policies.length === 0) return null;
+    const canSelect = selectionEnabled && typeof onSelect === 'function' && typeof onSelectAll === 'function';
+    const showVerifyAction = canVerify && typeof onVerify === 'function';
+    const showDeleteAction = canDelete && typeof onDelete === 'function';
+    const hasSecondaryActions = showVerifyAction || showDeleteAction;
 
     return (
         <motion.div
@@ -48,18 +55,20 @@ export const InsuranceTableView = ({
                 <Table>
                     <TableHeader className="bg-muted/30">
                         <TableRow className="border-b border-white/10 hover:bg-transparent">
-                            <TableHead className="w-12 text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4">
-                                <Checkbox
-                                    checked={selectedIds.length === policies.length && policies.length > 0}
-                                    onCheckedChange={(checked) => onSelectAll(checked)}
-                                    aria-label="Select all"
-                                />
-                            </TableHead>
-                            <TableHead className="w-[300px] text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 pl-6">Policy Details</TableHead>
-                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Provider</TableHead>
-                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Coverage</TableHead>
-                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</TableHead>
-                            <TableHead className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground pr-6">Actions</TableHead>
+                            {canSelect && (
+                                <TableHead className="w-12 py-4 text-xs font-semibold text-muted-foreground">
+                                    <Checkbox
+                                        checked={selectedIds.length === policies.length && policies.length > 0}
+                                        onCheckedChange={(checked) => onSelectAll(checked)}
+                                        aria-label="Select all"
+                                    />
+                                </TableHead>
+                            )}
+                            <TableHead className="w-[300px] py-4 pl-6 text-xs font-semibold text-muted-foreground">Policy details</TableHead>
+                            <TableHead className="text-xs font-semibold text-muted-foreground">Provider</TableHead>
+                            <TableHead className="text-xs font-semibold text-muted-foreground">Coverage</TableHead>
+                            <TableHead className="text-xs font-semibold text-muted-foreground">Status</TableHead>
+                            <TableHead className="pr-6 text-right text-xs font-semibold text-muted-foreground">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -71,16 +80,18 @@ export const InsuranceTableView = ({
                                 transition={{ delay: index * 0.05 }}
                                 className="group border-b border-white/5 transition-colors hover:bg-white/5"
                             >
-                                <TableCell className="py-4">
-                                    <Checkbox
-                                        checked={selectedIds.includes(policy.id)}
-                                        onCheckedChange={(checked) => onSelect(policy.id, checked)}
-                                        aria-label={`Select policy ${policy.policy_number}`}
-                                    />
-                                </TableCell>
+                                {canSelect && (
+                                    <TableCell className="py-4">
+                                        <Checkbox
+                                            checked={selectedIds.includes(policy.id)}
+                                            onCheckedChange={(checked) => onSelect(policy.id, checked)}
+                                            aria-label={`Select policy ${policy.policy_number}`}
+                                        />
+                                    </TableCell>
+                                )}
                                 <TableCell className="py-4 pl-6">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 squircle bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                        <div className="w-10 h-10 squircle bg-info/10 flex items-center justify-center text-info shrink-0">
                                             <Shield className="w-5 h-5" />
                                         </div>
                                         <div className="flex flex-col">
@@ -108,8 +119,8 @@ export const InsuranceTableView = ({
                                             {policy.status}
                                         </Badge>
                                         {policy.verified && (
-                                            <div className="text-primary" title="Verified">
-                                                <CheckCircle className="h-4 w-4 fill-primary/10" />
+                                            <div className="text-success" title="Verified">
+                                                <CheckCircle className="h-4 w-4 fill-success/10" />
                                             </div>
                                         )}
                                     </div>
@@ -128,14 +139,14 @@ export const InsuranceTableView = ({
                                                     <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                                                     View Details
                                                 </DropdownMenuItem>
-                                                {onVerify && !policy.verified && (
+                                                {showVerifyAction && !policy.verified && (
                                                     <DropdownMenuItem onClick={() => onVerify(policy)} className="cursor-pointer font-medium text-xs py-2 text-success focus:text-success focus:bg-success/10">
                                                         <CheckCircle className="mr-2 h-3.5 w-3.5" />
                                                         Verify Policy
                                                     </DropdownMenuItem>
                                                 )}
-                                                <DropdownMenuSeparator className="bg-white/5" />
-                                                {onDelete && (
+                                                {hasSecondaryActions && <DropdownMenuSeparator className="bg-white/5" />}
+                                                {showDeleteAction && (
                                                     <DropdownMenuItem onClick={() => onDelete(policy)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
                                                         <Trash2 className="mr-2 h-3.5 w-3.5" />
                                                         Delete

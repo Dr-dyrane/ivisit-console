@@ -25,36 +25,36 @@ export const ROLE_LEVELS = {
  */
 export const NAV_CONFIG = {
     main: [
-        { id: 'home', path: '/', icon: Home, label: 'Dashboard', resource: 'dashboard' },
-        { id: 'map', path: '/map', icon: MapPin, label: 'Live Map', resource: 'map' },
+        { id: 'home', path: '/', icon: Home, label: 'Today', resource: 'dashboard', minRole: 'viewer' },
+        { id: 'map', path: '/map', icon: MapPin, label: 'Live Map', resource: 'map', minRole: 'provider', excludedRoles: ['sponsor'] },
         { id: 'analytics', path: '/analytics', icon: TrendingUp, label: 'Statistics', resource: 'analytics', minRole: 'provider' },
     ],
     ops: {
         id: 'ops',
-        label: 'Operations',
+        label: 'Care',
         icon: Handshake,
         items: [
             // Provider-accessible items (scoped to their own records)
-            { id: 'visits', path: '/visits', icon: Calendar, label: 'Visits', resource: 'visits', minRole: 'provider' },
-            { id: 'emergencies', path: '/emergencies', icon: AlertTriangle, label: 'Emergencies', resource: 'emergencies', minRole: 'provider' },
+            { id: 'visits', path: '/visits', icon: Calendar, label: 'Visits', resource: 'visits', minRole: 'provider', excludedRoles: ['sponsor'] },
+            { id: 'emergencies', path: '/emergencies', icon: AlertTriangle, label: 'Requests', resource: 'emergency_requests', minRole: 'provider', excludedRoles: ['sponsor'] },
 
             // Org Admin+ items (fleet/network management)
             { id: 'hospitals', path: '/hospitals', icon: Hospital, label: 'Hospitals', resource: 'hospitals', minRole: 'org_admin' },
             { id: 'ambulances', path: '/ambulances', icon: Ambulance, label: 'Ambulances', resource: 'ambulances', minRole: 'org_admin' },
-            { id: 'doctors', path: '/doctors', icon: Stethoscope, label: 'Doctors', resource: 'doctors', minRole: 'org_admin' },
+            { id: 'doctors', path: '/doctors', icon: Stethoscope, label: 'Staff', resource: 'doctors', minRole: 'org_admin' },
         ]
     },
     mgmt: {
         id: 'mgmt',
-        label: 'Management',
+        label: 'Admin',
         icon: FolderKanban,
         items: [
             // Provider-accessible (submit support, read own tickets)
-            { id: 'support', path: '/support-tickets', icon: Headphones, label: 'Support', resource: 'support', minRole: 'provider' },
+            { id: 'support', path: '/support-tickets', icon: Headphones, label: 'Support', resource: 'support', minRole: 'provider', excludedRoles: ['sponsor'] },
             { id: 'news', path: '/health-news', icon: Newspaper, label: 'Health News', resource: 'news', minRole: 'org_admin' },
 
             // Org Admin+ items
-            { id: 'verification', path: '/verification', icon: FileCheck, label: 'Pending Approvals', resource: 'verification', minRole: 'org_admin' },
+            { id: 'verification', path: '/verification', icon: FileCheck, label: 'Approvals', resource: 'verification', minRole: 'org_admin' },
             { id: 'users', path: '/users', icon: Users, label: 'Users', resource: 'users', minRole: 'org_admin' },
             { id: 'organizations', path: '/organizations', icon: Building2, label: 'Organizations', resource: 'organizations', minRole: 'admin' },
             { id: 'subscriptions', path: '/subscriptions', icon: Mail, label: 'Email Subscribers', resource: 'subscriptions', minRole: 'admin' },
@@ -62,17 +62,17 @@ export const NAV_CONFIG = {
     },
     finance: {
         id: 'finance',
-        label: 'Finance',
+        label: 'Payments',
         icon: DollarSign,
         items: [
-            { id: 'wallet', path: '/wallet', icon: Wallet, label: 'Wallet', resource: 'wallet', minRole: 'org_admin' },
+            { id: 'wallet', path: '/wallet', icon: Wallet, label: 'Payments', resource: 'wallet', minRole: 'org_admin' },
             { id: 'pricing', path: '/pricing', icon: DollarSign, label: 'Pricing', resource: 'pricing', minRole: 'org_admin' },
             { id: 'insurance', path: '/insurance', icon: Shield, label: 'Insurance', resource: 'insurance', minRole: 'admin' },
         ]
     },
     user: {
         id: 'user',
-        label: 'User',
+        label: 'Account',
         icon: Settings,
         items: [
             { id: 'settings', path: '/settings', icon: Settings, label: 'Settings', resource: 'settings', minRole: 'viewer' },
@@ -88,6 +88,10 @@ export const getAccessibleNav = (userProfile, canHelper) => {
     const userLevel = ROLE_LEVELS[role] || 0;
 
     const isItemAccessible = (item) => {
+        if (item.excludedRoles?.includes(role)) {
+            return false;
+        }
+
         // 1. Check minimum role level - this is the primary filter
         if (item.minRole) {
             const minLevel = ROLE_LEVELS[item.minRole] || 0;
@@ -123,11 +127,16 @@ export const getAccessibleNav = (userProfile, canHelper) => {
         items: NAV_CONFIG.finance.items.filter(isItemAccessible)
     };
 
+    const filteredUser = {
+        ...NAV_CONFIG.user,
+        items: NAV_CONFIG.user.items.filter(isItemAccessible)
+    };
+
     return {
         main: filteredMain,
         ops: filteredOps.items.length > 0 ? filteredOps : null,
         mgmt: filteredMgmt.items.length > 0 ? filteredMgmt : null,
         finance: filteredFinance.items.length > 0 ? filteredFinance : null,
-        user: NAV_CONFIG.user,
+        user: filteredUser.items.length > 0 ? filteredUser : null,
     };
 };

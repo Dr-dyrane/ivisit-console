@@ -25,9 +25,9 @@ See `ux/CONSOLE_UX_REVAMP_PLAN.md` Section 1 (Role-by-Role Experience Targets) a
 
 | Role | Card 1 | Card 2 | Card 3 | Quick actions |
 |---|---|---|---|---|
-| Doctor | "Your visits today: N" (their facility, today) | Emergency queue count (their facility only) | — | Start Visit, Report Problem |
-| Org Admin | "Pending approvals: N" (verification queue count) | "Staff on shift: N" (real, or — if unavailable) | Wallet balance | Add Doctor, Review Approvals |
-| Admin | Active emergencies (platform-wide) | Verification backlog | User count | Add Org, Manage Users |
+| Doctor | "Your visits today: N" (their facility, today) | Requests count (their facility only) | — | Start Visit, Report Problem |
+| Org Admin | "Approvals: N" (approval queue count) | "Staff on shift: N" (real, or — if unavailable) | Wallet balance | Add Staff, Review Approvals |
+| Admin | Active requests (platform-wide) | Approvals backlog | User count | Add Org, Manage Users |
 | Sponsor | *(Impact summary — Sprint 5 or later)* | Link to Analytics | Link to Health News | — |
 | Viewer | Orientation card: "Your account is pending activation. Contact your org admin." | — | — | — |
 
@@ -35,9 +35,9 @@ See `ux/CONSOLE_UX_REVAMP_PLAN.md` Section 1 (Role-by-Role Experience Targets) a
 
 | From | To | File | Location |
 |---|---|---|---|
-| Queue | Pending Approvals | navigation.js | Management nav group |
+| Queue | Approvals | navigation.js | Management nav group |
 | Control Center (page title) | Account Settings | SettingsPage.jsx | `usePageHeader(...)` call |
-| Identity Vault (page title) | Verification Queue | VerificationQueue.jsx | `usePageHeader(...)` call |
+| Identity Vault (page title) | Approvals | VerificationQueue.jsx | `usePageHeader(...)` call |
 | Subscriptions (nav label) | Email Subscribers | navigation.js | Management nav group |
 | Ledger (tab) | Transaction History | WalletManagementPage.jsx | Tab label |
 | Payments (tab) | Patient Payments | WalletManagementPage.jsx | Tab label |
@@ -51,12 +51,12 @@ See `ux/CONSOLE_UX_REVAMP_PLAN.md` Section 1 (Role-by-Role Experience Targets) a
 
 | # | Task | Owner | Agent? | Acceptance criteria |
 |---|---|---|---|---|
-| 2.1 | Add verification queue card to org_admin BentoHome | FE Dev | Assist | Org_admin home shows a "Pending Approvals: N" card linking to /verification |
+| 2.1 | Add Approvals card to org_admin Today | FE Dev | Assist | Org_admin Today shows an "Approvals: N" card linking to /verification |
 | 2.2 | Doctor home: replace platform-wide stats with facility-scoped emergency count | FE Dev | Assist | Doctor home shows their facility's active emergency count (not platform total) |
 | 2.3 | Doctor home: add "Your visits today" card | FE Dev | Assist | Doctor home shows count of visits assigned to them today, with patient names if available |
 | 2.4 | Role-fixed mobile bottom bar | FE Dev | — | Bottom bar slots are deterministic per role (see design notes above) |
-| 2.5 | Rename nav "Queue" → "Pending Approvals" | FE Dev | — | `navigation.js` shows "Pending Approvals" for the verification route |
-| 2.6 | Rename VerificationQueue page title | FE Dev | — | Page header reads "Verification Queue" not "Identity Vault" |
+| 2.5 | Rename nav "Queue" → "Approvals" | FE Dev | — | `navigation.js` shows "Approvals" for the verification route |
+| 2.6 | Rename VerificationQueue page title | FE Dev | — | Page header reads "Approvals" not "Identity Vault" |
 | 2.7 | Rename Settings page title | FE Dev | — | Page header reads "Account Settings" not "Control Center" |
 | 2.8 | Rename Wallet tabs | FE Dev | — | Tabs read "Transaction History" and "Patient Payments" |
 
@@ -65,7 +65,7 @@ See `ux/CONSOLE_UX_REVAMP_PLAN.md` Section 1 (Role-by-Role Experience Targets) a
 | # | Task | Owner | Agent? | Acceptance criteria |
 |---|---|---|---|---|
 | 2.9 | Move "Email Subscribers" out of main nav | FE Dev | — | Subscriptions/Newsletter no longer appears alongside Hospitals, Emergencies, Insurance in main management nav |
-| 2.10 | Add hamburger menu icon to mobile nav header | FE Dev | — | Mobile header has a distinct menu icon separate from the user avatar |
+| 2.10 | Canonical mobile nav entry | FE Dev | Assist | Avatar opens account/overflow sheet; bottom island remains primary nav only with no hamburger |
 | 2.11 | Rename mobile "Context" tab → "Quick Actions" | FE Dev | — | MobileNavMenu second tab reads "Quick Actions" |
 | 2.12 | Add tooltip to unlabelled desktop context panel toggle | FE Dev | — | Hovering the panel toggle button shows "Quick actions & info" or similar |
 
@@ -81,11 +81,11 @@ See `ux/CONSOLE_UX_REVAMP_PLAN.md` Section 1 (Role-by-Role Experience Targets) a
 ## Gate Criteria
 
 - [ ] Doctor logs in → home screen contains a card with their personal visit queue (not a platform-wide count)
-- [ ] Org_admin home → verification queue card is visible with a count
-- [ ] Mobile: provider bottom bar shows Home, Visits, Emergencies (not a smart recommendation)
-- [ ] Mobile: org_admin bottom bar shows Home, Doctors/Staff, Approvals
-- [ ] `grep -rn '"Queue"' frontend/src/config/navigation.js` returns zero results for the verification nav entry
-- [ ] "Identity Vault" string does not appear in VerificationQueue.jsx
+- [ ] Org_admin Today → Approvals card is visible with a count
+- [ ] Mobile: provider bottom island shows Today, Requests, Visits
+- [ ] Mobile: org_admin bottom island shows Today, Approvals, Staff
+- [ ] Verification nav label is `Approvals`
+- [ ] "Identity Vault" string does not appear in VerificationQueue.jsx and the page title is `Approvals`
 - [ ] "Control Center" string does not appear in SettingsPage.jsx
 - [ ] Wallet page: tabs read "Transaction History" and "Patient Payments"
 - [ ] `npm run build` passes

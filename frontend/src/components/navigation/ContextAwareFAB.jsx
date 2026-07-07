@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useContextAction } from '../../hooks/useContextAction';
-import { useInsurance } from '../../hooks/useInsurance';
 import { useSupportTickets } from '../../hooks/useSupportTickets';
 import { useSubscription } from '../../hooks/useSubscription';
 import { EmergencyRequestModal } from '../modals/EmergencyRequestModal';
@@ -12,14 +12,40 @@ import { HospitalModal } from '../modals/HospitalModal';
 import { AmbulanceModal } from '../modals/AmbulanceModal';
 import { DoctorModal } from '../modals/DoctorModal';
 import { VisitModal } from '../modals/VisitModal';
-import { HealthNewsModal } from '../modals/HealthNewsModal';
 import { SupportTicketModal } from '../modals/SupportTicketModal';
-import { InsuranceModal } from '../modals/InsuranceModal';
 import { SubscriptionModal } from '../modals/SubscriptionModal';
 
 export const ContextAwareFAB = () => {
-  const { isDesktop, isMobile } = useNavigation();
-  const { isContextPanelOpen } = useLayout();
+  const { isMobile } = useNavigation();
+  const { isContextPanelOpen, pageShellConfig } = useLayout();
+  const location = useLocation();
+  const routeOwnsAction =
+    location.pathname === '/' ||
+    location.pathname.startsWith('/emergencies') ||
+    location.pathname.startsWith('/users') ||
+    location.pathname.startsWith('/visits') ||
+    location.pathname.startsWith('/verification') ||
+    location.pathname.startsWith('/doctors') ||
+    location.pathname.startsWith('/hospitals') ||
+    location.pathname.startsWith('/ambulances') ||
+    location.pathname.startsWith('/health-news') ||
+    location.pathname.startsWith('/support-tickets') ||
+    location.pathname.startsWith('/insurance') ||
+    location.pathname.startsWith('/organizations') ||
+    location.pathname.startsWith('/subscriptions') ||
+    location.pathname.startsWith('/map') ||
+    location.pathname.startsWith('/wallet') ||
+    location.pathname.startsWith('/pricing') ||
+    location.pathname.startsWith('/settings');
+  const hideFab = Boolean(pageShellConfig?.hideFab) || routeOwnsAction;
+
+  // Keep route-owned surfaces free of global FAB side effects.
+  if (isMobile || isContextPanelOpen || hideFab) return null;
+
+  return <ContextAwareFABContent />;
+};
+
+const ContextAwareFABContent = () => {
   const [modalStates, setModalStates] = useState({
     emergency: false,
     user: false,
@@ -27,9 +53,7 @@ export const ContextAwareFAB = () => {
     ambulance: false,
     doctor: false,
     visit: false,
-    healthNews: false,
     supportTicket: false,
-    insurance: false,
     subscription: false,
     emailActions: false
   });
@@ -44,9 +68,8 @@ export const ContextAwareFAB = () => {
 
   // Use the shared hook
   const actionConfig = useContextAction(openModal);
-  const { createPolicy } = useInsurance();
-  const { createTicket } = useSupportTickets();
-  const { createSubscriber } = useSubscription();
+  const { createTicket } = useSupportTickets({ autoFetch: false, autoSubscribe: false, quiet: true });
+  const { createSubscriber } = useSubscription({ autoFetch: false, autoSubscribe: false });
 
   // Constants for SupportTicketModal
   const TICKET_PRIORITIES = [
@@ -60,12 +83,6 @@ export const ContextAwareFAB = () => {
     'general', 'technical', 'billing', 'account', 'feature_request', 'bug_report', 'medical'
   ];
 
-  // Desktop only - Mobile uses DynamicBottomBar
-  if (isMobile) return null;
-
-  // Hide FAB when context panel is open to reduce cognitive load
-  if (isContextPanelOpen) return null;
-
   return (
     <>
       <motion.div
@@ -78,7 +95,7 @@ export const ContextAwareFAB = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={actionConfig.action}
-          className="relative w-14 h-14 glass-card bg-background/80 backdrop-blur-xl border border-border/20 transition-all duration-300 group flex items-center justify-center overflow-hidden"
+          className="relative w-14 h-14 glass-card rounded-button bg-background/80 backdrop-blur-xl transition-all duration-300 group flex items-center justify-center overflow-hidden"
           style={{
             boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)'
           }}
@@ -91,7 +108,7 @@ export const ContextAwareFAB = () => {
           {/* Icon */}
           <actionConfig.icon className={`w-6 h-6 ${actionConfig.color === 'destructive' ? 'text-primary' : 'text-success'}`} />
 
-          {/* Pulse ring for important actions */}
+          {/* Pulse cue for important actions */}
           {actionConfig.color === 'destructive' && (
             <div className="absolute inset-0 bg-current opacity-20 animate-ping" />
           )}
@@ -100,10 +117,10 @@ export const ContextAwareFAB = () => {
           <motion.div
             initial={{ opacity: 0, x: 10 }}
             whileHover={{ opacity: 1, x: 0 }}
-            className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1 bg-foreground text-background text-sm font-normal rounded-lg whitespace-nowrap pointer-events-none"
+            className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1 bg-foreground text-background text-sm font-normal rounded-pill whitespace-nowrap pointer-events-none"
           >
             {actionConfig.label}
-            <div className="absolute left-full top-1/2 -translate-y-1/2 w-0 h-0 border-l-8 border-l-foreground border-y-4 border-y-transparent" />
+            <div className="absolute left-full top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-foreground" />
           </motion.div>
         </motion.button>
       </motion.div>
@@ -121,7 +138,6 @@ export const ContextAwareFAB = () => {
             case 'ambulance': return <AmbulanceModal key={key} {...props} />;
             case 'doctor': return <DoctorModal key={key} {...props} />;
             case 'visit': return <VisitModal key={key} {...props} />;
-            case 'healthNews': return <HealthNewsModal key={key} {...props} mode="create" />;
             case 'supportTicket':
               return (
                 <SupportTicketModal
@@ -133,7 +149,6 @@ export const ContextAwareFAB = () => {
                   categories={TICKET_CATEGORIES}
                 />
               );
-            case 'insurance': return <InsuranceModal key={key} {...props} onSave={createPolicy} mode="create" />;
             case 'subscription': return <SubscriptionModal key={key} {...props} onSave={createSubscriber} mode="create" />;
             case 'emailActions': return <SubscriptionModal key={key} {...props} mode="emailActions" />;
             default: return null;

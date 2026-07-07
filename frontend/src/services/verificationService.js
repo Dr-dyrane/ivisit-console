@@ -10,6 +10,68 @@ import { logProviderActivity } from './activityService';
 import { isAdmin, AuthorizationError, logAuthorizationEvent, handleServiceError } from './rbacPatterns';
 
 const TABLE_NAME = 'profiles';
+const PROVIDER_STATS_CACHE_MS = 30000;
+let providerVerificationStatsCache = {
+  timestamp: 0,
+  value: null,
+  promise: null
+};
+
+function clearProviderVerificationStatsCache() {
+  providerVerificationStatsCache = {
+    timestamp: 0,
+    value: null,
+    promise: null
+  };
+}
+
+async function getProviderCount(applyFilters = query => query) {
+  const query = applyFilters(
+    supabase
+      .from(TABLE_NAME)
+      .select('id', { count: 'exact', head: true })
+      .eq('role', 'provider')
+  );
+
+  const { count, error } = await query;
+  if (error) throw error;
+  return count || 0;
+}
+
+async function getProviderVerificationStats() {
+  const now = Date.now();
+  if (
+    providerVerificationStatsCache.value &&
+    now - providerVerificationStatsCache.timestamp < PROVIDER_STATS_CACHE_MS
+  ) {
+    return providerVerificationStatsCache.value;
+  }
+
+  if (providerVerificationStatsCache.promise) {
+    return providerVerificationStatsCache.promise;
+  }
+
+  providerVerificationStatsCache.promise = Promise.all([
+    getProviderCount(query => query.eq('bvn_verified', false)),
+    getProviderCount(query => query.eq('bvn_verified', true)),
+    getProviderCount()
+  ]).then(([pending, approved, total]) => {
+    const stats = {
+      pending,
+      approved,
+      rejected: 0,
+      total
+    };
+
+    providerVerificationStatsCache.value = stats;
+    providerVerificationStatsCache.timestamp = Date.now();
+    return stats;
+  }).finally(() => {
+    providerVerificationStatsCache.promise = null;
+  });
+
+  return providerVerificationStatsCache.promise;
+}
 
 /**
  * Get verification queue with filters and pagination
@@ -22,7 +84,7 @@ export async function getVerificationQueue(filters = {}) {
     const role = user?.role || 'viewer';
 
     // Silent Guard: Return empty instead of throwing for unauthorized console access
-    if (!['admin', 'org_admin', 'sponsor'].includes(role)) {
+    if (!['admin', 'org_admin'].includes(role)) {
       if (role === 'patient') {
         return {
           data: [],
@@ -30,7 +92,7 @@ export async function getVerificationQueue(filters = {}) {
           pagination: { page: 1, limit: 12, total: 0, totalPages: 0 }
         };
       }
-      throw new AuthorizationError('Admin, Org Admin, or Sponsor access required for verification queue', 'verification', 'getQueue');
+      throw new AuthorizationError('Admin or Org Admin access required for approvals', 'verification', 'getQueue');
     }
 
     const {
@@ -75,33 +137,12 @@ export async function getVerificationQueue(filters = {}) {
     const { data, error, count } = await query;
     if (error) throw error;
 
-    // NEW: Enrich with display IDs
-    let enrichedData = data || [];
-    if (enrichedData.length > 0) {
-      const { getDisplayIds } = await import('./displayIdService');
-      const profileIds = enrichedData.map(p => p.id);
-      const displayIds = await getDisplayIds(profileIds);
+    const enrichedData = (data || []).map(p => ({
+      ...p,
+      display_id: p.display_id || null
+    }));
 
-      enrichedData = enrichedData.map(p => ({
-        ...p,
-        display_id: displayIds.get(p.id) || null
-      }));
-    }
-
-    // Get global stats for providers only
-    const statsQuery = supabase
-      .from(TABLE_NAME)
-      .select('role, bvn_verified')
-      .eq('role', 'provider');
-
-    const { data: allData, error: statsError } = await statsQuery;
-    if (statsError) throw statsError;
-
-    const stats = {
-      pending: allData?.filter(u => !u.bvn_verified).length || 0,
-      approved: allData?.filter(u => u.bvn_verified).length || 0,
-      total: allData?.length || 0
-    };
+    const stats = await getProviderVerificationStats();
 
     logAuthorizationEvent('verification', 'getQueue', null, true);
 
@@ -161,6 +202,8 @@ export async function verifyProvider(providerId, approved) {
       .single();
 
     if (error) throw error;
+
+    clearProviderVerificationStatsCache();
 
     logAuthorizationEvent('verification', 'verifyProvider', providerId, true,
       `${approved ? 'Approved' : 'Rejected'} provider: ${provider.username}`);
@@ -287,15 +330,14 @@ export function subscribeToVerificationQueue(callback) {
 }
 
 /**
- * Check if current user can verify providers
+ * Check if the current user can approve provider records.
  */
 export async function canVerifyProviders() {
   try {
     const user = await getCurrentUser();
     const role = user?.role || 'viewer';
 
-    // Admins, Org Admins, and Sponsors can verify providers
-    return ['admin', 'org_admin', 'sponsor'].includes(role);
+    return role === 'admin';
   } catch (error) {
     logAuthorizationEvent('verification', 'canVerify', null, false, error.message);
     return false;

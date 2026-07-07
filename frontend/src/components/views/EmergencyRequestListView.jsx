@@ -178,13 +178,9 @@ export const EmergencyRequestListView = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => {
-                      if (window.confirm(`Process cash payment for this request? This will deduct the 2.5% platform fee from your organization's wallet.`)) {
-                        onProcessCash?.(req);
-                      }
-                    }}
+                    onClick={() => onProcessCash?.(req)}
                     className="squircle h-8 w-8 p-0 hover:bg-yellow-500/10 hover:text-yellow-500"
-                    title="Process Cash Payment"
+                    title="Cash settlement is not ready here yet"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

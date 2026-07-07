@@ -79,7 +79,7 @@ function buildOrganizationPayload(org = {}, { isUpdate = false } = {}) {
  * organization_wallets separately and mapping by organization_id in JS.
  * This ensures data integrity even when Supabase relationship detection fluctuates.
  */
-export async function getOrganizations() {
+export async function getOrganizations(filter = {}) {
     try {
         const user = await getCurrentUser();
         // RBAC: Patients should not be calling organizations (Console only)
@@ -105,7 +105,9 @@ export async function getOrganizations() {
             wallet_balance: walletsMap[org.id] || 0
         }));
     } catch (error) {
-        console.error('Error fetching organizations:', error);
+        if (!filter?.quiet) {
+            console.error('Error fetching organizations:', error);
+        }
         throw error;
     }
 }

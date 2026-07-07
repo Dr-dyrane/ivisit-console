@@ -1,10 +1,9 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, X, Shield, Lock } from 'lucide-react';
+import { Sparkles, X, Lock } from 'lucide-react';
 import { usePageData } from '../../contexts/PageDataContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useSubscription } from '../../hooks/useSubscription';
 import {
   EmergencyPanel,
   UsersPanel,
@@ -31,29 +30,24 @@ export const ContextPanel = () => {
   const currentPath = location.pathname;
   const { isAdmin, isOrgAdmin, isProvider, isPatient, isViewer, isSponsor } = useAuth();
   const {
-    emergencyData,
-    analyticsData,
-    doctorsData,
-    visitsData,
     verificationData,
-    supportTicketsData,
     loading,
     getEmergencyStats,
-    getInsuranceStats,
     useMockData,
-    activityData,
-    refreshAllData,
-    userData,
-    insurance,
-    hospitalsData,
-    ambulancesData,
-    organizationsData,
-    servicePricing,
-    roomPricing,
-    walletData
   } = usePageData();
 
-  const { subscribers } = useSubscription();
+  const [todayRouteContext, setTodayRouteContext] = React.useState(null);
+  const [usersRouteContext, setUsersRouteContext] = React.useState(null);
+  const [doctorsRouteContext, setDoctorsRouteContext] = React.useState(null);
+  const [visitsRouteContext, setVisitsRouteContext] = React.useState(null);
+  const [hospitalsRouteContext, setHospitalsRouteContext] = React.useState(null);
+  const [ambulancesRouteContext, setAmbulancesRouteContext] = React.useState(null);
+  const [supportTicketsRouteContext, setSupportTicketsRouteContext] = React.useState(null);
+  const [organizationsRouteContext, setOrganizationsRouteContext] = React.useState(null);
+  const [subscriptionsRouteContext, setSubscriptionsRouteContext] = React.useState(null);
+  const [walletRouteContext, setWalletRouteContext] = React.useState(null);
+  const [healthNewsRouteContext, setHealthNewsRouteContext] = React.useState(null);
+  const [insuranceRouteContext, setInsuranceRouteContext] = React.useState(null);
 
   const emergencyStats = getEmergencyStats();
 
@@ -68,7 +62,7 @@ export const ContextPanel = () => {
   const canAccessPanel = (panelPath) => {
     // Define role access rules for each panel
     const panelAccess = {
-      '/': true, // Dashboard - everyone can access
+      '/': true, // Today - everyone can access
       '/emergencies': !isPatient() && !isViewer(), // Operational roles only
       '/users': isAdmin(), // Admin only
       '/verification': isAdmin(), // Admin only
@@ -81,7 +75,7 @@ export const ContextPanel = () => {
       '/support-tickets': isAdmin() || isOrgAdmin() || isSponsor() || isProvider(), // Everyone except patients/viewers
       '/insurance': isAdmin(), // Admin only
       '/map': !isPatient() && !isViewer(), // Operational roles only
-      '/settings': isAdmin(), // Admin only
+      '/settings': true, // Own-user settings
       '/subscriptions': isAdmin(), // Admin only
       '/wallet': isAdmin() || isOrgAdmin(), // Admin and Org Admin
       '/pricing': isAdmin() || isOrgAdmin(), // Admin and Org Admin
@@ -98,6 +92,255 @@ export const ContextPanel = () => {
     return true; // Default to allowed for unknown paths
   };
 
+  const [emergencyRouteContext, setEmergencyRouteContext] = React.useState(null);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (currentPath !== '/' && currentPath !== '') {
+      setTodayRouteContext(null);
+      return undefined;
+    }
+
+    const handleTodayRouteContext = (event) => {
+      setTodayRouteContext(event.detail || null);
+    };
+
+    window.addEventListener('todayRouteContextUpdated', handleTodayRouteContext);
+    window.dispatchEvent(new CustomEvent('requestTodayRouteContext'));
+
+    return () => {
+      window.removeEventListener('todayRouteContextUpdated', handleTodayRouteContext);
+    };
+  }, [currentPath]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/emergencies')) {
+      setEmergencyRouteContext(null);
+      return undefined;
+    }
+
+    const handleEmergencyRouteContext = (event) => {
+      setEmergencyRouteContext(event.detail || null);
+    };
+
+    window.addEventListener('emergencyRouteContextUpdated', handleEmergencyRouteContext);
+    window.dispatchEvent(new CustomEvent('requestEmergencyRouteContext'));
+
+    return () => {
+      window.removeEventListener('emergencyRouteContextUpdated', handleEmergencyRouteContext);
+    };
+  }, [currentPath]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/users')) {
+      setUsersRouteContext(null);
+      return undefined;
+    }
+
+    const handleUsersRouteContext = (event) => {
+      setUsersRouteContext(event.detail || null);
+    };
+
+    window.addEventListener('usersRouteContextUpdated', handleUsersRouteContext);
+    window.dispatchEvent(new CustomEvent('requestUsersRouteContext'));
+
+    return () => {
+      window.removeEventListener('usersRouteContextUpdated', handleUsersRouteContext);
+    };
+  }, [currentPath]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/doctors')) {
+      setDoctorsRouteContext(null);
+      return undefined;
+    }
+
+    const handleDoctorsRouteContext = (event) => {
+      setDoctorsRouteContext(event.detail || null);
+    };
+
+    window.addEventListener('doctorsRouteContextUpdated', handleDoctorsRouteContext);
+    window.dispatchEvent(new CustomEvent('requestDoctorsRouteContext'));
+
+    return () => {
+      window.removeEventListener('doctorsRouteContextUpdated', handleDoctorsRouteContext);
+    };
+  }, [currentPath]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/visits')) {
+      setVisitsRouteContext(null);
+      return undefined;
+    }
+
+    const handleVisitsRouteContext = (event) => {
+      setVisitsRouteContext(event.detail || null);
+    };
+
+    window.addEventListener('visitsRouteContextUpdated', handleVisitsRouteContext);
+    window.dispatchEvent(new CustomEvent('requestVisitsRouteContext'));
+
+    return () => {
+      window.removeEventListener('visitsRouteContextUpdated', handleVisitsRouteContext);
+    };
+  }, [currentPath]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/hospitals')) {
+      setHospitalsRouteContext(null);
+      return undefined;
+    }
+
+    const handleHospitalsRouteContext = (event) => {
+      setHospitalsRouteContext(event.detail || null);
+    };
+
+    window.addEventListener('hospitalsRouteContextUpdated', handleHospitalsRouteContext);
+    window.dispatchEvent(new CustomEvent('requestHospitalsRouteContext'));
+
+    return () => {
+      window.removeEventListener('hospitalsRouteContextUpdated', handleHospitalsRouteContext);
+    };
+  }, [currentPath]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/ambulances')) {
+      setAmbulancesRouteContext(null);
+      return undefined;
+    }
+
+    const handleAmbulancesRouteContext = (event) => {
+      setAmbulancesRouteContext(event.detail || null);
+    };
+
+    window.addEventListener('ambulancesRouteContextUpdated', handleAmbulancesRouteContext);
+    window.dispatchEvent(new CustomEvent('requestAmbulancesRouteContext'));
+
+    return () => {
+      window.removeEventListener('ambulancesRouteContextUpdated', handleAmbulancesRouteContext);
+    };
+  }, [currentPath]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/support-tickets')) {
+      setSupportTicketsRouteContext(null);
+      return undefined;
+    }
+
+    const handleSupportTicketsRouteContext = (event) => {
+      setSupportTicketsRouteContext(event.detail || null);
+    };
+
+    window.addEventListener('supportTicketsRouteContextUpdated', handleSupportTicketsRouteContext);
+    window.dispatchEvent(new CustomEvent('requestSupportTicketsRouteContext'));
+
+    return () => {
+      window.removeEventListener('supportTicketsRouteContextUpdated', handleSupportTicketsRouteContext);
+    };
+  }, [currentPath]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/organizations')) {
+      setOrganizationsRouteContext(null);
+      return undefined;
+    }
+
+    const handleOrganizationsRouteContext = (event) => {
+      setOrganizationsRouteContext(event.detail || null);
+    };
+
+    window.addEventListener('organizationsRouteContextUpdated', handleOrganizationsRouteContext);
+    window.dispatchEvent(new CustomEvent('requestOrganizationsRouteContext'));
+
+    return () => {
+      window.removeEventListener('organizationsRouteContextUpdated', handleOrganizationsRouteContext);
+    };
+  }, [currentPath]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/subscriptions')) {
+      setSubscriptionsRouteContext(null);
+      return undefined;
+    }
+
+    const handleSubscriptionsRouteContext = (event) => {
+      setSubscriptionsRouteContext(event.detail || null);
+    };
+
+    window.addEventListener('subscriptionsRouteContextUpdated', handleSubscriptionsRouteContext);
+    window.dispatchEvent(new CustomEvent('requestSubscriptionsRouteContext'));
+
+    return () => {
+      window.removeEventListener('subscriptionsRouteContextUpdated', handleSubscriptionsRouteContext);
+    };
+  }, [currentPath]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/wallet')) {
+      setWalletRouteContext(null);
+      return undefined;
+    }
+
+    const handleWalletRouteContext = (event) => {
+      setWalletRouteContext(event.detail || null);
+    };
+
+    window.addEventListener('walletRouteContextUpdated', handleWalletRouteContext);
+    window.dispatchEvent(new CustomEvent('requestWalletRouteContext'));
+
+    return () => {
+      window.removeEventListener('walletRouteContextUpdated', handleWalletRouteContext);
+    };
+  }, [currentPath]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/health-news')) {
+      setHealthNewsRouteContext(null);
+      return undefined;
+    }
+
+    const handleHealthNewsRouteContext = (event) => {
+      setHealthNewsRouteContext(event.detail || null);
+    };
+
+    window.addEventListener('healthNewsRouteContextUpdated', handleHealthNewsRouteContext);
+    window.dispatchEvent(new CustomEvent('requestHealthNewsRouteContext'));
+
+    return () => {
+      window.removeEventListener('healthNewsRouteContextUpdated', handleHealthNewsRouteContext);
+    };
+  }, [currentPath]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!currentPath.includes('/insurance')) {
+      setInsuranceRouteContext(null);
+      return undefined;
+    }
+
+    const handleInsuranceRouteContext = (event) => {
+      setInsuranceRouteContext(event.detail || null);
+    };
+
+    window.addEventListener('insuranceRouteContextUpdated', handleInsuranceRouteContext);
+    window.dispatchEvent(new CustomEvent('requestInsuranceRouteContext'));
+
+    return () => {
+      window.removeEventListener('insuranceRouteContextUpdated', handleInsuranceRouteContext);
+    };
+  }, [currentPath]);
+
   const renderAccessDenied = () => (
     <div className="p-0 md:p-6 scrollbar-hide">
       <motion.div
@@ -109,12 +352,12 @@ export const ContextPanel = () => {
         <div className="w-16 h-16 bg-destructive/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <Lock className="h-8 w-8 text-destructive" />
         </div>
-        <h3 className="font-bold text-xl mb-2 text-foreground">Access Restricted</h3>
+        <h3 className="font-bold text-xl mb-2 text-foreground">No access</h3>
         <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-          You don't have permission to view this context panel
+          You do not have access to this panel.
         </p>
         <div className="text-xs text-muted-foreground font-medium">
-          Contact your administrator if you need access to this feature
+          Ask an admin if this should be available.
         </div>
       </motion.div>
     </div>
@@ -122,31 +365,31 @@ export const ContextPanel = () => {
 
   const getPageContextHeader = () => {
     const headers = {
-      '/': { title: 'System Overview', subtitle: 'Live Dashboard' },
-      '/emergencies': { title: 'Emergency Context', subtitle: 'Response Operations' },
-      '/users': { title: 'User Management', subtitle: 'Access Control' },
-      '/verification': { title: 'Verification Queue', subtitle: 'Identity Verification' },
-      '/analytics': { title: 'Analytics', subtitle: 'Performance Metrics' },
-      '/doctors': { title: 'Doctor Operations', subtitle: 'Medical Staff' },
-      '/visits': { title: 'Visit Management', subtitle: 'Patient Appointments' },
-      '/hospitals': { title: 'Hospital Ops', subtitle: 'Facility Management' },
-      '/ambulances': { title: 'Fleet Control', subtitle: 'Ambulance Operations' },
-      '/health-news': { title: 'Health News', subtitle: 'Content Management' },
-      '/support-tickets': { title: 'Support', subtitle: 'Ticket Management' },
-      '/insurance': { title: 'Insurance', subtitle: 'Policy Management' },
-      '/map': { title: 'Map Intelligence', subtitle: 'Location Services' },
-      '/settings': { title: 'System Settings', subtitle: 'Configuration' },
-      '/subscriptions': { title: 'Subscriptions', subtitle: 'Email Management' },
-      '/wallet': { title: 'Wallet & Billing', subtitle: 'Financial Operations' },
-      '/pricing': { title: 'Premium Engine', subtitle: 'Dynamic Cost Control' },
-      '/organizations': { title: 'Organization Ops', subtitle: 'Network Management' }
+      '/': { title: 'Today', subtitle: 'What needs attention' },
+      '/emergencies': { title: 'Requests', subtitle: 'Active care requests' },
+      '/users': { title: 'Users', subtitle: 'Access' },
+      '/verification': { title: 'Approvals', subtitle: 'Provider and facility review' },
+      '/analytics': { title: 'Statistics', subtitle: 'Trends' },
+      '/doctors': { title: 'Staff', subtitle: 'Care team' },
+      '/visits': { title: 'Visits', subtitle: 'Appointments' },
+      '/hospitals': { title: 'Facilities', subtitle: 'Hospitals and clinics' },
+      '/ambulances': { title: 'Ambulances', subtitle: 'Vehicles and crews' },
+      '/health-news': { title: 'Health news', subtitle: 'Content' },
+      '/support-tickets': { title: 'Support', subtitle: 'Help requests' },
+      '/insurance': { title: 'Insurance', subtitle: 'Policies' },
+      '/map': { title: 'Map', subtitle: 'Locations' },
+      '/settings': { title: 'Settings', subtitle: 'Account and app' },
+      '/subscriptions': { title: 'Subscriptions', subtitle: 'Emails' },
+      '/wallet': { title: 'Payments', subtitle: 'Balance and cards' },
+      '/pricing': { title: 'Pricing', subtitle: 'Costs' },
+      '/organizations': { title: 'Organizations', subtitle: 'Network' }
     };
 
-    const currentHeader = Object.keys(headers).find(key =>
+    const currentHeaderKey = Object.keys(headers).find(key =>
       currentPath === key || currentPath.startsWith(key + '/')
-    ) || { title: 'Context Panel', subtitle: 'Smart Context' };
+    );
 
-    return currentHeader;
+    return currentHeaderKey ? headers[currentHeaderKey] : { title: 'Context', subtitle: 'Page details' };
   };
 
   const renderPanelHeader = () => {
@@ -159,9 +402,6 @@ export const ContextPanel = () => {
         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         className="relative"
       >
-        {/* Subtle service bar */}
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/20 via-success/20 to-primary/20" />
-
         <div className="px-0 pt-4 pb-3 md:px-6">
           <div className="flex items-center justify-between">
             <div>
@@ -175,6 +415,7 @@ export const ContextPanel = () => {
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
                   className="w-2 h-2 bg-success rounded-full"
+                  aria-hidden="true"
                 />
               )}
               {/* Close button - Hidden on mobile */}
@@ -185,6 +426,8 @@ export const ContextPanel = () => {
                   window.dispatchEvent(event);
                 }}
                 className="hidden md:block w-8 h-8 rounded-xl bg-muted/20 hover:bg-muted/30 transition-all duration-300 flex items-center justify-center group"
+                type="button"
+                aria-label="Close panel"
               >
                 <X className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </button>
@@ -196,7 +439,7 @@ export const ContextPanel = () => {
   };
 
   const renderPanelWithHeader = (panelContent) => (
-    <div className="h-full flex flex-col rounded-3xl">
+    <div className="h-full flex flex-col rounded-3xl" data-context-panel-content="true">
       {/* Header - Hidden on mobile */}
       <div className="hidden md:block">
         {renderPanelHeader()}
@@ -214,28 +457,19 @@ export const ContextPanel = () => {
 
   if (currentPath === '/' || currentPath === '') {
     return renderPanelWithHeader(
-      <DashboardPanel
-        emergencyStats={emergencyStats}
-        analyticsData={analyticsData}
-        doctorsData={doctorsData}
-        verificationData={verificationData}
-        activityData={activityData}
-        refreshAllData={refreshAllData}
-      />
+      <DashboardPanel todayContext={todayRouteContext} />
     );
   } else if (currentPath.includes('/emergencies')) {
     return renderPanelWithHeader(
-      <EmergencyPanel
-        emergencyData={emergencyData}
-        emergencyStats={emergencyStats}
-        useMockData={useMockData}
-      />
+      <EmergencyPanel requestContext={emergencyRouteContext} />
     );
   } else if (currentPath.includes('/users')) {
     return renderPanelWithHeader(<UsersPanel
-      users={userData?.users || []}
-      statistics={userData?.statistics}
+      users={usersRouteContext?.users || []}
+      statistics={usersRouteContext?.statistics}
       filters={filters}
+      recentUsers={usersRouteContext?.recentUsers || []}
+      fetchRecentActivity={false}
       onViewUser={(user) => {
         // Navigate to user detail or open modal
         console.log('View user:', user);
@@ -252,56 +486,56 @@ export const ContextPanel = () => {
         // Open analytics modal
         window.dispatchEvent(new CustomEvent('openUserAnalytics', {
           detail: {
-            users: userData?.users || [],
-            statistics: userData?.statistics
+            users: usersRouteContext?.users || [],
+            statistics: usersRouteContext?.statistics
           }
         }));
       }}
     />);
   } else if (currentPath.includes('/hospitals')) {
-    return renderPanelWithHeader(<HospitalsPanel hospitalsData={hospitalsData} />);
+    return renderPanelWithHeader(<HospitalsPanel hospitalContext={hospitalsRouteContext} />);
   } else if (currentPath.includes('/ambulances')) {
-    return renderPanelWithHeader(<AmbulancesPanel ambulancesData={ambulancesData} />);
+    return renderPanelWithHeader(<AmbulancesPanel ambulanceContext={ambulancesRouteContext} />);
   } else if (currentPath.includes('/map')) {
     return renderPanelWithHeader(
       <MapPanel emergencyStats={emergencyStats} />
     );
   } else if (currentPath.includes('/analytics')) {
-    return renderPanelWithHeader(<AnalyticsPanel analyticsData={analyticsData} />);
+    return renderPanelWithHeader(<AnalyticsPanel />);
   } else if (currentPath.includes('/doctors')) {
-    return renderPanelWithHeader(<DoctorsPanel doctorsData={doctorsData} />);
+    return renderPanelWithHeader(<DoctorsPanel staffContext={doctorsRouteContext} />);
   } else if (currentPath.includes('/visits')) {
-    return renderPanelWithHeader(<VisitsPanel visitsData={visitsData} />);
+    return renderPanelWithHeader(<VisitsPanel visitContext={visitsRouteContext} />);
   } else if (currentPath.includes('/verification')) {
     return renderPanelWithHeader(<VerificationPanel verificationData={verificationData} loading={loading} />);
   } else if (currentPath.includes('/health-news')) {
-    return renderPanelWithHeader(<HealthNewsPanel />);
+    return renderPanelWithHeader(<HealthNewsPanel healthNewsContext={healthNewsRouteContext} />);
   } else if (currentPath.includes('/support-tickets')) {
-    return renderPanelWithHeader(
-      <SupportTicketsPanel
-        supportTicketsData={supportTicketsData}
-        loading={loading}
-        useMockData={useMockData}
-      />
-    );
+    return renderPanelWithHeader(<SupportTicketsPanel supportContext={supportTicketsRouteContext} />);
   } else if (currentPath.includes('/insurance')) {
     return renderPanelWithHeader(
-      <InsurancePanel
-        loading={loading}
-        getInsuranceStats={getInsuranceStats}
-        insuranceData={insurance}
-      />
+      <InsurancePanel insuranceContext={insuranceRouteContext} />
     );
   } else if (currentPath.includes('/subscriptions')) {
-    return renderPanelWithHeader(<SubscriptionsPanel subscribers={subscribers} />);
+    return renderPanelWithHeader(
+      <SubscriptionsPanel
+        subscribers={subscriptionsRouteContext?.subscribers || []}
+        summary={subscriptionsRouteContext?.summary}
+      />
+    );
   } else if (currentPath.includes('/settings')) {
     return renderPanelWithHeader(<SettingsPanel />);
   } else if (currentPath.includes('/pricing')) {
-    return renderPanelWithHeader(<PricingContextPanel pricing={[...servicePricing, ...roomPricing]} />);
+    return renderPanelWithHeader(<PricingContextPanel />);
   } else if (currentPath.includes('/wallet')) {
-    return renderPanelWithHeader(<WalletPanel walletData={walletData} />);
+    return renderPanelWithHeader(<WalletPanel walletContext={walletRouteContext} />);
   } else if (currentPath.includes('/organizations')) {
-    return renderPanelWithHeader(<OrganizationsPanel organizations={organizationsData?.organizations || []} />);
+    return renderPanelWithHeader(
+      <OrganizationsPanel
+        organizations={organizationsRouteContext?.organizations || []}
+        summary={organizationsRouteContext?.summary}
+      />
+    );
   }
 
   // Default panel
@@ -316,9 +550,9 @@ export const ContextPanel = () => {
         <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <Sparkles className="h-8 w-8 text-primary" />
         </div>
-        <h3 className="font-bold text-xl mb-2 text-foreground">Context Panel</h3>
+        <h3 className="font-bold text-xl mb-2 text-foreground">Page help</h3>
         <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-          Navigate to a page to see relevant information and quick actions
+          Open a page to see related details and actions.
         </p>
 
         <motion.div
@@ -328,7 +562,7 @@ export const ContextPanel = () => {
           className="flex items-center justify-center gap-2"
         >
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-xs font-normal text-primary uppercase tracking-wider">Smart Context</span>
+          <span className="text-xs font-normal text-primary uppercase tracking-wider">Ready</span>
         </motion.div>
       </motion.div>
     </div>

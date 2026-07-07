@@ -1,24 +1,29 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
 import {
-    Wallet,
     ArrowUpRight,
     ArrowDownLeft,
     TrendingUp,
     CreditCard,
-    History,
     ShieldCheck,
     Download,
-    Plus
+    Plus,
+    History,
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 
-export const WalletPanel = ({ walletData }) => {
-    const { wallet, ledger, projection } = walletData;
-    const { isAdmin } = useAuth();
+export const WalletPanel = ({ walletContext }) => {
+    const {
+        wallet = null,
+        ledger = [],
+        payments = [],
+        projection = 0,
+        paymentMethods = [],
+        counts = {},
+        loading = false,
+        roleLabel = 'Hospital admin',
+        canManage = false,
+    } = walletContext || {};
+    const [panelStatus, setPanelStatus] = React.useState('');
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-US', {
@@ -28,86 +33,127 @@ export const WalletPanel = ({ walletData }) => {
         }).format(amount || 0);
     };
 
+    const announce = (message) => {
+        setPanelStatus(message);
+        window.setTimeout(() => setPanelStatus(''), 2200);
+    };
+
     const handleTopUp = () => {
-        window.dispatchEvent(new CustomEvent('openTopUpModal'));
+        announce('Opening Add funds.');
+        window.dispatchEvent(new CustomEvent('openTopUpModal', { detail: { wallet } }));
     };
 
     const handleWithdraw = () => {
-        window.dispatchEvent(new CustomEvent('openWithdrawModal'));
+        announce('Opening Withdraw.');
+        window.dispatchEvent(new CustomEvent('openWithdrawModal', { detail: { wallet } }));
+    };
+
+    const handleCards = () => {
+        announce('Opening Payment cards.');
+        window.dispatchEvent(new CustomEvent('openBillingModal', { detail: { wallet } }));
     };
 
     const handleExport = () => {
+        if (!ledger.length) {
+            announce('No transactions to export yet.');
+            return;
+        }
+
+        announce('Exporting transactions.');
         window.dispatchEvent(new CustomEvent('exportLedger'));
     };
 
+    const recentActivity = [...ledger.slice(0, 3), ...payments.slice(0, 2)].slice(0, 4);
+    const cardState = paymentMethods.length > 0 ? 'Cards ready' : 'Cards needed';
+    const balanceLabel = wallet ? formatCurrency(wallet.balance) : loading ? 'Loading' : formatCurrency(0);
+    const transactionsCount = counts.ledger ?? ledger.length;
+    const patientPaymentsCount = counts.payments ?? payments.length;
+
     return (
         <div className="space-y-4">
-            {/* Balance Overview */}
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="space-y-2"
+                className="space-y-3"
             >
-                <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Capital Assets</h3>
-                <div className="bg-black p-6 rounded-[2.5rem] relative overflow-hidden group shadow-2xl">
-                    <div className="relative z-10">
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Available Funds</p>
-                        <h2 className="text-4xl font-black tracking-tighter text-white">
-                            {formatCurrency(wallet?.balance)}
-                        </h2>
-                        <div className="mt-4 flex items-center gap-2">
-                            <Badge className="bg-success/20 text-success border-0 text-[10px] font-black uppercase tracking-widest py-0.5 rounded-full px-3">
-                                Verified
-                            </Badge>
-                            <span className="text-[10px] text-zinc-500 font-bold uppercase">Main Portfolio</span>
-                        </div>
+                <h3 className="ml-1 text-sm font-semibold text-muted-foreground">Payments overview</h3>
+                <div className="relative overflow-hidden rounded-[34px] bg-card/72 p-5 shadow-[0_24px_70px_rgb(0_0_0/0.14)] dark:bg-white/[0.05]">
+                    <p className="mb-1 text-sm font-medium text-muted-foreground">Available balance</p>
+                    <h2 className="text-4xl font-semibold tracking-tight text-foreground">
+                        {balanceLabel}
+                    </h2>
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-emerald-500/12 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-100">
+                            {loading ? 'Loading' : 'Current'}
+                        </span>
+                        <span className="text-xs font-medium text-muted-foreground">{roleLabel}</span>
                     </div>
-                    {/* Glow effect */}
-                    <div className="absolute -top-12 -right-12 w-48 h-48 bg-primary/20 rounded-full blur-[80px]" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-white/5 p-4 rounded-3xl flex flex-col gap-1 transition-colors hover:bg-white/10 group">
+                <div className="grid gap-2">
+                    <div className="flex flex-col gap-1 rounded-[24px] bg-muted/24 p-4 transition-colors hover:bg-muted/34">
                         <div className="flex items-center gap-2">
-                            <TrendingUp className="w-3 h-3 text-primary group-hover:scale-110 transition-transform" />
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Yields</span>
+                            <TrendingUp className="h-3.5 w-3.5 text-primary transition-transform" />
+                            <span className="text-xs font-medium text-muted-foreground">Next 30 days</span>
                         </div>
-                        <p className="font-bold text-sm tracking-tight">{formatCurrency(projection || (wallet?.balance * 0.12))}</p>
+                        <p className="text-sm font-semibold tracking-tight">{formatCurrency(projection || 0)}</p>
                     </div>
-                    <div className="bg-white/5 p-4 rounded-3xl flex flex-col gap-1 transition-colors hover:bg-white/10 group">
+                    <div className="flex flex-col gap-1 rounded-[24px] bg-muted/24 p-4 transition-colors hover:bg-muted/34">
                         <div className="flex items-center gap-2">
-                            <CreditCard className="w-3 h-3 text-success group-hover:scale-110 transition-transform" />
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status</span>
+                            <CreditCard className="h-3.5 w-3.5 text-success transition-transform" />
+                            <span className="text-xs font-medium text-muted-foreground">Payment cards</span>
                         </div>
-                        <p className="font-bold text-sm tracking-tight text-success">Linked</p>
+                        <p className="text-sm font-semibold tracking-tight text-success">{cardState}</p>
                     </div>
                 </div>
             </motion.div>
 
-            {/* Smart Actions */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="grid grid-cols-2 gap-2"
+                className="space-y-2"
             >
+                <h3 className="ml-1 text-sm font-semibold text-muted-foreground">Panel actions</h3>
+                <div className="grid grid-cols-2 gap-2">
                 <button
                     onClick={handleTopUp}
-                    className="h-16 flex items-center justify-center gap-2 rounded-3xl bg-primary/10 hover:bg-primary/20 transition-all group"
+                    disabled={!canManage}
+                    className="flex h-14 items-center justify-center gap-2 rounded-[24px] bg-primary/10 text-primary transition-all hover:bg-primary/18 active:scale-[0.98]"
                 >
-                    <Plus className="w-5 h-5 text-primary group-hover:rotate-90 transition-transform" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Inflow</span>
+                    <Plus className="h-5 w-5 transition-transform" />
+                    <span className="text-sm font-semibold">Add funds</span>
                 </button>
                 <button
                     onClick={handleWithdraw}
-                    className="h-16 flex items-center justify-center gap-2 rounded-3xl bg-secondary/30 dark:bg-white/5 hover:bg-secondary/40 transition-all group"
+                    disabled={!canManage}
+                    className="flex h-14 items-center justify-center gap-2 rounded-[24px] bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.98]"
                 >
-                    <ArrowUpRight className="w-5 h-5 text-muted-foreground group-hover:scale-110 transition-transform" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Outflow</span>
+                    <ArrowUpRight className="h-5 w-5 text-muted-foreground transition-transform" />
+                    <span className="text-sm font-semibold">Withdraw</span>
                 </button>
+                <button
+                    onClick={handleCards}
+                    disabled={!canManage}
+                    className="flex h-14 items-center justify-center gap-2 rounded-[24px] bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.98]"
+                >
+                    <CreditCard className="h-5 w-5 text-muted-foreground transition-transform" />
+                    <span className="text-sm font-semibold">Manage cards</span>
+                </button>
+                <button
+                    onClick={handleExport}
+                    disabled={!ledger.length}
+                    className="flex h-14 items-center justify-center gap-2 rounded-[24px] bg-muted/28 transition-all hover:bg-muted/38 active:scale-[0.98]"
+                >
+                    <Download className="h-5 w-5 text-muted-foreground transition-transform" />
+                    <span className="text-sm font-semibold">Export</span>
+                </button>
+                </div>
+                <p role="status" aria-live="polite" className="min-h-5 px-1 text-xs font-medium text-muted-foreground">
+                    {panelStatus || (canManage ? 'One action at a time.' : 'Payments actions need admin access.')}
+                </p>
             </motion.div>
 
-            {/* Recent Ledger */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -115,50 +161,80 @@ export const WalletPanel = ({ walletData }) => {
                 className="space-y-2"
             >
                 <div className="flex items-center justify-between px-1">
-                    <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Ledger</h3>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-40 hover:opacity-100" onClick={handleExport}>
-                        <Download className="w-3 h-3" />
-                    </Button>
+                    <h3 className="text-sm font-semibold text-muted-foreground">Current route scope</h3>
+                    <span className="rounded-full bg-muted/28 px-3 py-1 text-xs font-semibold text-muted-foreground">
+                        {transactionsCount + patientPaymentsCount} items
+                    </span>
                 </div>
 
+                <div className="grid gap-2">
+                    <div className="rounded-[22px] bg-muted/22 p-3">
+                        <p className="text-[11px] font-semibold text-muted-foreground">Transactions</p>
+                        <p className="mt-1 text-xl font-semibold">{transactionsCount}</p>
+                    </div>
+                    <div className="rounded-[22px] bg-muted/22 p-3">
+                        <p className="text-[11px] font-semibold text-muted-foreground">Patient Payments</p>
+                        <p className="mt-1 text-xl font-semibold">{patientPaymentsCount}</p>
+                    </div>
+                    <div className="rounded-[22px] bg-muted/22 p-3">
+                        <p className="text-[11px] font-semibold text-muted-foreground">Cards</p>
+                        <p className="mt-1 text-xl font-semibold">{paymentMethods.length}</p>
+                    </div>
+                </div>
+            </motion.div>
+
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="space-y-2"
+            >
+                <h3 className="px-1 text-sm font-semibold text-muted-foreground">Current list</h3>
                 <div className="space-y-1">
-                    {ledger?.slice(0, 4).map((item) => (
-                        <div key={item.id} className="p-3 rounded-2xl bg-white/5 flex items-center justify-between group hover:bg-white/10 transition-all">
+                    {recentActivity.map((item) => {
+                        const isPatientPayment = Boolean(item.payment_method || item.emergency_request_id);
+                        const isCredit = isPatientPayment ? item.status === 'completed' : item.transaction_type === 'credit';
+                        const description = isPatientPayment
+                            ? item.display_id || 'Patient payment'
+                            : item.description || 'Transaction';
+
+                        return (
+                        <div key={item.id} className="flex items-center justify-between rounded-[22px] bg-muted/22 p-3 transition-all hover:bg-muted/34">
                             <div className="flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${item.transaction_type === 'credit' ? 'bg-success/10 text-success' : 'bg-muted/20'}`}>
-                                    {item.transaction_type === 'credit' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4 opacity-60" />}
+                                <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${isCredit ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-100' : 'bg-muted/20'}`}>
+                                    {isPatientPayment ? <CreditCard className="h-4 w-4" /> : isCredit ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4 opacity-60" />}
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-xs font-bold truncate tracking-tight">{item.description}</p>
-                                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                                    <p className="truncate text-xs font-semibold tracking-tight">{description}</p>
+                                    <p className="text-[11px] text-muted-foreground">
                                         {new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                     </p>
                                 </div>
                             </div>
-                            <span className={`text-xs font-black ${item.transaction_type === 'credit' ? 'text-success' : ''}`}>
-                                {item.transaction_type === 'credit' ? '+' : '-'} {formatCurrency(Math.abs(item.amount))}
+                            <span className={`text-xs font-semibold ${isCredit ? 'text-emerald-700 dark:text-emerald-100' : ''}`}>
+                                {!isPatientPayment && (isCredit ? '+' : '-')} {formatCurrency(Math.abs(item.amount))}
                             </span>
                         </div>
-                    ))}
-                    {!ledger?.length && (
-                        <div className="py-8 text-center bg-white/5 rounded-[2rem] border-0">
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Silent Balance</p>
+                    );
+                    })}
+                    {!recentActivity.length && (
+                        <div className="rounded-[28px] bg-muted/22 py-8 text-center">
+                            <p className="text-sm font-medium text-muted-foreground">No transactions yet</p>
                         </div>
                     )}
                 </div>
             </motion.div>
 
-            {/* Payout Security */}
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 }}
-                className="p-4 rounded-3xl bg-success/5 flex items-center gap-3"
+                className="flex items-center gap-3 rounded-[28px] bg-success/8 p-4"
             >
-                <ShieldCheck className="w-5 h-5 text-success" />
+                <ShieldCheck className="h-5 w-5 text-success" />
                 <div className="min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-success">PCI Secure</p>
-                    <p className="text-[9px] text-success/60 leading-tight truncate">Encrypted via Stripe Gateway</p>
+                    <p className="text-sm font-semibold text-success">{cardState}</p>
+                    <p className="truncate text-xs leading-tight text-success/70">Cards are encrypted</p>
                 </div>
             </motion.div>
         </div>

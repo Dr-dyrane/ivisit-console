@@ -82,7 +82,7 @@ async function getProfilesWithAuthData(filter) {
     if (profiles.length > 0) {
       const { getDisplayIds } = await import('./displayIdService');
       const profileIds = profiles.map(p => p.id);
-      const displayIds = await getDisplayIds(profileIds);
+      const displayIds = await getDisplayIds(profileIds, { quiet: filter?.quiet });
 
       profiles = profiles.map(p => ({
         ...p,
@@ -92,7 +92,9 @@ async function getProfilesWithAuthData(filter) {
 
     return profiles;
   } catch (error) {
-    console.error('Error fetching profiles with auth data:', error);
+    if (!filter?.quiet) {
+      console.error('Error fetching profiles with auth data:', error);
+    }
     throw error;
   }
 }
@@ -101,7 +103,7 @@ async function getProfilesWithAuthData(filter) {
 /**
  * Get user statistics (admin only)
  */
-export async function getUserStatistics() {
+export async function getUserStatistics(options = {}) {
   try {
     const user = await getCurrentUser();
     // RBAC: Patients should not be calling statistics (Console only)
@@ -130,7 +132,9 @@ export async function getUserStatistics() {
       }
     } : {};
   } catch (error) {
-    console.error('Error fetching user statistics:', error);
+    if (!options?.quiet) {
+      console.error('Error fetching user statistics:', error);
+    }
     throw error;
   }
 }
@@ -220,7 +224,7 @@ export async function getProfiles(filter = {}) {
     if (enrichedData.length > 0) {
       const { getDisplayIds } = await import('./displayIdService');
       const profileIds = enrichedData.map(p => p.id);
-      const displayIds = await getDisplayIds(profileIds);
+      const displayIds = await getDisplayIds(profileIds, { quiet: filter?.quiet });
 
       enrichedData = enrichedData.map(p => ({
         ...p,
@@ -230,7 +234,9 @@ export async function getProfiles(filter = {}) {
 
     return enrichedData;
   } catch (error) {
-    console.error('Error fetching profiles:', error);
+    if (!filter?.quiet) {
+      console.error('Error fetching profiles:', error);
+    }
     throw error;
   }
 }

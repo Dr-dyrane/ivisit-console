@@ -1,839 +1,490 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { Ambulance, Activity, Calendar, Hospital, MapPin, Shield, UserCheck, Wrench } from 'lucide-react';
+import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { supabase } from '../../lib/supabase';
-import { toast } from 'sonner';
-import { handleApiError } from "../../utils/errorHandler";
-import { X, Ambulance, MapPin, Activity, Star, Calendar, Hospital, Shield, Zap } from 'lucide-react';
-import { Badge } from '../ui/badge';
-import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
-import { createAmbulance, updateAmbulance, getDrivers, assignDriverToAmbulance } from '../../services/ambulancesService';
-
-import { uploadImage } from '../../services/storageService';
-import { Loader2, Upload, UserPlus, Users } from 'lucide-react';
+import { ModalShell } from '../ui/ModalShell';
 import { useAuth } from '../../contexts/AuthContext';
-import { getProfilesByRole } from '../../services/profilesService';
-import { driverManagementService } from '../../services/driverManagementService';
-import { Clock, UserCheck, AlertTriangle } from 'lucide-react';
+import { handleApiError } from '../../utils/errorHandler';
+import { createNotification, NotificationActions, NotificationTypes } from '../../services/notificationService';
+import { createAmbulance, updateAmbulance } from '../../services/ambulancesService';
+import { getHospitals } from '../../services/hospitalsService';
+
+const DEFAULT_AMBULANCE_FORM = {
+  call_sign: '',
+  type: 'BLS',
+  status: 'available',
+  vehicle_number: '',
+  license_plate: '',
+  hospital_id: '',
+  eta: '',
+  crew: '',
+  current_call: '',
+  base_price: '',
+  organization_id: '',
+};
+
+const TRIP_OWNED_STATUSES = new Set(['dispatched', 'on_trip', 'en_route', 'on_scene', 'returning']);
+const UNIT_STATUS_OPTIONS = [
+  { value: 'available', label: 'Available' },
+  { value: 'maintenance', label: 'Maintenance' },
+  { value: 'offline', label: 'Offline' },
+  { value: 'pending_approval', label: 'Pending review' },
+];
+const TYPE_OPTIONS = [
+  { value: 'BLS', label: 'Basic life support' },
+  { value: 'ALS', label: 'Advanced life support' },
+  { value: 'basic', label: 'Basic' },
+  { value: 'advanced', label: 'Advanced' },
+  { value: 'critical', label: 'Critical care' },
+];
+const modalFieldClassName = 'rounded-2xl bg-muted/30 shadow-[0_14px_34px_rgb(0_0_0/0.06)] transition-[background,box-shadow] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:bg-background/80 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16),0_18px_38px_rgb(0_0_0/0.10)] dark:bg-white/[0.06] dark:focus-visible:bg-white/[0.09]';
+const modalSelectContentClassName = 'rounded-2xl bg-background/95 shadow-xl backdrop-blur-xl';
+
+const normalizeFormData = (ambulance, orgId, isCreate, isOrgAdmin) => {
+  const base = {
+    ...DEFAULT_AMBULANCE_FORM,
+    ...(ambulance || {}),
+  };
+
+  return {
+    ...base,
+    call_sign: base.call_sign || '',
+    type: base.type || 'BLS',
+    status: base.status || 'available',
+    vehicle_number: base.vehicle_number || base.vehicle_label || '',
+    license_plate: base.license_plate || '',
+    hospital_id: base.hospital_id || '',
+    eta: base.eta && base.eta !== 'N/A' ? base.eta : '',
+    crew: base.crew || '',
+    current_call: base.current_call || '',
+    base_price: base.base_price ?? '',
+    organization_id: base.organization_id || (isCreate && isOrgAdmin && orgId ? orgId : ''),
+  };
+};
+
+const formatLabel = (value, fallback = 'Not set') => {
+  const text = String(value || '').trim();
+  if (!text) return fallback;
+  return text.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
+const formatDateTime = (value) => {
+  if (!value) return 'Unknown';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown';
+  return date.toLocaleString();
+};
+
+const getStatusTone = (status) => {
+  if (status === 'available') return 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200';
+  if (status === 'maintenance' || status === 'offline') return 'bg-muted/50 text-muted-foreground';
+  if (status === 'pending_approval') return 'bg-amber-500/12 text-amber-700 dark:text-amber-200';
+  if (TRIP_OWNED_STATUSES.has(status)) return 'bg-cyan-500/12 text-cyan-700 dark:text-cyan-200';
+  return 'bg-muted/40 text-muted-foreground';
+};
+
+const buildAmbulancePayload = (formData, { isCreate, isOrgAdmin, orgId }) => {
+  const payload = {
+    call_sign: formData.call_sign?.trim(),
+    type: formData.type,
+    status: formData.status,
+    vehicle_number: formData.vehicle_number?.trim(),
+    license_plate: formData.license_plate?.trim(),
+    hospital_id: formData.hospital_id || '',
+    eta: formData.eta?.trim(),
+    crew: formData.crew?.trim(),
+    current_call: formData.current_call?.trim(),
+    base_price: formData.base_price === '' ? undefined : Number(formData.base_price),
+  };
+
+  if (formData.organization_id) {
+    payload.organization_id = formData.organization_id;
+  } else if (isCreate && isOrgAdmin && orgId) {
+    payload.organization_id = orgId;
+  }
+
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) delete payload[key];
+  });
+
+  return payload;
+};
 
 export const AmbulanceModal = ({ isOpen, onClose, ambulance, mode }) => {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
   const isCreate = mode === 'create';
+  const { isOrgAdmin, orgId } = useAuth();
 
-  const { isAdmin, isOrgAdmin, orgId } = useAuth();
-  const [formData, setFormData] = useState({
-    call_sign: '',
-    type: 'basic',
-    status: 'available',
-    vehicle_number: '',
-    hospital_id: '',
-    eta: 'N/A',
-    rating: 4.5,
-    last_maintenance: '',
-    profile_id: ambulance?.profile_id || ambulance?.driver_id || '',
-    driver_id: ambulance?.driver_id || ambulance?.profile_id || '',
-    ...ambulance
-  });
-
-  const [availableProfiles, setAvailableProfiles] = useState([]);
-  const [fetchingProfiles, setFetchingProfiles] = useState(false);
-  const [linkingExisting, setLinkingExisting] = useState(true);
-  const [drivers, setDrivers] = useState([]);
-  const [selectedDriver, setSelectedDriver] = useState('');
-
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [showImage, setShowImage] = useState(false);
+  const [formData, setFormData] = useState(() => normalizeFormData(ambulance, orgId, isCreate, isOrgAdmin()));
   const [hospitals, setHospitals] = useState([]);
-
-  // Driver assignment state
-  const [activeAssignments, setActiveAssignments] = useState([]);
-  const [driverUtilization, setDriverUtilization] = useState(null);
-  const [loadingAssignments, setLoadingAssignments] = useState(false);
-
-  // Sync formData when ambulance prop changes
-  useEffect(() => {
-    if (ambulance) {
-      setFormData(prev => ({
-        ...prev,
-        ...ambulance,
-        profile_id: ambulance.profile_id || ambulance.driver_id || '',
-        driver_id: ambulance.driver_id || ambulance.profile_id || '',
-        // Ensure proper fallbacks for select fields
-        type: ambulance.type || 'basic',
-        status: ambulance.status || 'available',
-        hospital_id: ambulance.hospital_id || '',
-        rating: ambulance.rating || 4.5
-      }));
-    } else if (isCreate && isOrgAdmin() && orgId) {
-      setFormData(prev => ({ ...prev, hospital_id: orgId }));
-    }
-  }, [ambulance, isCreate, isOrgAdmin, orgId]);
-
+  const [loadingHospitals, setLoadingHospitals] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchHospitals();
-    if (isCreate || isEdit) {
-      fetchAvailableProfiles();
-    }
-  }, [isCreate, isEdit]);
+    setFormData(normalizeFormData(ambulance, orgId, isCreate, isOrgAdmin()));
+  }, [ambulance, orgId, isCreate, isOrgAdmin]);
 
-  // Keep mobile bottom bar from overlapping the modal layer.
   useEffect(() => {
-    const bottomBar = document.getElementById('dynamic-bottom-bar');
-    if (!bottomBar) return undefined;
+    if (!isOpen) return undefined;
 
-    const previousDisplay = bottomBar.style.display;
-    if (isOpen) {
-      bottomBar.style.display = 'none';
-    }
+    let cancelled = false;
+    setLoadingHospitals(true);
+
+    getHospitals({ quiet: true, limit: 500 })
+      .then((rows) => {
+        if (!cancelled) setHospitals(Array.isArray(rows) ? rows : []);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error('Error loading ambulance station options:', error);
+          setHospitals([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingHospitals(false);
+      });
 
     return () => {
-      bottomBar.style.display = previousDisplay;
+      cancelled = true;
     };
   }, [isOpen]);
 
-  // Load driver assignments when modal opens in view mode
-  useEffect(() => {
-    if (isOpen && ambulance && isView) {
-      loadDriverData();
+  const stationName = useMemo(() => {
+    const selected = hospitals.find((hospital) => hospital.id === formData.hospital_id);
+    return selected?.name || ambulance?.station_name || ambulance?.hospital || (formData.hospital_id ? 'Linked station' : 'No station');
+  }, [ambulance, formData.hospital_id, hospitals]);
 
-      // Set up real-time subscription
-      const unsubscribe = driverManagementService.subscribeToAssignments(
-        ambulance.hospital_id,
-        () => loadDriverData() // Refresh data when changes occur
-      );
+  const status = String(formData.status || 'available').toLowerCase();
+  const tripOwnedStatus = TRIP_OWNED_STATUSES.has(status);
+  const canSubmit = !isView && formData.call_sign?.trim() && formData.type && !loading;
+  const modalTitle = isCreate ? 'New unit' : formData.call_sign || 'Ambulance unit';
+  const modalSubtitle = stationName;
 
-      return () => {
-        if (unsubscribe) unsubscribe();
-      };
-    }
-  }, [isOpen, ambulance, isView]);
+  const statusBadge = (
+    <Badge className={`rounded-full px-3 py-0.5 text-xs font-semibold ${getStatusTone(status)}`}>
+      {formatLabel(status, 'Available')}
+    </Badge>
+  );
 
-  const loadDriverData = async () => {
-    if (!ambulance?.hospital_id) return;
-
-    try {
-      setLoadingAssignments(true);
-
-      // Load active assignments
-      const assignments = await driverManagementService.getActiveAssignments(ambulance.hospital_id);
-      setActiveAssignments(assignments);
-
-      // Load driver utilization stats
-      const utilization = await driverManagementService.getDriverUtilization(ambulance.hospital_id);
-      setDriverUtilization(utilization);
-
-    } catch (error) {
-      console.error('Error loading driver data:', error);
-    } finally {
-      setLoadingAssignments(false);
-    }
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((current) => ({ ...current, [name]: value }));
   };
 
-  const fetchHospitals = async () => {
-    try {
-      const { data } = await supabase.from('hospitals').select('id, name');
-      setHospitals(data || []);
-    } catch (error) {
-      console.error('Error fetching hospitals:', error);
-    }
-  };
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (isView) return;
 
-  const fetchAvailableProfiles = async () => {
-    try {
-      setFetchingProfiles(true);
-      // Get only provider profiles
-      const profiles = await getProfilesByRole('provider');
-
-      // Scope to org for non-admin users
-      const orgScopedProfiles = isOrgAdmin() && orgId
-        ? profiles.filter(p => p.organization_id === orgId)
-        : profiles;
-
-      // Get existing ambulances to check driver assignments
-      const { data: existingAmbulances } = await supabase.from('ambulances').select('profile_id');
-      const assignedDriverIds = new Set(existingAmbulances?.map(a => a.profile_id || a.driver_id).filter(Boolean) || []);
-
-      // In EDIT mode, include current ambulance's driver in available options
-      const currentDriverId = ambulance?.profile_id || ambulance?.driver_id;
-
-      const available = orgScopedProfiles.filter(p => {
-        const isAlreadyAssigned = assignedDriverIds.has(p.id);
-        // Include driver and ambulance provider types (both can drive ambulances)
-        const isCompatibleProvider = ['ambulance', 'driver'].includes(p.provider_type) || !p.provider_type;
-        const isCurrentDriver = isEdit && p.id === currentDriverId;
-        return (!isAlreadyAssigned || isCurrentDriver) && isCompatibleProvider;
-      });
-
-      setAvailableProfiles(available);
-    } catch (error) {
-      console.error('Error fetching profiles:', error);
-    } finally {
-      setFetchingProfiles(false);
-    }
-  };
-
-  const handleProfileSelect = (driverId) => {
-    const profile = availableProfiles.find(p => p.id === driverId);
-    if (profile) {
-      setFormData(prev => ({
-        ...prev,
-        profile_id: profile.id,
-        driver_id: profile.id,
-        call_sign: prev.call_sign || profile.username,
-        hospital_id: profile.organization_id || prev.hospital_id,
-        image: profile.image_uri || profile.avatar_url || prev.image
-      }));
-    }
-  };
-
-  // Handle legacy hospital text field → hospital_id lookup
-  useEffect(() => {
-    if (ambulance && !ambulance.hospital_id && ambulance.hospital && hospitals.length > 0) {
-      // Find hospital ID by matching name (case-insensitive)
-      const matchingHospital = hospitals.find(
-        h => h.name.toLowerCase() === ambulance.hospital.toLowerCase()
-      );
-      if (matchingHospital) {
-        setFormData(prev => ({
-          ...prev,
-          hospital_id: matchingHospital.id
-        }));
-      }
-    }
-  }, [ambulance, hospitals]);
-
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      setUploading(true);
-      const publicUrl = await uploadImage(file, 'ambulances');
-      setFormData(prev => ({
-        ...prev,
-        image: publicUrl
-      }));
-      toast.success('Image uploaded successfully');
-    } catch (error) {
-      console.error('Upload failed:', error);
-      handleApiError(error, 'create');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
     setLoading(true);
 
     try {
-      if (isCreate) {
-        const data = await createAmbulance(formData);
+      const payload = buildAmbulancePayload(formData, { isCreate, isOrgAdmin: isOrgAdmin(), orgId });
+      const savedAmbulance = isCreate
+        ? await createAmbulance(payload)
+        : await updateAmbulance(ambulance.id, payload);
 
+      try {
         await createNotification(
           NotificationTypes.AMBULANCE,
-          NotificationActions.CREATED,
-          data.id,
-          { message: `${formData.call_sign} has been added to the fleet` }
+          isCreate ? NotificationActions.CREATED : NotificationActions.UPDATED,
+          savedAmbulance?.id || ambulance?.id,
+          { message: `${payload.call_sign || 'Ambulance unit'} ${isCreate ? 'was added' : 'was updated'}` }
         );
-        toast.success('Ambulance created successfully');
-      } else if (isEdit) {
-        await updateAmbulance(ambulance.id, formData);
-
-        await createNotification(
-          NotificationTypes.AMBULANCE,
-          NotificationActions.UPDATED,
-          ambulance.id,
-          { message: `${formData.call_sign} information has been updated` }
-        );
-        toast.success('Ambulance updated successfully');
+      } catch (notificationError) {
+        console.warn('Ambulance notification was not created:', notificationError);
       }
 
+      toast.success(isCreate ? 'Unit added' : 'Unit updated');
       onClose(true);
     } catch (error) {
       console.error('Error saving ambulance:', error);
-      handleApiError(error, 'update');
+      handleApiError(error, isCreate ? 'create' : 'update');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4"
-          style={{
-            paddingTop: 'max(12px, var(--safe-top, 0px))',
-            paddingBottom: 'max(12px, calc(var(--safe-bottom, 0px) + 12px))'
-          }}
-        >
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/30 backdrop-blur-md"
-            onClick={() => onClose(false)}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            role="dialog"
-
-            aria-modal="true"
-
-            className="relative z-10 w-full max-w-5xl max-h-[92dvh] overflow-hidden rounded-[32px] shadow-2xl"
-            style={{
-              maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 24px)'
-            }}
-          >
-            {/* Header Area */}
-            <div className="flex items-center justify-between p-2 md:p-8 pb-4">
-              <div className="flex items-center gap-4">
-                <div className="p-2 md:p-2.5 bg-green-500/20 rounded-2xl">
-                  <Ambulance className="h-5 w-5 md:h-6 md:w-6 text-green-500" />
-                </div>
-                <div className="hidden sm:block">
-                  <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-foreground/90">
-                    {formData.call_sign || 'Fleet Management'}
-                  </h2>
-                  <p className="text-xs md:text-sm text-muted-foreground">Emergency response vehicle configuration</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge className={`rounded-full px-3 md:px-4 py-1 text-xs border-0 ${formData.status === 'available' ? 'bg-green-500/10 text-green-500' :
-                  'bg-orange-500/10 text-orange-500'
-                  }`}>
-                  {formData.status?.toUpperCase()}
-                </Badge>
-                <Button
-                  variant="ghost"
-                  onClick={() => onClose(false)}
-                  className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-
-            <div
-              className="p-2 md:p-8 pt-2 overflow-y-auto space-y-6 no-scrollbar"
-              style={{
-                maxHeight: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 170px)'
-              }}
-            >
-
-              {/* Vehicle Summary Bubbles */}
-              <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                <div className="p-3 md:p-4 rounded-[24px] bg-white/5  text-center">
-                  <div className="flex justify-center mb-1">
-                    <Zap className="w-5 h-5 text-primary opacity-60" />
-                  </div>
-                  <p className="text-lg md:text-xl font-semibold">{formData.type === 'critical' ? 'ALS' : 'BLS'}</p>
-                  <p className="text-[10px] uppercase tracking-widest opacity-50">Configuration</p>
-                </div>
-                <div className="p-3 md:p-4 rounded-[24px] bg-white/5  text-center">
-                  <div className="flex justify-center mb-1">
-                    <Star className="w-5 h-5 text-yellow-500 opacity-60 fill-yellow-500/20" />
-                  </div>
-                  <p className="text-lg md:text-xl font-semibold">{formData.rating}</p>
-                  <p className="text-[10px] uppercase tracking-widest opacity-50">Crew Rank</p>
-                </div>
-                <div className="p-3 md:p-4 rounded-[24px] bg-white/5  text-center">
-                  <div className="flex justify-center mb-1">
-                    <Shield className="w-5 h-5 text-blue-500 opacity-60" />
-                  </div>
-                  <p className="text-lg md:text-xl font-semibold truncate px-1">{formData.vehicle_number || '---'}</p>
-                  <p className="text-[10px] uppercase tracking-widest opacity-50">Registry</p>
-                </div>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {(isCreate || isEdit) && (
-                  <GlassCard
-                    icon={linkingExisting ? <Users className="text-primary" /> : <UserPlus className="text-primary" />}
-                    title="Driver Assignment"
-                    className="border-primary/20 bg-primary/5"
-                  >
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label className="text-sm font-semibold">
-                            {isCreate ? 'Assign Driver' : 'Change Assigned Driver'}
-                          </Label>
-                          <p className="text-xs text-muted-foreground">
-                            {isCreate ? 'Select a driver to assign to this vehicle' : 'Change the driver assigned to this vehicle'}
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setLinkingExisting(!linkingExisting);
-                            if (linkingExisting) {
-                              setFormData(prev => ({ ...prev, profile_id: '', driver_id: '' }));
-                            }
-                          }}
-                          className="rounded-xl border-dashed"
-                        >
-                          {linkingExisting ? 'Switch to Manual' : 'Link Existing'}
-                        </Button>
-                      </div>
-
-                      {linkingExisting && (
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">
-                            {isCreate ? 'Select Driver' : 'Change Driver'}
-                          </Label>
-                          <Select
-                            value={formData.profile_id || formData.driver_id || ''}
-                            onValueChange={handleProfileSelect}
-                          >
-                            <SelectTrigger className="rounded-xl bg-background/50 border-white/10 h-12 shadow-inner">
-                              <SelectValue placeholder={fetchingProfiles ? "Loading drivers..." : "Choose a driver..."} />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl max-h-64">
-                              {availableProfiles.length === 0 ? (
-                                <div className="p-4 text-center text-sm text-muted-foreground italic">
-                                  {fetchingProfiles ? 'Finding available drivers...' : 'No available drivers found'}
-                                </div>
-                              ) : (
-                                availableProfiles.map(p => (
-                                  <SelectItem key={p.id} value={p.id} className="py-2">
-                                    <div className="flex flex-col">
-                                      <span className="font-semibold">{p.full_name || p.username}</span>
-                                      <span className="text-[10px] opacity-70 truncate max-w-[200px]">{p.email}</span>
-                                    </div>
-                                  </SelectItem>
-                                ))
-                              )}
-                            </SelectContent>
-                          </Select>
-                          {availableProfiles.length > 0 && (
-                            <p className="text-[10px] text-primary/70 ml-1 italic font-medium">Auto-populates hospital from driver's org</p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Show current driver assignment in EDIT mode */}
-                      {isEdit && (formData.profile_id || formData.driver_id) && !linkingExisting && (
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Currently Assigned Driver</Label>
-                          <div className="p-3 bg-white/5 rounded-xl ">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="font-semibold">{formData.profile_id || formData.driver_id}</div>
-                                <div className="text-xs text-muted-foreground">Driver ID</div>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setLinkingExisting(true)}
-                                className="rounded-xl"
-                              >
-                                Change Driver
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </GlassCard>
+    <ModalShell
+      isOpen={isOpen}
+      onClose={() => onClose(false)}
+      title={modalTitle}
+      subtitle={modalSubtitle}
+      icon={<Ambulance className="h-5 w-5 text-primary" />}
+      badge={statusBadge}
+      size="lg"
+      managed
+      className="bg-background"
+    >
+      <div className="flex-1 min-h-0 overflow-y-auto p-2 pt-1 md:p-8 md:pt-2 no-scrollbar">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <GlassCard icon={<Activity />} title="Unit">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FieldGroup label="Call sign" htmlFor="ambulance-call-sign">
+                {isView ? (
+                  <ReadOnlyField value={formData.call_sign || 'Unknown unit'} icon={<Ambulance className="h-4 w-4" />} />
+                ) : (
+                  <Input
+                    id="ambulance-call-sign"
+                    name="call_sign"
+                    value={formData.call_sign}
+                    onChange={handleChange}
+                    className={`${modalFieldClassName} h-12 font-semibold`}
+                    placeholder="D-AMB-1"
+                  />
                 )}
+              </FieldGroup>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Unit Specifications */}
-                  <GlassCard icon={<Activity className="text-primary" />} title="Unit Specifications">
-                    <div className="space-y-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Call Sign</Label>
-                        <Input
-                          name="call_sign"
-                          value={formData.call_sign || ''}
-                          onChange={handleChange}
-                          disabled={isView}
-                          placeholder="MEDIC-1"
-                          className="rounded-xl bg-white/5 border-white/10 h-11 font-semibold"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Plate Number</Label>
-                          <Input
-                            name="vehicle_number"
-                            value={formData.vehicle_number || ''}
-                            onChange={handleChange}
-                            disabled={isView}
-                            placeholder="ABC-123"
-                            className="rounded-xl bg-white/5 border-white/10 h-11 font-mono"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Status</Label>
-                          <Select
-                            value={formData.status || 'available'}
-                            onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
-                            disabled={isView}
-                          >
-                            <SelectTrigger className="rounded-xl bg-white/5 border-white/10 h-11">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
-                              <SelectItem value="available">Available</SelectItem>
-                              <SelectItem value="en_route">En Route</SelectItem>
-                              <SelectItem value="busy">Busy</SelectItem>
-                              <SelectItem value="maintenance">Maintenance</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Vehicle Type</Label>
-                        <Select
-                          value={formData.type || 'basic'}
-                          onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
-                          disabled={isView}
-                        >
-                          <SelectTrigger className="rounded-xl bg-white/5 border-white/10 h-11">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
-                            <SelectItem value="basic">Basic Life Support (BLS)</SelectItem>
-                            <SelectItem value="advanced">Advanced Life Support (ALS)</SelectItem>
-                            <SelectItem value="critical">Critical Care Transport</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="image" className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Ambulance Image</Label>
-                          {formData.image && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setShowImage(!showImage)}
-                              className="h-5 text-[10px] text-primary hover:text-primary/90 hover:bg-primary/10 px-2"
-                            >
-                              {showImage ? 'Hide Preview' : 'View Image'}
-                            </Button>
-                          )}
-                        </div>
-
-                        {/* Image Preview */}
-                        <AnimatePresence>
-                          {showImage && formData.image && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                              animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
-                              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                              className="rounded-xl overflow-hidden  relative bg-black/20"
-                            >
-                              <img
-                                src={formData.image}
-                                alt="Ambulance Preview"
-                                className="w-full h-48 object-cover"
-                                onError={(e) => { e.target.style.display = 'none'; }}
-                              />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-
-                        {/* Inputs */}
-                        {!isView ? (
-                          <div className="flex gap-2">
-                            <Input
-                              name="image"
-                              value={formData.image || ''}
-                              onChange={handleChange}
-                              disabled={uploading}
-                              placeholder="https://..."
-                              className="rounded-xl bg-white/5 border-white/10 h-11 flex-1"
-                            />
-                            <div className="relative">
-                              <input
-                                type="file"
-                                id="ambulance-image-upload"
-                                className="hidden"
-                                accept="image/*"
-                                onChange={handleImageUpload}
-                                disabled={uploading}
-                              />
-                              <Label
-                                htmlFor="ambulance-image-upload"
-                                className={`h-11 px-4 flex items-center justify-center rounded-xl  bg-white/5 hover:bg-white/10 cursor-pointer transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
-                              >
-                                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                              </Label>
-                            </div>
-                          </div>
-                        ) : (
-                          !formData.image && <p className="text-sm text-muted-foreground italic px-1">No image available</p>
-                        )}
-                      </div>
-                    </div>
-                  </GlassCard>
-
-                  {/* Operational Data */}
-                  <div className="space-y-6">
-                    <GlassCard icon={<Hospital className="text-purple-500" />} title="Deployment">
-                      <div className="space-y-4">
-                        {/* Hospital Selection - Scoped for Org Admin */}
-                        {/* Hospital Selection - Scoped for Org Admin */}
-                        {(isAdmin() || (isOrgAdmin() && isView)) && (
-                          <div className="space-y-1.5">
-                            <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Base Station / Hospital</Label>
-                            {isView && !formData.hospital_id && formData.hospital ? (
-                              <div className="flex items-center h-11 w-full rounded-xl  bg-white/5 px-3 py-2 text-sm">
-                                <span>{formData.hospital}</span>
-                              </div>
-                            ) : (
-                              <Select
-                                value={formData.hospital_id || ''}
-                                onValueChange={(value) => setFormData(prev => ({ ...prev, hospital_id: value }))}
-                                disabled={isView}
-                              >
-                                <SelectTrigger className="rounded-xl bg-white/5 border-white/10 h-11">
-                                  <SelectValue placeholder="Select hospital" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-xl">
-                                  {hospitals.map(h => (
-                                    <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-                          </div>
-                        )}
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Last Maintenance Date</Label>
-                          <div className="relative">
-                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground opacity-50" />
-                            <Input
-                              type="date"
-                              name="last_maintenance"
-                              value={formData.last_maintenance || ''}
-                              onChange={handleChange}
-                              disabled={isView}
-                              className="rounded-xl bg-white/5 border-white/10 h-11 pl-10"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </GlassCard>
-
-                    <GlassCard icon={<Star className="text-yellow-500" />} title="Performance">
-                      <div className="space-y-4">
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] uppercase tracking-widest opacity-50 ml-1">Crew Rating (1-5)</Label>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            name="rating"
-                            value={formData.rating || ''}
-                            onChange={handleChange}
-                            disabled={isView}
-                            className="rounded-xl bg-white/5 border-white/10 h-11 font-semibold"
-                          />
-                        </div>
-                      </div>
-                    </GlassCard>
-
-                    {/* Driver Utilization - Only show in view mode */}
-                    {isView && driverUtilization && (
-                      <GlassCard icon={<Activity className="text-green-500" />} title="Driver Utilization">
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="text-center p-3 bg-white/5 rounded-xl ">
-                              <div className="text-2xl font-bold text-green-400">{driverUtilization.total_drivers}</div>
-                              <div className="text-xs text-muted-foreground">Total Drivers</div>
-                            </div>
-                            <div className="text-center p-3 bg-white/5 rounded-xl ">
-                              <div className="text-2xl font-bold text-blue-400">{driverUtilization.available_drivers}</div>
-                              <div className="text-xs text-muted-foreground">Available</div>
-                            </div>
-                            <div className="text-center p-3 bg-white/5 rounded-xl ">
-                              <div className="text-2xl font-bold text-orange-400">{driverUtilization.on_trip_drivers}</div>
-                              <div className="text-xs text-muted-foreground">On Trip</div>
-                            </div>
-                            <div className="text-center p-3 bg-white/5 rounded-xl ">
-                              <div className="text-2xl font-bold text-purple-400">{driverUtilization.utilization_percentage}%</div>
-                              <div className="text-xs text-muted-foreground">Utilization</div>
-                            </div>
-                          </div>
-
-                          {/* Utilization Bar */}
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-xs">
-                              <span>Fleet Utilization</span>
-                              <span>{driverUtilization.utilization_percentage}%</span>
-                            </div>
-                            <div className="w-full bg-white/10 rounded-full h-2">
-                              <div
-                                className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${Math.min(driverUtilization.utilization_percentage, 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </GlassCard>
-                    )}
-
-                    {/* Active Driver Assignments - Only show in view mode */}
-                    {isView && (
-                      <GlassCard icon={<Users className="text-blue-500" />} title="Active Assignments">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4 text-primary" />
-                              <span className="text-xs font-semibold text-muted-foreground uppercase">Current Trips</span>
-                            </div>
-                            <Badge className="bg-primary/20 text-primary border-0 text-xs">
-                              {activeAssignments.length} active
-                            </Badge>
-                          </div>
-
-                          {loadingAssignments ? (
-                            <div className="space-y-2">
-                              {[1, 2].map((i) => (
-                                <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse" />
-                              ))}
-                            </div>
-                          ) : activeAssignments.length === 0 ? (
-                            <div className="text-center py-4 text-xs text-muted-foreground">
-                              No active driver assignments
-                            </div>
-                          ) : (
-                            <div className="space-y-2 max-h-48 overflow-y-auto">
-                              {activeAssignments.map((assignment) => (
-                                <div key={assignment.id} className="p-3 bg-white/5 rounded-xl ">
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <UserCheck className="h-3 w-3 text-muted-foreground" />
-                                        <span className="text-sm font-medium truncate">
-                                          {assignment.patient_name || 'Patient'}
-                                        </span>
-                                        <Badge className={`text-xs ${assignment.status === 'in_progress' ? 'bg-orange-500/20 text-orange-500' :
-                                          assignment.status === 'accepted' ? 'bg-blue-500/20 text-blue-500' :
-                                            'bg-green-500/20 text-green-500'
-                                          } border-0`}>
-                                          {assignment.status_display}
-                                        </Badge>
-                                      </div>
-
-                                      <div className="text-xs text-muted-foreground space-y-1">
-                                        {assignment.ambulance_info && (
-                                          <div>Ambulance: {assignment.ambulance_info.call_sign || assignment.ambulance_info.vehicle_number}</div>
-                                        )}
-                                        {assignment.driver_name && (
-                                          <div>Driver: {assignment.driver_name}</div>
-                                        )}
-                                        <div>Assigned: {new Date(assignment.assigned_at).toLocaleString()}</div>
-                                      </div>
-                                    </div>
-
-                                    <div className="flex gap-1 ml-2">
-                                      {assignment.status === 'in_progress' && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => driverManagementService.cancelTrip(assignment.id)}
-                                          className="h-7 px-2 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10"
-                                        >
-                                          Cancel
-                                        </Button>
-                                      )}
-                                      {assignment.status === 'accepted' && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => driverManagementService.updateTripStatus(assignment.id, 'arrived')}
-                                          className="h-7 px-2 text-xs"
-                                        >
-                                          Arrived
-                                        </Button>
-                                      )}
-                                      {assignment.status === 'arrived' && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => driverManagementService.completeTrip(assignment.id)}
-                                          className="h-7 px-2 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
-                                        >
-                                          Complete
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </GlassCard>
-                    )}
-                  </div>
-                </div>
-
-                {/* Footer Actions */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => onClose(false)}
-                    className="rounded-full px-6 md:px-8 h-11 md:h-12 font-semibold"
+              <FieldGroup label="Type">
+                {isView ? (
+                  <ReadOnlyField value={formatLabel(formData.type, 'Unit')} icon={<Shield className="h-4 w-4" />} />
+                ) : (
+                  <Select
+                    value={formData.type}
+                    onValueChange={(value) => setFormData((current) => ({ ...current, type: value }))}
                   >
-                    {isView ? 'Close' : 'Cancel'}
-                  </Button>
-                  {!isView && (
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                      className="rounded-full px-8 md:px-12 h-11 md:h-12 bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg shadow-primary/20"
-                    >
-                      {loading ? 'Processing...' : (isCreate ? 'Add Unit' : 'Save Configuration')}
-                    </Button>
-                  )}
-                </div>
-              </form>
+                    <SelectTrigger className={`${modalFieldClassName} h-12`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className={modalSelectContentClassName}>
+                      {TYPE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </FieldGroup>
+
+              <FieldGroup label="Vehicle number" htmlFor="ambulance-vehicle-number">
+                {isView ? (
+                  <ReadOnlyField value={formData.vehicle_number || 'No vehicle number'} icon={<Shield className="h-4 w-4" />} />
+                ) : (
+                  <Input
+                    id="ambulance-vehicle-number"
+                    name="vehicle_number"
+                    value={formData.vehicle_number}
+                    onChange={handleChange}
+                    className={`${modalFieldClassName} h-12 font-mono`}
+                    placeholder="COV-GUES-1"
+                  />
+                )}
+              </FieldGroup>
+
+              <FieldGroup label="Plate" htmlFor="ambulance-license-plate">
+                {isView ? (
+                  <ReadOnlyField value={formData.license_plate || 'No plate'} icon={<Shield className="h-4 w-4" />} />
+                ) : (
+                  <Input
+                    id="ambulance-license-plate"
+                    name="license_plate"
+                    value={formData.license_plate}
+                    onChange={handleChange}
+                    className={`${modalFieldClassName} h-12 font-mono`}
+                    placeholder="Plate"
+                  />
+                )}
+              </FieldGroup>
             </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+          </GlassCard>
+
+          <GlassCard icon={<Hospital />} title="Station">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FieldGroup label="Base station">
+                {isView ? (
+                  <ReadOnlyField value={stationName} subtext={formData.hospital_id || ''} icon={<MapPin className="h-4 w-4" />} />
+                ) : (
+                  <Select
+                    value={formData.hospital_id || undefined}
+                    onValueChange={(value) => setFormData((current) => ({ ...current, hospital_id: value }))}
+                  >
+                    <SelectTrigger className={`${modalFieldClassName} h-12`}>
+                      <SelectValue placeholder={loadingHospitals ? 'Loading stations...' : 'Select station'} />
+                    </SelectTrigger>
+                    <SelectContent className={modalSelectContentClassName}>
+                      {formData.hospital_id && !hospitals.some((hospital) => hospital.id === formData.hospital_id) && (
+                        <SelectItem value={formData.hospital_id}>{stationName}</SelectItem>
+                      )}
+                      {hospitals.map((hospital) => (
+                        <SelectItem key={hospital.id} value={hospital.id}>
+                          {hospital.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </FieldGroup>
+
+              <FieldGroup label="ETA" htmlFor="ambulance-eta">
+                {isView ? (
+                  <ReadOnlyField value={formData.eta || 'Unknown'} icon={<Calendar className="h-4 w-4" />} />
+                ) : (
+                  <Input
+                    id="ambulance-eta"
+                    name="eta"
+                    value={formData.eta}
+                    onChange={handleChange}
+                    className={`${modalFieldClassName} h-12`}
+                    placeholder="Unknown"
+                  />
+                )}
+              </FieldGroup>
+            </div>
+          </GlassCard>
+
+          <GlassCard icon={<Wrench />} title="Status">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FieldGroup label="Current status">
+                {isView || tripOwnedStatus ? (
+                  <ReadOnlyField
+                    value={formatLabel(status, 'Available')}
+                    subtext={tripOwnedStatus && !isView ? 'Trip status changes stay in Requests.' : ''}
+                    icon={<Activity className="h-4 w-4" />}
+                  />
+                ) : (
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) => setFormData((current) => ({ ...current, status: value }))}
+                  >
+                    <SelectTrigger className={`${modalFieldClassName} h-12`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className={modalSelectContentClassName}>
+                      {UNIT_STATUS_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </FieldGroup>
+
+              <FieldGroup label="Crew note" htmlFor="ambulance-crew">
+                {isView ? (
+                  <ReadOnlyField value={formData.crew || 'Not listed'} icon={<UserCheck className="h-4 w-4" />} />
+                ) : (
+                  <Input
+                    id="ambulance-crew"
+                    name="crew"
+                    value={formData.crew}
+                    onChange={handleChange}
+                    className={`${modalFieldClassName} h-12`}
+                    placeholder="Crew note"
+                  />
+                )}
+              </FieldGroup>
+
+              <FieldGroup label="Current call" htmlFor="ambulance-current-call">
+                {isView ? (
+                  <ReadOnlyField value={formData.current_call || 'No active call'} icon={<Activity className="h-4 w-4" />} />
+                ) : (
+                  <Input
+                    id="ambulance-current-call"
+                    name="current_call"
+                    value={formData.current_call}
+                    onChange={handleChange}
+                    className={`${modalFieldClassName} h-12`}
+                    placeholder="Linked request only"
+                  />
+                )}
+              </FieldGroup>
+
+              <FieldGroup label="Updated">
+                <ReadOnlyField value={formatDateTime(formData.updated_at)} icon={<Calendar className="h-4 w-4" />} />
+              </FieldGroup>
+            </div>
+          </GlassCard>
+
+          <GlassCard icon={<UserCheck />} title="Linked work">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <UnavailableNote
+                title="Driver link"
+                text={formData.profile_id ? 'Linked profile is read-only in this pass.' : 'Driver assignment needs provider and station proof.'}
+              />
+              <UnavailableNote
+                title="Image"
+                text={formData.image ? 'Existing media is not edited here yet.' : 'Media upload needs storage policy proof.'}
+              />
+              <UnavailableNote
+                title="Trip commands"
+                text="Arrival, completion, and cancellation stay in Requests or Map."
+              />
+            </div>
+          </GlassCard>
+
+          <div className="flex justify-end gap-3 rounded-[24px] bg-muted/30 p-3 md:p-4">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onClose(false)}
+              className="h-11 rounded-2xl px-5 font-semibold text-muted-foreground hover:bg-muted"
+              disabled={loading}
+            >
+              {isView ? 'Close' : 'Cancel'}
+            </Button>
+            {!isView && (
+              <Button
+                type="submit"
+                className="h-11 rounded-2xl bg-primary px-6 font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
+                disabled={!canSubmit}
+                aria-busy={loading}
+                data-state={loading ? 'saving' : 'idle'}
+              >
+                {loading ? 'Saving...' : isCreate ? 'Add unit' : 'Save changes'}
+              </Button>
+            )}
+          </div>
+        </form>
+      </div>
+    </ModalShell>
   );
 };
 
-/* Sub-components */
-
-const GlassCard = ({ children, title, icon, className }) => (
-  <div className={`p-4 sm:p-6 rounded-[28px] bg-white/5 border-white/10 ${className}`}>
-    <div className="flex items-center gap-3 mb-4 sm:mb-6">
-      <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
-        {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
-      </div>
-      <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>
+const GlassCard = ({ children, title, icon }) => (
+  <section className="rounded-[28px] bg-muted/30 p-4 shadow-[0_18px_44px_rgb(0_0_0/0.06)] sm:p-6">
+    <div className="mb-4 flex items-center gap-3">
+      <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-background/60 text-primary shadow-sm">
+        {React.cloneElement(icon, { size: 17 })}
+      </span>
+      <h3 className="text-sm font-semibold tracking-normal text-foreground sm:text-base">{title}</h3>
     </div>
     {children}
+  </section>
+);
+
+const FieldGroup = ({ children, label, htmlFor }) => (
+  <div className="space-y-2">
+    <Label htmlFor={htmlFor} className="px-1 text-xs font-semibold text-muted-foreground">
+      {label}
+    </Label>
+    {children}
+  </div>
+);
+
+const ReadOnlyField = ({ value, subtext, icon }) => (
+  <div className="flex min-h-12 items-center gap-3 rounded-2xl bg-background/55 px-3 py-3 text-sm shadow-sm md:min-h-14">
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-muted/50 text-muted-foreground">
+      {icon}
+    </span>
+    <span className="min-w-0 flex-1">
+      <span className="block truncate font-medium text-foreground">{String(value || 'Not set')}</span>
+      {subtext && (
+        <span className="mt-0.5 block truncate text-xs text-muted-foreground">{subtext}</span>
+      )}
+    </span>
+  </div>
+);
+
+const UnavailableNote = ({ title, text }) => (
+  <div className="rounded-[22px] bg-background/55 p-4 shadow-sm">
+    <p className="text-sm font-semibold text-foreground">{title}</p>
+    <p className="mt-1 text-xs leading-5 text-muted-foreground">{text}</p>
   </div>
 );

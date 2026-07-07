@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { AlertTriangle, Ambulance, Hospital, MapPin, Phone, Send, CheckCheck } from 'lucide-react';
+import { AlertTriangle, Ambulance, Hospital, Phone, Send, CheckCheck, X, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { dispatchEmergency, completeEmergency } from '../../services/emergencyResponseService';
 import { toast } from 'sonner';
@@ -15,12 +14,35 @@ import { LocationCell } from '../ui/LocationCell';
 
 export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh }) => {
 	const { isAdmin, isOrgAdmin } = useAuth();
+	const [mapCommand, setMapCommand] = useState(null);
+	const [confirmClose, setConfirmClose] = useState(false);
+
+	useEffect(() => {
+		setMapCommand(null);
+		setConfirmClose(false);
+	}, [selectedMarker?.type, selectedMarker?.data?.id]);
+
 	if (!selectedMarker) return null;
 
 	// PULLBACK NOTE: NEW - Get standardized patient data for emergencies
 	// OLD: Used selectedMarker.data.name directly
 	// NEW: Uses getStandardizedPatient for consistent patient info across app
 	const patientData = selectedMarker.type === "emergency" ? getStandardizedPatient(selectedMarker.data) : null;
+	const commandBusy = mapCommand !== null;
+
+	const runMapCommand = async (command, loadingCopy, successCopy, fallbackCopy, action) => {
+		const toastId = `map-marker-${command}`;
+		setMapCommand(command);
+		toast.loading(loadingCopy, { id: toastId });
+		try {
+			await action();
+			toast.success(successCopy, { id: toastId });
+		} catch (error) {
+			toast.error(error?.message || fallbackCopy, { id: toastId });
+		} finally {
+			setMapCommand(null);
+		}
+	};
 
 	return (
 		<AnimatePresence>
@@ -30,7 +52,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 				exit={{ opacity: 0, x: 20, scale: 0.95 }}
 				className="absolute top-4 right-4 z-[400] w-80"
 			>
-				<Card className="squircle-xl p-0 overflow-hidden bg-background/50 backdrop-blur-xs border-0 shadow-premium backdrop-blur-xl bg-background/60">
+				<div className="squircle-xl p-0 overflow-hidden bg-background/50 backdrop-blur-xs shadow-premium backdrop-blur-xl bg-background/60">
 					{/* Header Image/Color */}
 					<div
 						className={`h-24 relative ${selectedMarker.type === "emergency"
@@ -56,8 +78,9 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 							size="sm"
 							onClick={() => setSelectedMarker(null)}
 							className="absolute top-2 right-2 rounded-full hover:bg-black/10 h-8 w-8 p-0"
+							aria-label="Close details"
 						>
-							×
+							<X className="h-4 w-4" />
 						</Button>
 					</div>
 
@@ -123,52 +146,57 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 								</div>
 
 								<div className="flex gap-2">
-									{/* Dispatch button for unassigned emergencies */}
+									{/* Send unit for unassigned emergencies */}
 									{(isAdmin() || isOrgAdmin()) &&
 										(selectedMarker.data.status === 'pending' || selectedMarker.data.status === 'in_progress') &&
 										!selectedMarker.data.ambulance_id && (
 											<Button
 												className="flex-1 squircle bg-success hover:bg-success/90 shadow-glow font-semibold"
 												size="lg"
+												disabled={commandBusy}
+												aria-busy={mapCommand === "send"}
 												onClick={async () => {
-													try {
-														toast.loading('Dispatching...', { id: 'map-dispatch' });
+													await runMapCommand("send", "Sending unit...", "Unit sent", "Could not send unit", async () => {
 														const result = await dispatchEmergency(selectedMarker.data.id, selectedMarker.data);
-														toast.success('Emergency dispatched!', { id: 'map-dispatch' });
-														toast.info(`Ambulance: ${result.assignments.ambulance?.type || 'Assigned'}`);
+														if (result?.assignments?.ambulance?.type) {
+															toast.info(`Unit: ${result.assignments.ambulance.type}`);
+														}
 														setSelectedMarker(null);
-														if (onRefresh) onRefresh();
-													} catch (error) {
-														toast.error('Dispatch failed', { id: 'map-dispatch' });
-													}
+														if (onRefresh) await onRefresh();
+													});
 												}}
 											>
-												<Send className="h-4 w-4 mr-2" />
-												Dispatch Unit
+												{mapCommand === "send" ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+												{mapCommand === "send" ? "Sending" : "Send unit"}
 											</Button>
 										)}
 
-									{/* Complete button for dispatched emergencies */}
+									{/* Close completed emergencies */}
 									{(isAdmin() || isOrgAdmin()) &&
 										(selectedMarker.data.status === 'accepted' || selectedMarker.data.ambulance_id) &&
 										selectedMarker.data.status !== 'completed' && (
 											<Button
 												className="flex-1 squircle bg-info hover:bg-info/90 shadow-glow font-semibold"
 												size="lg"
+												disabled={commandBusy}
+												aria-busy={mapCommand === "close"}
+												data-confirming={confirmClose ? "true" : "false"}
 												onClick={async () => {
-													if (!confirm('Mark as completed?')) return;
-													try {
-														await completeEmergency(selectedMarker.data.id);
-														toast.success('Emergency completed!');
-														setSelectedMarker(null);
-														if (onRefresh) onRefresh();
-													} catch (error) {
-														toast.error('Failed to complete');
+													if (!confirmClose) {
+														setConfirmClose(true);
+														toast.info("Confirm close to finish");
+														return;
 													}
+
+													await runMapCommand("close", "Closing request...", "Request closed", "Could not close request", async () => {
+														await completeEmergency(selectedMarker.data.id);
+														setSelectedMarker(null);
+														if (onRefresh) await onRefresh();
+													});
 												}}
 											>
-												<CheckCheck className="h-4 w-4 mr-2" />
-												Mark Complete
+												{mapCommand === "close" ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <CheckCheck className="h-4 w-4 mr-2" />}
+												{mapCommand === "close" ? "Closing" : confirmClose ? "Confirm close" : "Close request"}
 											</Button>
 										)}
 								</div>
@@ -247,7 +275,7 @@ export const MarkerDetailPanel = ({ selectedMarker, setSelectedMarker, onRefresh
 							</div>
 						)}
 					</div>
-				</Card>
+				</div>
 			</motion.div>
 		</AnimatePresence>
 	);

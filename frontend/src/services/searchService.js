@@ -31,7 +31,7 @@ export const searchService = {
       if (hospitals.length) results.push({ category: 'Hospitals', items: hospitals, icon: 'Building2', color: '#3B82F6' });
       if (ambulances.length) results.push({ category: 'Ambulances', items: ambulances, icon: 'Ambulance', color: '#EF4444' });
       if (visits.length) results.push({ category: 'Visits', items: visits, icon: 'Calendar', color: '#10B981' });
-      if (emergencies.length) results.push({ category: 'Emergency Requests', items: emergencies, icon: 'AlertTriangle', color: '#F59E0B' });
+      if (emergencies.length) results.push({ category: 'Requests', items: emergencies, icon: 'AlertTriangle', color: '#F59E0B' });
       if (users.length) results.push({ category: 'Users', items: users, icon: 'Users', color: '#06B6D4' });
 
       await this.trackSearch(query, results.reduce((sum, cat) => sum + cat.items.length, 0));
@@ -135,7 +135,7 @@ export const searchService = {
 
     return (data || []).map(e => ({
       id: e.id,
-      title: e.service_type || 'Unknown Emergency',
+      title: e.service_type || 'Unknown request',
       subtitle: `${e.hospital_name || 'Unknown Hospital'} • ${e.status || 'Unknown Status'}`,
       type: 'emergency',
       path: `/emergencies?id=${e.id}`

@@ -27,7 +27,10 @@ export const VisitTableView = ({
   onSelect,
   onSelectAll,
   sortConfig,
-  onSort
+  onSort,
+  canEdit = false,
+  canDelete = false,
+  selectionEnabled = false
 }) => {
 
   const formatDate = (dateString) => {
@@ -50,8 +53,8 @@ export const VisitTableView = ({
     }
   };
 
-  const isAllSelected = visits.length > 0 && visits.every(v => selectedIds.includes(v.id));
-  const isIndeterminate = visits.some(v => selectedIds.includes(v.id)) && !isAllSelected;
+  const isAllSelected = selectionEnabled && visits.length > 0 && visits.every(v => selectedIds.includes(v.id));
+  const isIndeterminate = selectionEnabled && visits.some(v => selectedIds.includes(v.id)) && !isAllSelected;
 
   const SortableHead = ({ label, sortKey, className = "" }) => {
     const isSorted = sortConfig?.key === sortKey;
@@ -76,16 +79,18 @@ export const VisitTableView = ({
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium border-0 overflow-hidden">
+      <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="border-b border-white/10 hover:bg-transparent">
-              <TableHead className="w-[50px]">
-                <Checkbox
-                  checked={isAllSelected || (isIndeterminate ? "indeterminate" : false)}
-                  onCheckedChange={onSelectAll}
-                />
-              </TableHead>
+            <TableRow className="shadow-[inset_0_-1px_0_rgba(255,255,255,0.08)] hover:bg-transparent">
+              {selectionEnabled && (
+                <TableHead className="w-[50px]">
+                  <Checkbox
+                    checked={isAllSelected || (isIndeterminate ? "indeterminate" : false)}
+                    onCheckedChange={onSelectAll}
+                  />
+                </TableHead>
+              )}
               <SortableHead label="Visit ID" sortKey="id" />
               <SortableHead label="Patient" sortKey="user_id" />
               <SortableHead label="Hospital" sortKey="hospital_id" />
@@ -100,7 +105,7 @@ export const VisitTableView = ({
           <TableBody>
             {visits.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={selectionEnabled ? 10 : 9} className="h-24 text-center text-muted-foreground">
                   No visits found.
                 </TableCell>
               </TableRow>
@@ -111,14 +116,16 @@ export const VisitTableView = ({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: index * 0.02 }}
-                  className={`border-b border-white/10 transition-colors ${selectedIds.includes(visit.id) ? 'bg-primary/5' : 'hover:bg-white/5'}`}
+                  className={`shadow-[inset_0_-1px_0_rgba(255,255,255,0.08)] transition-colors ${selectionEnabled && selectedIds.includes(visit.id) ? 'bg-primary/5' : 'hover:bg-white/5'}`}
                 >
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedIds.includes(visit.id)}
-                      onCheckedChange={() => onSelect(visit.id)}
-                    />
-                  </TableCell>
+                  {selectionEnabled && (
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.includes(visit.id)}
+                        onCheckedChange={() => onSelect?.(visit.id)}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="font-mono text-xs font-bold text-muted-foreground">
                     #{visit.id?.slice(0, 8)}
                   </TableCell>
@@ -166,12 +173,12 @@ export const VisitTableView = ({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={`squircle-sm ${getStatusBadge(visit.status)} border-0 font-bold uppercase text-[10px]`}>
+                    <Badge className={`squircle-sm ${getStatusBadge(visit.status)} font-bold uppercase text-[10px]`}>
                       {visit.status}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="border-white/10">
+                    <Badge className="bg-white/8 text-foreground/80">
                       {visit.type || 'General'}
                     </Badge>
                   </TableCell>
@@ -205,18 +212,24 @@ export const VisitTableView = ({
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-[160px] squircle-xl border-white/10 bg-background/80 backdrop-blur-xl">
+                      <DropdownMenuContent align="end" className="w-[160px] squircle-xl bg-background/80 backdrop-blur-xl shadow-[0_24px_80px_rgba(0,0,0,0.22)]">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => onView(visit)}>
                           <Eye className="mr-2 h-4 w-4" /> View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onEdit(visit)}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit Visit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="bg-white/10" />
-                        <DropdownMenuItem onClick={() => onDelete(visit)} className="text-destructive focus:text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
+                        {canEdit && (
+                          <DropdownMenuItem onClick={() => onEdit(visit)}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit Visit
+                          </DropdownMenuItem>
+                        )}
+                        {canDelete && (
+                          <>
+                            <DropdownMenuSeparator className="bg-white/10" />
+                            <DropdownMenuItem onClick={() => onDelete?.(visit)} className="text-destructive focus:text-destructive">
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

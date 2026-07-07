@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -9,11 +8,12 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { X, Calendar, User, Hospital, Clock, FileText, Siren } from 'lucide-react';
+import { Calendar, User, Hospital, Clock, FileText, Siren } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useAuth } from '../../contexts/AuthContext';
 import { fetchVisitContext, fetchEmergencyContext, formatVisitDateTime, isEmergencyVisit } from '../../utils/visitContextUtils';
+import { ModalShell } from '../ui/ModalShell';
 
 export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], hospitals = [] }) => {
 
@@ -36,7 +36,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
     preparation: '',
     hospitals: null,
     profiles: null,
-    ...visit // ✅ Spread visit for initial prefill
+    ...visit
   });
 
   const [loading, setLoading] = useState(false);
@@ -45,10 +45,52 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
   const [visitContext, setVisitContext] = useState(null);
   const [emergencyContext, setEmergencyContext] = useState(null);
   const [loadingContext, setLoadingContext] = useState(false);
+  const terminalStatusValues = new Set(['completed', 'cancelled', 'no-show']);
+  const isTerminalStatus = terminalStatusValues.has(String(formData.status || '').toLowerCase());
+  const formatPlainLabel = (value, fallback = 'Not set') => {
+    const text = String(value || '').trim();
+    if (!text) return fallback;
+    return text.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+  };
+  const patientLabel = (
+    visitContext?.patient?.fullName ||
+    formData.patient?.full_name ||
+    formData.patient?.username ||
+    formData.patient_name ||
+    formData.user_email ||
+    (formData.user_id ? 'Linked patient' : 'No patient')
+  );
+  const patientSubtext = (
+    visitContext?.patient?.email ||
+    formData.patient?.email ||
+    formData.user_email ||
+    ''
+  );
+  const facilityLabel = (
+    visitContext?.hospital?.name ||
+    formData.hospital?.name ||
+    formData.hospital_name ||
+    formData.hospital ||
+    (formData.hospital_id ? 'Linked facility' : 'No facility')
+  );
+  const facilitySubtext = (
+    visitContext?.hospital?.address ||
+    formData.hospital?.address ||
+    ''
+  );
+  const doctorLabel = (
+    formData.doctor?.name ||
+    (typeof formData.doctor === 'string' ? formData.doctor : '') ||
+    formData.doctor_name ||
+    'Unassigned'
+  );
+  const visitTypeLabel = formatPlainLabel(formData.visit_type || formData.type, 'Visit');
+  const statusLabel = formatPlainLabel(formData.status || 'scheduled', 'Scheduled');
+  const dateTimeLabel = formData.date ? new Date(formData.date).toLocaleString() : 'Date not set';
+  const insuranceLabel = formData.insurance_covered ? 'Covered' : 'Not covered';
 
   useEffect(() => {
     if (visit) {
-      // ✅ Use proper date formatting - no manual parsing
       const formattedDate = formatVisitDateTime(visit);
 
       setFormData(prev => ({
@@ -66,12 +108,10 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
         preparation: Array.isArray(visit.preparation) ? visit.preparation.join('\n') : (visit.preparation || prev.preparation || '')
       }));
 
-      // ✅ Fetch visit context using proper services
       if (visit.user_id || visit.hospital_id) {
         fetchVisitContext(visit).then(setVisitContext);
       }
 
-      // ✅ Fetch Emergency Context if this visit originated from one
       if (isEmergencyVisit(visit)) {
         setLoadingContext(true);
         fetchEmergencyContext(visit.request_id || visit.id)
@@ -142,61 +182,31 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
     }
   };
 
+  const modalTitle = formData.visit_type
+    ? formData.visit_type.charAt(0).toUpperCase() + formData.visit_type.slice(1)
+    : isCreate
+      ? 'New visit'
+      : 'Visit';
+  const modalSubtitle = dateTimeLabel;
+  const statusBadge = (
+    <Badge className={`rounded-full font-semibold px-3 py-0.5 text-xs ${getStatusColor(formData.status)}`}>
+      {formData.status?.toUpperCase() || 'SCHEDULED'}
+    </Badge>
+  );
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/30 backdrop-blur-md"
-            onClick={() => onClose(false)}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            role="dialog"
-
-            aria-modal="true"
-
-            className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl"
-          >
-            {/* Header Area */}
-            <div className="flex items-center justify-between p-2 md:p-8 pb-4">
-              <div className="flex items-center gap-4">
-                <div className="p-2 md:p-3 bg-blue-500/20 rounded-2xl">
-                  <Calendar className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
-                </div>
-                <div>
-                  <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-foreground/90">
-                    {formData.visit_type ? formData.visit_type.charAt(0).toUpperCase() + formData.visit_type.slice(1) : 'New Visit'}
-                  </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${getStatusColor(formData.status)}`}>
-                      {formData.status?.toUpperCase()}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {formData.date ? new Date(formData.date).toLocaleString() : 'Date not set'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                onClick={() => onClose(false)}
-                className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-
-            <div className="p-2 md:p-8 pt-2 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6 no-scrollbar">
+    <ModalShell
+      isOpen={isOpen}
+      onClose={() => onClose(false)}
+      title={modalTitle}
+      subtitle={modalSubtitle}
+      icon={<Calendar className="h-5 w-5 text-primary" />}
+      badge={statusBadge}
+      size="lg"
+      managed
+      className="bg-background"
+    >
+      <div className="p-2 md:p-8 pt-2 overflow-y-auto flex-1 min-h-0 space-y-6 no-scrollbar">
               <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* Participants Section */}
@@ -204,31 +214,21 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="user_id" className="text-xs font-semibold text-muted-foreground uppercase">Patient</Label>
-                      {isView && visitContext?.patient ? (
-                        <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border-0 h-14">
-                          <Avatar className="w-8 h-8">
-                            <AvatarImage src={visitContext.patient.avatar} />
-                            <AvatarFallback>{visitContext.patient.fullName?.[0] || 'U'}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">
-                              {visitContext.patient.fullName || 'Unknown Patient'}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {visitContext.patient.email || 'No email'}
-                            </p>
-                          </div>
-                        </div>
+                      {isView ? (
+                        <ReadOnlyField
+                          value={patientLabel}
+                          subtext={patientSubtext}
+                          icon={<User className="h-4 w-4" />}
+                        />
                       ) : (
                         <Select
                           value={formData.user_id}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, user_id: value }))}
-                          disabled={isView}
                         >
-                          <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-14 font-normal">
+                          <SelectTrigger className="rounded-2xl bg-muted/30 h-14 font-normal">
                             <SelectValue placeholder="Select patient" />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 backdrop-blur-xl">
                             {users.map(u => (
                               <SelectItem key={u.id} value={u.id}>
                                 <div className="flex items-center gap-2">
@@ -250,49 +250,36 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                     {(isView || formData.doctor) && (
                       <div className="space-y-2">
                         <Label className="text-xs font-semibold text-muted-foreground uppercase">Doctor / Unit</Label>
-                        <Input
-                          value={
-                            formData.doctor?.name ||
-                            (typeof formData.doctor === 'string' ? formData.doctor : 'Unassigned')
-                          }
-                          disabled
-                          className="rounded-2xl bg-muted/30 border-0 h-12 md:h-14 font-normal"
-                        />
+                        {isView ? (
+                          <ReadOnlyField value={doctorLabel} icon={<User className="h-4 w-4" />} />
+                        ) : (
+                          <Input
+                            value={doctorLabel}
+                            disabled
+                            className="rounded-2xl bg-muted/30 h-12 md:h-14 font-normal"
+                          />
+                        )}
                       </div>
                     )}
 
                     {/* Hospital Selection */}
                     <div className="space-y-2">
                       <Label htmlFor="hospital_id" className="text-xs font-semibold text-muted-foreground uppercase">Facility</Label>
-                      {isView && visitContext?.hospital ? (
-                        <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border-0 h-12 md:h-14">
-                          <Hospital className="w-5 h-5 text-muted-foreground" />
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">
-                              {visitContext.hospital.name || 'Unknown Hospital'}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {visitContext.hospital.address || 'No address'}
-                            </p>
-                          </div>
-                        </div>
-                      ) : isView && !formData.hospital_id && formData.hospital ? (
-                        <div className="flex items-center h-12 md:h-14 w-full rounded-2xl border border-input bg-muted/30 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50">
-                          <span className="flex items-center gap-2">
-                            <Hospital className="w-4 h-4 text-muted-foreground" />
-                            {formData.hospital}
-                          </span>
-                        </div>
+                      {isView ? (
+                        <ReadOnlyField
+                          value={facilityLabel}
+                          subtext={facilitySubtext}
+                          icon={<Hospital className="h-4 w-4" />}
+                        />
                       ) : (
                         <Select
                           value={formData.hospital_id || ''}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, hospital_id: value }))}
-                          disabled={isView}
                         >
-                          <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 md:h-14 font-normal">
+                          <SelectTrigger className="rounded-2xl bg-muted/30 h-12 md:h-14 font-normal">
                             <SelectValue placeholder="Select facility" />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 backdrop-blur-xl">
                             {hospitals.map(h => (
                               <SelectItem key={h.id} value={h.id}>
                                 <div className="flex items-center gap-2">
@@ -313,73 +300,92 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="visit_type" className="text-xs font-semibold text-muted-foreground uppercase">Visit Type</Label>
-                      <Select
-                        value={formData.visit_type}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, visit_type: value }))}
-                        disabled={isView}
-                      >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                          <SelectItem value="checkup">Checkup</SelectItem>
-                          <SelectItem value="Regular Checkup">Regular Checkup</SelectItem>
-                          <SelectItem value="emergency">Emergency</SelectItem>
-                          <SelectItem value="follow_up">Follow Up</SelectItem>
-                          <SelectItem value="consultation">Consultation</SelectItem>
-                          <SelectItem value="Consultation">Consultation (Full)</SelectItem>
-                          <SelectItem value="surgery">Surgery</SelectItem>
-                          <SelectItem value="Telehealth">Telehealth</SelectItem>
-                          <SelectItem value="Bed Booking">Bed Booking</SelectItem>
-                          <SelectItem value="Ambulance Ride">Ambulance Ride</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {isView ? (
+                        <ReadOnlyField value={visitTypeLabel} icon={<FileText className="h-4 w-4" />} />
+                      ) : (
+                        <Select
+                          value={formData.visit_type}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, visit_type: value }))}
+                        >
+                          <SelectTrigger className="rounded-2xl bg-muted/30 h-12 font-normal">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 backdrop-blur-xl">
+                            <SelectItem value="checkup">Checkup</SelectItem>
+                            <SelectItem value="Regular Checkup">Regular Checkup</SelectItem>
+                            <SelectItem value="emergency">Emergency</SelectItem>
+                            <SelectItem value="follow_up">Follow Up</SelectItem>
+                            <SelectItem value="consultation">Consultation</SelectItem>
+                            <SelectItem value="Consultation">Consultation (Full)</SelectItem>
+                            <SelectItem value="surgery">Surgery</SelectItem>
+                            <SelectItem value="Telehealth">Telehealth</SelectItem>
+                            <SelectItem value="Bed Booking">Bed Booking</SelectItem>
+                            <SelectItem value="Ambulance Ride">Ambulance Ride</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="status" className="text-xs font-semibold text-muted-foreground uppercase">Current Status</Label>
-                      <Select
-                        value={formData.status}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
-                        disabled={isView}
-                      >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                          <SelectItem value="scheduled">Scheduled</SelectItem>
-                          <SelectItem value="upcoming">Upcoming</SelectItem>
-                          <SelectItem value="in_progress">In Progress</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {isView ? (
+                        <ReadOnlyField value={statusLabel} icon={<Clock className="h-4 w-4" />} />
+                      ) : (
+                        <Select
+                          value={formData.status}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                          disabled={isTerminalStatus}
+                        >
+                          <SelectTrigger className="rounded-2xl bg-muted/30 h-12 font-normal">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl shadow-xl bg-background/95 backdrop-blur-xl">
+                            <SelectItem value="scheduled">Scheduled</SelectItem>
+                            <SelectItem value="upcoming">Upcoming</SelectItem>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="completed" disabled>Completed</SelectItem>
+                            <SelectItem value="cancelled" disabled>Cancelled</SelectItem>
+                            <SelectItem value="no-show" disabled>No show</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {!isView && (
+                        <p className="text-xs text-muted-foreground">
+                          Status changes here stay in scheduling.
+                        </p>
+                      )}
                     </div>
 
                     <div className="col-span-1 md:col-span-2 space-y-2 min-w-0">
                       <Label htmlFor="date" className="text-xs font-semibold text-muted-foreground uppercase">Date & Time</Label>
+                      {isView ? (
+                        <ReadOnlyField value={dateTimeLabel} icon={<Calendar className="h-4 w-4" />} />
+                      ) : (
                         <Input
                           id="date"
                           name="date"
                           type="datetime-local"
                           value={formData.date || ''}
                           onChange={handleChange}
-                          disabled={isView}
-                          className="w-full min-w-0 max-w-full rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 text-sm md:text-base font-normal md:font-mono"
+                          className="w-full min-w-0 max-w-full rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] h-12 text-sm md:text-base font-normal md:font-mono"
                         />
+                      )}
                     </div>
 
                     <div className="col-span-1 md:col-span-2 space-y-2">
                       <Label htmlFor="reason" className="text-xs font-semibold text-muted-foreground uppercase">Reason for Visit</Label>
-                      <Input
-                        id="reason"
-                        name="reason"
-                        value={formData.reason || ''}
-                        onChange={handleChange}
-                        disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-normal"
-                        placeholder="e.g., Annual checkup"
-                      />
+                      {isView ? (
+                        <ReadOnlyField value={formData.reason || 'No reason recorded'} icon={<FileText className="h-4 w-4" />} />
+                      ) : (
+                        <Input
+                          id="reason"
+                          name="reason"
+                          value={formData.reason || ''}
+                          onChange={handleChange}
+                          className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] h-12 font-normal"
+                          placeholder="e.g., Annual checkup"
+                        />
+                      )}
                     </div>
                   </div>
                 </GlassCard>
@@ -389,52 +395,64 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="room_number" className="text-xs font-semibold text-muted-foreground uppercase">Room Number</Label>
-                      <Input
-                        id="room_number"
-                        name="room_number"
-                        value={formData.room_number || ''}
-                        onChange={handleChange}
-                        disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-mono"
-                        placeholder="e.g. 405-B"
-                      />
+                      {isView ? (
+                        <ReadOnlyField value={formData.room_number || 'No room'} icon={<Hospital className="h-4 w-4" />} />
+                      ) : (
+                        <Input
+                          id="room_number"
+                          name="room_number"
+                          value={formData.room_number || ''}
+                          onChange={handleChange}
+                          className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] h-12 font-mono"
+                          placeholder="e.g. 405-B"
+                        />
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="estimated_duration" className="text-xs font-semibold text-muted-foreground uppercase">Duration</Label>
-                      <Input
-                        id="estimated_duration"
-                        name="estimated_duration"
-                        value={formData.estimated_duration || ''}
-                        onChange={handleChange}
-                        disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12"
-                        placeholder="e.g. 30 mins"
-                      />
+                      {isView ? (
+                        <ReadOnlyField value={formData.estimated_duration || 'Not set'} icon={<Clock className="h-4 w-4" />} />
+                      ) : (
+                        <Input
+                          id="estimated_duration"
+                          name="estimated_duration"
+                          value={formData.estimated_duration || ''}
+                          onChange={handleChange}
+                          className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] h-12"
+                          placeholder="e.g. 30 mins"
+                        />
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="cost" className="text-xs font-semibold text-muted-foreground uppercase">Cost</Label>
-                      <Input
-                        id="cost"
-                        name="cost"
-                        value={formData.cost || ''}
-                        onChange={handleChange}
-                        disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-mono"
-                        placeholder="e.g. $150"
-                      />
+                      {isView ? (
+                        <ReadOnlyField value={formData.cost || 'Not set'} icon={<FileText className="h-4 w-4" />} />
+                      ) : (
+                        <Input
+                          id="cost"
+                          name="cost"
+                          value={formData.cost || ''}
+                          onChange={handleChange}
+                          className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] h-12 font-mono"
+                          placeholder="e.g. $150"
+                        />
+                      )}
                     </div>
                     <div className="space-y-2 flex flex-col justify-center">
                       <Label className="text-xs font-semibold text-muted-foreground uppercase mb-2">Insurance</Label>
-                      <div className="flex items-center gap-2 p-3 rounded-2xl bg-muted/30 border border-transparent hover:border-primary/20 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={formData.insurance_covered}
-                          onChange={(e) => setFormData(prev => ({ ...prev, insurance_covered: e.target.checked }))}
-                          disabled={isView}
-                          className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <span className="text-sm font-medium">Covered by Insurance</span>
-                      </div>
+                      {isView ? (
+                        <ReadOnlyField value={insuranceLabel} icon={<FileText className="h-4 w-4" />} />
+                      ) : (
+                        <div className="flex items-center gap-2 p-3 rounded-2xl bg-muted/30 hover:bg-primary/5 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={formData.insurance_covered}
+                            onChange={(e) => setFormData(prev => ({ ...prev, insurance_covered: e.target.checked }))}
+                            className="w-5 h-5 rounded text-primary focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
+                          />
+                          <span className="text-sm font-medium">Covered by Insurance</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </GlassCard>
@@ -444,28 +462,34 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="preparation" className="text-xs font-semibold text-muted-foreground uppercase">Preparation Instructions</Label>
-                      <Textarea
-                        id="preparation"
-                        name="preparation"
-                        value={formData.preparation || ''}
-                        onChange={handleChange}
-                        disabled={isView}
-                        placeholder="One instruction per line..."
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px] resize-none p-4"
-                      />
+                      {isView ? (
+                        <ReadOnlyField value={formData.preparation || 'No preparation notes'} multiline icon={<FileText className="h-4 w-4" />} />
+                      ) : (
+                        <Textarea
+                          id="preparation"
+                          name="preparation"
+                          value={formData.preparation || ''}
+                          onChange={handleChange}
+                          placeholder="One instruction per line..."
+                          className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] min-h-[80px] resize-none p-4"
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="notes" className="text-xs font-semibold text-muted-foreground uppercase">Clinical Notes</Label>
-                      <Textarea
-                        id="notes"
-                        name="notes"
-                        value={formData.notes || ''}
-                        onChange={handleChange}
-                        disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[100px] resize-none p-4"
-                        placeholder="Add notes here..."
-                      />
+                      {isView ? (
+                        <ReadOnlyField value={formData.notes || 'No clinical notes'} multiline icon={<FileText className="h-4 w-4" />} />
+                      ) : (
+                        <Textarea
+                          id="notes"
+                          name="notes"
+                          value={formData.notes || ''}
+                          onChange={handleChange}
+                          className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] min-h-[100px] resize-none p-4"
+                          placeholder="Add notes here..."
+                        />
+                      )}
                     </div>
                   </div>
                 </GlassCard>
@@ -474,13 +498,13 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                 {loadingContext ? (
                   <GlassCard icon={<Siren className="text-red-500" />} title="Loading Incident Context">
                     <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500"></div>
+                      <div className="animate-pulse rounded-full h-6 w-6 bg-red-500/20 shadow-[inset_0_0_0_4px_rgba(239,68,68,0.32)]"></div>
                     </div>
                   </GlassCard>
                 ) : emergencyContext ? (
                   <GlassCard icon={<Siren className="text-red-500" />} title="Incident Context">
                     <div className="space-y-4">
-                      <div className="p-4 rounded-2xl bg-red-500/5 border border-red-500/10">
+                      <div className="p-4 rounded-2xl bg-red-500/5 shadow-[inset_0_0_0_1px_rgba(239,68,68,0.10)]">
                         <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2">Original Situation Report</p>
                         <p className="text-sm leading-relaxed italic">"{emergencyContext.emergency?.description || 'No description provided'}"</p>
                       </div>
@@ -509,7 +533,7 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full rounded-xl border-red-500/20 text-red-500 hover:bg-red-500/5 text-[10px] font-bold uppercase tracking-wider"
+                        className="w-full rounded-xl text-red-500 hover:bg-red-500/5 text-[10px] font-bold uppercase tracking-wider"
                         onClick={() => {
                           const event = new CustomEvent('openEmergencyDetails', { detail: emergencyContext.emergency });
                           window.dispatchEvent(event);
@@ -554,11 +578,8 @@ export const VisitModal = ({ isOpen, onClose, visit, mode, onSave, users = [], h
                   )}
                 </div>
               </form>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+      </div>
+    </ModalShell>
   );
 };
 
@@ -574,3 +595,29 @@ const GlassCard = ({ children, title, icon }) => (
     {children}
   </div>
 );
+
+const ReadOnlyField = ({ value, subtext, icon, multiline = false }) => {
+  const displayValue = Array.isArray(value)
+    ? value.filter(Boolean).join('\n')
+    : String(value || 'Not set');
+
+  return (
+    <div className={`flex gap-3 rounded-2xl bg-muted/30 px-3 py-3 text-sm shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.05)] ${multiline ? 'min-h-[88px] items-start' : 'min-h-12 items-center md:min-h-14'}`}>
+      {icon && (
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-background/50 text-muted-foreground">
+          {icon}
+        </span>
+      )}
+      <span className="min-w-0 flex-1">
+        <span className={`block font-medium text-foreground ${multiline ? 'whitespace-pre-wrap leading-6' : 'truncate'}`}>
+          {displayValue}
+        </span>
+        {subtext && (
+          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+            {subtext}
+          </span>
+        )}
+      </span>
+    </div>
+  );
+};

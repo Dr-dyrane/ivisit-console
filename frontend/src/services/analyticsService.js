@@ -8,12 +8,54 @@ import { getEmergencyRequests } from './emergencyService';
 import { getHospitals } from './hospitalsService';
 import { getAmbulances } from './ambulancesService';
 import { getSubscriptionAnalytics } from './subscriptionService';
-import { getCurrentUser } from './authService';
+import { applyAuthFilter, getCurrentUser } from './authService';
+import { getFinanceAnalytics } from './walletService';
 import { supabase } from '../lib/supabase';
 
 // Cache for performance optimization
 const cache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+export const DEFAULT_ANALYTICS_SUBSCRIPTION_STATS = {
+  total: 0,
+  active: 0,
+  paid: 0,
+  free: 0,
+  newUsers: 0,
+  welcomeEmailsSent: 0,
+  paidConversionRate: 0,
+  activeFree: 0,
+  activePremium: 0,
+  inactiveFree: 0,
+  inactivePremium: 0,
+};
+
+const resolveAnalyticsSource = async (request) => {
+  try {
+    return await request;
+  } catch (error) {
+    return { data: null, count: 0, error };
+  }
+};
+
+const getAnalyticsSourceErrorKind = (error) => {
+  const status = String(error?.status || error?.code || '');
+  const message = String(error?.message || error?.details || error || '');
+  const sourceText = `${status} ${message}`;
+
+  return /42501|401|403|permission|policy|rls|not authorized|forbidden|jwt/i.test(sourceText)
+    ? 'denied'
+    : 'failed';
+};
+
+const getAnalyticsSourceIssue = (source, result) => {
+  if (!result?.error) return null;
+
+  return {
+    source,
+    kind: getAnalyticsSourceErrorKind(result.error),
+  };
+};
 
 /**
  * Get cached data or fetch fresh data
@@ -35,6 +77,93 @@ const getCachedOrFetch = async (key, fetchFunction, duration = CACHE_DURATION) =
 };
 
 /**
+ * Current intake projection for the live /analytics route.
+ * This preserves the old page reads while moving acquisition out of the UI.
+ */
+export const getAnalyticsIntakePage = async ({
+  timeRange = '7d',
+  includeSubscriptionAnalytics = false,
+  includeFinanceAnalytics = false,
+} = {}) => {
+  const user = await getCurrentUser();
+  const canReadSubscriptionAnalytics = includeSubscriptionAnalytics && user?.role === 'admin';
+  const canReadFinanceAnalytics =
+    includeFinanceAnalytics && (user?.role === 'admin' || user?.role === 'sponsor');
+
+  let requestsQuery = supabase.from('emergency_requests').select('*');
+  let usersQuery = supabase.from('profiles').select('*', { count: 'exact' });
+  let hospitalsQuery = supabase.from('hospitals').select('*', { count: 'exact' });
+  let ambulancesQuery = supabase.from('ambulances').select('*', { count: 'exact' });
+
+  requestsQuery = applyAuthFilter(requestsQuery, user, {
+    userIdField: 'user_id',
+    orgIdField: 'hospital_id',
+    resourceType: 'emergency'
+  });
+
+  usersQuery = applyAuthFilter(usersQuery, user, {
+    userIdField: 'id',
+    orgIdField: 'organization_id',
+    resourceType: 'users'
+  });
+
+  hospitalsQuery = applyAuthFilter(hospitalsQuery, user, {
+    orgIdField: 'organization_id',
+    resourceType: 'hospitals'
+  });
+
+  ambulancesQuery = applyAuthFilter(ambulancesQuery, user, {
+    orgIdField: 'organization_id',
+    resourceType: 'ambulances'
+  });
+
+  const subscriptionAnalyticsRequest = canReadSubscriptionAnalytics
+    ? resolveAnalyticsSource(getSubscriptionAnalytics({ quiet: true }).then((data) => ({ data })))
+    : Promise.resolve({ data: DEFAULT_ANALYTICS_SUBSCRIPTION_STATS });
+
+  const [requestsRes, usersRes, hospitalsRes, ambulancesRes, subscriptionRes] = await Promise.all([
+    resolveAnalyticsSource(requestsQuery),
+    resolveAnalyticsSource(usersQuery),
+    resolveAnalyticsSource(hospitalsQuery),
+    resolveAnalyticsSource(ambulancesQuery),
+    subscriptionAnalyticsRequest,
+  ]);
+
+  const sourceIssues = [
+    getAnalyticsSourceIssue('requests', requestsRes),
+    getAnalyticsSourceIssue('users', usersRes),
+    getAnalyticsSourceIssue('hospitals', hospitalsRes),
+    getAnalyticsSourceIssue('ambulances', ambulancesRes),
+    getAnalyticsSourceIssue('subscriptions', subscriptionRes),
+  ].filter(Boolean);
+
+  let financeData = [];
+  if (canReadFinanceAnalytics) {
+    try {
+      const days = timeRange === '7d' ? 7 : 30;
+      const resolvedFinanceData = await getFinanceAnalytics(user, true, days, { quiet: true, throwOnError: true });
+      financeData = Array.isArray(resolvedFinanceData) ? resolvedFinanceData : [];
+    } catch (financeError) {
+      sourceIssues.push(getAnalyticsSourceIssue('finance', { error: financeError }));
+    }
+  }
+
+  return {
+    user,
+    requests: requestsRes.data || [],
+    usersCount: usersRes.count || 0,
+    hospitals: hospitalsRes.data || [],
+    hospitalsCount: hospitalsRes.count || 0,
+    ambulancesCount: ambulancesRes.count || 0,
+    subscriptionStats: canReadSubscriptionAnalytics
+      ? { ...DEFAULT_ANALYTICS_SUBSCRIPTION_STATS, ...(subscriptionRes.data || {}) }
+      : DEFAULT_ANALYTICS_SUBSCRIPTION_STATS,
+    financeData,
+    sourceIssues,
+  };
+};
+
+/**
  * Get comprehensive analytics data for dashboard
  * @returns {Promise<Object>} Analytics data object
  */
@@ -45,6 +174,7 @@ export const getAnalyticsData = async (options = {}) => {
     if (user?.role === 'patient') {
       return {
         totalUsers: 0, totalEmergencies: 0, avgResponseTime: 0, successRate: 0,
+        successRateSource: 'unavailable', analyticsSourceState: 'unauthorized',
         totalHospitals: 0, totalAmbulances: 0, totalBeds: 0,
         subscriptionAnalytics: { totalSubscribers: 0, activeSubscribers: 0 },
         trends: { emergencyTrend: 0, emergencyTrendPercentage: 0, isPositiveTrend: true }
@@ -54,16 +184,18 @@ export const getAnalyticsData = async (options = {}) => {
     const {
       timeRange = 'all',
       includeRawData = true,
-      includeDerivedMetrics = true
+      includeDerivedMetrics = true,
+      quiet = false
     } = options;
+    const quietOptions = { quiet };
 
     // Parallel fetch all required data
     const [userStats, emergencies, hospitals, ambulances, subscriptionData] = await Promise.all([
-      getCachedOrFetch('userStats', getUserStatistics),
-      getCachedOrFetch('emergencies', getEmergencyRequests),
-      getCachedOrFetch('hospitals', getHospitals),
-      getCachedOrFetch('ambulances', getAmbulances),
-      getCachedOrFetch('subscriptionAnalytics', getSubscriptionAnalytics)
+      getCachedOrFetch('userStats', () => getUserStatistics(quietOptions)),
+      getCachedOrFetch('emergencies', () => getEmergencyRequests(quietOptions)),
+      getCachedOrFetch('hospitals', () => getHospitals(quietOptions)),
+      getCachedOrFetch('ambulances', () => getAmbulances(quietOptions)),
+      getCachedOrFetch('subscriptionAnalytics', () => getSubscriptionAnalytics(quietOptions))
     ]);
 
     // Apply time range filtering
@@ -84,6 +216,10 @@ export const getAnalyticsData = async (options = {}) => {
     const avgResponseTime = completedEmergencies.length > 0
       ? completedEmergencies.reduce((acc, e) => acc + (e.response_time_minutes || 0), 0) / completedEmergencies.length
       : 0;
+    const successRateSource = totalEmergencies > 0 ? 'measured' : 'source_pending';
+    const successRate = totalEmergencies > 0
+      ? Math.round((completedEmergencies.length / totalEmergencies) * 100)
+      : 0;
 
     // Calculate trend data
     const trendData = calculateTrends(filteredEmergencies);
@@ -101,7 +237,9 @@ export const getAnalyticsData = async (options = {}) => {
       // Emergency analytics
       totalEmergencies,
       avgResponseTime: Math.round(avgResponseTime * 10) / 10,
-      successRate: totalEmergencies > 0 ? Math.round((completedEmergencies.length / totalEmergencies) * 100) : 95,
+      successRate,
+      successRateSource,
+      analyticsSourceState: successRateSource,
 
       // Infrastructure analytics
       totalHospitals: hospitals.length,
@@ -139,7 +277,9 @@ export const getAnalyticsData = async (options = {}) => {
 
     return analyticsData;
   } catch (error) {
-    console.error('Error fetching analytics data:', error);
+    if (!options?.quiet) {
+      console.error('Error fetching analytics data:', error);
+    }
     throw new Error('Failed to fetch analytics data');
   }
 };
@@ -158,6 +298,8 @@ export const getAnalyticsSummary = async (options = {}) => {
       totalEmergencies: analytics.totalEmergencies,
       avgResponseTime: analytics.avgResponseTime,
       successRate: analytics.successRate,
+      successRateSource: analytics.successRateSource,
+      analyticsSourceState: analytics.analyticsSourceState,
       totalHospitals: analytics.totalHospitals,
       totalAmbulances: analytics.totalAmbulances,
       // Add subscription summary metrics
@@ -168,7 +310,9 @@ export const getAnalyticsSummary = async (options = {}) => {
       trends: analytics.trends
     };
   } catch (error) {
-    console.error('Error fetching analytics summary:', error);
+    if (!options?.quiet) {
+      console.error('Error fetching analytics summary:', error);
+    }
     throw new Error('Failed to fetch analytics summary');
   }
 };

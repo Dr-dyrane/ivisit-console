@@ -50,8 +50,12 @@ export const MobileListSkeletonRows = ({ count = 3 }) => (
     </div>
 );
 
-export const MobileListLoadMore = ({ armed = false, onRequest }) => {
+export const MobileListLoadMore = ({ armed = false, onRequest, labelTone = 'caps' }) => {
     const { triggerFromEvent } = useFeedback();
+    const copy = armed ? 'Scroll to load' : 'Load more';
+    const labelClassName = labelTone === 'plain'
+        ? 'text-[12px] normal-case tracking-tight'
+        : 'text-[10px] uppercase tracking-[0.2em]';
 
     return (
         <button
@@ -65,9 +69,9 @@ export const MobileListLoadMore = ({ armed = false, onRequest }) => {
                     sound: true
                 });
             }}
-            className="h-11 px-4 rounded-2xl apple-glass-heavy border-0 text-[10px] uppercase tracking-[0.2em] font-semibold text-foreground/80 hover:text-foreground/95 hover:bg-white/[0.05] active:scale-95 transition-[transform,color,background] duration-200"
+            className={`h-11 px-4 rounded-2xl apple-glass-heavy font-semibold text-foreground/80 hover:text-foreground/95 hover:bg-white/[0.05] active:scale-95 transition-[transform,color,background] duration-200 ${labelClassName}`}
         >
-            {armed ? 'Scroll To Load' : 'Load More'}
+            {copy}
         </button>
     );
 };
@@ -84,7 +88,8 @@ export const MobileListEmpty = ({
     reason = 'empty', // empty | filtered | search
     hint,
     onRecover,
-    recoverLabel
+    recoverLabel,
+    labelTone = 'caps'
 }) => {
     const { triggerFromEvent } = useFeedback();
 
@@ -96,6 +101,12 @@ export const MobileListEmpty = ({
 
     const fallbackRecoverLabel = reason === 'filtered' ? 'Clear Filters' : reason === 'search' ? 'Clear Search' : 'Reload';
     const helperText = hint || reasonCopy[reason] || reasonCopy.empty;
+    const labelClassName = labelTone === 'plain'
+        ? 'text-sm font-medium normal-case tracking-normal text-muted-foreground/65 opacity-90'
+        : 'text-[10px] font-normal text-muted-foreground uppercase tracking-[0.4em] opacity-30';
+    const helperClassName = labelTone === 'plain'
+        ? 'mt-2 text-[12px] leading-5 text-muted-foreground/55 tracking-normal'
+        : 'mt-2 text-[11px] text-muted-foreground/55 tracking-tight';
 
     return (
         <motion.div
@@ -104,10 +115,10 @@ export const MobileListEmpty = ({
             className="py-20 text-center px-4"
         >
             {Icon && <Icon className="h-10 w-10 mx-auto mb-4 text-muted-foreground/10" />}
-            <p className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.4em] opacity-30">
+            <p className={labelClassName}>
                 {label}
             </p>
-            <p className="mt-2 text-[11px] text-muted-foreground/55 tracking-tight">
+            <p className={helperClassName}>
                 {helperText}
             </p>
             {typeof onRecover === 'function' && (

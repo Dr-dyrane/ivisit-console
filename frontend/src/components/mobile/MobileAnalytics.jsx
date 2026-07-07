@@ -24,6 +24,19 @@ import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { calcDeltaPercent, formatSignedPercent, toDeltaBadge } from '../../utils/metricsUtils';
 
+const SOURCE_PENDING_LABEL = 'Source pending';
+const DEFAULT_SUBSCRIPTION_STATS = {
+    total: 0,
+    active: 0,
+    paid: 0,
+    free: 0,
+    newUsers: 0,
+    welcomeEmailsSent: 0,
+    paidConversionRate: 0,
+};
+const DEFAULT_FINANCE_SUMMARY = { total: 0, weeklyAvg: 0, today: 0, health: 0 };
+const DEFAULT_HOSPITAL_CAPACITY = { total: 0, occupied: 0, icu: 0 };
+
 /**
  * MobileAnalytics
  * Reinvented mobile experience for the Analytics page
@@ -43,21 +56,41 @@ export const MobileAnalytics = ({
     demandHeatmap = [],
     timeRange,
     onRefresh,
+    loadError,
+    onRetry,
     handleExport,
+    exportNotice,
+    sourceIssueSummary,
+    subscriptionScopeLabel = SOURCE_PENDING_LABEL,
+    financeScopeLabel = SOURCE_PENDING_LABEL,
+    canReadSubscriptionAnalytics = false,
+    canReadFinanceAnalytics = false,
     roleContext
 }) => {
-    const { isAdmin, isOrgAdmin, isSponsor, isProvider } = roleContext;
+    const { isAdmin, isOrgAdmin, isSponsor, isProvider } = roleContext || {};
+    const resolvedSubscriptionStats = useMemo(
+        () => ({ ...DEFAULT_SUBSCRIPTION_STATS, ...(subscriptionStats || {}) }),
+        [subscriptionStats],
+    );
+    const resolvedFinanceSummary = useMemo(
+        () => ({ ...DEFAULT_FINANCE_SUMMARY, ...(financeSummary || {}) }),
+        [financeSummary],
+    );
+    const resolvedHospitalCapacity = useMemo(
+        () => ({ ...DEFAULT_HOSPITAL_CAPACITY, ...(hospitalCapacity || {}) }),
+        [hospitalCapacity],
+    );
 
 
     const seriesDelta = (series = [], key = 'value', invert = false) => {
-        if (!Array.isArray(series) || series.length < 2) return { badge: 'LIVE', direction: 'flat' };
+        if (!Array.isArray(series) || series.length < 2) return { badge: SOURCE_PENDING_LABEL, direction: 'flat' };
         const first = Number(series[0]?.[key]);
         const last = Number(series[series.length - 1]?.[key]);
-        if (!Number.isFinite(first) || !Number.isFinite(last) || first === 0) return { badge: 'LIVE', direction: 'flat' };
+        if (!Number.isFinite(first) || !Number.isFinite(last) || first === 0) return { badge: SOURCE_PENDING_LABEL, direction: 'flat' };
         let delta = ((last - first) / Math.abs(first)) * 100;
         if (invert) delta *= -1;
         return {
-            badge: formatSignedPercent(delta) || 'LIVE',
+            badge: formatSignedPercent(delta) || SOURCE_PENDING_LABEL,
             direction: delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'
         };
     };
@@ -66,67 +99,81 @@ export const MobileAnalytics = ({
     const demandTrend = seriesDelta(responseTimeData, 'requests');
     const resolvedStats = useMemo(() => {
         const source = stats || {};
-        const hasLive =
-            (Number(source.totalEmergencies) || 0) > 0 ||
-            (Number(source.avgResponseTime) || 0) > 0 ||
-            (Number(source.successRate) || 0) > 0;
-
-        if (hasLive) {
-            return {
-                totalEmergencies: Number(source.totalEmergencies) || 0,
-                avgResponseTime: Number(source.avgResponseTime) || 0,
-                successRate: Number(source.successRate) || 0,
-                totalHospitals: Number(source.totalHospitals) || 0,
-                totalAmbulances: Number(source.totalAmbulances) || 0
-            };
-        }
-
-        const predictedTotal = responseTimeData.reduce((sum, row) => sum + (Number(row.requests) || 0), 0);
-        const completed = requestsByStatus.find((s) => String(s.name).toLowerCase().includes('completed'))?.value || 0;
-        const predictedSuccessRate = predictedTotal > 0 ? (completed / predictedTotal) * 100 : null;
-        const nonZeroAvg = responseTimeData.filter((row) => Number(row.avgTime) > 0);
-        const predictedAvg = nonZeroAvg.length
-            ? nonZeroAvg.reduce((sum, row) => sum + Number(row.avgTime), 0) / nonZeroAvg.length
-            : 4.2;
 
         return {
-            totalEmergencies: predictedTotal ?? 0,
-            avgResponseTime: Math.round(predictedAvg * 10) / 10,
-            successRate: Math.round(predictedSuccessRate),
+            totalEmergencies: Number(source.totalEmergencies) || 0,
+            avgResponseTime: Number(source.avgResponseTime) || 0,
+            successRate: Number(source.successRate) || 0,
             totalHospitals: Number(source.totalHospitals) || 0,
             totalAmbulances: Number(source.totalAmbulances) || 0
         };
-    }, [stats, responseTimeData, requestsByStatus]);
+    }, [stats]);
 
-    const successDelta = Number.isFinite(Number(resolvedStats.successRate)) ? Number(resolvedStats.successRate) - 80 : null;
-
-    // Standardized chart data for sparklines
-    const defaultChartData = useMemo(() => [
-        { value: 40 }, { value: 65 }, { value: 45 }, { value: 90 }, { value: 75 }, { value: 95 }
-    ], []);
+    const hasMeasuredSuccess = resolvedStats.totalEmergencies > 0 || Number(stats?.successRate) > 0;
+    const hasMeasuredAvgTime = Number(resolvedStats.avgResponseTime) > 0;
+    const successDelta = hasMeasuredSuccess ? Number(resolvedStats.successRate) - 80 : null;
+    const successValue = hasMeasuredSuccess ? `${resolvedStats.successRate}%` : SOURCE_PENDING_LABEL;
+    const avgTimeValue = hasMeasuredAvgTime ? `${resolvedStats.avgResponseTime.toFixed(1)}m` : SOURCE_PENDING_LABEL;
+    const successTrendBadge = formatSignedPercent(successDelta) || SOURCE_PENDING_LABEL;
+    const hospitalCapacityPercent = resolvedHospitalCapacity.total > 0
+        ? Math.round((resolvedHospitalCapacity.occupied / resolvedHospitalCapacity.total) * 100)
+        : 0;
+    const hasFinanceData = Array.isArray(financeData) && financeData.length > 0;
+    const financeScale = Math.max(
+        Number(resolvedFinanceSummary.total) || 0,
+        Number(resolvedFinanceSummary.weeklyAvg) * 7 || 0,
+        Number(resolvedFinanceSummary.today) || 0,
+        1
+    );
+    const formatFinanceValue = (value) => (
+        hasFinanceData ? `$${Number(value || 0).toFixed(0)}` : financeScopeLabel
+    );
+    const financeMetricRows = [
+        {
+            label: 'Daily Yield',
+            value: formatFinanceValue(resolvedFinanceSummary.today),
+            progress: hasFinanceData ? Math.min(100, Math.round(((Number(resolvedFinanceSummary.today) || 0) / financeScale) * 100)) : 0,
+            color: 'hsl(var(--success))'
+        },
+        {
+            label: 'Weekly Average',
+            value: formatFinanceValue((Number(resolvedFinanceSummary.weeklyAvg) || 0) * 7),
+            progress: hasFinanceData ? Math.min(100, Math.round((((Number(resolvedFinanceSummary.weeklyAvg) || 0) * 7) / financeScale) * 100)) : 0,
+            color: 'hsl(var(--primary))'
+        }
+    ];
+    const paidConversionLabel = canReadSubscriptionAnalytics && Number(resolvedSubscriptionStats.paidConversionRate) > 0
+        ? `${Number(resolvedSubscriptionStats.paidConversionRate).toFixed(1)}%`
+        : subscriptionScopeLabel;
+    const avgTicketLabel = hasFinanceData && resolvedStats.totalEmergencies > 0
+        ? `$${(resolvedFinanceSummary.total / resolvedStats.totalEmergencies).toFixed(0)}`
+        : financeScopeLabel;
+    const subscriberKpiValue = canReadSubscriptionAnalytics
+        ? resolvedSubscriptionStats.active || 0
+        : subscriptionScopeLabel;
 
     const sparklineData = useMemo(() => {
-        if (!responseTimeData || !responseTimeData.length) return defaultChartData;
+        if (!responseTimeData || !responseTimeData.length) return [];
         return responseTimeData.map(d => ({ value: d.avgTime }));
-    }, [responseTimeData, defaultChartData]);
+    }, [responseTimeData]);
 
     const getKPIData = () => {
         if (isAdmin || isOrgAdmin || isSponsor) {
             return [
-                { label: 'Success', value: `${resolvedStats.successRate}%`, color: 'hsl(var(--success))', delta: formatSignedPercent(successDelta) || 'LIVE', direction: Number(successDelta) >= 0 ? 'up' : 'down' },
-                { label: 'Avg Time', value: `${resolvedStats.avgResponseTime.toFixed(1)}m`, color: 'hsl(var(--info))', delta: responseTrend.badge, direction: responseTrend.direction },
+                { label: 'Success', value: successValue, color: 'hsl(var(--success))', delta: successTrendBadge, direction: successDelta > 0 ? 'up' : successDelta < 0 ? 'down' : 'flat' },
+                { label: 'Avg Time', value: avgTimeValue, color: 'hsl(var(--info))', delta: responseTrend.badge, direction: responseTrend.direction },
                 { label: 'Total', value: resolvedStats.totalEmergencies, color: 'hsl(var(--destructive))', delta: demandTrend.badge, direction: demandTrend.direction },
-                { label: 'Fleet', value: resolvedStats.totalAmbulances, color: 'hsl(var(--primary))', delta: `${Math.round((Math.floor(resolvedStats.totalAmbulances * 0.7) / Math.max(resolvedStats.totalAmbulances || 0, 1)) * 100)}%`, direction: 'up' },
-                { label: 'Hospitals', value: resolvedStats.totalHospitals, color: 'hsl(var(--secondary))', delta: 'LIVE', direction: 'flat' },
-                { label: 'Subs', value: subscriptionStats?.active || 0, color: 'hsl(var(--info))', delta: 'LIVE', direction: 'flat' }
+                { label: 'Fleet', value: resolvedStats.totalAmbulances, color: 'hsl(var(--primary))', delta: SOURCE_PENDING_LABEL, direction: 'flat' },
+                { label: 'Hospitals', value: resolvedStats.totalHospitals, color: 'hsl(var(--secondary))', delta: SOURCE_PENDING_LABEL, direction: 'flat' },
+                { label: 'Subs', value: subscriberKpiValue, color: 'hsl(var(--info))', delta: subscriptionScopeLabel, direction: 'flat' }
             ];
         }
         return [
-            { label: 'My Success', value: `${resolvedStats.successRate}%`, color: 'hsl(var(--success))', delta: formatSignedPercent(successDelta) || 'LIVE', direction: Number(successDelta) >= 0 ? 'up' : 'down' },
+            { label: 'My Success', value: successValue, color: 'hsl(var(--success))', delta: successTrendBadge, direction: successDelta > 0 ? 'up' : successDelta < 0 ? 'down' : 'flat' },
             { label: 'Responses', value: resolvedStats.totalEmergencies, color: 'hsl(var(--primary))', delta: demandTrend.badge, direction: demandTrend.direction },
-            { label: 'Avg Time', value: `${resolvedStats.avgResponseTime.toFixed(1)}m`, color: 'hsl(var(--info))', delta: responseTrend.badge, direction: responseTrend.direction },
-            { label: 'Hospitals', value: resolvedStats.totalHospitals, color: 'hsl(var(--secondary))', delta: 'LIVE', direction: 'flat' },
-            { label: 'Fleet', value: resolvedStats.totalAmbulances, color: 'hsl(var(--primary))', delta: 'LIVE', direction: 'flat' }
+            { label: 'Avg Time', value: avgTimeValue, color: 'hsl(var(--info))', delta: responseTrend.badge, direction: responseTrend.direction },
+            { label: 'Hospitals', value: resolvedStats.totalHospitals, color: 'hsl(var(--secondary))', delta: SOURCE_PENDING_LABEL, direction: 'flat' },
+            { label: 'Fleet', value: resolvedStats.totalAmbulances, color: 'hsl(var(--primary))', delta: SOURCE_PENDING_LABEL, direction: 'flat' }
         ];
     };
 
@@ -136,40 +183,83 @@ export const MobileAnalytics = ({
                 kpiStrip={<MobileKPIStrip kpis={getKPIData()} />}
                 contentClassName="pt-4 pb-4 text-foreground"
             >
+                    {loadError && (
+                        <section
+                            data-testid="mobile-analytics-error-state"
+                            role="alert"
+                            className="mx-3 mb-4 rounded-3xl bg-destructive/10 px-4 py-3 text-destructive shadow-sm"
+                        >
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <p className="text-sm font-semibold">Statistics did not load.</p>
+                                    <p className="mt-1 text-xs text-destructive/75">Retry when the source is available.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={onRetry || onRefresh}
+                                    className="shrink-0 rounded-full bg-background/70 px-4 py-2 text-xs font-semibold text-destructive"
+                                >
+                                    Retry
+                                </button>
+                            </div>
+                        </section>
+                    )}
+                    {sourceIssueSummary && (
+                        <section
+                            data-testid="mobile-analytics-source-state"
+                            role="status"
+                            aria-live="polite"
+                            className="mx-3 mb-4 rounded-3xl bg-amber-50 px-4 py-3 text-amber-900 shadow-sm dark:bg-amber-950/30 dark:text-amber-200"
+                        >
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <p className="text-sm font-semibold">{sourceIssueSummary.title}</p>
+                                    <p className="mt-1 text-xs text-amber-800/75 dark:text-amber-100/70">{sourceIssueSummary.detail}</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={onRetry || onRefresh}
+                                    className="shrink-0 rounded-full bg-background/70 px-4 py-2 text-xs font-semibold text-amber-900 dark:text-amber-100"
+                                >
+                                    Retry
+                                </button>
+                            </div>
+                        </section>
+                    )}
                     {/* HERO FEATURED METRICS */}
                     <MobileFeaturedMetric
                         items={[
                             {
                                 label: isProvider ? 'Personal Performance' : 'Impact Velocity',
-                                value: isProvider ? `${resolvedStats.successRate}%` : `${resolvedStats.avgResponseTime.toFixed(1)}m`,
-                                trend: resolvedStats.avgResponseTime < 10 ? 'Nominal' : 'Stable',
+                                value: isProvider ? successValue : avgTimeValue,
+                                trend: hasMeasuredAvgTime ? (resolvedStats.avgResponseTime < 10 ? 'Current' : 'Watch') : SOURCE_PENDING_LABEL,
                                 icon: isProvider ? Activity : Clock,
                                 color: isProvider ? 'hsl(var(--success))' : 'hsl(var(--info))',
                                 chartData: sparklineData
                             },
                             {
                                 label: 'System Success',
-                                value: `${resolvedStats.successRate}%`,
-                                trend: formatSignedPercent(successDelta) || 'LIVE',
+                                value: successValue,
+                                trend: successTrendBadge,
                                 icon: CheckCircle2,
                                 color: 'hsl(var(--success))',
                                 chartData: sparklineData
                             },
                             {
-                                label: 'Live Demand',
+                                label: 'Demand',
                                 value: resolvedStats.totalEmergencies,
                                 trend: demandTrend.badge,
                                 icon: AlertTriangle,
                                 color: 'hsl(var(--destructive))',
-                                chartData: defaultChartData
+                                chartData: sparklineData
                             },
                             {
                                 label: 'Network Capacity',
                                 value: resolvedStats.totalHospitals,
-                                trend: 'LIVE',
+                                trend: SOURCE_PENDING_LABEL,
                                 icon: Hospital,
                                 color: 'hsl(var(--info))',
-                                chartData: defaultChartData
+                                chartData: []
                             }
                         ]}
                     />
@@ -195,7 +285,7 @@ export const MobileAnalytics = ({
                                     <div className="space-y-4 py-3">
                                         <div className="flex flex-col gap-1 px-1">
                                             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Case Type Distribution</span>
-                                            <p className="text-xs text-foreground/60 italic pb-2">Dominant: <span className="text-destructive font-semibold">{dominantType?.name || 'Cardiac'}</span></p>
+                                            <p className="text-xs text-foreground/60 italic pb-2">Dominant: <span className="text-destructive font-semibold">{dominantType?.name || SOURCE_PENDING_LABEL}</span></p>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
                                             {emergencyTypes.map((type, i) => (
@@ -214,12 +304,12 @@ export const MobileAnalytics = ({
                             <MobileMetricRow
                                 icon={Activity}
                                 label="Status Breakdown"
-                                value={`${resolvedStats.successRate}%`}
+                                value={successValue}
                                 rightBlade={{
-                                    badge: `${resolvedStats.successRate}%`,
+                                    badge: successValue,
                                     label: 'Fulfillment',
-                                    value: `${resolvedStats.successRate}%`,
-                                    direction: resolvedStats.successRate >= 85 ? 'up' : 'down',
+                                    value: successValue,
+                                    direction: hasMeasuredSuccess && resolvedStats.successRate >= 85 ? 'up' : hasMeasuredSuccess ? 'down' : 'flat',
                                     color: 'hsl(var(--success))'
                                 }}
                                 color="hsl(var(--success))"
@@ -265,7 +355,7 @@ export const MobileAnalytics = ({
                                         <h4 className="text-xl font-medium tracking-tight">Peak Heatmap</h4>
                                     </div>
                                     <div className="px-3 py-1 bg-destructive/10 rounded-full">
-                                        <span className="text-[10px] font-medium text-destructive uppercase tracking-widest">Live</span>
+                                        <span className="text-[10px] font-medium text-destructive uppercase tracking-widest">{SOURCE_PENDING_LABEL}</span>
                                     </div>
                                 </div>
 
@@ -300,7 +390,7 @@ export const MobileAnalytics = ({
                                             <span className="text-[8px] font-medium uppercase tracking-widest">Idle</span>
                                         </div>
                                     </div>
-                                    <span className="text-[8px] font-medium italic opacity-50 uppercase tracking-widest">v4.0 Dispatch</span>
+                                    <span className="text-[8px] font-medium italic opacity-50 uppercase tracking-widest">{SOURCE_PENDING_LABEL}</span>
                                 </div>
                             </div>
                         </section>
@@ -316,10 +406,10 @@ export const MobileAnalytics = ({
                                     label="Medical Facilities"
                                     value={resolvedStats.totalHospitals}
                                     rightBlade={{
-                                        badge: `${Math.round((hospitalCapacity.occupied / Math.max(hospitalCapacity.total || 0, 1)) * 100)}%`,
+                                        badge: resolvedHospitalCapacity.total > 0 ? `${hospitalCapacityPercent}%` : SOURCE_PENDING_LABEL,
                                         label: 'Capacity',
-                                        value: `${hospitalCapacity.total} Beds`,
-                                        direction: (hospitalCapacity.occupied / Math.max(hospitalCapacity.total || 0, 1)) < 0.8 ? 'up' : 'down',
+                                        value: `${resolvedHospitalCapacity.total} Beds`,
+                                        direction: (resolvedHospitalCapacity.occupied / Math.max(resolvedHospitalCapacity.total || 0, 1)) < 0.8 ? 'up' : 'down',
                                         color: 'hsl(var(--primary))'
                                     }}
                                     color="hsl(var(--primary))"
@@ -328,23 +418,23 @@ export const MobileAnalytics = ({
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div className="p-3 bg-primary/[0.04] rounded-2xl">
                                                     <p className="text-[8px] uppercase tracking-widest text-muted-foreground mb-1">Total Capacity</p>
-                                                    <p className="text-lg font-semibold tracking-tighter">{hospitalCapacity.total} Beds</p>
+                                                    <p className="text-lg font-semibold tracking-tighter">{resolvedHospitalCapacity.total} Beds</p>
                                                 </div>
                                                 <div className="p-3 bg-primary/[0.04] rounded-2xl">
                                                     <p className="text-[8px] uppercase tracking-widest text-muted-foreground mb-1">ICU Reserved</p>
-                                                    <p className="text-lg font-semibold tracking-tighter text-info">{hospitalCapacity.icu}</p>
+                                                    <p className="text-lg font-semibold tracking-tighter text-info">{resolvedHospitalCapacity.icu}</p>
                                                 </div>
                                             </div>
                                             <div className="space-y-2 px-1">
                                                 <div className="flex justify-between items-baseline">
                                                     <span className="text-[10px] uppercase tracking-widest font-medium opacity-40">Bed Occupancy</span>
-                                                    <span className="text-xs font-semibold">{Math.round((hospitalCapacity.occupied / Math.max(hospitalCapacity.total || 0, 1)) * 100)}%</span>
+                                                    <span className="text-xs font-semibold">{resolvedHospitalCapacity.total > 0 ? `${hospitalCapacityPercent}%` : SOURCE_PENDING_LABEL}</span>
                                                 </div>
                                                 <div className="h-1.5 w-full bg-white/[0.04] rounded-full overflow-hidden shadow-inner">
                                                     <motion.div
                                                         className="h-full bg-primary/60"
                                                         initial={{ width: 0 }}
-                                                        animate={{ width: `${(hospitalCapacity.occupied / Math.max(hospitalCapacity.total || 0, 1)) * 100}%` }}
+                                                        animate={{ width: `${hospitalCapacityPercent}%` }}
                                                     />
                                                 </div>
                                             </div>
@@ -356,10 +446,10 @@ export const MobileAnalytics = ({
                                     label="Fleet Readiness"
                                     value={resolvedStats.totalAmbulances}
                                     rightBlade={{
-                                        badge: `${Math.round((Math.floor(resolvedStats.totalAmbulances * 0.7) / Math.max(resolvedStats.totalAmbulances || 0, 1)) * 100)}%`,
-                                        label: 'Ready Units',
-                                        value: `${Math.floor(resolvedStats.totalAmbulances * 0.7)}`,
-                                        direction: 'up',
+                                        badge: SOURCE_PENDING_LABEL,
+                                        label: 'Readiness Source',
+                                        value: SOURCE_PENDING_LABEL,
+                                        direction: 'flat',
                                         color: 'hsl(var(--success))'
                                     }}
                                     color="hsl(var(--success))"
@@ -367,21 +457,21 @@ export const MobileAnalytics = ({
                                         <div className="space-y-4 py-3">
                                             <div className="p-3 bg-success/[0.04] rounded-2xl flex justify-between items-center">
                                                 <div>
-                                                    <p className="text-[8px] uppercase tracking-widest text-muted-foreground mb-1">Units Ready</p>
-                                                    <p className="text-lg font-semibold tracking-tighter">{Math.floor(resolvedStats.totalAmbulances * 0.7)} active</p>
+                                                    <p className="text-[8px] uppercase tracking-widest text-muted-foreground mb-1">Readiness Source</p>
+                                                    <p className="text-lg font-semibold tracking-tighter">{SOURCE_PENDING_LABEL}</p>
                                                 </div>
-                                                <Badge className="squircle-sm bg-success/20 text-success border-0 text-[10px] font-black tracking-widest">READY</Badge>
+                                                <Badge className="squircle-sm bg-muted/30 text-muted-foreground border-0 text-[10px] font-black tracking-widest">Pending</Badge>
                                             </div>
                                             <div className="space-y-2 px-1">
                                                 <div className="flex justify-between items-baseline opacity-40">
                                                     <span className="text-[10px] uppercase tracking-widest font-medium">Deployment Ratio</span>
-                                                    <span className="text-xs font-semibold">70%</span>
+                                                    <span className="text-xs font-semibold">{SOURCE_PENDING_LABEL}</span>
                                                 </div>
                                                 <div className="h-1.5 w-full bg-white/[0.04] rounded-full overflow-hidden">
                                                     <motion.div
                                                         className="h-full bg-success/60"
                                                         initial={{ width: 0 }}
-                                                        animate={{ width: '70%' }}
+                                                        animate={{ width: 0 }}
                                                     />
                                                 </div>
                                             </div>
@@ -399,11 +489,11 @@ export const MobileAnalytics = ({
                             <MobileMetricRow
                                 icon={TrendingUp}
                                 label="Search Analytics"
-                                value={`${resolvedStats.successRate}%`}
+                                value={successValue}
                                 rightBlade={{
                                     badge: responseTrend.badge,
-                                    label: 'Efficiency',
-                                    value: `${resolvedStats.avgResponseTime.toFixed(1)}m`,
+                                    label: 'Status',
+                                    value: avgTimeValue,
                                     direction: responseTrend.direction,
                                     color: 'hsl(var(--info))'
                                 }}
@@ -412,15 +502,15 @@ export const MobileAnalytics = ({
                                 expandedContent={
                                     <div className="grid grid-cols-2 gap-2 py-3">
                                         {[
-                                            { label: 'Total Volume', value: '1,284', change: '+12%', color: 'info' },
-                                            { label: 'Precision', value: '87%', change: '+3%', color: 'success' },
-                                            { label: 'Latency', value: '2.3s', change: '-0.5s', color: 'primary' },
-                                            { label: 'Void Ratio', value: '8%', change: '-2%', color: 'warning' }
+                                            { label: 'Total Volume', value: SOURCE_PENDING_LABEL, change: 'Pending', color: 'info' },
+                                            { label: 'Precision', value: SOURCE_PENDING_LABEL, change: 'Pending', color: 'success' },
+                                            { label: 'Latency', value: SOURCE_PENDING_LABEL, change: 'Pending', color: 'primary' },
+                                            { label: 'Void Ratio', value: SOURCE_PENDING_LABEL, change: 'Pending', color: 'warning' }
                                         ].map((m, i) => (
                                             <div key={i} className="p-3 bg-primary/[0.03] rounded-2xl flex flex-col justify-between min-h-[70px]">
                                                 <div className="flex justify-between items-start">
                                                     <span className="text-[8px] uppercase tracking-widest text-muted-foreground font-semibold">{m.label}</span>
-                                                    <span className={`text-[7px] font-black ${m.change.includes('+') ? 'text-success' : 'text-info'}`}>{m.change}</span>
+                                                    <span className="text-[7px] font-black text-muted-foreground">{m.change}</span>
                                                 </div>
                                                 <span className="text-lg font-semibold tracking-tighter">{m.value}</span>
                                             </div>
@@ -431,11 +521,11 @@ export const MobileAnalytics = ({
                             <MobileMetricRow
                                 icon={Activity}
                                 label="Performance Vitals"
-                                value="Nominal"
+                                value={SOURCE_PENDING_LABEL}
                                 rightBlade={{
                                     badge: responseTrend.badge,
-                                    label: 'Error Rate',
-                                    value: responseTrend.direction === 'up' ? 'Improving' : responseTrend.direction === 'down' ? 'Watch' : 'Stable',
+                                    label: 'Status',
+                                    value: responseTrend.badge === SOURCE_PENDING_LABEL ? SOURCE_PENDING_LABEL : responseTrend.direction === 'up' ? 'Improving' : responseTrend.direction === 'down' ? 'Watch' : 'Current',
                                     direction: responseTrend.direction,
                                     color: 'hsl(var(--success))'
                                 }}
@@ -444,10 +534,10 @@ export const MobileAnalytics = ({
                                 expandedContent={
                                     <div className="space-y-4 py-4">
                                         {[
-                                            { label: 'API Response', value: '142ms', progress: 90, status: 'excellent' },
-                                            { label: 'DB Query Time', value: '28ms', progress: 95, status: 'excellent' },
-                                            { label: 'Uptime', value: '99.97%', progress: 99, status: 'excellent' },
-                                            { label: 'Error Rate', value: '0.12%', progress: 15, status: 'stable' }
+                                            { label: 'API Response', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' },
+                                            { label: 'DB Query Time', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' },
+                                            { label: 'Uptime', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' },
+                                            { label: 'Error Rate', value: SOURCE_PENDING_LABEL, progress: 0, status: 'pending' }
                                         ].map((p, i) => (
                                             <div key={i} className="space-y-2">
                                                 <div className="flex justify-between items-center text-[10px] uppercase tracking-widest font-black opacity-60">
@@ -456,7 +546,7 @@ export const MobileAnalytics = ({
                                                 </div>
                                                 <div className="h-1 w-full bg-white/[0.04] rounded-full overflow-hidden">
                                                     <motion.div
-                                                        className={`h-full ${p.status === 'excellent' ? 'bg-success/60' : 'bg-primary/60'}`}
+                                                        className={`h-full ${p.status === 'excellent' ? 'bg-success/60' : p.status === 'pending' ? 'bg-muted/40' : 'bg-primary/60'}`}
                                                         initial={{ width: 0 }}
                                                         animate={{ width: `${p.progress}%` }}
                                                     />
@@ -469,8 +559,8 @@ export const MobileAnalytics = ({
                         </div>
                     </section>
 
-                    {/* FISCAL PERFORMANCE (Admin/Org Admin/Sponsor) */}
-                    {(isAdmin || isOrgAdmin || isSponsor) && (
+                    {/* FISCAL PERFORMANCE (Admin/Sponsor until org finance scope is proved) */}
+                    {canReadFinanceAnalytics && (
                         <section className="mt-3">
                             <MobileSectionHeader label="Fiscal Trajectory" color="hsl(var(--warning))" />
                             <div className="px-6 py-8 apple-glass-heavy bg-muted/30 rounded-3xl relative overflow-hidden shadow-xl border-0">
@@ -481,7 +571,7 @@ export const MobileAnalytics = ({
                                 <div className="flex justify-between items-center mb-8">
                                     <div>
                                         <p className="text-[10px] uppercase tracking-[0.2em] text-success font-black mb-1">Revenue Stream</p>
-                                        <h4 className="text-3xl font-black tracking-tighter">${financeSummary.total.toFixed(0)}</h4>
+                                        <h4 className="text-3xl font-black tracking-tighter">{hasFinanceData ? `$${resolvedFinanceSummary.total.toFixed(0)}` : financeScopeLabel}</h4>
                                     </div>
                                     <div className="relative w-14 h-14 flex items-center justify-center">
                                         <svg className="w-full h-full transform -rotate-90">
@@ -489,19 +579,16 @@ export const MobileAnalytics = ({
                                             <circle
                                                 cx="28" cy="28" r="24" stroke="currentColor" strokeWidth="4" fill="transparent"
                                                 strokeDasharray={151}
-                                                strokeDashoffset={151 - (151 * financeSummary.health / 100)}
+                                                strokeDashoffset={151 - (151 * resolvedFinanceSummary.health / 100)}
                                                 className="text-success transition-all duration-1000"
                                             />
                                         </svg>
-                                        <span className="absolute text-[10px] font-black">{Math.round(financeSummary.health)}%</span>
+                                        <span className="absolute text-[10px] font-black">{Math.round(resolvedFinanceSummary.health)}%</span>
                                     </div>
                                 </div>
 
                                 <div className="space-y-5">
-                                    {[
-                                        { label: 'Daily Yield', value: `$${financeSummary.today.toFixed(0)}`, progress: 75, color: 'hsl(var(--success))' },
-                                        { label: 'Weekly Average', value: `$${(financeSummary.weeklyAvg * 7).toFixed(0)}`, progress: 60, color: 'hsl(var(--primary))' }
-                                    ].map((m, i) => (
+                                    {financeMetricRows.map((m, i) => (
                                         <div key={i} className="space-y-2">
                                             <div className="flex justify-between text-[10px] uppercase tracking-widest font-semibold opacity-40">
                                                 <span>{m.label}</span>
@@ -522,11 +609,11 @@ export const MobileAnalytics = ({
                                 <div className="mt-8 grid grid-cols-2 gap-3">
                                     <div className="p-3 bg-white/5 rounded-2xl text-center">
                                         <p className="text-[8px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Conversion</p>
-                                        <p className="text-sm font-black text-foreground">{(subscriptionStats.paid / (subscriptionStats.active || 1) * 100).toFixed(1)}%</p>
+                                        <p className="text-sm font-black text-foreground">{paidConversionLabel}</p>
                                     </div>
                                     <div className="p-3 bg-white/5 rounded-2xl text-center">
                                         <p className="text-[8px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Avg Ticket</p>
-                                        <p className="text-sm font-black text-foreground">${(financeSummary.total / (resolvedStats.totalEmergencies || 1)).toFixed(0)}</p>
+                                        <p className="text-sm font-black text-foreground">{avgTicketLabel}</p>
                                     </div>
                                 </div>
                             </div>
@@ -535,21 +622,33 @@ export const MobileAnalytics = ({
 
                     {/* EXPORT ACTION PILL */}
                     <section className="mt-6 mb-12 p-3">
+                        {exportNotice && (
+                            <p
+                                role="status"
+                                aria-live="polite"
+                                className="mb-3 rounded-2xl bg-muted/40 px-4 py-3 text-xs font-medium text-muted-foreground"
+                            >
+                                {exportNotice}
+                            </p>
+                        )}
                         <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={handleExport}
+                            aria-describedby={exportNotice ? 'mobile-analytics-export-feedback' : undefined}
                             className="w-full apple-glass-heavy py-4 rounded-xl flex items-center justify-center gap-3 shadow-xl group relative overflow-hidden"
                         >
                             <div className="absolute inset-0 bg-primary/5 opacity-0 group-active:opacity-100 transition-opacity" />
                             <Download size={20} className="text-primary" />
-                            <span className="text-[11px] font-medium tracking-[0.3em] uppercase text-primary/80">Generate Analytics Report</span>
+                            <span className="text-[11px] font-medium tracking-[0.3em] uppercase text-primary/80">Report unavailable</span>
                         </motion.button>
-                        <p className="text-center text-[9px] text-muted-foreground/20 mt-6 uppercase tracking-[0.4em] font-black">
-                            Sovereign Data • Refined {new Date().toLocaleDateString()}
+                        <p
+                            id="mobile-analytics-export-feedback"
+                            className="text-center text-[9px] text-muted-foreground/20 mt-6 uppercase tracking-[0.4em] font-black"
+                        >
+                            Report scope pending - {new Date().toLocaleDateString()}
                         </p>
                     </section>
             </MobilePageShell>
         </PullToRefresh>
     );
 };
-

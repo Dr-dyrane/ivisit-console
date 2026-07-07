@@ -1,43 +1,41 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
-import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
-import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
-import { getCurrentUser, applyAuthFilter } from '../../services/authService';
-import { createHealthNews, updateHealthNews, deleteHealthNews, toggleHealthNewsPublish } from '../../services/healthNewsService';
-import { Card } from '../ui/card';
+import { getHealthNewsPage } from '../../services/healthNewsService';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
-import { Newspaper, MapPin, Star, Plus, Edit, Trash2, Eye, ChevronRight, Filter, Clock, Globe, Tag, Calendar, EyeOff, FileCheck, File } from 'lucide-react';
+import {
+  AlertCircle,
+  BarChart3,
+  Calendar,
+  ChevronRight,
+  Clock,
+  Eye,
+  File,
+  Filter,
+  Globe,
+  Newspaper,
+  Plus,
+  RefreshCw,
+  Search,
+  Tag,
+} from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { useAuth } from '../../contexts/AuthContext';
 import { HealthNewsModal } from '../modals/HealthNewsModal';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
-import { ConfirmationModal } from '../modals/ConfirmationModal';
-import { BulkActionBar } from '../common/BulkActionBar';
-import { withTimeout } from '../../lib/utils';
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
 import { HealthNewsListView } from '../views/HealthNewsListView';
 import { HealthNewsTableView } from '../views/HealthNewsTableView';
 import { SEOHead } from '../common/SEOHead';
 import { MobileHealthNews } from '../mobile/MobileHealthNews';
-
-const HEALTH_ICONS = [
-  { value: 'medical-outline', label: 'Medical', icon: '🏥' },
-  { value: 'business-outline', label: 'Business', icon: '🏢' },
-  { value: 'research-outline', label: 'Research', icon: '🔬' },
-  { value: 'wellness-outline', label: 'Wellness', icon: '💊' },
-  { value: 'emergency-outline', label: 'Emergency', icon: '🚨' },
-  { value: 'policy-outline', label: 'Policy', icon: '📋' },
-];
 
 const CATEGORIES = [
   'general', 'medical', 'research', 'wellness', 'emergency', 'policy'
@@ -48,119 +46,252 @@ const SOURCES = [
   'Government Health', 'WHO Update', 'CDC Alert', 'Medical News'
 ];
 
+const HEALTH_NEWS_EMPTY_STATS = {
+  total: 0,
+  published: 0,
+  draft: 0,
+  medical: 0,
+  recent: 0,
+  categories: 0,
+  exactCounts: true,
+  scope: 'published_feed',
+  draftUnavailable: true
+};
+
+const newsStateOptions = [
+  {
+    id: 'all',
+    label: 'Feed',
+    icon: Newspaper,
+    countKey: 'total',
+    tone: 'primary',
+    activeClass: 'bg-sky-500/10 text-sky-700 shadow-[0_18px_54px_rgba(14,165,233,0.16)] dark:text-sky-200',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+    colorClass: 'text-sky-700 dark:text-sky-200',
+  },
+  {
+    id: 'published',
+    label: 'Readable',
+    icon: Eye,
+    countKey: 'published',
+    tone: 'clear',
+    activeClass: 'bg-emerald-500/10 text-emerald-700 shadow-[0_18px_54px_rgba(16,185,129,0.14)] dark:text-emerald-200',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+    colorClass: 'text-emerald-700 dark:text-emerald-200',
+  },
+  {
+    id: 'medical',
+    label: 'Medical',
+    icon: Tag,
+    countKey: 'medical',
+    tone: 'info',
+    activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_18px_54px_rgba(6,182,212,0.14)] dark:text-cyan-200',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+    colorClass: 'text-cyan-700 dark:text-cyan-200',
+  },
+  {
+    id: 'recent',
+    label: 'Recent',
+    icon: Clock,
+    countKey: 'recent',
+    tone: 'warning',
+    activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_18px_54px_rgba(245,158,11,0.14)] dark:text-amber-200',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+    colorClass: 'text-amber-700 dark:text-amber-200',
+  },
+  {
+    id: 'draft',
+    label: 'Drafts',
+    icon: File,
+    countKey: 'draft',
+    tone: 'muted',
+    activeClass: 'bg-muted/36 text-foreground shadow-[0_18px_54px_rgb(0_0_0/0.10)]',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+    colorClass: 'text-muted-foreground',
+  },
+];
+
+const newsToneClass = {
+  primary: 'bg-sky-500/10 text-sky-700 shadow-[0_16px_42px_rgba(14,165,233,0.14)] dark:text-sky-200',
+  info: 'bg-cyan-500/10 text-cyan-700 shadow-[0_16px_42px_rgba(6,182,212,0.14)] dark:text-cyan-200',
+  warning: 'bg-amber-500/10 text-amber-700 shadow-[0_16px_42px_rgba(245,158,11,0.14)] dark:text-amber-200',
+  clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_16px_42px_rgba(16,185,129,0.14)] dark:text-emerald-200',
+  muted: 'bg-muted/30 text-muted-foreground shadow-[0_16px_42px_rgb(0_0_0/0.08)]',
+};
+
+const normalizeCount = (value, fallback = 0) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
+const hasAppliedFilters = (filters = {}) => Boolean(
+  filters.search ||
+  filters.published !== undefined ||
+  filters.category ||
+  filters.source ||
+  filters.created_at ||
+  (filters.kpiFilter && filters.kpiFilter !== 'all')
+);
+
+const getStateCount = ({ id, stats, news }) => {
+  const rows = Array.isArray(news) ? news : [];
+  const option = newsStateOptions.find((item) => item.id === id) || newsStateOptions[0];
+  const fallback = id === 'all'
+    ? rows.length
+    : rows.filter((item) => {
+      if (id === 'published') return item.published === true;
+      if (id === 'medical') return String(item.category || '').toLowerCase() === 'medical';
+      if (id === 'draft') return item.published === false;
+      if (id === 'recent') {
+        const created = new Date(item.created_at || 0).getTime();
+        return Number.isFinite(created) && created >= Date.now() - (7 * 24 * 60 * 60 * 1000);
+      }
+      return true;
+    }).length;
+
+  return normalizeCount(stats?.[option.countKey], fallback);
+};
+
+const getNewsSignal = ({ stats, news, kpiFilter }) => {
+  const activeId = kpiFilter || 'all';
+  const option = newsStateOptions.find((item) => item.id === activeId) || newsStateOptions[0];
+  const count = getStateCount({ id: option.id, stats, news });
+
+  if (option.id === 'published') {
+    return {
+      icon: Eye,
+      tone: 'clear',
+      label: 'Readable',
+      headline: count > 0 ? `${count} source${count === 1 ? '' : 's'} ready` : 'No readable sources',
+      subhead: count > 0 ? 'Open one source and verify the detail before sharing it forward.' : 'Approved published sources will appear here.',
+    };
+  }
+
+  if (option.id === 'medical') {
+    return {
+      icon: Tag,
+      tone: 'info',
+      label: 'Medical',
+      headline: count > 0 ? `${count} medical update${count === 1 ? '' : 's'}` : 'No medical updates',
+      subhead: count > 0 ? 'Medical items stay scoped to the curated feed projection.' : 'Medical category items will appear when the feed has them.',
+    };
+  }
+
+  if (option.id === 'recent') {
+    return {
+      icon: Clock,
+      tone: 'warning',
+      label: 'Recent',
+      headline: count > 0 ? `${count} recent item${count === 1 ? '' : 's'}` : 'No recent items',
+      subhead: count > 0 ? 'Recent means published within the current seven day window.' : 'New published items will appear here.',
+    };
+  }
+
+  if (option.id === 'draft') {
+    return {
+      icon: File,
+      tone: 'muted',
+      label: 'Drafts',
+      headline: 'Draft writing is locked',
+      subhead: 'The console shows the published feed until writer authority and public-feed consequence are proved.',
+    };
+  }
+
+  return {
+    icon: Newspaper,
+    tone: 'primary',
+    label: 'Health News',
+    headline: count > 0 ? `${count} published source${count === 1 ? '' : 's'}` : 'No published sources',
+    subhead: count > 0 ? 'Review the feed, open one item, and keep writing actions unavailable until the receiver is proved.' : 'Published health news will appear here when available.',
+  };
+};
+
+const getNewsDate = (news) => {
+  if (!news?.created_at) return 'No date';
+  try {
+    return new Date(news.created_at).toLocaleDateString();
+  } catch {
+    return 'No date';
+  }
+};
+
 export const HealthNewsManagementPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, isOrgAdmin, isSponsor } = useAuth();
   const { isMobile } = useNavigation();
   const [healthNews, setHealthNews] = useState([]);
   const [mobileNewsFeed, setMobileNewsFeed] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [healthNewsError, setHealthNewsError] = useState(null);
   const [selectedNews, setSelectedNews] = useState(null);
+  const [focusedNewsId, setFocusedNewsId] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
-  const [confirmationModal, setConfirmationModal] = useState({
-    isOpen: false,
-    title: '',
-    description: '',
-    onConfirm: null,
-    variant: 'destructive',
-    confirmLabel: 'Delete'
-  });
-  const [stats, setStats] = useState({
-    total: 0,
-    published: 0,
-    draft: 0,
-    medical: 0,
-    recent: 0
-  });
+  const [stats, setStats] = useState(HEALTH_NEWS_EMPTY_STATS);
+  const [activeActionFeedback, setActiveActionFeedback] = useState(null);
+  const actionFeedbackTimerRef = useRef(null);
 
   const { viewMode, setViewMode } = useViewMode('health-news-page', 'table');
   const pagination = usePagination(20);
+  const canManageContent = false;
+
+  const focusedNews = useMemo(() => (
+    healthNews.find((item) => item.id === focusedNewsId) || healthNews[0] || null
+  ), [focusedNewsId, healthNews]);
+
+  useEffect(() => () => {
+    if (actionFeedbackTimerRef.current) {
+      window.clearTimeout(actionFeedbackTimerRef.current);
+    }
+  }, []);
+
+  const markActionFeedback = useCallback((actionId) => {
+    if (!actionId) return;
+    if (actionFeedbackTimerRef.current) {
+      window.clearTimeout(actionFeedbackTimerRef.current);
+    }
+    setActiveActionFeedback(actionId);
+    actionFeedbackTimerRef.current = window.setTimeout(() => {
+      setActiveActionFeedback((current) => (current === actionId ? null : current));
+    }, 900);
+  }, []);
+
+  const handleApplyFilters = useCallback((nextFiltersOrUpdater) => {
+    pagination.resetPagination();
+    setMobileNewsFeed([]);
+    setFilters((currentFilters) => (
+      typeof nextFiltersOrUpdater === 'function'
+        ? nextFiltersOrUpdater(currentFilters)
+        : (nextFiltersOrUpdater || {})
+    ));
+  }, [pagination.resetPagination]);
+
+  const handleKpiFilterChange = useCallback((nextFilter) => {
+    handleApplyFilters((current) => ({ ...current, kpiFilter: nextFilter }));
+  }, [handleApplyFilters]);
 
   const fetchHealthNews = useCallback(async () => {
     try {
       setLoading(true);
+      setHealthNewsError(null);
 
-      // Get current user for RBAC filtering
-      const user = await getCurrentUser();
+      const statsFilter = { ...filters };
+      delete statsFilter.kpiFilter;
+      delete statsFilter.published;
 
-      // Fetch stats in parallel - using published boolean
-      const [
-        { count: total },
-        { count: published },
-        { count: draft },
-        { count: medical },
-        { count: recent }
-      ] = await Promise.all([
-        supabase.from('health_news').select('id', { count: 'exact' }).limit(0),
-        supabase.from('health_news').select('id', { count: 'exact' }).eq('published', true).limit(0),
-        supabase.from('health_news').select('id', { count: 'exact' }).eq('published', false).limit(0),
-        supabase.from('health_news').select('id', { count: 'exact' }).eq('category', 'medical').limit(0),
-        supabase.from('health_news').select('id', { count: 'exact' }).gt('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).limit(0)
-      ]);
-
-      setStats({
-        total: total || 0,
-        published: published || 0,
-        draft: draft || 0,
-        medical: medical || 0,
-        recent: recent || 0
+      const { data, count, stats: pageStats } = await getHealthNewsPage({
+        ...filters,
+        statsFilter,
+        limit: pagination.itemsPerPage,
+        offset: pagination.paginationRange.start,
+        quiet: true,
       });
 
-      // Build data query
-      let query = supabase.from('health_news').select('id', { count: 'exact' });
-
-      // Apply RBAC filter using centralized service
-      query = applyAuthFilter(query, user, {
-        resourceType: 'news'
-      });
-
-      // Apply Filters
-      if (filters.kpiFilter === 'published') query = query.eq('published', true);
-      if (filters.kpiFilter === 'draft') query = query.eq('published', false);
-      if (filters.kpiFilter === 'medical') query = query.eq('category', 'medical');
-      if (filters.kpiFilter === 'recent') query = query.gt('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-
-      if (filters.published !== undefined) query = query.eq('published', filters.published);
-      if (filters.category) query = query.eq('category', filters.category);
-      if (filters.source) query = query.eq('source', filters.source);
-      if (filters.search) query = query.or(`title.ilike.%${filters.search}%,source.ilike.%${filters.search}%,category.ilike.%${filters.search}%`);
-
-      // Execute query to get total count
-      const { count } = await query;
-      pagination.setTotalCount(count || 0);
-
-      // Data Fetching
-      let dataQuery = supabase
-        .from('health_news')
-        .select('*')
-        .range(pagination.paginationRange.start, pagination.paginationRange.end)
-        .order('created_at', { ascending: false });
-
-      // Apply same filters to data query
-      if (filters.kpiFilter === 'published') dataQuery = dataQuery.eq('published', true);
-      if (filters.kpiFilter === 'draft') dataQuery = dataQuery.eq('published', false);
-      if (filters.kpiFilter === 'medical') dataQuery = dataQuery.eq('category', 'medical');
-      if (filters.kpiFilter === 'recent') dataQuery = dataQuery.gt('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-
-      if (filters.published !== undefined) dataQuery = dataQuery.eq('published', filters.published);
-      if (filters.category) dataQuery = dataQuery.eq('category', filters.category);
-      if (filters.source) dataQuery = dataQuery.eq('source', filters.source);
-      if (filters.search) dataQuery = dataQuery.or(`title.ilike.%${filters.search}%,source.ilike.%${filters.search}%,category.ilike.%${filters.search}%`);
-
-      const { data, error } = await withTimeout(
-        dataQuery,
-        8000,
-        'Failed to load health news - timeout'
-      );
-
-      if (error) throw error;
       const pageData = data || [];
+      setStats(pageStats || HEALTH_NEWS_EMPTY_STATS);
+      pagination.setTotalCount(count || 0);
       setHealthNews(pageData);
       if (isMobile) {
         setMobileNewsFeed(prev =>
@@ -171,127 +302,46 @@ export const HealthNewsManagementPage = () => {
       }
     } catch (error) {
       console.error('Error fetching health news:', error);
+      setHealthNewsError('Health news could not load. Try again.');
+      setHealthNews([]);
+      setMobileNewsFeed([]);
+      setStats(HEALTH_NEWS_EMPTY_STATS);
+      pagination.setTotalCount(0);
       handleApiError(error, 'fetch');
     } finally {
       setLoading(false);
     }
-  }, [pagination, filters, isMobile]);
-
-  useEffect(() => {
-    setMobileNewsFeed([]);
-    pagination.resetPagination();
-  }, [filters.kpiFilter, filters.search, filters.published, filters.category, filters.source, pagination.resetPagination]);
+  }, [filters, isMobile, pagination.currentPage, pagination.itemsPerPage, pagination.paginationRange.start, pagination.setTotalCount]);
 
   useEffect(() => {
     fetchHealthNews();
   }, [fetchHealthNews, pagination.currentPage]);
 
-  const handleCreate = useCallback(() => {
-    setSelectedNews(null);
-    setModalMode('create');
-  }, []);
+  useEffect(() => {
+    if (!healthNews.length) {
+      if (focusedNewsId !== null) setFocusedNewsId(null);
+      return;
+    }
+    if (!healthNews.some((item) => item.id === focusedNewsId)) {
+      setFocusedNewsId(healthNews[0].id);
+    }
+  }, [focusedNewsId, healthNews]);
+
+  const handleCreateUnavailable = useCallback(() => {
+    markActionFeedback('create-unavailable');
+    toast.info('Content authoring is unavailable until the published feed writer is approved.');
+  }, [markActionFeedback]);
 
   const handleView = useCallback((news) => {
+    markActionFeedback(`view-${news?.id || 'unknown'}`);
+    if (news?.id) setFocusedNewsId(news.id);
     setSelectedNews(news);
     setModalMode('view');
+  }, [markActionFeedback]);
+
+  const handleSave = useCallback(async () => {
+    throw new Error('Health news authoring is unavailable.');
   }, []);
-
-  const handleEdit = useCallback((news) => {
-    setSelectedNews(news);
-    setModalMode('edit');
-  }, []);
-
-  const handleDelete = useCallback(async (news) => {
-    setConfirmationModal({
-      isOpen: true,
-      title: 'Delete News Article',
-      description: `Are you sure you want to delete "${news.title}"? This action cannot be undone.`,
-      onConfirm: async () => {
-        try {
-          await deleteHealthNews(news.id);
-
-          toast.success('News article deleted successfully');
-          fetchHealthNews();
-          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-        } catch (error) {
-          console.error('Error deleting news:', error);
-          handleApiError(error, 'delete');
-        }
-      },
-      variant: 'destructive',
-      confirmLabel: 'Delete Article'
-    });
-  }, [fetchHealthNews]);
-
-  const handleTogglePublish = useCallback(async (news) => {
-    try {
-      await toggleHealthNewsPublish(news.id, !news.published);
-
-      await createNotification(
-        NotificationTypes.NEWS,
-        news.published ? NotificationActions.UNPUBLISHED : NotificationActions.PUBLISHED,
-        news.id,
-        { message: `"${news.title}" has been ${news.published ? 'unpublished' : 'published'}` }
-      );
-      toast.success(`Health news ${news.published ? 'unpublished' : 'published'} successfully`);
-      fetchHealthNews();
-    } catch (error) {
-      console.error('Error toggling publish status:', error);
-      toast.error('Failed to toggle publish status');
-    }
-  }, [fetchHealthNews]);
-
-  const handleSelect = useCallback((id, checked) => {
-    if (checked) {
-      setSelectedIds(prev => [...prev, id]);
-    } else {
-      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
-    }
-  }, []);
-
-  const handleSelectAll = useCallback((checked) => {
-    if (checked) {
-      setSelectedIds(healthNews.map(n => n.id));
-    } else {
-      setSelectedIds([]);
-    }
-  }, [healthNews]);
-
-  const handleSave = useCallback(async (formData) => {
-    try {
-      const payload = {
-        title: formData.title,
-        source: formData.source,
-        url: formData.url,
-        category: formData.category,
-        published: formData.published,
-        image_url: formData.image_url || null,
-      };
-
-      if (modalMode === 'create') {
-        const data = await createHealthNews(payload);
-
-        await createNotification(
-          NotificationTypes.NEWS,
-          NotificationActions.CREATED,
-          data.id,
-          { message: `"${formData.title}" has been created` }
-        );
-      } else if (modalMode === 'edit' && selectedNews) {
-        await updateHealthNews(selectedNews.id, payload);
-
-        await createNotification(
-          NotificationTypes.NEWS,
-          NotificationActions.UPDATED,
-          selectedNews.id,
-          { message: `"${formData.title}" has been updated` }
-        );
-      }
-    } catch (error) {
-      console.error('Error saving health news:', error);
-      throw error;
-    }
-  }, [modalMode, selectedNews]);
 
   const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
@@ -301,27 +351,73 @@ export const HealthNewsManagementPage = () => {
     }
   }, [fetchHealthNews]);
 
-  // Handle URL parameters and custom events
+  const handleOpenFilters = useCallback(() => {
+    markActionFeedback('filters');
+    setFilterSheetOpen(true);
+  }, [markActionFeedback]);
+
+  const handleOpenAnalytics = useCallback(() => {
+    markActionFeedback('analytics');
+    setAnalyticsModalOpen(true);
+  }, [markActionFeedback]);
+
+  const healthNewsPanelContext = useMemo(() => ({
+    articles: healthNews,
+    recentNews: healthNews.slice(0, 3),
+    focusedNews,
+    stats,
+    count: pagination.totalCount || healthNews.length,
+    currentPage: pagination.currentPage,
+    totalPages: pagination.totalPages,
+    filters,
+    hasFilters: hasAppliedFilters(filters),
+    loading,
+    errorMessage: healthNewsError,
+    viewMode,
+    canManageContent,
+    scope: stats?.scope || 'published_feed',
+  }), [
+    canManageContent,
+    filters,
+    focusedNews,
+    healthNews,
+    healthNewsError,
+    loading,
+    pagination.currentPage,
+    pagination.totalCount,
+    pagination.totalPages,
+    stats,
+    viewMode,
+  ]);
+
+  const publishHealthNewsRouteContext = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    window.dispatchEvent(new CustomEvent('healthNewsRouteContextUpdated', {
+      detail: healthNewsPanelContext,
+    }));
+  }, [healthNewsPanelContext]);
+
   useEffect(() => {
-    // Check for create=true in URL params
+    if (typeof window === 'undefined') return undefined;
+
+    publishHealthNewsRouteContext();
+    window.addEventListener('requestHealthNewsRouteContext', publishHealthNewsRouteContext);
+
+    return () => {
+      window.removeEventListener('requestHealthNewsRouteContext', publishHealthNewsRouteContext);
+    };
+  }, [publishHealthNewsRouteContext]);
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('create') === 'true') {
-      handleCreate();
-      // Clean up URL
+      handleCreateUnavailable();
       navigate('/health-news', { replace: true });
     }
 
-    // Listen for custom events from context panel
-    const handleOpenFilters = () => {
-      setFilterSheetOpen(true);
-    };
-
     const handleOpenModal = () => {
-      handleCreate();
-    };
-
-    const handleOpenAnalytics = () => {
-      setAnalyticsModalOpen(true);
+      handleCreateUnavailable();
     };
 
     window.addEventListener('openFilters', handleOpenFilters);
@@ -333,18 +429,18 @@ export const HealthNewsManagementPage = () => {
       window.removeEventListener('openHealthNewsModal', handleOpenModal);
       window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
-  }, [location.search, navigate, handleCreate]);
+  }, [handleCreateUnavailable, handleOpenAnalytics, handleOpenFilters, location.search, navigate]);
 
   const getStatusBadge = (published) => {
     return published ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning';
   };
 
-  const filterSchema = React.useMemo(() => [
+  const filterSchema = useMemo(() => [
     {
       key: 'search',
       type: 'text',
       label: 'Search',
-      placeholder: 'Search news...'
+      placeholder: 'Search health news'
     },
     {
       key: 'published',
@@ -381,57 +477,50 @@ export const HealthNewsManagementPage = () => {
     }
   ], []);
 
-  const viewToggleComponent = React.useMemo(() => (
-    <ViewToggle value={viewMode} onChange={setViewMode} />
+  const viewToggleComponent = useMemo(() => (
+    <ViewToggle value={viewMode} onChange={setViewMode} tone="neutral" />
   ), [viewMode, setViewMode]);
 
-  const filterButtonComponent = React.useMemo(() => (
+  const filterButtonComponent = useMemo(() => (
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
-      aria-label="Filter news"
+      onClick={handleOpenFilters}
+      className={`relative h-9 w-9 rounded-2xl bg-muted/30 text-muted-foreground transition-[background,color,transform,box-shadow] hover:bg-muted/45 hover:text-primary active:scale-[0.98] ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
+      aria-label="Filter health news"
+      aria-busy={activeActionFeedback === 'filters'}
+      data-state={activeActionFeedback === 'filters' ? 'opening' : hasAppliedFilters(filters) ? 'filtered' : 'idle'}
     >
       <Filter className="h-4 w-4" />
-      {(filters.search || filters.published !== undefined || filters.category || filters.source || filters.created_at) && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
-      )}
+      {hasAppliedFilters(filters) && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />}
     </Button>
-  ), [filters]);
+  ), [activeActionFeedback, filters, handleOpenFilters]);
 
-  const headerActions = React.useMemo(() => {
-    // Only Admins, Org Admins, and Sponsors can create health news
-    if (isAdmin() || isOrgAdmin() || isSponsor()) {
+  const headerActions = useMemo(() => {
+    if (canManageContent) {
       return (
         <Button
-          onClick={handleCreate}
-          className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+          onClick={handleCreateUnavailable}
+          aria-busy={activeActionFeedback === 'create-unavailable'}
+          data-state={activeActionFeedback === 'create-unavailable' ? 'opening' : 'idle'}
+          className="h-9 rounded-2xl px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
         >
           <Plus className="h-4 w-4 mr-2" />
-          NEW ARTICLE
+          New article
         </Button>
       );
     }
     return null;
-  }, [isAdmin, isOrgAdmin, isSponsor, handleCreate]);
+  }, [activeActionFeedback, canManageContent, handleCreateUnavailable]);
 
   usePageHeader(
-    "Health News Management",
+    'Health News',
     headerActions,
     !isMobile ? viewToggleComponent : null,
     filterButtonComponent
   );
-
-  const footerContent = React.useMemo(() => (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
-        <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Articles</span>
-      </div>
-    </div>
-  ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
-
-  usePageFooter(footerContent, 'pagination', !loading && healthNews.length > 0);
+  usePageFooter(null, 'status', false);
+  usePageShell({ bleed: true, hideFab: true });
 
   if (isMobile) {
     return (
@@ -441,19 +530,14 @@ export const HealthNewsManagementPage = () => {
           articles={mobileNewsFeed}
           stats={stats}
           filters={filters}
-          setFilters={setFilters}
+          setFilters={handleApplyFilters}
           onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onTogglePublish={handleTogglePublish}
           onRefresh={fetchHealthNews}
-          canManage={isAdmin() || isOrgAdmin() || isSponsor()}
           loading={loading}
-          onOpenFilters={() => setFilterSheetOpen(true)}
-          onViewAnalytics={() => setAnalyticsModalOpen(true)}
-          selectedIds={selectedIds}
-          onSelect={handleSelect}
-          onSelectAll={handleSelectAll}
+          errorMessage={healthNewsError}
+          onRetry={fetchHealthNews}
+          onOpenFilters={handleOpenFilters}
+          onViewAnalytics={handleOpenAnalytics}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
         />
@@ -472,20 +556,10 @@ export const HealthNewsManagementPage = () => {
           isOpen={filterSheetOpen}
           onOpenChange={setFilterSheetOpen}
           filterSchema={filterSchema}
-          onApply={setFilters}
+          onApply={handleApplyFilters}
           initialValues={filters}
           viewToggle={null}
           isMobile={true}
-        />
-
-        <ConfirmationModal
-          isOpen={confirmationModal.isOpen}
-          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-          onConfirm={confirmationModal.onConfirm}
-          title={confirmationModal.title}
-          description={confirmationModal.description}
-          variant={confirmationModal.variant}
-          confirmLabel={confirmationModal.confirmLabel}
         />
 
         <AnalyticsModal
@@ -499,410 +573,94 @@ export const HealthNewsManagementPage = () => {
   }
 
   return (
-    <div className="min-h-screen py-6 md:py-8 pt-6">
+    <div className="relative min-h-screen overflow-hidden px-4 pb-8 pt-3 text-foreground md:px-6 lg:px-8">
       <SEOHead title="Health News" description="Manage health news, updates, and announcements." />
-      {/* Bento Layout KPIs */}
-      <LayoutGroup>
-        <motion.div
-          layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6"
-        >
-          {/* Total Articles */}
-          <motion.div
-            layout
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.05 }}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(circle_at_20%_0%,hsl(var(--primary)/0.15),transparent_34%),radial-gradient(circle_at_86%_12%,rgba(6,182,212,0.12),transparent_30%)]" />
+      <div className="relative z-10 mx-auto grid w-full max-w-[1500px] gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <main className="min-w-0">
+          <HealthNewsSignalPanel
+            stats={stats}
+            news={healthNews}
+            loading={loading}
+            kpiFilter={filters.kpiFilter || 'all'}
+            setKpiFilter={handleKpiFilterChange}
+          />
+
+          <HealthNewsActivitySheet
+            filters={filters}
+            setFilters={handleApplyFilters}
+            openFilters={handleOpenFilters}
+            openAnalytics={handleOpenAnalytics}
+            loading={loading}
+            pagination={pagination}
+            errorMessage={healthNewsError}
+            onRetry={fetchHealthNews}
+            activeActionFeedback={activeActionFeedback}
+            viewToggle={viewToggleComponent}
           >
-            <Card
-              className={`h-full min-h-[140px] geo-block glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
-              role="button"
-              tabIndex={0}
-              aria-label="Show all news articles"
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-primary" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10  group-hover:scale-110 transition-transform duration-200">
-                    <Newspaper className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'}`} />
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Articles</p>
-                  {filters.kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{stats.total}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-block bg-primary/20 text-primary border-0 font-bold text-xs">
-                    {filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
-                  </Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Published */}
-          <motion.div
-            layout
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-          >
-            <Card
-              className={`h-full min-h-[140px] geo-badge glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'published' ? 'ring-2 ring-success shadow-lg' : ''}`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'published' }))}
-              role="button"
-              tabIndex={0}
-              aria-label="Filter by published articles"
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-success" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'published' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                    <Eye className={`h-5 w-5 ${filters.kpiFilter === 'published' ? 'text-success' : 'text-muted-foreground'}`} />
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Published</p>
-                  {filters.kpiFilter === 'published' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{stats.published}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-badge bg-success/20 text-success border-0 font-bold text-xs">
-                    LIVE NOW
-                  </Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Drafts */}
-          <motion.div
-            layout
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.15 }}
-          >
-            <Card
-              className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'draft' ? 'ring-2 ring-warning shadow-lg' : ''}`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'draft' }))}
-              role="button"
-              tabIndex={0}
-              aria-label="Filter by draft articles"
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-warning" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'draft' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                    <File className={`h-5 w-5 ${filters.kpiFilter === 'draft' ? 'text-warning' : 'text-muted-foreground'}`} />
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Drafts</p>
-                  {filters.kpiFilter === 'draft' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{stats.draft}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-sharp bg-warning/20 text-warning border-0 font-bold text-xs">
-                    WORKING
-                  </Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Recent */}
-          <motion.div
-            layout
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-          >
-            <Card
-              className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'recent' ? 'ring-2 ring-info shadow-lg' : ''}`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'recent' }))}
-              role="button"
-              tabIndex={0}
-              aria-label="Filter by recent articles"
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-info" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'recent' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                    <Clock className={`h-5 w-5 ${filters.kpiFilter === 'recent' ? 'text-info' : 'text-muted-foreground'}`} />
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Recent</p>
-                  {filters.kpiFilter === 'recent' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{stats.recent}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-round bg-info/20 text-info border-0 font-bold text-xs">
-                    LAST 7 DAYS
-                  </Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Medical */}
-          <motion.div
-            layout
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.25 }}
-          >
-            <Card
-              className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'medical' ? 'ring-2 ring-primary shadow-lg' : ''}`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'medical' }))}
-              role="button"
-              tabIndex={0}
-              aria-label="Filter by medical articles"
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-primary" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'medical' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                    <Tag className={`h-5 w-5 ${filters.kpiFilter === 'medical' ? 'text-primary' : 'text-muted-foreground'}`} />
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Medical</p>
-                  {filters.kpiFilter === 'medical' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{stats.medical}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-ticket bg-primary/20 text-primary border-0 font-bold text-xs">
-                    CLINICAL
-                  </Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        </motion.div>
-      </LayoutGroup>
-
-      {loading ? (
-        <TableSkeleton rows={8} />
-      ) : healthNews.length === 0 ? (
-        <Card className="squircle-lg glass-card-premium p-12 text-center">
-          <Newspaper className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="font-bold text-xl mb-2">
-            {filters.search ? 'No News Found' :
-              filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 'No News Articles Yet' :
-                'No Matching Articles'}
-          </h3>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            {filters.search ? `No articles found matching "${filters.search}". Try adjusting your search terms.` :
-              filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ?
-                'Create your first health news article to get started.' :
-                'Try adjusting your filters or search criteria to find the articles you\'re looking for.'}
-          </p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            {filters.search && (
-              <Button onClick={() => setFilters(prev => ({ ...prev, search: '' }))} variant="outline" className="squircle" aria-label="Clear search">
-                <Filter className="h-4 w-4 mr-2" />
-                Clear Search
-              </Button>
-            )}
-            {(filters.kpiFilter !== 'all' || Object.keys(filters).filter(k => k !== 'kpiFilter').some(k => filters[k])) && (
-              <Button onClick={() => setFilters({ kpiFilter: 'all', published: undefined, category: '', source: '', search: '' })} variant="outline" className="squircle" aria-label="Reset all filters">
-                <Filter className="h-4 w-4 mr-2" />
-                Reset Filters
-              </Button>
-            )}
-            <Button onClick={handleCreate} className="glass-card-premium" aria-label="Add new article">
-              <Plus className="h-4 w-4 mr-2" />
-              Add News
-            </Button>
-          </div>
-        </Card>
-      ) : (
-        <>
-          {viewMode === 'grid' && (
-            <LayoutGroup>
-              <motion.div
-                layout
-                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 auto-rows-min grid-flow-dense"
-              >
-                {healthNews.map((news, index) => (
-                  <motion.div
-                    layout
-                    key={news.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="col-span-1"
-                  >
-                    <Card className="h-full geo-block glass-card-premium p-4 md:p-6 hover-lift group relative overflow-hidden flex flex-col">
-                      {/* Apple hover glow effect */}
-                      <div className={`hover-glow ${news.published ? 'hover-glow-success' : 'hover-glow-warning'}`} />
-
-                      {/* Top Right Icon */}
-                      <div className="absolute top-0 right-0 p-3 md:p-5 z-20">
-                        <div className="relative">
-                          <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full scale-150" />
-                          <div className="w-8 h-8 md:w-10 md:h-10 geo-round surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
-                            <Newspaper className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 mb-3 md:mb-4 relative z-10">
-                        <Badge className={`geo-badge ${getStatusBadge(news.published)} border-0 font-bold editorial-subtitle px-2 md:px-3 py-1 text-xs`}>
-                          {news.published ? 'Published' : 'Draft'}
-                        </Badge>
-                        <Badge className="geo-badge bg-info/20 text-info border-0 px-2 py-1 text-xs">
-                          {news.category}
-                        </Badge>
-                      </div>
-
-                      <h3 className="font-bold text-lg md:text-2xl mb-2 tracking-tight group-hover:text-primary transition-colors line-clamp-2 relative z-10">
-                        {news.title || 'Untitled Article'}
-                      </h3>
-
-                      <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4 md:mb-6 min-h-[2rem] md:min-h-[2.5rem] relative z-10">
-                        <Globe className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-                        <p className="truncate-2 leading-snug text-xs md:text-sm">{news.source || 'No source provided'}</p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 md:gap-3 mb-4 md:mb-6 relative z-10">
-                        <div className="p-2 md:p-3 geo-sharp bg-muted/30 hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center gap-1 md:gap-2 mb-1">
-                            <Clock className="h-3 w-3 md:h-4 md:w-4 text-info" />
-                            <p className="text-xs text-muted-foreground font-medium">Time</p>
-                          </div>
-                          <p className="font-bold text-sm md:text-base truncate">{news.time || 'No time'}</p>
-                        </div>
-                        <div className="p-2 md:p-3 geo-sharp bg-muted/30 hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center gap-1 md:gap-2 mb-1">
-                            <Tag className="h-3 w-3 md:h-4 md:w-4 text-success" />
-                            <p className="text-xs text-muted-foreground font-medium">Category</p>
-                          </div>
-                          <p className="font-bold text-sm md:text-base truncate">{news.category || 'General'}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between mt-auto pt-3 md:pt-4 border-t border-muted/20 relative z-10 px-2">
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="h-3 w-3 md:h-4 md:w-4 text-warning" />
-                          <span className="font-semibold text-xs md:text-sm truncate">{new Date(news.created_at).toLocaleDateString()}</span>
-                        </div>
-
-                        <div className="flex gap-1 md:gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mr-2 md:mr-4">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleView(news)}
-                            className="geo-round h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                            aria-label={`View details for ${news.title}`}
-                          >
-                            <Eye className="h-3 w-3 md:h-4 md:w-4" />
-                          </Button>
-                          {/* RBAC: Only Admins, Org Admins, and Sponsors can edit/delete/publish */}
-                          {(isAdmin() || isOrgAdmin() || isSponsor()) && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleTogglePublish(news)}
-                                className="geo-round h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-warning/10 hover:text-warning"
-                                aria-label={`${news.published ? 'Unpublish' : 'Publish'} ${news.title}`}
-                              >
-                                {news.published ? <FileCheck className="h-3 w-3 md:h-4 md:w-4" /> : <File className="h-3 w-3 md:h-4 md:w-4" />}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(news)}
-                                className="geo-round h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                                aria-label={`Edit ${news.title}`}
-                              >
-                                <Edit className="h-3 w-3 md:h-4 md:w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(news)}
-                                className="geo-round h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                                aria-label={`Delete ${news.title}`}
-                              >
-                                <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </LayoutGroup>
-          )}
-          {viewMode === 'list' && (
-            <HealthNewsListView
-              healthNews={healthNews}
-              onView={handleView}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onTogglePublish={handleTogglePublish}
-              getStatusBadge={getStatusBadge}
-              isMobile={isMobile}
-              isAdmin={isAdmin}
-            />
-          )}
-          {viewMode === 'table' && (
-            <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
-              <HealthNewsTableView
-                healthNews={healthNews}
-                onView={handleView}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onTogglePublish={handleTogglePublish}
-                getStatusBadge={getStatusBadge}
-                isMobile={isMobile}
-                isAdmin={isAdmin}
-                selectedIds={selectedIds}
-                onSelect={handleSelect}
-                onSelectAll={handleSelectAll}
+            {loading && healthNews.length === 0 && <TableSkeleton rows={6} />}
+            {!loading && healthNewsError && healthNews.length === 0 && (
+              <HealthNewsEmptyState
+                title="Health news did not load"
+                copy="Try again before treating the published feed as clear."
+                actionLabel="Retry"
+                onAction={fetchHealthNews}
               />
-            </div>
-          )}
-        </>
-      )}
+            )}
+            {!loading && !healthNewsError && pagination.totalCount === 0 && (
+              <HealthNewsEmptyState
+                title={hasAppliedFilters(filters) ? 'No matching articles' : 'No published articles'}
+                copy={hasAppliedFilters(filters) ? 'Clear filters or search a different source.' : 'Published health news will appear here when available.'}
+                actionLabel={hasAppliedFilters(filters) ? 'Clear filters' : null}
+                onAction={hasAppliedFilters(filters) ? () => handleApplyFilters({ kpiFilter: 'all' }) : null}
+              />
+            )}
+            {healthNews.length > 0 && (
+              <>
+                {viewMode === 'grid' && (
+                  <LayoutGroup>
+                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3" data-testid="health-news-grid">
+                      {healthNews.map((news, index) => (
+                        <HealthNewsGridCard
+                          key={news.id}
+                          news={news}
+                          index={index}
+                          selected={focusedNews?.id === news.id}
+                          onFocus={() => setFocusedNewsId(news.id)}
+                          onView={handleView}
+                          activeActionFeedback={activeActionFeedback}
+                        />
+                      ))}
+                    </div>
+                  </LayoutGroup>
+                )}
+                {viewMode === 'list' && (
+                  <HealthNewsListView
+                    healthNews={healthNews}
+                    onView={handleView}
+                    getStatusBadge={getStatusBadge}
+                    isMobile={isMobile}
+                  />
+                )}
+                {viewMode === 'table' && (
+                  <HealthNewsTableView
+                    healthNews={healthNews}
+                    onView={handleView}
+                    getStatusBadge={getStatusBadge}
+                  />
+                )}
+              </>
+            )}
+          </HealthNewsActivitySheet>
+        </main>
 
-      {/* Pagination Controls */}
-      <PaginationControls
-        currentPage={pagination.currentPage}
-        totalPages={pagination.totalPages}
-        onPrevPage={pagination.prevPage}
-        onNextPage={pagination.nextPage}
-        hasPrevPage={pagination.hasPrevPage}
-        hasNextPage={pagination.hasNextPage}
-        loading={loading}
-      />
+        <HealthNewsDetailRail
+          news={focusedNews}
+          loading={loading}
+          onView={handleView}
+          activeActionFeedback={activeActionFeedback}
+        />
+      </div>
 
       {modalMode && (
         <HealthNewsModal
@@ -918,20 +676,10 @@ export const HealthNewsManagementPage = () => {
         isOpen={filterSheetOpen}
         onOpenChange={setFilterSheetOpen}
         filterSchema={filterSchema}
-        onApply={setFilters}
+        onApply={handleApplyFilters}
         initialValues={filters}
         viewToggle={isMobile ? viewToggleComponent : null}
         isMobile={isMobile}
-      />
-
-      <ConfirmationModal
-        isOpen={confirmationModal.isOpen}
-        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={confirmationModal.onConfirm}
-        title={confirmationModal.title}
-        description={confirmationModal.description}
-        variant={confirmationModal.variant}
-        confirmLabel={confirmationModal.confirmLabel}
       />
 
       <AnalyticsModal
@@ -940,46 +688,403 @@ export const HealthNewsManagementPage = () => {
         type="news"
         analytics={stats}
       />
-
-      <BulkActionBar
-        selectedCount={selectedIds.length}
-        onClear={() => setSelectedIds([])}
-      >
-        {isAdmin && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setConfirmationModal({
-                isOpen: true,
-                title: 'Delete Selected Articles',
-                description: `Are you sure you want to delete ${selectedIds.length} articles? This action cannot be undone.`,
-                onConfirm: async () => {
-                  try {
-                    let failed = 0;
-                    for (const id of selectedIds) {
-                      try { await deleteHealthNews(id); } catch { failed++; }
-                    }
-                    setSelectedIds([]);
-                    setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-                    fetchHealthNews();
-                    if (failed > 0) { toast.error(`${failed} deletions failed.`); }
-                    else { toast.success(`${selectedIds.length} articles deleted`); }
-                  } catch (err) {
-                    toast.error('Failed to delete articles');
-                  }
-                },
-                variant: 'destructive',
-                confirmLabel: 'Delete All'
-              });
-            }}
-            className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
-            title="Delete Selected"
-          >
-            <Trash2 className="h-5 w-5" />
-          </Button>
-        )}
-      </BulkActionBar>
     </div>
   );
 };
+
+const HealthNewsSignalPanel = ({ stats, news, loading, kpiFilter, setKpiFilter }) => {
+  const signal = loading
+    ? {
+      icon: Newspaper,
+      tone: 'muted',
+      label: 'Loading',
+      headline: 'Loading health news',
+      subhead: 'One moment while the published feed loads.',
+    }
+    : getNewsSignal({ stats, news, kpiFilter });
+  const SignalIcon = signal.icon;
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.42 }}
+      className="flex min-h-[248px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[310px]"
+    >
+      <div className="min-w-0">
+        <div className="max-w-3xl">
+          <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${newsToneClass[signal.tone] || newsToneClass.muted}`}>
+            <SignalIcon className="h-4 w-4" />
+            {signal.label}
+          </div>
+          <h1 className="max-w-3xl text-[34px] font-semibold leading-[1.05] tracking-tight text-foreground md:text-6xl">
+            {signal.headline}
+          </h1>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+            {signal.subhead}
+          </p>
+        </div>
+
+        <HealthNewsStateStrip
+          stats={stats}
+          news={news}
+          loading={loading}
+          kpiFilter={kpiFilter}
+          setKpiFilter={setKpiFilter}
+        />
+      </div>
+    </motion.section>
+  );
+};
+
+const HealthNewsStateStrip = ({ stats, news, loading, kpiFilter, setKpiFilter }) => (
+  <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-5">
+    {newsStateOptions.map((item) => {
+      const Icon = item.icon;
+      const active = (kpiFilter || 'all') === item.id;
+      const count = loading ? '...' : getStateCount({ id: item.id, stats, news });
+
+      return (
+        <motion.button
+          key={item.id}
+          type="button"
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setKpiFilter(item.id)}
+          className={`group min-h-[78px] rounded-[24px] px-3 py-3 text-left transition-[background,box-shadow,transform,color] duration-200 ${active ? item.activeClass : item.restClass}`}
+          aria-pressed={active}
+          aria-label={`Show ${item.label.toLowerCase()} health news`}
+          data-state={active ? 'selected' : 'idle'}
+        >
+          <span className="flex items-start justify-between gap-2">
+            <span className="min-w-0">
+              <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
+              <span className="mt-1 block text-2xl font-semibold tracking-normal text-foreground">{count}</span>
+            </span>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-background/45 transition-transform group-hover:scale-105 ${active ? item.colorClass : ''}`}>
+              <Icon className="h-4 w-4" />
+            </span>
+          </span>
+        </motion.button>
+      );
+    })}
+  </div>
+);
+
+const HealthNewsActivitySheet = ({
+  filters,
+  setFilters,
+  openFilters,
+  openAnalytics,
+  loading,
+  pagination,
+  errorMessage,
+  onRetry,
+  activeActionFeedback,
+  viewToggle,
+  children,
+}) => (
+  <section
+    className="mt-2 flex min-h-[520px] flex-col rounded-t-[44px] bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-[44px]"
+    data-testid="health-news-activity-sheet"
+  >
+    <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+    <HealthNewsSheetToolbar
+      filters={filters}
+      setFilters={setFilters}
+      openFilters={openFilters}
+      openAnalytics={openAnalytics}
+      activeActionFeedback={activeActionFeedback}
+      viewToggle={viewToggle}
+    />
+
+    <div className="mt-3 flex items-center justify-between gap-3 px-2 text-xs font-semibold text-muted-foreground">
+      <span>{loading ? 'Loading feed' : `${pagination.totalCount} article${pagination.totalCount === 1 ? '' : 's'}`}</span>
+      <span>{loading ? 'One moment' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
+    </div>
+
+    {errorMessage && (
+      <HealthNewsErrorBanner message={errorMessage} onRetry={onRetry} />
+    )}
+
+    <div className="mt-3 min-h-[360px] flex-1 overflow-y-auto rounded-[30px] bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
+      {children}
+    </div>
+
+    <PaginationControls
+      currentPage={pagination.currentPage}
+      totalPages={pagination.totalPages}
+      totalCount={pagination.totalCount}
+      itemsPerPage={pagination.itemsPerPage}
+      onPrevPage={pagination.prevPage}
+      onNextPage={pagination.nextPage}
+      hasPrevPage={pagination.hasPrevPage}
+      hasNextPage={pagination.hasNextPage}
+      loading={loading}
+    />
+  </section>
+);
+
+const HealthNewsSheetToolbar = ({ filters, setFilters, openFilters, openAnalytics, activeActionFeedback, viewToggle }) => {
+  const hasFilter = hasAppliedFilters(filters);
+
+  return (
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+      <div className="relative flex-1">
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/65" />
+        <input
+          type="search"
+          value={filters.search || ''}
+          onChange={(event) => setFilters(prev => ({ ...prev, search: event.target.value }))}
+          placeholder="Search health news"
+          className="h-12 w-full rounded-[24px] bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-[background,box-shadow] placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
+          data-testid="health-news-sheet-search"
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          onClick={openFilters}
+          className={`h-12 rounded-[24px] bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-[background,color,transform] hover:bg-primary/10 hover:text-primary active:scale-95 ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
+          aria-busy={activeActionFeedback === 'filters'}
+          data-state={activeActionFeedback === 'filters' ? 'opening' : hasFilter ? 'filtered' : 'idle'}
+        >
+          <Filter className="mr-2 h-4 w-4" />
+          {activeActionFeedback === 'filters' ? 'Opening' : 'Filters'}
+          {hasFilter && <span className="ml-2 h-2 w-2 rounded-full bg-primary" />}
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={openAnalytics}
+          className={`h-12 rounded-[24px] bg-primary/10 px-4 text-sm font-semibold text-primary shadow-sm transition-[background,transform] hover:bg-primary/15 active:scale-95 ${activeActionFeedback === 'analytics' ? 'scale-95' : ''}`}
+          aria-busy={activeActionFeedback === 'analytics'}
+          data-state={activeActionFeedback === 'analytics' ? 'opening' : 'idle'}
+        >
+          <BarChart3 className="mr-2 h-4 w-4" />
+          Analytics
+        </Button>
+        <div className="hidden lg:block">
+          {viewToggle}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const HealthNewsErrorBanner = ({ message, onRetry }) => (
+  <div
+    className="mt-3 flex flex-col gap-3 rounded-[24px] bg-amber-500/10 p-4 text-amber-800 shadow-[inset_0_0_0_2px_rgba(245,158,11,0.14)] dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between"
+    data-testid="health-news-error-state"
+  >
+    <div className="flex min-w-0 items-start gap-3">
+      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+      <div className="min-w-0">
+        <p className="text-sm font-semibold">Health news could not load</p>
+        <p className="mt-1 text-xs leading-5 opacity-80">{message}</p>
+      </div>
+    </div>
+    <Button
+      type="button"
+      variant="ghost"
+      onClick={onRetry}
+      className="h-10 shrink-0 rounded-[20px] bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
+    >
+      <RefreshCw className="mr-2 h-4 w-4" />
+      Retry
+    </Button>
+  </div>
+);
+
+const HealthNewsEmptyState = ({ title, copy, actionLabel, onAction }) => (
+  <div className="flex min-h-[340px] flex-col items-center justify-center text-center">
+    <div className="flex h-14 w-14 items-center justify-center rounded-[26px] bg-primary/10 text-primary shadow-[0_16px_42px_hsl(var(--primary)/0.14)]">
+      <Newspaper className="h-6 w-6" />
+    </div>
+    <h3 className="mt-4 text-2xl font-semibold">{title}</h3>
+    <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{copy}</p>
+    {onAction && actionLabel && (
+      <Button type="button" onClick={onAction} className="mt-5 h-10 rounded-2xl px-4 text-sm font-semibold">
+        <RefreshCw className="mr-2 h-4 w-4" />
+        {actionLabel}
+      </Button>
+    )}
+  </div>
+);
+
+const HealthNewsGridCard = ({ news, index, selected, onFocus, onView, activeActionFeedback }) => {
+  const statusTone = news.published ? newsToneClass.clear : newsToneClass.warning;
+  const viewOpening = activeActionFeedback === `view-${news.id}`;
+
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.025, 0.18) }}
+      role="button"
+      tabIndex={0}
+      onClick={onFocus}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onFocus();
+        }
+      }}
+      data-state={selected ? 'selected' : 'idle'}
+      className={`flex min-h-[244px] cursor-pointer flex-col rounded-[34px] p-4 transition-[background,box-shadow,transform] duration-200 active:scale-[0.995] ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgb(0_0_0/0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgb(0_0_0/0.10)]'}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${statusTone}`}>
+          <Newspaper className="h-5 w-5" />
+        </span>
+        <span className="rounded-full bg-background/45 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+          {news.published ? 'Published' : 'Draft'}
+        </span>
+      </div>
+
+      <h3 className="mt-5 line-clamp-3 text-xl font-semibold tracking-tight text-foreground">
+        {news.title || 'Untitled article'}
+      </h3>
+      <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">
+        {news.source || 'Unknown source'}
+      </p>
+
+      <div className="mt-auto grid gap-2 pt-5 sm:grid-cols-2">
+        <HealthNewsFact icon={Tag} label="Category" value={news.category || 'General'} />
+        <HealthNewsFact icon={Calendar} label="Published" value={getNewsDate(news)} />
+      </div>
+
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={(event) => {
+          event.stopPropagation();
+          onView(news);
+        }}
+        aria-busy={viewOpening}
+        data-state={viewOpening ? 'opening' : 'idle'}
+        className={`mt-4 h-11 rounded-2xl bg-background/55 text-sm font-semibold text-foreground transition-all hover:bg-background hover:text-primary active:scale-95 ${viewOpening ? 'scale-95 text-primary' : ''}`}
+      >
+        <Eye className="mr-2 h-4 w-4" />
+        {viewOpening ? 'Opening' : 'Details'}
+        <ChevronRight className="ml-auto h-4 w-4 opacity-70" />
+      </Button>
+    </motion.article>
+  );
+};
+
+const HealthNewsFact = ({ icon: Icon, label, value }) => (
+  <div className="flex min-w-0 items-center gap-2 rounded-[22px] bg-background/42 p-3">
+    <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+    <div className="min-w-0">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <p className="truncate text-sm font-semibold">{value}</p>
+    </div>
+  </div>
+);
+
+const HealthNewsDetailRail = ({ news, loading, onView, activeActionFeedback }) => {
+  if (loading) {
+    return (
+      <aside className="hidden min-h-0 xl:flex xl:flex-col">
+        <div className="sticky top-24 flex min-h-[520px] flex-col rounded-[40px] bg-card/70 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+          <div className="h-5 w-28 rounded-full bg-muted/40" />
+          <div className="mt-6 h-24 rounded-[28px] bg-muted/28" />
+          <div className="mt-4 space-y-3">
+            <div className="h-14 rounded-2xl bg-muted/24" />
+            <div className="h-14 rounded-2xl bg-muted/24" />
+            <div className="h-14 rounded-2xl bg-muted/24" />
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  if (!news) {
+    return (
+      <aside className="hidden min-h-0 xl:flex xl:flex-col">
+        <div className="sticky top-24 flex min-h-[520px] flex-col justify-center rounded-[40px] bg-card/70 p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+          <Newspaper className="mx-auto mb-4 h-10 w-10 text-muted-foreground/60" />
+          <h2 className="text-lg font-semibold">No article selected</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Published items will appear here when the feed has results.</p>
+        </div>
+      </aside>
+    );
+  }
+
+  const viewOpening = activeActionFeedback === `view-${news.id}`;
+  const hostLabel = news.source_host || news.source || 'Unknown source';
+
+  return (
+    <aside className="hidden min-h-0 xl:flex xl:flex-col" data-testid="health-news-detail-rail">
+      <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] min-h-[520px] flex-col overflow-hidden rounded-[40px] bg-card/72 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+        <div className="flex items-center justify-between gap-3">
+          <Badge className={`${news.published ? 'bg-success/16 text-success' : 'bg-warning/16 text-warning'} rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]`}>
+            {news.published ? 'Published' : 'Draft'}
+          </Badge>
+          <span className="rounded-full bg-muted/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Focus
+          </span>
+        </div>
+
+        <div className="mt-6 rounded-[32px] bg-background/42 p-5 shadow-[inset_0_2px_0_hsl(var(--foreground)/0.06)]">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary shadow-[0_18px_50px_hsl(var(--primary)/0.14)]">
+              <Newspaper className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Current source</p>
+              <h2 className="mt-1 line-clamp-3 text-2xl font-semibold tracking-tight">
+                {news.title || 'Untitled article'}
+              </h2>
+              <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                {getNewsDate(news)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 flex-1 space-y-3 overflow-y-auto pr-1 no-scrollbar">
+          <HealthNewsFocusRow icon={Globe} label="Source" value={hostLabel} />
+          <HealthNewsFocusRow icon={Tag} label="Category" value={news.category || 'General'} />
+          <HealthNewsFocusRow icon={Clock} label="Time" value={news.time || 'No time'} />
+          <HealthNewsFocusRow icon={Eye} label="URL" value={news.source_url_valid ? 'Valid link' : 'No valid link'} />
+
+          <div className="rounded-[28px] bg-muted/22 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Record</p>
+            <p className="mt-2 break-all font-mono text-xs text-foreground/70">#{news.id}</p>
+          </div>
+        </div>
+
+        <div className="mt-5 space-y-2">
+          <Button
+            onClick={() => onView(news)}
+            className={`h-12 w-full rounded-2xl bg-foreground text-sm font-semibold text-background shadow-[0_18px_46px_rgba(0,0,0,0.18)] transition-all hover:scale-[1.01] hover:bg-foreground/90 active:scale-95 ${viewOpening ? 'scale-95' : ''}`}
+            aria-busy={viewOpening}
+            data-state={viewOpening ? 'opening' : 'idle'}
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            {viewOpening ? 'Opening' : 'View details'}
+            <ChevronRight className="ml-auto h-4 w-4 opacity-70" />
+          </Button>
+          <p className="rounded-[24px] bg-muted/24 p-3 text-center text-[11px] leading-relaxed text-muted-foreground">
+            Writing, publish changes, imports, and deletion stay locked until the content receiver is proved.
+          </p>
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+const HealthNewsFocusRow = ({ icon: Icon, label, value }) => (
+  <div className="flex items-center gap-3 rounded-[24px] bg-muted/24 p-3">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-background/45 text-muted-foreground">
+      <Icon className="h-4 w-4" />
+    </div>
+    <div className="min-w-0">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <p className="truncate text-sm font-semibold">{value}</p>
+    </div>
+  </div>
+);

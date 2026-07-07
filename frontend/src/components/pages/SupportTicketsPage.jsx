@@ -1,764 +1,1087 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
-import { usePagination } from '../../hooks/usePagination';
-import { useViewMode } from '../../hooks/useViewMode';
-import { useNavigation } from '../../contexts/NavigationContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { getCurrentUser, applyAuthFilter } from '../../services/authService';
-import { useSupportTickets } from '../../hooks/useSupportTickets';
-import { withTimeout } from '../../lib/utils';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
-import { TableSkeleton } from '../ui/skeleton';
-import { PaginationControls } from '../ui/PaginationControls';
+import { useNavigation } from '../../contexts/NavigationContext';
+import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';
+import { usePagination } from '../../hooks/usePagination';
 import {
-  Headphones,
-  Plus,
-  Edit,
-  Trash2,
-  Clock,
-  AlertCircle,
-  CheckCircle,
-  Activity,
-  BarChart3,
-  Filter,
-  Search,
-  Calendar,
-  Tag,
-  TrendingUp,
-  User,
-  AlertTriangle,
-  X
-} from 'lucide-react';
-import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
-import { toast } from 'sonner';
-import { handleApiError } from "../../utils/errorHandler";
-import { ViewToggle } from '../common/ViewToggle';
-import { FilterSheet } from '../common/FilterSheet';
-import { SupportTicketModal } from '../modals/SupportTicketModal';
-import { AnalyticsModal } from '../modals/AnalyticsModal';
-import { ConfirmationModal } from '../modals/ConfirmationModal';
-import { BulkActionBar } from '../common/BulkActionBar';
-import { SupportTicketListView } from '../views/SupportTicketListView';
-import { SupportTicketTableView } from '../views/SupportTicketTableView';
+  createSupportTicket,
+  getSupportTicketsPage,
+  subscribeToSupportTickets,
+  updateSupportTicket,
+} from '../../services/supportTicketsService';
+import { handleApiError } from '../../utils/errorHandler';
 import { SEOHead } from '../common/SEOHead';
+import { FilterSheet } from '../common/FilterSheet';
+import { AnalyticsModal } from '../modals/AnalyticsModal';
+import { SupportTicketModal } from '../modals/SupportTicketModal';
+import { Button } from '../ui/button';
+import { PaginationControls } from '../ui/PaginationControls';
+import { TableSkeleton } from '../ui/skeleton';
+import {
+  AlertCircle,
+  BarChart3,
+  CheckCircle,
+  ChevronRight,
+  Edit,
+  Eye,
+  Filter,
+  Headphones,
+  MessageSquare,
+  Plus,
+  RefreshCw,
+  Search,
+  Ticket,
+} from 'lucide-react';
+import { motion, LayoutGroup } from 'framer-motion';
+import { toast } from 'sonner';
 import { MobileSupportTickets } from '../mobile/MobileSupportTickets';
 
 const PRIORITIES = [
   { value: 'low', label: 'Low', color: 'blue' },
   { value: 'normal', label: 'Normal', color: 'green' },
   { value: 'high', label: 'High', color: 'orange' },
-  { value: 'urgent', label: 'Urgent', color: 'red' }
+  { value: 'urgent', label: 'Urgent', color: 'red' },
 ];
 
 const STATUSES = [
-  { value: 'open', label: 'Open', icon: Clock, color: 'bg-warning/20 text-warning' },
-  { value: 'in_progress', label: 'In Progress', icon: Activity, color: 'bg-info/20 text-info' },
-  { value: 'resolved', label: 'Resolved', icon: CheckCircle, color: 'bg-success/20 text-success' },
-  { value: 'closed', label: 'Closed', icon: CheckCircle, color: 'bg-muted/20 text-muted-foreground' }
+  { value: 'open', label: 'Open' },
+  { value: 'in_progress', label: 'In progress' },
+  { value: 'resolved', label: 'Resolved' },
+  { value: 'closed', label: 'Closed' },
 ];
 
 const CATEGORIES = [
-  'general', 'technical', 'billing', 'account', 'feature_request', 'bug_report', 'medical'
+  'general',
+  'technical',
+  'billing',
+  'account',
+  'feature_request',
+  'bug_report',
+  'medical',
 ];
+
+const supportStateOptions = [
+  {
+    id: 'all',
+    label: 'All',
+    icon: Ticket,
+    countKey: 'total',
+    tone: 'primary',
+    activeClass: 'bg-sky-500/10 text-sky-800 shadow-[0_18px_54px_rgba(14,165,233,0.16)] dark:text-sky-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+    iconClass: 'text-sky-600 dark:text-sky-200',
+  },
+  {
+    id: 'open',
+    label: 'Open',
+    icon: AlertCircle,
+    countKey: 'open',
+    tone: 'warning',
+    activeClass: 'bg-amber-500/10 text-amber-800 shadow-[0_18px_54px_rgba(245,158,11,0.16)] dark:text-amber-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+    iconClass: 'text-amber-600 dark:text-amber-200',
+  },
+  {
+    id: 'in_progress',
+    label: 'Active',
+    icon: Headphones,
+    countKey: 'active',
+    tone: 'info',
+    activeClass: 'bg-cyan-500/10 text-cyan-800 shadow-[0_18px_54px_rgba(6,182,212,0.16)] dark:text-cyan-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+    iconClass: 'text-cyan-600 dark:text-cyan-200',
+  },
+  {
+    id: 'resolved',
+    label: 'Resolved',
+    icon: CheckCircle,
+    countKey: 'resolved',
+    tone: 'clear',
+    activeClass: 'bg-emerald-500/10 text-emerald-800 shadow-[0_18px_54px_rgba(16,185,129,0.16)] dark:text-emerald-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+    iconClass: 'text-emerald-600 dark:text-emerald-200',
+  },
+];
+
+const supportToneClass = {
+  primary: 'bg-sky-500/10 text-sky-700 shadow-[0_16px_42px_rgba(14,165,233,0.14)] dark:text-sky-200',
+  warning: 'bg-amber-500/10 text-amber-700 shadow-[0_16px_42px_rgba(245,158,11,0.14)] dark:text-amber-200',
+  info: 'bg-cyan-500/10 text-cyan-700 shadow-[0_16px_42px_rgba(6,182,212,0.14)] dark:text-cyan-200',
+  clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_16px_42px_rgba(16,185,129,0.14)] dark:text-emerald-200',
+  muted: 'bg-muted/30 text-muted-foreground shadow-[0_16px_42px_rgb(0_0_0/0.08)]',
+};
+
+const normalizeCount = (value, fallback = 0) => {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : fallback;
+};
+
+const getStatsFilters = (filters = {}) => {
+  const { status, ...rest } = filters || {};
+  return rest;
+};
+
+const getStateCount = ({ id, stats, tickets }) => {
+  const rows = Array.isArray(tickets) ? tickets : [];
+  const option = supportStateOptions.find((item) => item.id === id) || supportStateOptions[0];
+  const fallback = id === 'all'
+    ? rows.length
+    : rows.filter((ticket) => ticket.status === id || (id === 'in_progress' && ticket.status === 'open')).length;
+
+  return normalizeCount(stats?.[option.countKey], fallback);
+};
+
+const getSupportSignal = ({ stats, tickets, kpiFilter, isProviderOnly }) => {
+  const option = supportStateOptions.find((item) => item.id === kpiFilter) || supportStateOptions[0];
+  const count = getStateCount({ id: option.id, stats, tickets });
+  const noun = isProviderOnly ? 'support request' : 'ticket';
+
+  if (option.id === 'open') {
+    return {
+      icon: AlertCircle,
+      tone: 'warning',
+      label: 'Open',
+      headline: count > 0 ? `${count} open ${noun}${count === 1 ? '' : 's'}` : 'No open support requests',
+      subhead: count > 0 ? 'Start with one request and keep the next action clear.' : 'New support requests will appear here.',
+    };
+  }
+
+  if (option.id === 'in_progress') {
+    return {
+      icon: Headphones,
+      tone: 'info',
+      label: 'Active',
+      headline: count > 0 ? `${count} active ${noun}${count === 1 ? '' : 's'}` : 'Nothing active right now',
+      subhead: count > 0 ? 'Review the active queue without changing assignment here yet.' : 'Assigned work will appear after support takes ownership.',
+    };
+  }
+
+  if (option.id === 'resolved') {
+    return {
+      icon: CheckCircle,
+      tone: 'clear',
+      label: 'Resolved',
+      headline: count > 0 ? `${count} resolved ${noun}${count === 1 ? '' : 's'}` : 'No resolved requests in view',
+      subhead: count > 0 ? 'Resolved support stays visible as backend evidence.' : 'Resolved items will appear after support closes the loop.',
+    };
+  }
+
+  return {
+    icon: Ticket,
+    tone: 'primary',
+    label: isProviderOnly ? 'My support' : 'Support',
+    headline: count > 0 ? `${count} support ${count === 1 ? 'request' : 'requests'}` : 'No support requests found',
+    subhead: count > 0 ? 'Scan the queue, open one request, then use the proved action.' : 'Create a request or change filters to see support work.',
+  };
+};
+
+const titleCase = (value) => String(value || '')
+  .replace('_', ' ')
+  .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+const buildAnalytics = (stats = {}) => {
+  const safeStats = stats || {};
+
+  return {
+    total: safeStats.total || 0,
+    resolved: safeStats.resolved || 0,
+    open: safeStats.open || 0,
+    active: safeStats.active || 0,
+    averageResolutionTime: 0,
+    byStatus: {
+      open: safeStats.open || 0,
+      in_progress: safeStats.inProgress || 0,
+      resolved: safeStats.resolved || 0,
+      closed: safeStats.closed || 0,
+    },
+    byPriority: {
+      urgent: safeStats.urgent || 0,
+      high: safeStats.urgent || 0,
+    },
+    byCategory: {},
+  };
+};
 
 export const SupportTicketsPage = () => {
   const { isAdmin, isOrgAdmin, isProvider, profile } = useAuth();
-  // Role-split: providers see only their own tickets ("My Requests")
-  const isProviderOnly = () => !isAdmin() && !isOrgAdmin() && isProvider();
   const { isMobile } = useNavigation();
-  const {
-    supportTickets,
-    loading,
-    error,
-    analytics,
-    fetchSupportTickets,
-    createTicket,
-    updateTicket,
-    deleteTicket,
-    updateStatus,
-    assignTicketToAgent,
-    fetchAnalytics,
-    clearError
-  } = useSupportTickets();
-
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isProviderOnly = !isAdmin() && !isOrgAdmin() && isProvider();
+  const canCreate = isAdmin() || isOrgAdmin() || isProvider();
+  const canManageSupport = isAdmin() || isOrgAdmin();
+  const [tickets, setTickets] = useState([]);
+  const [supportStats, setSupportStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [supportError, setSupportError] = useState(null);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [filters, setFilters] = useState({ search: '', status: [], priority: [], category: [], kpiFilter: 'all' });
+  const [kpiFilter, setKpiFilter] = useState('all');
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [modalMode, setModalMode] = useState(null);
-  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
-  const [confirmationModal, setConfirmationModal] = useState({
-    isOpen: false,
-    title: '',
-    description: '',
-    onConfirm: null,
-    variant: 'destructive',
-    confirmLabel: 'Delete'
-  });
-  const [filters, setFilters] = useState({ search: '', status: [], priority: [], category: [], kpiFilter: 'all' });
-  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
-
-  const { viewMode, setViewMode } = useViewMode('support-tickets-page', 'grid');
+  const [focusedTicketId, setFocusedTicketId] = useState(null);
+  const [activeActionFeedback, setActiveActionFeedback] = useState(null);
   const pagination = usePagination(20);
-  const mobileVisibleTickets = useMemo(() => {
-    const visibleCount = pagination.currentPage * pagination.itemsPerPage;
-    return supportTickets.slice(0, visibleCount);
-  }, [supportTickets, pagination.currentPage, pagination.itemsPerPage]);
+  const isMountedRef = useRef(false);
+  const fetchRequestRef = useRef(0);
+  const actionFeedbackTimerRef = useRef(null);
+  const deepLinkHandledRef = useRef(null);
 
-  // Apply filters and fetch logic
+  const focusedTicket = useMemo(() => (
+    tickets.find((ticket) => ticket.id === focusedTicketId) || tickets[0] || null
+  ), [tickets, focusedTicketId]);
+
+  const analytics = useMemo(() => buildAnalytics(supportStats), [supportStats]);
+
   useEffect(() => {
-    const queryFilters = { ...filters };
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      fetchRequestRef.current += 1;
+      if (actionFeedbackTimerRef.current) {
+        window.clearTimeout(actionFeedbackTimerRef.current);
+      }
+    };
+  }, []);
 
-    // KPI Filter Override
-    if (filters.kpiFilter && filters.kpiFilter !== 'all') {
-      if (filters.kpiFilter === 'avg') {
-        // No filter for Avg, just show all or maybe recently resolved?
-        // For now treat as 'all' for list, but UI shows selected
-      } else {
-        queryFilters.status = [filters.kpiFilter];
+  const markActionFeedback = useCallback((actionId) => {
+    if (!actionId) return;
+    if (actionFeedbackTimerRef.current) {
+      window.clearTimeout(actionFeedbackTimerRef.current);
+    }
+    setActiveActionFeedback(actionId);
+    actionFeedbackTimerRef.current = window.setTimeout(() => {
+      setActiveActionFeedback((current) => (current === actionId ? null : current));
+    }, 900);
+  }, []);
+
+  const handleApplyFilters = useCallback((nextFiltersOrUpdater) => {
+    pagination.resetPagination();
+    setFilters((currentFilters) => (
+      typeof nextFiltersOrUpdater === 'function'
+        ? nextFiltersOrUpdater(currentFilters)
+        : (nextFiltersOrUpdater || {})
+    ));
+  }, [pagination.resetPagination]);
+
+  const handleKpiFilterChange = useCallback((nextFilter) => {
+    pagination.resetPagination();
+    setKpiFilter(nextFilter);
+    setFilters((current) => ({ ...current, kpiFilter: nextFilter }));
+  }, [pagination.resetPagination]);
+
+  const handleMobileFiltersChange = useCallback((nextFiltersOrUpdater) => {
+    handleApplyFilters((current) => {
+      const next = typeof nextFiltersOrUpdater === 'function'
+        ? nextFiltersOrUpdater({ ...current, kpiFilter })
+        : nextFiltersOrUpdater;
+
+      if (next?.kpiFilter !== undefined) {
+        setKpiFilter(next.kpiFilter);
+      }
+
+      return next || current;
+    });
+  }, [handleApplyFilters, kpiFilter]);
+
+  const fetchSupportTickets = useCallback(async () => {
+    const requestId = fetchRequestRef.current + 1;
+    fetchRequestRef.current = requestId;
+
+    try {
+      if (isMountedRef.current) {
+        setLoading(true);
+        setSupportError(null);
+      }
+
+      const routeFilters = {
+        ...filters,
+        ...(kpiFilter !== 'all' ? { status: kpiFilter } : {}),
+      };
+      delete routeFilters.kpiFilter;
+
+      const statsFilter = getStatsFilters(routeFilters);
+      const { data, count, stats } = await getSupportTicketsPage({
+        ...routeFilters,
+        statsFilter,
+        limit: pagination.itemsPerPage,
+        offset: pagination.paginationRange.start,
+        quiet: true,
+      });
+
+      if (!isMountedRef.current || fetchRequestRef.current !== requestId) return;
+
+      setTickets(data || []);
+      setSupportStats(stats);
+      pagination.setTotalCount(count || 0);
+      setSupportError(null);
+    } catch (error) {
+      if (!isMountedRef.current || fetchRequestRef.current !== requestId) return;
+
+      console.error('Error fetching support tickets:', error);
+      setSupportError('Support could not load. Try again.');
+      setTickets([]);
+      setSupportStats(null);
+      pagination.setTotalCount(0);
+      handleApiError(error, 'fetch');
+    } finally {
+      if (isMountedRef.current && fetchRequestRef.current === requestId) {
+        setLoading(false);
       }
     }
+  }, [filters, kpiFilter, pagination.itemsPerPage, pagination.paginationRange.start, pagination.setTotalCount]);
 
-    // Remove client-side only filters from API call if needed
-    delete queryFilters.kpiFilter;
-
-    fetchSupportTickets(queryFilters);
-  }, [fetchSupportTickets, filters, pagination.currentPage]);
-
-  // Listen for 'openSupportTicketModal'
   useEffect(() => {
-    const handleOpenModal = () => {
-      setSelectedTicket(null);
-      setModalMode('create');
-    };
+    fetchSupportTickets();
+  }, [fetchSupportTickets]);
 
-    const handleOpenFilters = () => {
-      setFilterSheetOpen(true);
-    };
+  useEffect(() => {
+    if (!tickets.length) {
+      if (focusedTicketId !== null) setFocusedTicketId(null);
+      return;
+    }
+    if (!tickets.some((ticket) => ticket.id === focusedTicketId)) {
+      setFocusedTicketId(tickets[0].id);
+    }
+  }, [tickets, focusedTicketId]);
 
+  useEffect(() => {
+    const unsubscribe = subscribeToSupportTickets(() => {
+      if (isMountedRef.current) fetchSupportTickets();
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      } else if (unsubscribe) {
+        supabase.removeChannel(unsubscribe);
+      }
+    };
+  }, [fetchSupportTickets]);
+
+  const handleCreate = useCallback(() => {
+    if (!canCreate) {
+      toast.info('Support request access is unavailable');
+      return;
+    }
+    markActionFeedback('create');
+    setSelectedTicket(null);
+    setModalMode('create');
+  }, [canCreate, markActionFeedback]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const wantsCreate = params.get('add') === 'true' || params.get('new') === 'true';
+    const deepLinkKey = `${location.pathname}${location.search}`;
+
+    if (!wantsCreate || deepLinkHandledRef.current === deepLinkKey) return;
+
+    deepLinkHandledRef.current = deepLinkKey;
+    handleCreate();
+    params.delete('add');
+    params.delete('new');
+    params.delete('from');
+
+    const nextSearch = params.toString();
+    navigate({
+      pathname: location.pathname,
+      search: nextSearch ? `?${nextSearch}` : '',
+    }, { replace: true });
+  }, [handleCreate, location.pathname, location.search, navigate]);
+
+  const handleView = useCallback((ticket) => {
+    markActionFeedback(`view-${ticket?.id || 'unknown'}`);
+    if (ticket?.id) setFocusedTicketId(ticket.id);
+    setSelectedTicket(ticket);
+    setModalMode('view');
+  }, [markActionFeedback]);
+
+  const canEditTicket = useCallback((ticket) => (
+    canManageSupport || (isProvider() && ticket?.user_id === profile?.id)
+  ), [canManageSupport, isProvider, profile?.id]);
+
+  const handleEdit = useCallback((ticket) => {
+    if (!canEditTicket(ticket)) {
+      toast.info('This request is read only here');
+      return;
+    }
+    markActionFeedback(`edit-${ticket?.id || 'unknown'}`);
+    if (ticket?.id) setFocusedTicketId(ticket.id);
+    setSelectedTicket(ticket);
+    setModalMode('edit');
+  }, [canEditTicket, markActionFeedback]);
+
+  const handleSave = useCallback(async (...args) => {
+    try {
+      if (args.length === 1) {
+        await createSupportTicket(args[0]);
+      } else {
+        await updateSupportTicket(args[0], args[1]);
+      }
+      await fetchSupportTickets();
+      return true;
+    } catch (error) {
+      handleApiError(error, args.length === 1 ? 'create' : 'update');
+      throw error;
+    }
+  }, [fetchSupportTickets]);
+
+  const handleOpenFilters = useCallback(() => {
+    markActionFeedback('filters');
+    setFilterSheetOpen(true);
+  }, [markActionFeedback]);
+
+  const handleOpenAnalytics = useCallback(() => {
+    markActionFeedback('analytics');
+    setAnalyticsModalOpen(true);
+  }, [markActionFeedback]);
+
+  const supportPanelContext = useMemo(() => ({
+    stats: supportStats || {},
+    recent: tickets.slice(0, 4),
+    focusedTicket,
+    count: pagination.totalCount || tickets.length,
+    loading,
+    errorMessage: supportError,
+    currentState: kpiFilter,
+    canCreate,
+    canManage: canManageSupport,
+    isProviderOnly,
+  }), [
+    canCreate,
+    canManageSupport,
+    focusedTicket,
+    isProviderOnly,
+    kpiFilter,
+    loading,
+    pagination.totalCount,
+    supportError,
+    supportStats,
+    tickets,
+  ]);
+
+  const publishSupportRouteContext = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    window.dispatchEvent(new CustomEvent('supportTicketsRouteContextUpdated', {
+      detail: supportPanelContext,
+    }));
+  }, [supportPanelContext]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    publishSupportRouteContext();
+    window.addEventListener('requestSupportTicketsRouteContext', publishSupportRouteContext);
+
+    return () => {
+      window.removeEventListener('requestSupportTicketsRouteContext', publishSupportRouteContext);
+    };
+  }, [publishSupportRouteContext]);
+
+  const handleClearFilters = useCallback(() => {
+    handleKpiFilterChange('all');
+    handleApplyFilters({ search: '', status: [], priority: [], category: [], kpiFilter: 'all' });
+  }, [handleApplyFilters, handleKpiFilterChange]);
+
+  useEffect(() => {
+    const handleOpenModal = () => handleCreate();
     window.addEventListener('openSupportTicketModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
+    window.addEventListener('openAnalyticsModal', handleOpenAnalytics);
 
     return () => {
       window.removeEventListener('openSupportTicketModal', handleOpenModal);
       window.removeEventListener('openFilters', handleOpenFilters);
+      window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
-  }, []);
+  }, [handleCreate, handleOpenAnalytics, handleOpenFilters]);
 
-  // Fetch analytics separately
-  useEffect(() => {
-    if (isAdmin) {
-      fetchAnalytics();
-    }
-  }, [isAdmin, fetchAnalytics]);
+  const headerActions = useMemo(() => (
+    canCreate ? (
+      <Button
+        type="button"
+        onClick={handleCreate}
+        data-state={activeActionFeedback === 'create' ? 'opening' : 'idle'}
+        aria-busy={activeActionFeedback === 'create'}
+        className="h-9 rounded-2xl px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        New ticket
+      </Button>
+    ) : null
+  ), [activeActionFeedback, canCreate, handleCreate]);
 
-  // Handlers
-  const handleCreate = useCallback(() => {
-    setSelectedTicket(null);
-    setModalMode('create');
-  }, []);
+  const filterButtonComponent = useMemo(() => {
+    const hasFilters = Boolean(
+      filters.search ||
+      (Array.isArray(filters.status) && filters.status.length > 0) ||
+      (Array.isArray(filters.priority) && filters.priority.length > 0) ||
+      (Array.isArray(filters.category) && filters.category.length > 0) ||
+      kpiFilter !== 'all'
+    );
 
-  const handleEdit = useCallback((ticket) => {
-    setSelectedTicket(ticket);
-    setModalMode('edit');
-  }, []);
-
-  const handleDelete = useCallback(async (ticket) => {
-    setConfirmationModal({
-      isOpen: true,
-      title: 'Delete Support Ticket',
-      description: `Are you sure you want to delete ticket "${ticket.subject}"? This action cannot be undone.`,
-      onConfirm: async () => {
-        try {
-          await deleteTicket(ticket.id);
-          toast.success('Ticket deleted successfully');
-          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-        } catch (error) {
-          handleApiError(error, 'delete');
-        }
-      },
-      variant: 'destructive',
-      confirmLabel: 'Delete Ticket'
-    });
-  }, [deleteTicket]);
-
-  const handleSelect = useCallback((id, checked) => {
-    if (checked) {
-      setSelectedIds(prev => [...prev, id]);
-    } else {
-      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
-    }
-  }, []);
-
-  const handleSelectAll = useCallback((checked) => {
-    if (checked) {
-      setSelectedIds(supportTickets.map(t => t.id));
-    } else {
-      setSelectedIds([]);
-    }
-  }, [supportTickets]);
-
-  const handleAssign = useCallback(async (ticket) => {
-    try {
-      await assignTicketToAgent(ticket.id, profile.id);
-      toast.success('Ticket assigned to you');
-    } catch (error) {
-      handleApiError(error, 'update');
-    }
-  }, [assignTicketToAgent, profile]);
-
-  const handleView = useCallback((ticket) => {
-    setSelectedTicket(ticket);
-    setModalMode('edit'); // Reuse edit modal for view details
-  }, []);
-
-  const getPriorityColor = (priority) => {
-    const priorityConfig = PRIORITIES.find(p => p.value === priority);
-    return priorityConfig?.color || 'gray';
-  };
-
-  const getStatusConfig = (status) => {
-    return STATUSES.find(s => s.value === status) || STATUSES[0];
-  };
-
-  // Header helpers
-  const viewToggleComponent = React.useMemo(() => (
-    <ViewToggle value={viewMode} onChange={setViewMode} />
-  ), [viewMode, setViewMode]);
-
-  const filterButtonComponent = React.useMemo(() => (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
-      aria-label="Filter tickets"
-    >
-      <Filter className="h-4 w-4" />
-      {(filters.search || (filters.status && filters.status.length > 0) || filters.kpiFilter !== 'all' || filters.created_at) && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
-      )}
-    </Button>
-  ), [filters]);
-
-  const headerActions = React.useMemo(() => {
-    // Admins, Org Admins, and Providers can create new support tickets
-    if (isAdmin() || isOrgAdmin() || isProvider()) {
-      return (
-        <Button
-          onClick={handleCreate}
-          className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-          aria-label="Create new ticket"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {isProviderOnly() ? 'REPORT A PROBLEM' : 'NEW TICKET'}
-        </Button>
-      );
-    }
-    return null;
-  }, [isAdmin, isOrgAdmin, isProvider, handleCreate]);
-
-  // Derived ticket list — filters to current user when provider-only
-  const displayedTickets = useMemo(() => {
-    if (isProviderOnly()) {
-      return supportTickets.filter(t => t.user_id === profile?.id);
-    }
-    return supportTickets;
-  }, [supportTickets, profile]);
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={handleOpenFilters}
+        data-state={activeActionFeedback === 'filters' ? 'opening' : hasFilters ? 'filtered' : 'idle'}
+        aria-label="Filter support"
+        className="relative h-9 w-9 rounded-2xl bg-muted/30 text-muted-foreground transition-[background,color,transform,box-shadow] hover:bg-muted/45 hover:text-primary active:scale-[0.98]"
+      >
+        <Filter className="h-4 w-4" />
+        {hasFilters && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />}
+      </Button>
+    );
+  }, [activeActionFeedback, filters, handleOpenFilters, kpiFilter]);
 
   usePageHeader(
-    isProviderOnly() ? "My Requests" : "Support Tickets",
+    isProviderOnly ? 'My support' : 'Support',
     headerActions,
-    !isMobile ? viewToggleComponent : null,
+    null,
     filterButtonComponent
   );
+  usePageFooter(null, 'status', false);
+  usePageShell({ bleed: true, hideFab: true });
 
-  const footerContent = React.useMemo(() => (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
-        <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Tickets</span>
-      </div>
-    </div>
-  ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
-
-  usePageFooter(footerContent, 'pagination', !loading && supportTickets.length > 0);
-
-  // Filter Schema
-  const filterSchema = React.useMemo(() => [
+  const filterSchema = useMemo(() => [
     {
       key: 'search',
       type: 'text',
       label: 'Search',
-      placeholder: 'Search tickets...'
+      placeholder: 'Search support',
     },
     {
       key: 'status',
       type: 'multiselect',
       label: 'Status',
-      options: STATUSES.map(s => ({ value: s.value, label: s.label }))
+      options: STATUSES,
     },
     {
       key: 'priority',
       type: 'multiselect',
       label: 'Priority',
-      options: PRIORITIES.map(p => ({ value: p.value, label: p.label }))
+      options: PRIORITIES.map((priority) => ({ value: priority.value, label: priority.label })),
     },
     {
       key: 'category',
       type: 'multiselect',
       label: 'Category',
-      options: CATEGORIES.map(c => ({ value: c, label: c.charAt(0).toUpperCase() + c.slice(1).replace('_', ' ') }))
+      options: CATEGORIES.map((category) => ({
+        value: category,
+        label: titleCase(category),
+      })),
     },
-    {
-      key: 'created_at',
-      type: 'date',
-      label: 'Created Date',
-      placeholder: 'Select dates',
-      shortcuts: [
-        { label: 'Today', value: 'today' },
-        { label: 'Last 7 Days', value: '7days' },
-        { label: 'Last 30 Days', value: '30days' },
-        { label: 'This Month', value: 'month' }
-      ]
-    }
   ], []);
-
-  if (loading && supportTickets.length === 0 && !analytics) {
-    return <TableSkeleton />;
-  }
 
   if (isMobile) {
     return (
       <div className="min-h-screen">
-        <SEOHead title="Support Tickets" description="Track and resolve customer support inquiries." />
-
+        <SEOHead title="Support" description="Track support requests and issue follow-up." />
         <MobileSupportTickets
-          tickets={mobileVisibleTickets}
-          analytics={analytics}
-          filters={filters}
-          setFilters={setFilters}
+          tickets={tickets}
+          stats={supportStats}
+          filters={{ ...filters, kpiFilter }}
+          setFilters={handleMobileFiltersChange}
           onView={handleView}
           onEdit={handleEdit}
-          onDelete={handleDelete}
-          onAssign={handleAssign}
-          onRefresh={() => {
-            const queryFilters = { ...filters };
-            if (filters.kpiFilter && filters.kpiFilter !== 'all' && filters.kpiFilter !== 'avg') {
-              queryFilters.status = [filters.kpiFilter];
-            }
-            delete queryFilters.kpiFilter;
-            fetchSupportTickets(queryFilters);
-          }}
-          canManage={isAdmin() || isOrgAdmin()}
-          canAssign={isProvider()}
+          onRefresh={fetchSupportTickets}
+          canManage={canManageSupport}
           loading={loading}
-          onOpenFilters={() => setFilterSheetOpen(true)}
-          onViewAnalytics={() => setAnalyticsModalOpen(true)}
-          selectedIds={selectedIds}
-          onSelect={handleSelect}
-          onSelectAll={handleSelectAll}
+          errorMessage={supportError}
+          onRetry={fetchSupportTickets}
+          onOpenFilters={handleOpenFilters}
+          onViewAnalytics={canManageSupport ? handleOpenAnalytics : null}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
         />
-
-        <AnimatePresence>
-          {modalMode && (
-            <SupportTicketModal
-              ticket={selectedTicket}
-              mode={modalMode}
-              onClose={() => setModalMode(null)}
-              onSave={modalMode === 'create' ? createTicket : updateTicket}
-              priorities={PRIORITIES}
-              categories={CATEGORIES}
-            />
-          )}
-          <AnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analytics={analytics} type="support" />
-        </AnimatePresence>
-
-        <FilterSheet
-          isOpen={filterSheetOpen}
-          onOpenChange={setFilterSheetOpen}
+        <SupportPageModals
+          modalMode={modalMode}
+          selectedTicket={selectedTicket}
+          setModalMode={setModalMode}
+          onSave={handleSave}
+          filterSheetOpen={filterSheetOpen}
+          setFilterSheetOpen={setFilterSheetOpen}
           filterSchema={filterSchema}
-          onApply={setFilters}
-          initialValues={filters}
-          viewToggle={null}
-          isMobile={true}
-        />
-
-        <ConfirmationModal
-          isOpen={confirmationModal.isOpen}
-          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-          onConfirm={confirmationModal.onConfirm}
-          title={confirmationModal.title}
-          description={confirmationModal.description}
-          variant={confirmationModal.variant}
-          confirmLabel={confirmationModal.confirmLabel}
+          filters={{ ...filters, kpiFilter }}
+          onApplyFilters={(next) => {
+            setKpiFilter(next?.kpiFilter || 'all');
+            handleApplyFilters(next);
+          }}
+          analyticsModalOpen={analyticsModalOpen}
+          setAnalyticsModalOpen={setAnalyticsModalOpen}
+          analytics={analytics}
+          isMobile={isMobile}
         />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen py-6 md:py-8 pt-6">
-      <SEOHead title="Support Tickets" description="Track and resolve customer support inquiries." />
-      {/* Bento Grid KPI Stats - Matching Insurance Layout */}
-      <LayoutGroup>
-        <motion.div
-          layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8"
-        >
-          {/* Total */}
-          <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-            <Card
-              className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''}`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
-              role="button"
-              tabIndex={0}
-              aria-label="Show all tickets"
+    <div className="relative min-h-screen overflow-hidden px-4 pb-8 pt-3 text-foreground md:px-6 lg:px-8">
+      <SEOHead title="Support" description="Track support requests and issue follow-up." />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(circle_at_20%_0%,hsl(var(--primary)/0.16),transparent_34%),radial-gradient(circle_at_86%_12%,rgba(14,165,233,0.14),transparent_30%)]" />
+      <div className="relative z-10 mx-auto flex w-full max-w-[1500px] gap-5 xl:gap-6">
+        <main className="min-w-0 flex-1">
+          <div className="grid gap-5 xl:grid-cols-[minmax(340px,0.72fr)_minmax(560px,1.28fr)]">
+            <SupportSignalPanel
+              signal={getSupportSignal({ stats: supportStats, tickets, kpiFilter, isProviderOnly })}
+              stats={supportStats}
+              tickets={tickets}
+              kpiFilter={kpiFilter}
+              setKpiFilter={handleKpiFilterChange}
+              loading={loading}
+            />
+            <SupportActivitySheet
+              filters={{ ...filters, kpiFilter }}
+              setFilters={handleApplyFilters}
+              openFilters={handleOpenFilters}
+              openAnalytics={canManageSupport ? handleOpenAnalytics : null}
+              loading={loading}
+              errorMessage={supportError}
+              onRetry={fetchSupportTickets}
+              pagination={pagination}
+              activeActionFeedback={activeActionFeedback}
             >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-primary" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                  <Headphones className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'}`} />
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Tickets</p>
-                  {filters.kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{analytics?.total || 0}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">{filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}</Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Open */}
-          <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
-            <Card
-              className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'open' ? 'ring-2 ring-warning shadow-lg' : ''}`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'open' }))}
-              role="button"
-              tabIndex={0}
-              aria-label="Filter by open tickets"
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-warning" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className={`absolute inset-0 ${filters.kpiFilter === 'open' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                  <AlertCircle className={`h-5 w-5 ${filters.kpiFilter === 'open' ? 'text-warning' : 'text-muted-foreground'}`} />
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Open</p>
-                  {filters.kpiFilter === 'open' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{analytics?.open || 0}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-round bg-warning/20 text-warning border-0 font-bold text-xs">ATTENTION</Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* In Progress */}
-          <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-            <Card
-              className={`h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'in_progress' ? 'ring-2 ring-info shadow-lg' : ''}`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'in_progress' }))}
-              role="button"
-              tabIndex={0}
-              aria-label="Filter by in-progress tickets"
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-info" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className={`absolute inset-0 ${filters.kpiFilter === 'in_progress' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                  <Activity className={`h-5 w-5 ${filters.kpiFilter === 'in_progress' ? 'text-info' : 'text-muted-foreground'}`} />
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">In Progress</p>
-                  {filters.kpiFilter === 'in_progress' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{analytics?.inProgress || 0}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="squircle-3xl bg-info/20 text-info border-0 font-bold text-xs">ACTIVE</Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Resolved */}
-          <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
-            <Card
-              className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'resolved' ? 'ring-2 ring-success shadow-lg' : ''}`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'resolved' }))}
-              role="button"
-              tabIndex={0}
-              aria-label="Filter by resolved tickets"
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-success" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className={`absolute inset-0 ${filters.kpiFilter === 'resolved' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                  <CheckCircle className={`h-5 w-5 ${filters.kpiFilter === 'resolved' ? 'text-success' : 'text-muted-foreground'}`} />
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Resolved</p>
-                  {filters.kpiFilter === 'resolved' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{analytics?.resolved || 0}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-ticket bg-success/20 text-success border-0 font-bold text-xs">COMPLETE</Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Avg Turnaround */}
-          <motion.div layout className="col-span-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-            <Card
-              className={`h-full min-h-[140px] geo-wave glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group ${filters.kpiFilter === 'avg' ? 'ring-2 ring-muted shadow-lg' : ''}`}
-            // onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'avg' }))} // Optional
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-secondary" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className={`absolute inset-0 ${filters.kpiFilter === 'avg' ? 'bg-muted/30' : 'bg-muted/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                  <TrendingUp className={`h-5 w-5 ${filters.kpiFilter === 'avg' ? 'text-foreground' : 'text-muted-foreground'}`} />
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Avg Time</p>
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{analytics?.averageResolutionTime || 0}h</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-wave bg-muted/20 text-muted-foreground border-0 font-bold text-xs">METRIC</Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        </motion.div>
-      </LayoutGroup>
-
-      {/* Main Content */}
-      {loading ? (
-        <TableSkeleton rows={8} />
-      ) : supportTickets.length === 0 ? (
-        <Card className="squircle-lg glass-card-premium p-12 text-center">
-          <Headphones className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="font-bold text-xl mb-2">
-            {filters.search || filters.kpiFilter !== 'all' ? 'No Matching Tickets' : 'No Support Tickets'}
-          </h3>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            {filters.search || filters.kpiFilter !== 'all'
-              ? 'Try adjusting your filters or search terms.'
-              : 'There are currently no active support tickets in the system.'}
-          </p>
-          <div className="flex justify-center gap-3">
-            {(filters.search || filters.kpiFilter !== 'all') && (
-              <Button onClick={() => setFilters({ search: '', status: [], priority: [], category: [], kpiFilter: 'all' })} variant="outline" className="squircle" aria-label="Reset all filters">
-                <X className="h-4 w-4 mr-2" />
-                Reset Filters
-              </Button>
-            )}
-            <Button onClick={handleCreate} className="glass-card-premium" aria-label="Create your first support ticket">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Ticket
-            </Button>
+              {loading && tickets.length === 0 && <SupportSkeletonRows />}
+              {!loading && supportError && tickets.length === 0 && (
+                <SupportEmptyState
+                  title="Support did not load"
+                  copy="Try again before treating the queue as clear."
+                  actionLabel="Try again"
+                  onAction={fetchSupportTickets}
+                />
+              )}
+              {!loading && !supportError && pagination.totalCount === 0 && (
+                <SupportEmptyState
+                  title="No support requests"
+                  copy="Create a request or adjust filters to review older support work."
+                  actionLabel={canCreate ? 'New ticket' : 'Clear filters'}
+                  onAction={canCreate ? handleCreate : handleClearFilters}
+                />
+              )}
+              {tickets.length > 0 && (
+                <LayoutGroup>
+                  <div className="space-y-2">
+                    {tickets.map((ticket, index) => (
+                      <SupportTicketRow
+                        key={ticket.id}
+                        ticket={ticket}
+                        selected={focusedTicket?.id === ticket.id}
+                        index={index}
+                        canEdit={canEditTicket(ticket)}
+                        onFocus={() => setFocusedTicketId(ticket.id)}
+                        onView={handleView}
+                        onEdit={handleEdit}
+                        activeActionFeedback={activeActionFeedback}
+                      />
+                    ))}
+                  </div>
+                </LayoutGroup>
+              )}
+            </SupportActivitySheet>
           </div>
-        </Card>
-      ) : (
-        <>
-          {/* Inline Grid View for perfect match */}
-          {viewMode === 'grid' && (
-            <LayoutGroup>
-              <motion.div layout className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense">
-                {displayedTickets.map((ticket, index) => (
-                  <motion.div
-                    layout
-                    key={ticket.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="col-span-1"
-                  >
-                    <Card className="h-full squircle-xl glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col">
-                      {/* Apple hover glow effect */}
-                      <div className={`hover-glow ${ticket.priority === 'urgent' ? 'hover-glow-destructive' : ticket.priority === 'high' ? 'hover-glow-warning' : 'hover-glow-primary'}`} />
-                      {/* Deco */}
-                      <div className="absolute top-0 right-0 p-5 z-20">
-                        <div className="relative">
-                          <div className={`absolute inset-0 ${ticket.priority === 'urgent' ? 'bg-destructive/20' : ticket.priority === 'high' ? 'bg-orange-500/20' : 'bg-primary/10'} blur-xl rounded-full scale-150`} />
-                          <div className="w-10 h-10 geo-round surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
-                            {ticket.status === 'open' ? <AlertCircle className="h-5 w-5 text-warning" /> :
-                              ticket.status === 'resolved' ? <CheckCircle className="h-5 w-5 text-success" /> :
-                                <Activity className="h-5 w-5 text-primary" />}
-                          </div>
-                        </div>
-                      </div>
+        </main>
 
-                      {/* Content */}
-                      <div className="flex items-center gap-2 mb-4 relative z-10">
-                        <Badge className={`geo-sharp ${getStatusConfig(ticket.status).color} border-0 font-bold editorial-subtitle px-3 py-1`}>
-                          {getStatusConfig(ticket.status).label.toUpperCase()}
-                        </Badge>
-                        {ticket.priority === 'urgent' && (
-                          <Badge variant="outline" className="geo-sharp border-destructive/20 text-destructive px-2 py-1 font-semibold gap-1">
-                            <AlertTriangle className="w-3 h-3" /> URGENT
-                          </Badge>
-                        )}
-                      </div>
-                      <h3 className="font-bold text-lg mb-2 tracking-tight relative z-10 line-clamp-2">{ticket.subject}</h3>
-                      <p className="text-sm text-muted-foreground mb-6 font-mono tracking-tight">{ticket.id.substring(0, 8)}</p>
+        <SupportDetailRail
+          ticket={focusedTicket}
+          loading={loading}
+          canEdit={focusedTicket ? canEditTicket(focusedTicket) : false}
+          onView={handleView}
+          onEdit={handleEdit}
+          onCreate={handleCreate}
+          canCreate={canCreate}
+          activeActionFeedback={activeActionFeedback}
+        />
+      </div>
 
-                      <div className="space-y-3 mb-6 relative z-10 flex-1">
-                        <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <User className="h-4 w-4 text-primary" />
-                            <span className="font-normal">Customer</span>
-                          </div>
-                          <span className="font-semibold text-foreground truncate max-w-[120px]">{ticket.customer_name || 'Unknown'}</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4 text-info" />
-                            <span className="font-normal">Created</span>
-                          </div>
-                          <span className="font-semibold text-foreground">
-                            {new Date(ticket.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
+      <SupportPageModals
+        modalMode={modalMode}
+        selectedTicket={selectedTicket}
+        setModalMode={setModalMode}
+        onSave={handleSave}
+        filterSheetOpen={filterSheetOpen}
+        setFilterSheetOpen={setFilterSheetOpen}
+        filterSchema={filterSchema}
+        filters={{ ...filters, kpiFilter }}
+        onApplyFilters={(next) => {
+          setKpiFilter(next?.kpiFilter || 'all');
+          handleApplyFilters(next);
+        }}
+        analyticsModalOpen={analyticsModalOpen}
+          setAnalyticsModalOpen={setAnalyticsModalOpen}
+          analytics={analytics}
+          isMobile={isMobile}
+        />
+    </div>
+  );
+};
 
-                      {/* Actions */}
-                      <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
-                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">ACTIONS</div>
-                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <Button variant="ghost" size="sm" onClick={() => handleView(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary" aria-label={`View ticket ${ticket.id}`}>
-                            <Headphones className="h-4 w-4" />
-                          </Button>
-                          {/* RBAC: Admins and Org Admins can edit/delete, Providers can edit their own tickets */}
-                          {(isAdmin() || isOrgAdmin()) && (
-                            <>
-                              <Button variant="ghost" size="sm" onClick={() => handleEdit(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary" aria-label={`Edit ticket ${ticket.id}`}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleDelete(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ticket ${ticket.id}`}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                          {/* Providers can edit their own tickets but not delete */}
-                          {isProvider() && ticket.user_id === profile?.id && (
-                            <Button variant="ghost" size="sm" onClick={() => handleEdit(ticket)} className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary" aria-label={`Edit ticket ${ticket.id}`}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </LayoutGroup>
+const SupportSignalPanel = ({ signal, stats, tickets, kpiFilter, setKpiFilter, loading }) => {
+  const SignalIcon = signal.icon;
+
+  return (
+    <section className="relative overflow-hidden rounded-[40px] bg-card/72 p-5 shadow-[0_28px_90px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/42 md:p-6 xl:min-h-[540px]">
+      <div className="absolute inset-x-10 top-0 h-36 rounded-full bg-primary/10 blur-3xl" />
+      <div className="relative z-10 flex h-full flex-col">
+        <div className={`mb-8 flex h-14 w-14 items-center justify-center rounded-[26px] ${supportToneClass[signal.tone] || supportToneClass.primary}`}>
+          <SignalIcon className="h-6 w-6" />
+        </div>
+        <p className="text-sm font-medium text-muted-foreground">{signal.label}</p>
+        <h1 className="mt-3 max-w-[680px] break-words text-[clamp(2.15rem,4.4vw,4.9rem)] font-semibold leading-[0.98] text-foreground">
+          {loading ? 'Loading support' : signal.headline}
+        </h1>
+        <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+          {loading ? 'One moment while the support queue loads.' : signal.subhead}
+        </p>
+
+        <SupportStateStrip
+          stats={stats}
+          tickets={tickets}
+          loading={loading}
+          kpiFilter={kpiFilter}
+          setKpiFilter={setKpiFilter}
+        />
+
+        <div className="mt-auto grid gap-2 pt-8 sm:grid-cols-2">
+          <SupportSignalStat label="Active" value={normalizeCount(stats?.active)} tone="info" />
+          <SupportSignalStat label="Resolved" value={normalizeCount(stats?.resolved)} tone="clear" />
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const SupportStateStrip = ({ stats, tickets, loading, kpiFilter, setKpiFilter }) => (
+  <div className="mt-8 grid grid-cols-2 gap-2 2xl:grid-cols-4">
+    {supportStateOptions.map((option) => {
+      const Icon = option.icon;
+      const selected = kpiFilter === option.id;
+      const count = getStateCount({ id: option.id, stats, tickets });
+
+      return (
+        <button
+          key={option.id}
+          type="button"
+          onClick={() => setKpiFilter(option.id)}
+          data-state={selected ? 'selected' : 'idle'}
+          aria-pressed={selected}
+          className={`min-h-[82px] rounded-[28px] p-3 text-left transition-[background,box-shadow,transform,color] duration-200 active:scale-[0.98] ${selected ? option.activeClass : option.restClass}`}
+        >
+          <span className="flex items-center justify-between gap-2">
+            <Icon className={`h-4 w-4 ${selected ? option.iconClass : 'text-muted-foreground'}`} />
+            <span className="text-2xl font-semibold">{loading ? '...' : count}</span>
+          </span>
+          <span className="mt-2 block text-sm font-medium">{option.label}</span>
+        </button>
+      );
+    })}
+  </div>
+);
+
+const SupportSignalStat = ({ label, value, tone }) => (
+  <div className={`rounded-[28px] p-4 ${supportToneClass[tone] || supportToneClass.muted}`}>
+    <p className="text-xs font-medium opacity-75">{label}</p>
+    <p className="mt-1 text-2xl font-semibold">{value}</p>
+  </div>
+);
+
+const SupportActivitySheet = ({
+  filters,
+  setFilters,
+  openFilters,
+  openAnalytics,
+  loading,
+  errorMessage,
+  onRetry,
+  pagination,
+  activeActionFeedback,
+  children,
+}) => {
+  const hasFilters = Boolean(filters?.search || filters?.kpiFilter !== 'all');
+
+  return (
+    <section className="rounded-[40px] bg-card/72 p-3 shadow-[0_28px_90px_rgb(0_0_0/0.14)] backdrop-blur-2xl dark:bg-card/42 md:p-4 xl:min-h-[540px]">
+      <div className="flex flex-col gap-3 p-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">Support queue</p>
+          <h2 className="text-2xl font-semibold">
+            {loading ? 'Loading support' : `${pagination.totalCount} request${pagination.totalCount === 1 ? '' : 's'}`}
+          </h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative min-w-[220px] flex-1 md:w-[260px]">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/65" />
+            <input
+              type="search"
+              value={filters.search || ''}
+              onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
+              placeholder="Search support"
+              className="h-10 w-full rounded-2xl bg-muted/30 pl-9 pr-3 text-sm shadow-inner transition-[background,box-shadow] placeholder:text-muted-foreground/50 focus-visible:bg-muted/45 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={openFilters}
+            data-state={activeActionFeedback === 'filters' ? 'opening' : hasFilters ? 'filtered' : 'idle'}
+            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/30 text-muted-foreground transition-[background,color,transform] hover:bg-muted/45 hover:text-primary active:scale-[0.98]"
+            aria-label="Filter support"
+          >
+            <Filter className="h-4 w-4" />
+          </button>
+          {openAnalytics && (
+            <button
+              type="button"
+              onClick={openAnalytics}
+              data-state={activeActionFeedback === 'analytics' ? 'opening' : 'idle'}
+              className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-[background,transform] hover:bg-primary/15 active:scale-[0.98]"
+              aria-label="Open support analytics"
+            >
+              <BarChart3 className="h-4 w-4" />
+            </button>
           )}
+        </div>
+      </div>
 
-          {/* ListView fallback */}
-          {viewMode === 'list' && <SupportTicketListView tickets={displayedTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} />}
-          {viewMode === 'table' && <SupportTicketTableView tickets={displayedTickets} onView={handleEdit} onEdit={handleEdit} onDelete={handleDelete} onAssign={handleAssign} getStatusConfig={getStatusConfig} getPriorityColor={getPriorityColor} isAdmin={isAdmin} isMobile={isMobile} selectedIds={selectedIds} onSelect={handleSelect} onSelectAll={handleSelectAll} />}
-        </>
+      {errorMessage && (
+        <div className="mx-2 mb-3 flex items-center justify-between rounded-[28px] bg-amber-500/10 p-3 text-amber-800 shadow-[0_14px_34px_rgba(245,158,11,0.12)] dark:text-amber-100">
+          <span className="text-sm">{errorMessage}</span>
+          <button type="button" onClick={onRetry} className="rounded-2xl bg-background/60 px-3 py-2 text-sm font-medium">
+            Retry
+          </button>
+        </div>
       )}
 
-      <PaginationControls
-        currentPage={pagination.currentPage}
-        totalPages={pagination.totalPages}
-        totalCount={pagination.totalCount}
-        itemsPerPage={pagination.itemsPerPage}
-        onPrevPage={pagination.prevPage}
-        onNextPage={pagination.nextPage}
-        hasPrevPage={pagination.hasPrevPage}
-        hasNextPage={pagination.hasNextPage}
-        loading={loading}
-      />
+      <div className="min-h-[420px] rounded-[32px] bg-background/45 p-2 shadow-inner dark:bg-black/10">
+        {children}
+      </div>
 
-      {/* Modals ... */}
-      <AnimatePresence>
-        {modalMode && <SupportTicketModal ticket={selectedTicket} mode={modalMode} onClose={() => setModalMode(null)} onSave={modalMode === 'create' ? createTicket : updateTicket} priorities={PRIORITIES} categories={CATEGORIES} />}
-        <AnalyticsModal open={analyticsModalOpen} onClose={() => setAnalyticsModalOpen(false)} analytics={analytics} type="support" />
-      </AnimatePresence>
+      <div className="px-2 pt-3">
+        <PaginationControls
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalCount={pagination.totalCount}
+          itemsPerPage={pagination.itemsPerPage}
+          onPrevPage={pagination.prevPage}
+          onNextPage={pagination.nextPage}
+          hasPrevPage={pagination.hasPrevPage}
+          hasNextPage={pagination.hasNextPage}
+          loading={loading}
+        />
+      </div>
+    </section>
+  );
+};
 
-      <FilterSheet isOpen={filterSheetOpen} onOpenChange={setFilterSheetOpen} filterSchema={filterSchema} onApply={setFilters} initialValues={filters} viewToggle={isMobile ? viewToggleComponent : null} isMobile={isMobile} />
+const SupportTicketRow = ({ ticket, selected, index, canEdit, onFocus, onView, onEdit, activeActionFeedback }) => {
+  const statusOption = STATUSES.find((item) => item.value === ticket.status) || STATUSES[0];
+  const priority = PRIORITIES.find((item) => item.value === ticket.priority) || PRIORITIES[1];
+  const rowTone = ticket.status === 'resolved' || ticket.status === 'closed'
+    ? supportToneClass.clear
+    : ticket.status === 'in_progress'
+      ? supportToneClass.info
+      : supportToneClass.warning;
 
-      <ConfirmationModal
-        isOpen={confirmationModal.isOpen}
-        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={confirmationModal.onConfirm}
-        title={confirmationModal.title}
-        description={confirmationModal.description}
-        variant={confirmationModal.variant}
-        confirmLabel={confirmationModal.confirmLabel}
-      />
-
-      <BulkActionBar
-        selectedCount={selectedIds.length}
-        onClear={() => setSelectedIds([])}
-      >
-        {isAdmin && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setConfirmationModal({
-                isOpen: true,
-                title: 'Delete Selected Tickets',
-                description: `Are you sure you want to delete ${selectedIds.length} tickets? This action cannot be undone.`,
-                onConfirm: async () => {
-                  try {
-                    let failed = 0;
-                    for (const id of selectedIds) {
-                      try { await deleteTicket(id); } catch { failed++; }
-                    }
-                    setSelectedIds([]);
-                    setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-                    const queryFilters = { status: filters.status, priority: filters.priority, search: filters.search };
-                    await fetchSupportTickets(queryFilters);
-                    if (failed > 0) {
-                      toast.error(`${failed} deletions failed.`);
-                    } else {
-                      toast.success(`${selectedIds.length} tickets deleted`);
-                    }
-                  } catch (err) {
-                    handleApiError(err, 'delete');
-                  }
-                },
-                variant: 'destructive',
-                confirmLabel: 'Delete All'
-              });
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.025, 0.2) }}
+      role="button"
+      tabIndex={0}
+      onClick={onFocus}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onFocus();
+        }
+      }}
+      data-state={selected ? 'selected' : 'idle'}
+      className={`grid min-h-[88px] cursor-pointer grid-cols-[minmax(180px,1.4fr)_minmax(110px,0.7fr)_minmax(120px,0.7fr)_88px] items-center gap-3 rounded-[28px] px-4 py-3 transition-[background,box-shadow,transform] duration-200 active:scale-[0.995] ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgb(0_0_0/0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgb(0_0_0/0.10)]'}`}
+    >
+      <div className="min-w-0">
+        <div className="flex items-center gap-3">
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${rowTone}`}>
+            <MessageSquare className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold text-foreground">{ticket.subject}</h3>
+            <p className="mt-1 truncate text-xs text-muted-foreground">{ticket.message || 'No message added'}</p>
+          </div>
+        </div>
+      </div>
+      <span className="rounded-full bg-muted/36 px-3 py-2 text-center text-xs font-medium text-muted-foreground">
+        {statusOption.label}
+      </span>
+      <span className="rounded-full bg-muted/36 px-3 py-2 text-center text-xs font-medium text-muted-foreground">
+        {priority.label}
+      </span>
+      <div className="flex justify-end gap-1">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onView(ticket);
+          }}
+          data-state={activeActionFeedback === `view-${ticket.id}` ? 'opening' : 'idle'}
+          className="flex h-9 w-9 items-center justify-center rounded-2xl bg-background/60 text-muted-foreground transition-[background,color,transform] hover:bg-background/90 hover:text-primary active:scale-[0.96]"
+          aria-label={`View ${ticket.subject}`}
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+        {canEdit && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onEdit(ticket);
             }}
-            className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
-            title="Delete Selected"
+            data-state={activeActionFeedback === `edit-${ticket.id}` ? 'opening' : 'idle'}
+            className="flex h-9 w-9 items-center justify-center rounded-2xl bg-background/60 text-muted-foreground transition-[background,color,transform] hover:bg-background/90 hover:text-primary active:scale-[0.96]"
+            aria-label={`Edit ${ticket.subject}`}
           >
-            <Trash2 className="h-5 w-5" />
-          </Button>
+            <Edit className="h-4 w-4" />
+          </button>
         )}
-      </BulkActionBar>
+      </div>
+    </motion.article>
+  );
+};
+
+const SupportDetailRail = ({ ticket, loading, canEdit, onView, onEdit, onCreate, canCreate, activeActionFeedback }) => (
+  <aside className="hidden w-[340px] shrink-0 2xl:block">
+    <div className="sticky top-5 rounded-[40px] bg-card/72 p-5 shadow-[0_28px_90px_rgb(0_0_0/0.15)] backdrop-blur-2xl dark:bg-card/42">
+      <p className="text-sm font-medium text-muted-foreground">Focused request</p>
+      {loading && !ticket ? (
+        <div className="mt-5">
+          <TableSkeleton rows={4} />
+        </div>
+      ) : ticket ? (
+        <>
+          <h2 className="mt-3 text-2xl font-semibold leading-tight">{ticket.subject}</h2>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">{ticket.message || 'No message was added.'}</p>
+          <div className="mt-5 space-y-2">
+            <SupportDetailFact label="Status" value={titleCase(ticket.status || 'open')} />
+            <SupportDetailFact label="Priority" value={titleCase(ticket.priority || 'normal')} />
+            <SupportDetailFact label="Category" value={titleCase(ticket.category || 'general')} />
+            <SupportDetailFact label="Created" value={ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : 'Not available'} />
+          </div>
+          <div className="mt-6 space-y-2">
+            <Button
+              type="button"
+              onClick={() => onView(ticket)}
+              data-state={activeActionFeedback === `view-${ticket.id}` ? 'opening' : 'idle'}
+              className="h-11 w-full rounded-2xl text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
+            >
+              View details
+            </Button>
+            {canEdit && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => onEdit(ticket)}
+                data-state={activeActionFeedback === `edit-${ticket.id}` ? 'opening' : 'idle'}
+                className="h-11 w-full rounded-2xl bg-muted/36 text-sm font-semibold hover:bg-muted/50"
+              >
+                Edit request
+              </Button>
+            )}
+          </div>
+          <p className="mt-5 rounded-[24px] bg-muted/24 p-3 text-xs leading-5 text-muted-foreground">
+            Assignment, status changes, and deletion stay unavailable until support receiver proof is documented.
+          </p>
+        </>
+      ) : (
+        <>
+          <h2 className="mt-3 text-2xl font-semibold">No request selected</h2>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">Create a support request or change filters.</p>
+          {canCreate && (
+            <Button type="button" onClick={onCreate} className="mt-5 h-11 w-full rounded-2xl text-sm font-semibold">
+              New ticket
+            </Button>
+          )}
+        </>
+      )}
     </div>
-  )
-}
+  </aside>
+);
+
+const SupportDetailFact = ({ label, value }) => (
+  <div className="flex items-center justify-between rounded-2xl bg-muted/24 px-3 py-2">
+    <span className="text-xs text-muted-foreground">{label}</span>
+    <span className="max-w-[170px] truncate text-sm font-medium text-foreground">{value}</span>
+  </div>
+);
+
+const SupportSkeletonRows = () => (
+  <div className="space-y-2">
+    {[0, 1, 2, 3].map((item) => (
+      <div key={item} className="h-[88px] animate-pulse rounded-[28px] bg-muted/26" />
+    ))}
+  </div>
+);
+
+const SupportEmptyState = ({ title, copy, actionLabel, onAction }) => (
+  <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+    <div className="flex h-14 w-14 items-center justify-center rounded-[26px] bg-primary/10 text-primary shadow-[0_16px_42px_hsl(var(--primary)/0.14)]">
+      <Headphones className="h-6 w-6" />
+    </div>
+    <h3 className="mt-4 text-2xl font-semibold">{title}</h3>
+    <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{copy}</p>
+    {onAction && (
+      <Button type="button" onClick={onAction} className="mt-5 h-10 rounded-2xl px-4 text-sm font-semibold">
+        <RefreshCw className="mr-2 h-4 w-4" />
+        {actionLabel}
+      </Button>
+    )}
+  </div>
+);
+
+const SupportPageModals = ({
+  modalMode,
+  selectedTicket,
+  setModalMode,
+  onSave,
+  filterSheetOpen,
+  setFilterSheetOpen,
+  filterSchema,
+  filters,
+  onApplyFilters,
+  analyticsModalOpen,
+  setAnalyticsModalOpen,
+  analytics,
+  isMobile,
+}) => (
+  <>
+    {modalMode && (
+      <SupportTicketModal
+        ticket={selectedTicket}
+        mode={modalMode}
+        onClose={() => setModalMode(null)}
+        onSave={onSave}
+        priorities={PRIORITIES}
+        categories={CATEGORIES}
+      />
+    )}
+    <FilterSheet
+      isOpen={filterSheetOpen}
+      onOpenChange={setFilterSheetOpen}
+      filterSchema={filterSchema}
+      onApply={onApplyFilters}
+      initialValues={filters}
+      isMobile={isMobile}
+    />
+    <AnalyticsModal
+      open={analyticsModalOpen}
+      onClose={() => setAnalyticsModalOpen(false)}
+      analytics={analytics}
+      type="support"
+    />
+  </>
+);

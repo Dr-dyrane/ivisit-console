@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { usePageHeader, useLayout } from "../../contexts/LayoutContext";
+import { usePageFooter, usePageHeader, usePageShell } from "../../contexts/LayoutContext";
 import { useBreakpoint } from "../../hooks/useBreakpoint";
 import { MobileMap } from "../mobile/MobileMap";
-import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import {
 	AlertTriangle,
@@ -20,7 +19,7 @@ import { handleApiError } from "../../utils/errorHandler";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { MAP_STYLES } from "../../constants/mapStyles";
-import { MapProvider, useMapContext } from "../../contexts/MapContext";
+import { useMapContext } from "../../contexts/MapContext";
 import { supabaseMapService } from "../../services/supabaseMapService";
 import { updateResponderLocation } from "../../services/emergencyResponseService";
 import { driverManagementService } from "../../services/driverManagementService";
@@ -37,8 +36,7 @@ import {
 	GoogleMapsRenderer,
 	LeafletMapRenderer,
 	MarkerDetailPanel,
-	MapLayerControls,
-	RefreshControls
+	MapLayerControls
 } from "../map";
 
 const LAGOS_CENTER = { lat: 6.5244, lng: 3.3792 };
@@ -47,6 +45,23 @@ const TELEMETRY_STALE_MS = 30000;
 const TELEMETRY_LOST_MS = 120000;
 const ROUTE_PRIMARY_LIGHT = "#86100E";
 const ROUTE_PRIMARY_DARK = "#B83432";
+const DRIVER_STATUS_COPY = {
+	accepted: {
+		loading: "Marking on way...",
+		success: "On way saved",
+		error: "Could not mark on way",
+	},
+	arrived: {
+		loading: "Marking arrived...",
+		success: "Arrived saved",
+		error: "Could not mark arrived",
+	},
+	completed: {
+		loading: "Closing request...",
+		success: "Request closed",
+		error: "Could not close request",
+	},
+};
 
 const parseTimestampMs = (value) => {
 	if (!value) return null;
@@ -157,7 +172,7 @@ const GodModeMapContent = () => {
 					});
 				},
 				(error) => {
-					console.error("Geolocation error:", error);
+					console.info("[GodModeMap] Geolocation unavailable; using default map center");
 					setUserLocation(LAGOS_CENTER);
 				},
 				{
@@ -177,11 +192,11 @@ const GodModeMapContent = () => {
 
 		const fetchNearbyHospitals = async () => {
 			try {
-				const nearby = await supabaseMapService.getNearbyHospitals(userLocation, 100); // 100km radius
+				const nearby = await supabaseMapService.getNearbyHospitals(userLocation, 100, { quiet: true }); // 100km radius
 				setNearbyHospitals(nearby);
 				console.log(`[GodModeMap] Found ${nearby.length} nearby hospitals`);
 			} catch (error) {
-				console.error('Error fetching nearby hospitals:', error);
+				console.info('[GodModeMap] Nearby hospitals unavailable');
 			}
 		};
 
@@ -251,7 +266,7 @@ const GodModeMapContent = () => {
 				};
 			}
 
-			// ❌ REMOVED: Simulation fallback for production
+			// REMOVED: Simulation fallback for production
 			// Items without real locations will not be displayed
 			return null;
 		};
@@ -290,7 +305,7 @@ const GodModeMapContent = () => {
 		[processedEmergencies]
 	);
 
-	const opsTelemetrySummary = useMemo(() => {
+	const liveStatusSummary = useMemo(() => {
 		return activeAmbulanceRequests.reduce(
 			(acc, request) => {
 				const hasResponderLocation = !!decodePostGISGeometry(request?.responder_location);
@@ -327,7 +342,7 @@ const GodModeMapContent = () => {
 		return [...scoped].sort((a, b) => Date.parse(b?.updated_at || 0) - Date.parse(a?.updated_at || 0))[0];
 	}, [activeAmbulanceRequests, assignedAmbulance?.id, isDriverMode, user?.id]);
 
-	const driverTelemetry = useMemo(() => {
+	const driverLocationStatus = useMemo(() => {
 		if (!driverActiveEmergency) {
 			return { state: "inactive", ageLabel: null };
 		}
@@ -356,7 +371,9 @@ const GodModeMapContent = () => {
 			return;
 		}
 
+		const toastId = "map-driver-location";
 		setDriverAction("ping");
+		toast.loading("Sharing location...", { id: toastId });
 		try {
 			const position = await requestBrowserLocation();
 			const coords = position?.coords || {};
@@ -368,11 +385,10 @@ const GodModeMapContent = () => {
 				},
 				Number.isFinite(coords.heading) ? coords.heading : null
 			);
-			toast.success("Location telemetry updated");
+			toast.success("Location shared", { id: toastId });
 			await refresh();
 		} catch (error) {
-			console.error("[GodModeMap] Failed to update driver location:", error);
-			toast.error(error?.message || "Unable to publish location");
+			toast.error(error?.message || "Could not share location", { id: toastId });
 		} finally {
 			setDriverAction(null);
 		}
@@ -385,11 +401,19 @@ const GodModeMapContent = () => {
 		}
 
 		setDriverAction(status);
+		const copy = DRIVER_STATUS_COPY[status] || {
+			loading: "Updating request...",
+			success: "Request updated",
+			error: "Could not update request",
+		};
+		const toastId = `map-driver-${status}`;
+		toast.loading(copy.loading, { id: toastId });
 		try {
 			await driverManagementService.updateTripStatus(driverActiveEmergency.id, status);
+			toast.success(copy.success, { id: toastId });
 			await refresh();
 		} catch (error) {
-			console.error("[GodModeMap] Driver status update failed:", error);
+			toast.error(error?.message || copy.error, { id: toastId });
 		} finally {
 			setDriverAction(null);
 		}
@@ -452,9 +476,9 @@ const GodModeMapContent = () => {
 	useEffect(() => {
 		const handleAuthFailure = () => {
 			if (mapProvider === "google" && !isSwitchingMap) {
-				console.error("Google Maps Auth Failure detected.");
+				console.info("[GodModeMap] Switching to backup map provider");
 				setIsSwitchingMap(true);
-				toast.error("Google Maps API Error. Switching to backup map...", { duration: 4000 });
+				toast.info("Switching to backup map...", { duration: 4000 });
 				setTimeout(() => {
 					setMapProvider("leaflet");
 					setIsSwitchingMap(false);
@@ -479,6 +503,21 @@ const GodModeMapContent = () => {
 	), []);
 
 	usePageHeader("Live Map", headerActions);
+	usePageFooter(null, "status", false);
+	usePageShell({ bleed: true, hideFab: true });
+
+	const fallbackMap = (
+		<MapFallback
+			filteredRequests={filteredRequests}
+			ambulances={processedAmbulances}
+			hospitals={processedHospitals}
+			activeRoutes={activeRoutes}
+			showLayers={showLayers}
+			userLocation={userLocation}
+			selectedMarker={selectedMarker}
+			setSelectedMarker={setSelectedMarker}
+		/>
+	);
 
 	if (isMobile) {
 		return (
@@ -504,15 +543,16 @@ const GodModeMapContent = () => {
 				isSwitchingMap={isSwitchingMap}
 				setMapProvider={setMapProvider}
 				setIsSwitchingMap={setIsSwitchingMap}
+				fallbackMap={fallbackMap}
 			/>
 		);
 	}
 
 	return (
-		<div className="min-h-screen py-6 md:py-8 pt-4">
-			<div className="flex gap-4 h-[calc(100vh-12rem)] relative">
+		<div className="relative h-[calc(100dvh-4rem)] min-h-[34rem] overflow-hidden bg-background">
+			<div className="absolute inset-0">
 				{/* Map */}
-				<Card className="flex-1 squircle-2xl p-0 overflow-hidden bg-background border-0 relative shadow-premium">
+				<div className="absolute inset-0 overflow-hidden bg-background">
 					{isSwitchingMap && (
 						<div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center">
 							<AlertTriangle className="h-12 w-12 text-destructive mb-4 animate-bounce" />
@@ -523,11 +563,11 @@ const GodModeMapContent = () => {
 
 					{mapProvider === "google" ? (
 						<MapErrorBoundary
-							fallback={<MapFallback />}
+							fallback={fallbackMap}
 							onError={() => {
 								if (!isSwitchingMap) {
 									setIsSwitchingMap(true);
-									toast.error("Map Render Error. Switching to backup map...");
+									toast.info("Switching to backup map...");
 									setTimeout(() => {
 										setMapProvider("leaflet");
 										setIsSwitchingMap(false);
@@ -551,6 +591,7 @@ const GodModeMapContent = () => {
 								routePrimaryColor={routePrimaryColor}
 								setSelectedMarker={setSelectedMarker}
 								selectedMarker={selectedMarker}
+								fallback={fallbackMap}
 							/>
 						</MapErrorBoundary>
 					) : (
@@ -572,9 +613,9 @@ const GodModeMapContent = () => {
 						)}
 
 						{isDriverMode ? (
-							<div className="absolute top-16 left-6 z-[120] w-[20rem] rounded-3xl  bg-background/85 backdrop-blur-xl p-4 shadow-premium">
+							<div className="absolute top-6 left-6 z-[120] w-[20rem] rounded-[28px] bg-background/85 backdrop-blur-xl p-4 shadow-premium">
 								<div className="flex items-center justify-between mb-3">
-									<div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Driver Mission</div>
+									<div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Current request</div>
 									<div className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
 										<Radio className="h-3.5 w-3.5" />
 										Live
@@ -594,19 +635,19 @@ const GodModeMapContent = () => {
 												Unit: <span className="font-semibold text-foreground">{assignedAmbulance?.call_sign || assignedAmbulance?.vehicle_number || "Unassigned"}</span>
 											</div>
 											<div className="text-xs text-muted-foreground">
-												Telemetry:{" "}
+												Location:{" "}
 												<span
 													className={`font-semibold ${
-														driverTelemetry.state === "lost"
+														driverLocationStatus.state === "lost"
 															? "text-destructive"
-															: driverTelemetry.state === "stale"
+															: driverLocationStatus.state === "stale"
 																? "text-warning"
 																: "text-success"
 													}`}
 												>
-													{driverTelemetry.state.toUpperCase()}
+													{driverLocationStatus.state.toUpperCase()}
 												</span>
-												{driverTelemetry.ageLabel ? ` • ${driverTelemetry.ageLabel} ago` : ""}
+												{driverLocationStatus.ageLabel ? ` - ${driverLocationStatus.ageLabel} ago` : ""}
 											</div>
 										</div>
 										<div className="grid grid-cols-2 gap-2">
@@ -616,9 +657,11 @@ const GodModeMapContent = () => {
 												onClick={handleDriverPingLocation}
 												disabled={driverAction !== null}
 												className="rounded-2xl"
+												aria-label={driverAction === "ping" ? "Sharing location" : "Share location"}
+												aria-busy={driverAction === "ping"}
 											>
 												{driverAction === "ping" ? <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5 mr-1" />}
-												Ping
+												{driverAction === "ping" ? "Sharing" : "Share"}
 											</Button>
 											<Button
 												size="sm"
@@ -626,9 +669,11 @@ const GodModeMapContent = () => {
 												onClick={() => handleDriverStatusUpdate("accepted")}
 												disabled={driverAction !== null || driverActiveEmergency?.status === "accepted"}
 												className="rounded-2xl"
+												aria-label={driverAction === "accepted" ? "Saving on way" : "Mark on way"}
+												aria-busy={driverAction === "accepted"}
 											>
-												<MapPin className="h-3.5 w-3.5 mr-1" />
-												En Route
+												{driverAction === "accepted" ? <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" /> : <MapPin className="h-3.5 w-3.5 mr-1" />}
+												{driverAction === "accepted" ? "Saving" : "On way"}
 											</Button>
 											<Button
 												size="sm"
@@ -636,52 +681,56 @@ const GodModeMapContent = () => {
 												onClick={() => handleDriverStatusUpdate("arrived")}
 												disabled={driverAction !== null || driverActiveEmergency?.status === "arrived"}
 												className="rounded-2xl"
+												aria-label={driverAction === "arrived" ? "Saving arrived" : "Mark arrived"}
+												aria-busy={driverAction === "arrived"}
 											>
-												<Clock className="h-3.5 w-3.5 mr-1" />
-												Arrived
+												{driverAction === "arrived" ? <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Clock className="h-3.5 w-3.5 mr-1" />}
+												{driverAction === "arrived" ? "Saving" : "Arrived"}
 											</Button>
 											<Button
 												size="sm"
 												onClick={() => handleDriverStatusUpdate("completed")}
 												disabled={driverAction !== null || !["arrived", "accepted", "in_progress"].includes(String(driverActiveEmergency?.status || "").toLowerCase())}
 												className="rounded-2xl"
+												aria-label={driverAction === "completed" ? "Closing request" : "Close request"}
+												aria-busy={driverAction === "completed"}
 											>
-												<CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-												Complete
+												{driverAction === "completed" ? <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1" />}
+												{driverAction === "completed" ? "Closing" : "Done"}
 											</Button>
 										</div>
 									</>
 								) : (
 									<div className="text-xs text-muted-foreground">
-										No active ambulance assignment yet. Keep this map open for live dispatch.
+										No active assignment yet. Keep this map open for updates.
 									</div>
 								)}
 							</div>
 						) : (
-							<div className="absolute top-16 left-6 z-[120] w-[18rem] rounded-3xl  bg-background/82 backdrop-blur-xl p-4 shadow-premium">
-								<div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-3">Ops Telemetry</div>
+							<div className="absolute top-6 left-6 z-[120] w-[18rem] rounded-[28px] bg-background/82 backdrop-blur-xl p-4 shadow-premium">
+								<div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-3">Live status</div>
 								<div className="grid grid-cols-2 gap-2 text-xs">
 									<div className="rounded-2xl bg-white/5 p-2">
-										<div className="text-muted-foreground">Active Trips</div>
-										<div className="text-sm font-semibold">{opsTelemetrySummary.total}</div>
+										<div className="text-muted-foreground">Active routes</div>
+										<div className="text-sm font-semibold">{liveStatusSummary.total}</div>
 									</div>
 									<div className="rounded-2xl bg-white/5 p-2">
-										<div className="text-success">Live</div>
-										<div className="text-sm font-semibold">{opsTelemetrySummary.live}</div>
+										<div className="text-success">Current</div>
+										<div className="text-sm font-semibold">{liveStatusSummary.live}</div>
 									</div>
 									<div className="rounded-2xl bg-white/5 p-2">
-										<div className="text-warning">Stale</div>
-										<div className="text-sm font-semibold">{opsTelemetrySummary.stale}</div>
+										<div className="text-warning">Delayed</div>
+										<div className="text-sm font-semibold">{liveStatusSummary.stale}</div>
 									</div>
 									<div className="rounded-2xl bg-white/5 p-2">
-										<div className="text-destructive">Lost</div>
-										<div className="text-sm font-semibold">{opsTelemetrySummary.lost}</div>
+										<div className="text-destructive">Offline</div>
+										<div className="text-sm font-semibold">{liveStatusSummary.lost}</div>
 									</div>
 								</div>
 							</div>
 						)}
 
-						{/* 3. Floating Tactical Controls (Unified Pattern) */}
+						{/* 3. Floating map controls */}
 						<div className="absolute bottom-6 right-6 flex flex-col items-end gap-3 z-[100]">
 						<motion.button
 							whileTap={{ scale: 0.9 }}
@@ -690,7 +739,9 @@ const GodModeMapContent = () => {
 								refresh();
 							}}
 							className="w-12 h-12 rounded-2xl apple-glass-heavy flex items-center justify-center shadow-premium  hover:bg-white/5 transition-all pointer-events-auto"
-							title="Refresh Data"
+							title="Refresh map"
+							aria-label="Refresh map"
+							aria-busy={loading}
 						>
 							<RefreshCw size={20} className={`${loading ? 'animate-spin' : ''} text-primary`} />
 						</motion.button>
@@ -709,17 +760,20 @@ const GodModeMapContent = () => {
 								if (userLocation) {
 									toast.info("Re-centering map...");
 									window.dispatchEvent(new CustomEvent('recenter-map'));
+								} else {
+									toast.info("Location not ready");
 								}
 							}}
 							className="w-12 h-12 rounded-2xl apple-glass-heavy flex items-center justify-center shadow-premium  hover:bg-white/5 transition-all pointer-events-auto"
-							title="Center on Location"
+							title="Center map"
+							aria-label="Center map"
 						>
 							<Navigation size={20} className="text-foreground/60" />
 						</motion.button>
 					</div>
-				</Card>
+				</div>
 
-				{/* Selected Marker Details Panel with Dispatch Actions */}
+				{/* Selected marker details panel */}
 				<MarkerDetailPanel
 					selectedMarker={selectedMarker}
 					setSelectedMarker={setSelectedMarker}
@@ -732,9 +786,5 @@ const GodModeMapContent = () => {
 };
 
 export const GodModeMap = () => {
-	return (
-		<MapProvider>
-			<GodModeMapContent />
-		</MapProvider>
-	);
+	return <GodModeMapContent />;
 };

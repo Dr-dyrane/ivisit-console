@@ -118,8 +118,7 @@ export const useHealthNews = () => {
 
   // Set up real-time subscription
   useEffect(() => {
-    const unsubscribe = subscribeToHealthNews((payload) => {
-      console.log('Health news change:', payload);
+    const unsubscribe = subscribeToHealthNews(() => {
       fetchHealthNews(); // Refetch on any change
     });
 

@@ -13,6 +13,11 @@ import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadM
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
 
+const formatLabel = (value, fallback = 'Unknown') => {
+  const text = String(value || fallback).replace(/_/g, ' ').trim();
+  return text ? text.replace(/\b\w/g, (letter) => letter.toUpperCase()) : fallback;
+};
+
 export const MobileSubscriptions = ({
   subscribers = [],
   filters,
@@ -73,10 +78,10 @@ export const MobileSubscriptions = ({
   const showTopSectionLoading = loading && displaySubscribers.length === 0;
 
   const kpis = [
-    { id: 'all', label: 'Subscribers', value: counts.total, color: 'hsl(var(--primary))', delta: 'LIVE', direction: 'flat' },
-    { id: 'active', label: 'Active', value: counts.active, color: 'hsl(var(--success))', delta: 'LIVE', direction: 'flat' },
-    { id: 'paid', label: 'Paid', value: counts.paid, color: 'hsl(var(--warning))', delta: 'LIVE', direction: 'flat' },
-    { id: 'free', label: 'Free', value: counts.free, color: 'hsl(var(--info))', delta: 'LIVE', direction: 'flat' }
+    { id: 'all', label: 'Subscribers', value: counts.total, color: 'hsl(var(--primary))', delta: 'Shown', direction: 'flat' },
+    { id: 'active', label: 'Active', value: counts.active, color: 'hsl(var(--success))', delta: 'Shown', direction: 'flat' },
+    { id: 'paid', label: 'Paid', value: counts.paid, color: 'hsl(var(--warning))', delta: 'Shown', direction: 'flat' },
+    { id: 'free', label: 'Free', value: counts.free, color: 'hsl(var(--info))', delta: 'Shown', direction: 'flat' }
   ];
 
   const periodTrends = useMemo(() => {
@@ -93,7 +98,7 @@ export const MobileSubscriptions = ({
     });
     const buildTrend = (currentValue, previousValue) => {
       if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue) || currentValue === 0 || previousValue === 0) {
-        return { direction: 'flat', deltaText: 'N/A' };
+        return { direction: 'flat', deltaText: 'Baseline' };
       }
       const delta = ((currentValue - previousValue) / Math.abs(previousValue)) * 100;
       return { direction: delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat', deltaText: `${delta > 0 ? '+' : ''}${delta.toFixed(Math.abs(delta) >= 10 ? 0 : 1)}%` };
@@ -120,7 +125,7 @@ export const MobileSubscriptions = ({
           loading={showTopSectionLoading}
           items={[
             {
-              label: 'Paid Conversion',
+              label: 'Paid share',
               value: `${counts.total ? Math.round((counts.paid / counts.total) * 100) : 0}%`,
               trend: periodTrends.paidMix.deltaText,
               icon: Crown,
@@ -128,7 +133,7 @@ export const MobileSubscriptions = ({
               chartData: [{ value: 24 }, { value: 30 }, { value: 36 }, { value: 44 }, { value: 46 }, { value: 53 }]
             },
             {
-              label: 'Active Mix',
+              label: 'Active share',
               value: `${Math.round(((counts.active || 0) / (counts.total || 1)) * 100)}%`,
               trend: periodTrends.activeMix.deltaText,
               icon: Users,
@@ -136,17 +141,17 @@ export const MobileSubscriptions = ({
               chartData: [{ value: 22 }, { value: 27 }, { value: 33 }, { value: 39 }, { value: 43 }, { value: 48 }]
             },
             {
-              label: 'Total Subs',
+              label: 'Shown',
               value: counts.total,
-              trend: 'LIVE',
+              trend: 'Loaded',
               icon: Mail,
               color: 'hsl(var(--primary))',
               chartData: [{ value: 14 }, { value: 18 }, { value: 22 }, { value: 26 }, { value: 30 }, { value: 34 }]
             },
             {
-              label: 'Paid Subscribers',
+              label: 'Paid type',
               value: counts.paid,
-              trend: 'LIVE',
+              trend: 'Loaded',
               icon: BadgeCheck,
               color: 'hsl(var(--success))',
               chartData: [{ value: 12 }, { value: 16 }, { value: 19 }, { value: 23 }, { value: 27 }, { value: 31 }]
@@ -156,9 +161,10 @@ export const MobileSubscriptions = ({
 
         <section className="mb-3">
           <MobileSectionHeader
-            label="Revenue Dynamics"
+            label="Subscriber mix"
             count={counts.total}
             color="hsl(var(--warning))"
+            labelTone="plain"
           />
           <MobileSecondaryMetricRail
             loading={showTopSectionLoading}
@@ -166,7 +172,7 @@ export const MobileSubscriptions = ({
               {
                 icon: Crown,
                 title: 'Paid Mix',
-                subtitle: 'Monetization',
+                subtitle: 'Type share',
                 value: `${Math.round(((counts.paid || 0) / (counts.total || 1)) * 100)}%`,
                 color: 'hsl(var(--warning))',
                 trendDirection: periodTrends.paidMix.direction,
@@ -175,7 +181,7 @@ export const MobileSubscriptions = ({
               {
                 icon: Users,
                 title: 'Active Mix',
-                subtitle: 'Engagement',
+                subtitle: 'Status share',
                 value: `${Math.round(((counts.active || 0) / (counts.total || 1)) * 100)}%`,
                 color: 'hsl(var(--info))',
                 trendDirection: periodTrends.activeMix.direction,
@@ -183,21 +189,21 @@ export const MobileSubscriptions = ({
               },
               {
                 icon: Mail,
-                title: 'Total Subs',
-                subtitle: 'Registry',
+                title: 'Shown',
+                subtitle: 'Loaded rows',
                 value: counts.total,
                 color: 'hsl(var(--primary))',
                 trendDirection: 'flat',
-                trendText: 'LIVE'
+                trendText: 'Loaded'
               },
               {
                 icon: BadgeCheck,
                 title: 'Paid',
-                subtitle: 'Subscribers',
+                subtitle: 'Type label',
                 value: counts.paid,
                 color: 'hsl(var(--success))',
                 trendDirection: 'flat',
-                trendText: 'LIVE'
+                trendText: 'Loaded'
               }
             ]}
           />
@@ -211,14 +217,14 @@ export const MobileSubscriptions = ({
               placeholder="Search subscribers..."
               value={filters?.search || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy border-0 text-[12px] placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary/20 outline-none"
+              className="w-full h-11 pl-10 pr-4 rounded-inner apple-glass-heavy text-[12px] placeholder:text-muted-foreground/30 focus-visible:bg-white/[0.06]"
             />
           </div>
           {onOpenFilters && (
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => onOpenFilters()}
-              className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 border-0"
+              className="w-11 h-11 rounded-button apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200"
               aria-label="Open filters"
             >
               <SlidersHorizontal size={18} />
@@ -228,7 +234,7 @@ export const MobileSubscriptions = ({
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => onViewAnalytics()}
-              className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 border-0 shadow-sm"
+              className="w-11 h-11 rounded-button apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 shadow-sm"
               aria-label="Open analytics"
             >
               <BarChart3 size={18} />
@@ -254,13 +260,13 @@ export const MobileSubscriptions = ({
                   key={sub.id}
                   icon={Users}
                   color={active ? 'hsl(var(--success))' : 'hsl(var(--muted-foreground))'}
-                  label={String(sub.status || 'unknown').toUpperCase()}
+                  label={formatLabel(sub.status)}
                   value={sub.email || 'No email'}
                   rightBlade={{
-                    badge: paid ? 'PAID' : 'FREE',
+                    badge: paid ? 'Paid' : 'Free',
                     direction: paid ? 'up' : 'flat',
                     label: 'Type',
-                    value: String(sub.type || 'free').toUpperCase(),
+                    value: formatLabel(sub.type, 'Free'),
                     color: paid ? 'hsl(var(--warning))' : 'hsl(var(--info))'
                   }}
                   isExpanded={expandedId === sub.id}
@@ -272,26 +278,26 @@ export const MobileSubscriptions = ({
                   expandedContent={(
                     <div className="space-y-4 py-3">
                       <div className="grid grid-cols-1 gap-2">
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
+                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
                           <Mail size={14} className="text-muted-foreground/40" />
                           <span className="text-xs font-normal">Welcome Email: {sub.welcome_email_sent ? 'Sent' : 'Pending'}</span>
                         </div>
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
+                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
                           <Clock size={14} className="text-muted-foreground/40" />
-                          <span className="text-xs font-normal">Joined: {sub.subscription_date ? new Date(sub.subscription_date).toLocaleDateString() : 'N/A'}</span>
+                          <span className="text-xs font-normal">Joined: {sub.subscription_date ? new Date(sub.subscription_date).toLocaleDateString() : 'Date unknown'}</span>
                         </div>
                       </div>
                       <div className="flex gap-2 pt-1">
-                        <Button variant="ghost" className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2" onClick={() => onView(sub)}>
+                        <Button variant="ghost" className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2" onClick={() => onView(sub)}>
                           <Eye size={16} className="text-primary/60" />
-                          <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Details</span>
+                          <span className="text-[11px] font-semibold">Details</span>
                         </Button>
                         {canManage && (
                           <>
-                            <Button variant="ghost" className="h-12 rounded-2xl apple-glass border-0 px-3" onClick={() => onEdit(sub)}>
+                            <Button variant="ghost" className="h-12 rounded-button apple-glass px-3" onClick={() => onEdit(sub)}>
                               <Edit size={16} className="text-warning/60" />
                             </Button>
-                            <Button variant="ghost" className="h-12 rounded-2xl apple-glass border-0 px-3 hover:bg-destructive/10 hover:text-destructive" onClick={() => onDelete(sub)}>
+                            <Button variant="ghost" className="h-12 rounded-button apple-glass px-3 hover:bg-destructive/10 hover:text-destructive" onClick={() => onDelete(sub)}>
                               <Trash2 size={16} className="text-destructive/60" />
                             </Button>
                           </>

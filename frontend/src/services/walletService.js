@@ -5,6 +5,123 @@ import { supabase } from '../lib/supabase';
  * Handles financial data fetching for Dashboard and Analytics
  */
 
+const normalizePaymentProfile = (profile) => {
+    if (Array.isArray(profile)) return profile[0] || null;
+    return profile || null;
+};
+
+const normalizeWalletPayment = (payment) => {
+    const { profiles, ...rest } = payment || {};
+    return {
+        ...rest,
+        user_details: normalizePaymentProfile(profiles),
+    };
+};
+
+const resolveWalletForProfile = async ({ profile, isAdmin }) => {
+    if (isAdmin) {
+        const { data, error } = await supabase
+            .from('ivisit_main_wallet')
+            .select('*')
+            .maybeSingle();
+        if (error) throw error;
+        return data || null;
+    }
+
+    if (!profile?.organization_id) return null;
+
+    const { data, error } = await supabase
+        .from('organization_wallets')
+        .select('*')
+        .eq('organization_id', profile.organization_id)
+        .maybeSingle();
+    if (error) throw error;
+    return data || null;
+};
+
+const getWalletLedger = async (walletId, limit = 50) => {
+    if (!walletId) return [];
+
+    const { data, error } = await supabase
+        .from('wallet_ledger')
+        .select('*')
+        .eq('wallet_id', walletId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+    if (error) throw error;
+    return data || [];
+};
+
+export const getWalletPayments = async ({ organizationId = null, isOrgAdmin = false, limit = 50 } = {}) => {
+    let query = supabase
+        .from('payments')
+        .select(`
+            *,
+            profiles!payments_user_id_fkey (
+                first_name,
+                last_name,
+                phone,
+                email
+            ),
+            emergency_requests (
+                id,
+                service_type,
+                created_at,
+                hospitals (
+                    name,
+                    address
+                )
+            )
+        `);
+
+    if (isOrgAdmin && organizationId) {
+        query = query.eq('organization_id', organizationId);
+    }
+
+    const { data, error } = await query
+        .order('created_at', { ascending: false })
+        .limit(limit);
+    if (error) throw error;
+
+    return (data || []).map(normalizeWalletPayment);
+};
+
+export const getWalletContextData = async ({ profile, isAdmin = false, ledgerLimit = 10 } = {}) => {
+    const wallet = await resolveWalletForProfile({ profile, isAdmin });
+    const ledger = await getWalletLedger(wallet?.id, ledgerLimit);
+
+    return {
+        wallet,
+        ledger,
+        projection: 0,
+    };
+};
+
+export const getWalletPageData = async ({ profile, isAdmin = false, isOrgAdmin = false, limit = 50 } = {}) => {
+    const organizationId = profile?.organization_id || null;
+    const wallet = await resolveWalletForProfile({ profile, isAdmin });
+
+    const [
+        paymentMethods,
+        projection,
+        ledger,
+        payments,
+    ] = await Promise.all([
+        listPaymentMethods(isAdmin ? null : organizationId, { quiet: true }),
+        getProjectedRevenue(isAdmin ? null : organizationId, { quiet: true }),
+        getWalletLedger(wallet?.id, limit),
+        getWalletPayments({ organizationId, isOrgAdmin, limit }),
+    ]);
+
+    return {
+        wallet,
+        ledger,
+        projection,
+        paymentMethods,
+        payments,
+    };
+};
+
 export const getWalletSummary = async (profile, isAdmin) => {
     try {
         let balance = 0;
@@ -81,7 +198,7 @@ export const getWalletSummary = async (profile, isAdmin) => {
     }
 };
 
-export const getFinanceAnalytics = async (profile, isAdmin, days = 30) => {
+export const getFinanceAnalytics = async (profile, isAdmin, days = 30, options = {}) => {
     try {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
@@ -127,7 +244,13 @@ export const getFinanceAnalytics = async (profile, isAdmin, days = 30) => {
 
         return Object.values(groupedData);
     } catch (error) {
-        console.error('Error fetching finance analytics:', error);
+        if (!options?.quiet) {
+            console.error('Error fetching finance analytics:', error);
+        }
+
+        if (options?.throwOnError) {
+            throw error;
+        }
 
         // Return a zeroed baseline even on error
         const baseline = [];
@@ -143,7 +266,7 @@ export const getFinanceAnalytics = async (profile, isAdmin, days = 30) => {
 /**
  * Get Projected Revenue (30d) based on trailing 7-day average
  */
-export const getProjectedRevenue = async (organizationId = null) => {
+export const getProjectedRevenue = async (organizationId = null, options = {}) => {
     try {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -171,7 +294,9 @@ export const getProjectedRevenue = async (organizationId = null) => {
 
         return Math.round(dailyAvg * 30);
     } catch (error) {
-        console.error('Error calculating projection:', error);
+        if (!options?.quiet) {
+            console.error('Error calculating projection:', error);
+        }
         return 0;
     }
 };
@@ -249,13 +374,18 @@ export const createSetupIntent = async (organizationId) => {
 /**
  * List Saved Payment Methods
  */
-export const listPaymentMethods = async (organizationId) => {
-    const { data, error } = await supabase.functions.invoke('manage-payment-methods', {
-        body: { action: 'list-payment-methods', organization_id: organizationId }
-    });
+export const listPaymentMethods = async (organizationId, options = {}) => {
+    try {
+        const { data, error } = await supabase.functions.invoke('manage-payment-methods', {
+            body: { action: 'list-payment-methods', organization_id: organizationId }
+        });
 
-    if (error) throw error;
-    return data.data || [];
+        if (error) throw error;
+        return data.data || [];
+    } catch (error) {
+        if (options?.quiet) return [];
+        throw error;
+    }
 };
 
 /**

@@ -1,44 +1,179 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
 import { getHospitals } from '../../services/hospitalsService';
-import { deleteAmbulance } from '../../services/ambulancesService';
-import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { getAmbulancesPageData } from '../../services/ambulancesService';
+import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
-import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
-import { getCurrentUser, applyAuthFilter } from '../../services/authService';
-import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
-import { Ambulance, Plus, Edit, Trash2, Eye, MapPin, Star, ChevronRight, Activity, Filter } from 'lucide-react';
+import { Ambulance, Plus, Edit, Eye, MapPin, Activity, Filter, Search, AlertCircle, RefreshCw, Wrench } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from "sonner";
-import { handleApiError } from "../../utils/errorHandler";
 import { useAuth } from '../../contexts/AuthContext';
 import { AmbulanceModal } from '../modals/AmbulanceModal';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
-import { withTimeout } from '../../lib/utils';
 import { ViewToggle } from '../common/ViewToggle';
 import { FilterSheet } from '../common/FilterSheet';
 import { AmbulanceListView } from '../views/AmbulanceListView';
 import { AmbulanceTableView } from '../views/AmbulanceTableView';
 import { SEOHead } from '../common/SEOHead';
-import { ConfirmationModal } from '../modals/ConfirmationModal';
-import { BulkActionBar } from '../common/BulkActionBar';
 import { MobileAmbulances } from '../mobile/MobileAmbulances';
 
-import { usePageData } from '../../contexts/PageDataContext';
+const getAmbulanceStatsFilters = (filters = {}) => {
+  const { status, ...rest } = filters;
+  return rest;
+};
+
+const ACTIVE_FLEET_STATUSES = new Set(['dispatched', 'on_trip', 'en_route', 'on_scene']);
+
+const normalizeAmbulanceCount = (value, fallback = 0) => {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : fallback;
+};
+
+const getFleetStatus = (ambulance) => String(ambulance?.status || 'available').toLowerCase();
+
+const getFleetStatusLabel = (status) => {
+  if (status === 'available') return 'Ready';
+  if (status === 'en_route' || status === 'on_route') return 'En route';
+  if (status === 'dispatched') return 'Dispatched';
+  if (status === 'on_trip') return 'On trip';
+  if (status === 'on_scene') return 'On scene';
+  if (status === 'returning') return 'Returning';
+  if (status === 'maintenance') return 'Maintenance';
+  if (status === 'offline') return 'Offline';
+  if (status === 'pending_approval') return 'Pending';
+  return status ? status.replace(/_/g, ' ') : 'Unknown';
+};
+
+const getAmbulanceStation = (ambulance) => ambulance?.station_name || ambulance?.hospital || 'No station';
+
+const getFleetStateCount = ({ id, stats, ambulances }) => {
+  const rows = Array.isArray(ambulances) ? ambulances : [];
+  if (id === 'all') return normalizeAmbulanceCount(stats?.total, rows.length);
+  if (id === 'available') return normalizeAmbulanceCount(stats?.available, rows.filter(unit => getFleetStatus(unit) === 'available').length);
+  if (id === 'on_route') return normalizeAmbulanceCount(stats?.onRoute, rows.filter(unit => ['en_route', 'on_route'].includes(getFleetStatus(unit))).length);
+  if (id === 'busy') return normalizeAmbulanceCount(stats?.busy, rows.filter(unit => ACTIVE_FLEET_STATUSES.has(getFleetStatus(unit))).length);
+  if (id === 'maintenance') return normalizeAmbulanceCount(stats?.maintenance, rows.filter(unit => getFleetStatus(unit) === 'maintenance').length);
+  return 0;
+};
+
+const ambulanceToneClass = {
+  ready: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200',
+  active: 'bg-cyan-500/12 text-cyan-700 dark:text-cyan-200',
+  attention: 'bg-amber-500/12 text-amber-700 dark:text-amber-200',
+  muted: 'bg-muted/45 text-muted-foreground',
+};
+
+const ambulanceStateOptions = [
+  {
+    id: 'all',
+    label: 'Fleet',
+    icon: Ambulance,
+    activeClass: 'bg-primary/12 text-primary shadow-[0_22px_52px_hsl(var(--primary)/0.16)]',
+    restClass: 'bg-muted/28 text-muted-foreground hover:bg-muted/42',
+    iconClass: 'text-primary',
+  },
+  {
+    id: 'available',
+    label: 'Ready',
+    icon: MapPin,
+    activeClass: 'bg-emerald-500/12 text-emerald-700 shadow-[0_22px_52px_rgba(16,185,129,0.14)] dark:text-emerald-200',
+    restClass: 'bg-muted/28 text-muted-foreground hover:bg-emerald-500/10',
+    iconClass: 'text-emerald-600 dark:text-emerald-200',
+  },
+  {
+    id: 'on_route',
+    label: 'En route',
+    icon: Activity,
+    activeClass: 'bg-amber-500/12 text-amber-700 shadow-[0_22px_52px_rgba(245,158,11,0.14)] dark:text-amber-200',
+    restClass: 'bg-muted/28 text-muted-foreground hover:bg-amber-500/10',
+    iconClass: 'text-amber-600 dark:text-amber-200',
+  },
+  {
+    id: 'busy',
+    label: 'Active',
+    icon: Ambulance,
+    activeClass: 'bg-cyan-500/12 text-cyan-700 shadow-[0_22px_52px_rgba(6,182,212,0.14)] dark:text-cyan-200',
+    restClass: 'bg-muted/28 text-muted-foreground hover:bg-cyan-500/10',
+    iconClass: 'text-cyan-600 dark:text-cyan-200',
+  },
+  {
+    id: 'maintenance',
+    label: 'Service',
+    icon: Wrench,
+    activeClass: 'bg-muted/55 text-foreground shadow-[0_22px_52px_rgba(0,0,0,0.10)]',
+    restClass: 'bg-muted/28 text-muted-foreground hover:bg-muted/42',
+    iconClass: 'text-muted-foreground',
+  },
+];
+
+const getAmbulanceSignal = ({ stats, ambulances, kpiFilter }) => {
+  const rows = Array.isArray(ambulances) ? ambulances : [];
+  const total = getFleetStateCount({ id: 'all', stats, ambulances: rows });
+  const ready = getFleetStateCount({ id: 'available', stats, ambulances: rows });
+  const active = getFleetStateCount({ id: 'busy', stats, ambulances: rows });
+  const service = getFleetStateCount({ id: 'maintenance', stats, ambulances: rows });
+
+  if (kpiFilter === 'maintenance') {
+    return {
+      icon: Wrench,
+      tone: 'attention',
+      label: 'Service',
+      headline: `${service} units need service attention`,
+      subhead: 'Review units out of service before assigning them to new requests.',
+    };
+  }
+
+  if (kpiFilter === 'on_route' || kpiFilter === 'busy') {
+    return {
+      icon: Activity,
+      tone: 'active',
+      label: 'In motion',
+      headline: `${active} units are active now`,
+      subhead: 'Active units stay visible as read-only fleet evidence until dispatch actions are proved.',
+    };
+  }
+
+  if (kpiFilter === 'available') {
+    return {
+      icon: MapPin,
+      tone: 'ready',
+      label: 'Ready',
+      headline: `${ready} units are ready`,
+      subhead: 'Ready units are available for review from the route-owned fleet list.',
+    };
+  }
+
+  if (total === 0) {
+    return {
+      icon: Ambulance,
+      tone: 'muted',
+      label: 'Fleet',
+      headline: 'No fleet rows found',
+      subhead: 'Change filters or add a unit after fleet create authority is reviewed.',
+    };
+  }
+
+  return {
+    icon: Ambulance,
+    tone: ready > 0 ? 'ready' : 'attention',
+    label: 'Fleet',
+    headline: `${total} units in the fleet`,
+    subhead: `${ready} ready, ${active} active, ${service} in service review.`,
+  };
+};
 
 export const AmbulancesPage = () => {
-  const { isAdmin, isOrgAdmin, isProvider, orgId, profile, can } = useAuth();
+  const { isAdmin, isOrgAdmin } = useAuth();
   const { isMobile } = useNavigation();
   const location = useLocation();
-  const { ambulancesData, refreshAllData } = usePageData();
   const [ambulances, setAmbulances] = useState([]);
+  const [ambulancePageStats, setAmbulancePageStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedAmbulance, setSelectedAmbulance] = useState(null);
   const [modalMode, setModalMode] = useState(null);
@@ -46,25 +181,45 @@ export const AmbulancesPage = () => {
   const [filters, setFilters] = useState({});
   const [hospitals, setHospitals] = useState([]);
   const [kpiFilter, setKpiFilter] = useState('all');
-  const [selectedIds, setSelectedIds] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
-  const [confirmationModal, setConfirmationModal] = useState({
-    isOpen: false,
-    title: '',
-    description: '',
-    onConfirm: () => { },
-    variant: 'default'
-  });
+  const [activeActionFeedback, setActiveActionFeedback] = useState(null);
+  const [ambulancePageError, setAmbulancePageError] = useState(null);
+  const [focusedAmbulanceId, setFocusedAmbulanceId] = useState(null);
+  const actionFeedbackTimeoutRef = useRef(null);
 
   const { viewMode, setViewMode } = useViewMode('ambulances-page', 'grid');
   const pagination = usePagination(20);
+  const { currentPage, itemsPerPage, paginationRange, setTotalCount, resetPagination } = pagination;
+  const canManageFleet = isAdmin() || isOrgAdmin();
+  const focusedAmbulance = useMemo(() => (
+    ambulances.find(unit => unit.id === focusedAmbulanceId) || ambulances[0] || null
+  ), [ambulances, focusedAmbulanceId]);
+
+  const markActionFeedback = useCallback((key) => {
+    setActiveActionFeedback(key);
+    if (actionFeedbackTimeoutRef.current) {
+      window.clearTimeout(actionFeedbackTimeoutRef.current);
+    }
+    actionFeedbackTimeoutRef.current = window.setTimeout(() => {
+      setActiveActionFeedback(null);
+    }, 900);
+  }, []);
+
+  useEffect(() => () => {
+    if (actionFeedbackTimeoutRef.current) {
+      window.clearTimeout(actionFeedbackTimeoutRef.current);
+    }
+  }, []);
 
   // Fetch hospitals for filter dropdown (Admin only)
   useEffect(() => {
     if (isAdmin()) {
-      getHospitals().then(({ data }) => {
-        if (data) setHospitals(data);
+      getHospitals({ quiet: true, limit: 500 }).then((result) => {
+        const rows = Array.isArray(result) ? result : result?.data || [];
+        setHospitals(rows);
+      }).catch((error) => {
+        console.error('Error fetching ambulance station filters:', error);
       });
     }
   }, [isAdmin]);
@@ -73,158 +228,130 @@ export const AmbulancesPage = () => {
     try {
       setLoading(true);
 
-      // Get current user for RBAC filtering
-      const user = await getCurrentUser();
+      const pageLimit = isMobile
+        ? currentPage * itemsPerPage
+        : itemsPerPage;
+      const pageOffset = isMobile ? 0 : paginationRange.start;
 
-      let query = supabase.from('ambulances').select('*', { count: 'exact', head: true });
-
-      // Apply RBAC filter using centralized service
-      query = applyAuthFilter(query, user, {
-        orgIdField: 'organization_id',
-        resourceType: 'ambulances'
+      const pageData = await getAmbulancesPageData({
+        filters,
+        statsFilters: getAmbulanceStatsFilters(filters),
+        kpiFilter,
+        sortConfig,
+        limit: pageLimit,
+        offset: pageOffset,
       });
 
-      if (filters.search) {
-        query = query.or(`call_sign.ilike.%${filters.search}%,vehicle_number.ilike.%${filters.search}%`);
-      }
-
-      if (filters.status && filters.status.length > 0) {
-        query = query.in('status', filters.status);
-      }
-
-      // Apply KPI Filter to count query
-      if (kpiFilter === 'available') query = query.eq('status', 'available');
-      if (kpiFilter === 'on_route') query = query.eq('status', 'on_route');
-      if (kpiFilter === 'busy') query = query.eq('status', 'busy');
-      if (kpiFilter === 'maintenance') query = query.eq('status', 'maintenance');
-
-      const { count } = await query;
-      pagination.setTotalCount(count || 0);
-
-      let dataQuery = supabase
-        .from('ambulances')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      // Apply RBAC filter to data query using centralized service
-      dataQuery = applyAuthFilter(dataQuery, user, {
-        orgIdField: 'organization_id',
-        resourceType: 'ambulances'
-      });
-
-      if (filters.search) {
-        dataQuery = dataQuery.or(`call_sign.ilike.%${filters.search}%,vehicle_number.ilike.%${filters.search}%`);
-      }
-
-      if (filters.status && filters.status.length > 0) {
-        dataQuery = dataQuery.in('status', filters.status);
-      }
-
-      if (filters.type && filters.type.length > 0) {
-        dataQuery = dataQuery.in('type', filters.type);
-      }
-
-      if (filters.hospital) {
-        dataQuery = dataQuery.eq('hospital_id', filters.hospital);
-      }
-
-      if (filters.created_at) {
-        const { start, end } = filters.created_at;
-        if (start) dataQuery = dataQuery.gte('created_at', start);
-        if (end) {
-          const endDate = new Date(end);
-          endDate.setHours(23, 59, 59, 999);
-          dataQuery = dataQuery.lte('created_at', endDate.toISOString());
-        }
-      }
-
-      // Apply KPI Filter to data query
-      if (kpiFilter === 'available') dataQuery = dataQuery.eq('status', 'available');
-      if (kpiFilter === 'on_route') dataQuery = dataQuery.eq('status', 'on_route');
-      if (kpiFilter === 'busy') dataQuery = dataQuery.eq('status', 'busy');
-      if (kpiFilter === 'maintenance') dataQuery = dataQuery.eq('status', 'maintenance');
-
-      // Fetch ALL (limit 1000) for Client Side Sort/Pagination capabilities
-      dataQuery = dataQuery.limit(1000);
-
-      const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load ambulances - timeout');
-
-      if (error) throw error;
-      setAmbulances(data || []);
-      // Update pagination based on actual fetched data length for client-side pagination
-      pagination.setTotalCount(data ? data.length : 0);
+      setAmbulances(pageData.data || []);
+      setAmbulancePageStats(pageData.stats || null);
+      setAmbulancePageError(null);
+      setTotalCount(pageData.count || 0);
     } catch (error) {
       console.error('Error fetching ambulances:', error);
+      setAmbulancePageError(error.message || 'Fleet could not load.');
       toast.error(error.message || 'Failed to load ambulances');
     } finally {
       setLoading(false);
     }
-  }, [filters, kpiFilter, orgId, isOrgAdmin, isAdmin]);
+  }, [
+    filters,
+    kpiFilter,
+    sortConfig,
+    isMobile,
+    currentPage,
+    itemsPerPage,
+    paginationRange.start,
+    setTotalCount,
+  ]);
+
+  useEffect(() => {
+    resetPagination();
+  }, [filters, kpiFilter, sortConfig.key, sortConfig.direction, resetPagination]);
 
   useEffect(() => {
     fetchAmbulances();
-  }, [fetchAmbulances, pagination.currentPage]);
-
-  // Scoped Stats Logic for Org Admins
-  const [scopedStats, setScopedStats] = useState(null);
+  }, [fetchAmbulances]);
 
   useEffect(() => {
-    const fetchScopedStats = async () => {
-      if (!isOrgAdmin() || !orgId) return;
+    if (loading) return;
+    if (ambulances.length === 0) {
+      setFocusedAmbulanceId(null);
+      return;
+    }
+    if (!focusedAmbulanceId || !ambulances.some(unit => unit.id === focusedAmbulanceId)) {
+      setFocusedAmbulanceId(ambulances[0].id);
+    }
+  }, [ambulances, focusedAmbulanceId, loading]);
 
-      try {
-        const { data, error } = await supabase
-          .from('ambulances')
-          .select('status')
-          .eq('hospital_id', orgId);
+  const displayStats = ambulancePageStats;
 
-        if (error) throw error;
+  const ambulanceRouteContext = useMemo(() => {
+    const sourceRows = Array.isArray(ambulances) ? ambulances : [];
+    const contextStatus = ambulancePageError
+      ? 'failed'
+      : loading
+        ? 'loading'
+        : sourceRows.length === 0
+          ? 'empty'
+          : 'ready';
 
-        const stats = {
-          total: data.length,
-          available: data.filter(a => a.status === 'available').length,
-          onRoute: data.filter(a => a.status === 'on_route').length,
-          busy: data.filter(a => a.status === 'busy').length,
-          maintenance: data.filter(a => a.status === 'maintenance').length,
-        };
-        setScopedStats(stats);
-      } catch (err) {
-        console.error('Error fetching scoped stats:', err);
-      }
+    return {
+      status: contextStatus,
+      loading,
+      error: ambulancePageError,
+      stats: {
+        total: getFleetStateCount({ id: 'all', stats: displayStats, ambulances: sourceRows }),
+        available: getFleetStateCount({ id: 'available', stats: displayStats, ambulances: sourceRows }),
+        onRoute: getFleetStateCount({ id: 'on_route', stats: displayStats, ambulances: sourceRows }),
+        active: getFleetStateCount({ id: 'busy', stats: displayStats, ambulances: sourceRows }),
+        maintenance: getFleetStateCount({ id: 'maintenance', stats: displayStats, ambulances: sourceRows }),
+        visible: sourceRows.length,
+        totalCount: pagination.totalCount,
+      },
+      recent: sourceRows.slice(0, 5).map((unit) => ({
+        id: unit.id,
+        call_sign: unit.call_sign,
+        vehicle_number: unit.vehicle_number,
+        license_plate: unit.license_plate,
+        status: getFleetStatus(unit),
+        statusLabel: getFleetStatusLabel(getFleetStatus(unit)),
+        station: getAmbulanceStation(unit),
+      })),
     };
+  }, [ambulances, ambulancePageError, displayStats, loading, pagination.totalCount]);
 
-    fetchScopedStats();
-  }, [isOrgAdmin, orgId, ambulances]); // Re-fetch if ambulances list changes (e.g. create/edit)
+  const publishAmbulancesRouteContext = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('ambulancesRouteContextUpdated', {
+      detail: ambulanceRouteContext,
+    }));
+  }, [ambulanceRouteContext]);
 
-  const displayStats = (isOrgAdmin() && orgId && scopedStats) ? scopedStats : ambulancesData?.stats;
+  useEffect(() => {
+    publishAmbulancesRouteContext();
+  }, [publishAmbulancesRouteContext]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    window.addEventListener('requestAmbulancesRouteContext', publishAmbulancesRouteContext);
+    return () => {
+      window.removeEventListener('requestAmbulancesRouteContext', publishAmbulancesRouteContext);
+    };
+  }, [publishAmbulancesRouteContext]);
 
   // Processed Data (Sorting & Pagination)
   const processedAmbulances = useMemo(() => {
-    let result = [...ambulances];
-    if (sortConfig.key) {
-      result.sort((a, b) => {
-        const aVal = a[sortConfig.key] || '';
-        const bVal = b[sortConfig.key] || '';
-        if (typeof aVal === 'string' && typeof bVal === 'string') {
-          return sortConfig.direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-        }
-        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-    return result;
-  }, [ambulances, sortConfig]);
+    return ambulances;
+  }, [ambulances]);
 
   const paginatedAmbulances = useMemo(() => {
-    const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
-    return processedAmbulances.slice(startIndex, startIndex + pagination.itemsPerPage);
-  }, [processedAmbulances, pagination.currentPage, pagination.itemsPerPage]);
+    return processedAmbulances;
+  }, [processedAmbulances]);
 
   const mobileVisibleAmbulances = useMemo(() => {
-    const visibleCount = pagination.currentPage * pagination.itemsPerPage;
-    return processedAmbulances.slice(0, visibleCount);
-  }, [processedAmbulances, pagination.currentPage, pagination.itemsPerPage]);
+    return processedAmbulances;
+  }, [processedAmbulances]);
 
   const handleSort = useCallback((key) => {
     setSortConfig(prev => {
@@ -238,28 +365,34 @@ export const AmbulancesPage = () => {
     });
   }, []);
 
-  const handleSelect = useCallback((id, checked) => {
-    setSelectedIds(prev => {
-      if (checked === undefined) {
-        return prev.includes(id) ? prev.filter(mid => mid !== id) : [...prev, id];
-      }
-      return checked ? [...prev, id] : prev.filter(mid => mid !== id);
-    });
+  const handleKpiFilterChange = useCallback((id) => {
+    setKpiFilter(id);
   }, []);
 
-  const handleSelectAll = useCallback((checked, source = paginatedAmbulances) => {
-    const ids = Array.isArray(source) ? source.map(m => m.id) : [];
-    if (checked) {
-      setSelectedIds(ids);
-    } else {
-      setSelectedIds([]);
-    }
-  }, [paginatedAmbulances]);
+  const handleApplyFilters = useCallback((nextFilters) => {
+    setFilters(nextFilters);
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setFilters({});
+    setKpiFilter('all');
+  }, []);
+
+  const handleOpenFilters = useCallback(() => {
+    markActionFeedback('filters');
+    setFilterSheetOpen(true);
+  }, [markActionFeedback]);
+
+  const handleOpenAnalytics = useCallback(() => {
+    markActionFeedback('analytics');
+    setAnalyticsModalOpen(true);
+  }, [markActionFeedback]);
 
   const handleCreate = useCallback(() => {
+    markActionFeedback('create');
     setSelectedAmbulance(null);
     setModalMode('create');
-  }, []);
+  }, [markActionFeedback]);
 
   // Open "Add" modal on page load if requested via URL
   useEffect(() => {
@@ -272,8 +405,6 @@ export const AmbulancesPage = () => {
   // Handle custom events from context panel
   useEffect(() => {
     const handleOpenModal = () => handleCreate();
-    const handleOpenFilters = () => setFilterSheetOpen(true);
-    const handleOpenAnalytics = () => setAnalyticsModalOpen(true);
 
     window.addEventListener('openAmbulanceModal', handleOpenModal);
     window.addEventListener('openFilters', handleOpenFilters);
@@ -284,69 +415,19 @@ export const AmbulancesPage = () => {
       window.removeEventListener('openFilters', handleOpenFilters);
       window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
-  }, [handleCreate]);
+  }, [handleCreate, handleOpenAnalytics, handleOpenFilters]);
 
   const handleView = useCallback((ambulance) => {
+    markActionFeedback(`view-${ambulance.id}`);
     setSelectedAmbulance(ambulance);
     setModalMode('view');
-  }, []);
+  }, [markActionFeedback]);
 
   const handleEdit = useCallback((ambulance) => {
+    markActionFeedback(`edit-${ambulance.id}`);
     setSelectedAmbulance(ambulance);
     setModalMode('edit');
-  }, []);
-
-  const handleDelete = useCallback(async (ambulance) => {
-    // Legacy confirm removal - now using Modal via confirmDelete logic below
-    try {
-      await deleteAmbulance(ambulance.id);
-
-      await createNotification(
-        NotificationTypes.AMBULANCE,
-        NotificationActions.DELETED,
-        ambulance.id,
-        { message: `${ambulance.call_sign} has been removed from the fleet` }
-      );
-      toast.success('Ambulance deleted successfully');
-      setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-      fetchAmbulances();
-    } catch (error) {
-      console.error('Error deleting ambulance:', error);
-      toast.error('Failed to delete ambulance');
-    }
-  }, [fetchAmbulances]);
-
-  const confirmDelete = useCallback((ambulance) => {
-    setConfirmationModal({
-      isOpen: true,
-      title: 'Delete Ambulance',
-      description: `Are you sure you want to delete ${ambulance.call_sign}? This action cannot be undone.`,
-      variant: 'destructive',
-      confirmLabel: 'Delete',
-      onConfirm: () => handleDelete(ambulance)
-    });
-  }, [handleDelete]);
-
-  const handleBulkDelete = useCallback(() => {
-    setConfirmationModal({
-      isOpen: true,
-      title: 'Delete Selected Ambulances',
-      description: `Are you sure you want to delete ${selectedIds.length} ambulances? This action cannot be undone.`,
-      variant: 'destructive',
-      confirmLabel: 'Delete All',
-      onConfirm: async () => {
-        try {
-          await Promise.all(selectedIds.map((id) => deleteAmbulance(id)));
-          toast.success(`${selectedIds.length} ambulances deleted`);
-          setSelectedIds([]);
-          fetchAmbulances();
-        } catch (err) {
-          handleApiError(err, 'delete');
-        }
-        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-      }
-    });
-  }, [selectedIds, fetchAmbulances]);
+  }, [markActionFeedback]);
 
   const handleModalClose = useCallback((shouldRefresh) => {
     setModalMode(null);
@@ -359,9 +440,16 @@ export const AmbulancesPage = () => {
   const getStatusBadge = (status) => {
     const badges = {
       available: 'bg-success/20 text-success',
+      dispatched: 'bg-info/20 text-info',
       en_route: 'bg-warning/20 text-warning',
-      busy: 'bg-destructive/20 text-destructive',
+      on_route: 'bg-warning/20 text-warning',
+      on_trip: 'bg-info/20 text-info',
+      on_scene: 'bg-info/20 text-info',
+      returning: 'bg-muted/45 text-muted-foreground',
+      busy: 'bg-info/20 text-info',
       maintenance: 'bg-muted text-muted-foreground',
+      offline: 'bg-muted text-muted-foreground',
+      pending_approval: 'bg-warning/20 text-warning',
     };
     return badges[status] || badges.available;
   };
@@ -425,16 +513,18 @@ export const AmbulancesPage = () => {
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
+      onClick={handleOpenFilters}
+      className={`squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative transition-all ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
       aria-label="Filter ambulances"
+      aria-busy={activeActionFeedback === 'filters'}
+      data-state={activeActionFeedback === 'filters' ? 'opening' : 'idle'}
     >
       <Filter className="h-4 w-4" />
       {(filters.search || (filters.status && filters.status.length > 0) || (filters.type && filters.type.length > 0) || filters.hospital) && (
         <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
       )}
     </Button>
-  ), [filters]);
+  ), [activeActionFeedback, filters, handleOpenFilters]);
 
   const headerActions = React.useMemo(() => {
     // Only Admins and Org Admins can create new ambulances
@@ -442,37 +532,32 @@ export const AmbulancesPage = () => {
       return (
         <Button
           onClick={handleCreate}
-          className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+          className={`glass-card-premium h-9 px-4 text-[12px] font-semibold transition-all ${activeActionFeedback === 'create' ? 'bg-primary/10 text-primary scale-95' : ''}`}
+          aria-busy={activeActionFeedback === 'create'}
+          data-state={activeActionFeedback === 'create' ? 'opening' : 'idle'}
         >
           <Plus className="h-4 w-4 mr-2" />
-          ADD AMBULANCE
+          {activeActionFeedback === 'create' ? 'Opening...' : 'Add unit'}
         </Button>
       );
     }
     return null;
-  }, [isAdmin, isOrgAdmin, handleCreate]);
+  }, [activeActionFeedback, isAdmin, isOrgAdmin, handleCreate]);
 
   usePageHeader(
-    "Fleet Management",
+    "Ambulances",
     headerActions,
     !isMobile ? viewToggleComponent : null,
     filterButtonComponent
   );
 
-  const footerContent = React.useMemo(() => (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
-        <span>Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalCount} Ambulances</span>
-      </div>
-    </div>
-  ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
-
-  usePageFooter(footerContent, 'pagination', !loading && ambulances.length > 0);
+  usePageFooter(null, 'status', false);
+  usePageShell({ bleed: true, hideFab: true });
 
   if (isMobile) {
     return (
       <div className="min-h-screen">
-        <SEOHead title="Fleet Management" description="Manage ambulance fleet, status, and live tracking." />
+        <SEOHead title="Ambulances" description="Manage ambulance units, status, and tracking." />
 
         <MobileAmbulances
           ambulances={mobileVisibleAmbulances}
@@ -484,27 +569,14 @@ export const AmbulancesPage = () => {
           setKpiFilter={setKpiFilter}
           onView={handleView}
           onEdit={handleEdit}
-          onDelete={confirmDelete}
           onRefresh={fetchAmbulances}
-          onViewAnalytics={() => setAnalyticsModalOpen(true)}
+          onViewAnalytics={handleOpenAnalytics}
           isAdmin={isAdmin()}
           isOrgAdmin={isOrgAdmin()}
-          onOpenFilters={() => setFilterSheetOpen(true)}
+          onOpenFilters={handleOpenFilters}
           hasMore={pagination.hasNextPage}
           onLoadMore={pagination.nextPage}
-          selectedIds={selectedIds}
-          onSelect={handleSelect}
-          onSelectAll={handleSelectAll}
-        />
-
-        <ConfirmationModal
-          isOpen={confirmationModal.isOpen}
-          title={confirmationModal.title}
-          description={confirmationModal.description}
-          onConfirm={confirmationModal.onConfirm}
-          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-          variant={confirmationModal.variant}
-          confirmLabel={confirmationModal.confirmLabel}
+          selectionEnabled={false}
         />
 
         {modalMode && (
@@ -540,405 +612,194 @@ export const AmbulancesPage = () => {
     <LayoutGroup>
       <motion.div
         layout
-        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
+        className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
       >
-        {ambulances.map((ambulance, index) => (
-          <motion.div
-            layout
-            key={ambulance.id}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.05 }}
-            className="col-span-1"
-          >
-            <Card className="h-full squircle-xl glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col">
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-primary" />
+        {paginatedAmbulances.map((ambulance, index) => {
+          const focused = focusedAmbulance?.id === ambulance.id;
+          const status = getFleetStatus(ambulance);
+          const station = getAmbulanceStation(ambulance);
+          const vehicle = ambulance.vehicle_label || ambulance.vehicle_number || ambulance.license_plate || 'No vehicle';
+          const viewOpening = activeActionFeedback === `view-${ambulance.id}`;
+          const editOpening = activeActionFeedback === `edit-${ambulance.id}`;
 
-              {/* Top Right Icon */}
-              <div className="absolute top-0 right-0 p-5 z-20">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-success/10 blur-xl rounded-full scale-150" />
-                  <div className="w-10 h-10 squircle-sm surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
-                    <Ambulance className="h-5 w-5 text-success" />
+          return (
+            <motion.div
+              layout
+              key={ambulance.id}
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.03 }}
+              className="col-span-1"
+            >
+              <div
+                className={`group relative flex h-full min-h-[300px] cursor-pointer flex-col overflow-hidden rounded-[30px] p-5 transition-[background,box-shadow,transform] duration-200 ${focused ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgba(0,0,0,0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgba(0,0,0,0.10)]'}`}
+                role="button"
+                tabIndex={0}
+                aria-pressed={focused}
+                data-state={focused ? 'focused' : 'idle'}
+                onClick={() => setFocusedAmbulanceId(ambulance.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setFocusedAmbulanceId(ambulance.id);
+                  }
+                }}
+              >
+                <div className="hover-glow hover-glow-primary" />
+                <div className="absolute right-0 top-0 p-5">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full scale-150" />
+                    <div className="relative flex h-10 w-10 items-center justify-center rounded-[18px] bg-background/55 shadow-sm transition-transform duration-300 group-hover:scale-110">
+                      <Ambulance className="h-5 w-5 text-primary" />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2 mb-4 relative z-10">
-                <Badge className={`squircle-sm ${getStatusBadge(ambulance.status)} border-0 font-bold editorial-subtitle px-3 py-1`}>
-                  {ambulance.status}
-                </Badge>
-              </div>
-
-              <h3 className="font-bold text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
-                {ambulance.call_sign || 'Unknown Unit'}
-              </h3>
-              <p className="text-sm font-medium text-muted-foreground mb-4 relative z-10">
-                {ambulance.type || 'Standard'} • {ambulance.vehicle_number || 'No Plate'}
-              </p>
-
-              <div className="grid grid-cols-2 gap-3 mb-6 relative z-10">
-                <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-2 mb-1">
-                    <MapPin className="h-4 w-4 text-info" />
-                    <p className="text-xs text-muted-foreground font-medium">ETA</p>
-                  </div>
-                  <p className="font-bold text-xl">{ambulance.eta || 'N/A'}</p>
-                </div>
-                <div className="p-3 squircle bg-muted/30 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Star className="h-4 w-4 text-warning fill-warning" />
-                    <p className="text-xs text-muted-foreground font-medium">Rating</p>
-                  </div>
-                  <p className="font-bold text-xl">{ambulance.rating}</p>
-                </div>
-              </div>
-
-              {ambulance.crew && ambulance.crew.length > 0 && (
-                <div className="mb-4 p-3 squircle bg-primary/5 relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Activity className="h-3 w-3 text-primary" />
-                    <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Active Crew</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {ambulance.crew.map((member, idx) => (
-                      <Badge key={idx} className="squircle-sm bg-background/80 text-foreground border-0 font-normal">
-                        {member}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
-                <div className="text-xs font-semibold text-muted-foreground">
-                  STATION: {ambulance.hospital || 'HQ'}
+                <div className="relative z-10 flex flex-wrap items-center gap-2 pr-12">
+                  <Badge className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${getStatusBadge(status)}`}>
+                    {getFleetStatusLabel(status)}
+                  </Badge>
+                  <Badge className="rounded-full bg-muted/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    {ambulance.type || 'Standard'}
+                  </Badge>
                 </div>
 
-                <div className={`flex gap-2 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity duration-300`}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleView(ambulance)}
-                    className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                    aria-label={`View details for ${ambulance.call_sign}`}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  {/* RBAC: Only Admins and Org Admins can edit/delete ambulances */}
-                  {(isAdmin() || isOrgAdmin()) && (
-                    <>
+                <div className="relative z-10 mt-5 min-w-0">
+                  <h3 className="truncate text-2xl font-semibold leading-tight tracking-normal text-foreground group-hover:text-primary">
+                    {ambulance.call_sign || 'Unknown unit'}
+                  </h3>
+                  <p className="mt-2 flex items-center gap-2 truncate text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4 shrink-0 text-cyan-600 dark:text-cyan-200" />
+                    <span className="truncate">{station}</span>
+                  </p>
+                </div>
+
+                <div className="relative z-10 mt-5 grid grid-cols-2 gap-3">
+                  <div className="rounded-[24px] bg-background/35 p-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground">Vehicle</p>
+                    <p className="mt-1 truncate text-lg font-semibold text-foreground">{vehicle}</p>
+                  </div>
+                  <div className="rounded-[24px] bg-background/35 p-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground">ETA</p>
+                    <p className="mt-1 truncate text-lg font-semibold text-foreground">{ambulance.eta || 'Unknown'}</p>
+                  </div>
+                </div>
+
+                <div className="relative z-10 mt-auto flex items-center justify-between rounded-[22px] bg-background/35 px-3 py-2">
+                  <span className="truncate text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    {ambulance.vehicle_number || ambulance.license_plate || 'No plate'}
+                  </span>
+
+                  <div className="flex gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleView(ambulance);
+                      }}
+                      className={`squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all ${viewOpening ? 'bg-primary/10 text-primary scale-95' : ''}`}
+                      aria-label={`View details for ${ambulance.call_sign || 'unit'}`}
+                      aria-busy={viewOpening}
+                      data-state={viewOpening ? 'opening' : 'idle'}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    {canManageFleet && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleEdit(ambulance)}
-                        className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                        aria-label={`Edit ${ambulance.call_sign}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleEdit(ambulance);
+                        }}
+                        className={`squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all ${editOpening ? 'bg-primary/10 text-primary scale-95' : ''}`}
+                        aria-label={`Edit ${ambulance.call_sign || 'unit'}`}
+                        aria-busy={editOpening}
+                        data-state={editOpening ? 'opening' : 'idle'}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => confirmDelete(ambulance)}
-                        className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                        aria-label={`Delete ${ambulance.call_sign}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-            </Card>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </motion.div>
     </LayoutGroup>
   );
 
   return (
-    <div className="min-h-screen py-6 md:py-8">
-      <SEOHead title="Fleet Management" description="Manage ambulance fleet, status, and live tracking." />
+    <div className="min-h-screen text-foreground">
+      <SEOHead title="Ambulances" description="Manage ambulance units, status, and tracking." />
       <div className="pt-2" />
-      <div className="pt-2" />
-      {/* Bento Overview Cards - Enhanced with Filtering */}
-      {!loading && displayStats && (
-        <LayoutGroup>
-          <motion.div
-            layout
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8"
+
+      <div className="grid min-h-[calc(100dvh-7rem)] grid-cols-1 gap-5 px-4 pb-8 pt-4 md:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,360px)]">
+        <section className="min-w-0">
+          <AmbulanceSignalPanel
+            stats={displayStats}
+            ambulances={ambulances}
+            loading={loading}
+            kpiFilter={kpiFilter}
+            setKpiFilter={handleKpiFilterChange}
+          />
+
+          <AmbulanceActivitySheet
+            filters={filters}
+            setFilters={handleApplyFilters}
+            openFilters={handleOpenFilters}
+            loading={loading}
+            pagination={pagination}
+            errorMessage={ambulancePageError}
+            onRetry={fetchAmbulances}
+            activeActionFeedback={activeActionFeedback}
           >
-            {/* Fleet Size Card */}
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-            >
-              <Card
-                className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
-                  }`}
-                onClick={() => setKpiFilter('all')}
-                role="button"
-                tabIndex={0}
-                aria-label="Show all ambulances"
-              >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-primary" />
-                <div className="absolute top-0 right-0 p-4 z-20">
-                  <div className="relative">
-                    <div className={`absolute inset-0 ${kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                      <Ambulance className={`h-5 w-5 ${kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
-                    </div>
-                  </div>
-                </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Fleet Size</p>
-                    {kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
-                  </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{displayStats.total || 0}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
-                      {kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
+            {loading ? (
+              <TableSkeleton rows={8} />
+            ) : paginatedAmbulances.length === 0 ? (
+              <AmbulanceEmptyState onClearFilters={handleClearFilters} />
+            ) : (
+              <>
+                {viewMode === 'grid' && renderGridView()}
+                {viewMode === 'list' && (
+                  <AmbulanceListView
+                    ambulances={paginatedAmbulances}
+                    onView={handleView}
+                    onEdit={handleEdit}
+                    getStatusBadge={getStatusBadge}
+                    isMobile={isMobile}
+                    canDelete={false}
+                  />
+                )}
+                {viewMode === 'table' && (
+                  <AmbulanceTableView
+                    ambulances={paginatedAmbulances}
+                    onView={handleView}
+                    onEdit={handleEdit}
+                    getStatusBadge={getStatusBadge}
+                    isMobile={isMobile}
+                    canDelete={false}
+                    selectionEnabled={false}
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                  />
+                )}
+              </>
+            )}
+          </AmbulanceActivitySheet>
+        </section>
 
-            {/* Available Card */}
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.15 }}
-            >
-              <Card
-                className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'available' ? 'ring-2 ring-success shadow-lg' : ''
-                  }`}
-                onClick={() => setKpiFilter('available')}
-                role="button"
-                tabIndex={0}
-                aria-label="Filter by available ambulances"
-              >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-success" />
-                <div className="absolute top-0 right-0 p-4 z-20">
-                  <div className="relative">
-                    <div className={`absolute inset-0 ${kpiFilter === 'available' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                      <MapPin className={`h-5 w-5 ${kpiFilter === 'available' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
-                    </div>
-                  </div>
-                </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Available</p>
-                    {kpiFilter === 'available' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
-                  </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{displayStats.available || 0}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className="geo-round bg-success/20 text-success border-0 font-bold text-xs">
-                      READY
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* En Route Card */}
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-            >
-              <Card
-                className={`h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'on_route' ? 'ring-2 ring-warning shadow-lg' : ''
-                  }`}
-                onClick={() => setKpiFilter('on_route')}
-                role="button"
-                tabIndex={0}
-                aria-label="Filter by ambulances en route"
-              >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-warning" />
-                <div className="absolute top-0 right-0 p-4 z-20">
-                  <div className="relative">
-                    <div className={`absolute inset-0 ${kpiFilter === 'on_route' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                      <Activity className={`h-5 w-5 ${kpiFilter === 'on_route' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
-                    </div>
-                  </div>
-                </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">En Route</p>
-                    {kpiFilter === 'on_route' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
-                  </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{displayStats.onRoute || 0}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className="squircle-3xl bg-warning/20 text-warning border-0 font-bold text-xs">
-                      ACTIVE
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* Busy Card */}
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.22 }}
-            >
-              <Card
-                className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'busy' ? 'ring-2 ring-destructive shadow-lg' : ''
-                  }`}
-                onClick={() => setKpiFilter('busy')}
-                role="button"
-                tabIndex={0}
-                aria-label="Filter by busy ambulances"
-              >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-destructive" />
-                <div className="absolute top-0 right-0 p-4 z-20">
-                  <div className="relative">
-                    <div className={`absolute inset-0 ${kpiFilter === 'busy' ? 'bg-destructive/30' : 'bg-destructive/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                      <Ambulance className={`h-5 w-5 ${kpiFilter === 'busy' ? 'text-destructive' : 'text-muted-foreground'} transition-colors duration-200`} />
-                    </div>
-                  </div>
-                </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Busy</p>
-                    {kpiFilter === 'busy' && <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />}
-                  </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{displayStats.busy || 0}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className="geo-ticket bg-destructive/20 text-destructive border-0 font-bold text-xs">
-                      ENGAGED
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* Maintenance Card */}
-            <motion.div
-              layout
-              className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.25 }}
-            >
-              <Card
-                className={`h-full min-h-[140px] geo-wave glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'maintenance' ? 'ring-2 ring-muted shadow-lg' : ''
-                  }`}
-                onClick={() => setKpiFilter('maintenance')}
-                role="button"
-                tabIndex={0}
-                aria-label="Filter by ambulances in maintenance"
-              >
-                {/* Apple hover glow effect */}
-                <div className="hover-glow hover-glow-secondary" />
-                <div className="absolute top-0 right-0 p-4 z-20">
-                  <div className="relative">
-                    <div className={`absolute inset-0 ${kpiFilter === 'maintenance' ? 'bg-muted/30' : 'bg-muted/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                    <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                      <Filter className={`h-5 w-5 ${kpiFilter === 'maintenance' ? 'text-muted-foreground' : 'text-muted-foreground'} transition-colors duration-200`} />
-                    </div>
-                  </div>
-                </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Maintenance</p>
-                    {kpiFilter === 'maintenance' && <div className="h-2 w-2 rounded-full bg-muted animate-pulse" />}
-                  </div>
-                  <h3 className="text-3xl font-bold tracking-tighter">{displayStats.maintenance || 0}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className="geo-wave bg-muted/20 text-muted-foreground border-0 font-bold text-xs">
-                      OFFLINE
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          </motion.div>
-        </LayoutGroup>
-      )}
-
-      {loading ? (
-        <TableSkeleton rows={8} />
-      ) : (
-        <>
-          {viewMode === 'grid' && renderGridView()}
-          {viewMode === 'list' && <AmbulanceListView ambulances={paginatedAmbulances} onView={handleView} onEdit={handleEdit} onDelete={confirmDelete} getStatusBadge={getStatusBadge} isMobile={isMobile} />}
-          {viewMode === 'table' &&
-            <AmbulanceTableView
-              ambulances={paginatedAmbulances}
-              onView={handleView}
-              onEdit={handleEdit}
-              onDelete={confirmDelete}
-              getStatusBadge={getStatusBadge}
-              isMobile={isMobile}
-              selectedIds={selectedIds}
-              onSelect={handleSelect}
-              onSelectAll={handleSelectAll}
-              sortConfig={sortConfig}
-              onSort={handleSort}
-            />
-          }
-        </>
-      )}
-
-      <ConfirmationModal
-        isOpen={confirmationModal.isOpen}
-        title={confirmationModal.title}
-        description={confirmationModal.description}
-        onConfirm={confirmationModal.onConfirm}
-        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-        variant={confirmationModal.variant}
-        confirmLabel={confirmationModal.confirmLabel}
-      />
-
-      <BulkActionBar
-        selectedCount={selectedIds.length}
-        onClear={() => setSelectedIds([])}
-      >
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleBulkDelete}
-          className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
-          title="Delete Selected"
-        >
-          <Trash2 className="h-5 w-5" />
-        </Button>
-      </BulkActionBar>
-
-      {/* Pagination Controls */}
-      <PaginationControls
-        currentPage={pagination.currentPage}
-        totalPages={pagination.totalPages}
-        totalCount={pagination.totalCount}
-        itemsPerPage={pagination.itemsPerPage}
-        onPrevPage={pagination.prevPage}
-        onNextPage={pagination.nextPage}
-        hasPrevPage={pagination.hasPrevPage}
-        hasNextPage={pagination.hasNextPage}
-        loading={loading}
-      />
+        <AmbulanceDetailRail
+          ambulance={focusedAmbulance}
+          loading={loading}
+          canEdit={canManageFleet}
+          onView={handleView}
+          onEdit={handleEdit}
+          activeActionFeedback={activeActionFeedback}
+        />
+      </div>
 
       {modalMode && (
         <AmbulanceModal
@@ -953,7 +814,7 @@ export const AmbulancesPage = () => {
         isOpen={filterSheetOpen}
         onOpenChange={setFilterSheetOpen}
         filterSchema={filterSchema}
-        onApply={setFilters}
+        onApply={handleApplyFilters}
         initialValues={filters}
         viewToggle={isMobile ? viewToggleComponent : null}
         isMobile={isMobile}
@@ -968,3 +829,356 @@ export const AmbulancesPage = () => {
     </div>
   );
 };
+
+const AmbulanceSignalPanel = ({ stats, ambulances, loading, kpiFilter, setKpiFilter }) => {
+  const sourceAmbulances = Array.isArray(ambulances) ? ambulances : [];
+  const signal = loading
+    ? {
+      icon: Ambulance,
+      tone: 'muted',
+      label: 'Loading',
+      headline: 'Loading fleet',
+      subhead: 'One moment while the fleet list comes in.',
+    }
+    : getAmbulanceSignal({ stats, ambulances: sourceAmbulances, kpiFilter });
+  const SignalIcon = signal.icon;
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.42 }}
+      className="flex min-h-[248px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[310px]"
+      aria-live="polite"
+    >
+      <div className="min-w-0">
+        <div className="max-w-2xl">
+          <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${ambulanceToneClass[signal.tone] || ambulanceToneClass.muted}`}>
+            <SignalIcon className="h-4 w-4" />
+            {signal.label}
+          </div>
+          <h1 className="max-w-2xl text-[34px] font-semibold leading-[1.05] text-foreground md:text-6xl">
+            {signal.headline}
+          </h1>
+          <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
+            {signal.subhead}
+          </p>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-muted-foreground">
+          <span className="inline-flex items-center gap-2 rounded-full bg-muted/30 px-3 py-2">
+            <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-200" />
+            Ready
+            <strong className="text-foreground">{loading ? '...' : getFleetStateCount({ id: 'available', stats, ambulances: sourceAmbulances })}</strong>
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-muted/30 px-3 py-2">
+            <Activity className="h-4 w-4 text-cyan-600 dark:text-cyan-200" />
+            Active
+            <strong className="text-foreground">{loading ? '...' : getFleetStateCount({ id: 'busy', stats, ambulances: sourceAmbulances })}</strong>
+          </span>
+        </div>
+
+        <AmbulanceStateStrip
+          stats={stats}
+          ambulances={sourceAmbulances}
+          loading={loading}
+          kpiFilter={kpiFilter}
+          setKpiFilter={setKpiFilter}
+        />
+      </div>
+    </motion.section>
+  );
+};
+
+const AmbulanceStateStrip = ({ stats, ambulances, loading, kpiFilter, setKpiFilter }) => (
+  <div className="mt-5 grid max-w-4xl grid-cols-2 gap-2 sm:grid-cols-5">
+    {ambulanceStateOptions.map((item) => {
+      const Icon = item.icon;
+      const active = (kpiFilter || 'all') === item.id;
+      const count = loading ? '...' : getFleetStateCount({ id: item.id, stats, ambulances });
+
+      return (
+        <motion.button
+          key={item.id}
+          type="button"
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setKpiFilter(item.id)}
+          className={`group min-h-[78px] rounded-[24px] px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
+          aria-pressed={active}
+          aria-label={`Show ${item.label.toLowerCase()} units`}
+          data-state={active ? 'selected' : 'idle'}
+        >
+          <span className="flex items-start justify-between gap-2">
+            <span className="min-w-0">
+              <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
+              <span className="mt-1 block text-2xl font-semibold text-foreground">{count}</span>
+            </span>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-background/45 transition-transform group-hover:scale-105 ${active ? item.iconClass : ''}`}>
+              <Icon className="h-4 w-4" />
+            </span>
+          </span>
+        </motion.button>
+      );
+    })}
+  </div>
+);
+
+const AmbulanceActivitySheet = ({ filters, setFilters, openFilters, loading, pagination, errorMessage, onRetry, activeActionFeedback, children }) => (
+  <section
+    className="mt-2 flex min-h-[520px] flex-col rounded-t-[44px] bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-[44px]"
+    data-testid="ambulances-activity-sheet"
+  >
+    <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+    <AmbulanceSheetToolbar
+      filters={filters}
+      setFilters={setFilters}
+      openFilters={openFilters}
+      activeActionFeedback={activeActionFeedback}
+    />
+
+    <div className="mt-3 flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground">
+      <span>{loading ? 'Loading fleet' : `${pagination.totalCount} units`}</span>
+      <span>{loading ? 'One moment' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
+    </div>
+
+    {errorMessage && (
+      <AmbulanceErrorBanner message={errorMessage} onRetry={onRetry} />
+    )}
+
+    <div className="mt-3 min-h-[360px] flex-1 overflow-y-auto rounded-[30px] bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
+      {children}
+    </div>
+
+    <PaginationControls
+      currentPage={pagination.currentPage}
+      totalPages={pagination.totalPages}
+      totalCount={pagination.totalCount}
+      itemsPerPage={pagination.itemsPerPage}
+      onPrevPage={pagination.prevPage}
+      onNextPage={pagination.nextPage}
+      hasPrevPage={pagination.hasPrevPage}
+      hasNextPage={pagination.hasNextPage}
+      loading={loading}
+    />
+  </section>
+);
+
+const AmbulanceDetailRail = ({ ambulance, loading, canEdit, onView, onEdit, activeActionFeedback }) => {
+  if (loading) {
+    return (
+      <aside className="hidden min-h-0 lg:flex lg:flex-col">
+        <div className="sticky top-24 flex min-h-[520px] flex-col rounded-[40px] bg-card/70 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+          <div className="h-5 w-28 rounded-full bg-muted/40" />
+          <div className="mt-6 h-24 rounded-[28px] bg-muted/28" />
+          <div className="mt-4 space-y-3">
+            <div className="h-14 rounded-2xl bg-muted/24" />
+            <div className="h-14 rounded-2xl bg-muted/24" />
+            <div className="h-14 rounded-2xl bg-muted/24" />
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  if (!ambulance) {
+    return (
+      <aside className="hidden min-h-0 lg:flex lg:flex-col">
+        <div className="sticky top-24 flex min-h-[520px] flex-col justify-center rounded-[40px] bg-card/70 p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+          <Ambulance className="mx-auto mb-4 h-10 w-10 text-muted-foreground/60" />
+          <h2 className="text-lg font-semibold">No unit selected</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Fleet units will appear here when the list has results.</p>
+        </div>
+      </aside>
+    );
+  }
+
+  const status = getFleetStatus(ambulance);
+  const station = getAmbulanceStation(ambulance);
+  const vehicle = ambulance.vehicle_label || ambulance.vehicle_number || ambulance.license_plate || 'No vehicle';
+  const viewOpening = activeActionFeedback === `view-${ambulance.id}`;
+  const editOpening = activeActionFeedback === `edit-${ambulance.id}`;
+
+  return (
+    <aside className="hidden min-h-0 lg:flex lg:flex-col" data-testid="ambulances-detail-rail">
+      <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] min-h-[520px] flex-col overflow-hidden rounded-[40px] bg-card/72 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-2xl">
+        <div className="flex items-center justify-between gap-3">
+          <Badge className={`${getStatusBadgeForRail(status)} rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]`}>
+            {getFleetStatusLabel(status)}
+          </Badge>
+          <span className="rounded-full bg-muted/35 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            Fleet
+          </span>
+        </div>
+
+        <div className="mt-5 min-w-0">
+          <h2 className="text-2xl font-semibold leading-tight tracking-normal text-foreground">
+            {ambulance.call_sign || 'Unknown unit'}
+          </h2>
+          <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-muted-foreground">
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-cyan-600 dark:text-cyan-200" />
+            <span>{station}</span>
+          </p>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <RailMetric icon={Ambulance} label="Vehicle" value={vehicle} tone="cyan" />
+          <RailMetric icon={Activity} label="ETA" value={ambulance.eta || 'Unknown'} tone="amber" />
+          <RailMetric icon={Wrench} label="Type" value={ambulance.type || 'Standard'} tone="sky" />
+          <RailMetric icon={MapPin} label="Status" value={getFleetStatusLabel(status)} tone="emerald" />
+        </div>
+
+        <div className="mt-5 space-y-3 rounded-[28px] bg-muted/20 p-4">
+          <RailFact label="Plate" value={ambulance.vehicle_number || ambulance.license_plate || 'Not set'} />
+          <RailFact label="Station" value={station} />
+          <RailFact label="Crew" value={Array.isArray(ambulance.crew) && ambulance.crew.length > 0 ? `${ambulance.crew.length} listed` : 'Not listed'} />
+          <RailFact label="Updated" value={ambulance.updated_at ? new Date(ambulance.updated_at).toLocaleString() : 'Unknown'} />
+        </div>
+
+        <div className="mt-5 rounded-[28px] bg-cyan-500/10 p-4 text-cyan-800 dark:text-cyan-200">
+          <p className="text-sm font-semibold">Dispatch changes stay in Requests</p>
+          <p className="mt-1 text-xs leading-5 opacity-80">
+            This panel shows fleet evidence. Trip status and location commands need a linked request owner.
+          </p>
+        </div>
+
+        <div className="mt-auto flex gap-2 pt-5">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onView(ambulance)}
+            className={`h-11 flex-1 rounded-[22px] bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95 ${viewOpening ? 'bg-primary/10 text-primary scale-95' : ''}`}
+            aria-busy={viewOpening}
+            data-state={viewOpening ? 'opening' : 'idle'}
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            {viewOpening ? 'Opening' : 'Details'}
+          </Button>
+          {canEdit && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onEdit(ambulance)}
+              className={`h-11 flex-1 rounded-[22px] bg-primary/10 px-4 text-sm font-semibold text-primary transition-all hover:bg-primary/15 active:scale-95 ${editOpening ? 'scale-95' : ''}`}
+              aria-busy={editOpening}
+              data-state={editOpening ? 'opening' : 'idle'}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              {editOpening ? 'Opening' : 'Edit'}
+            </Button>
+          )}
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+const railToneClasses = {
+  amber: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+  cyan: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+  sky: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
+  emerald: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+};
+
+const getStatusBadgeForRail = (status) => {
+  if (status === 'available') return 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200';
+  if (status === 'en_route' || status === 'on_route' || ACTIVE_FLEET_STATUSES.has(status)) return 'bg-cyan-500/12 text-cyan-700 dark:text-cyan-200';
+  if (status === 'maintenance' || status === 'offline') return 'bg-amber-500/12 text-amber-700 dark:text-amber-200';
+  return 'bg-muted/45 text-muted-foreground';
+};
+
+const RailMetric = ({ icon: Icon, label, value, tone }) => (
+  <div className="rounded-[24px] bg-muted/24 p-3">
+    <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-2xl ${railToneClasses[tone] || railToneClasses.sky}`}>
+      <Icon className="h-4 w-4" />
+    </div>
+    <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
+    <p className="mt-1 truncate text-lg font-semibold text-foreground">{value}</p>
+  </div>
+);
+
+const RailFact = ({ label, value }) => (
+  <div className="flex items-start justify-between gap-3 text-sm">
+    <span className="shrink-0 text-xs font-semibold text-muted-foreground">{label}</span>
+    <span className="min-w-0 text-right font-medium text-foreground">{value}</span>
+  </div>
+);
+
+const AmbulanceSheetToolbar = ({ filters, setFilters, openFilters, activeActionFeedback }) => {
+  const hasFilter = Boolean(
+    filters.search ||
+    (filters.status && filters.status.length > 0) ||
+    (filters.type && filters.type.length > 0) ||
+    filters.hospital ||
+    filters.created_at
+  );
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="relative flex-1">
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/65" />
+        <input
+          type="search"
+          value={filters.search || ''}
+          onChange={(event) => setFilters(prev => ({ ...prev, search: event.target.value }))}
+          placeholder="Search fleet..."
+          className="h-12 w-full rounded-[24px] bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
+          data-testid="ambulances-sheet-search"
+        />
+      </div>
+      <Button
+        variant="ghost"
+        onClick={openFilters}
+        className={`h-12 rounded-[24px] bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-95 ${activeActionFeedback === 'filters' ? 'bg-primary/10 text-primary scale-95' : ''}`}
+        aria-busy={activeActionFeedback === 'filters'}
+        data-state={activeActionFeedback === 'filters' ? 'opening' : 'idle'}
+      >
+        <Filter className="mr-2 h-4 w-4" />
+        {activeActionFeedback === 'filters' ? 'Opening' : 'Filters'}
+        {hasFilter && <span className="ml-2 h-2 w-2 rounded-full bg-primary" />}
+      </Button>
+    </div>
+  );
+};
+
+const AmbulanceErrorBanner = ({ message, onRetry }) => (
+  <div
+    className="mt-3 flex flex-col gap-3 rounded-[24px] bg-amber-500/10 p-4 text-amber-800 shadow-[0_16px_38px_rgba(245,158,11,0.10)] dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between"
+    data-testid="ambulances-error-state"
+  >
+    <div className="flex min-w-0 items-start gap-3">
+      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+      <div className="min-w-0">
+        <p className="text-sm font-semibold">Fleet could not load</p>
+        <p className="mt-1 text-xs leading-5 opacity-80">{message}</p>
+      </div>
+    </div>
+    <Button
+      type="button"
+      variant="ghost"
+      onClick={onRetry}
+      className="h-10 shrink-0 rounded-[20px] bg-background/55 px-4 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
+    >
+      <RefreshCw className="mr-2 h-4 w-4" />
+      Retry
+    </Button>
+  </div>
+);
+
+const AmbulanceEmptyState = ({ onClearFilters }) => (
+  <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[30px] bg-muted/18 p-8 text-center">
+    <Ambulance className="mb-4 h-12 w-12 text-muted-foreground/60" />
+    <h2 className="text-lg font-semibold">No units found</h2>
+    <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+      Try a different search or clear the current filters.
+    </p>
+    <Button
+      type="button"
+      variant="ghost"
+      onClick={onClearFilters}
+      className="mt-5 h-11 rounded-[22px] bg-background/55 px-5 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
+    >
+      Clear filters
+    </Button>
+  </div>
+);

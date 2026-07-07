@@ -32,7 +32,7 @@ export const ThemeToggle = ({ className = '', size = 'lg' }) => {
     <button
       onClick={toggle}
       aria-label="Toggle theme"
-      className={`relative flex items-center justify-center ${containerSize} outline-none ${className}`}
+      className={`relative flex items-center justify-center ${containerSize} rounded-full transition-[background,transform] duration-300 active:scale-[0.96] focus-visible:bg-primary/10 ${className}`}
     >
       <motion.div
         animate={{
@@ -69,7 +69,7 @@ export const ThemeToggle = ({ className = '', size = 'lg' }) => {
         />
       </motion.div>
 
-      <div className="absolute inset-0 rounded-full border border-pink-500/0 hover:border-pink-500/5 transition-colors duration-700" />
+      <div className="absolute inset-0 rounded-full bg-primary/0 transition-colors duration-700 hover:bg-primary/5" />
     </button>
   )
 }

@@ -22,7 +22,6 @@ import {
   Users,
   Plus,
   Filter as FilterIcon,
-  Search,
   CheckCircle,
   Clock,
   Mail,
@@ -34,9 +33,10 @@ import {
   Crown
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { handleApiError } from "../../utils/errorHandler";
 import { motion, LayoutGroup } from 'framer-motion';
 import { Badge } from '../ui/badge';
+
+const SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE = 'Subscriber changes are not ready until subscriber authority is verified.';
 
 export const SubscriptionManagementPage = () => {
   const { isAdmin } = useAuth();
@@ -45,11 +45,7 @@ export const SubscriptionManagementPage = () => {
     subscribers,
     loading,
     error,
-    fetchSubscribers,
-    createSubscriber,
-    updateSubscriber,
-    deleteSubscriber,
-    fetchAnalytics
+    fetchSubscribers
   } = useSubscription();
 
   const [selectedSubscriber, setSelectedSubscriber] = useState(null);
@@ -57,6 +53,7 @@ export const SubscriptionManagementPage = () => {
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+  const [subscriptionCommandNotice, setSubscriptionCommandNotice] = useState(null);
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     title: '',
@@ -80,15 +77,20 @@ export const SubscriptionManagementPage = () => {
   const { viewMode, setViewMode } = useViewMode('subscription', 'grid');
   const pagination = usePagination(20);
 
+  const handleSubscriptionCommandUnavailable = useCallback(() => {
+    setSubscriptionCommandNotice(SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE);
+    toast.info(SUBSCRIPTION_COMMAND_UNAVAILABLE_MESSAGE);
+    return false;
+  }, []);
+
   // Listen for 'openSubscriptionModal' event from ContextPanel
   useEffect(() => {
     const handleOpenModal = () => {
-      setSelectedSubscriber(null);
-      setModalMode('create');
+      handleSubscriptionCommandUnavailable();
     };
     window.addEventListener('openSubscriptionModal', handleOpenModal);
     return () => window.removeEventListener('openSubscriptionModal', handleOpenModal);
-  }, []);
+  }, [handleSubscriptionCommandUnavailable]);
 
   useEffect(() => {
     const handleOpenAnalytics = () => {
@@ -184,76 +186,80 @@ export const SubscriptionManagementPage = () => {
     return filteredSubscribers.slice(0, visibleCount);
   }, [filteredSubscribers, pagination.currentPage, pagination.itemsPerPage]);
 
+  const subscriptionsRouteContext = useMemo(() => {
+    const subscriberRows = Array.isArray(subscribers) ? subscribers : [];
+    const active = subscriberRows.filter(s => s.status === 'active').length;
+    const pending = subscriberRows.filter(s => s.status === 'pending').length;
+    const free = subscriberRows.filter(s => s.type === 'free').length;
+    const paid = subscriberRows.filter(s => s.type === 'paid').length;
+    const newUsers = subscriberRows.filter(s => s.new_user).length;
+
+    return {
+      subscribers: subscriberRows.slice(0, 8),
+      summary: {
+        total: subscriberRows.length,
+        active,
+        pending,
+        free,
+        paid,
+        newUsers,
+        loading,
+        error: error ? String(error?.message || error) : null,
+        source: 'route'
+      }
+    };
+  }, [subscribers, loading, error]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const publishSubscriptionsRouteContext = () => {
+      window.dispatchEvent(new CustomEvent('subscriptionsRouteContextUpdated', {
+        detail: subscriptionsRouteContext
+      }));
+    };
+
+    publishSubscriptionsRouteContext();
+    window.addEventListener('requestSubscriptionsRouteContext', publishSubscriptionsRouteContext);
+
+    return () => {
+      window.removeEventListener('requestSubscriptionsRouteContext', publishSubscriptionsRouteContext);
+    };
+  }, [subscriptionsRouteContext]);
+
   // Handlers
   const handleCreate = useCallback(() => {
-    setSelectedSubscriber(null);
-    setModalMode('create');
-  }, []);
+    handleSubscriptionCommandUnavailable();
+  }, [handleSubscriptionCommandUnavailable]);
 
-  const handleEdit = useCallback((subscriber) => {
-    setSelectedSubscriber(subscriber);
-    setModalMode('edit');
-  }, []);
+  const handleEdit = useCallback(() => {
+    handleSubscriptionCommandUnavailable();
+  }, [handleSubscriptionCommandUnavailable]);
 
   const handleView = useCallback((subscriber) => {
     setSelectedSubscriber(subscriber);
     setModalMode('view');
   }, []);
 
-  const handleDelete = useCallback(async (subscriber) => {
-    setConfirmationModal({
-      isOpen: true,
-      title: 'Delete Subscriber',
-      description: `Are you sure you want to delete ${subscriber.email}? This action cannot be undone.`,
-      onConfirm: async () => {
-        try {
-          await deleteSubscriber(subscriber.id);
-          toast.success('Subscriber deleted successfully');
-          fetchSubscribers();
-          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-        } catch (error) {
-          handleApiError(error, 'delete');
-        }
-      },
-      variant: 'destructive',
-      confirmLabel: 'Delete Subscriber'
-    });
-  }, [deleteSubscriber, fetchSubscribers]);
+  const handleDelete = useCallback(() => {
+    handleSubscriptionCommandUnavailable();
+  }, [handleSubscriptionCommandUnavailable]);
 
-  const handleSelect = useCallback((id, checked) => {
-    if (checked) {
-      setSelectedIds(prev => [...prev, id]);
-    } else {
-      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
-    }
-  }, []);
+  const handleSelect = useCallback(() => {
+    handleSubscriptionCommandUnavailable();
+  }, [handleSubscriptionCommandUnavailable]);
 
-  const handleSelectAll = useCallback((checked) => {
-    if (checked) {
-      setSelectedIds(subscribers.map(s => s.id));
-    } else {
-      setSelectedIds([]);
-    }
-  }, [subscribers]);
+  const handleSelectAll = useCallback(() => {
+    handleSubscriptionCommandUnavailable();
+  }, [handleSubscriptionCommandUnavailable]);
 
   const handleViewAnalytics = useCallback(() => {
     setAnalyticsModalOpen(true);
   }, []);
 
-  const handleSave = useCallback(async (data) => {
-    try {
-      if (modalMode === 'edit' && selectedSubscriber) {
-        await updateSubscriber(selectedSubscriber.id, data);
-        toast.success('Subscriber updated successfully');
-      } else {
-        await createSubscriber(data);
-        toast.success('Subscriber created successfully');
-      }
-      setModalMode(null);
-    } catch (err) {
-      handleApiError(err, selectedSubscriber ? 'update' : 'create');
-    }
-  }, [selectedSubscriber, modalMode, updateSubscriber, createSubscriber]);
+  const handleSave = useCallback(() => {
+    handleSubscriptionCommandUnavailable();
+  }, [handleSubscriptionCommandUnavailable]);
 
   // Header Configuration
   const viewToggleComponent = React.useMemo(() => (
@@ -285,13 +291,16 @@ export const SubscriptionManagementPage = () => {
       <Button
         onClick={handleCreate}
         className="glass-card-premium h-9 px-4 text-[10px] text-foreground font-bold tracking-widest uppercase"
+        aria-label="Add subscriber unavailable"
+        aria-describedby={subscriptionCommandNotice ? 'subscriptions-action-feedback' : undefined}
+        data-state="unavailable"
       >
         <Plus className="h-4 w-4 mr-2" />
         <span className="hidden md:inline">ADD SUBSCRIBER</span>
         <span className="md:hidden">ADD</span>
       </Button>
     )
-  ), [isAdmin, handleCreate]);
+  ), [isAdmin, handleCreate, subscriptionCommandNotice]);
 
   usePageHeader(
     'Subscription Management',
@@ -385,15 +394,26 @@ export const SubscriptionManagementPage = () => {
   if (isMobile) {
     return (
       <div className="min-h-screen">
+        {subscriptionCommandNotice && (
+          <p
+            id="subscriptions-action-feedback"
+            className="mx-4 mb-3 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
+            role="status"
+            aria-live="polite"
+          >
+            {subscriptionCommandNotice}
+          </p>
+        )}
+
         <MobileSubscriptions
           subscribers={mobileVisibleSubscribers}
           filters={filters}
           setFilters={setFilters}
           onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          onEdit={null}
+          onDelete={null}
           onRefresh={fetchSubscribers}
-          canManage={isAdmin()}
+          canManage={false}
           loading={loading}
           onOpenFilters={() => setFilterSheetOpen(true)}
           onViewAnalytics={handleViewAnalytics}
@@ -449,6 +469,16 @@ export const SubscriptionManagementPage = () => {
 
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
+      {subscriptionCommandNotice && (
+        <p
+          id="subscriptions-action-feedback"
+          className="mb-4 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
+          {subscriptionCommandNotice}
+        </p>
+      )}
 
       {/* Bento Overview Cards - Enhanced with Filtering */}
       <LayoutGroup>
@@ -681,7 +711,13 @@ export const SubscriptionManagementPage = () => {
                   Reset Filters
                 </Button>
               )}
-            <Button onClick={handleCreate} className="glass-card-premium">
+            <Button
+              onClick={handleCreate}
+              className="glass-card-premium"
+              aria-label="Add subscriber unavailable"
+              aria-describedby={subscriptionCommandNotice ? 'subscriptions-action-feedback' : undefined}
+              data-state="unavailable"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Subscriber
             </Button>
@@ -780,7 +816,9 @@ export const SubscriptionManagementPage = () => {
                             size="sm"
                             onClick={() => handleEdit(subscriber)}
                             className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                            aria-label={`Edit ${subscriber.email}`}
+                            aria-label={`Edit unavailable for ${subscriber.email}`}
+                            aria-describedby={subscriptionCommandNotice ? 'subscriptions-action-feedback' : undefined}
+                            data-state="unavailable"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -789,7 +827,9 @@ export const SubscriptionManagementPage = () => {
                             size="sm"
                             onClick={() => handleDelete(subscriber)}
                             className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                            aria-label={`Delete ${subscriber.email}`}
+                            aria-label={`Delete unavailable for ${subscriber.email}`}
+                            aria-describedby={subscriptionCommandNotice ? 'subscriptions-action-feedback' : undefined}
+                            data-state="unavailable"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -807,8 +847,8 @@ export const SubscriptionManagementPage = () => {
             <SubscriptionListView
               subscribers={paginatedSubscribers}
               onView={handleView}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
+              onEdit={null}
+              onDelete={null}
               getStatusBadge={getStatusBadge}
               getTypeBadge={getTypeBadge}
               isMobile={isMobile}
@@ -820,8 +860,8 @@ export const SubscriptionManagementPage = () => {
             <SubscriptionTableView
               subscribers={paginatedSubscribers}
               onView={handleView}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
+              onEdit={null}
+              onDelete={null}
               getStatusBadge={getStatusBadge}
               getTypeBadge={getTypeBadge}
               selectedIds={selectedIds}
@@ -906,35 +946,12 @@ export const SubscriptionManagementPage = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => {
-              setConfirmationModal({
-                isOpen: true,
-                title: 'Delete Selected Subscribers',
-                description: `Are you sure you want to delete ${selectedIds.length} subscribers? This action cannot be undone.`,
-                onConfirm: async () => {
-                  try {
-                    let failed = 0;
-                    for (const id of selectedIds) {
-                      try { await deleteSubscriber(id); } catch { failed++; }
-                    }
-                    setSelectedIds([]);
-                    setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-                    await fetchSubscribers();
-                    if (failed > 0) {
-                      toast.error(`${failed} deletions failed.`);
-                    } else {
-                      toast.success(`${selectedIds.length} subscribers deleted`);
-                    }
-                  } catch (err) {
-                    handleApiError(err, 'delete');
-                  }
-                },
-                variant: 'destructive',
-                confirmLabel: 'Delete All'
-              });
-            }}
+            onClick={handleSubscriptionCommandUnavailable}
             className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
             title="Delete Selected"
+            aria-label="Delete subscribers unavailable"
+            aria-describedby={subscriptionCommandNotice ? 'subscriptions-action-feedback' : undefined}
+            data-state="unavailable"
           >
             <Trash2 className="h-5 w-5" />
           </Button>

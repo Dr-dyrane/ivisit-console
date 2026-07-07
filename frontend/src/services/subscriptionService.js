@@ -91,13 +91,17 @@ export async function getSubscribers(filter = {}) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Subscribers query error:', error);
+      if (!filter?.quiet) {
+        console.error('Subscribers query error:', error);
+      }
       return []; // Return empty array on error instead of throwing
     }
 
     return data || [];
   } catch (error) {
-    console.error('Error fetching subscribers:', error);
+    if (!filter?.quiet) {
+      console.error('Error fetching subscribers:', error);
+    }
     return []; // Return empty array on error
   }
 }
@@ -303,7 +307,7 @@ export async function createSubscriberWithWelcome(input) {
 /**
  * Get subscription analytics
  */
-export async function getSubscriptionAnalytics() {
+export async function getSubscriptionAnalytics(options = {}) {
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
@@ -351,7 +355,9 @@ export async function getSubscriptionAnalytics() {
 
     return analytics;
   } catch (error) {
-    console.error('Error fetching subscription analytics:', error);
+    if (!options?.quiet) {
+      console.error('Error fetching subscription analytics:', error);
+    }
     throw error;
   }
 }

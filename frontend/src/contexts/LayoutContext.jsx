@@ -16,8 +16,10 @@ const LayoutContext = createContext({
     closeContextPanel: () => { },
     headerConfig: { title: '', actions: null, viewToggle: null, filterSheet: null },
     footerConfig: { visible: false, content: null, type: 'status' },
+    pageShellConfig: { bleed: false, hideFab: false },
     setHeaderConfig: () => { },
     setFooterConfig: () => { },
+    setPageShellConfig: () => { },
 });
 
 export const useLayout = () => useContext(LayoutContext);
@@ -62,6 +64,7 @@ export const LayoutProvider = ({ children }) => {
     const [contextMode, setContextMode] = useState('overlay');
     const [headerConfig, setHeaderConfig] = useState({ title: '', actions: null, viewToggle: null, filterSheet: null });
     const [footerConfig, setFooterConfig] = useState({ visible: false, content: null, type: 'status', instanceId: null });
+    const [pageShellConfig, setPageShellConfig] = useState({ bleed: false, hideFab: false });
 
     const COLLAPSED_WIDTH = 72;
     const EXPANDED_WIDTH = 260;
@@ -90,6 +93,7 @@ export const LayoutProvider = ({ children }) => {
     // Auto-close context panel on route change or Modal open
     useEffect(() => {
         setIsContextPanelOpen(false);
+        setIsScrolledDown(false);
     }, [location.pathname]);
 
     useEffect(() => {
@@ -173,6 +177,18 @@ export const LayoutProvider = ({ children }) => {
         });
     }, []); // Remove setFooterConfig dependency
 
+    const setPageShellConfigStable = useCallback((config) => {
+        setPageShellConfig(prev => {
+            const newConfig = typeof config === 'function' ? config(prev) : config;
+            const nextConfig = {
+                bleed: Boolean(newConfig.bleed),
+                hideFab: Boolean(newConfig.hideFab),
+            };
+            if (prev.bleed === nextConfig.bleed && prev.hideFab === nextConfig.hideFab) return prev;
+            return nextConfig;
+        });
+    }, []);
+
     const value = useMemo(() => ({
         isScrolledDown,
         sidebarMode,
@@ -187,8 +203,10 @@ export const LayoutProvider = ({ children }) => {
         headerConfig,
         setHeaderConfig: setHeaderConfigStable,
         footerConfig,
-        setFooterConfig: setFooterConfigStable
-    }), [isScrolledDown, sidebarMode, setSidebarMode, sidebarWidth, toggleSidebar, isContextPanelOpen, contextMode, isFocusMode, openContextPanel, closeContextPanel, headerConfig, setHeaderConfigStable, footerConfig, setFooterConfigStable]);
+        setFooterConfig: setFooterConfigStable,
+        pageShellConfig,
+        setPageShellConfig: setPageShellConfigStable
+    }), [isScrolledDown, sidebarMode, setSidebarMode, sidebarWidth, toggleSidebar, isContextPanelOpen, contextMode, isFocusMode, openContextPanel, closeContextPanel, headerConfig, setHeaderConfigStable, footerConfig, setFooterConfigStable, pageShellConfig, setPageShellConfigStable]);
 
     return (
         <LayoutContext.Provider value={value}>
@@ -235,4 +253,16 @@ export const usePageFooter = (content, type = 'status', visible = true) => {
             });
         };
     }, [content, type, visible, instanceId]); // Remove setFooterConfig from dependencies
+};
+
+// Hook for pages that need the route surface to own spacing instead of the app shell.
+export const usePageShell = ({ bleed = false, hideFab = false } = {}) => {
+    const { setPageShellConfig } = useLayout();
+
+    useEffect(() => {
+        setPageShellConfig({ bleed, hideFab });
+        return () => {
+            setPageShellConfig({ bleed: false, hideFab: false });
+        };
+    }, [bleed, hideFab, setPageShellConfig]);
 };

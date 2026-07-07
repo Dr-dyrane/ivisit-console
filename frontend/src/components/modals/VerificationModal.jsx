@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { X, Shield, User, Phone, Mail, Calendar, CheckCircle, FileText, AlertTriangle, Ban, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
+import { getAvatarFallback } from '../../lib/avatarUtils';
 
 export const VerificationModal = ({
   isOpen,
@@ -79,12 +79,16 @@ export const VerificationModal = ({
     const statusConfig = statuses.find(s => s.value === status);
     const color = statusConfig?.color || 'secondary';
     switch (color) {
-      case 'success': return 'bg-green-500/20 text-green-500';
+      case 'success': return 'bg-emerald-500/15 text-emerald-300';
       case 'destructive': return 'bg-red-500/20 text-red-500';
-      case 'warning': return 'bg-orange-500/20 text-orange-500';
+      case 'warning': return 'bg-amber-400/15 text-amber-200';
       default: return 'bg-muted/20 text-muted-foreground';
     }
   };
+
+  const pendingTone = formData.bvn_verified
+    ? 'bg-emerald-500/15 text-emerald-300'
+    : 'bg-amber-400/15 text-amber-200';
 
   const handleVerifyAction = async (approved) => {
     setLoading(true);
@@ -126,8 +130,8 @@ export const VerificationModal = ({
             {/* Header Area */}
             <div className="flex items-center justify-between p-2 md:p-8 pb-2 md:pb-4">
               <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-primary/20 rounded-2xl">
-                  <Shield className="h-6 w-6 text-primary" />
+                <div className="p-2.5 bg-amber-400/15 rounded-2xl">
+                  <Shield className="h-6 w-6 text-amber-700 dark:text-amber-200" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
@@ -135,11 +139,11 @@ export const VerificationModal = ({
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
                     {provider.display_id && (
-                      <Badge className="rounded-full bg-primary/20 text-primary border-0 font-mono text-[10px] px-2 py-0.5">
+                      <Badge className="rounded-full bg-muted/30 text-foreground/70 font-mono text-[10px] px-2 py-0.5">
                         {provider.display_id}
                       </Badge>
                     )}
-                    <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${formData.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
+                    <Badge className={`rounded-full font-semibold px-3 py-0.5 text-xs ${pendingTone}`}>
                       {formData.bvn_verified ? 'VERIFIED' : 'PENDING'}
                     </Badge>
                     <span className="text-sm text-muted-foreground">
@@ -151,6 +155,7 @@ export const VerificationModal = ({
               <Button
                 variant="ghost"
                 onClick={() => onClose(false)}
+                aria-label="Close provider details"
                 className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
               >
                 <X className="h-5 w-5" />
@@ -161,11 +166,11 @@ export const VerificationModal = ({
               <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* Profile Overview */}
-                <GlassCard icon={<User className="text-primary" />} title="Profile Information">
+                <GlassCard icon={<User className="text-amber-700 dark:text-amber-200" />} title="Profile Information">
                   <div className="flex items-center gap-6 mb-6">
                     <Avatar className="h-20 w-20 rounded-2xl shadow-lg">
-                      <AvatarImage src={getAvatarUrl(provider)} />
-                      <AvatarFallback className="text-xl font-bold bg-primary/10 text-primary">
+                      <AvatarImage src={provider?.avatar_url || provider?.image_uri || undefined} />
+                      <AvatarFallback className="text-xl font-bold bg-amber-400/10 text-amber-700 dark:text-amber-200">
                         {getAvatarFallback(provider)}
                       </AvatarFallback>
                     </Avatar>
@@ -173,7 +178,7 @@ export const VerificationModal = ({
                       <h3 className="text-xl font-bold tracking-tight">{formData.username}</h3>
                       <p className="text-muted-foreground font-normal">{formData.email}</p>
                       <div className="flex items-center gap-2 mt-2">
-                        <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${formData.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
+                        <Badge className={`rounded-full font-semibold px-3 py-0.5 text-xs ${pendingTone}`}>
                           {formData.bvn_verified ? 'BVN VERIFIED' : 'BVN PENDING'}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
@@ -191,7 +196,7 @@ export const VerificationModal = ({
                         onChange={(e) => handleChange('email', e.target.value)}
                         disabled={isView}
                         placeholder="email@example.com"
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-normal"
+                        className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.16)] h-12 font-normal"
                       />
                     </div>
 
@@ -202,7 +207,7 @@ export const VerificationModal = ({
                         onChange={(e) => handleChange('phone', e.target.value)}
                         disabled={isView}
                         placeholder="+1 (555) 123-4567"
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-normal"
+                        className="rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.16)] h-12 font-normal"
                       />
                     </div>
 
@@ -213,10 +218,10 @@ export const VerificationModal = ({
                         onValueChange={(val) => handleChange('role', val)}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
+                        <SelectTrigger className="rounded-2xl bg-muted/30 h-12 font-normal">
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
+                        <SelectContent className="rounded-2xl shadow-xl bg-background/95 backdrop-blur-xl">
                           <SelectItem value="provider">Provider</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="staff">Staff</SelectItem>
@@ -232,18 +237,18 @@ export const VerificationModal = ({
                         disabled={isView}
                         placeholder="Add notes about this verification..."
                         rows={4}
-                        className="w-full rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 p-4 font-normal resize-none"
+                        className="w-full rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.16)] p-4 font-normal resize-none"
                       />
                     </div>
                   </div>
                 </GlassCard>
 
                 {/* Verification Details */}
-                <GlassCard icon={<Shield className="text-primary" />} title="Verification Details">
+                <GlassCard icon={<Shield className="text-amber-700 dark:text-amber-200" />} title="Verification Details">
                   <div className="space-y-4">
                     <div className="p-4 rounded-[24px] bg-muted/30 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${formData.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${pendingTone}`}>
                           {formData.bvn_verified ? <CheckCircle className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
                         </div>
                         <div>
@@ -251,7 +256,7 @@ export const VerificationModal = ({
                           <p className="text-xs text-muted-foreground">Bank Verification Number status</p>
                         </div>
                       </div>
-                      <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${formData.bvn_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
+                      <Badge className={`rounded-full font-semibold px-3 py-0.5 text-xs ${pendingTone}`}>
                         {formData.bvn_verified ? 'VERIFIED' : 'PENDING'}
                       </Badge>
                     </div>
@@ -264,20 +269,20 @@ export const VerificationModal = ({
                         disabled={isView}
                         placeholder="Add notes about this verification..."
                         rows={4}
-                        className="w-full rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 p-4 font-normal resize-none"
+                        className="w-full rounded-2xl bg-muted/30 focus-visible:shadow-[0_0_0_3px_rgba(251,191,36,0.16)] p-4 font-normal resize-none"
                       />
                     </div>
                   </div>
                 </GlassCard>
 
-                {/* Security Notice */}
-                <div className="p-4 rounded-[24px] bg-primary/5 border border-primary/10">
+                {/* Review note */}
+                <div className="p-4 rounded-[24px] bg-muted/30 shadow-[inset_0_0_36px_rgba(255,255,255,0.02)]">
                   <div className="flex gap-3">
-                    <FileText className="h-5 w-5 text-primary shrink-0" />
-                    <div className="text-sm text-primary/80">
-                      <p className="font-semibold mb-1">Security Notice</p>
+                    <FileText className="h-5 w-5 text-amber-200 shrink-0" />
+                    <div className="text-sm text-foreground/80">
+                      <p className="font-semibold mb-1">Review note</p>
                       <p className="text-xs leading-relaxed opacity-90">
-                        Verification actions are logged and audited. Only approve providers who have completed all required security checks.
+                        Identity decisions update provider access. Only admins can approve or reject.
                       </p>
                     </div>
                   </div>
@@ -309,7 +314,7 @@ export const VerificationModal = ({
                             type="button"
                             onClick={() => handleVerifyAction(true)}
                             disabled={loading}
-                            className="rounded-2xl bg-success hover:bg-success/90 font-semibold px-8 text-success-foreground"
+                            className="rounded-2xl bg-emerald-500/90 hover:bg-emerald-400 font-semibold px-8 text-white"
                           >
                             {loading ? 'Processing...' : 'Approve'}
                           </Button>
@@ -329,7 +334,7 @@ export const VerificationModal = ({
                       </Button>
                       <Button
                         type="submit"
-                        className="rounded-2xl bg-primary hover:bg-primary/90 font-semibold px-8 text-primary-foreground"
+                        className="rounded-2xl bg-amber-400/90 hover:bg-amber-300 font-semibold px-8 text-black"
                         disabled={loading}
                       >
                         {loading ? 'Saving...' : 'Save Changes'}

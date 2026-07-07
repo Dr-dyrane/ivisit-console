@@ -78,15 +78,15 @@ Sprint 5: Data-Gated Pages   ←── Pass H1: Mock data elimination [GATE for 
 
 | # | Task | Owner | Agent? | Priority |
 |---|---|---|---|---|
-| 2.1 | Add verification queue card to org_admin BentoHome | FE Dev | Assist | P0 |
+| 2.1 | Add Approvals card to org_admin Today | FE Dev | Assist | P0 |
 | 2.2 | Scope doctor home state to personal visits/facility emergencies | FE Dev | Assist | P0 |
 | 2.3 | Role-fixed mobile bottom bar (deterministic slots per role) | FE Dev | — | P0 |
-| 2.4 | Rename nav label "Queue" → "Pending Approvals" | FE Dev | — | P0 |
-| 2.5 | Rename page title "Identity Vault" → "Verification Queue" | FE Dev | — | P0 |
+| 2.4 | Rename nav label "Queue" → "Approvals" | FE Dev | — | P0 |
+| 2.5 | Rename page title "Identity Vault" → "Approvals" | FE Dev | — | P0 |
 | 2.6 | Rename Settings page "Control Center" → "Account Settings" | FE Dev | — | P0 |
 | 2.7 | Rename Wallet tabs: "Ledger" → "Transaction History", "Payments" → "Patient Payments" | FE Dev | — | P0 |
 | 2.8 | Rename "Subscriptions" nav item → "Email Subscribers", move out of main nav | FE Dev | — | P1 |
-| 2.9 | Add hamburger menu icon to mobile nav (separate from avatar) | FE Dev | — | P1 |
+| 2.9 | Canonical mobile nav: avatar opens account/overflow sheet; bottom island has no hamburger | FE Dev | Assist | P1 |
 | 2.10 | Rename mobile "Context" tab → "Quick Actions" | FE Dev | — | P1 |
 | 2.11 | Add tooltip to unlabelled context panel toggle on desktop | FE Dev | — | P1 |
 | 2.12 | Viewer role: replace empty home with orientation card | FE Dev | — | P2 |
@@ -94,10 +94,10 @@ Sprint 5: Data-Gated Pages   ←── Pass H1: Mock data elimination [GATE for 
 
 ### Gate Criteria
 - [ ] Doctor logs in → home screen shows their facility's emergency count and a "Your visits today" card
-- [ ] Org_admin home → verification queue card present with count
-- [ ] Mobile bottom bar: provider sees Home/My Visits/Emergencies; org_admin sees Home/Staff/Approvals
-- [ ] Nav label "Queue" does not appear anywhere in the sidebar
-- [ ] "Identity Vault" does not appear on the Verification page
+- [ ] Org_admin Today → Approvals card present with count
+- [ ] Mobile bottom island: provider sees Today/Requests/Visits; org_admin sees Today/Approvals/Staff
+- [ ] Verification nav label is `Approvals`
+- [ ] "Identity Vault" does not appear on the Verification page and the page title is `Approvals`
 - [ ] "Control Center" does not appear on the Settings page
 - [ ] Viewer home screen has an orientation/activation message
 - [ ] Build passes

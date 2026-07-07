@@ -20,9 +20,13 @@ export const MobileSectionHeader = ({
     isAllSelected,
     selectionMode = false,
     selectedCount = 0,
-    onClearSelection
+    onClearSelection,
+    labelTone = 'caps'
 }) => {
     const { triggerFromEvent } = useFeedback();
+    const labelClassName = labelTone === 'plain'
+        ? 'text-[12px] font-semibold normal-case tracking-tight text-muted-foreground/75'
+        : 'text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/70';
 
     const handleSelectAll = (e) => {
         onSelectAll?.(e);
@@ -49,7 +53,7 @@ export const MobileSectionHeader = ({
         <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
                 <div className="w-1 h-1 rounded-full opacity-50" style={{ backgroundColor: color }} />
-                <h5 className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/70">
+                <h5 className={labelClassName}>
                     {label}
                 </h5>
             </div>
@@ -57,7 +61,7 @@ export const MobileSectionHeader = ({
                 {onSelectAll && (
                     <button
                         onClick={handleSelectAll}
-                        className="w-8 h-8 flex items-center justify-center rounded-2xl apple-glass-heavy border-0 active:scale-90 transition-all text-primary/60 hover:text-primary"
+                        className="w-8 h-8 flex items-center justify-center rounded-2xl apple-glass-heavy active:scale-90 transition-all text-primary/60 hover:text-primary"
                         aria-label={isAllSelected ? 'Deselect All' : 'Select All'}
                     >
                         {isAllSelected ? (
@@ -82,10 +86,10 @@ export const MobileSectionHeader = ({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
                     transition={mobileMotion.base}
-                    className="mt-2 px-2 py-1.5 rounded-xl bg-[hsl(var(--spark)/0.08)] border border-[hsl(var(--spark)/0.14)] flex items-center justify-between gap-2"
+                    className="mt-2 px-2 py-1.5 rounded-xl bg-[hsl(var(--spark)/0.08)] shadow-[0_12px_28px_hsl(var(--spark)/0.10)] flex items-center justify-between gap-2"
                 >
                     <span className="text-[9px] uppercase tracking-[0.14em] font-semibold text-[hsl(var(--spark)/0.95)]">
-                        Selection Mode • {selectedCount} selected
+                        Selection Mode - {selectedCount} selected
                     </span>
                     {typeof onClearSelection === 'function' && (
                         <button
@@ -269,7 +273,7 @@ export const MobileMetricRow = ({
                 onTouchMove={handleTouchMove}
                 onTouchCancel={clearLongPressTimer}
                 onMouseLeave={clearLongPressTimer}
-                className={`w-full flex items-center gap-3 p-3 apple-glass-heavy border-0 rounded-2xl relative overflow-hidden group select-none transition-[background,transform,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${isSelected ? 'bg-primary/10 ring-1 ring-primary/20' : isCurrentlyExpanded ? 'bg-muted/80 rounded-b-none shadow-[0_10px_30px_hsl(var(--spark)/0.12)] -translate-y-[1px]' : 'bg-muted/50 active:bg-muted/70'
+                className={`w-full flex items-center gap-3 p-3 apple-glass-heavy rounded-2xl relative overflow-hidden group select-none transition-[background,transform,box-shadow] duration-200 ease-out ${isSelected ? 'bg-primary/10 shadow-[0_0_0_3px_hsl(var(--primary)/0.14)]' : isCurrentlyExpanded ? 'bg-muted/80 rounded-b-none shadow-[0_10px_30px_hsl(var(--spark)/0.12)] -translate-y-0.5' : 'bg-muted/50 active:bg-muted/70'
                     }`}
                 style={{
                     WebkitTapHighlightColor: 'transparent',
@@ -319,7 +323,7 @@ export const MobileMetricRow = ({
                     style={{
                         background: `radial-gradient(circle at 30% 30%, ${color.replace(/\)$/, ' / 0.2)')}, ${color.replace(/\)$/, ' / 0.1)')})`,
                         boxShadow: isSelected ? `0 0 15px ${color.replace(/\)$/, ' / 0.4)')}` : 'none',
-                        border: isSelected ? `1.5px solid ${color}` : 'none'
+                        boxShadow: isSelected ? `0 0 0 3px ${color.replace(/\)$/, ' / 0.16)')}` : 'none'
                     }}
                 >
                     {Icon && <Icon size={16} className="opacity-95" style={{ color }} />}
@@ -330,7 +334,7 @@ export const MobileMetricRow = ({
                                 initial={{ scale: 0, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0, opacity: 0 }}
-                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center shadow-lg border-2 border-background z-20"
+                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center shadow-[0_0_0_3px_hsl(var(--background)),0_8px_20px_rgb(0_0_0/0.18)] z-20"
                             >
                                 <Check size={10} className="text-white stroke-[4px]" />
                             </motion.div>

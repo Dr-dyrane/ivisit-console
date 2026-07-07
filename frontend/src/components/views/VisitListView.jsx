@@ -22,7 +22,10 @@ export const VisitListView = ({
   getStatusBadge,
   isMobile = false,
   selectedIds = [],
-  onSelect
+  onSelect,
+  canEdit = false,
+  canDelete = false,
+  selectionEnabled = false
 }) => {
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -47,16 +50,18 @@ export const VisitListView = ({
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <Card className={`squircle-lg bg-background/35 backdrop-blur-xs shadow-sm p-4 border-white/5 hover:shadow-md transition-all group ${selectedIds.includes(visit.id) ? 'ring-2 ring-primary bg-primary/5' : ''}`}>
+          <Card className={`squircle-lg bg-background/35 backdrop-blur-xs shadow-sm p-4 hover:shadow-md transition-all group ${selectionEnabled && selectedIds.includes(visit.id) ? 'bg-primary/5 shadow-[0_18px_54px_hsl(var(--primary)/0.14)]' : ''}`}>
             <div className="flex items-center gap-4 justify-between">
 
               {/* Selection & Icon */}
               <div className="flex items-center gap-4">
-                <Checkbox
-                  checked={selectedIds.includes(visit.id)}
-                  onCheckedChange={() => onSelect(visit.id)}
-                  className="border-white/20"
-                />
+                {selectionEnabled && (
+                  <Checkbox
+                    checked={selectedIds.includes(visit.id)}
+                    onCheckedChange={() => onSelect?.(visit.id)}
+                    className="bg-background/50"
+                  />
+                )}
                 <div className={`p-2 rounded-xl ${visit.status === 'completed' ? 'bg-green-500/10 text-green-500' : 'bg-blue-500/10 text-blue-500'}`}>
                   <Clock className="w-5 h-5" />
                 </div>
@@ -69,11 +74,11 @@ export const VisitListView = ({
                 <div>
                   <h3 className="font-bold text-base group-hover:text-primary transition-colors flex items-center gap-2 flex-wrap">
                     Visit #{visit.id?.slice(0, 8)}
-                    <Badge className={`squircle-sm ${getStatusBadge(visit.status)} border-0 font-bold text-[10px] uppercase`}>
+                    <Badge className={`squircle-sm ${getStatusBadge(visit.status)} font-bold text-[10px] uppercase`}>
                       {visit.status}
                     </Badge>
                     {visit.cost && (
-                      <Badge variant="secondary" className="squircle-sm border-0 font-mono text-[10px] bg-white/10 text-foreground/80">
+                      <Badge variant="secondary" className="squircle-sm font-mono text-[10px] bg-white/10 text-foreground/80">
                         {visit.cost}
                       </Badge>
                     )}
@@ -126,17 +131,23 @@ export const VisitListView = ({
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="squircle-xl border-white/10 bg-background/80 backdrop-blur-xl">
+                  <DropdownMenuContent align="end" className="squircle-xl bg-background/80 backdrop-blur-xl shadow-[0_24px_80px_rgba(0,0,0,0.22)]">
                     <DropdownMenuItem onClick={() => onView(visit)}>
                       <Eye className="mr-2 h-4 w-4" /> View
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onEdit(visit)}>
-                      <Edit className="mr-2 h-4 w-4" /> Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-white/10" />
-                    <DropdownMenuItem onClick={() => onDelete(visit)} className="text-destructive">
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(visit)}>
+                        <Edit className="mr-2 h-4 w-4" /> Edit
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <>
+                        <DropdownMenuSeparator className="bg-white/10" />
+                        <DropdownMenuItem onClick={() => onDelete?.(visit)} className="text-destructive">
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

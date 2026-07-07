@@ -123,22 +123,24 @@ export const MobileFeaturedMetric = ({
                 </div>
 
                 {/* Sparkline */}
-                <div className="h-14 w-full -mx-4 mt-4 relative z-10 opacity-30">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={series}>
-                            <Area
-                                type="monotone"
-                                dataKey="value"
-                                stroke={c}
-                                strokeWidth={2}
-                                fill="transparent"
-                                isAnimationActive={shouldAnimate}
-                                animationDuration={shouldAnimate ? 1200 : 0}
-                                animationEasing="ease-out"
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
+                {series.length > 1 && (
+                    <div className="h-14 w-full -mx-4 mt-4 relative z-10 opacity-30">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={series}>
+                                <Area
+                                    type="monotone"
+                                    dataKey="value"
+                                    stroke={c}
+                                    strokeWidth={2}
+                                    fill="transparent"
+                                    isAnimationActive={shouldAnimate}
+                                    animationDuration={shouldAnimate ? 1200 : 0}
+                                    animationEasing="ease-out"
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
 
                 {item.onClick && (
                     <div className="absolute bottom-6 right-6 w-8 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-10 transition-all duration-300">

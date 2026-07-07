@@ -1,6 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
+
+const setMetaTag = (selector, attributes) => {
+    let node = document.head.querySelector(selector);
+    if (!node) {
+        node = document.createElement('meta');
+        document.head.appendChild(node);
+    }
+
+    Object.entries(attributes).forEach(([name, value]) => {
+        node.setAttribute(name, value);
+    });
+};
 
 export const SEOHead = ({
     title,
@@ -14,6 +26,20 @@ export const SEOHead = ({
     // Construct canonical URL properly (assuming hosted on domain.com, adjusting for local dev)
     const siteUrl = 'https://console.ivisit.ng'; // Or pull from env
     const canonicalUrl = `${siteUrl}${location.pathname}`;
+
+    useEffect(() => {
+        if (typeof document === 'undefined') return;
+
+        document.title = fullTitle;
+        setMetaTag('meta[name="description"]', { name: 'description', content: description });
+        setMetaTag('meta[name="keywords"]', { name: 'keywords', content: keywords });
+        setMetaTag('meta[property="og:title"]', { property: 'og:title', content: fullTitle });
+        setMetaTag('meta[property="og:description"]', { property: 'og:description', content: description });
+        setMetaTag('meta[property="og:url"]', { property: 'og:url', content: canonicalUrl });
+        setMetaTag('meta[property="twitter:title"]', { property: 'twitter:title', content: fullTitle });
+        setMetaTag('meta[property="twitter:description"]', { property: 'twitter:description', content: description });
+        setMetaTag('meta[property="twitter:url"]', { property: 'twitter:url', content: canonicalUrl });
+    }, [canonicalUrl, description, fullTitle, keywords]);
 
     return (
         <Helmet>

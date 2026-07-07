@@ -140,6 +140,8 @@ If you are a Claude agent arriving at this codebase:
 
 ### Planning Layer
 - [planning/BOARD_BRIEF.md](./planning/BOARD_BRIEF.md) — Executive summary, vision, KPIs, investment
+- [planning/TODAY_PRODUCT_ROOM.md](./planning/TODAY_PRODUCT_ROOM.md) - Today controller/staff model, Supabase governance promise, first product slice
+- [planning/PAGE_REVAMP_GATE.md](./planning/PAGE_REVAMP_GATE.md) - Page-by-page RBAC, layout, design, implementation, and QA gate
 - [planning/PRODUCT_ROADMAP.md](./planning/PRODUCT_ROADMAP.md) — Sprint plan with gates and owners
 - [planning/RISK_REGISTER.md](./planning/RISK_REGISTER.md) — Known risks, mitigations, owners
 

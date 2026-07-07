@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useId, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
@@ -7,26 +7,41 @@ import { Badge } from '../ui/badge';
 import { X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const FilterSheet = ({ isOpen, onOpenChange, filterSchema = [], onApply, initialValues = {}, viewToggle = null, isMobile = false }) => {
+const filterInputClassName = 'w-full rounded-xl bg-black/5 px-3 py-2.5 text-sm shadow-[0_12px_28px_rgb(0_0_0/0.05)] transition-[background,box-shadow] focus:bg-background/80 focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)] dark:bg-white/5 dark:focus:bg-white/[0.08]';
+const filterBackdropTransition = { duration: 0.18, ease: [0.21, 0.47, 0.32, 0.98] };
+const filterSheetTransition = { duration: 0.22, ease: [0.21, 0.47, 0.32, 0.98] };
+
+export const FilterSheet = ({
+  isOpen,
+  onOpenChange,
+  filterSchema = [],
+  onApply,
+  initialValues = {},
+  resetValues = null,
+  resetLabel = 'Reset',
+  title = 'Filters',
+  description = 'Adjust this view, then apply the filters.',
+  viewToggle = null,
+  isMobile = false
+}) => {
   const [filters, setFilters] = useState(initialValues);
   const prevInitialValuesRef = useRef();
+  const titleId = useId();
+  const descriptionId = useId();
 
   useEffect(() => {
-    // Only update filters if initialValues actually changed (deep comparison)
     if (JSON.stringify(initialValues) !== JSON.stringify(prevInitialValuesRef.current)) {
       setFilters(initialValues);
       prevInitialValuesRef.current = initialValues;
     }
   }, [initialValues]);
 
-  // Handle Dynamic Bottom Bar visibility on mobile
   useEffect(() => {
     if (!isMobile) return;
 
     const bottomBar = document.getElementById('dynamic-bottom-bar');
     if (bottomBar) {
       if (isOpen) {
-        // Store original display if needed, but usually flex or block
         bottomBar.style.display = 'none';
       } else {
         bottomBar.style.display = '';
@@ -39,6 +54,19 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema = [], onApply, 
       }
     };
   }, [isOpen, isMobile]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        onOpenChange(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onOpenChange]);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({
@@ -53,7 +81,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema = [], onApply, 
   };
 
   const handleReset = () => {
-    setFilters(initialValues);
+    setFilters(resetValues || initialValues);
   };
 
   const renderFilterControl = (filter) => {
@@ -90,10 +118,12 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema = [], onApply, 
                 value={currentValue || ''}
                 onChange={(e) => handleFilterChange(key, e.target.value)}
                 placeholder={filter.placeholder || `Search ${label.toLowerCase()}...`}
-                className="w-full pl-9 pr-8 py-2 border-0 rounded-lg bg-black/5 dark:bg-white/5 focus:outline-none focus:ring-1 focus:ring-primary/20 text-sm"
+                className={`${filterInputClassName} pl-9 pr-8 py-2`}
               />
               {currentValue && (
                 <button
+                  type="button"
+                  aria-label={`Clear ${label}`}
                   onClick={() => handleFilterChange(key, '')}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
                 >
@@ -175,27 +205,32 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema = [], onApply, 
           </div>
         );
 
-      case 'date':
+      case 'date': {
+        const startDateId = `${key}-start-date`;
+        const endDateId = `${key}-end-date`;
+
         return (
           <div key={key} className="space-y-3 px-3 py-3 rounded-lg hover:bg-white/3 transition-colors">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
             <div className="flex flex-col gap-3">
               <div className="space-y-1.5">
-                <Label className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">Start Date</Label>
+                <Label htmlFor={startDateId} className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">Start date</Label>
                 <input
+                  id={startDateId}
                   type="date"
                   value={currentValue?.start || ''}
                   onChange={(e) => handleFilterChange(key, { ...currentValue, start: e.target.value })}
-                  className="w-full px-3 py-2.5 border-0 rounded-xl bg-black/5 dark:bg-white/5 focus:outline-none focus:ring-1 focus:ring-primary/20 text-sm appearance-none min-h-[44px]"
+                  className={`${filterInputClassName} appearance-none min-h-[44px]`}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">End Date</Label>
+                <Label htmlFor={endDateId} className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">End date</Label>
                 <input
+                  id={endDateId}
                   type="date"
                   value={currentValue?.end || ''}
                   onChange={(e) => handleFilterChange(key, { ...currentValue, end: e.target.value })}
-                  className="w-full px-3 py-2.5 border-0 rounded-xl bg-black/5 dark:bg-white/5 focus:outline-none focus:ring-1 focus:ring-primary/20 text-sm appearance-none min-h-[44px]"
+                  className={`${filterInputClassName} appearance-none min-h-[44px]`}
                 />
               </div>
 
@@ -207,10 +242,11 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema = [], onApply, 
                   { label: '30 Days', days: 30 }
                 ].map(preset => (
                   <Button
+                    type="button"
                     key={preset.label}
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="h-8 text-[11px] bg-black/5 dark:bg-white/5 font-medium rounded-lg hover:bg-primary hover:text-primary-foreground transition-all border-none"
+                    className="h-8 text-[11px] bg-black/5 dark:bg-white/5 font-medium rounded-lg hover:bg-foreground hover:text-background dark:hover:bg-white dark:hover:text-black transition-all"
                     onClick={() => {
                       const end = new Date();
                       const start = new Date();
@@ -228,35 +264,43 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema = [], onApply, 
             </div>
           </div>
         );
+      }
 
       default:
         return null;
     }
   };
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => onOpenChange(false)}
-            className="fixed inset-0 z-[60] bg-black/10 backdrop-blur-[2px]"
-          />
+  if (!isOpen) return null;
 
-          <motion.div
-            initial={isMobile ? { y: '100%' } : { y: -20, opacity: 0 }}
-            animate={isMobile ? { y: 0 } : { y: 0, opacity: 1 }}
-            exit={isMobile ? { y: '100%' } : { y: -20, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className={isMobile
-              ? "fixed bottom-0 left-0 right-0 z-[70]"
-              : "fixed top-16 left-4 right-4 z-[70] mx-auto max-w-2xl"
-            }
-          >
-            <div className={`bg-background/40 backdrop-blur-md shadow-2xl px-2 md:px-6 py-6 ${isMobile ? 'rounded-t-[48px] pb-8' : 'squircle-xl'}`}>
+  return (
+    <>
+      <motion.div
+        key="filter-sheet-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={filterBackdropTransition}
+        onClick={() => onOpenChange(false)}
+        className="fixed inset-0 z-[60] bg-black/10 backdrop-blur-[2px]"
+      />
+
+      <motion.div
+        key="filter-sheet-shell"
+        initial={isMobile ? { y: '100%' } : { y: -20, opacity: 0 }}
+        animate={isMobile ? { y: 0 } : { y: 0, opacity: 1 }}
+        transition={filterSheetTransition}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        data-filter-sheet-shell="true"
+        data-testid={isMobile ? 'mobile-filter-sheet' : 'filter-sheet'}
+        className={isMobile
+          ? "fixed bottom-0 left-0 right-0 z-[70]"
+          : "fixed top-16 left-4 right-4 z-[70] mx-auto max-w-2xl"
+        }
+      >
+        <div className={`bg-background/40 backdrop-blur-md shadow-2xl px-2 md:px-6 py-6 ${isMobile ? 'rounded-t-[48px] pb-8' : 'squircle-xl'}`}>
 
               {/* Mobile Drag Handle */}
               {isMobile && (
@@ -265,9 +309,10 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema = [], onApply, 
               {/* Header */}
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-sm font-bold uppercase tracking-widest">
-                    {isMobile ? 'Filters' : 'Filters'}
+                  <h2 id={titleId} className="text-sm font-bold uppercase tracking-widest">
+                    {title}
                   </h2>
+                  <p id={descriptionId} className="sr-only">{description}</p>
                 </div>
                 <div className="flex items-center gap-1">
                   {isMobile && viewToggle && (
@@ -276,7 +321,9 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema = [], onApply, 
                     </div>
                   )}
                   <button
+                    type="button"
                     onClick={() => onOpenChange(false)}
+                    aria-label="Close filters"
                     className="p-2 hover:bg-white/5 rounded-full transition-colors"
                   >
                     <X className="h-4 w-4" />
@@ -288,9 +335,12 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema = [], onApply, 
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="space-y-6 max-h-[50vh] overflow-y-auto scrollbar-hide"
+                className={isMobile
+                  ? "space-y-6 max-h-[58dvh] overflow-y-auto scrollbar-hide pb-2"
+                  : "grid max-h-[min(68dvh,620px)] grid-cols-2 items-start gap-5 overflow-y-auto scrollbar-hide pb-2"
+                }
               >
-                {filterSchema.map((filter, idx) => {
+                {filterSchema.map((filter) => {
                   const content = renderFilterControl(filter);
                   return (
                     <AnimatePresence key={filter.key} mode='popLayout'>
@@ -300,7 +350,7 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema = [], onApply, 
                           animate={{ opacity: 1, height: 'auto', scale: 1 }}
                           exit={{ opacity: 0, height: 0, scale: 0.95 }}
                           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                          className="overflow-hidden"
+                          className={filter.type === 'text' ? "col-span-2 overflow-hidden" : "overflow-hidden"}
                         >
                           {content}
                         </motion.div>
@@ -313,23 +363,23 @@ export const FilterSheet = ({ isOpen, onOpenChange, filterSchema = [], onApply, 
               {/* Footer - Separated by spacing */}
               <div className="flex gap-3 mt-8 pt-6">
                 <Button
-                  variant="outline"
+                  type="button"
+                  variant="ghost"
                   onClick={handleReset}
-                  className="flex-1 squircle-lg bg-black/5 dark:bg-white/5 hover:bg-white/10 border-none"
+                  className="flex-1 squircle-lg bg-black/5 dark:bg-white/5 hover:bg-white/10"
                 >
-                  Reset
+                  {resetLabel}
                 </Button>
                 <Button
+                  type="button"
                   onClick={handleApply}
-                  className="flex-1 squircle-lg bg-primary hover:bg-primary/90"
+                  className="flex-1 squircle-lg bg-foreground text-background hover:bg-foreground/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
                 >
                   Apply
                 </Button>
               </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+        </div>
+      </motion.div>
+    </>
   );
 };

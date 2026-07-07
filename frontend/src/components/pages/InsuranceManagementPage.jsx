@@ -1,83 +1,290 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useInsurance } from '../../hooks/useInsurance';
+import {
+  getInsuranceBillingOutcomes,
+  getInsurancePage,
+  subscribeToInsuranceBillingOutcomes,
+  subscribeToInsurancePolicies,
+} from '../../services/insuranceService';
 import { PaginationControls } from '../ui/PaginationControls';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { TableSkeleton } from '../ui/skeleton';
 import { InsuranceModal } from '../modals/InsuranceModal';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
-import { ConfirmationModal } from '../modals/ConfirmationModal';
-import { BulkActionBar } from '../common/BulkActionBar';
 import { FilterSheet } from '../common/FilterSheet';
 import { ViewToggle } from '../common/ViewToggle';
 import { InsuranceListView } from '../views/InsuranceListView';
 import { InsuranceTableView } from '../views/InsuranceTableView';
 import { MobileInsurance } from '../mobile/MobileInsurance';
+import { SEOHead } from '../common/SEOHead';
 import {
   Shield,
-  Plus,
   Filter as FilterIcon,
-  Search,
   CheckCircle,
   Clock,
   DollarSign,
-  Trash2,
   Eye,
-  BarChart3,
-  Edit,
-  AlertTriangle
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { toast } from "sonner";
-import { handleApiError } from "../../utils/errorHandler";
 import { motion, LayoutGroup } from 'framer-motion';
 import { Badge } from '../ui/badge';
+
+const EMPTY_INSURANCE_PAGE = {
+  data: [],
+  count: 0,
+  denied: false,
+  failed: false,
+  reason: null,
+  stats: {
+    total: 0,
+    active: 0,
+    pending: 0,
+    expired: 0,
+    verified: 0,
+    unverified: 0,
+    expiringSoon: 0,
+    exactCounts: true,
+    scope: 'admin_policy_projection',
+  },
+};
+
+const EMPTY_INSURANCE_BILLING_STATS = {
+  total: 0,
+  pending: 0,
+  approved: 0,
+  paid: 0,
+  rejected: 0,
+};
+
+const EMPTY_INSURANCE_BILLING_CONTEXT = {
+  outcomes: [],
+  recentBilling: [],
+  stats: EMPTY_INSURANCE_BILLING_STATS,
+  count: 0,
+  loading: true,
+  denied: false,
+  failed: false,
+  reason: null,
+  errorMessage: null,
+  scope: 'admin_billing_outcome_projection',
+};
+
+const EMPTY_INSURANCE_FILTERS = Object.freeze({
+  search: '',
+  status: [],
+  type: [],
+  verified: '',
+  created_at: { start: '', end: '' },
+  kpiFilter: 'all',
+});
+
+const hasInsuranceFilterValue = (value) => {
+  if (Array.isArray(value)) return value.length > 0;
+  if (value && typeof value === 'object') {
+    return Boolean(value.start || value.end);
+  }
+  return Boolean(value && value !== 'all');
+};
+
+const hasActiveInsuranceFilters = (filters = {}) => (
+  Object.entries(filters).some(([key, value]) => key !== 'kpiFilter' && hasInsuranceFilterValue(value))
+);
 
 export const InsuranceManagementPage = () => {
   const { isAdmin } = useAuth();
   const { isMobile } = useNavigation();
-  const {
-    insurancePolicies,
-    loading,
-    error,
-    fetchInsurancePolicies,
-    createPolicy,
-    updatePolicy,
-    deletePolicy,
-    verifyPolicy,
-    fetchAnalytics
-  } = useInsurance();
+  const [insurancePage, setInsurancePage] = useState(EMPTY_INSURANCE_PAGE);
+  const [insuranceBillingContext, setInsuranceBillingContext] = useState(EMPTY_INSURANCE_BILLING_CONTEXT);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [selectedPolicy, setSelectedPolicy] = useState(null);
   const [modalMode, setModalMode] = useState(null); // 'create' | 'edit' | 'view'
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([]);
+  const [commandNotice, setCommandNotice] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
-  const [confirmationModal, setConfirmationModal] = useState({
-    isOpen: false,
-    title: '',
-    description: '',
-    onConfirm: null,
-    variant: 'destructive',
-    confirmLabel: 'Delete'
-  });
 
   // Filter state - includes search
-  const [filters, setFilters] = useState({ search: '', status: [], type: [], verified: '', kpiFilter: 'all' });
+  const [filters, setFilters] = useState(EMPTY_INSURANCE_FILTERS);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const isMountedRef = useRef(false);
+  const fetchRequestRef = useRef(0);
+  const billingFetchRequestRef = useRef(0);
 
   const { viewMode, setViewMode } = useViewMode('insurance', 'grid');
   const pagination = usePagination(20);
+  const filterKey = useMemo(() => JSON.stringify(filters), [filters]);
+  const hasActiveFilters = useMemo(() => hasActiveInsuranceFilters(filters), [filters]);
+  const insurancePolicies = insurancePage.data || [];
+  const insuranceStats = insurancePage.stats || EMPTY_INSURANCE_PAGE.stats;
+
+  const showPolicyCommandUnavailable = useCallback((action = 'Policy changes') => {
+    const message = `${action} unavailable until admin authority is verified.`;
+    setCommandNotice(message);
+    toast.info(message);
+  }, []);
+
+  const fetchInsurancePage = useCallback(async () => {
+    const requestId = fetchRequestRef.current + 1;
+    fetchRequestRef.current = requestId;
+    const canUpdateRouteState = () => isMountedRef.current && fetchRequestRef.current === requestId;
+
+    try {
+      if (!canUpdateRouteState()) return;
+      setLoading(true);
+      setError(null);
+      const limit = isMobile
+        ? pagination.currentPage * pagination.itemsPerPage
+        : pagination.itemsPerPage;
+      const offset = isMobile ? 0 : (pagination.currentPage - 1) * pagination.itemsPerPage;
+      const page = await getInsurancePage({
+        ...filters,
+        limit,
+        offset,
+        sortKey: sortConfig.key,
+        sortDirection: sortConfig.direction,
+        quiet: true,
+      });
+
+      if (!canUpdateRouteState()) return;
+      if (page.failed) {
+        setInsurancePage(prevPage => ({
+          ...prevPage,
+          denied: false,
+          failed: true,
+          reason: page.reason || 'query_failed',
+          errorMessage: page.errorMessage,
+        }));
+        setError('Insurance policies could not load. Try again.');
+        return;
+      }
+
+      setInsurancePage(page);
+      pagination.setTotalCount(page.count || 0);
+      if (page.denied) {
+        setError('Insurance access is not available for this role.');
+      }
+    } catch (err) {
+      if (!canUpdateRouteState()) return;
+      setInsurancePage(prevPage => ({
+        ...prevPage,
+        denied: false,
+        failed: true,
+        reason: 'query_failed',
+        errorMessage: err?.message,
+      }));
+      setError('Insurance policies could not load. Try again.');
+    } finally {
+      if (canUpdateRouteState()) {
+        setLoading(false);
+      }
+    }
+  }, [
+    filters,
+    isMobile,
+    pagination.currentPage,
+    pagination.itemsPerPage,
+    pagination.setTotalCount,
+    sortConfig.direction,
+    sortConfig.key,
+  ]);
+
+  const fetchInsuranceBillingContext = useCallback(async () => {
+    const requestId = billingFetchRequestRef.current + 1;
+    billingFetchRequestRef.current = requestId;
+    const canUpdateBillingState = () => isMountedRef.current && billingFetchRequestRef.current === requestId;
+
+    try {
+      if (!canUpdateBillingState()) return;
+      setInsuranceBillingContext(prevContext => ({
+        ...prevContext,
+        loading: true,
+        errorMessage: null,
+      }));
+
+      const billingResult = await getInsuranceBillingOutcomes({
+        limit: 3,
+        offset: 0,
+        sortKey: 'created_at',
+        sortDirection: 'desc',
+        quiet: true,
+      });
+
+      if (!canUpdateBillingState()) return;
+      if (billingResult.denied) {
+        setInsuranceBillingContext({
+          ...EMPTY_INSURANCE_BILLING_CONTEXT,
+          loading: false,
+          denied: true,
+          reason: billingResult.reason || 'admin_only',
+          errorMessage: 'Billing outcomes are unavailable for this role.',
+          scope: billingResult.scope || 'admin_billing_outcome_projection',
+        });
+        return;
+      }
+
+      if (billingResult.failed) {
+        setInsuranceBillingContext(prevContext => ({
+          ...prevContext,
+          loading: false,
+          denied: false,
+          failed: true,
+          reason: billingResult.reason || 'query_failed',
+          errorMessage: 'Billing outcomes could not load.',
+          scope: billingResult.scope || prevContext.scope || 'admin_billing_outcome_projection',
+        }));
+        return;
+      }
+
+      const outcomes = billingResult.data || [];
+      setInsuranceBillingContext({
+        outcomes,
+        recentBilling: outcomes.slice(0, 3),
+        stats: {
+          ...EMPTY_INSURANCE_BILLING_STATS,
+          ...(billingResult.stats || {}),
+        },
+        count: billingResult.count || outcomes.length,
+        loading: false,
+        denied: false,
+        failed: false,
+        reason: null,
+        errorMessage: null,
+        scope: billingResult.scope || 'admin_billing_outcome_projection',
+      });
+    } catch {
+      if (!canUpdateBillingState()) return;
+      setInsuranceBillingContext(prevContext => ({
+        ...prevContext,
+        loading: false,
+        denied: false,
+        failed: true,
+        reason: 'query_failed',
+        errorMessage: 'Billing outcomes could not load.',
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      fetchRequestRef.current += 1;
+      billingFetchRequestRef.current += 1;
+    };
+  }, []);
 
   // Listen for 'openInsuranceModal' event from ContextPanel
   useEffect(() => {
     const handleOpenModal = () => {
-      setSelectedPolicy(null);
-      setModalMode('create');
+      showPolicyCommandUnavailable('Add policy');
     };
 
     const handleOpenFilters = () => {
@@ -96,152 +303,175 @@ export const InsuranceManagementPage = () => {
       window.removeEventListener('openFilters', handleOpenFilters);
       window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);
     };
-  }, []);
+  }, [showPolicyCommandUnavailable]);
 
   useEffect(() => {
-    fetchInsurancePolicies();
-  }, [fetchInsurancePolicies]);
+    pagination.resetPagination();
+  }, [filterKey, pagination.resetPagination]);
+
+  useEffect(() => {
+    fetchInsurancePage();
+  }, [fetchInsurancePage]);
+
+  useEffect(() => {
+    fetchInsuranceBillingContext();
+  }, [fetchInsuranceBillingContext]);
+
+  useEffect(() => {
+    if (!isAdmin()) return undefined;
+    let active = true;
+    const unsubscribe = subscribeToInsurancePolicies(() => {
+      if (active && isMountedRef.current) {
+        fetchInsurancePage();
+      }
+    });
+    return () => {
+      active = false;
+      fetchRequestRef.current += 1;
+      unsubscribe();
+    };
+  }, [fetchInsurancePage, isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin()) return undefined;
+    let active = true;
+    const unsubscribeBilling = subscribeToInsuranceBillingOutcomes(() => {
+      if (active && isMountedRef.current) {
+        fetchInsuranceBillingContext();
+      }
+    }, 'insurance_billing_route_context');
+    return () => {
+      active = false;
+      billingFetchRequestRef.current += 1;
+      unsubscribeBilling();
+    };
+  }, [fetchInsuranceBillingContext, isAdmin]);
 
   // Filter Logic
   const filteredPolicies = useMemo(() => {
-    let policies = insurancePolicies;
-
-    // Apply KPI filter first
-    if (filters.kpiFilter === 'active') {
-      policies = policies.filter(policy => policy.status === 'active');
-    } else if (filters.kpiFilter === 'pending') {
-      policies = policies.filter(policy => policy.status === 'pending');
-    } else if (filters.kpiFilter === 'expired') {
-      policies = policies.filter(policy => policy.status === 'expired');
-    } else if (filters.kpiFilter === 'unverified') {
-      policies = policies.filter(policy => !policy.verified);
-    }
-    // 'all' shows everything
-
-    // Apply other filters
-    const searchTerm = filters.search?.toLowerCase() || '';
-    const matchesSearch = searchTerm === '' ||
-      policies.filter(policy =>
-        policy.policy_number?.toLowerCase().includes(searchTerm) ||
-        policy.policy_holder_name?.toLowerCase().includes(searchTerm) ||
-        policy.provider_name?.toLowerCase().includes(searchTerm)
-      );
-
-    const matchesStatus = !filters.status || filters.status.length === 0 || filters.status.some(status => policies.some(policy => policy.status === status));
-    const matchesType = !filters.type || filters.type.length === 0 || filters.type.some(type => policies.some(policy => policy.policy_type === type));
-
-    let matchesVerification = true;
-    if (filters.verified === 'verified') matchesVerification = policies.some(policy => policy.verified === true);
-    if (filters.verified === 'unverified') matchesVerification = policies.some(policy => policy.verified === false);
-
-    return policies.filter(policy => {
-      const searchMatch = searchTerm === '' ||
-        policy.policy_number?.toLowerCase().includes(searchTerm) ||
-        policy.policy_holder_name?.toLowerCase().includes(searchTerm) ||
-        policy.provider_name?.toLowerCase().includes(searchTerm);
-
-      const statusMatch = !filters.status || filters.status.length === 0 || filters.status.includes(policy.status);
-      const typeMatch = !filters.type || filters.type.length === 0 || filters.type.includes(policy.policy_type);
-      const verificationMatch = !filters.verified ||
-        (filters.verified === 'verified' && policy.verified === true) ||
-        (filters.verified === 'unverified' && policy.verified === false) ||
-        (filters.verified === 'all');
-
-      return searchMatch && statusMatch && typeMatch && verificationMatch;
-    });
-  }, [insurancePolicies, filters]);
+    return insurancePolicies;
+  }, [insurancePolicies]);
 
   // Pagination Logic
   const paginatedPolicies = useMemo(() => {
-    if (!filteredPolicies) return [];
-    pagination.setTotalCount(filteredPolicies.length);
-    const start = (pagination.currentPage - 1) * pagination.itemsPerPage;
-    return filteredPolicies.slice(start, start + pagination.itemsPerPage);
-  }, [filteredPolicies, pagination]);
+    return filteredPolicies || [];
+  }, [filteredPolicies]);
 
   const mobileVisiblePolicies = useMemo(() => {
-    const visibleCount = pagination.currentPage * pagination.itemsPerPage;
-    return filteredPolicies.slice(0, visibleCount);
-  }, [filteredPolicies, pagination.currentPage, pagination.itemsPerPage]);
+    return filteredPolicies || [];
+  }, [filteredPolicies]);
+
+  const hasDesktopRows = paginatedPolicies.length > 0;
+  const hasMobileRows = mobileVisiblePolicies.length > 0;
+
+  const insurancePanelContext = useMemo(() => ({
+    policies: paginatedPolicies,
+    recentPolicies: paginatedPolicies.slice(0, 3),
+    stats: insuranceStats,
+    count: pagination.totalCount || insurancePage.count || paginatedPolicies.length,
+    currentPage: pagination.currentPage,
+    totalPages: pagination.totalPages,
+    filters,
+    hasFilters: hasActiveFilters,
+    sortConfig,
+    loading,
+    billing: insuranceBillingContext,
+    errorMessage: error,
+    denied: insurancePage.denied,
+    failed: insurancePage.failed,
+    reason: insurancePage.reason,
+    scope: insuranceStats.scope || 'admin_policy_projection',
+    canManagePolicies: false,
+  }), [
+    error,
+    filters,
+    hasActiveFilters,
+    insurancePage.count,
+    insurancePage.denied,
+    insurancePage.failed,
+    insurancePage.reason,
+    insuranceStats,
+    insuranceBillingContext,
+    loading,
+    paginatedPolicies,
+    pagination.currentPage,
+    pagination.totalCount,
+    pagination.totalPages,
+    sortConfig,
+  ]);
+
+  const publishInsuranceRouteContext = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    window.dispatchEvent(new CustomEvent('insuranceRouteContextUpdated', {
+      detail: insurancePanelContext,
+    }));
+  }, [insurancePanelContext]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    publishInsuranceRouteContext();
+    window.addEventListener('requestInsuranceRouteContext', publishInsuranceRouteContext);
+
+    return () => {
+      window.removeEventListener('requestInsuranceRouteContext', publishInsuranceRouteContext);
+    };
+  }, [publishInsuranceRouteContext]);
+
+  const visibleAnalyticsPolicies = isMobile ? mobileVisiblePolicies : paginatedPolicies;
+  const visibleInsuranceAnalytics = useMemo(() => {
+    const rows = Array.isArray(visibleAnalyticsPolicies) ? visibleAnalyticsPolicies : [];
+    const byProvider = rows.reduce((acc, policy) => {
+      const label = policy.provider_name || 'Unknown provider';
+      acc[label] = (acc[label] || 0) + 1;
+      return acc;
+    }, {});
+    const byCategory = rows.reduce((acc, policy) => {
+      const label = policy.policy_type || policy.coverage_type || policy.plan_type || 'Unknown type';
+      acc[label] = (acc[label] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      total: insuranceStats.total,
+      active: insuranceStats.active,
+      verified: insuranceStats.verified,
+      expired: insuranceStats.expired,
+      expiringSoon: insuranceStats.expiringSoon,
+      byProvider,
+      byCategory,
+      visibleCount: rows.length,
+      distributionScope: 'visible_page',
+      distributionLabel: 'Visible page only',
+    };
+  }, [
+    insuranceStats.active,
+    insuranceStats.expired,
+    insuranceStats.expiringSoon,
+    insuranceStats.total,
+    insuranceStats.verified,
+    visibleAnalyticsPolicies,
+  ]);
 
   // Handlers
-  const handleCreate = useCallback(() => {
-    setSelectedPolicy(null);
-    setModalMode('create');
-  }, []);
+  const handlePolicyToolsUnavailable = useCallback(() => {
+    showPolicyCommandUnavailable('Policy changes');
+  }, [showPolicyCommandUnavailable]);
 
-  const handleEdit = useCallback((policy) => {
-    setSelectedPolicy(policy);
-    setModalMode('edit');
-  }, []);
+  const handlePolicyToolsPress = useCallback((event) => {
+    event.preventDefault();
+    handlePolicyToolsUnavailable();
+  }, [handlePolicyToolsUnavailable]);
 
   const handleView = useCallback((policy) => {
     setSelectedPolicy(policy);
     setModalMode('view');
   }, []);
 
-  const handleDelete = useCallback(async (policy) => {
-    setConfirmationModal({
-      isOpen: true,
-      title: 'Delete Insurance Policy',
-      description: `Are you sure you want to delete policy ${policy.policy_number}? This action cannot be undone.`,
-      onConfirm: async () => {
-        try {
-          await deletePolicy(policy.id);
-          toast.success('Policy deleted successfully');
-          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-        } catch (err) {
-          handleApiError(err, 'delete');
-        }
-      },
-      variant: 'destructive',
-      confirmLabel: 'Delete Policy'
-    });
-  }, [deletePolicy]);
-
-  const handleVerify = useCallback(async (policy) => {
-    try {
-      await verifyPolicy(policy.id, true);
-      toast.success('Policy verified successfully');
-    } catch (err) {
-      handleApiError(err, 'update');
-    }
-  }, [verifyPolicy]);
-
-  const handleSelect = useCallback((id, checked) => {
-    if (checked) {
-      setSelectedIds(prev => [...prev, id]);
-    } else {
-      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
-    }
-  }, []);
-
-  const handleSelectAll = useCallback((checked) => {
-    if (checked) {
-      setSelectedIds(insurancePolicies.map(p => p.id));
-    } else {
-      setSelectedIds([]);
-    }
-  }, [insurancePolicies]);
-
   const handleViewAnalytics = useCallback(() => {
     setAnalyticsModalOpen(true);
   }, []);
-
-  const handleSave = useCallback(async (data) => {
-    try {
-      if (modalMode === 'edit' && selectedPolicy) {
-        await updatePolicy(selectedPolicy.id, data);
-        toast.success('Policy updated successfully');
-      } else {
-        await createPolicy(data);
-        toast.success('Policy created successfully');
-      }
-      setModalMode(null);
-    } catch (err) {
-      handleApiError(err, selectedPolicy ? 'update' : 'create');
-    }
-  }, [selectedPolicy, modalMode, updatePolicy, createPolicy]);
 
   // Header Configuration
   const viewToggleComponent = React.useMemo(() => (
@@ -253,32 +483,35 @@ export const InsuranceManagementPage = () => {
       variant="ghost"
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
+      className="squircle h-9 w-9 hover:bg-info/10 hover:text-info relative"
       aria-label="Filter policies"
     >
       <FilterIcon className="h-4 w-4" />
-      {(filters.search || (filters.status && filters.status.length > 0) || (filters.type && filters.type.length > 0) || filters.verified !== '' || filters.created_at) && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+      {hasActiveFilters && (
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-info" />
       )}
     </Button>
-  ), [filters]);
+  ), [hasActiveFilters]);
 
-  // Primary Action (Add Policy)
+  // Command authority is not proved yet, so the header advertises read-only state.
   const headerActions = React.useMemo(() => (
-    isAdmin && (
+    isAdmin() && (
       <Button
-        onClick={handleCreate}
-        className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+        onPointerDown={handlePolicyToolsPress}
+        onClick={handlePolicyToolsUnavailable}
+        variant="ghost"
+        className="glass-card-premium h-9 px-4 text-xs font-semibold"
+        aria-label="Insurance is read-only until policy authority is verified"
       >
-        <Plus className="h-4 w-4 mr-2" />
-        <span className="hidden md:inline">ADD POLICY</span>
-        <span className="md:hidden">ADD</span>
+        <Shield className="h-4 w-4 mr-2" />
+        <span className="hidden md:inline">Read-only</span>
+        <span className="md:hidden">Read</span>
       </Button>
     )
-  ), [isAdmin, handleCreate]);
+  ), [isAdmin, handlePolicyToolsUnavailable]);
 
   usePageHeader(
-    'Insurance Management',
+    'Insurance',
     headerActions,
     !isMobile ? viewToggleComponent : null,
     filterButtonComponent
@@ -287,13 +520,13 @@ export const InsuranceManagementPage = () => {
   // Footer Configuration
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
-        <span>Page {pagination.currentPage} of {pagination.totalPages} • {filteredPolicies.length} Policies</span>
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 text-[11px] font-semibold text-muted-foreground">
+        <span>Page {pagination.currentPage} of {pagination.totalPages} / {pagination.totalCount} policies</span>
       </div>
     </div>
-  ), [pagination.currentPage, pagination.totalPages, filteredPolicies.length]);
+  ), [pagination.currentPage, pagination.totalPages, pagination.totalCount]);
 
-  usePageFooter(footerContent, 'pagination', !loading && insurancePolicies.length > 0);
+  usePageFooter(footerContent, 'pagination', !loading && pagination.totalCount > 0);
 
   // Badge Logic
   const getStatusBadge = (status) => {
@@ -326,7 +559,7 @@ export const InsuranceManagementPage = () => {
     {
       key: 'type',
       type: 'multiselect',
-      label: 'Policy Type',
+      label: 'Policy type',
       options: [
         { value: 'Health', label: 'Health' },
         { value: 'Life', label: 'Life' },
@@ -340,20 +573,20 @@ export const InsuranceManagementPage = () => {
       label: 'Verification',
       options: [
         { value: 'all', label: 'All' },
-        { value: 'verified', label: 'Verified Only' },
-        { value: 'unverified', label: 'Unverified Only' }
+        { value: 'verified', label: 'Verified only' },
+        { value: 'unverified', label: 'Unverified only' }
       ]
     },
     {
       key: 'created_at',
       type: 'date',
-      label: 'Policy Date',
+      label: 'Policy date',
       placeholder: 'Select dates',
       shortcuts: [
         { label: 'Today', value: 'today' },
-        { label: 'Last 7 Days', value: '7days' },
-        { label: 'Last 30 Days', value: '30days' },
-        { label: 'This Month', value: 'month' }
+        { label: 'Last 7 days', value: '7days' },
+        { label: 'Last 30 days', value: '30days' },
+        { label: 'This month', value: 'month' }
       ]
     }
   ], []);
@@ -361,44 +594,58 @@ export const InsuranceManagementPage = () => {
   if (isMobile) {
     return (
       <div className="min-h-screen">
-        <MobileInsurance
-          policies={mobileVisiblePolicies}
-          filters={filters}
-          setFilters={setFilters}
-          onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onVerify={handleVerify}
-          onRefresh={fetchInsurancePolicies}
-          canManage={isAdmin()}
-          loading={loading}
-          onOpenFilters={() => setFilterSheetOpen(true)}
-          onViewAnalytics={handleViewAnalytics}
-          selectedIds={selectedIds}
-          onSelect={handleSelect}
-          onSelectAll={handleSelectAll}
-          hasMore={pagination.hasNextPage}
-          onLoadMore={pagination.nextPage}
-        />
+        <SEOHead title="Insurance" description="Review insurance policy evidence and claim outcomes." />
+
+        {error && !loading && !hasMobileRows ? (
+          <div className="px-4 pt-24 pb-8" data-testid="mobile-insurance-error-state">
+            {commandNotice && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="mb-4 rounded-2xl bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
+              >
+                {commandNotice}
+              </div>
+            )}
+            <Card className="squircle-lg glass-card-premium p-6 text-center">
+              <Shield className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+              <h3 className="font-bold text-lg mb-2">Insurance could not load</h3>
+              <p className="text-sm text-muted-foreground mb-4">{error}</p>
+              <Button onClick={fetchInsurancePage} variant="outline" className="squircle">
+                Try again
+              </Button>
+            </Card>
+          </div>
+        ) : (
+          <MobileInsurance
+            policies={mobileVisiblePolicies}
+            filters={filters}
+            setFilters={setFilters}
+            onView={handleView}
+            onRefresh={fetchInsurancePage}
+            loading={loading}
+            error={error}
+            onRetry={fetchInsurancePage}
+            stats={insuranceStats}
+            onOpenFilters={() => setFilterSheetOpen(true)}
+            onViewAnalytics={handleViewAnalytics}
+            hasMore={pagination.hasNextPage}
+            onLoadMore={pagination.nextPage}
+          />
+        )}
 
         <InsuranceModal
           isOpen={!!modalMode}
           onClose={() => setModalMode(null)}
           policy={selectedPolicy}
           mode={modalMode}
-          onSave={handleSave}
         />
 
         <AnalyticsModal
           open={analyticsModalOpen}
           onClose={() => setAnalyticsModalOpen(false)}
           type="insurance"
-          analytics={{
-            total: insurancePolicies.length,
-            active: insurancePolicies.filter(p => p.status === 'active').length,
-            verified: insurancePolicies.filter(p => p.verified).length,
-            expired: insurancePolicies.filter(p => p.status === 'expired').length
-          }}
+          analytics={visibleInsuranceAnalytics}
         />
 
         <FilterSheet
@@ -407,19 +654,12 @@ export const InsuranceManagementPage = () => {
           filterSchema={filterSchema}
           onApply={setFilters}
           initialValues={filters}
+          resetValues={EMPTY_INSURANCE_FILTERS}
+          resetLabel="Clear"
           viewToggle={null}
           isMobile={true}
         />
 
-        <ConfirmationModal
-          isOpen={confirmationModal.isOpen}
-          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-          onConfirm={confirmationModal.onConfirm}
-          title={confirmationModal.title}
-          description={confirmationModal.description}
-          variant={confirmationModal.variant}
-          confirmLabel={confirmationModal.confirmLabel}
-        />
       </div>
     );
   }
@@ -427,6 +667,7 @@ export const InsuranceManagementPage = () => {
 
   return (
     <div className="min-h-screen py-6 md:py-8 pt-6">
+      <SEOHead title="Insurance" description="Review insurance policy evidence and claim outcomes." />
 
       {/* Bento Overview Cards - Enhanced with Filtering */}
       <LayoutGroup>
@@ -443,29 +684,29 @@ export const InsuranceManagementPage = () => {
             transition={{ duration: 0.4, delay: 0.1 }}
           >
             <Card
-              className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
+              className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-info shadow-lg' : ''
                 }`}
               onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
             >
               {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-primary" />
+              <div className="hover-glow hover-glow-info" />
               <div className="absolute top-0 right-0 p-4 z-20">
                 <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
+                  <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
                   <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                    <Shield className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
+                    <Shield className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
                   </div>
                 </div>
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Policies</p>
-                  {filters.kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+                  <p className="text-sm font-semibold text-muted-foreground">Total policies</p>
+                  {filters.kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{insurancePolicies.length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{insuranceStats.total}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
-                    {filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
+                  <Badge className="geo-sharp bg-info/20 text-info border-0 font-semibold text-xs">
+                    {filters.kpiFilter === 'all' ? 'Filtered' : 'View all'}
                   </Badge>
                 </div>
               </div>
@@ -497,13 +738,13 @@ export const InsuranceManagementPage = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Active</p>
+                  <p className="text-sm font-semibold text-muted-foreground">Active</p>
                   {filters.kpiFilter === 'active' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{insurancePolicies.filter(p => p.status === 'active').length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{insuranceStats.active}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-round bg-success/20 text-success border-0 font-bold text-xs">
-                    {Math.round((insurancePolicies.filter(p => p.status === 'active').length / insurancePolicies.length) * 100) || 0}%
+                  <Badge className="geo-round bg-success/20 text-success border-0 font-semibold text-xs">
+                    {Math.round((insuranceStats.active / (insuranceStats.total || 1)) * 100) || 0}%
                   </Badge>
                 </div>
               </div>
@@ -535,13 +776,13 @@ export const InsuranceManagementPage = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pending</p>
+                  <p className="text-sm font-semibold text-muted-foreground">Pending</p>
                   {filters.kpiFilter === 'pending' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{insurancePolicies.filter(p => p.status === 'pending').length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{insuranceStats.pending}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="squircle-3xl bg-warning/20 text-warning border-0 font-bold text-xs">
-                    VERIFICATION
+                  <Badge className="squircle-3xl bg-warning/20 text-warning border-0 font-semibold text-xs">
+                    Waiting
                   </Badge>
                 </div>
               </div>
@@ -573,13 +814,13 @@ export const InsuranceManagementPage = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Expired</p>
+                  <p className="text-sm font-semibold text-muted-foreground">Expired</p>
                   {filters.kpiFilter === 'expired' && <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{insurancePolicies.filter(p => p.status === 'expired').length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{insuranceStats.expired}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-ticket bg-destructive/20 text-destructive border-0 font-bold text-xs">
-                    ACTION NEEDED
+                  <Badge className="geo-ticket bg-destructive/20 text-destructive border-0 font-semibold text-xs">
+                    Expired
                   </Badge>
                 </div>
               </div>
@@ -611,13 +852,13 @@ export const InsuranceManagementPage = () => {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Unverified</p>
+                  <p className="text-sm font-semibold text-muted-foreground">Unverified</p>
                   {filters.kpiFilter === 'unverified' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
                 </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{insurancePolicies.filter(p => !p.verified).length}</h3>
+                <h3 className="text-3xl font-bold tracking-tighter">{insuranceStats.unverified}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-wave bg-info/20 text-info border-0 font-bold text-xs">
-                    VERIFY NOW
+                  <Badge className="geo-wave bg-info/20 text-info border-0 font-semibold text-xs">
+                    Unverified
                   </Badge>
                 </div>
               </div>
@@ -627,43 +868,88 @@ export const InsuranceManagementPage = () => {
 
       </LayoutGroup>
 
+      {commandNotice && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="mb-4 rounded-2xl bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
+        >
+          {commandNotice}
+        </div>
+      )}
+
       {loading ? (
         <TableSkeleton rows={8} />
+      ) : error && !hasDesktopRows ? (
+        <Card className="squircle-lg glass-card-premium p-12 text-center">
+          <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="font-bold text-xl mb-2">Insurance could not load</h3>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            {error}
+          </p>
+          <Button onClick={fetchInsurancePage} variant="outline" className="squircle">
+            Try again
+          </Button>
+        </Card>
       ) : filteredPolicies.length === 0 ? (
         <Card className="squircle-lg glass-card-premium p-12 text-center">
           <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
           <h3 className="font-bold text-xl mb-2">
-            {filters.search ? 'No Policies Found' :
-              filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ? 'No Policies Yet' :
-                'No Matching Policies'}
+            {filters.search ? 'No policies found' :
+              filters.kpiFilter === 'all' && !hasActiveFilters ? 'No policies yet' :
+                'No matching policies'}
           </h3>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             {filters.search ? `No policies found matching "${filters.search}". Try adjusting your search terms.` :
-              filters.kpiFilter === 'all' && Object.keys(filters).filter(k => k !== 'kpiFilter').every(k => !filters[k]) ?
-                'Create your first insurance policy to get started with managing your coverage.' :
+              filters.kpiFilter === 'all' && !hasActiveFilters ?
+                'No policy records are available for this scope yet.' :
                 'Try adjusting your filters or search criteria to find the policies you\'re looking for.'}
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             {filters.search && (
               <Button onClick={() => setFilters(prev => ({ ...prev, search: '' }))} variant="outline" className="squircle">
                 <X className="h-4 w-4 mr-2" />
-                Clear Search
+                Clear search
               </Button>
             )}
-            {(filters.kpiFilter !== 'all' || Object.keys(filters).filter(k => k !== 'kpiFilter').some(k => filters[k])) && (
-              <Button onClick={() => setFilters({ kpiFilter: 'all', status: '', type: '', verification: '', search: '' })} variant="outline" className="squircle">
+            {(filters.kpiFilter !== 'all' || hasActiveFilters) && (
+              <Button onClick={() => setFilters(EMPTY_INSURANCE_FILTERS)} variant="outline" className="squircle">
                 <FilterIcon className="h-4 w-4 mr-2" />
-                Reset Filters
+                Reset filters
               </Button>
             )}
-            <Button onClick={handleCreate} className="glass-card-premium">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Policy
+            <Button onClick={handlePolicyToolsUnavailable} variant="outline" className="squircle">
+              <Shield className="h-4 w-4 mr-2" />
+              Read-only
             </Button>
           </div>
         </Card>
       ) : (
         <>
+          {error && (
+            <Card
+              className="mb-4 squircle-lg glass-card-premium p-4"
+              data-testid="insurance-degraded-state"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 rounded-2xl bg-warning/10 p-2 text-warning">
+                    <AlertTriangle className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold">Insurance did not refresh</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Showing the last loaded policy rows until the route read works again.
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={fetchInsurancePage} variant="outline" className="squircle">
+                  Try again
+                </Button>
+              </div>
+            </Card>
+          )}
+
           {/* Grid View */}
           {viewMode === 'grid' && (
             <LayoutGroup>
@@ -682,13 +968,13 @@ export const InsuranceManagementPage = () => {
                   >
                     <Card className="h-full squircle-xl glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col">
                       {/* Apple hover glow effect */}
-                      <div className={`hover-glow ${policy.status === 'expired' ? 'hover-glow-destructive' : 'hover-glow-primary'}`} />
+                      <div className={`hover-glow ${policy.status === 'expired' ? 'hover-glow-destructive' : 'hover-glow-info'}`} />
                       {/* Decorative Elements */}
                       <div className="absolute top-0 right-0 p-5 z-20">
                         <div className="relative">
-                          <div className={`absolute inset-0 ${policy.status === 'expired' ? 'bg-destructive/20' : 'bg-primary/10'} blur-xl rounded-full scale-150`} />
+                          <div className={`absolute inset-0 ${policy.status === 'expired' ? 'bg-destructive/20' : 'bg-info/10'} blur-xl rounded-full scale-150`} />
                           <div className="w-10 h-10 geo-round surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
-                            <Shield className={`h-5 w-5 ${policy.status === 'expired' ? 'text-destructive' : 'text-primary'}`} />
+                            <Shield className={`h-5 w-5 ${policy.status === 'expired' ? 'text-destructive' : 'text-info'}`} />
                           </div>
                         </div>
                       </div>
@@ -699,8 +985,8 @@ export const InsuranceManagementPage = () => {
                           {policy.status}
                         </Badge>
                         {policy.verified && (
-                          <Badge variant="outline" className="geo-sharp border-primary/20 text-primary px-2 py-1 font-semibold gap-1">
-                            <CheckCircle className="w-3 h-3" /> VERIFIED
+                          <Badge variant="outline" className="geo-sharp border-success/20 text-success px-2 py-1 font-semibold gap-1">
+                            <CheckCircle className="w-3 h-3" /> Verified
                           </Badge>
                         )}
                       </div>
@@ -712,7 +998,7 @@ export const InsuranceManagementPage = () => {
                       <div className="space-y-3 mb-6 relative z-10 flex-1">
                         <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <DollarSign className="h-4 w-4 text-primary" />
+                            <DollarSign className="h-4 w-4 text-info" />
                             <span className="font-normal">Coverage</span>
                           </div>
                           <span className="font-semibold text-foreground">
@@ -732,36 +1018,18 @@ export const InsuranceManagementPage = () => {
 
                       {/* Actions */}
                       <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
-                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          ACTIONS
+                        <div className="text-xs font-semibold text-muted-foreground">
+                          Review
                         </div>
-                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="flex gap-2">
                           <Button
                             variant="ghost"
-                            size="sm"
                             onClick={() => handleView(policy)}
-                            className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                            className="geo-round h-8 px-3 text-xs font-semibold hover:bg-info/10 hover:text-info"
                             aria-label={`View details for ${policy.policy_holder_name}`}
                           >
                             <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(policy)}
-                            className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-                            aria-label={`Edit ${policy.policy_holder_name}`}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(policy)}
-                            className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                            aria-label={`Delete ${policy.policy_holder_name}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
+                            <span className="ml-2">Details</span>
                           </Button>
                         </div>
                       </div>
@@ -778,9 +1046,10 @@ export const InsuranceManagementPage = () => {
             <InsuranceListView
               policies={paginatedPolicies}
               onView={handleView}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onVerify={handleVerify}
+              onDelete={null}
+              onVerify={null}
+              canDelete={false}
+              canVerify={false}
               getStatusBadge={getStatusBadge}
               isMobile={isMobile}
             />
@@ -791,13 +1060,12 @@ export const InsuranceManagementPage = () => {
             <InsuranceTableView
               policies={paginatedPolicies}
               onView={handleView}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onVerify={handleVerify}
+              onDelete={null}
+              onVerify={null}
+              canDelete={false}
+              canVerify={false}
+              selectionEnabled={false}
               getStatusBadge={getStatusBadge}
-              selectedIds={selectedIds}
-              onSelect={handleSelect}
-              onSelectAll={handleSelectAll}
             />
           )}
         </>
@@ -820,7 +1088,6 @@ export const InsuranceManagementPage = () => {
         onClose={() => setModalMode(null)}
         policy={selectedPolicy}
         mode={modalMode}
-        onSave={handleSave}
       />
 
       {/* Analytics Modal */}
@@ -828,26 +1095,7 @@ export const InsuranceManagementPage = () => {
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
         type="insurance"
-        analytics={{
-          total: insurancePolicies.length,
-          active: insurancePolicies.filter(p => p.status === 'active').length,
-          verified: insurancePolicies.filter(p => p.verified).length,
-          expired: insurancePolicies.filter(p => p.status === 'expired').length,
-          expiringSoon: insurancePolicies.filter(p => {
-            const expiryDate = new Date(p.end_date);
-            const thirtyDaysFromNow = new Date();
-            thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-            return expiryDate <= thirtyDaysFromNow && p.status === 'active';
-          }).length,
-          byProvider: insurancePolicies.reduce((acc, policy) => {
-            acc[policy.provider_name] = (acc[policy.provider_name] || 0) + 1;
-            return acc;
-          }, {}),
-          byCategory: insurancePolicies.reduce((acc, policy) => {
-            acc[policy.policy_type] = (acc[policy.policy_type] || 0) + 1;
-            return acc;
-          }, {})
-        }}
+        analytics={visibleInsuranceAnalytics}
       />
 
       <FilterSheet
@@ -856,62 +1104,11 @@ export const InsuranceManagementPage = () => {
         filterSchema={filterSchema}
         onApply={setFilters}
         initialValues={filters}
+        resetValues={EMPTY_INSURANCE_FILTERS}
+        resetLabel="Clear"
         viewToggle={isMobile ? viewToggleComponent : null}
         isMobile={isMobile}
       />
-
-      <ConfirmationModal
-        isOpen={confirmationModal.isOpen}
-        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={confirmationModal.onConfirm}
-        title={confirmationModal.title}
-        description={confirmationModal.description}
-        variant={confirmationModal.variant}
-        confirmLabel={confirmationModal.confirmLabel}
-      />
-
-      <BulkActionBar
-        selectedCount={selectedIds.length}
-        onClear={() => setSelectedIds([])}
-      >
-        {isAdmin && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setConfirmationModal({
-                isOpen: true,
-                title: 'Delete Selected Policies',
-                description: `Are you sure you want to delete ${selectedIds.length} policies? This action cannot be undone.`,
-                onConfirm: async () => {
-                  try {
-                    let failed = 0;
-                    for (const id of selectedIds) {
-                      try { await deletePolicy(id); } catch { failed++; }
-                    }
-                    setSelectedIds([]);
-                    setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-                    await fetchInsurancePolicies();
-                    if (failed > 0) {
-                      toast.error(`${failed} deletions failed.`);
-                    } else {
-                      toast.success(`${selectedIds.length} policies deleted`);
-                    }
-                  } catch (err) {
-                    handleApiError(err, 'delete');
-                  }
-                },
-                variant: 'destructive',
-                confirmLabel: 'Delete All'
-              });
-            }}
-            className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
-            title="Delete Selected"
-          >
-            <Trash2 className="h-5 w-5" />
-          </Button>
-        )}
-      </BulkActionBar>
 
     </div>
   );

@@ -24,7 +24,7 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { OnboardingProvider } from '../../contexts/OnboardingContext';
 import { OnboardingWizard } from '../onboarding';
@@ -56,7 +56,7 @@ export const OnboardingPage = () => {
     if (authLoading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
     }
@@ -77,7 +77,7 @@ export const OnboardingPage = () => {
                 {/* ============================================================
                     HEADER - Fixed navigation bar (matches SmartHeader)
                     ============================================================ */}
-                <header className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center bg-background/80 dark:bg-background/60 backdrop-blur-xl border-b border-border/30">
+                <header className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center bg-background/80 dark:bg-background/60 backdrop-blur-xl shadow-sm">
                     <div className="w-full max-w-7xl mx-auto px-4 flex items-center justify-between">
                         {/* Back Link */}
                         <Link
@@ -110,7 +110,7 @@ export const OnboardingPage = () => {
                                 Join iVisit
                             </h1>
                             <p className="text-muted-foreground max-w-md mx-auto">
-                                Register your healthcare organization and start providing emergency response services.
+                                Tell us about your healthcare organization so we can set up the review.
                             </p>
                         </div>
 
@@ -125,7 +125,7 @@ export const OnboardingPage = () => {
                     FOOTER
                     ============================================================ */}
                 <footer className="fixed bottom-0 left-0 right-0 py-3 text-center text-xs text-muted-foreground/50 bg-background/80 backdrop-blur-sm">
-                    <p>© {new Date().getFullYear()} iVisit. All rights reserved.</p>
+                    <p>&copy; {new Date().getFullYear()} iVisit. All rights reserved.</p>
                 </footer>
             </div>
         </>

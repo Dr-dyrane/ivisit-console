@@ -16,8 +16,7 @@ export const useDoctorProfile = () => {
             if (data) {
                 setDoctorProfile(data);
             }
-        } catch (error) {
-            console.error('Error loading doctor profile', error);
+        } catch {
             // Don't show toast on load error to avoid spam if just not set up yet
         } finally {
             setLoading(false);
@@ -38,7 +37,6 @@ export const useDoctorProfile = () => {
             return updated;
         } catch (error) {
             toast.error('Failed to update profile');
-            console.error(error);
             throw error;
         } finally {
             setLoading(false);

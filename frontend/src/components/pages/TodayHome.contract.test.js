@@ -1,0 +1,677 @@
+jest.mock('react-router-dom', () => ({
+  useLocation: () => ({ pathname: '/' }),
+  useNavigate: () => jest.fn(),
+}), { virtual: true });
+
+let mockPageData = {
+  doctorsStats: {},
+  emergencyStats: {},
+  loading: {},
+  domainErrors: {},
+  useMockData: false,
+  userData: { users: [], statistics: null },
+  verificationData: {},
+  visitsStats: {},
+};
+
+jest.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    hasMinRole: () => true,
+    isAdmin: () => false,
+    isOrgAdmin: () => false,
+    isProvider: () => false,
+    isSponsor: () => false,
+    isViewer: () => true,
+  }),
+}));
+
+jest.mock('../../contexts/PageDataContext', () => ({
+  usePageData: () => mockPageData,
+}));
+
+jest.mock('../../contexts/LayoutContext', () => ({
+  usePageFooter: jest.fn(),
+  usePageHeader: jest.fn(),
+  usePageShell: jest.fn(),
+}));
+
+jest.mock('../common/SEOHead', () => ({
+  SEOHead: () => null,
+}));
+
+import fs from 'fs';
+import { execFileSync } from 'child_process';
+import {
+  TodayHome,
+  ROLE_COPY,
+  buildActionRows,
+  buildGlanceItems,
+  buildToday,
+  getTodayModuleRailItems,
+  resolveTodayProviderCount,
+} from './TodayHome';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { NAV_CONFIG, getAccessibleNav } from '../../config/navigation';
+import { getProtectedRoutesForRole, getRouteProtection, getRouteTitle } from '../../config/routes';
+
+const liveCounts = {
+  live: true,
+  emergencyCount: 3,
+  approvalCount: 12,
+  visitCount: 2,
+  providerCount: 8,
+};
+
+function rowsFor(roleKind, overrides = {}) {
+  return buildActionRows({
+    roleKind,
+    roleCopy: ROLE_COPY[roleKind],
+    loading: {},
+    ...liveCounts,
+    ...overrides,
+  });
+}
+
+function renderTodayRole(roleKind, overrides = {}) {
+  mockPageData = {
+    doctorsStats: { totalDoctors: 8, total: 8 },
+    emergencyStats: { active: 3 },
+    loading: {},
+    domainErrors: {},
+    useMockData: false,
+    userData: { users: [], statistics: null },
+    verificationData: { pending: 12 },
+    visitsStats: { today: 2 },
+    ...overrides,
+  };
+
+  return renderToStaticMarkup(<TodayHome role={roleKind} />);
+}
+
+function collectTodayPaths(roleKind, live = true) {
+  const base = {
+    roleKind,
+    live,
+    emergencyCount: 3,
+    approvalCount: 12,
+    visitCount: 2,
+    providerCount: 8,
+  };
+  const roleCopy = ROLE_COPY[roleKind] || ROLE_COPY.viewer;
+
+  return [
+    buildToday(base).path,
+    ...buildGlanceItems(base).map((item) => item.path),
+    ...buildActionRows({
+      ...base,
+      roleCopy,
+      loading: {},
+    }).map((row) => row.path),
+    ...getTodayModuleRailItems(roleKind).map((item) => item.path),
+  ].filter(Boolean);
+}
+
+describe('TodayHome role contract', () => {
+  afterEach(() => {
+    mockPageData = {
+      doctorsStats: {},
+      emergencyStats: {},
+      loading: {},
+      domainErrors: {},
+      useMockData: false,
+      userData: { users: [], statistics: null },
+      verificationData: {},
+      visitsStats: {},
+    };
+  });
+
+  it('keeps Today route and Approvals route labels aligned with simple UI copy', () => {
+    expect(getRouteProtection('/')).toEqual({
+      public: false,
+      minRole: 'viewer',
+      resource: 'dashboard',
+      title: 'Today',
+    });
+    expect(getRouteTitle('/verification')).toBe('Approvals');
+    expect(NAV_CONFIG.mgmt.items.find((item) => item.id === 'verification')?.label).toBe('Approvals');
+  });
+
+  it('keeps Health News as an org-admin management route across source contracts', () => {
+    expect(getRouteProtection('/health-news').minRole).toBe('org_admin');
+    expect(NAV_CONFIG.mgmt.items.find((item) => item.id === 'news')?.minRole).toBe('org_admin');
+
+    const appSource = fs.readFileSync('src/App.js', 'utf8');
+    expect(appSource).toContain('path="/health-news" element={<ProtectedRoute minRole="org_admin"><HealthNewsManagementPage /></ProtectedRoute>}');
+    expect(appSource).not.toContain('path="/health-news" element={<ProtectedRoute minRole="provider"><HealthNewsManagementPage /></ProtectedRoute>}');
+  });
+
+  it('keeps protected route access scoped by role', () => {
+    expect(getRouteProtection('/emergencies')).toEqual({
+      minRole: 'provider',
+      resource: 'emergency_requests',
+      title: 'Requests',
+      excludedRoles: ['sponsor'],
+    });
+
+    expect(NAV_CONFIG.ops.items.find((item) => item.id === 'emergencies')).toMatchObject({
+      label: 'Requests',
+      resource: 'emergency_requests',
+      minRole: 'provider',
+      excludedRoles: ['sponsor'],
+    });
+
+    expect(getProtectedRoutesForRole('viewer')).toEqual(expect.arrayContaining(['/', '/settings']));
+    expect(getProtectedRoutesForRole('viewer')).not.toEqual(expect.arrayContaining(['/map', '/verification']));
+
+    expect(getProtectedRoutesForRole('provider')).toEqual(expect.arrayContaining(['/', '/emergencies', '/visits']));
+    expect(getProtectedRoutesForRole('provider')).not.toEqual(expect.arrayContaining(['/verification', '/doctors']));
+
+    expect(getProtectedRoutesForRole('org_admin')).toEqual(expect.arrayContaining(['/', '/verification', '/doctors', '/wallet']));
+    expect(getProtectedRoutesForRole('org_admin')).not.toEqual(expect.arrayContaining(['/organizations']));
+
+    expect(getProtectedRoutesForRole('sponsor')).toEqual(expect.arrayContaining(['/', '/analytics', '/settings']));
+    expect(getProtectedRoutesForRole('sponsor')).not.toEqual(expect.arrayContaining([
+      '/map',
+      '/emergencies',
+      '/visits',
+      '/support-tickets',
+      '/verification',
+      '/wallet',
+    ]));
+  });
+
+  it('keeps accessible nav labels role-specific for Today', () => {
+    const viewerNav = getAccessibleNav({ role: 'viewer' });
+    const providerNav = getAccessibleNav({ role: 'provider' });
+    const orgAdminNav = getAccessibleNav({ role: 'org_admin' });
+    const sponsorNav = getAccessibleNav({ role: 'sponsor' });
+
+    expect(viewerNav.main.map((item) => item.label)).toEqual(['Today']);
+    expect(viewerNav.user.items.map((item) => item.label)).toEqual(['Settings']);
+
+    expect(providerNav.ops.items.map((item) => item.label)).toEqual(['Visits', 'Requests']);
+    expect(providerNav.mgmt.items.map((item) => item.label)).toEqual(['Support']);
+
+    expect(orgAdminNav.mgmt.items.map((item) => item.label)).toEqual(expect.arrayContaining(['Approvals', 'Users']));
+    expect(orgAdminNav.finance.items.map((item) => item.label)).toEqual(expect.arrayContaining(['Payments', 'Pricing']));
+
+    expect(sponsorNav.main.map((item) => item.label)).toEqual(['Today', 'Statistics']);
+    expect(sponsorNav.ops).toBeNull();
+    expect(sponsorNav.mgmt).toBeNull();
+    expect(sponsorNav.user.items.map((item) => item.label)).toEqual(['Settings']);
+  });
+
+  it('keeps the Today desktop rail explicitly scoped by role', () => {
+    const labelsFor = (role) => getTodayModuleRailItems(role).map((item) => item.label);
+    const pathsFor = (role) => getTodayModuleRailItems(role).map((item) => item.path);
+
+    expect(labelsFor('admin')).toEqual(['Today', 'Requests', 'Staff', 'Payments', 'Help']);
+    expect(pathsFor('admin')).toEqual(['/', '/emergencies', '/doctors', '/wallet', '/support-tickets']);
+
+    expect(labelsFor('org_admin')).toEqual(['Today', 'Requests', 'Staff', 'Payments', 'Help']);
+    expect(pathsFor('org_admin')).toEqual(['/', '/emergencies', '/doctors', '/wallet', '/support-tickets']);
+
+    expect(labelsFor('provider')).toEqual(['Today', 'Requests', 'Help']);
+    expect(pathsFor('provider')).toEqual(['/', '/emergencies', '/support-tickets']);
+
+    expect(labelsFor('sponsor')).toEqual(['Today', 'Statistics']);
+    expect(pathsFor('sponsor')).toEqual(['/', '/analytics']);
+    expect(pathsFor('sponsor')).not.toEqual(expect.arrayContaining(['/emergencies', '/support-tickets', '/wallet']));
+
+    expect(labelsFor('viewer')).toEqual(['Today']);
+    expect(pathsFor('viewer')).toEqual(['/']);
+  });
+
+  it('keeps every visible Today destination accessible to the role that sees it', () => {
+    const roles = ['admin', 'org_admin', 'provider', 'sponsor', 'viewer'];
+
+    roles.forEach((role) => {
+      const accessiblePaths = getProtectedRoutesForRole(role);
+      const paths = [
+        ...collectTodayPaths(role, true),
+        ...collectTodayPaths(role, false),
+      ];
+
+      paths.forEach((path) => {
+        expect(accessiblePaths).toContain(path);
+      });
+    });
+  });
+
+  it('renders role-specific Today surfaces without relying on live account switching', () => {
+    const adminHtml = renderTodayRole('admin');
+    expect(adminHtml).toContain('3 requests to review');
+    expect(adminHtml).toContain('Review requests');
+    expect(adminHtml).toContain('Review organizations');
+
+    const orgAdminHtml = renderTodayRole('org_admin', {
+      emergencyStats: { active: 0 },
+      verificationData: { pending: 12 },
+    });
+    expect(orgAdminHtml).toContain('12 pending approvals');
+    expect(orgAdminHtml).toContain('Review pending approvals');
+    expect(orgAdminHtml).toContain('Check payments');
+
+    const providerHtml = renderTodayRole('provider');
+    expect(providerHtml).toContain('2 visit items');
+    expect(providerHtml).toContain('Your visits');
+    expect(providerHtml).toContain('Open today&#x27;s visits');
+    expect(providerHtml).not.toContain('Review pending approvals');
+
+    const sponsorHtml = renderTodayRole('sponsor');
+    expect(sponsorHtml).toContain('Impact is ready to review');
+    expect(sponsorHtml).toContain('Read-only report');
+    expect(sponsorHtml).toContain('Review request activity');
+    expect(sponsorHtml).toContain('In impact');
+    expect(sponsorHtml).not.toContain('3 active');
+    expect(sponsorHtml).not.toContain('Open requests');
+    expect(sponsorHtml).not.toContain('/emergencies');
+    expect(sponsorHtml).not.toContain('/support-tickets');
+
+    const viewerHtml = renderTodayRole('viewer');
+    expect(viewerHtml).toContain('Activation needed');
+    expect(viewerHtml).toContain('Ask admin for access');
+    expect(viewerHtml).toContain('Role assignment needed');
+    expect(viewerHtml).not.toContain('Review requests');
+  });
+
+  it('keeps admin focused on emergency review first', () => {
+    const today = buildToday({ roleKind: 'admin', ...liveCounts });
+    const glanceItems = buildGlanceItems({ roleKind: 'admin', ...liveCounts });
+    const rows = rowsFor('admin');
+
+    expect(today.status).toBe('Needs attention');
+    expect(today.path).toBe('/emergencies');
+    expect(today.primaryAction).toBe('Review');
+    expect(glanceItems.map((item) => [item.label, item.path])).toEqual([
+      ['Requests', '/emergencies'],
+      ['Approvals', '/verification'],
+      ['Staff', '/doctors'],
+    ]);
+    expect(rows.map((row) => row.id)).toEqual([
+      'requests',
+      'approvals',
+      'staff',
+      'organizations',
+    ]);
+  });
+
+  it('uses provider profile statistics for Staff when doctor directory stats are empty', () => {
+    expect(resolveTodayProviderCount({
+      doctorsStats: { totalDoctors: 0, total: 0 },
+      userData: { statistics: { roleDistribution: { provider: 268 } } },
+      live: true,
+    })).toBe(268);
+
+    const adminHtml = renderTodayRole('admin', {
+      doctorsStats: { totalDoctors: 0, total: 0 },
+      userData: { statistics: { roleDistribution: { provider: 268 } } },
+    });
+
+    expect(adminHtml).toContain('Staff');
+    expect(adminHtml).toContain('Staff: 268 records');
+    expect(adminHtml).toContain('268 records');
+    expect(adminHtml).not.toContain('Staff: Check staff');
+    expect(adminHtml).not.toContain('No staff count yet');
+  });
+
+  it('keeps org admin approval work visible without inventing write authority', () => {
+    const today = buildToday({
+      roleKind: 'org_admin',
+      ...liveCounts,
+      emergencyCount: 0,
+      approvalCount: 12,
+    });
+    const glanceItems = buildGlanceItems({
+      roleKind: 'org_admin',
+      ...liveCounts,
+      emergencyCount: 0,
+      approvalCount: 12,
+    });
+    const rows = rowsFor('org_admin', { emergencyCount: 0, approvalCount: 12 });
+
+    expect(today.sheetTitle).toBe('Pending approvals');
+    expect(today.path).toBe('/verification');
+    expect(glanceItems.map((item) => [item.label, item.path])).toEqual([
+      ['Requests', '/emergencies'],
+      ['Approvals', '/verification'],
+      ['Staff', '/doctors'],
+    ]);
+    expect(rows.map((row) => row.path)).toEqual([
+      '/verification',
+      '/emergencies',
+      '/doctors',
+      '/wallet',
+    ]);
+  });
+
+  it('keeps providers on visits, requests, help, and settings', () => {
+    const today = buildToday({ roleKind: 'provider', ...liveCounts });
+    const glanceItems = buildGlanceItems({ roleKind: 'provider', ...liveCounts });
+    const rows = rowsFor('provider');
+
+    expect(today.sheetTitle).toBe('Your visits');
+    expect(today.path).toBe('/visits');
+    expect(glanceItems.map((item) => item.label)).toEqual(['Visits', 'Requests', 'Help']);
+    expect(glanceItems.map((item) => item.path)).toEqual(['/visits', '/emergencies', '/support-tickets']);
+    expect(rows.map((row) => row.path)).toEqual([
+      '/visits',
+      '/emergencies',
+      '/support-tickets',
+      '/settings',
+    ]);
+  });
+
+  it('keeps sponsor work read-only and impact-led', () => {
+    const today = buildToday({ roleKind: 'sponsor', ...liveCounts });
+    const glanceItems = buildGlanceItems({ roleKind: 'sponsor', ...liveCounts });
+    const rows = rowsFor('sponsor');
+
+    expect(today.status).toBe('Read only');
+    expect(today.path).toBe('/analytics');
+    expect(glanceItems.map((item) => [item.label, item.path])).toEqual([
+      ['Impact', '/analytics'],
+      ['Requests', '/analytics'],
+      ['Access', '/settings'],
+    ]);
+    expect(glanceItems.find((item) => item.label === 'Requests')?.value).toBe('In impact');
+    expect(rows.map((row) => row.id)).toEqual(['impact', 'requests', 'settings']);
+    expect(rows[0].actionLabel).toBe('Open impact');
+    expect(rows[1].meta).toBe('In impact');
+    expect(rows[1].detail).toBe('Request activity is visible in Impact without changing care work.');
+    expect(rows[1].path).toBeUndefined();
+    expect(rows[1].actionLabel).toBeUndefined();
+  });
+
+  it('keeps viewer limited to setup and access request guidance', () => {
+    const today = buildToday({ roleKind: 'viewer', ...liveCounts });
+    const rows = rowsFor('viewer');
+    const viewerHtml = renderTodayRole('viewer');
+
+    expect(today.status).toBe('Limited access');
+    expect(today.path).toBe('/settings');
+    expect(rows[0].path).toBe('/settings');
+    expect(rows[1].disabled).toBe(true);
+    expect(rows[1].disabledReason).toBe('An admin needs to assign your role before this action is available.');
+    expect(viewerHtml).toContain('data-state="unavailable"');
+    expect(viewerHtml).toContain('aria-disabled="true"');
+    expect(viewerHtml).toContain('An admin needs to assign your role before this action is available.');
+  });
+
+  it('uses not-ready copy when live data is unavailable', () => {
+    const today = buildToday({
+      roleKind: 'provider',
+      live: false,
+      emergencyCount: 0,
+      approvalCount: 0,
+      visitCount: 0,
+      providerCount: 0,
+    });
+    const rows = rowsFor('provider', {
+      live: false,
+      emergencyCount: 0,
+      approvalCount: 0,
+      visitCount: 0,
+      providerCount: 0,
+    });
+
+    expect(today.status).toBe('Not ready yet');
+    expect(rows[0].meta).toBe('Live details not ready');
+  });
+
+  it('keeps Today summary-owned by PageData instead of a route-owned page query', () => {
+    const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+
+    expect(source).toContain("import { usePageData } from '../../contexts/PageDataContext';");
+    expect(source).toContain('} = usePageData();');
+    expect(source).toContain('emergencyStats,');
+    expect(source).toContain('verificationData,');
+    expect(source).toContain('doctorsStats,');
+    expect(source).toContain('visitsStats,');
+    expect(source).toContain('domainErrors,');
+    expect(source).toContain('useMockData,');
+    expect(source).not.toContain('getEmergencyRequestsPage');
+    expect(source).not.toContain('getEmergencyRequestsPageStats');
+    expect(source).not.toContain("supabase.from('emergency_requests')");
+    expect(source).not.toContain('PaginationControls');
+    expect(source).not.toContain('setTotalCount');
+    expect(source).not.toContain('paginationRange');
+    expect(source).not.toContain('sortConfig');
+    expect(source).not.toContain('date_from');
+    expect(source).not.toContain('date_to');
+  });
+
+  it('keeps Today free of page realtime and domain side-effect owners except its route-context publisher', () => {
+    const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+
+    expect(source).not.toContain("from '../../lib/supabase'");
+    expect(source).not.toContain('supabase.');
+    expect(source).not.toContain('.channel(');
+    expect(source).not.toContain('postgres_changes');
+    expect(source).not.toContain('.subscribe(');
+    expect(source).not.toContain('removeChannel');
+    expect(source).not.toContain('getUserActivePaymentMethods');
+    expect(source).not.toContain('getEmergencyRequestsPage');
+    expect(source).toContain('const todayPanelContext = useMemo(() => ({');
+    expect(source).toContain("page: 'today'");
+    expect(source).toContain('onNavigate: handleAction');
+    expect(source).toContain("window.dispatchEvent(new CustomEvent('todayRouteContextUpdated', {");
+    expect(source).toContain("window.addEventListener('requestTodayRouteContext', publishTodayRouteContext);");
+    expect(source).toContain("window.removeEventListener('requestTodayRouteContext', publishTodayRouteContext);");
+    expect(source).toContain('window.setTimeout(() => {');
+    expect(source).toContain('navigate(path);');
+  });
+
+  it('uses not-ready copy while role-critical Today data is still loading', () => {
+    const adminHtml = renderTodayRole('admin', {
+      emergencyStats: { active: 0 },
+      verificationData: { pending: 0 },
+      doctorsStats: { totalDoctors: 0, total: 0 },
+      loading: { emergency: true },
+    });
+
+    expect(adminHtml).toContain('Live details are not ready');
+    expect(adminHtml).toContain('Retry needed');
+    expect(adminHtml).not.toContain('No requests right now');
+    expect(adminHtml).not.toContain('All clear for now');
+  });
+
+  it('uses not-ready copy instead of clear copy when a role-critical data domain fails', () => {
+    const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+
+    expect(source).toContain("provider: ['emergency', 'visits']");
+    expect(source).not.toContain("provider: ['emergency', 'visits', 'supportTickets']");
+
+    const providerHtml = renderTodayRole('provider', {
+      domainErrors: { emergency: 'Failed to load requests' },
+    });
+
+    expect(providerHtml).toContain('Live details are not ready');
+    expect(providerHtml).toContain('Retry needed');
+    expect(providerHtml).not.toContain('Requests</span><span class="mt-1 block truncate text-[13px] font-semibold text-foreground sm:text-sm">Clear');
+  });
+
+  it('keeps BentoHome from starting subscriber work before Today renders', () => {
+    const source = fs.readFileSync('src/components/pages/BentoHome.jsx', 'utf8');
+
+    expect(source).not.toContain("from '../../hooks/useSubscription'");
+    expect(source).not.toContain('fetchSubscriptionAnalytics');
+    expect(source).toContain('getSubscriptionAnalytics({ quiet: true })');
+    expect(source).toContain('if (!shouldLoadSubscriptionStats) return undefined;');
+    expect(source.indexOf("if (roleHomeKind === 'admin')"))
+      .toBeLessThan(source.indexOf('if (isLoading) {'));
+    expect(source.indexOf("if (roleHomeKind === 'org_admin')"))
+      .toBeLessThan(source.indexOf('if (isLoading) {'));
+    expect(source.indexOf("if (roleHomeKind === 'provider')"))
+      .toBeLessThan(source.indexOf('if (isLoading) {'));
+    expect(source.indexOf("if (roleHomeKind === 'sponsor')"))
+      .toBeLessThan(source.indexOf('if (isLoading) {'));
+    expect(source.indexOf("if (roleHomeKind === 'viewer')"))
+      .toBeLessThan(source.indexOf('if (isLoading) {'));
+  });
+
+  it('keeps Today in the shared stage and sheet visual system', () => {
+    const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+    const railSource = fs.readFileSync('src/config/consoleModuleRail.js', 'utf8');
+    const railComponentSource = fs.readFileSync('src/components/common/ConsoleModuleRail.jsx', 'utf8');
+
+    expect(source).toContain('usePageShell({ bleed: true, hideFab: true })');
+    expect(source).toContain("usePageFooter(null, 'status', false)");
+    expect(source).toContain('const AtlasLayer = () => (');
+    expect(source).toContain('min-h-[calc(100dvh-3rem)] overflow-hidden bg-background text-foreground');
+    expect(source).toContain('rounded-t-sheet bg-card/78');
+    expect(source).toContain('md:rounded-sheet');
+    expect(source).toContain('rounded-modal bg-background/55');
+    expect(source).not.toContain('rounded-t-[44px]');
+    expect(source).not.toContain('md:rounded-[44px]');
+    expect(source).toContain('mx-auto mb-3 h-1.5 w-[42px]');
+    expect(source).toContain('lg:self-stretch');
+    expect(source).toContain('bg-foreground px-4 py-2.5 text-sm font-semibold text-background');
+    expect(source).not.toContain('bg-primary px-4 py-2.5 text-sm font-semibold text-white');
+    expect(source).toContain("primary: 'bg-sky-500/10 text-sky-700 dark:bg-sky-300/15 dark:text-sky-100'");
+    expect(source).not.toContain("primary: 'bg-primary/10 text-primary");
+    expect(source).toContain('focus-visible:bg-foreground/10');
+    expect(source).not.toContain('focus-visible:bg-primary/10');
+    expect(source).not.toContain('dark:focus-visible:bg-primary/20');
+    expect(source).toContain('<motion.button');
+    expect(source).toContain('whileTap={{ scale: 0.98 }}');
+    expect(source).toContain('onClick={() => onAction(item.path)}');
+    expect(source).toContain('disabled={!item.path}');
+    expect(source).toContain("aria-label={`${item.label}: ${item.value}${isOpening ? ', opening' : ''}`}");
+    expect(source).toContain('data-today-glance={item.label.toLowerCase()}');
+    expect(source).toContain("data-state={isOpening ? 'opening' : 'idle'}");
+    expect(source).toContain('<ArrowRight className="h-3.5 w-3.5" />');
+    expect(source).toContain('<Loader2 className="h-3.5 w-3.5 animate-spin" />');
+    expect(source).toContain("data-state={routingPath === today.path ? 'opening' : 'idle'}");
+    expect(source).toContain("const rowState = row.disabled ? 'unavailable' : isOpening ? 'opening' : expanded ? 'expanded' : 'idle';");
+    expect(source).toContain('data-today-row={row.id}');
+    expect(source).toContain('aria-expanded={expanded}');
+    expect(source).toContain("data-state={isOpening ? 'opening' : 'idle'}");
+    expect(source).toContain('ConsoleModuleRail');
+    expect(source).toContain('getConsoleModuleRailItems(roleKind)');
+    expect(source).toContain('font-semibold leading-tight text-foreground [overflow-wrap:anywhere]');
+    expect(source).not.toContain('block truncate text-[13px] font-semibold text-foreground');
+    expect(railSource).toContain("sponsor: ['today', 'statistics']");
+    expect(railComponentSource).toContain('data-console-rail={id}');
+    expect(source).not.toContain('container mx-auto');
+    expect(source).not.toContain('SYSTEM STATUS');
+  });
+
+  it('keeps Today out of private shell chrome', () => {
+    const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+    const forbiddenShellOwners = [
+      'SmartHeader',
+      'ResponsiveSidebar',
+      'IslandNavigation',
+      'DynamicBottomBar',
+      'ContextAwareFAB',
+      'NotificationCenter',
+      'MobileNavMenu',
+      'ContextPanelShell',
+      'SmartFooter',
+    ];
+
+    forbiddenShellOwners.forEach((owner) => {
+      expect(source).not.toContain(owner);
+    });
+
+    expect(source).toContain("import { usePageFooter, usePageHeader, usePageShell } from '../../contexts/LayoutContext';");
+    expect(source).toContain("import { ConsoleModuleRail } from '../common/ConsoleModuleRail';");
+    expect(source).toContain("usePageHeader('Today', headerAction);");
+    expect(source).toContain("usePageFooter(null, 'status', false);");
+    expect(source).toContain('usePageShell({ bleed: true, hideFab: true });');
+  });
+
+  it('keeps Today loading, unavailable, opening, and expanded states explicit', () => {
+    const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+
+    expect(source).toContain("headline: 'Live details are not ready'");
+    expect(source).toContain("value: 'Retry needed'");
+    expect(source).toContain("meta: 'Live details not ready'");
+    expect(source).toContain('const live = !useMockData && !hasTodayDataError && !hasTodayLoading;');
+    expect(source).toContain("const rowState = row.disabled ? 'unavailable' : isOpening ? 'opening' : expanded ? 'expanded' : 'idle';");
+    expect(source).toContain('aria-disabled={row.disabled ? \'true\' : undefined}');
+    expect(source).toContain('aria-expanded={expanded}');
+    expect(source).toContain("aria-label={`${row.label}: ${row.meta}${row.disabledReason ? `. ${row.disabledReason}` : ''}`}");
+    expect(source).toContain("data-state={routingPath === today.path ? 'opening' : 'idle'}");
+    expect(source).toContain("data-state={isOpening ? 'opening' : 'idle'}");
+    expect(source).toContain("{isOpening ? 'Opening...' : row.actionLabel}");
+
+    const notReadyHtml = renderTodayRole('admin', {
+      loading: { emergency: true },
+      emergencyStats: { active: 0 },
+      verificationData: { pending: 0 },
+    });
+
+    expect(notReadyHtml).toContain('Live details are not ready');
+    expect(notReadyHtml).toContain('Retry needed');
+    expect(notReadyHtml).not.toContain('All clear for now');
+    expect(notReadyHtml).not.toContain('No requests right now');
+  });
+
+  it('keeps Today action authority navigation-only', () => {
+    const source = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+
+    expect(source).toContain("import { useNavigate } from 'react-router-dom';");
+    expect(source).toContain('const routeFeedbackMs = 320;');
+    expect(source).toContain('const handleAction = useCallback((path) => {');
+    expect(source).toContain('if (!path) return;');
+    expect(source).toContain('setRoutingPath(path);');
+    expect(source).toContain('window.setTimeout(() => {');
+    expect(source).toContain('navigate(path);');
+    expect(source).toContain('}, routeFeedbackMs);');
+
+    expect(source).not.toContain("from '../../lib/supabase'");
+    expect(source).not.toContain("from '../../services/emergencyService'");
+    expect(source).not.toContain("from '../../services/emergencyResponseService'");
+    expect(source).not.toContain('dispatchEmergency');
+    expect(source).not.toContain('completeEmergency');
+    expect(source).not.toContain('cancelEmergencyRequest');
+    expect(source).not.toContain('retryPaymentWithDifferentMethod');
+    expect(source).not.toContain('toast.success');
+    expect(source).not.toContain('toast.error');
+  });
+
+  it('keeps Today right panel route-context owned instead of global-dashboard owned', () => {
+    const today = fs.readFileSync('src/components/pages/TodayHome.jsx', 'utf8');
+    const dashboardPanel = fs.readFileSync('src/components/context/DashboardPanel.jsx', 'utf8');
+    const contextPanel = fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
+    const hardgate = fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
+    const oldDashboardPanel = execFileSync('git', ['-C', '..', 'show', 'HEAD:frontend/src/components/context/DashboardPanel.jsx'], { encoding: 'utf8' });
+
+    expect(oldDashboardPanel).toContain("import { usePageData } from '../../contexts/PageDataContext';");
+    expect(oldDashboardPanel).toContain('refreshAllData');
+    expect(oldDashboardPanel).toContain("new CustomEvent('openEmergencyModal')");
+    expect(oldDashboardPanel).toContain("new CustomEvent('openAnalyticsModal'");
+    expect(oldDashboardPanel).toContain("fetch('/api/backup'");
+
+    expect(today).toContain('const todayPanelContext = useMemo(() => ({');
+    expect(today).toContain("window.dispatchEvent(new CustomEvent('todayRouteContextUpdated', {");
+    expect(today).toContain("window.addEventListener('requestTodayRouteContext', publishTodayRouteContext);");
+
+    expect(contextPanel).toContain('const [todayRouteContext, setTodayRouteContext] = React.useState(null);');
+    expect(contextPanel).toContain("window.dispatchEvent(new CustomEvent('requestTodayRouteContext'));");
+    expect(contextPanel).toContain('<DashboardPanel todayContext={todayRouteContext} />');
+    expect(contextPanel).not.toContain('refreshAllData={refreshAllData}');
+    expect(contextPanel).not.toContain('activityData={activityData}');
+    expect(contextPanel).not.toContain('analyticsData={analyticsData}');
+    expect(contextPanel).not.toContain('doctorsData={doctorsData}');
+
+    expect(dashboardPanel).toContain('export const DashboardPanel = ({ todayContext }) =>');
+    expect(dashboardPanel).toContain('Today overview');
+    expect(dashboardPanel).toContain('Current route scope');
+    expect(dashboardPanel).toContain('Panel actions');
+    expect(dashboardPanel).toContain('Current list');
+    expect(dashboardPanel).toContain('role="status" aria-live="polite"');
+    expect(dashboardPanel).toContain('context.onNavigate(action.path)');
+    expect(dashboardPanel).not.toContain('usePageData');
+    expect(dashboardPanel).not.toContain('refreshAllData');
+    expect(dashboardPanel).not.toContain('openEmergencyModal');
+    expect(dashboardPanel).not.toContain('openAnalyticsModal');
+    expect(dashboardPanel).not.toContain('/api/backup');
+    expect(dashboardPanel).not.toContain('Quick Actions');
+    expect(dashboardPanel).not.toContain('System Backup');
+    expect(hardgate).toContain('src/components/context/DashboardPanel.jsx');
+  });
+});

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
-import { getOrganizations, saveOrganization, deleteOrganization } from '../../services/organizationsService';
-import { Card } from '../ui/card';
+import { getOrganizations } from '../../services/organizationsService';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
@@ -36,6 +35,8 @@ import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 
+const ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE = 'Organization changes are not ready until organization authority is verified.';
+
 export const OrganizationsPage = () => {
     const { isAdmin } = useAuth();
     const { isMobile } = useNavigation();
@@ -57,6 +58,7 @@ export const OrganizationsPage = () => {
     });
     const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
     const [selectedIds, setSelectedIds] = useState([]);
+    const [organizationCommandNotice, setOrganizationCommandNotice] = useState(null);
 
     const fetchOrganizations = useCallback(async () => {
         try {
@@ -74,78 +76,31 @@ export const OrganizationsPage = () => {
         fetchOrganizations();
     }, [fetchOrganizations]);
 
-    const handleCreate = useCallback(() => {
-        setSelectedOrg({
-            name: '',
-            stripe_account_id: '',
-            ivisit_fee_percentage: 2.5,
-            fee_tier: 'standard',
-            contact_email: '',
-            is_active: true
-        });
-        setIsModalOpen(true);
+    const handleOrganizationCommandUnavailable = useCallback(() => {
+        setOrganizationCommandNotice(ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE);
+        toast.info(ORGANIZATION_COMMAND_UNAVAILABLE_MESSAGE);
+        return false;
     }, []);
 
-    const handleEdit = (org) => {
-        setSelectedOrg(org);
-        setIsModalOpen(true);
-    };
+    const handleCreate = useCallback(() => {
+        handleOrganizationCommandUnavailable();
+    }, [handleOrganizationCommandUnavailable]);
 
-    const handleDelete = (org) => {
-        setConfirmationModal({
-            isOpen: true,
-            title: 'Delete Organization',
-            description: `Are you sure you want to delete ${org.name}? This will affect all associated hospitals and users.`,
-            onConfirm: async () => {
-                try {
-                    await deleteOrganization(org.id);
-                    toast.success('Organization deleted successfully');
-                    fetchOrganizations();
-                    setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-                } catch (error) {
-                    handleApiError(error, 'delete');
-                }
-            }
-        });
-    };
+    const handleEdit = useCallback(() => {
+        handleOrganizationCommandUnavailable();
+    }, [handleOrganizationCommandUnavailable]);
+
+    const handleDelete = useCallback(() => {
+        handleOrganizationCommandUnavailable();
+    }, [handleOrganizationCommandUnavailable]);
+
+    const handleBulkDelete = useCallback(() => {
+        handleOrganizationCommandUnavailable();
+    }, [handleOrganizationCommandUnavailable]);
 
     const handleSave = async (e) => {
         e.preventDefault();
-
-        // 3.13: If editing and fee % changed, require confirmation
-        if (selectedOrg?.id) {
-            const original = organizations.find(o => o.id === selectedOrg.id);
-            const originalFee = parseFloat(original?.ivisit_fee_percentage || 0);
-            const newFee = parseFloat(selectedOrg.ivisit_fee_percentage || 0);
-            if (original && Math.abs(originalFee - newFee) > 0.001) {
-                setConfirmationModal({
-                    isOpen: true,
-                    title: 'Confirm Fee Change',
-                    description: `Change iVisit fee for "${selectedOrg.name}" from ${originalFee}% to ${newFee}%? This affects all future transactions for this organization.`,
-                    onConfirm: async () => {
-                        try {
-                            await saveOrganization(selectedOrg);
-                            toast.success('Organization updated successfully');
-                            setIsModalOpen(false);
-                            fetchOrganizations();
-                            setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-                        } catch (error) {
-                            handleApiError(error, 'update');
-                        }
-                    }
-                });
-                return;
-            }
-        }
-
-        try {
-            await saveOrganization(selectedOrg);
-            toast.success(`Organization ${selectedOrg.id ? 'updated' : 'created'} successfully`);
-            setIsModalOpen(false);
-            fetchOrganizations();
-        } catch (error) {
-            handleApiError(error, 'update');
-        }
+        handleOrganizationCommandUnavailable();
     };
 
     const handleSelect = useCallback((id, checked) => {
@@ -198,10 +153,46 @@ export const OrganizationsPage = () => {
         return filteredOrgs.slice(0, visibleCount);
     }, [filteredOrgs, pagination.currentPage, pagination.itemsPerPage]);
 
+    const organizationSummary = useMemo(() => ({
+        total: organizations.length,
+        active: organizations.filter(org => org.is_active).length,
+        totalWallet: organizations.reduce((acc, curr) => acc + (curr.wallet_balance || 0), 0),
+        filteredTotal: filteredOrgs.length,
+        loading
+    }), [filteredOrgs.length, loading, organizations]);
+
+    const organizationsRouteContext = useMemo(() => ({
+        organizations: organizations.slice(0, 25),
+        summary: organizationSummary
+    }), [organizationSummary, organizations]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+
+        const publishOrganizationsRouteContext = () => {
+            window.dispatchEvent(new CustomEvent('organizationsRouteContextUpdated', {
+                detail: organizationsRouteContext
+            }));
+        };
+
+        publishOrganizationsRouteContext();
+        window.addEventListener('requestOrganizationsRouteContext', publishOrganizationsRouteContext);
+
+        return () => {
+            window.removeEventListener('requestOrganizationsRouteContext', publishOrganizationsRouteContext);
+        };
+    }, [organizationsRouteContext]);
+
     const headerActions = useMemo(() => (
         <div className="flex items-center gap-2">
             {isAdmin() && (
-                <Button onClick={handleCreate} className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase">
+                <Button
+                    onClick={handleCreate}
+                    className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+                    aria-label="Add organization unavailable"
+                    aria-describedby={organizationCommandNotice ? 'organizations-action-feedback' : undefined}
+                    data-state="unavailable"
+                >
                     <Plus className="h-4 w-4 mr-2" />
                     Board New Org
                 </Button>
@@ -210,12 +201,12 @@ export const OrganizationsPage = () => {
     ), [isAdmin, handleCreate]);
 
     const viewToggleComponent = useMemo(() => (
-        <div className="flex bg-muted/20 p-1 rounded-xl mr-2">
+        <div className="mr-2 flex rounded-button bg-muted/20 p-1">
             <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setViewMode('grid')}
-                className={`h-8 w-8 rounded-lg ${viewMode === 'grid' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+                className={`h-8 w-8 rounded-icon ${viewMode === 'grid' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
             >
                 <LayoutGrid className="h-4 w-4" />
             </Button>
@@ -223,7 +214,7 @@ export const OrganizationsPage = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setViewMode('table')}
-                className={`h-8 w-8 rounded-lg ${viewMode === 'table' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+                className={`h-8 w-8 rounded-icon ${viewMode === 'table' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
             >
                 <TableIcon className="h-4 w-4" />
             </Button>
@@ -234,8 +225,8 @@ export const OrganizationsPage = () => {
 
     const footerContent = useMemo(() => (
             <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
-                    <div className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-zinc-500 animate-pulse' : 'bg-success'}`} />
+                <div className="flex items-center gap-1.5 rounded-pill bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
+                    <div className={`h-1.5 w-1.5 rounded-pill ${loading ? 'bg-zinc-500 animate-pulse' : 'bg-success'}`} />
                     <span>Page {pagination.currentPage} of {pagination.totalPages} - {filteredOrgs.length} Organizations</span>
                 </div>
             </div>
@@ -244,7 +235,7 @@ export const OrganizationsPage = () => {
     usePageFooter(footerContent, 'pagination', !loading && filteredOrgs.length > 0);
 
     /**
-     * NOTE (2026-02-16): Removed initial context panel auto-open to adhere 
+     * NOTE (2026-02-16): Removed initial context panel auto-open to adhere
      * to the 'Alexander UI' principle of 'Reveal Gradually'.
      * The panel now only opens via explicit user interaction.
      */
@@ -255,11 +246,22 @@ export const OrganizationsPage = () => {
         return () => window.removeEventListener('openOrganizationModal', handleOpenAdd);
     }, [handleCreate]);
 
-    const totalWallet = organizations.reduce((acc, curr) => acc + (curr.wallet_balance || 0), 0);
+    const totalWallet = organizationSummary.totalWallet;
 
     if (isMobile) {
         return (
             <div className="min-h-screen">
+                {organizationCommandNotice && (
+                    <p
+                        id="organizations-action-feedback"
+                        className="mx-4 mb-3 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
+                        role="status"
+                        aria-live="polite"
+                    >
+                        {organizationCommandNotice}
+                    </p>
+                )}
+
                 <MobileOrganizations
                     organizations={mobileVisibleOrgs}
                     searchTerm={searchTerm}
@@ -288,14 +290,14 @@ export const OrganizationsPage = () => {
                         if (!open) setSelectedOrg(null);
                     }}
                 >
-                    <DialogContent className="z-[120] w-[calc(100vw-1rem)] sm:max-w-[425px] rounded-[24px] md:rounded-[32px] glass-card shadow-2xl  overflow-hidden max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-y-auto mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))] p-2 md:p-6">
+                    <DialogContent className="z-[120] mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))] max-h-[calc(100dvh-5rem)] w-[calc(100vw-1rem)] overflow-hidden overflow-y-auto rounded-modal glass-card p-2 shadow-2xl sm:max-w-[425px] md:max-h-[90vh] md:p-6">
                         <div className="absolute top-0 left-0 w-full h-1.5 bg-success/20">
                             <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} className="h-full bg-success origin-left" />
                         </div>
 
                         <DialogHeader className="pt-4">
                             <DialogTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
-                                <div className="p-2 bg-success/10 rounded-xl">
+                                <div className="rounded-icon bg-success/10 p-2">
                                     <Building2 className="h-5 w-5 text-success" />
                                 </div>
                                 {selectedOrg?.id ? 'Entity Configuration' : 'Entity Provisioning'}
@@ -308,7 +310,7 @@ export const OrganizationsPage = () => {
                                 <Input
                                     value={selectedOrg?.name || ''}
                                     onChange={(e) => setSelectedOrg({ ...selectedOrg, name: e.target.value })}
-                                    className="rounded-2xl bg-muted/20 border-0 h-12 px-5 font-bold"
+                                    className="h-12 rounded-button bg-muted/20 px-5 font-bold"
                                     placeholder="Enter organization name"
                                     required
                                 />
@@ -319,7 +321,7 @@ export const OrganizationsPage = () => {
                                 <Input
                                     value={selectedOrg?.contact_email || ''}
                                     onChange={(e) => setSelectedOrg({ ...selectedOrg, contact_email: e.target.value })}
-                                    className="rounded-2xl bg-muted/20 border-0 h-12 px-5"
+                                    className="h-12 rounded-button bg-muted/20 px-5"
                                     placeholder="admin@org.com"
                                     type="email"
                                 />
@@ -333,17 +335,17 @@ export const OrganizationsPage = () => {
                                         step="0.01"
                                         value={selectedOrg?.ivisit_fee_percentage || ''}
                                         onChange={(e) => setSelectedOrg({ ...selectedOrg, ivisit_fee_percentage: e.target.value })}
-                                        className="rounded-2xl bg-muted/20 border-0 h-12 px-5 font-bold"
+                                        className="h-12 rounded-button bg-muted/20 px-5 font-bold"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Lifecycle_State</Label>
-                                    <div className="flex h-12 items-center gap-4 px-5 rounded-2xl bg-muted/20 border-0">
+                                    <div className="flex h-12 items-center gap-4 rounded-button bg-muted/20 px-5">
                                         <input
                                             type="checkbox"
                                             checked={selectedOrg?.is_active || false}
                                             onChange={(e) => setSelectedOrg({ ...selectedOrg, is_active: e.target.checked })}
-                                            className="w-5 h-5 accent-success rounded-[4px]"
+                                            className="h-5 w-5 rounded-icon accent-success"
                                         />
                                         <span className="text-sm font-bold opacity-60">Active Node</span>
                                     </div>
@@ -355,14 +357,14 @@ export const OrganizationsPage = () => {
                                 <Input
                                     value={selectedOrg?.stripe_account_id || ''}
                                     onChange={(e) => setSelectedOrg({ ...selectedOrg, stripe_account_id: e.target.value })}
-                                    className="rounded-2xl bg-muted/20 border-0 h-12 px-5 font-mono text-xs"
+                                    className="h-12 rounded-button bg-muted/20 px-5 font-mono text-xs"
                                     placeholder="acct_..."
                                 />
                             </div>
 
                             <DialogFooter className="gap-3 pt-4">
-                                <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)} className="rounded-2xl font-bold uppercase tracking-widest text-[10px] h-12 px-8">Return</Button>
-                                <Button type="submit" className="rounded-2xl bg-success text-white font-bold uppercase tracking-[0.2em] text-[10px] h-12 px-10 shadow-xl shadow-success/20">
+                                <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)} className="h-12 rounded-button px-8 text-[10px] font-bold uppercase tracking-widest">Return</Button>
+                                <Button type="submit" className="h-12 rounded-button bg-success px-10 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-xl shadow-success/20">
                                     Deploy Config
                                 </Button>
                             </DialogFooter>
@@ -405,21 +407,32 @@ export const OrganizationsPage = () => {
 
     return (
         <div className="min-h-screen py-8">
+            {organizationCommandNotice && (
+                <p
+                    id="organizations-action-feedback"
+                    className="mb-4 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
+                    role="status"
+                    aria-live="polite"
+                >
+                    {organizationCommandNotice}
+                </p>
+            )}
+
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8">
-                <Card className="col-span-1 geo-block glass-card p-6 flex items-center gap-4 border-l-4 border-l-primary/50 relative overflow-hidden group hover-lift transition-all">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-110" />
-                    <div className="p-3 bg-primary/20 rounded-2xl relative z-10">
+                <div className="col-span-1 rounded-card glass-card p-6 flex items-center gap-4 relative overflow-hidden group hover-lift transition-all">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-pill -mr-12 -mt-12 transition-transform group-hover:scale-110" />
+                    <div className="p-3 bg-primary/20 rounded-icon relative z-10">
                         <Building2 className="h-6 w-6 text-primary" />
                     </div>
                     <div className="relative z-10">
                         <p className="text-[10px] font-bold text-primary/60 uppercase tracking-widest">Active Nodes</p>
                         <h3 className="text-2xl font-black">{organizations.filter(o => o.is_active).length}</h3>
                     </div>
-                </Card>
+                </div>
 
-                <Card className="col-span-1 geo-round glass-card p-6 flex items-center gap-4 bg-gradient-to-br from-info/5 to-transparent border-info/20 overflow-hidden hover-lift transition-all shadow-premium">
-                    <div className="p-3 bg-info/20 rounded-full border border-info/30">
+                <div className="col-span-1 rounded-card glass-card p-6 flex items-center gap-4 bg-gradient-to-br from-info/5 to-transparent overflow-hidden hover-lift transition-all shadow-premium">
+                    <div className="p-3 bg-info/20 rounded-icon">
                         <Wallet className="h-6 w-6 text-info" />
                     </div>
                     <div>
@@ -428,26 +441,26 @@ export const OrganizationsPage = () => {
                             ${totalWallet.toLocaleString()}
                         </h3>
                     </div>
-                </Card>
+                </div>
 
-                <Card className="col-span-1 geo-block glass-card p-6 flex items-center gap-4 bg-white/5 border-dashed hover-lift transition-all">
-                    <div className="p-3 bg-white/10 rounded-2xl">
+                <div className="col-span-1 rounded-card glass-card p-6 flex items-center gap-4 bg-white/5 hover-lift transition-all">
+                    <div className="p-3 bg-white/10 rounded-icon">
                         <Globe className="h-6 w-6 text-white/50" />
                     </div>
                     <div>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Regions</p>
                         <h3 className="text-2xl font-black">Global</h3>
                     </div>
-                </Card>
-                <Card className="col-span-1 geo-sharp glass-card-premium p-6 flex flex-col justify-center items-center gap-1 border-t-2 border-t-primary/50 group hover-lift transition-all">
-                    <div className="p-2 bg-primary/10 rounded-full mb-1">
+                </div>
+                <div className="col-span-1 rounded-card glass-card-premium p-6 flex flex-col justify-center items-center gap-1 group hover-lift transition-all">
+                    <div className="p-2 bg-primary/10 rounded-icon mb-1">
                         <DollarSign className="h-4 w-4 text-primary" />
                     </div>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Avg_Fee</p>
                     <h3 className="text-xl font-black">
                         {(organizations.length > 0 ? (organizations.reduce((acc, o) => acc + (parseFloat(o.ivisit_fee_percentage) || 0), 0) / organizations.length) : 0).toFixed(1)}%
                     </h3>
-                </Card>
+                </div>
             </div>
 
             {/* Controls */}
@@ -456,7 +469,7 @@ export const OrganizationsPage = () => {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <input
                         placeholder="Search registry by name, email or ID..."
-                        className="w-full h-12 bg-muted/20 border-0 rounded-2xl pl-12 pr-6 text-xs font-medium focus:ring-2 ring-primary/20 transition-all outline-none"
+                        className="w-full h-12 bg-muted/20 rounded-button pl-12 pr-6 text-xs font-medium transition-all focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)]"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -466,7 +479,7 @@ export const OrganizationsPage = () => {
                         variant="ghost"
                         size="icon"
                         onClick={() => setSearchTerm('')}
-                        className="h-12 w-12 rounded-2xl bg-muted/20"
+                        className="h-12 w-12 rounded-button bg-muted/20"
                         aria-label="Clear search"
                     >
                         <X className="h-5 w-5" />
@@ -479,16 +492,23 @@ export const OrganizationsPage = () => {
                 {loading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {[1, 2, 3, 4, 5, 6].map(i => (
-                            <Skeleton key={i} className="h-64 rounded-[32px] bg-muted/20" />
+                            <Skeleton key={i} className="h-64 rounded-card bg-muted/20" />
                         ))}
                     </div>
                 ) : filteredOrgs.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 bg-muted/5 rounded-[40px] border border-dashed border-muted/20 text-center">
+                    <div className="flex flex-col items-center justify-center rounded-card bg-muted/5 py-20 text-center">
                         <Building2 className="h-12 w-12 text-muted-foreground/20 mb-4" />
                         <h4 className="text-lg font-bold text-muted-foreground">Registry Empty</h4>
                         <p className="text-sm text-muted-foreground/60 mb-6">No organizations match your current criteria.</p>
                         {isAdmin() && (
-                            <Button variant="outline" onClick={handleCreate} className="rounded-2xl px-8 uppercase tracking-widest text-[10px] font-bold">
+                            <Button
+                                variant="outline"
+                                onClick={handleCreate}
+                                className="rounded-button px-8 text-[10px] font-bold uppercase tracking-widest"
+                                aria-label="Add organization unavailable"
+                                aria-describedby={organizationCommandNotice ? 'organizations-action-feedback' : undefined}
+                                data-state="unavailable"
+                            >
                                 Onboard New Partner
                             </Button>
                         )}
@@ -531,14 +551,14 @@ export const OrganizationsPage = () => {
                     if (!open) setSelectedOrg(null);
                 }}
             >
-                <DialogContent className="z-[120] w-[calc(100vw-1rem)] sm:max-w-[425px] rounded-[24px] md:rounded-[32px] glass-card shadow-2xl  overflow-hidden max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-y-auto mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))] p-2 md:p-6">
+                <DialogContent className="z-[120] mt-[max(0.75rem,env(safe-area-inset-top))] mb-[max(0.75rem,env(safe-area-inset-bottom))] max-h-[calc(100dvh-5rem)] w-[calc(100vw-1rem)] overflow-hidden overflow-y-auto rounded-modal glass-card p-2 shadow-2xl sm:max-w-[425px] md:max-h-[90vh] md:p-6">
                     <div className="absolute top-0 left-0 w-full h-1.5 bg-success/20">
                         <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} className="h-full bg-success origin-left" />
                     </div>
 
                     <DialogHeader className="pt-4">
                         <DialogTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
-                            <div className="p-2 bg-success/10 rounded-xl">
+                            <div className="rounded-icon bg-success/10 p-2">
                                 <Building2 className="h-5 w-5 text-success" />
                             </div>
                             {selectedOrg?.id ? 'Entity Configuration' : 'Entity Provisioning'}
@@ -551,7 +571,7 @@ export const OrganizationsPage = () => {
                             <Input
                                 value={selectedOrg?.name || ''}
                                 onChange={(e) => setSelectedOrg({ ...selectedOrg, name: e.target.value })}
-                                className="rounded-2xl bg-muted/20 border-0 h-12 px-5 font-bold"
+                                className="h-12 rounded-button bg-muted/20 px-5 font-bold"
                                 placeholder="Enter organization name"
                                 required
                             />
@@ -562,7 +582,7 @@ export const OrganizationsPage = () => {
                             <Input
                                 value={selectedOrg?.contact_email || ''}
                                 onChange={(e) => setSelectedOrg({ ...selectedOrg, contact_email: e.target.value })}
-                                className="rounded-2xl bg-muted/20 border-0 h-12 px-5"
+                                className="h-12 rounded-button bg-muted/20 px-5"
                                 placeholder="admin@org.com"
                                 type="email"
                             />
@@ -576,17 +596,17 @@ export const OrganizationsPage = () => {
                                     step="0.01"
                                     value={selectedOrg?.ivisit_fee_percentage || ''}
                                     onChange={(e) => setSelectedOrg({ ...selectedOrg, ivisit_fee_percentage: e.target.value })}
-                                    className="rounded-2xl bg-muted/20 border-0 h-12 px-5 font-bold"
+                                    className="h-12 rounded-button bg-muted/20 px-5 font-bold"
                                 />
                             </div>
                             <div className="space-y-1.5">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-50">Lifecycle_State</Label>
-                                <div className="flex h-12 items-center gap-4 px-5 rounded-2xl bg-muted/20 border-0">
+                                <div className="flex h-12 items-center gap-4 rounded-button bg-muted/20 px-5">
                                     <input
                                         type="checkbox"
                                         checked={selectedOrg?.is_active || false}
                                         onChange={(e) => setSelectedOrg({ ...selectedOrg, is_active: e.target.checked })}
-                                        className="w-5 h-5 accent-success rounded-[4px]"
+                                        className="h-5 w-5 rounded-icon accent-success"
                                     />
                                     <span className="text-sm font-bold opacity-60">Active Node</span>
                                 </div>
@@ -598,15 +618,15 @@ export const OrganizationsPage = () => {
                             <Input
                                 value={selectedOrg?.stripe_account_id || ''}
                                 onChange={(e) => setSelectedOrg({ ...selectedOrg, stripe_account_id: e.target.value })}
-                                className="rounded-2xl bg-muted/20 border-0 h-12 px-5 font-mono text-xs"
+                                className="h-12 rounded-button bg-muted/20 px-5 font-mono text-xs"
                                 placeholder="acct_..."
                             />
                             <p className="text-[10px] opacity-40 italic ml-4">Authorized for automated secure payouts.</p>
                         </div>
 
                         <DialogFooter className="gap-3 pt-4">
-                            <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)} className="rounded-2xl font-bold uppercase tracking-widest text-[10px] h-12 px-8">Return</Button>
-                            <Button type="submit" className="rounded-2xl bg-success text-white font-bold uppercase tracking-[0.2em] text-[10px] h-12 px-10 shadow-xl shadow-success/20">
+                            <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)} className="h-12 rounded-button px-8 text-[10px] font-bold uppercase tracking-widest">Return</Button>
+                            <Button type="submit" className="h-12 rounded-button bg-success px-10 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-xl shadow-success/20">
                                 Deploy Config
                             </Button>
                         </DialogFooter>
@@ -652,28 +672,12 @@ export const OrganizationsPage = () => {
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => {
-                            setConfirmationModal({
-                                isOpen: true,
-                                title: 'Delete Selected Organizations',
-                                description: `Are you sure you want to delete ${selectedIds.length} organizations? This action cannot be undone.`,
-                                onConfirm: async () => {
-                                    try {
-                                        await Promise.all(selectedIds.map((id) => deleteOrganization(id)));
-                                        toast.success(`${selectedIds.length} organizations deleted`);
-                                        setSelectedIds([]);
-                                        fetchOrganizations();
-                                        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-                                    } catch (error) {
-                                        handleApiError(error, 'delete');
-                                    }
-                                },
-                                variant: 'destructive',
-                                confirmLabel: 'Delete All'
-                            });
-                        }}
-                        className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
+                        onClick={handleBulkDelete}
+                        className="h-10 w-10 rounded-button bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
                         title="Delete Selected"
+                        aria-label="Delete organizations unavailable"
+                        aria-describedby={organizationCommandNotice ? 'organizations-action-feedback' : undefined}
+                        data-state="unavailable"
                     >
                         <Trash2 className="h-5 w-5" />
                     </Button>

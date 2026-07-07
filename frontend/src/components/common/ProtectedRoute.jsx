@@ -4,9 +4,9 @@ import { useAuth } from "../../contexts/AuthContext";
 import { DynamicAuthSkeleton } from "../ui/skeleton";
 import { motion } from "framer-motion";
 import { Button } from "../ui/button";
-import { LogOut } from "lucide-react";
-import { NAV_CONFIG, getAccessibleNav } from "../../config/navigation";
-import { ROLE_LEVELS } from "../../config/navigation";
+import { Loader2, LockKeyhole, LogOut } from "lucide-react";
+import { getAccessibleNav } from "../../config/navigation";
+import { toast } from "sonner";
 
 export const ProtectedRoute = ({
 	children,
@@ -15,7 +15,7 @@ export const ProtectedRoute = ({
 	resource = null,
 	path = null,
 }) => {
-	const { user, profile, loading, hasRole, hasMinRole, can, isOnboarding } = useAuth();
+	const { user, profile, authError, loading, hasRole, hasMinRole, can, isOnboarding } = useAuth();
 	const location = useLocation();
 	const normalizePath = (value) => {
 		if (!value) return "/";
@@ -36,6 +36,9 @@ export const ProtectedRoute = ({
 	// Wait for profile to be fetched before checking access
 	// This prevents race condition where user is redirected before profile loads
 	if (!profile) {
+		if (authError) {
+			return <Navigate to="/unauthorized" state={{ reason: authError.type, from: location }} replace />;
+		}
 		return <DynamicAuthSkeleton pathname={currentPath} />;
 	}
 
@@ -86,7 +89,7 @@ function checkPathAccess(path, accessibleNav) {
 	const mainItem = accessibleNav.main?.find(item => normalizePath(item.path) === normalizedPath);
 	if (mainItem) return true;
 
-	// Check operations items
+	// Check care items
 	const opsItem = accessibleNav.ops?.items?.find(item => normalizePath(item.path) === normalizedPath);
 	if (opsItem) return true;
 
@@ -112,50 +115,68 @@ function checkPathAccess(path, accessibleNav) {
 export const UnauthorizedPage = () => {
 	const { profile, signOut } = useAuth();
 	const navigate = useNavigate();
+	const location = useLocation();
+	const reason = location.state?.reason;
+	const missingProfile = reason === 'profile_missing' || reason === 'profile_unavailable' || reason === 'session_unavailable';
+	const [pendingAction, setPendingAction] = React.useState(null);
+
+	const handleBack = () => {
+		setPendingAction('back');
+		navigate(-1);
+	};
+
+	const handleToday = () => {
+		setPendingAction('today');
+		navigate("/");
+	};
+
+	const handleSignOut = async () => {
+		if (pendingAction) return;
+		setPendingAction('signout');
+		try {
+			await signOut();
+			navigate("/login");
+		} catch (error) {
+			console.error('Sign out failed:', error);
+			toast.error('Could not sign out. Try again.');
+			setPendingAction(null);
+		}
+	};
 
 	return (
 		<div className="min-h-screen bg-background flex items-center justify-center p-4">
-			{/* Background Elements */}
-			<div className="fixed inset-0 overflow-hidden pointer-events-none">
-				<div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-destructive/5 rounded-full blur-[120px]" />
-				<div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-warning/5 rounded-full blur-[100px]" />
-			</div>
-
 			<motion.div
 				initial={{ opacity: 0, scale: 0.95 }}
 				animate={{ opacity: 1, scale: 1 }}
 				transition={{ duration: 0.4 }}
 				className="relative z-10 w-full max-w-lg"
 			>
-				<div className="squircle-2xl bg-background/50 backdrop-blur-xs shadow-2xl p-8 text-center border-0 overflow-hidden relative">
-					{/* Decorative Top Bar */}
-					<div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-destructive/50 via-warning/50 to-destructive/50" />
-
-					{/* Icon */}
+				<div className="squircle-2xl bg-background/50 backdrop-blur-xs shadow-2xl p-8 text-center overflow-hidden relative">
 					<div className="w-24 h-24 squircle-xl bg-destructive/10 flex items-center justify-center mx-auto mb-6 shadow-inner">
 						<motion.div
 							initial={{ rotate: -10, scale: 0.8 }}
 							animate={{ rotate: 0, scale: 1 }}
 							transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
 						>
-							<span className="text-5xl drop-shadow-md">⛔</span>
+							<LockKeyhole className="h-10 w-10 text-destructive" />
 						</motion.div>
 					</div>
 
 					<h1 className="text-3xl font-bold tracking-tighter mb-2">
-						Access Restricted
+						{missingProfile ? 'Account not ready' : 'You do not have access'}
 					</h1>
 					<p className="text-muted-foreground font-normal mb-8">
-						Your clearance level ({profile?.role || "Guest"}) does not grant
-						access to this secure area.
+						{missingProfile
+							? 'Your console profile is not ready yet.'
+							: `Your current role (${profile?.role || "Guest"}) cannot open this page.`}
 					</p>
 
 					{/* User Badge */}
 					{profile && (
-						<div className="squircle-lg bg-muted/30 p-4 mb-8 flex items-center justify-between border border-white/5">
+						<div className="squircle-lg bg-muted/30 p-4 mb-8 flex items-center justify-between">
 							<div className="text-left">
 								<p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-									Current Identity
+									Current role
 								</p>
 								<p className="font-semibold text-sm truncate max-w-[150px]">
 									{profile.email}
@@ -177,27 +198,29 @@ export const UnauthorizedPage = () => {
 					{/* Actions */}
 					<div className="space-y-3">
 						<button
-							onClick={() => navigate(-1)}
+							onClick={handleBack}
+							disabled={Boolean(pendingAction)}
 							className="w-full h-12 squircle-lg bg-muted/50 hover:bg-muted text-foreground font-semibold transition-colors"
 						>
-							Go Back
+							{pendingAction === 'back' ? 'Opening previous page...' : 'Go back'}
 						</button>
-						<div className="flex flex-fow w-full gap-2 justify-center items-center">
+						<div className="flex flex-row w-full gap-2 justify-center items-center">
 							<button
-								onClick={() => navigate("/")}
+								onClick={handleToday}
+								disabled={Boolean(pendingAction)}
 								className="w-full h-12 squircle-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow transition-all hover:scale-[1.02] active:scale-[0.98]"
 							>
-								Return to Dashboard
+								{pendingAction === 'today' ? 'Opening Today...' : 'Go to Today'}
 							</button>
 							<Button
-								onClick={() => {
-									signOut();
-									navigate("/login");
-								}}
+								aria-label="Sign out"
+								aria-busy={pendingAction === 'signout'}
+								disabled={Boolean(pendingAction)}
+								onClick={handleSignOut}
 								variant="ghost"
 								className="flex rounded-full bg-primary/50 h-12"
 							>
-								<LogOut />
+								{pendingAction === 'signout' ? <Loader2 className="animate-spin" /> : <LogOut />}
 							</Button>
 						</div>
 					</div>

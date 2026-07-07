@@ -7,12 +7,11 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
 import { handleApiError } from "../../utils/errorHandler";
-import { Hospital, MapPin, Phone, Bed, Ambulance, Star, Clock, Activity, User, UserCheck, AlertCircle } from 'lucide-react';
+import { Hospital, MapPin, Phone, Bed, Ambulance, Star, Clock, Activity, User } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import { AnimatePresence, motion } from 'framer-motion';
 
-import { uploadImage } from '../../services/storageService';
-import { Loader2, Upload } from 'lucide-react';
-import hospitalImportService from '../../services/hospitalImportService';
+import { Loader2 } from 'lucide-react';
 import { bedManagementService } from '../../services/bedManagementService';
 
 const DEFAULT_HOSPITAL_FORM = {
@@ -87,6 +86,9 @@ const buildInitialFormData = (hospital) => {
   };
 };
 
+const modalFieldClassName = 'rounded-button bg-muted/30 shadow-[0_14px_34px_rgb(0_0_0/0.06)] transition-[background,box-shadow] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:bg-background/80 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16),0_18px_38px_rgb(0_0_0/0.10)] dark:bg-white/[0.06] dark:focus-visible:bg-white/[0.09]';
+const modalSelectContentClassName = 'rounded-inner bg-background/95 shadow-xl backdrop-blur-xl';
+
 export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
@@ -99,7 +101,6 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   const [loadingReservations, setLoadingReservations] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [showImage, setShowImage] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -119,26 +120,6 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
   const bedUtilizationPercent = totalBeds > 0
     ? Math.min(Math.round(((totalBeds - availableBeds) / totalBeds) * 100), 100)
     : 0;
-
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      setUploading(true);
-      const publicUrl = await uploadImage(file, 'hospitals');
-      setFormData(prev => ({
-        ...prev,
-        image: publicUrl
-      }));
-      toast.success('Image uploaded successfully');
-    } catch (error) {
-      console.error('Upload failed:', error);
-      handleApiError(error, 'create');
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleGoogleSearch = async (query) => {
     if (!query || query.length < 3) {
@@ -323,7 +304,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
       subtitle={formData.type}
       icon={<Hospital className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />}
       badge={
-        <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs uppercase tracking-wider ${formData.status === 'available' ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
+        <Badge className={`rounded-pill font-semibold px-3 py-0.5 text-xs uppercase tracking-wider ${formData.status === 'available' ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}`}>
           {formData.status || 'AVAILABLE'}
         </Badge>
       }
@@ -331,7 +312,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
       managed
     >
       <div className="p-2 md:p-8 pt-2 overflow-y-auto space-y-6 no-scrollbar flex-1 min-h-0">
-              <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* --- GOOGLE AUTOFILL SECTION --- */}
                 {isCreate && (
@@ -343,7 +324,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           <Input
                             id="googleSearch"
                             placeholder="Search for a hospital (e.g. Mayo Clinic)..."
-                            className="rounded-2xl bg-white/5 border-white/10 h-12 pl-10"
+                            className={`${modalFieldClassName} h-12 pl-10`}
                             onChange={handleSearchChange}
                           />
                           <div className="absolute left-3 top-1/2 -translate-y-1/2">
@@ -358,16 +339,16 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
 
                       {/* Search Results Dropdown */}
                       {showSearchResults && (
-                        <div className="absolute z-50 w-full bg-background/95 backdrop-blur-xl  rounded-2xl shadow-xl max-h-64 overflow-y-auto mt-2">
+                        <div className="absolute z-50 w-full bg-background/95 backdrop-blur-xl  rounded-inner shadow-xl max-h-64 overflow-y-auto mt-2">
                           {searchResults.length > 0 ? (
                             searchResults.map((hospital, index) => (
                               <div
                                 key={hospital.place_id || index}
-                                className="p-3 hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-b-0 transition-colors"
+                                className="p-3 hover:bg-white/10 cursor-pointer transition-colors rounded-inner"
                                 onClick={() => handleSelectHospital(hospital)}
                               >
                                 <div className="flex items-start gap-3">
-                                  <div className="p-2 bg-primary/10 rounded-lg">
+                                  <div className="p-2 bg-primary/10 rounded-icon">
                                     <Hospital className="w-4 h-4 text-primary" />
                                   </div>
                                   <div className="flex-1 min-w-0">
@@ -409,7 +390,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         value={formData.name}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-11 md:h-12 font-semibold text-base md:text-lg"
+                        className={`${modalFieldClassName} h-11 md:h-12 font-semibold text-base md:text-lg`}
                         placeholder="General Hospital..."
                       />
                     </div>
@@ -421,10 +402,10 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-normal">
+                        <SelectTrigger className={`${modalFieldClassName} h-12 font-normal`}>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-white/10 shadow-xl bg-background/95 backdrop-blur-xl">
+                        <SelectContent className={modalSelectContentClassName}>
                           <SelectItem value="premium">Premium</SelectItem>
                           <SelectItem value="standard">Standard</SelectItem>
                           <SelectItem value="basic">Basic</SelectItem>
@@ -440,7 +421,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         value={formData.emergency_level}
                         onChange={handleChange}
                         disabled={isView}
-                        className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-normal"
+                        className={`${modalFieldClassName} h-12 font-normal`}
                         placeholder="Level 1 Trauma..."
                       />
                     </div>
@@ -453,7 +434,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                       value={formData.price_range}
                       onChange={handleChange}
                       disabled={isView}
-                      className="rounded-2xl bg-white/5 border-white/10 font-normal"
+                      className={`${modalFieldClassName} font-normal`}
                       placeholder="e.g. $150"
                     />
                   </div>
@@ -468,7 +449,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         value={Array.isArray(formData.specialties) ? formData.specialties.join(', ') : formData.specialties || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, specialties: e.target.value.split(',').map(s => s.trim()) }))}
                         disabled={isView}
-                        className="rounded-2xl bg-white/5 border-white/10 font-normal"
+                        className={`${modalFieldClassName} font-normal`}
                         placeholder="General Care, Surgery..."
                       />
                     </div>
@@ -480,7 +461,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         value={Array.isArray(formData.features) ? formData.features.join(', ') : formData.features || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, features: e.target.value.split(',').map(s => s.trim()) }))}
                         disabled={isView}
-                        className="rounded-2xl bg-white/5 border-white/10 font-normal"
+                        className={`${modalFieldClassName} font-normal`}
                         placeholder="Lab, Helipad..."
                       />
                     </div>
@@ -500,7 +481,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.total_beds || 0}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
+                          className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
                         />
                       </div>
                     </div>
@@ -514,7 +495,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.available_beds}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
+                          className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
                         />
                       </div>
                     </div>
@@ -528,7 +509,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.icu_beds_available || 0}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
+                          className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
                         />
                       </div>
                     </div>
@@ -540,7 +521,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           type="number"
                           value={reservedBedsDisplay}
                           disabled
-                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
+                          className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
                         />
                       </div>
                     </div>
@@ -554,7 +535,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.ambulances_count}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
+                          className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
                         />
                       </div>
                     </div>
@@ -568,7 +549,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.emergency_wait_time_minutes || 0}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 h-10 pl-9 font-semibold"
+                          className={`${modalFieldClassName} h-10 pl-9 font-semibold`}
                         />
                       </div>
                     </div>
@@ -580,16 +561,16 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                   
                   {/* Bed Utilization Indicator */}
                   {(formData.total_beds || 0) > 0 && (
-                    <div className="mt-4 p-3 bg-white/5 rounded-xl ">
+                    <div className="mt-4 p-3 bg-white/5 rounded-inner ">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-semibold text-muted-foreground uppercase">Bed Utilization</span>
                         <span className="text-xs font-bold">
                           {bedUtilizationPercent}%
                         </span>
                       </div>
-                      <div className="w-full bg-white/10 rounded-full h-2">
+                        <div className="w-full bg-white/10 rounded-pill h-2">
                         <div 
-                          className="h-2 rounded-full bg-gradient-to-r from-green-500 via-orange-500 to-red-500"
+                            className="h-2 rounded-pill bg-gradient-to-r from-green-500 via-orange-500 to-red-500"
                           style={{ width: `${bedUtilizationPercent}%` }}
                         />
                       </div>
@@ -608,7 +589,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           <Bed className="h-4 w-4 text-primary" />
                           <span className="text-xs font-semibold text-muted-foreground uppercase">Active Reservations</span>
                         </div>
-                        <Badge className="bg-primary/20 text-primary border-0 text-xs">
+                        <Badge className="bg-primary/20 text-primary text-xs">
                           {activeReservations.length} active
                         </Badge>
                       </div>
@@ -616,7 +597,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                       {loadingReservations ? (
                         <div className="space-y-2">
                           {[1, 2].map((i) => (
-                            <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse" />
+                        <div key={i} className="h-16 bg-white/5 rounded-inner animate-pulse" />
                           ))}
                         </div>
                       ) : activeReservations.length === 0 ? (
@@ -626,7 +607,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                       ) : (
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                           {activeReservations.map((reservation) => (
-                            <div key={reservation.id} className="p-3 bg-white/5 rounded-xl ">
+                        <div key={reservation.id} className="p-3 bg-white/5 rounded-inner ">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
@@ -638,7 +619,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                                       reservation.status === 'in_progress' ? 'bg-orange-500/20 text-orange-500' :
                                       reservation.status === 'accepted' ? 'bg-blue-500/20 text-blue-500' :
                                       'bg-green-500/20 text-green-500'
-                                    } border-0`}>
+                                    }`}>
                                       {reservation.status_display}
                                     </Badge>
                                   </div>
@@ -654,37 +635,10 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                                   </div>
                                 </div>
                                 
-                                <div className="flex gap-1 ml-2">
-                                  {reservation.status === 'in_progress' && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => bedManagementService.cancelReservation(reservation.id)}
-                                      className="h-7 px-2 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10"
-                                    >
-                                      Cancel
-                                    </Button>
-                                  )}
-                                  {reservation.status === 'accepted' && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => bedManagementService.updateReservationStatus(reservation.id, 'arrived')}
-                                      className="h-7 px-2 text-xs"
-                                    >
-                                      Arrived
-                                    </Button>
-                                  )}
-                                  {reservation.status === 'arrived' && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => bedManagementService.dischargePatient(reservation.id)}
-                                      className="h-7 px-2 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
-                                    >
-                                      Discharge
-                                    </Button>
-                                  )}
+                                <div className="ml-2 shrink-0">
+                                  <span className="rounded-pill bg-white/5 px-2 py-1 text-[10px] font-medium text-muted-foreground">
+                                    Manage in Requests
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -708,7 +662,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.address}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[80px] pl-10 pt-3 font-normal resize-none"
+                          className={`${modalFieldClassName} min-h-[80px] pl-10 pt-3 font-normal resize-none`}
                         />
                       </div>
                     </div>
@@ -722,7 +676,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                           value={formData.phone}
                           onChange={handleChange}
                           disabled={isView}
-                          className="rounded-2xl bg-white/5 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 pl-10 font-mono"
+                          className={`${modalFieldClassName} h-12 pl-10 font-mono`}
                         />
                       </div>
                     </div>
@@ -733,10 +687,10 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
                         disabled={isView}
                       >
-                        <SelectTrigger className="rounded-2xl bg-white/5 border-white/10 h-12 font-normal">
+                        <SelectTrigger className={`${modalFieldClassName} h-12 font-normal`}>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-white/10 shadow-xl bg-background/95 backdrop-blur-xl">
+                        <SelectContent className={modalSelectContentClassName}>
                           <SelectItem value="available">Available</SelectItem>
                           <SelectItem value="busy">Busy</SelectItem>
                           <SelectItem value="closed">Closed</SelectItem>
@@ -749,7 +703,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                 {/* Additional Settings */}
                 <GlassCard icon={<Activity />} title="System & Verification">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div className="flex items-center gap-3 p-4 bg-white/5 rounded-inner shadow-[0_12px_28px_rgb(0_0_0/0.05)]">
                       <input
                         type="checkbox"
                         id="verified"
@@ -757,7 +711,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                         checked={formData.verified}
                         onChange={handleChange}
                         disabled={isView}
-                        className="w-5 h-5 rounded-md accent-primary"
+                        className="w-5 h-5 rounded-icon accent-primary"
                       />
                       <Label htmlFor="verified" className="text-sm font-medium cursor-pointer">
                         Verified Partner
@@ -787,7 +741,7 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                             initial={{ opacity: 0, height: 0, marginBottom: 0 }}
                             animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
                             exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                            className="rounded-xl overflow-hidden  relative bg-black/20"
+                            className="rounded-icon overflow-hidden  relative bg-black/20"
                           >
                             <img
                               src={formData.image}
@@ -807,26 +761,9 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                             name="image"
                             value={formData.image || ''}
                             onChange={handleChange}
-                            disabled={uploading}
-                            className="rounded-2xl bg-white/5 border-white/10 font-normal flex-1"
+                            className={`${modalFieldClassName} font-normal flex-1`}
                             placeholder="https://..."
                           />
-                          <div className="relative">
-                            <input
-                              type="file"
-                              id="image-upload"
-                              className="hidden"
-                              accept="image/*"
-                              onChange={handleImageUpload}
-                              disabled={uploading}
-                            />
-                            <Label
-                              htmlFor="image-upload"
-                              className={`h-10 px-4 flex items-center justify-center rounded-xl  bg-white/5 hover:bg-white/10 cursor-pointer transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
-                            >
-                              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                            </Label>
-                          </div>
                         </div>
                       ) : (
                         // View Mode Fallback if image is missing or just to show url text optionally? 
@@ -842,21 +779,21 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                 </GlassCard>
 
                 {/* Footer Actions */}
-                <div className="p-3 md:p-4 rounded-[24px] bg-white/5  flex gap-3 justify-end">
+                <div className="p-3 md:p-4 rounded-inner bg-white/5  flex gap-3 justify-end">
                   {!isView ? (
                     <>
                       <Button
                         type="button"
                         variant="ghost"
                         onClick={() => onClose(false)}
-                        className="rounded-2xl h-11 md:h-12 font-semibold text-muted-foreground hover:bg-white/10"
+                        className="rounded-button h-11 md:h-12 font-semibold text-muted-foreground hover:bg-white/10"
                         disabled={loading}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
-                        className="rounded-2xl h-11 md:h-12 bg-primary hover:bg-primary/90 font-semibold px-6 md:px-8 shadow-lg shadow-primary/20"
+                        className="rounded-button h-11 md:h-12 bg-primary hover:bg-primary/90 font-semibold px-6 md:px-8 shadow-lg shadow-primary/20"
                         disabled={loading}
                       >
                         {loading ? 'Saving...' : (isCreate ? 'Add Facility' : 'Save Changes')}
@@ -866,23 +803,23 @@ export const HospitalModal = ({ isOpen, onClose, hospital, mode, onSave }) => {
                     <Button
                       type="button"
                       onClick={() => onClose(false)}
-                      className="rounded-2xl h-11 md:h-12 bg-white/10 text-foreground hover:bg-white/20 font-semibold px-6 md:px-8"
+                      className="rounded-button h-11 md:h-12 bg-white/10 text-foreground hover:bg-white/20 font-semibold px-6 md:px-8"
                     >
                       Close
                     </Button>
                   )}
                 </div>
-              </form>
-            </div>
+        </form>
+      </div>
     </ModalShell>
   );
 };
 
 /* Sub-components */
 const GlassCard = ({ children, title, icon }) => (
-  <div className="p-4 sm:p-6 rounded-[28px] bg-white/5  ">
+  <div className="p-4 sm:p-6 rounded-card bg-white/5  ">
     <div className="flex items-center gap-3 mb-4 sm:mb-6">
-      <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
+      <div className="p-1.5 sm:p-2 bg-white/5 rounded-icon">
         {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5 text-primary' })}
       </div>
       <h3 className="font-semibold tracking-tight text-sm sm:text-base">{title}</h3>

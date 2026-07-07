@@ -4,7 +4,6 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePageData } from '../../contexts/PageDataContext';
 import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
-import { useSubscription } from '../../hooks/useSubscription';
 import { Button } from '../ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Card } from '../ui/card';
@@ -37,10 +36,12 @@ import { motion, LayoutGroup } from 'framer-motion';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { SEOHead } from '../common/SEOHead';
 import { getWalletSummary } from '../../services/walletService';
+import { getSubscriptionAnalytics } from '../../services/subscriptionService';
 import { Wallet, TrendingDown as TrendingDownIcon } from 'lucide-react';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { MobileDashboard } from '../mobile/MobileDashboard';
 import { MobileDashboardSkeleton } from '../mobile/MobileSkeleton';
+import { TodayHome } from './TodayHome';
 // Remove incorrect StandardMap import
 
 // Responsive Grid Hook or similar logic can be added here if needed, 
@@ -435,8 +436,6 @@ export const BentoHome = () => {
 
   const { isMobile } = useBreakpoint();
 
-  // Use subscription hook for real data
-  const { fetchAnalytics: fetchSubscriptionAnalytics } = useSubscription();
   const [subscriptionStats, setSubscriptionStats] = useState({
     total: 0,
     active: 0,
@@ -477,8 +476,8 @@ export const BentoHome = () => {
       liveEmergencies: emergencyStats?.active || 0,
       responseTime: analyticsData?.avgResponseTime != null ? Math.round(analyticsData.avgResponseTime * 10) / 10 : null,
       activeProviders: doctorsStats?.totalDoctors || 0,
-      todayRequests: todayRequests, // ✅ Shows actual today's count
-      yesterdayRequests: yesterdayRequests, // ✅ For comparison
+      todayRequests: todayRequests, // Shows actual today's count
+      yesterdayRequests: yesterdayRequests, // For comparison
       totalUsers: userData?.statistics?.totalUsers || 0, // Fixed: Use actual user count from profiles table
       completionRate: analyticsData?.completionRate ?? null,
       availableAmbulances: analyticsData?.availableAmbulances ?? null,
@@ -497,7 +496,7 @@ export const BentoHome = () => {
 
   // Debug: Log real data to console (commented out for performance)
   // useEffect(() => {
-  //   console.log('🔍 Dashboard Real Data Check:', {
+  //   console.log('Dashboard Real Data Check:', {
   //     emergencyStats,
   //     analyticsData,
   //     doctorsStats,
@@ -510,6 +509,36 @@ export const BentoHome = () => {
   // Transform activity data for display
   const recentActivities = transformActivityData(activityData || []).slice(0, 5);
 
+  const roleHomeKind = isOrgAdmin() && !isAdmin()
+    ? 'org_admin'
+    : isProvider() && !isAdmin() && !isOrgAdmin() && !isSponsor() && !isPatient() && !isViewer()
+      ? 'provider'
+      : isSponsor() && !isAdmin() && !isOrgAdmin()
+        ? 'sponsor'
+        : isViewer()
+          ? 'viewer'
+          : isAdmin()
+            ? 'admin'
+            : null;
+
+  const roleHomeLabels = {
+    admin: 'Platform admin',
+    org_admin: 'Hospital admin',
+    provider: 'Care provider',
+    sponsor: 'Sponsor',
+    viewer: 'Viewer',
+  };
+
+  const isTodayShell = Boolean(roleHomeKind) || (isMobile && isPatient());
+  const shouldLoadSubscriptionStats = !roleHomeKind || (isMobile && isPatient());
+
+  const todayHeaderAction = React.useMemo(() => (
+    roleHomeKind ? (
+      <span className="hidden md:inline-flex items-center rounded-full bg-card/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        {roleHomeLabels[roleHomeKind]}
+      </span>
+    ) : null
+  ), [roleHomeKind]);
 
   const headerActions = React.useMemo(() => (
     <Button
@@ -525,17 +554,34 @@ export const BentoHome = () => {
 
   // Fetch subscription analytics
   useEffect(() => {
+    if (!shouldLoadSubscriptionStats) return undefined;
+
+    let isMounted = true;
+
     const fetchSubscriptionData = async () => {
       try {
-        const data = await fetchSubscriptionAnalytics();
-        setSubscriptionStats(data);
+        const data = await getSubscriptionAnalytics({ quiet: true });
+        if (isMounted) {
+          setSubscriptionStats(data);
+        }
       } catch (error) {
-        console.error('Error fetching subscription stats:', error);
+        if (isMounted) {
+          setSubscriptionStats({
+            total: 0,
+            active: 0,
+            paid: 0,
+            free: 0,
+          });
+        }
       }
     };
 
     fetchSubscriptionData();
-  }, [fetchSubscriptionAnalytics]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [shouldLoadSubscriptionStats]);
 
   // Fetch wallet stats
   useEffect(() => {
@@ -546,17 +592,13 @@ export const BentoHome = () => {
 
   const chartData = [];
 
-  usePageHeader("Overview", headerActions);
+  usePageHeader(isTodayShell ? "Today" : "Overview", isTodayShell ? todayHeaderAction : headerActions);
 
   const footerContent = React.useMemo(() => {
     // Role-based footer content
     if (isAdmin()) {
       return (
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
-            <Activity className="w-3 h-3" />
-            <span>System: Nominal</span>
-          </div>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
             <span>Nodes: {appStats.totalUsers ?? 0} Active</span>
           </div>
@@ -570,10 +612,6 @@ export const BentoHome = () => {
     if (isOrgAdmin()) {
       return (
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
-            <Activity className="w-3 h-3" />
-            <span>Hospital: Operational</span>
-          </div>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
             <span>Staff: {appStats.activeProviders} Active</span>
           </div>
@@ -618,10 +656,6 @@ export const BentoHome = () => {
     if (isSponsor()) {
       return (
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-3 uppercase tracking-widest text-[10px] font-bold text-success">
-            <Activity className="w-3 h-3" />
-            <span>Impact: Active</span>
-          </div>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full surface-2 uppercase tracking-widest text-[10px] font-bold">
             <span>Success: {appStats.completionRate != null ? `${appStats.completionRate}%` : '—'}</span>
           </div>
@@ -646,10 +680,31 @@ export const BentoHome = () => {
     );
   }, [isAdmin, isOrgAdmin, isProvider, isPatient, isSponsor, appStats]);
 
-  usePageFooter(footerContent, 'status');
+  usePageFooter(footerContent, 'status', !isTodayShell);
 
   // Check if any critical data is still loading (after all hooks)
   const isLoading = loading?.emergency || loading?.analytics || loading?.doctors || loading?.visits || loading?.verification;
+
+  // Console roles use the canonical Today surface even while data is settling.
+  if (roleHomeKind === 'org_admin') {
+    return <TodayHome role="org_admin" />;
+  }
+
+  if (roleHomeKind === 'provider') {
+    return <TodayHome role="provider" />;
+  }
+
+  if (roleHomeKind === 'sponsor') {
+    return <TodayHome role="sponsor" />;
+  }
+
+  if (roleHomeKind === 'viewer') {
+    return <TodayHome role="viewer" />;
+  }
+
+  if (roleHomeKind === 'admin') {
+    return <TodayHome role="admin" />;
+  }
 
   // Show role-specific skeleton layout while loading (after all hooks)
   if (isMobile && isLoading) {
@@ -659,7 +714,7 @@ export const BentoHome = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen py-6 md:py-8">
-        <SEOHead title="Dashboard" description="Loading emergency operations dashboard..." />
+        <SEOHead title="Today" description="Loading console home." />
         <div className="pt-2" />
         <LayoutGroup>
           <motion.div
@@ -735,11 +790,11 @@ export const BentoHome = () => {
     );
   }
 
-  // REINVENTED MOBILE EXPERIENCE
-  if (isMobile) {
+  // Mobile patients keep the mobile dashboard; all other roles get the responsive role home below.
+  if (isMobile && isPatient()) {
     return (
       <div className="min-h-screen bg-background text-foreground">
-        <SEOHead title="Dashboard" description="Emergency operations mobile dashboard." />
+        <SEOHead title="Today" description="Mobile home." />
         <MobileDashboard
           appStats={appStats}
           walletStats={walletStats}
@@ -760,7 +815,7 @@ export const BentoHome = () => {
 
   return (
     <div className="min-h-screen py-6 md:py-8">
-      <SEOHead title="Dashboard" description="Overview of emergency operations, fleet status, and medical staff." />
+      <SEOHead title="Today" description="Console home." />
       {/* Header */}
       {/* Layout padding adjustment */}
       <div className="pt-2" />

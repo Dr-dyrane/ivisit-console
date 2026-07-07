@@ -2,6 +2,68 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, RefreshCw, Home, Copy, Check } from 'lucide-react';
 
+const CHUNK_RELOAD_STORAGE_KEY = 'ivisit-console:chunk-load-reload';
+const CHUNK_RELOAD_COOLDOWN_MS = 60000;
+const CHUNK_RELOAD_MARKER_TTL_MS = 30000;
+
+const isHtmlAssetParseFailureMessage = (message) => (
+  /Unexpected token ['"]?</i.test(message) ||
+  /Unexpected token .*?</i.test(message) ||
+  /expected expression, got ['"]?</i.test(message) ||
+  /<!doctype html/i.test(message)
+);
+
+const isChunkLoadError = (error) => {
+  const name = String(error?.name || '');
+  const message = String(error?.message || error || '');
+
+  return (
+    name === 'ChunkLoadError' ||
+    /ChunkLoadError/i.test(message) ||
+    /Loading chunk .+ failed/i.test(message) ||
+    /Loading hot update chunk .+ failed/i.test(message) ||
+    /dynamically imported module/i.test(message) ||
+    /hot-update/i.test(message) ||
+    isHtmlAssetParseFailureMessage(message)
+  );
+};
+
+const isConsoleRuntimeCacheName = (name) => (
+  /ivisit|workbox|precache|webpack|runtime|static/i.test(String(name || ''))
+);
+
+const clearChunkRuntimeCaches = async () => {
+  if (typeof window === 'undefined' || !window.caches?.keys) return;
+
+  try {
+    const keys = await window.caches.keys();
+    await Promise.all(
+      keys
+        .filter(isConsoleRuntimeCacheName)
+        .map((key) => window.caches.delete(key)),
+    );
+  } catch {
+    // Stale chunk recovery should still offer refresh if cache cleanup fails.
+  }
+};
+
+const getChunkReloadKey = () => {
+  if (typeof window === 'undefined') return CHUNK_RELOAD_STORAGE_KEY;
+  return `${CHUNK_RELOAD_STORAGE_KEY}:${window.location.pathname}`;
+};
+
+const getChunkReloadUrl = () => {
+  if (typeof window === 'undefined') return '/';
+
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set('__asset_refresh', String(Date.now()));
+    return url.toString();
+  } catch {
+    return window.location.href;
+  }
+};
+
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -11,6 +73,7 @@ class ErrorBoundary extends React.Component {
       errorInfo: null,
       errorCount: 0,
       copied: false,
+      isChunkLoadError: false,
     };
   }
 
@@ -18,12 +81,42 @@ class ErrorBoundary extends React.Component {
     return { hasError: true };
   }
 
+  componentDidMount() {
+    if (typeof window === 'undefined') return;
+
+    this.clearChunkReloadTimer = window.setTimeout(() => {
+      try {
+        window.sessionStorage.removeItem(getChunkReloadKey());
+      } catch {
+        // Ignore private-mode or storage-denied browsers.
+      }
+    }, CHUNK_RELOAD_MARKER_TTL_MS);
+  }
+
+  componentWillUnmount() {
+    if (this.clearChunkReloadTimer) {
+      clearTimeout(this.clearChunkReloadTimer);
+    }
+  }
+
   componentDidCatch(error, errorInfo) {
+    const chunkLoadError = isChunkLoadError(error);
+
     this.setState(prevState => ({
       error,
       errorInfo,
       errorCount: prevState.errorCount + 1,
+      isChunkLoadError: chunkLoadError,
     }));
+
+    if (chunkLoadError && this.shouldAutoReloadChunk()) {
+      window.setTimeout(() => {
+        void clearChunkRuntimeCaches().finally(() => {
+          window.location.replace(getChunkReloadUrl());
+        });
+      }, 0);
+      return;
+    }
 
     if (process.env.NODE_ENV === 'production') {
       this.sendErrorToMonitoring(error, errorInfo);
@@ -31,6 +124,25 @@ class ErrorBoundary extends React.Component {
       console.error('Error caught by boundary:', error, errorInfo);
     }
   }
+
+  shouldAutoReloadChunk = () => {
+    if (typeof window === 'undefined') return false;
+
+    try {
+      const key = getChunkReloadKey();
+      const previousReloadAt = Number(window.sessionStorage.getItem(key) || 0);
+      const now = Date.now();
+
+      if (previousReloadAt && now - previousReloadAt < CHUNK_RELOAD_COOLDOWN_MS) {
+        return false;
+      }
+
+      window.sessionStorage.setItem(key, String(now));
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   sendErrorToMonitoring = (error, errorInfo) => {
     try {
@@ -54,10 +166,17 @@ class ErrorBoundary extends React.Component {
       hasError: false,
       error: null,
       errorInfo: null,
+      isChunkLoadError: false,
     });
   };
 
   handleReload = () => {
+    void clearChunkRuntimeCaches().finally(() => {
+      window.location.replace(getChunkReloadUrl());
+    });
+  };
+
+  handleGoHome = () => {
     window.location.href = '/';
   };
 
@@ -109,6 +228,14 @@ Metadata:
 
   render() {
     if (this.state.hasError) {
+      const title = this.state.isChunkLoadError ? 'Refresh Needed' : 'Something Went Wrong';
+      const description = this.state.isChunkLoadError
+        ? 'The app updated while this page was loading. Refresh this page to continue.'
+        : 'We apologize for the inconvenience. An unexpected error has occurred.';
+      const PrimaryIcon = this.state.isChunkLoadError ? RefreshCw : Home;
+      const primaryLabel = this.state.isChunkLoadError ? 'Refresh Page' : 'Go Home';
+      const primaryAction = this.state.isChunkLoadError ? this.handleReload : this.handleGoHome;
+
       return (
         <div className="min-h-screen bg-background flex items-center justify-center p-2 md:p-4 overflow-auto">
           <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -163,10 +290,10 @@ Metadata:
 
                 <div>
                   <h1 className="text-4xl font-bold tracking-tighter text-foreground mb-3">
-                    Something Went Wrong
+                    {title}
                   </h1>
                   <p className="text-lg text-muted-foreground font-normal">
-                    We apologize for the inconvenience. An unexpected error has occurred.
+                    {description}
                   </p>
                 </div>
 
@@ -220,11 +347,11 @@ Metadata:
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={this.handleReload}
+                    onClick={primaryAction}
                     className="flex-1 h-12 squircle-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow transition-all flex items-center justify-center gap-2"
                   >
-                    <Home className="w-4 h-4" />
-                    Go Home
+                    <PrimaryIcon className="w-4 h-4" />
+                    {primaryLabel}
                   </motion.button>
                 </div>
               </div>

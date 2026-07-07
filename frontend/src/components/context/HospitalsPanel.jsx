@@ -1,170 +1,268 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
 import {
-  Hospital,
-  AlertTriangle,
-  MapPin,
-  Plus,
+  BarChart3,
+  Bed,
   Filter,
+  Hospital,
+  Loader2,
+  MapPin,
   Phone,
-  BarChart3
+  Plus
 } from 'lucide-react';
 
-export const HospitalsPanel = ({ hospitalsData }) => {
-  const stats = hospitalsData?.stats || { total: 0, available: 0, busy: 0, full: 0 };
-  const recent = hospitalsData?.recent || [];
+const toCount = (value, fallback = 0) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
 
-  const handleCreateHospital = () => {
+const statusTone = {
+  available: {
+    label: 'Available',
+    iconClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+    chipClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+  },
+  busy: {
+    label: 'Busy',
+    iconClass: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+    chipClass: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+  },
+  full: {
+    label: 'Full',
+    iconClass: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+    chipClass: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+  },
+  inactive: {
+    label: 'Inactive',
+    iconClass: 'bg-muted/40 text-muted-foreground',
+    chipClass: 'bg-muted/40 text-muted-foreground',
+  },
+};
+
+const getStatusTone = (status) => statusTone[status] || statusTone.available;
+
+const getFacilityTitle = (hospital) => (
+  hospital?.name ||
+  hospital?.facility_name ||
+  (hospital?.id ? `Facility ${String(hospital.id).slice(0, 4)}` : 'Facility record')
+);
+
+const getFacilityLocation = (hospital) => (
+  hospital?.city ||
+  hospital?.address ||
+  hospital?.state ||
+  'Location not set'
+);
+
+export const HospitalsPanel = ({ hospitalContext }) => {
+  const context = hospitalContext || {};
+  const stats = context.stats || {};
+  const recent = Array.isArray(context.recent) ? context.recent : [];
+  const total = toCount(stats.total ?? context.count, recent.length);
+  const available = toCount(stats.available, 0);
+  const full = toCount(stats.full, 0);
+  const loading = Boolean(context.loading);
+  const [panelNotice, setPanelNotice] = React.useState('Facility actions ready.');
+
+  const handleAddFacility = () => {
+    setPanelNotice('Add facility is unavailable.');
     window.dispatchEvent(new CustomEvent('openHospitalModal'));
   };
 
-  const handleAnalytics = () => {
+  const handleOpenAnalytics = () => {
+    setPanelNotice('Opening facility statistics.');
     window.dispatchEvent(new CustomEvent('openAnalyticsModal'));
   };
 
+  const handleOpenFilters = () => {
+    setPanelNotice('Opening filters.');
+    window.dispatchEvent(new CustomEvent('openFilters'));
+  };
+
+  const handleContact = () => {
+    setPanelNotice('Contact is unavailable.');
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Capacity Overview */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+    <div className="space-y-3">
+      <motion.section
+        initial={{ opacity: 0, scale: 0.97 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.22 }}
         className="space-y-3"
+        aria-label="Facilities overview"
       >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Network Status</h3>
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Facilities overview
+        </p>
 
-        <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 geo-round bg-success/20 flex items-center justify-center">
-                <Hospital className="h-5 w-5 text-success" />
-              </div>
-              <span className="font-bold tracking-tight">Active</span>
+        <div className="rounded-[28px] bg-sky-500/10 p-4 text-sky-900 shadow-[0_18px_54px_rgb(14_165_233/0.14)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700/75 dark:text-sky-100/70">
+                Current route scope
+              </p>
+              <p className="mt-2 text-3xl font-semibold tracking-normal text-foreground">
+                {loading ? '...' : total}
+              </p>
+              <p className="mt-1 text-xs font-medium text-muted-foreground">
+                {total === 1 ? 'Facility in this view' : 'Facilities in this view'}
+              </p>
             </div>
-            <Badge className="bg-success/20 text-success border-0">{stats.total}</Badge>
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] bg-background/55 text-sky-700 dark:text-sky-200">
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Hospital className="h-5 w-5" />}
+            </span>
           </div>
-        </Card>
+        </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
+          <div className="rounded-[24px] bg-emerald-500/10 p-3 text-emerald-800 shadow-[0_14px_38px_rgb(16_185_129/0.12)] dark:text-emerald-200">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 geo-round bg-info/20 flex items-center justify-center">
-                <MapPin className="h-4 w-4 text-info" />
-              </div>
-              <div>
-                <p className="font-bold text-sm">{stats.available}</p>
-                <p className="text-xs text-muted-foreground">Nearby</p>
-              </div>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[16px] bg-background/55">
+                <MapPin className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-lg font-semibold tracking-normal text-foreground">
+                  {loading ? '...' : available}
+                </span>
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Available
+                </span>
+              </span>
             </div>
-          </Card>
+          </div>
 
-          <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
+          <div className="rounded-[24px] bg-amber-500/10 p-3 text-amber-800 shadow-[0_14px_38px_rgb(245_158_11/0.12)] dark:text-amber-200">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 geo-round bg-destructive/20 flex items-center justify-center">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-              </div>
-              <div>
-                <p className="font-bold text-sm">{stats.full || 0}</p>
-                <p className="text-xs text-muted-foreground">Full</p>
-              </div>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[16px] bg-background/55">
+                <Bed className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-lg font-semibold tracking-normal text-foreground">
+                  {loading ? '...' : full}
+                </span>
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Full
+                </span>
+              </span>
             </div>
-          </Card>
+          </div>
         </div>
-      </motion.div>
+      </motion.section>
 
-      {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="space-y-3"
-      >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
-
+      <section className="space-y-2" aria-label="Panel actions">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Panel actions
+        </p>
         <div className="grid grid-cols-2 gap-2">
           <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleCreateHospital}
-            className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            title="Add New Hospital"
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleAddFacility}
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-[24px] bg-sky-500/10 px-3 text-sky-700 shadow-[0_14px_42px_rgb(14_165_233/0.12)] transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 dark:text-sky-200"
+            title="Add facility"
+            data-state="unavailable"
           >
-            <Plus className="h-4 w-4" />
-            <span className="font-normal text-xs">Add</span>
+            <Plus className="h-5 w-5 transition-transform duration-200 group-hover:rotate-90" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Add</span>
           </motion.button>
 
           <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleAnalytics}
-            className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            title="View Analytics"
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleOpenAnalytics}
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-[24px] bg-cyan-500/10 px-3 text-cyan-700 shadow-[0_14px_42px_rgb(6_182_212/0.12)] transition-[background,box-shadow,transform] duration-200 hover:bg-cyan-500/15 dark:text-cyan-200"
+            title="View facility statistics"
           >
-            <BarChart3 className="h-4 w-4" />
-            <span className="font-normal text-xs">Analytics</span>
+            <BarChart3 className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Stats</span>
           </motion.button>
 
           <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => window.dispatchEvent(new CustomEvent('openFilters'))}
-            className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            title="Filter Hospitals"
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleOpenFilters}
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-[24px] bg-muted/34 px-3 text-muted-foreground shadow-[0_14px_42px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:bg-muted/44 hover:text-foreground"
+            title="Filter facilities"
           >
-            <Filter className="h-4 w-4" />
-            <span className="font-normal text-xs">Filter</span>
+            <Filter className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Filter</span>
           </motion.button>
 
           <motion.button
-            whileTap={{ scale: 0.98 }}
-            className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-            disabled
-            title="Contact (Coming Soon)"
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleContact}
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-[24px] bg-muted/24 px-3 text-muted-foreground shadow-[0_14px_42px_rgb(0_0_0/0.08)] transition-[background,box-shadow,transform] duration-200 hover:bg-muted/34"
+            title="Contact unavailable"
+            aria-disabled="true"
+            data-state="unavailable"
           >
-            <Phone className="h-4 w-4" />
-            <span className="font-normal text-xs">Contact</span>
+            <Phone className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Contact</span>
           </motion.button>
         </div>
-      </motion.div>
+        <p className="px-1 text-xs font-medium text-muted-foreground" role="status" aria-live="polite">
+          {panelNotice}
+        </p>
+      </section>
 
-      {/* Recent Hospitals */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="space-y-3"
-      >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Recent Hospitals</h3>
+      <section className="space-y-2" aria-label="Current list">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Current list
+        </p>
 
         <div className="space-y-2">
-          {recent.map((hospital) => (
-            <Card key={hospital.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 geo-round ${hospital.status === 'inactive' ? 'bg-muted' : 'bg-success'
-                    }`} />
-                  <div>
-                    <p className="font-normal text-sm truncate max-w-[120px]">
-                      {hospital.name || 'Hospital #' + hospital.id.substring(0, 4)}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate max-w-[120px]">
-                      {hospital.address || 'No Address'}
-                    </p>
+          {recent.map((hospital, index) => {
+            const tone = getStatusTone(hospital?.status);
+
+            return (
+              <motion.div
+                key={hospital?.id || index}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+                className="group rounded-[24px] bg-background/46 p-3 shadow-[0_12px_36px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-muted/36"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[18px] transition-transform duration-200 group-hover:scale-105 ${tone.iconClass}`}>
+                      <Hospital className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block max-w-[150px] truncate text-sm font-semibold text-foreground">
+                        {getFacilityTitle(hospital)}
+                      </span>
+                      <span className="mt-0.5 block truncate text-xs font-medium text-muted-foreground">
+                        {getFacilityLocation(hospital)}
+                      </span>
+                    </span>
                   </div>
+                  <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] ${tone.chipClass}`}>
+                    {tone.label}
+                  </span>
                 </div>
-                {hospital.type && (
-                  <Badge variant="outline" className="text-[10px] capitalize px-1.5 py-0.5 h-5">
-                    {hospital.type}
-                  </Badge>
-                )}
-              </div>
-            </Card>
-          ))}
-          {recent.length === 0 && (
-            <div className="text-center py-4 text-sm text-muted-foreground">
-              No recent hospitals found
+              </motion.div>
+            );
+          })}
+
+          {!loading && recent.length === 0 && (
+            <div className="rounded-[24px] bg-muted/24 px-4 py-5 text-center text-xs font-medium text-muted-foreground">
+              No facilities in the current view.
+            </div>
+          )}
+
+          {loading && recent.length === 0 && (
+            <div className="rounded-[24px] bg-muted/24 px-4 py-5 text-center text-xs font-medium text-muted-foreground">
+              Loading facilities.
             </div>
           )}
         </div>
-      </motion.div>
+      </section>
     </div>
   );
 };

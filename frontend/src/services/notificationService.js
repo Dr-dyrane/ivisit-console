@@ -172,7 +172,7 @@ export const markNotificationAsRead = async (notificationId) => {
   }
 };
 
-export const getNotifications = async (userId, limit = 50, read = null) => {
+export const getNotifications = async (userId, limit = 50, read = null, options = {}) => {
   try {
     if (!isValidUUID(userId)) return [];
 
@@ -192,14 +192,16 @@ export const getNotifications = async (userId, limit = 50, read = null) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error fetching notifications:', {
-      userId,
-      message: error?.message,
-      code: error?.code,
-      details: error?.details,
-      hint: error?.hint,
-      error
-    });
+    if (!options?.quiet) {
+      console.error('Error fetching notifications:', {
+        userId,
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        error
+      });
+    }
     return [];
   }
 };

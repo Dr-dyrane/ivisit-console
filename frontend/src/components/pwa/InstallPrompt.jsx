@@ -12,6 +12,7 @@ import { Button } from '../ui/button';
 export const InstallPrompt = ({ canInstall, onInstall, onDismiss }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [hasBeenDismissed, setHasBeenDismissed] = useState(false);
+    const [hasBlockingSurface, setHasBlockingSurface] = useState(false);
 
     // Show prompt after 30 seconds of use (not on first visit)
     useEffect(() => {
@@ -36,6 +37,25 @@ export const InstallPrompt = ({ canInstall, onInstall, onDismiss }) => {
         return () => clearTimeout(timer);
     }, [canInstall, hasBeenDismissed]);
 
+    useEffect(() => {
+        const syncBlockingSurface = () => {
+            setHasBlockingSurface(Boolean(document.querySelector(
+                '[role="dialog"][aria-modal="true"], [data-filter-sheet-shell="true"], [data-modal-shell="true"]'
+            )));
+        };
+
+        syncBlockingSurface();
+        const observer = new MutationObserver(syncBlockingSurface);
+        observer.observe(document.body, {
+            attributes: true,
+            childList: true,
+            subtree: true,
+            attributeFilter: ['role', 'aria-modal', 'data-filter-sheet-shell', 'data-modal-shell']
+        });
+
+        return () => observer.disconnect();
+    }, []);
+
     const handleInstall = async () => {
         const success = await onInstall();
         if (success) {
@@ -56,13 +76,13 @@ export const InstallPrompt = ({ canInstall, onInstall, onDismiss }) => {
 
     return (
         <AnimatePresence>
-            {isVisible && (
+            {isVisible && !hasBlockingSurface && (
                 <motion.div
                     initial={{ y: 100, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: 100, opacity: 0 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                    className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-50"
+                    className="fixed bottom-24 left-4 right-4 z-50 md:bottom-4 md:left-auto md:right-4 md:max-w-sm"
                 >
                     <div className="glass-card border border-border/50 rounded-2xl p-4 shadow-2xl">
                         {/* Close button */}

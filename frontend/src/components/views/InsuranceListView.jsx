@@ -20,10 +20,14 @@ export const InsuranceListView = ({
     onView,
     onDelete,
     onVerify,
+    canDelete = false,
+    canVerify = false,
     getStatusBadge,
     isMobile
 }) => {
     if (!policies || policies.length === 0) return null;
+    const showVerifyAction = canVerify && typeof onVerify === 'function';
+    const showDeleteAction = canDelete && typeof onDelete === 'function';
 
     return (
         <div className="space-y-4">
@@ -49,8 +53,8 @@ export const InsuranceListView = ({
 
                                         {/* Policy Info */}
                                         <div className="flex items-start gap-3">
-                                            <div className="w-10 h-10 geo-round bg-primary/10 flex items-center justify-center shrink-0">
-                                                <Shield className="h-5 w-5 text-primary" />
+                                            <div className="w-10 h-10 geo-round bg-info/10 flex items-center justify-center shrink-0">
+                                                <Shield className="h-5 w-5 text-info" />
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
@@ -59,7 +63,7 @@ export const InsuranceListView = ({
                                                     </h3>
                                                     {policy.verified && (
                                                         <Badge variant="ghost" className="p-0 h-auto">
-                                                            <CheckCircle className="h-3 w-3 text-primary fill-primary/20" />
+                                                            <CheckCircle className="h-3 w-3 text-success fill-success/20" />
                                                         </Badge>
                                                     )}
                                                 </div>
@@ -109,7 +113,7 @@ export const InsuranceListView = ({
 
                                 {/* Actions */}
                                 <div className={`flex items-center gap-2 ${isMobile ? 'justify-end border-t border-border/40 pt-3 mt-2' : 'md:border-l md:border-border/40 md:pl-4'}`}>
-                                    {onVerify && !policy.verified && (
+                                    {showVerifyAction && !policy.verified && (
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -124,12 +128,12 @@ export const InsuranceListView = ({
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => onView(policy)}
-                                        className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                        className="squircle h-8 w-8 p-0 hover:bg-info/10 hover:text-info"
                                     >
                                         <Eye className="h-4 w-4" />
                                     </Button>
 
-                                    {onDelete && (
+                                    {showDeleteAction && (
                                         <Button
                                             variant="ghost"
                                             size="sm"

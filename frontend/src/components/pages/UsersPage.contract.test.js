@@ -1,0 +1,325 @@
+import fs from 'fs';
+import { execFileSync } from 'child_process';
+import { getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../../config/pageDataAccess';
+
+const read = (path) => fs.readFileSync(path, 'utf8');
+const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `HEAD:${path}`], { encoding: 'utf8' });
+
+describe('Users Page 14 intake contract', () => {
+  it('keeps Users in intake only and out of the default visual hardgate', () => {
+    const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
+    const app = read('src/App.js');
+    const routes = read('src/config/routes.jsx');
+    const navigation = read('src/config/navigation.js');
+    const hardgate = read('scripts/check-ui-surface-hardgate.js');
+
+    expect(gate).toContain('### Page 14 Intake Audit - Users');
+    expect(gate).toContain('Users at `/users` is intake only and is not admitted under the Today/Requests canon.');
+    expect(gate).toContain('No visual revamp, shared Requests pattern reuse, invite/role/delete enablement, route-owned action promotion, or hardgate promotion is authorized yet.');
+    expect(gate).toContain('Promotion rule: the first Users visual pass must close this blocker map before adding Page 14 to the default hardgate.');
+
+    expect(app).toContain('<Route path="/users" element={<ProtectedRoute minRole="org_admin"><UsersPage /></ProtectedRoute>} />');
+    expect(routes).toContain("'/users': {");
+    expect(routes).toContain("minRole: 'org_admin'");
+    expect(routes).toContain("resource: 'users'");
+    expect(navigation).toContain("{ id: 'users', path: '/users', icon: Users, label: 'Users', resource: 'users', minRole: 'org_admin' }");
+
+    [
+      'src/components/pages/UsersPage.jsx',
+      'src/components/mobile/MobileUsers.jsx',
+      'src/components/context/UsersPanel.jsx',
+      'src/components/views/UserListView.jsx',
+      'src/components/views/UserTableView.jsx',
+      'src/components/modals/InviteUserModal.jsx',
+    ].forEach((file) => {
+      expect(hardgate).not.toContain(file);
+    });
+  });
+
+  it('preserves the old Users behavior inventory as evidence, not canon', () => {
+    const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
+    const oldPage = gitShowHead('frontend/src/components/pages/UsersPage.jsx');
+    const oldMobile = gitShowHead('frontend/src/components/mobile/MobileUsers.jsx');
+    const oldUserModal = gitShowHead('frontend/src/components/modals/UserModal.jsx');
+    const oldInviteModal = gitShowHead('frontend/src/components/modals/InviteUserModal.jsx');
+    const oldListView = gitShowHead('frontend/src/components/views/UserListView.jsx');
+    const oldTableView = gitShowHead('frontend/src/components/views/UserTableView.jsx');
+    const oldService = gitShowHead('frontend/src/services/profilesService.js');
+
+    const page = read('src/components/pages/UsersPage.jsx');
+    const mobile = read('src/components/mobile/MobileUsers.jsx');
+    const userModal = read('src/components/modals/UserModal.jsx');
+    const inviteModal = read('src/components/modals/InviteUserModal.jsx');
+    const listView = read('src/components/views/UserListView.jsx');
+    const tableView = read('src/components/views/UserTableView.jsx');
+    const service = read('src/services/profilesService.js');
+
+    expect(gate).toContain('HEAD snapshot evidence for this ledger: `git show HEAD:frontend/src/components/pages/UsersPage.jsx`');
+    expect(gate).toContain("`useViewMode('users-page', 'table')`, `usePagination(20)`, route filters, local search/filter/sort");
+    expect(gate).toContain('privileged `1000`-row load and local slicing');
+    expect(gate).toContain('direct `delete_user_by_admin` RPC calls');
+    expect(gate).toContain('mobile pull-to-refresh, infinite load, row reveal, mobile selection, mobile delete, generated mobile trend data, `LIVE` fallback');
+
+    for (const source of [oldPage, page]) {
+      expect(source).toContain("useViewMode('users-page', 'table')");
+      expect(source).toContain('usePagination(20)');
+      expect(source).toContain('const limit = isPrivileged ? 1000 : pagination.itemsPerPage;');
+      expect(source).toContain('let data = await getProfiles(filterOptions);');
+      expect(source).toContain('const orgs = await getOrganizations();');
+      expect(source).toContain('getUserStatistics()');
+      expect(source).toContain("supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('bvn_verified', true)");
+      expect(source).toContain('pagination.setTotalCount(totalCount)');
+      expect(source).toContain('await updateProfile(selectedUser.id, formData)');
+      expect(source).toContain('await createProfile(formData)');
+      expect(source).toContain('const handleBulkDelete = useCallback(() => {');
+      expect(source).toContain("window.addEventListener('openUserModal', handleOpenModal)");
+      expect(source).toContain("window.addEventListener('openInviteUserModal', handleOpenInviteModal)");
+      expect(source).toContain("window.addEventListener('openUserAnalytics'");
+      expect(source).toContain('<MobileUsers');
+      expect(source).toContain('<UserModal');
+      expect(source).toContain('<InviteUserModal');
+      expect(source).toContain('<ConfirmationModal');
+      expect(source).toContain('<AnalyticsModal');
+      expect(source).toContain('<FilterSheet');
+      expect(source).toContain('<UserListView');
+      expect(source).toContain('<UserTableView');
+    }
+    expect(oldPage).toContain("supabase.rpc('delete_user_by_admin', { target_user_id: targetId })");
+    expect(oldPage).toContain("toast.success('User deleted successfully')");
+    expect(page).not.toContain("supabase.rpc('delete_user_by_admin'");
+    expect(page).not.toContain("toast.success('User deleted successfully')");
+    expect(page).toContain("const USER_DELETE_UNAVAILABLE_MESSAGE = 'Delete is unavailable until identity authority is verified.';");
+    expect(page).toContain('const [usersCommandNotice, setUsersCommandNotice] = useState(null);');
+    expect(page).toContain("const USER_IDENTITY_ACTION_UNAVAILABLE_MESSAGE = 'Invites are not ready until identity authority is verified.';");
+    expect(page).toContain('const handleIdentityActionUnavailable = useCallback(() => {');
+    expect(page).toContain('setUsersCommandNotice(USER_IDENTITY_ACTION_UNAVAILABLE_MESSAGE);');
+    expect(page).toContain('toast.info(USER_IDENTITY_ACTION_UNAVAILABLE_MESSAGE);');
+    expect(page).toContain('const handleDeleteUnavailable = useCallback(() => {');
+    expect(page).toContain('setUsersCommandNotice(USER_DELETE_UNAVAILABLE_MESSAGE);');
+    expect(page).toContain('toast.info(USER_DELETE_UNAVAILABLE_MESSAGE);');
+    expect(page).toContain('const handleOpenAnalytics = useCallback(() => {');
+    expect(page).toContain('handleDeleteUnavailable(user);');
+    expect(page).toContain('handleDeleteUnavailable();');
+    expect(page).toContain('id="users-action-feedback"');
+    expect(page).toContain('role="status"');
+    expect(page).toContain('data-state="unavailable"');
+    expect(page).toContain('NOT READY');
+    expect((page.match(/window\.addEventListener\('openUserModal'/g) || []).length).toBe(1);
+
+    for (const source of [oldMobile, mobile]) {
+      expect(source).toContain('MobileFeaturedMetric');
+      expect(source).toContain('selectedIds = []');
+      expect(source).toContain('onDelete(user)');
+      expect(source).toContain('<PullToRefresh');
+      expect(source).toContain('<MobileKPIStrip');
+      expect(source).toContain('<MobileMetricRow');
+    }
+    expect(oldMobile).toContain('const growthData = useMemo(() => [');
+    expect(oldMobile).toContain("trend: formatSignedPercent(verificationRate - 50) || 'LIVE'");
+    expect(mobile).not.toContain('const growthData = useMemo(() => [');
+    expect(mobile).not.toContain("trend: formatSignedPercent(verificationRate - 50) || 'LIVE'");
+    expect(mobile).not.toContain("'LIVE'");
+    expect(mobile).not.toMatch(/\bsquircle-(?:3xl|2xl|xl|lg|md|sm|xs)\b/);
+    expect(mobile).toContain('const hasMeasuredStatistics = Boolean(statistics && (');
+    expect(mobile).toContain("label: hasMeasuredStatistics ? 'Total Users' : 'Visible Users'");
+    expect(mobile).toContain("label: hasMeasuredStatistics ? 'Active Users' : 'Visible Active'");
+    expect(mobile).toContain("label=\"User Summary\"");
+    expect(mobile).toContain("subtitle: hasMeasuredStatistics ? 'Last 30 days' : 'Source pending'");
+    expect(mobile).toContain('canDelete = false');
+    expect(mobile).toContain('canDelete && isAdmin');
+    expect(page).toContain('canDelete={false}');
+
+    for (const source of [oldUserModal, userModal]) {
+      expect(source).toContain('<ModalShell');
+      expect(source).toContain("const data = await getHospitals({ limit: 100 });");
+      expect(source).toContain('SelectItem value="org_admin"');
+      expect(source).toContain('SelectItem value="admin"');
+      expect(source).toContain('checked={formData.bvn_verified}');
+      expect(source).toContain("toast.success(isCreate ? 'User created successfully' : 'User updated successfully')");
+    }
+
+    for (const source of [oldInviteModal, inviteModal]) {
+      expect(source).toContain("const data = await getHospitals({ limit: 100 });");
+      expect(source).toContain("supabase.functions.invoke('invite-user'");
+      expect(source).toContain('body: { email, role, metadata }');
+      expect(source).toContain('metadata.organization_id = organizationId');
+      expect(source).toContain('toast.success(`Invitation sent to ${email}`)');
+    }
+    expect(oldInviteModal).toContain('role="dialog"');
+    expect(inviteModal).toContain('<ModalShell');
+    expect(inviteModal).toContain('size="md"');
+    expect(inviteModal).toContain('title="Invite User"');
+    expect(inviteModal).toContain('subtitle="Send a secure access link"');
+    expect(inviteModal).toContain('rounded-button');
+    expect(inviteModal).toContain('rounded-inner');
+    expect(inviteModal).not.toMatch(/rounded-(?:3xl|2xl|xl|full|\[[^\]]+\])/);
+    expect(inviteModal).not.toMatch(/\bborder(?:-0|-b|-white| )/);
+    expect(inviteModal).not.toContain('focus:ring');
+    expect(inviteModal).not.toContain('focus-visible:ring');
+    expect(inviteModal).not.toContain('AnimatePresence');
+    expect(inviteModal).not.toContain("from '../ui/card'");
+
+    for (const source of [oldListView, listView]) {
+      expect(source).toContain('export const UserListView');
+      expect(source).toContain('opacity-0 group-hover:opacity-100');
+      expect(source).toContain('{user.email ||');
+      expect(source).toContain('{user.organization_name ||');
+      expect(source).toContain('{user.provider_type ||');
+    }
+
+    for (const source of [oldTableView, tableView]) {
+      expect(source).toContain('export const UserTableView');
+      expect(source).toContain('<Checkbox');
+      expect(source).toContain('selectedIds = []');
+      expect(source).toContain('onDelete(user)');
+      expect(source).toContain('Delete');
+    }
+
+    for (const source of [oldService, service]) {
+      expect(source).toContain("supabase.rpc('get_all_auth_users'");
+      expect(source).toContain('export async function getUserStatistics');
+      expect(source).toContain('export async function getProfiles');
+      expect(source).toContain('export async function createProfile');
+      expect(source).toContain('export async function updateProfile');
+      expect(source).toContain("supabase.rpc('update_profile_by_admin'");
+      expect(source).toContain('export async function verifyProfileBVN');
+      expect(source).toContain('export async function uploadProfileAvatar');
+    }
+  });
+
+  it('blocks Users canon reuse until identity source, invite, destructive, PageData, and mobile metric slots close', () => {
+    const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
+    const pass4 = read('docs/implementation/console-service-alignment/passes/PASS_4_ORGANIZATION_ONBOARDING_VERIFICATION_FLOW_SUBPLAN_2026-05-24.md');
+    const stage5 = read('docs/implementation/console-service-alignment/services/STAGE_5_FULL_SERVICE_COVERAGE_AUDIT_2026-05-24.md');
+    const pageDataAccess = read('src/config/pageDataAccess.js');
+    const contextPanel = read('src/components/navigation/ContextPanel.jsx');
+    const contextAction = read('src/hooks/useContextAction.js');
+    const contextFab = read('src/components/navigation/ContextAwareFAB.jsx');
+    const usersPageSource = read('src/components/pages/UsersPage.jsx');
+    const usersPanel = read('src/components/context/UsersPanel.jsx');
+    const userListView = read('src/components/views/UserListView.jsx');
+    const userTableView = read('src/components/views/UserTableView.jsx');
+    const inviteModal = read('src/components/modals/InviteUserModal.jsx');
+
+    expect(gate).toContain('Users Requests-canon blocker map:');
+    expect(gate).toContain('This is a blocker map, not a design target.');
+    expect(gate).toContain('Data ownership: not admitted. The route mixes profile service reads, Auth-enriched RPC reads, direct `profiles` count reads, local filtering/sorting/slicing, organization mapping, and route-published context summaries.');
+    expect(gate).toContain('PageData startup and shell recent-profile fetches are quieted on `/users`');
+    expect(gate).toContain('Invite and creation: blocked and fail-closed in active entry points.');
+    expect(gate).toContain('Invite/create safety cleanup on 2026-07-06 makes header, `?add=true`, context-panel create/invite events, and the old generic `/users` context action fail closed through `Invites are not ready until identity authority is verified.`');
+    expect(gate).toContain('First destructive-action safety cleanup on 2026-07-06 removed active single and bulk `delete_user_by_admin` RPC calls from `UsersPage.jsx`.');
+    expect(gate).toContain('Delete attempts now show `Delete is unavailable until identity authority is verified.`');
+    expect(gate).toContain('the grid delete button says `NOT READY`');
+    expect(gate).toContain('Rendered intake proof on 2026-07-06 reused the existing `localhost:3000` server');
+    expect(gate).toContain('the visible route action exposed one `Add user` button');
+    expect(gate).toContain('clicking it set `#users-action-feedback` to `Invites are not ready until identity authority is verified.`');
+    expect(gate).toContain('The URL path `/users?add=true&proof=users-intake-url-add-safety-2026-07-06` settled to the same feedback with zero dialogs after route effects completed.');
+    expect(gate).toContain('UsersPanel squircle cleanup on 2026-07-06 converted the route-fed right-panel chrome to semantic radius tokens');
+    expect(gate).toContain('`UsersPanel.jsx` now passes focused strict radius, but remains a shell context surface, not user-registry authority.');
+    expect(gate).toContain('Users desktop renderer squircle cleanup on 2026-07-06 converted `UserListView.jsx` and `UserTableView.jsx` from inherited card/table border chrome');
+    expect(gate).toContain('It preserved view/edit/schedule/delete callbacks, table sorting, selection, dropdown actions, and empty state');
+    expect(gate).toContain('These files now pass focused strict radius, but remain preserved density renderers, not an admitted handled sheet.');
+    expect(gate).toContain('Invite modal shell cleanup on 2026-07-06 converted dormant `InviteUserModal.jsx` to shared `ModalShell` chrome and semantic radius tokens');
+    expect(gate).toContain('It now passes focused strict radius, but shared chrome does not prove invite command authority or re-enable any active invite/create entry point.');
+    expect(gate).toContain('UsersPage shell squircle cleanup on 2026-07-06 converted the active page shell, KPI cards, empty state, bulk rail, grid cards, grid row metadata, and grid actions to canonical radius tokens');
+    expect(gate).toContain('It removed shared `Card` wrappers, generic border/ring/hairline chrome, and legacy `geo-*` shape utilities from `UsersPage.jsx`');
+    expect(gate).toContain('Focused strict radius/hardgate audit on 2026-07-06 now passes for `UsersPage.jsx`, `MobileUsers.jsx`, `UsersPanel.jsx`, `UserListView.jsx`, `UserTableView.jsx`, and `InviteUserModal.jsx`');
+    expect(gate).toContain('This confirms Users source chrome can speak the new squircle system, but Users remains outside default hardgate admission until identity projection, invite receiver, destructive command, complete counts, and rendered desktop/tablet/mobile proof are closed.');
+    expect(gate).toContain('Destructive commands: blocked and fail-closed in active UI.');
+    expect(gate).toContain('PageData/shell ownership cleanup on 2026-07-06: `/users` is now route-owned in `pageDataAccess.js`');
+    expect(gate).toContain('`ContextPanel.jsx` renders `UsersPanel` from the route context and passes `fetchRecentActivity={false}`');
+    expect(gate).toContain('Generic desktop FAB cleanup on 2026-07-06 treats `/users` as route-owned in `ContextAwareFAB.jsx`, so the global `UserModal` path cannot bypass the intake gate.');
+    expect(gate).toContain('| Data quieting | PageData startup and the right-panel recent-profile fetch are quieted on `/users`; generic FAB `UserModal` bypass is hidden; page-level reads, route context summary, direct BVN count, and dormant invite Edge code still coexist, while direct delete RPC and active invite/create modal entry are legacy inactive. | Partially proved.');
+    expect(gate).toContain('active delete also fails closed instead of calling the admin delete RPC.');
+    expect(gate).toContain('Active header, URL, context-panel, and old global context action triggers now show unavailable feedback instead of opening invite/create modals.');
+    expect(gate).toContain('unavailable delete feedback');
+    expect(gate).toContain('First mobile truth/action cleanup on 2026-07-06 removed generated mobile trend data, `LIVE` fallback, and the visible mobile delete button from active `MobileUsers.jsx`.');
+    expect(gate).toContain('Mobile still needs a proved identity projection before visible-row counts can become global truth.');
+    expect(gate).toContain('Mobile must keep loaded-row metrics labelled as visible/source-pending and keep destructive mobile actions hidden until projection/receiver proof exists.');
+    expect(gate).toContain('`UsersPage.jsx`, `MobileUsers.jsx`, `UsersPanel.jsx`, `UserListView.jsx`, `UserTableView.jsx`, and `InviteUserModal.jsx` have focused strict-radius proof');
+    expect(gate).toContain('Desktop table/list/grid exist; old density is preserved as inventory, and `UsersPage.jsx`, `UserListView.jsx`, and `UserTableView.jsx` now pass focused strict radius as local page/renderers.');
+    expect(gate).toContain('dormant `InviteUserModal` now uses `ModalShell`, but invite still has direct Edge invocation and unproved delivery semantics.');
+    expect(gate).toContain('shared `ModalShell` chrome does not imply command authority.');
+
+    expect(pass4).toContain('InviteUserModal` labels its selector `Organization Assignment` but loads the options from `getHospitals({ limit: 100 })`');
+    expect(pass4).toContain('MobileUsers.jsx:107-157,194-219` falls back from missing statistics to the supplied user rows for totals, verified and active counts, then labels derived verification trend values `LIVE`.');
+    expect(pass4).toContain('Invite loads hospitals as organizations');
+    expect(pass4).toContain('Invite sends facility id as organization id');
+    expect(pass4).toContain('Invite success copy');
+    expect(pass4).toContain('User management local filtering');
+    expect(pass4).toContain('User stats fallback');
+    expect(pass4).toContain('Mobile user metrics fallback');
+    expect(stage5).toContain('Direct verified-profile KPI read and direct privileged `delete_user_by_admin` RPC for single/bulk deletion.');
+    expect(stage5).toContain('Receiver slug/deployment and authorization are unproved; visible "invitation sent" is false from inspected source.');
+
+    expect(routeOwnsStartupDomains('/users')).toBe(true);
+    expect(getPageDataStartupDomainsForRole('org_admin', '/users')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('admin', '/users')).toEqual([]);
+    expect(pageDataAccess).toContain("pathname === '/users'");
+    expect(contextPanel).toContain("window.addEventListener('usersRouteContextUpdated', handleUsersRouteContext)");
+    expect(contextPanel).toContain('users={usersRouteContext?.users || []}');
+    expect(contextPanel).toContain('fetchRecentActivity={false}');
+    expect(contextPanel).not.toContain('users={userData?.users || []}');
+    expect(contextPanel).toContain("window.dispatchEvent(new CustomEvent('openUserModal'))");
+    expect(contextPanel).toContain("window.dispatchEvent(new CustomEvent('openInviteUserModal'))");
+    expect(contextAction).toContain("label: 'Add user'");
+    expect(contextAction).toContain("window.dispatchEvent(new CustomEvent('openUserModal'))");
+    expect(contextFab).toContain("location.pathname.startsWith('/users')");
+
+    expect(usersPageSource).toContain('rounded-card');
+    expect(usersPageSource).toContain('rounded-inner');
+    expect(usersPageSource).toContain('rounded-icon');
+    expect(usersPageSource).toContain('rounded-button');
+    expect(usersPageSource).toContain('rounded-pill');
+    expect(usersPageSource).not.toMatch(/rounded-(?:3xl|2xl|xl|lg|full|\[[^\]]+\])/);
+    expect(usersPageSource).not.toMatch(/\bborder(?:-0|-b|-white| )/);
+    expect(usersPageSource).not.toContain('ring-2');
+    expect(usersPageSource).not.toContain('h-[1px]');
+    expect(usersPageSource).not.toContain("from '../ui/card'");
+    expect(usersPageSource).not.toMatch(/\bgeo-/);
+    expect(usersPageSource).toContain('data-state="unavailable"');
+    expect(usersPageSource).toContain('NOT READY');
+
+    expect(usersPanel).toContain('rounded-card');
+    expect(usersPanel).toContain('rounded-inner');
+    expect(usersPanel).toContain('rounded-icon');
+    expect(usersPanel).toContain('rounded-button');
+    expect(usersPanel).toContain('rounded-pill');
+    expect(usersPanel).not.toMatch(/rounded-(?:3xl|2xl|xl|full|\[[^\]]+\])/);
+    expect(usersPanel).not.toContain('border-0');
+
+    for (const renderer of [userListView, userTableView]) {
+      expect(renderer).toContain('rounded-card');
+      expect(renderer).toContain('rounded-pill');
+      expect(renderer).toContain('rounded-icon');
+      expect(renderer).not.toMatch(/rounded-(?:3xl|2xl|xl|full|\[[^\]]+\])/);
+      expect(renderer).not.toMatch(/\bborder(?:-0|-b|-white| )/);
+      expect(renderer).not.toContain('purple');
+      expect(renderer).not.toContain('\u00e2');
+      expect(renderer).not.toContain("from '../ui/card'");
+    }
+    expect(userListView).toContain("onClick={() => onView(user)}");
+    expect(userListView).toContain("onClick={() => onEdit(user)}");
+    expect(userListView).toContain("onClick={() => onSchedule(user)}");
+    expect(userListView).toContain("onClick={() => onDelete(user)}");
+    expect(userListView).toContain("{user.email || 'No email'} / {user.organization_name || 'N/A'} / {user.provider_type || 'N/A'}");
+    expect(userTableView).toContain('rounded-inner');
+    expect(userTableView).toContain('checked={isAllSelected || (isIndeterminate && "indeterminate")}');
+    expect(userTableView).toContain('onClick={() => onSort && onSort(columnKey)}');
+    expect(userTableView).toContain('onCheckedChange={(checked) => handleSelectOne(user.id, checked)}');
+    expect(userTableView).toContain('onClick={() => onDelete(user)}');
+    expect(userTableView).toContain('No users found.');
+
+    expect(inviteModal).toContain('<ModalShell');
+    expect(inviteModal).toContain("supabase.functions.invoke('invite-user'");
+    expect(inviteModal).toContain('body: { email, role, metadata }');
+    expect(inviteModal).toContain('metadata.organization_id = organizationId');
+    expect(inviteModal).toContain("const data = await getHospitals({ limit: 100 });");
+    expect(inviteModal).toContain('rounded-button');
+    expect(inviteModal).toContain('rounded-inner');
+    expect(inviteModal).not.toMatch(/rounded-(?:3xl|2xl|xl|full|\[[^\]]+\])/);
+    expect(inviteModal).not.toMatch(/\bborder(?:-0|-b|-white| )/);
+    expect(inviteModal).not.toContain('focus:ring');
+    expect(inviteModal).not.toContain('focus-visible:ring');
+  });
+});

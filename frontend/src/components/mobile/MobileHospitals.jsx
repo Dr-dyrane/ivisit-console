@@ -13,7 +13,6 @@ import {
     Search,
     SlidersHorizontal,
     BarChart3,
-    CheckCircle2,
     BadgeCheck,
     BadgeX
 } from 'lucide-react';
@@ -21,7 +20,6 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { MobileKPIStrip } from './MobileKPIStrip';
 import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
-import { MobileFeaturedMetric } from './MobileFeaturedMetric';
 import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
@@ -30,7 +28,6 @@ import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
-import { calcDeltaPercent, formatSignedPercent, toDeltaBadge } from '../../utils/metricsUtils';
 
 export const MobileHospitals = ({
     hospitals,
@@ -49,17 +46,17 @@ export const MobileHospitals = ({
     onOpenFilters,
     hasMore,
     onLoadMore,
+    canDelete = false,
+    selectionEnabled = false,
     selectedIds = [],
     onSelect,
     onSelectAll
 }) => {
     const observerTarget = useRef(null);
     const [expandedHospitalId, setExpandedHospitalId] = useState(null);
-    const selectionMode = selectedIds.length > 0;
+    const selectionMode = selectionEnabled && selectedIds.length > 0;
     const { triggerFromEvent } = useFeedback();
-
-
-
+    const sourceHospitals = useMemo(() => (Array.isArray(hospitals) ? hospitals : []), [hospitals]);
 
     const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
 
@@ -75,85 +72,67 @@ export const MobileHospitals = ({
         return () => observer.disconnect();
     }, [hasMore, triggerLoad]);
 
-    const getHospitalStatus = (hospital) => String(hospital?.verification_status || hospital?.status || 'available').toLowerCase();
-
-    const hospitalTotals = {
-        total: Number(statistics?.total) || hospitals.length,
-        available: Number(statistics?.available) || hospitals.filter(h => getHospitalStatus(h) === 'available').length,
-        beds: Number(statistics?.totalBeds) || hospitals.reduce((sum, h) => sum + (Number(h.available_beds) || 0), 0),
-        fleet: Number(statistics?.totalAmbulances) || hospitals.reduce((sum, h) => sum + (Number(h.ambulances_count) || 0), 0)
+    const getHospitalStatus = (hospital) => String(hospital?.status || hospital?.verification_status || 'available').toLowerCase();
+    const metricValue = (value, fallback = 0) => {
+        const numericValue = Number(value);
+        return Number.isFinite(numericValue) ? numericValue : fallback;
     };
 
-    const totalTrend = toDeltaBadge(calcDeltaPercent(hospitalTotals.total, statistics?.previous?.total ?? statistics?.previousTotal));
-    const availableTrend = toDeltaBadge(calcDeltaPercent(hospitalTotals.available, statistics?.previous?.available ?? statistics?.previousAvailable));
-    const bedsTrend = toDeltaBadge(calcDeltaPercent(hospitalTotals.beds, statistics?.previous?.totalBeds ?? statistics?.previousTotalBeds));
-    const fleetTrend = toDeltaBadge(calcDeltaPercent(hospitalTotals.fleet, statistics?.previous?.totalAmbulances ?? statistics?.previousTotalAmbulances));
+    const hospitalTotals = {
+        total: metricValue(statistics?.total, sourceHospitals.length),
+        available: metricValue(statistics?.available, sourceHospitals.filter(h => getHospitalStatus(h) === 'available').length),
+        full: metricValue(statistics?.full, sourceHospitals.filter(h => getHospitalStatus(h) === 'full').length),
+        busy: metricValue(statistics?.busy, sourceHospitals.filter(h => getHospitalStatus(h) === 'busy').length),
+        verified: metricValue(statistics?.verified, sourceHospitals.filter(h => h.verified).length),
+        beds: metricValue(statistics?.visibleBeds, sourceHospitals.reduce((sum, h) => sum + (Number(h.available_beds) || 0), 0)),
+        fleet: metricValue(statistics?.visibleAmbulances, sourceHospitals.reduce((sum, h) => sum + (Number(h.ambulances_count) || 0), 0))
+    };
 
     const kpis = [
         {
             id: 'all',
             label: 'Hospitals',
             value: hospitalTotals.total,
-            color: 'hsl(var(--primary))',
-            delta: totalTrend.delta,
-            direction: totalTrend.direction
+            color: 'hsl(var(--primary))'
         },
         {
             id: 'available',
             label: 'Available',
             value: hospitalTotals.available,
-            color: 'hsl(var(--success))',
-            delta: availableTrend.delta,
-            direction: availableTrend.direction
+            color: 'hsl(var(--success))'
         },
         {
-            id: 'beds',
-            label: 'Beds',
-            value: hospitalTotals.beds,
-            color: 'hsl(var(--info))',
-            delta: bedsTrend.delta,
-            direction: bedsTrend.direction
+            id: 'busy',
+            label: 'Busy',
+            value: hospitalTotals.busy,
+            color: 'hsl(var(--warning))'
         },
-        ...((isAdmin || isOrgAdmin) ? [{
-            id: 'fleet',
-            label: 'Fleet',
-            value: hospitalTotals.fleet,
-            color: 'hsl(var(--spark))',
-            delta: fleetTrend.delta,
-            direction: fleetTrend.direction
-        }] : [])
+        {
+            id: 'full',
+            label: 'Full',
+            value: hospitalTotals.full,
+            color: 'hsl(var(--destructive))'
+        }
     ];
 
-    const filteredHospitals = useMemo(() => {
-        let result = Array.isArray(hospitals) ? [...hospitals] : [];
-        const search = String(filters?.search || '').trim().toLowerCase();
-        const kpiFilter = String(filters?.kpiFilter || 'all');
-
-        if (search) {
-            result = result.filter(h => {
-                const name = String(h?.name || '').toLowerCase();
-                const address = String(h?.address || '').toLowerCase();
-                return name.includes(search) || address.includes(search);
-            });
-        }
-
-        if (kpiFilter === 'available') {
-            result = result.filter(h => getHospitalStatus(h) === 'available');
-        }
-
-        return result;
-    }, [hospitals, filters]);
-    const { displayItems: displayHospitals, isBuffering } = useStableList(filteredHospitals, loading);
-  const showTopSectionLoading = loading && displayHospitals.length === 0;
+    const { displayItems: displayHospitals } = useStableList(sourceHospitals, loading);
+    const showTopSectionLoading = loading && displayHospitals.length === 0;
 
     const canManage = isAdmin || isOrgAdmin;
-    const averageRating = filteredHospitals.length > 0
-        ? filteredHospitals.reduce((sum, h) => sum + (Number(h.rating) || 0), 0) / filteredHospitals.length
-        : 0;
-
-    const growthData = useMemo(() => [
-        { value: 32 }, { value: 44 }, { value: 51 }, { value: 49 }, { value: 61 }, { value: 69 }
-    ], []);
+    const activeStatusFilter = Array.isArray(filters?.status)
+        ? (filters.status.length === 1 ? filters.status[0] : 'all')
+        : (filters?.status || 'all');
+    const handleStatusFilter = (id) => {
+        setFilters(prev => {
+            const nextFilters = { ...prev };
+            if (id === 'all') {
+                delete nextFilters.status;
+            } else {
+                nextFilters.status = id;
+            }
+            return nextFilters;
+        });
+    };
 
     return (
         <PullToRefresh onRefresh={onRefresh}>
@@ -161,66 +140,28 @@ export const MobileHospitals = ({
                 animatePageLoad={false}
                 kpiStrip={(
                     <MobileKPIStrip
-            loading={showTopSectionLoading}
+                        loading={showTopSectionLoading}
                         kpis={kpis}
-                        activeKpi={filters?.kpiFilter || 'all'}
-                        onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
+                        activeKpi={activeStatusFilter}
+                        onKpiClick={handleStatusFilter}
                     />
                 )}
                 contentClassName="pt-4 pb-4 text-foreground"
             >
-                <MobileFeaturedMetric
-          loading={showTopSectionLoading}
-                    items={[
-                        {
-                            label: 'Network Capacity',
-                            value: hospitalTotals.beds,
-                            trend: formatSignedPercent(averageRating - 3.5) || 'LIVE',
-                            icon: Bed,
-                            color: 'hsl(var(--info))',
-                            chartData: growthData
-                        },
-                        {
-                            label: 'Available Sites',
-                            value: hospitalTotals.available,
-                            trend: availableTrend.delta,
-                            icon: Hospital,
-                            color: 'hsl(var(--success))',
-                            chartData: growthData
-                        },
-                        {
-                            label: 'Avg Rating',
-                            value: averageRating > 0 ? averageRating.toFixed(1) : '0.0',
-                            trend: 'LIVE',
-                            icon: Star,
-                            color: 'hsl(var(--warning))',
-                            chartData: growthData
-                        },
-                        {
-                            label: 'Fleet Coverage',
-                            value: hospitalTotals.fleet,
-                            trend: fleetTrend.delta,
-                            icon: Ambulance,
-                            color: 'hsl(var(--primary))',
-                            chartData: growthData
-                        }
-                    ]}
-                />
-
                 <section className="mb-3">
                     <MobileSectionHeader
-                        label="Operations Pulse"
+                        label="Facility Signals"
                         count={hospitalTotals.available}
                         color="hsl(var(--success))"
                     />
                     <MobileSecondaryMetricRail
-            loading={showTopSectionLoading}
+                        loading={showTopSectionLoading}
                         variant="icon"
                         items={[
                             {
                                 icon: Hospital,
                                 title: 'Available Sites',
-                                subtitle: 'Live status',
+                                subtitle: 'Current status',
                                 value: hospitalTotals.available,
                                 color: 'hsl(var(--success))',
                                 iconColorClass: 'text-success',
@@ -228,10 +169,10 @@ export const MobileHospitals = ({
                                 onClick: onViewAnalytics
                             },
                             {
-                                icon: Star,
-                                title: 'Avg Rating',
-                                subtitle: 'Quality signal',
-                                value: averageRating > 0 ? averageRating.toFixed(1) : '0.0',
+                                icon: BadgeCheck,
+                                title: 'Verified',
+                                subtitle: 'Approved sites',
+                                value: hospitalTotals.verified,
                                 color: 'hsl(var(--warning))',
                                 iconColorClass: 'text-warning',
                                 iconBgClass: 'bg-warning/5',
@@ -239,8 +180,8 @@ export const MobileHospitals = ({
                             },
                             {
                                 icon: Bed,
-                                title: 'Total Beds',
-                                subtitle: 'Capacity',
+                                title: 'Visible Beds',
+                                subtitle: 'This page',
                                 value: hospitalTotals.beds,
                                 color: 'hsl(var(--info))',
                                 iconColorClass: 'text-info',
@@ -249,8 +190,8 @@ export const MobileHospitals = ({
                             },
                             {
                                 icon: Ambulance,
-                                title: 'Fleet',
-                                subtitle: 'Units linked',
+                                title: 'Visible Fleet',
+                                subtitle: 'This page',
                                 value: hospitalTotals.fleet,
                                 color: 'hsl(var(--primary))',
                                 iconColorClass: 'text-primary',
@@ -269,7 +210,7 @@ export const MobileHospitals = ({
                             placeholder="Search hospitals..."
                             value={filters?.search || ''}
                             onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                            className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy border-0 text-[12px] font-normal placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary/20 outline-none transition-all"
+                            className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy text-[12px] font-normal placeholder:text-muted-foreground/30 shadow-sm transition-all focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
                         />
                     </div>
                     <motion.button
@@ -278,7 +219,7 @@ export const MobileHospitals = ({
                             onOpenFilters?.();
                             triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
                         }}
-                        className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0"
+                        className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-out"
                     >
                         <SlidersHorizontal size={18} />
                     </motion.button>
@@ -289,7 +230,7 @@ export const MobileHospitals = ({
                                 onViewAnalytics?.();
                                 triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
                             }}
-                            className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0 shadow-sm"
+                            className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] shadow-sm transition-[color,background,transform] duration-200 ease-out"
                         >
                             <BarChart3 size={18} />
                         </motion.button>
@@ -300,8 +241,8 @@ export const MobileHospitals = ({
                     label="Facility Directory"
                     count={displayHospitals.length}
                     color="hsl(var(--primary))"
-                    onSelectAll={displayHospitals.length > 0 ? () => onSelectAll?.(displayHospitals) : null}
-                    isAllSelected={displayHospitals.length > 0 && selectedIds.length === displayHospitals.length}
+                    onSelectAll={selectionEnabled && displayHospitals.length > 0 ? () => onSelectAll?.(displayHospitals) : null}
+                    isAllSelected={selectionEnabled && displayHospitals.length > 0 && selectedIds.length === displayHospitals.length}
                 />
 
                 <div className="space-y-1">
@@ -345,13 +286,13 @@ export const MobileHospitals = ({
                                     isExpanded={expandedHospitalId === hospital.id}
                                     onExpand={(id) => setExpandedHospitalId(prev => (prev === id ? null : id))}
                                     itemId={hospital.id}
-                                    isSelected={selectedIds.includes(hospital.id)}
-                                    onSelect={onSelect}
+                                    isSelected={selectionEnabled && selectedIds.includes(hospital.id)}
+                                    onSelect={selectionEnabled ? onSelect : undefined}
                                     selectionMode={selectionMode}
                                     expandedContent={(
                                         <div className="space-y-4 py-3">
                                             <div className="grid grid-cols-1 gap-2">
-                                                <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
+                                                <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl">
                                                     <MapPin size={14} className="text-muted-foreground/40" />
                                                     <div className="flex flex-col min-w-0">
                                                         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Address</span>
@@ -359,14 +300,14 @@ export const MobileHospitals = ({
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2">
-                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
+                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl">
                                                         <Bed size={14} className="text-muted-foreground/40" />
                                                         <div className="flex flex-col min-w-0">
                                                             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Beds</span>
                                                             <span className="text-xs font-semibold font-dashboard-numbers">{beds}</span>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
+                                                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl">
                                                         <Ambulance size={14} className="text-muted-foreground/40" />
                                                         <div className="flex flex-col min-w-0">
                                                             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Fleet</span>
@@ -381,7 +322,7 @@ export const MobileHospitals = ({
                                                     <span className="text-[8px] uppercase tracking-widest text-muted-foreground font-medium">Hospital ID</span>
                                                     <span className="text-[10px] font-mono text-foreground/40 font-normal">#{(hospital.id || '').slice(0, 12).toUpperCase()}</span>
                                                 </div>
-                                                <Badge className="squircle-sm border-0 font-semibold tracking-tight text-[9px] py-1 px-3 bg-info/20 text-info">
+                                                <Badge className="squircle-sm font-semibold tracking-tight text-[9px] py-1 px-3 bg-info/20 text-info">
                                                     <Star className="w-3 h-3 mr-1" />
                                                     {Number(hospital.rating || 0).toFixed(1)}
                                                 </Badge>
@@ -390,7 +331,7 @@ export const MobileHospitals = ({
                                             <div className="flex gap-2 pt-2">
                                                 <Button
                                                     variant="ghost"
-                                                    className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
+                                                    className="flex-1 h-12 rounded-2xl apple-glass flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                     onClick={() => onView(hospital)}
                                                 >
                                                     <Eye size={16} className="text-primary/60" />
@@ -400,26 +341,30 @@ export const MobileHospitals = ({
                                                     <>
                                                         <Button
                                                             variant="ghost"
-                                                            className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
+                                                            className="flex-1 h-12 rounded-2xl apple-glass flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
                                                             onClick={() => onEdit(hospital)}
                                                         >
                                                             <Edit size={16} className="text-warning/60" />
                                                             <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Edit</span>
                                                         </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            className="w-12 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
-                                                            onClick={() => onSchedule?.(hospital)}
-                                                        >
-                                                            <CalendarDays size={16} className="text-info/60" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            className="w-12 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-destructive/10 active:bg-destructive/15 hover:text-destructive"
-                                                            onClick={() => onDelete(hospital)}
-                                                        >
-                                                            <Trash2 size={16} className="text-destructive/60" />
-                                                        </Button>
+                                                        {onSchedule && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                className="w-12 h-12 rounded-2xl apple-glass flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
+                                                                onClick={() => onSchedule(hospital)}
+                                                            >
+                                                                <CalendarDays size={16} className="text-info/60" />
+                                                            </Button>
+                                                        )}
+                                                        {canDelete && onDelete && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                className="w-12 h-12 rounded-2xl apple-glass flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-out hover:bg-destructive/10 active:bg-destructive/15 hover:text-destructive"
+                                                                onClick={() => onDelete(hospital)}
+                                                            >
+                                                                <Trash2 size={16} className="text-destructive/60" />
+                                                            </Button>
+                                                        )}
                                                     </>
                                                 )}
                                             </div>
@@ -444,5 +389,3 @@ export const MobileHospitals = ({
         </PullToRefresh>
     );
 };
-
-

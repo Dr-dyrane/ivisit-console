@@ -5,53 +5,123 @@
 
 import { supabase } from '../lib/supabase';
 
+const CURRENT_USER_CACHE_MS = 60000;
+let currentUserCache = { userId: null, value: null, expiresAt: 0 };
+let currentUserPromise = null;
+
+function isSupabaseAuthLockAbort(errorLike) {
+  const name = String(errorLike?.name || '');
+  const message = String(errorLike?.message || errorLike || '');
+
+  return (
+    /AbortError/i.test(`${name} ${message}`) &&
+    /signal is aborted without reason/i.test(message)
+  );
+}
+
+export function clearCurrentUserCache() {
+  currentUserCache = { userId: null, value: null, expiresAt: 0 };
+  currentUserPromise = null;
+}
+
+export function primeCurrentUserCache(sessionUser, profile) {
+  if (!sessionUser?.id || !profile || profile.role === 'org_admin') return;
+
+  currentUserCache = {
+    userId: sessionUser.id,
+    value: {
+      ...sessionUser,
+      role: profile.role || 'viewer',
+      organization_id: profile.organization_id || null,
+      full_name: profile.full_name || profile.username || null,
+      hospital_ids: null
+    },
+    expiresAt: Date.now() + CURRENT_USER_CACHE_MS
+  };
+  currentUserPromise = null;
+}
+
+async function loadCurrentUserWithProfile(sessionUser) {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, organization_id, full_name, username')
+    .eq('id', sessionUser.id)
+    .single();
+
+  const result = {
+    ...sessionUser,
+    role: profile?.role || 'viewer',
+    organization_id: profile?.organization_id || null,
+    full_name: profile?.full_name || profile?.username || null,
+    hospital_ids: null // Will be populated for org_admin
+  };
+
+  if (result.role === 'org_admin' && result.organization_id) {
+    try {
+      const { data: orgHospitals } = await supabase
+        .from('hospitals')
+        .select('id')
+        .eq('organization_id', result.organization_id);
+
+      result.hospital_ids = (orgHospitals || []).map(h => h.id);
+    } catch {
+      result.hospital_ids = [];
+    }
+  }
+
+  return result;
+}
+
 /**
  * Get current authenticated user with profile
  */
-export async function getCurrentUser() {
+export async function getCurrentUser(options = {}) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return null;
-
-    // Get user profile with role and organization
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, organization_id, full_name, username')
-      .eq('id', session.user.id)
-      .single();
-
-    const result = {
-      ...session.user,
-      role: profile?.role || 'viewer',
-      organization_id: profile?.organization_id || null,
-      full_name: profile?.full_name || profile?.username || null,
-      hospital_ids: null // Will be populated for org_admin
-    };
-
-    // For org_admin: resolve all hospitals in the same organization
-    // profiles.organization_id stores the PARENT organization UUID (organizations.id)
-    // We find all hospitals under that organization
-    if (result.role === 'org_admin' && result.organization_id) {
-      try {
-        // Fetch all hospitals under this organization
-        const { data: orgHospitals } = await supabase
-          .from('hospitals')
-          .select('id')
-          .eq('organization_id', result.organization_id);
-
-        result.hospital_ids = (orgHospitals || []).map(h => h.id);
-      } catch {
-        // Fallback: empty — RLS will handle visibility
-        result.hospital_ids = [];
-      }
-
-      // If no hospitals found, the org_admin won't see any scoped data
-      // but RLS still works as a safety net
+    if (!session?.user) {
+      clearCurrentUserCache();
+      return null;
     }
 
-    return result;
+    const now = Date.now();
+    if (
+      !options.force &&
+      currentUserCache.userId === session.user.id &&
+      currentUserCache.value &&
+      currentUserCache.expiresAt > now
+    ) {
+      return currentUserCache.value;
+    }
+
+    if (
+      !options.force &&
+      currentUserPromise?.userId === session.user.id &&
+      currentUserPromise.promise
+    ) {
+      return currentUserPromise.promise;
+    }
+
+    const promise = loadCurrentUserWithProfile(session.user)
+      .then((result) => {
+        currentUserCache = {
+          userId: session.user.id,
+          value: result,
+          expiresAt: Date.now() + CURRENT_USER_CACHE_MS,
+        };
+        return result;
+      })
+      .finally(() => {
+        if (currentUserPromise?.userId === session.user.id) {
+          currentUserPromise = null;
+        }
+      });
+
+    currentUserPromise = { userId: session.user.id, promise };
+    return promise;
   } catch (error) {
-    console.error('Error getting current user:', error);
+    if (!options.quiet && !isSupabaseAuthLockAbort(error)) {
+      console.error('Error getting current user:', error);
+    }
     return null;
   }
 }
@@ -120,8 +190,8 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
   } else if (role === 'org_admin' && orgId) {
     // Org Admin sees everything across all hospitals in their organization
     // Key fact: orgId is the PARENT organization UUID (from organizations.id)
-    //   - If orgIdField = 'organization_id' → orgId matches directly
-    //   - If orgIdField = 'hospital_id' → need hospital_ids (resolved in getCurrentUser)
+    //   - If orgIdField = 'organization_id' -> orgId matches directly
+    //   - If orgIdField = 'hospital_id' -> need hospital_ids (resolved in getCurrentUser)
     const hospitalIds = user?.hospital_ids;
     const isHospitalScoped = orgIdField === 'hospital_id';
 
@@ -133,9 +203,9 @@ export function applyAuthFilter(baseQuery, user, options = {}) {
         query = query.eq(orgIdField, hospitalIds[0]);
       }
     } else if (isHospitalScoped) {
-      // hospital_ids not resolved — skip client-side filter, RLS handles visibility
+      // hospital_ids not resolved - skip client-side filter, RLS handles visibility
     } else {
-      // orgIdField is 'organization_id' or similar — orgId matches directly
+      // orgIdField is 'organization_id' or similar - orgId matches directly
       query = query.eq(orgIdField, orgId);
     }
   } else if (role === 'provider' || role === 'doctor') {

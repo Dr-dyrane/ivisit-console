@@ -13,7 +13,9 @@ export const supabaseMapService = {
    * Fetch all initial data required for the map
    * Applies RBAC filters based on user role and organization
    */
-  async fetchInitialMapData() {
+  async fetchInitialMapData(options = {}) {
+    const quiet = Boolean(options?.quiet);
+
     try {
       const user = await getCurrentUser();
 
@@ -67,9 +69,9 @@ export const supabaseMapService = {
       const { data: ambulances, error: errAmbulances } = await ambulancesQuery;
       const { data: hospitals, error: errHospitals } = await hospitalsQuery;
 
-      if (errEmergencies) console.error("Error fetching map emergencies:", errEmergencies);
-      if (errAmbulances) console.error("Error fetching map ambulances:", errAmbulances);
-      if (errHospitals) console.error("Error fetching map hospitals:", errHospitals);
+      if (errEmergencies && !quiet) console.error("Error fetching map emergencies:", errEmergencies);
+      if (errAmbulances && !quiet) console.error("Error fetching map ambulances:", errAmbulances);
+      if (errHospitals && !quiet) console.error("Error fetching map hospitals:", errHospitals);
 
       return {
         emergencies: emergencies || [],
@@ -77,7 +79,7 @@ export const supabaseMapService = {
         hospitals: hospitals || []
       };
     } catch (error) {
-      console.error("Error fetching initial map data:", error);
+      if (!quiet) console.error("Error fetching initial map data:", error);
       throw error;
     }
   },
@@ -161,7 +163,9 @@ export const supabaseMapService = {
    * @param {number} radiusKm - Search radius in kilometers (default: 50)
    * @returns {Promise<Array>} Array of nearby hospitals with distance
    */
-  async getNearbyHospitals(userLocation, radiusKm = 50) {
+  async getNearbyHospitals(userLocation, radiusKm = 50, options = {}) {
+    const quiet = Boolean(options?.quiet);
+
     try {
       const { data, error } = await supabase
         .rpc('nearby_hospitals', {
@@ -171,7 +175,7 @@ export const supabaseMapService = {
         });
 
       if (error) {
-        console.error('Error fetching nearby hospitals:', error);
+        if (!quiet) console.error('Error fetching nearby hospitals:', error);
         // Fallback to basic hospital query if function doesn't exist yet
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('hospitals')
@@ -185,7 +189,7 @@ export const supabaseMapService = {
 
       return data || [];
     } catch (error) {
-      console.error('Error in getNearbyHospitals:', error);
+      if (!quiet) console.error('Error in getNearbyHospitals:', error);
       return [];
     }
   }

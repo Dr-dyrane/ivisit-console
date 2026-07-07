@@ -1,311 +1,267 @@
-"use client";
-
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Save, Headphones, MessageSquare, Tag, Clock } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
-import { Badge } from '../ui/badge';
-import { X, Save, MessageSquare, Tag, User, Headphones, Clock } from 'lucide-react';
-import { toast } from 'sonner';
-import { handleApiError } from "../../utils/errorHandler";
+import { ModalShell } from '../ui/ModalShell';
+import { handleApiError } from '../../utils/errorHandler';
+
+const DEFAULT_FORM = {
+  subject: '',
+  message: '',
+  category: 'general',
+  priority: 'normal',
+};
+
+const STATUS_LABELS = {
+  open: 'Open',
+  in_progress: 'In progress',
+  resolved: 'Resolved',
+  closed: 'Closed',
+};
+
+const fieldClassName = 'h-11 rounded-2xl bg-muted/35 px-3 text-sm shadow-inner transition-[background,box-shadow] focus-visible:bg-muted/45 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)]';
+const areaClassName = 'min-h-[128px] resize-none rounded-2xl bg-muted/35 px-3 py-3 text-sm shadow-inner transition-[background,box-shadow] focus-visible:bg-muted/45 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)]';
+const selectTriggerClassName = 'h-11 rounded-2xl bg-muted/35 px-3 text-sm shadow-inner transition-[background,box-shadow] focus-visible:bg-muted/45 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.16)]';
 
 export const SupportTicketModal = ({
+  isOpen = true,
   ticket,
   mode,
   onClose,
   onSave,
-  priorities,
-  categories
+  priorities = [],
+  categories = [],
 }) => {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
   const isCreate = mode === 'create';
-
-  const [formData, setFormData] = useState({
-    subject: '',
-    message: '',
-    category: 'general',
-    priority: 'normal',
-    assigned_to: null,
-    status: 'open'
-  });
+  const [formData, setFormData] = useState(DEFAULT_FORM);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (ticket) {
-      setFormData(prev => ({
-        ...prev,
-        ...ticket,
+      setFormData({
         subject: ticket.subject || '',
         message: ticket.message || '',
         category: ticket.category || 'general',
         priority: ticket.priority || 'normal',
-        assigned_to: ticket.assigned_to || null,
-        status: ticket.status || 'open'
-      }));
-    } else if (isCreate) {
-      setFormData({
-        subject: '',
-        message: '',
-        category: 'general',
-        priority: 'normal',
-        assigned_to: null,
-        status: 'open'
       });
+      return;
+    }
+
+    if (isCreate) {
+      setFormData(DEFAULT_FORM);
     }
   }, [ticket, isCreate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const title = isCreate ? 'New support request' : isEdit ? 'Edit support request' : 'Support request';
+  const statusLabel = STATUS_LABELS[ticket?.status] || STATUS_LABELS.open;
+  const priorityLabel = useMemo(() => (
+    priorities.find((priority) => priority.value === formData.priority)?.label || formData.priority || 'Normal'
+  ), [formData.priority, priorities]);
 
+  const close = () => {
+    if (!loading) onClose?.();
+  };
+
+  const handleChange = (key, value) => {
+    setFormData((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (isView || loading) return;
+
+    setLoading(true);
     try {
-      if (mode === 'create') {
-        await onSave(formData);
-        toast.success('Support ticket created successfully');
+      const payload = {
+        subject: formData.subject,
+        message: formData.message,
+        category: formData.category,
+        priority: formData.priority,
+      };
+
+      if (isCreate) {
+        await onSave(payload);
+        toast.success('Support request created');
       } else {
-        await onSave(ticket.id, formData);
-        toast.success('Support ticket updated successfully');
+        await onSave(ticket.id, payload);
+        toast.success('Support request updated');
       }
-      onClose();
+
+      onClose?.();
     } catch (error) {
-      handleApiError(error, mode);
+      handleApiError(error, isCreate ? 'create' : 'update');
     } finally {
       setLoading(false);
     }
   };
 
-  const getPriorityColor = (priority) => {
-    const priorityConfig = (priorities || []).find(p => p.value === priority);
-    return priorityConfig?.color || 'bg-muted/20 text-muted-foreground';
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'open': return 'bg-orange-500/20 text-orange-500';
-      case 'in_progress': return 'bg-blue-500/20 text-blue-500';
-      case 'resolved': return 'bg-green-500/20 text-green-500';
-      case 'closed': return 'bg-muted/20 text-muted-foreground';
-      default: return 'bg-muted/20 text-muted-foreground';
-    }
-  };
-
   return (
-    <AnimatePresence>
-      {Boolean(mode) && (
-        <div className="fixed inset-0 z-[120] flex items-end md:items-center justify-center p-2 md:p-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/30 backdrop-blur-md"
-            onClick={() => onClose(false)}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            role="dialog"
-
-            aria-modal="true"
-
-            className="relative z-10 w-full max-w-2xl max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-hidden rounded-[24px] md:rounded-[32px] shadow-2xl"
-          >
-            {/* Header Area */}
-            <div className="flex items-center justify-between p-2 md:p-8 pb-2 md:pb-4">
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-primary/20 rounded-2xl">
-                  <Headphones className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
-                    {isCreate ? 'New Ticket' : isEdit ? 'Edit Ticket' : 'Ticket Details'}
-                  </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${getPriorityColor(formData.priority)}`}>
-                      {formData.priority?.toUpperCase() || 'NORMAL'}
-                    </Badge>
-                    <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${getStatusColor(formData.status)}`}>
-                      {formData.status?.replace('_', ' ').toUpperCase() || 'OPEN'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                onClick={() => onClose(false)}
-                className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-
-            <div className="p-2 md:p-8 pt-1 md:pt-2 overflow-y-auto max-h-[calc(100dvh-9rem)] md:max-h-[calc(90vh-120px)] space-y-4 md:space-y-6 no-scrollbar">
-              <form onSubmit={handleSubmit} className="space-y-6">
-
-                {/* Ticket Details */}
-                <GlassCard icon={<MessageSquare className="text-primary" />} title="Ticket Details">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="subject" className="text-xs font-semibold text-muted-foreground uppercase">Subject</Label>
-                      <Input
-                        id="subject"
-                        name="subject"
-                        value={formData.subject}
-                        onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-                        disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-semibold text-lg"
-                        placeholder="Brief description of the issue"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="message" className="text-xs font-semibold text-muted-foreground uppercase">Message</Label>
-                      <Textarea
-                        id="message"
-                        name="message"
-                        value={formData.message}
-                        onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
-                        disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 min-h-[120px] font-normal resize-none"
-                        placeholder="Detailed description of the issue or request"
-                        required
-                      />
-                    </div>
-                  </div>
-                </GlassCard>
-
-                {/* Classification */}
-                <GlassCard icon={<Tag className="text-primary" />} title="Classification">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="category" className="text-xs font-semibold text-muted-foreground uppercase">Category</Label>
-                      <Select
-                        value={formData.category}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-                        disabled={isView}
-                      >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                          {(categories || []).map(cat =>
-                            typeof cat === 'string'
-                              ? <SelectItem key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ')}</SelectItem>
-                              : <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="priority" className="text-xs font-semibold text-muted-foreground uppercase">Priority</Label>
-                      <Select
-                        value={formData.priority}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
-                        disabled={isView}
-                      >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                          {(priorities || []).map(pri => (
-                            <SelectItem key={pri.value} value={pri.value}>{pri.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </GlassCard>
-
-                {/* Status & Assignment */}
-                {!isCreate && (
-                  <GlassCard icon={<User className="text-primary" />} title="Management">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="status" className="text-xs font-semibold text-muted-foreground uppercase">Status</Label>
-                        <Select
-                          value={formData.status}
-                          onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
-                          disabled={isView}
-                        >
-                          <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                            <SelectItem value="open">Open</SelectItem>
-                            <SelectItem value="in_progress">In Progress</SelectItem>
-                            <SelectItem value="resolved">Resolved</SelectItem>
-                            <SelectItem value="closed">Closed</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </GlassCard>
-                )}
-
-                {/* Footer Actions */}
-                <div className="p-4 sm:p-6 rounded-[24px] bg-muted/30  flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    <span>Response time: Typically within 24 hours</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => onClose(false)}
-                      disabled={loading}
-                      className="rounded-2xl border-0 bg-muted/50 hover:bg-muted font-semibold"
-                    >
-                      Cancel
-                    </Button>
-                    {!isView && (
-                      <Button
-                        type="submit"
-                        disabled={loading}
-                        className="rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6"
-                      >
-                        {loading ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                            Saving...
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <Save className="w-4 h-4" />
-                            {isCreate ? 'Create Ticket' : 'Update Ticket'}
-                          </div>
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </form>
-            </div>
-          </motion.div>
+    <ModalShell
+      isOpen={Boolean(mode) && isOpen}
+      onClose={close}
+      size="lg"
+      title={title}
+      subtitle={isCreate ? 'Send one clear request to the support queue.' : statusLabel}
+      icon={<Headphones className="h-5 w-5 text-primary" />}
+      badge={(
+        <div className="hidden rounded-full bg-muted/45 px-3 py-1 text-xs font-medium text-muted-foreground sm:block">
+          {priorityLabel}
         </div>
       )}
-    </AnimatePresence>
+      managed
+    >
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <div className="flex-1 space-y-4 overflow-y-auto px-4 pb-4 md:px-6">
+          <section className="rounded-[28px] bg-muted/24 p-4 shadow-[0_16px_42px_rgb(0_0_0/0.08)] md:p-5">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <MessageSquare className="h-4 w-4" />
+              </span>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Request details</h3>
+                <p className="text-xs text-muted-foreground">Keep it short and specific.</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="support-subject" className="text-xs font-medium text-muted-foreground">Subject</Label>
+                <Input
+                  id="support-subject"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={(event) => handleChange('subject', event.target.value)}
+                  disabled={isView || loading}
+                  className={fieldClassName}
+                  placeholder="Brief description"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="support-message" className="text-xs font-medium text-muted-foreground">Message</Label>
+                <Textarea
+                  id="support-message"
+                  name="message"
+                  value={formData.message}
+                  onChange={(event) => handleChange('message', event.target.value)}
+                  disabled={isView || loading}
+                  className={areaClassName}
+                  placeholder="What happened, and what should support check first?"
+                  required
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-[28px] bg-muted/24 p-4 shadow-[0_16px_42px_rgb(0_0_0/0.08)] md:p-5">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-700 dark:text-sky-200">
+                <Tag className="h-4 w-4" />
+              </span>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Classification</h3>
+                <p className="text-xs text-muted-foreground">Support can refine this after review.</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="support-category" className="text-xs font-medium text-muted-foreground">Category</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => handleChange('category', value)}
+                  disabled={isView || loading}
+                >
+                  <SelectTrigger id="support-category" className={selectTriggerClassName}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl bg-background/95 shadow-xl backdrop-blur-xl">
+                    {(categories || []).map((category) => {
+                      const value = typeof category === 'string' ? category : category.value;
+                      const label = typeof category === 'string'
+                        ? category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')
+                        : category.label;
+                      return <SelectItem key={value} value={value}>{label}</SelectItem>;
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="support-priority" className="text-xs font-medium text-muted-foreground">Priority</Label>
+                <Select
+                  value={formData.priority}
+                  onValueChange={(value) => handleChange('priority', value)}
+                  disabled={isView || loading}
+                >
+                  <SelectTrigger id="support-priority" className={selectTriggerClassName}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl bg-background/95 shadow-xl backdrop-blur-xl">
+                    {(priorities || []).map((priority) => (
+                      <SelectItem key={priority.value} value={priority.value}>{priority.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </section>
+
+          {!isCreate && (
+            <section className="rounded-[28px] bg-muted/24 p-4 shadow-[0_16px_42px_rgb(0_0_0/0.08)] md:p-5">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">
+                  <Clock className="h-4 w-4" />
+                </span>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Workflow status</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {statusLabel}. Assignment and status changes need support receiver proof before editing here.
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
+        </div>
+
+        <div className="flex shrink-0 flex-col gap-3 bg-background/95 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-6">
+          <p className="text-xs text-muted-foreground">
+            Support replies and workflow changes stay tied to backend ticket truth.
+          </p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={close}
+              disabled={loading}
+              className="h-10 rounded-2xl bg-muted/45 px-4 text-sm font-medium hover:bg-muted/65"
+            >
+              {isView ? 'Close' : 'Cancel'}
+            </Button>
+            {!isView && (
+              <Button
+                type="submit"
+                disabled={loading}
+                className="h-10 rounded-2xl px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.22)]"
+              >
+                {loading ? 'Saving...' : (
+                  <span className="inline-flex items-center gap-2">
+                    <Save className="h-4 w-4" />
+                    {isCreate ? 'Create request' : 'Save changes'}
+                  </span>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+      </form>
+    </ModalShell>
   );
 };
-
-/* Sub-components */
-const GlassCard = ({ children, title, icon }) => (
-  <div className="p-4 sm:p-6 rounded-[28px] bg-muted/30 ">
-    <div className="flex items-center gap-3 mb-4 sm:mb-6">
-      <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
-        {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
-      </div>
-      <h3 className="font-semibold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
-    </div>
-    {children}
-  </div>
-);

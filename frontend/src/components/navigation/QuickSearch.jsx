@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Clock, TrendingUp, Loader2, ArrowRight, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dialog, DialogContent } from '../ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../ui/dialog';
 import { searchService } from '../../services/searchService';
 
 const categoryColors = {
@@ -10,7 +10,7 @@ const categoryColors = {
   'Hospitals': 'hsl(var(--info))',
   'Ambulances': 'hsl(var(--destructive))',
   'Visits': 'hsl(var(--success))',
-  'Emergency Requests': 'hsl(var(--warning))',
+  'Requests': 'hsl(var(--warning))',
   'Users': 'hsl(var(--secondary))',
 };
 
@@ -80,7 +80,11 @@ export const QuickSearch = ({ isOpen, onClose }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="p-2 overflow-hidden bg-transparent border-0 shadow-2xl max-w-3xl">
+      <DialogContent className="p-2 overflow-hidden bg-transparent shadow-2xl max-w-3xl" style={{ borderWidth: 0 }}>
+        <DialogTitle className="sr-only">Search</DialogTitle>
+        <DialogDescription className="sr-only" data-shell-search-description="true">
+          Search across console records and open the matching result.
+        </DialogDescription>
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -92,8 +96,8 @@ export const QuickSearch = ({ isOpen, onClose }) => {
             <Search className="w-5 h-5 text-muted-foreground mr-3" />
             <input
               autoFocus
-              className="flex-1 h-12 bg-transparent border-0 outline-none text-xs md:text-lg placeholder:text-muted-foreground/50 font-normal"
-              placeholder="Search doctors, hospitals, visits, emergencies..."
+              className="flex-1 h-12 bg-transparent text-xs md:text-lg placeholder:text-muted-foreground/50 font-normal focus-visible:shadow-[0_10px_32px_-24px_hsl(var(--primary)/0.8)]"
+              placeholder="Search doctors, hospitals, visits, requests..."
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
               aria-label="Search query"
@@ -105,7 +109,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
               </button>
             )}
             <div className="hidden sm:flex gap-2 ml-4">
-              <kbd className="h-6 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-normal text-muted-foreground flex">
+              <kbd className="h-6 select-none items-center gap-1 rounded bg-muted px-1.5 font-mono text-[10px] font-normal text-muted-foreground flex">
                 <span className="text-xs">ESC</span>
               </kbd>
             </div>
@@ -200,7 +204,7 @@ export const QuickSearch = ({ isOpen, onClose }) => {
 
                             {item.rating && (
                               <span className="text-xs font-semibold text-muted-foreground">
-                                ⭐ {item.rating}
+                                Rating {item.rating}
                               </span>
                             )}
 

@@ -87,6 +87,103 @@ const toTextArray = (value) => {
     .filter(Boolean);
 };
 
+const normalizeFilterList = (value) => {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry || '').trim()).filter(Boolean);
+  }
+  const text = String(value || '').trim();
+  return text ? [text] : [];
+};
+
+const sanitizeSearchTerm = (value) => String(value || '')
+  .trim()
+  .replace(/[%_,]/g, ' ')
+  .replace(/\s+/g, ' ');
+
+function applyHospitalFilters(query, filter = {}) {
+  if (filter?.id) {
+    query = query.eq('id', filter.id);
+  }
+
+  const statusValues = normalizeFilterList(filter?.status);
+  if (statusValues.length === 1) {
+    query = query.eq('status', statusValues[0]);
+  } else if (statusValues.length > 1) {
+    query = query.in('status', statusValues);
+  }
+
+  if (filter?.verified !== undefined) {
+    query = query.eq('verified', filter.verified);
+  }
+
+  const verificationValues = normalizeFilterList(filter?.verification_status);
+  if (verificationValues.length === 1) {
+    query = query.eq('verification_status', verificationValues[0]);
+  } else if (verificationValues.length > 1) {
+    query = query.in('verification_status', verificationValues);
+  }
+
+  if (filter?.specialty) {
+    query = query.contains('specialties', [filter.specialty]);
+  }
+
+  const search = sanitizeSearchTerm(filter?.search);
+  if (search) {
+    query = query.or(`name.ilike.%${search}%,address.ilike.%${search}%`);
+  }
+
+  return query;
+}
+
+export function getHospitalVisibleStats(rows = []) {
+  const data = Array.isArray(rows) ? rows : [];
+  const total = data.length;
+  const available = data.filter(h => h.status === 'available').length;
+  const full = data.filter(h => h.status === 'full').length;
+  const busy = data.filter(h => h.status === 'busy').length;
+  const verified = data.filter(h => h.verified).length;
+  const totalBeds = data.reduce((acc, h) => acc + (Number(h.available_beds) || 0), 0);
+  const totalAmbulances = data.reduce((acc, h) => acc + (Number(h.ambulances_count) || 0), 0);
+
+  return { total, available, full, busy, verified, totalBeds, totalAmbulances };
+}
+
+async function getHospitalExactCount(filters = {}, quiet = false) {
+  try {
+    let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
+    query = applyHospitalFilters(query, filters);
+
+    const { error, count } = await query;
+    if (error) throw error;
+
+    return Number.isFinite(count) ? count : 0;
+  } catch (error) {
+    if (!quiet) {
+      console.error('Error fetching hospital exact count:', error);
+    }
+    throw error;
+  }
+}
+
+export async function getHospitalPageStats(filters = {}, quiet = false) {
+  const [total, available, full, busy, verified] = await Promise.all([
+    getHospitalExactCount(filters, quiet),
+    getHospitalExactCount({ ...filters, status: 'available' }, quiet),
+    getHospitalExactCount({ ...filters, status: 'full' }, quiet),
+    getHospitalExactCount({ ...filters, status: 'busy' }, quiet),
+    getHospitalExactCount({ ...filters, verified: true }, quiet),
+  ]);
+
+  return {
+    total,
+    available,
+    full,
+    busy,
+    verified,
+    exactCounts: true,
+  };
+}
+
 function buildHospitalPayload(input = {}, { isCreate = false } = {}) {
   const payload = {};
   const hasOwn = (key) => Object.prototype.hasOwnProperty.call(input, key);
@@ -176,34 +273,23 @@ function buildHospitalPayload(input = {}, { isCreate = false } = {}) {
  */
 export async function getHospitals(filter = {}) {
   try {
-    let query = supabase.from(TABLE_NAME).select('*');
+    let query = filter?.count
+      ? supabase.from(TABLE_NAME).select('*', { count: 'exact' })
+      : supabase.from(TABLE_NAME).select('*');
     // Rely on database RLS for visibility and role scoping to avoid client-side role drift.
     // This keeps console/admin behavior consistent with backend policy changes.
 
-    if (filter?.status) {
-      query = query.eq('status', filter.status);
-    }
-    if (filter?.verified !== undefined) {
-      query = query.eq('verified', filter.verified);
-    }
-    // NEW: Support verification_status filter (pending, verified, rejected)
-    if (filter?.verification_status) {
-      query = query.eq('verification_status', filter.verification_status);
-    }
-    if (filter?.specialty) {
-      query = query.contains('specialties', [filter.specialty]);
-    }
+    query = applyHospitalFilters(query, filter);
 
     query = query.order('created_at', { ascending: false });
 
-    if (filter?.limit) {
+    if (filter?.offset !== undefined && filter?.offset !== null) {
+      query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
+    } else if (filter?.limit) {
       query = query.limit(filter.limit);
     }
-    if (filter?.offset) {
-      query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
-    }
 
-    const { data, error, count } = await (filter?.count ? query.select('*', { count: 'exact' }) : query);
+    const { data, error, count } = await query;
     if (error) throw error;
 
     // NEW: Enrich with display IDs (ORG-XXXXXX)
@@ -211,7 +297,7 @@ export async function getHospitals(filter = {}) {
     if (enrichedData.length > 0) {
       const { getDisplayIds } = await import('./displayIdService');
       const orgIds = enrichedData.map(h => h.id);
-      const displayIds = await getDisplayIds(orgIds);
+      const displayIds = await getDisplayIds(orgIds, { quiet: filter?.quiet });
 
       enrichedData = enrichedData.map(h => ({
         ...h,
@@ -221,12 +307,60 @@ export async function getHospitals(filter = {}) {
 
     const result = enrichedData;
     if (filter?.count) {
-      return { data: result, count: count || 0 };
+      return { data: result, count: Number.isFinite(count) ? count : result.length };
     }
 
     return result;
   } catch (error) {
-    console.error('Error fetching hospitals:', error);
+    if (!filter?.quiet) {
+      console.error('Error fetching hospitals:', error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Route-owned Hospitals page projection.
+ * Keeps list, exact count, filters, pagination, display IDs, and page stats in one service boundary.
+ */
+export async function getHospitalsPageData(options = {}) {
+  const {
+    filters = {},
+    statsFilters = filters,
+    limit = 20,
+    offset = 0,
+    quiet = false,
+  } = options;
+
+  try {
+    const [pageResult, stats] = await Promise.all([
+      getHospitals({
+        ...filters,
+        limit,
+        offset,
+        count: true,
+        quiet,
+      }),
+      getHospitalPageStats(statsFilters, quiet),
+    ]);
+
+    const pageRows = pageResult?.data || [];
+    const visibleStats = getHospitalVisibleStats(pageRows);
+
+    return {
+      data: pageRows,
+      count: pageResult?.count || 0,
+      stats: {
+        ...stats,
+        visibleBeds: visibleStats.totalBeds,
+        visibleAmbulances: visibleStats.totalAmbulances,
+      },
+      recent: pageRows.slice(0, 5),
+    };
+  } catch (error) {
+    if (!quiet) {
+      console.error('Error fetching hospitals page data:', error);
+    }
     throw error;
   }
 }

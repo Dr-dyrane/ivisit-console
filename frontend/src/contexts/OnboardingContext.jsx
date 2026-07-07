@@ -24,7 +24,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { onboardingService } from '../services/onboardingService';
@@ -183,6 +183,7 @@ export const OnboardingProvider = ({ children }) => {
         verify: true, // Optional docs, always valid
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const submittingRef = useRef(false);
     const [direction, setDirection] = useState(0); // Animation direction: 1=forward, -1=back
     const [selectedHospital, setSelectedHospital] = useState(null); // For hospital claim feature
 
@@ -269,6 +270,21 @@ export const OnboardingProvider = ({ children }) => {
         setStepValidity(prev => ({ ...prev, [stepId]: isValid }));
     }, []);
 
+    const beginSubmitting = useCallback(() => {
+        if (submittingRef.current) {
+            return false;
+        }
+
+        submittingRef.current = true;
+        setIsSubmitting(true);
+        return true;
+    }, []);
+
+    const endSubmitting = useCallback(() => {
+        submittingRef.current = false;
+        setIsSubmitting(false);
+    }, []);
+
     /**
      * Navigate to next step
      */
@@ -314,7 +330,8 @@ export const OnboardingProvider = ({ children }) => {
      * This authenticates the user and sets onboarding_status = 'pending'
      */
     const createAdminAccount = useCallback(async () => {
-        setIsSubmitting(true);
+        if (!beginSubmitting()) return { success: false, message: 'Submission already in progress' };
+
         try {
             const result = await onboardingService.createAdminAccount(formData);
             if (result.success) {
@@ -328,16 +345,17 @@ export const OnboardingProvider = ({ children }) => {
             toast.error(error.message || 'Failed to create account. Please try again.');
             throw error;
         } finally {
-            setIsSubmitting(false);
+            endSubmitting();
         }
-    }, [formData, goNext]);
+    }, [beginSubmitting, endSubmitting, formData, goNext]);
 
     /**
      * Submit the onboarding form (Step 5)
      * User is already authenticated with onboarding_status = 'pending'
      */
     const submitOnboarding = useCallback(async () => {
-        setIsSubmitting(true);
+        if (!beginSubmitting()) return { success: false, message: 'Submission already in progress' };
+
         try {
             const result = await onboardingService.submitOnboarding(formData);
             if (result.success) {
@@ -349,19 +367,22 @@ export const OnboardingProvider = ({ children }) => {
                 toast.success('Registration submitted successfully!');
                 navigate('/onboarding-success', { state: { result } });
             }
+            return result;
         } catch (error) {
             console.error('Onboarding submission failed:', error);
             toast.error(error.message || 'Registration failed. Please try again.');
+            return { success: false, error };
         } finally {
-            setIsSubmitting(false);
+            endSubmitting();
         }
-    }, [formData, navigate]);
+    }, [beginSubmitting, endSubmitting, formData, navigate]);
 
     /**
      * Skip onboarding and go to dashboard
      */
     const skipOnboarding = useCallback(async () => {
-        setIsSubmitting(true);
+        if (!beginSubmitting()) return { success: false, message: 'Submission already in progress' };
+
         try {
             const { success, profile } = await onboardingService.skipOnboarding();
             if (success) {
@@ -379,13 +400,15 @@ export const OnboardingProvider = ({ children }) => {
                 // Note: AuthContext will pick up the 'skipped' status on next profile refresh or we can force it
                 window.location.reload(); // Quickest way to refresh all contexts
             }
+            return { success, profile };
         } catch (error) {
             console.error('Skip onboarding failed:', error);
             toast.error('Failed to skip onboarding.');
+            return { success: false, error };
         } finally {
-            setIsSubmitting(false);
+            endSubmitting();
         }
-    }, [navigate]);
+    }, [beginSubmitting, endSubmitting, navigate]);
 
     /**
      * Reset the entire onboarding state

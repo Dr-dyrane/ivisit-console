@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Edit, Trash2, Eye, CalendarDays } from 'lucide-react';
@@ -28,7 +27,7 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.02 }}
         >
-          <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-sm p-4 border-0 hover:shadow-md transition-shadow group">
+          <div className="rounded-card bg-background/35 backdrop-blur-xs shadow-sm p-4 hover:shadow-md transition-shadow group">
             <div className="flex items-center gap-4 justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-col gap-1 mb-2">
@@ -36,20 +35,20 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
                     <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
                       {user.full_name || user.profile_full_name || 'Unknown User'}
                     </h3>
-                    <Badge className={`squircle-sm ${getRoleBadge(user.role)} border-0 font-bold`}>
+                    <Badge className={`rounded-pill ${getRoleBadge(user.role)} font-bold`}>
                       {user.role}
                     </Badge>
                   </div>
                   <span className="text-xs text-muted-foreground font-medium lowercase">@{user.username || user.profile_username || 'no-handle'}</span>
                 </div>
                 <p className="text-sm text-muted-foreground truncate">
-                  {user.email || 'No email'} • {user.organization_name || 'N/A'} • {user.provider_type || 'N/A'}
+                  {user.email || 'No email'} / {user.organization_name || 'N/A'} / {user.provider_type || 'N/A'}
                 </p>
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 {user.bvn_verified && (
-                  <Badge className="squircle-sm bg-success/20 text-success border-0 px-2">
+                  <Badge className="rounded-pill bg-success/20 text-success px-2">
                     Verified
                   </Badge>
                 )}
@@ -58,7 +57,7 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
                     variant="ghost"
                     size="sm"
                     onClick={() => onView(user)}
-                    className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                    className="rounded-icon h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -66,7 +65,7 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
                     variant="ghost"
                     size="sm"
                     onClick={() => onEdit(user)}
-                    className="squircle h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                    className="rounded-icon h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -75,7 +74,7 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
                       variant="ghost"
                       size="sm"
                       onClick={() => onSchedule(user)}
-                      className="squircle h-8 w-8 p-0 hover:bg-purple-500/10 hover:text-purple-500"
+                      className="rounded-icon h-8 w-8 p-0 hover:bg-info/10 hover:text-info"
                     >
                       <CalendarDays className="h-4 w-4" />
                     </Button>
@@ -84,14 +83,14 @@ export const UserListView = ({ users, onView, onEdit, onDelete, onSchedule, isMo
                     variant="ghost"
                     size="sm"
                     onClick={() => onDelete(user)}
-                    className="squircle h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                    className="rounded-icon h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
         </motion.div>
       ))}
     </motion.div>

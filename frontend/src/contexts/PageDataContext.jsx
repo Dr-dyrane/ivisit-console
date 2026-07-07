@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import { getSupportTickets } from '../services/supportTicketsService';
 import { getUserStatistics, getProfiles } from '../services/profilesService';
@@ -12,9 +12,11 @@ import { getAmbulances } from '../services/ambulancesService';
 import { getAnalyticsData } from '../services/analyticsService';
 import { getVerificationStats } from '../services/verificationService';
 import { getRecentActivity } from '../services/activityService';
-import { getInsurancePolicies } from '../services/insurancePoliciesService';
+import { getInsurancePage } from '../services/insuranceService';
 import { getOrganizations } from '../services/organizationsService';
 import { getPricing } from '../services/pricingService';
+import { getWalletContextData } from '../services/walletService';
+import { getPageDataAccessForRole, getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../config/pageDataAccess';
 
 // Mock data as fallback - Based on actual mobile app service types
 const mockEmergencyData = {
@@ -81,12 +83,13 @@ const mockEmergencyData = {
 };
 
 const mockAnalyticsData = {
-  totalRequests: 156,
-  avgResponseTime: 4.2,
-  completionRate: 94,
-  activeHospitals: 8,
-  availableAmbulances: 12,
-  onRouteAmbulances: 4
+  totalRequests: null,
+  avgResponseTime: null,
+  completionRate: null,
+  activeHospitals: null,
+  availableAmbulances: null,
+  onRouteAmbulances: null,
+  sourceState: 'mock_unavailable'
 };
 
 const mockDoctorsData = {
@@ -142,13 +145,26 @@ export const usePageData = () => {
 };
 
 export const PageDataProvider = ({ children }) => {
+  const location = useLocation();
   const { user, profile, isAdmin } = useAuth();
   const [pageLoading, setPageLoading] = useState(true);
   const [useMockData, setUseMockData] = useState(false);
+  const {
+    canLoadProviderData,
+    canLoadOrgData,
+    canLoadAdminData,
+  } = useMemo(() => getPageDataAccessForRole(profile?.role), [profile?.role]);
+  const startupDomains = useMemo(
+    () => getPageDataStartupDomainsForRole(profile?.role, location.pathname),
+    [profile?.role, location.pathname]
+  );
+  const routeOwnsStartup = useMemo(
+    () => routeOwnsStartupDomains(location.pathname),
+    [location.pathname]
+  );
 
   // Debounce refs for real-time updates
   const supportTicketsTimeoutRef = useRef(null);
-  const activityTimeoutRef = useRef(null);
   const DEBOUNCE_DELAY = 1000; // 1 second debounce
 
   const [emergencyData, setEmergencyData] = useState(null);
@@ -158,6 +174,7 @@ export const PageDataProvider = ({ children }) => {
   const [verificationData, setVerificationData] = useState(mockVerificationData);
   const [supportTicketsData, setSupportTicketsData] = useState(null);
   const [insurancePolicies, setInsurancePolicies] = useState([]);
+  const [insurancePageStats, setInsurancePageStats] = useState(null);
   const [activityData, setActivityData] = useState([]);
   const [userData, setUserData] = useState({ users: [], statistics: null });
   const [walletData, setWalletData] = useState({ wallet: null, ledger: [], projection: 0 });
@@ -166,6 +183,23 @@ export const PageDataProvider = ({ children }) => {
   const [organizationsData, setOrganizationsData] = useState({ organizations: [], stats: null });
   const [servicePricing, setServicePricing] = useState([]);
   const [roomPricing, setRoomPricing] = useState([]);
+  const [domainErrors, setDomainErrors] = useState({});
+
+  const clearDomainError = useCallback((domain) => {
+    setDomainErrors((current) => {
+      if (!current[domain]) return current;
+      const next = { ...current };
+      delete next[domain];
+      return next;
+    });
+  }, []);
+
+  const markDomainError = useCallback((domain, error) => {
+    setDomainErrors((current) => ({
+      ...current,
+      [domain]: error?.message || 'Not ready yet',
+    }));
+  }, []);
 
   // Fetch emergency data
   // Fetch emergency data
@@ -178,7 +212,7 @@ export const PageDataProvider = ({ children }) => {
         return;
       }
 
-      const data = await getEmergencyRequests();
+      const data = await getEmergencyRequests({ quiet: true });
 
       const total = data?.length || 0;
       const ambulance = data?.filter(r => r.service_type === 'ambulance').length || 0;
@@ -210,16 +244,15 @@ export const PageDataProvider = ({ children }) => {
         },
         recent: data?.slice(0, 10) || []
       });
+      clearDomainError('emergency');
 
     } catch (error) {
-      console.error('Error fetching emergency data:', error);
-      // Only fallback to mock if it's not an auth error, or maybe just show empty
-      // setUseMockData(true); 
-      setEmergencyData({ stats: { total: 0, ambulance: 0, bed: 0, critical_care: 0, emergency_room: 0, pending_approval: 0, pending: 0, inProgress: 0, accepted: 0, arrived: 0, completed: 0, active: 0 }, recent: [] });
+      markDomainError('emergency', error);
+      setEmergencyData({ stats: null, recent: [] });
     } finally {
       setPageLoading(false);
     }
-  }, [useMockData]);
+  }, [clearDomainError, markDomainError, useMockData]);
 
   const fetchVerificationData = useCallback(async () => {
     try {
@@ -234,24 +267,18 @@ export const PageDataProvider = ({ children }) => {
       try {
         const stats = await getVerificationStats();
         setVerificationData(stats);
+        clearDomainError('verification');
       } catch (authError) {
-        // If not admin, we might just want to show nothing or limited data
-        console.warn('Verification stats access restricted:', authError.message);
-        setVerificationData({
-          pending: 0,
-          approved: 0,
-          rejected: 0,
-          total: 0
-        });
+        markDomainError('verification', authError);
+        setVerificationData(null);
       }
     } catch (error) {
-      console.error('Error fetching verification data:', error);
-      setVerificationData(mockVerificationData);
-      // setUseMockData(true);
+      markDomainError('verification', error);
+      setVerificationData(null);
     } finally {
       setPageLoading(false);
     }
-  }, [useMockData]);
+  }, [clearDomainError, markDomainError, useMockData]);
 
   const fetchDoctorsData = useCallback(async () => {
     try {
@@ -262,7 +289,7 @@ export const PageDataProvider = ({ children }) => {
         return;
       }
 
-      const { data } = await getDoctors(); // RBAC enabled
+      const { data } = await getDoctors({ quiet: true }); // RBAC enabled
 
       // Calculate real doctor stats based on visible data
       const total = data?.length || 0;
@@ -282,15 +309,15 @@ export const PageDataProvider = ({ children }) => {
         },
         recent: data?.slice(0, 5) || []
       });
+      clearDomainError('doctors');
 
     } catch (error) {
-      console.error('Error fetching doctors data:', error);
-      setDoctorsData(mockDoctorsData);
-      // setUseMockData(true);
+      markDomainError('doctors', error);
+      setDoctorsData(null);
     } finally {
       setPageLoading(false);
     }
-  }, [useMockData]);
+  }, [clearDomainError, markDomainError, useMockData]);
 
   const fetchVisitsData = useCallback(async () => {
     try {
@@ -301,7 +328,7 @@ export const PageDataProvider = ({ children }) => {
         return;
       }
 
-      const data = await getVisits(); // RBAC enabled
+      const data = await getVisits({ quiet: true }); // RBAC enabled
 
       const today = new Date().toISOString().split('T')[0];
       const todayVisits = data?.filter(v => v.visit_date === today || (v.date && v.date.startsWith(today))).length || 0;
@@ -321,14 +348,15 @@ export const PageDataProvider = ({ children }) => {
         },
         recent: data?.slice(0, 5) || []
       });
+      clearDomainError('visits');
 
     } catch (error) {
-      console.error('Error fetching visits data:', error);
-      setVisitsData(mockVisitsData);
+      markDomainError('visits', error);
+      setVisitsData(null);
     } finally {
       setPageLoading(false);
     }
-  }, [useMockData]);
+  }, [clearDomainError, markDomainError, useMockData]);
 
   const fetchAnalyticsData = useCallback(async () => {
     try {
@@ -339,28 +367,31 @@ export const PageDataProvider = ({ children }) => {
         return;
       }
 
-      // Use the consolidated analytics service which handles parallell fetching and caching with RBAC
-      const fullAnalytics = await getAnalyticsData({ timeRange: 'all', includeRawData: true });
+      // PageData only needs summary metrics; page-level analytics can request raw chart data.
+      const fullAnalytics = await getAnalyticsData({ timeRange: 'all', includeRawData: false, quiet: true });
 
       // Transform for PageData context expected structure
       const transformedAnalytics = {
         totalRequests: fullAnalytics.totalEmergencies,
         avgResponseTime: fullAnalytics.avgResponseTime,
         completionRate: fullAnalytics.successRate,
+        completionRateSource: fullAnalytics.successRateSource,
+        sourceState: fullAnalytics.analyticsSourceState,
         activeHospitals: fullAnalytics.totalHospitals,
         availableAmbulances: fullAnalytics.totalAmbulances,
-        // Estimate if not available in summary
-        onRouteAmbulances: Math.floor(fullAnalytics.totalAmbulances * 0.3),
+        onRouteAmbulances: null,
+        onRouteAmbulancesSource: 'source_pending',
       };
 
       setAnalyticsData(transformedAnalytics);
+      clearDomainError('analytics');
     } catch (error) {
-      console.error('Error fetching analytics data:', error);
-      setAnalyticsData(mockAnalyticsData);
+      markDomainError('analytics', error);
+      setAnalyticsData(null);
     } finally {
       setPageLoading(false);
     }
-  }, [useMockData]);
+  }, [clearDomainError, markDomainError, useMockData]);
 
   const fetchHospitalsData = useCallback(async () => {
     try {
@@ -368,7 +399,7 @@ export const PageDataProvider = ({ children }) => {
 
       if (useMockData) return;
 
-      const data = await getHospitals(); // RBAC enabled
+      const data = await getHospitals({ quiet: true }); // RBAC enabled
 
       // Update analytics data with real hospital count (if not already handled by analytics fetch)
       // Note: We might want to keep analytics disjoint, but this updates component state
@@ -385,12 +416,14 @@ export const PageDataProvider = ({ children }) => {
         stats: { total, available, full, busy, verified, totalBeds, totalAmbulances },
         recent: data?.slice(0, 5) || []
       });
+      clearDomainError('hospitals');
     } catch (error) {
-      console.error('Error fetching hospitals data:', error);
+      markDomainError('hospitals', error);
+      setHospitalsData({ stats: null, recent: [] });
     } finally {
       setPageLoading(false);
     }
-  }, [useMockData]);
+  }, [clearDomainError, markDomainError, useMockData]);
 
   const fetchAmbulancesData = useCallback(async () => {
     try {
@@ -398,7 +431,7 @@ export const PageDataProvider = ({ children }) => {
 
       if (useMockData) return;
 
-      const data = await getAmbulances(); // RBAC enabled
+      const data = await getAmbulances({ quiet: true }); // RBAC enabled
 
       const available = data?.filter(a => a.status === 'available').length || 0;
       const onRoute = data?.filter(a => a.status === 'on_route').length || 0;
@@ -415,12 +448,14 @@ export const PageDataProvider = ({ children }) => {
         },
         recent: data?.slice(0, 5) || []
       });
+      clearDomainError('ambulances');
     } catch (error) {
-      console.error('Error fetching ambulances data:', error);
+      markDomainError('ambulances', error);
+      setAmbulancesData({ stats: null, recent: [] });
     } finally {
       setPageLoading(false);
     }
-  }, [useMockData]);
+  }, [clearDomainError, markDomainError, useMockData]);
 
   const fetchUsersData = useCallback(async () => {
     try {
@@ -434,13 +469,13 @@ export const PageDataProvider = ({ children }) => {
       // Try to fetch robust statistics (Server/Admin side)
       let serverStatistics = null;
       try {
-        serverStatistics = await getUserStatistics();
+        serverStatistics = await getUserStatistics({ quiet: true });
       } catch (err) {
         // Not admin or generic error, ignore
       }
 
       // Fetch profiles accessible to this user
-      const users = await getProfiles();
+      const users = await getProfiles({ quiet: true });
 
       // If we got server stats, use them (Admin). 
       // If not (Provider/User), calculate stats from visible users (e.g. 1 user).
@@ -461,14 +496,15 @@ export const PageDataProvider = ({ children }) => {
       };
 
       setUserData({ users, statistics });
+      clearDomainError('users');
 
     } catch (error) {
-      console.error('Error fetching users data:', error);
+      markDomainError('users', error);
       setUserData({ users: [], statistics: null });
     } finally {
       setPageLoading(false);
     }
-  }, [useMockData]);
+  }, [clearDomainError, markDomainError, useMockData]);
 
   const fetchSupportTicketsData = useCallback(async () => {
     try {
@@ -480,7 +516,7 @@ export const PageDataProvider = ({ children }) => {
       }
 
       // Use the service function to avoid response body conflicts
-      const data = await getSupportTickets();
+      const data = await getSupportTickets({ quiet: true });
 
       // Calculate real support ticket stats
       const total = data?.length || 0;
@@ -511,13 +547,14 @@ export const PageDataProvider = ({ children }) => {
         thisWeek,
         averageResolutionTime: Math.round(averageResolutionTime * 10) / 10
       });
+      clearDomainError('supportTickets');
     } catch (error) {
-      console.error('[PageDataContext] Support tickets fetch failed:', error.message);
-      setSupportTicketsData(mockSupportTicketsData);
+      markDomainError('supportTickets', error);
+      setSupportTicketsData(null);
     } finally {
       setPageLoading(false);
     }
-  }, [useMockData]);
+  }, [clearDomainError, markDomainError, useMockData]);
 
   const fetchInsurancePolicies = useCallback(async () => {
     try {
@@ -525,47 +562,44 @@ export const PageDataProvider = ({ children }) => {
 
       if (useMockData) {
         setInsurancePolicies([]);
+        setInsurancePageStats(null);
         return;
       }
 
-      const data = await getInsurancePolicies();
-      setInsurancePolicies(data || []);
+      const page = await getInsurancePage({ limit: 10, quiet: true });
+      setInsurancePolicies(page.data || []);
+      setInsurancePageStats(page.stats || null);
+      clearDomainError('insurance');
 
     } catch (error) {
-      console.error('Error fetching insurance policies:', error);
+      markDomainError('insurance', error);
       setInsurancePolicies([]);
+      setInsurancePageStats(null);
     } finally {
       setPageLoading(false);
     }
-  }, [useMockData]);
+  }, [clearDomainError, markDomainError, useMockData]);
 
   const fetchWalletData = useCallback(async () => {
     try {
       if (!user || !profile) return;
       setPageLoading(true);
 
-      let wallet;
-      if (isAdmin()) {
-        const { data } = await supabase.from('ivisit_main_wallet').select('*').single();
-        wallet = data;
-      } else if (profile.organization_id) {
-        const { data } = await supabase.from('organization_wallets').select('*').eq('organization_id', profile.organization_id).single();
-        wallet = data;
-      }
+      const data = await getWalletContextData({
+        profile,
+        isAdmin: isAdmin(),
+        ledgerLimit: 10,
+      });
 
-      let ledgerQuery = supabase.from('wallet_ledger').select('*');
-      if (wallet?.id) {
-        ledgerQuery = ledgerQuery.eq('wallet_id', wallet.id);
-      }
-      const { data: ledger } = await ledgerQuery.order('created_at', { ascending: false }).limit(10);
-
-      setWalletData({ wallet, ledger: ledger || [], projection: 0 });
+      setWalletData(data);
+      clearDomainError('wallet');
     } catch (error) {
-      console.error('Error fetching wallet data:', error);
+      markDomainError('wallet', error);
+      setWalletData({ wallet: null, ledger: [], projection: 0 });
     } finally {
       setPageLoading(false);
     }
-  }, [user, profile, isAdmin]);
+  }, [clearDomainError, isAdmin, markDomainError, profile, user]);
 
   const fetchActivityData = useCallback(async () => {
     try {
@@ -596,19 +630,22 @@ export const PageDataProvider = ({ children }) => {
 
       setServicePricing(services || []);
       setRoomPricing(rooms || []);
+      clearDomainError('pricing');
     } catch (error) {
-      console.error('Error fetching pricing data:', error);
+      markDomainError('pricing', error);
+      setServicePricing([]);
+      setRoomPricing([]);
     } finally {
       setPageLoading(false);
     }
-  }, [useMockData]);
+  }, [clearDomainError, markDomainError, useMockData]);
 
   const fetchOrganizationsData = useCallback(async () => {
     try {
       setPageLoading(true);
       if (useMockData) return;
 
-      const data = await getOrganizations();
+      const data = await getOrganizations({ quiet: true });
       const active = data?.filter(o => o.is_active).length || 0;
       const totalWallet = data?.reduce((acc, curr) => acc + (curr.wallet_balance || 0), 0) || 0;
 
@@ -616,16 +653,22 @@ export const PageDataProvider = ({ children }) => {
         organizations: data || [],
         stats: { total: data?.length || 0, active, totalWallet }
       });
+      clearDomainError('organizations');
     } catch (error) {
-      console.error('Error fetching organizations data:', error);
+      markDomainError('organizations', error);
+      setOrganizationsData({ organizations: [], stats: null });
     } finally {
       setPageLoading(false);
     }
-  }, [useMockData]);
+  }, [clearDomainError, markDomainError, useMockData]);
 
   // Initialize all data on mount - only when user is authenticated
   useEffect(() => {
     if (!user) return;
+    if (routeOwnsStartup) {
+      setPageLoading(false);
+      return;
+    }
 
     // PULLBACK NOTE: Added user.id check to prevent undefined UUID errors
     // OLD: Fetch data as soon as user is available
@@ -635,26 +678,46 @@ export const PageDataProvider = ({ children }) => {
       return;
     }
 
-    fetchEmergencyData();
-    fetchVerificationData();
-    fetchAnalyticsData();
-    fetchDoctorsData();
-    fetchVisitsData();
-    fetchHospitalsData();
-    fetchAmbulancesData();
-    fetchUsersData();
-    fetchSupportTicketsData();
-    fetchInsurancePolicies();
-    fetchActivityData();
-    fetchWalletData();
-    fetchPricingData();
-    fetchOrganizationsData();
+    const taskMap = {
+      emergency: fetchEmergencyData,
+      visits: fetchVisitsData,
+      supportTickets: fetchSupportTicketsData,
+      analytics: fetchAnalyticsData,
+      verification: fetchVerificationData,
+      doctors: fetchDoctorsData,
+      hospitals: fetchHospitalsData,
+      ambulances: fetchAmbulancesData,
+      users: fetchUsersData,
+      wallet: fetchWalletData,
+      pricing: fetchPricingData,
+      insurance: fetchInsurancePolicies,
+      organizations: fetchOrganizationsData
+    };
+
+    startupDomains.forEach((domain) => taskMap[domain]?.());
     setPageLoading(false);
-  }, [user]);
+  }, [
+    user,
+    routeOwnsStartup,
+    startupDomains,
+    fetchEmergencyData,
+    fetchVerificationData,
+    fetchAnalyticsData,
+    fetchDoctorsData,
+    fetchVisitsData,
+    fetchHospitalsData,
+    fetchAmbulancesData,
+    fetchUsersData,
+    fetchSupportTicketsData,
+    fetchInsurancePolicies,
+    fetchWalletData,
+    fetchPricingData,
+    fetchOrganizationsData
+  ]);
 
   // Real-time subscription for emergency data
   useEffect(() => {
-    if (!user || useMockData) return;
+    if (!user || useMockData || !startupDomains.includes('emergency')) return;
 
     const channel = supabase
       .channel('emergency_changes')
@@ -665,11 +728,11 @@ export const PageDataProvider = ({ children }) => {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, fetchEmergencyData]);
+  }, [user, useMockData, startupDomains, fetchEmergencyData]);
 
   // Real-time subscription for doctors data
   useEffect(() => {
-    if (!user || useMockData) return;
+    if (!user || useMockData || !startupDomains.includes('doctors')) return;
 
     const channel = supabase
       .channel('doctor_changes')
@@ -680,11 +743,11 @@ export const PageDataProvider = ({ children }) => {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, fetchDoctorsData]);
+  }, [user, useMockData, startupDomains, fetchDoctorsData]);
 
   // Real-time subscription for visits data
   useEffect(() => {
-    if (!user || useMockData) return;
+    if (!user || useMockData || !startupDomains.includes('visits')) return;
 
     const channel = supabase
       .channel('visit_changes')
@@ -695,11 +758,11 @@ export const PageDataProvider = ({ children }) => {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, fetchVisitsData]);
+  }, [user, useMockData, startupDomains, fetchVisitsData]);
 
   // Real-time subscription for insurance policies
   useEffect(() => {
-    if (!user || useMockData) return;
+    if (!user || useMockData || !startupDomains.includes('insurance')) return;
 
     const channel = supabase
       .channel('insurance_changes')
@@ -710,29 +773,33 @@ export const PageDataProvider = ({ children }) => {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, fetchInsurancePolicies]);
+  }, [user, useMockData, startupDomains, fetchInsurancePolicies]);
 
   // Real-time subscription for verification data and user data
   useEffect(() => {
-    if (!user || useMockData) return;
+    if (
+      !user ||
+      useMockData ||
+      (!startupDomains.includes('verification') && !startupDomains.includes('users'))
+    ) return;
 
     const channel = supabase
       .channel('profile_changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'profiles' },
         () => {
-          fetchVerificationData();
-          fetchUsersData();
+          if (startupDomains.includes('verification')) fetchVerificationData();
+          if (startupDomains.includes('users')) fetchUsersData();
         }
       )
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, fetchVerificationData, fetchUsersData]);
+  }, [user, useMockData, startupDomains, fetchVerificationData, fetchUsersData]);
 
   // Real-time subscription for organizations
   useEffect(() => {
-    if (!user || useMockData) return;
+    if (!user || useMockData || !startupDomains.includes('organizations')) return;
 
     const channel = supabase
       .channel('organization_changes')
@@ -743,11 +810,11 @@ export const PageDataProvider = ({ children }) => {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, fetchOrganizationsData]);
+  }, [user, useMockData, startupDomains, fetchOrganizationsData]);
 
   // Real-time subscription for pricing
   useEffect(() => {
-    if (!user || useMockData) return;
+    if (!user || useMockData || !startupDomains.includes('pricing')) return;
 
     const channel = supabase
       .channel('pricing_changes')
@@ -762,7 +829,7 @@ export const PageDataProvider = ({ children }) => {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, fetchPricingData]);
+  }, [user, useMockData, startupDomains, fetchPricingData]);
 
   // Debounced fetch functions for real-time updates
   const debouncedFetchSupportTickets = useCallback(() => {
@@ -774,18 +841,9 @@ export const PageDataProvider = ({ children }) => {
     }, DEBOUNCE_DELAY);
   }, [fetchSupportTicketsData]);
 
-  const debouncedFetchActivity = useCallback(() => {
-    if (activityTimeoutRef.current) {
-      clearTimeout(activityTimeoutRef.current);
-    }
-    activityTimeoutRef.current = setTimeout(() => {
-      fetchActivityData();
-    }, DEBOUNCE_DELAY);
-  }, [fetchActivityData]);
-
   // Real-time subscription for support tickets data
   useEffect(() => {
-    if (!user || useMockData) return;
+    if (!user || useMockData || !startupDomains.includes('supportTickets')) return;
 
     const channel = supabase
       .channel('support_tickets_changes')
@@ -796,22 +854,7 @@ export const PageDataProvider = ({ children }) => {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user, useMockData, debouncedFetchSupportTickets]);
-
-  // Real-time subscription for activity data
-  useEffect(() => {
-    if (!user || useMockData) return;
-
-    const channel = supabase
-      .channel('activity_changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'user_activity' },
-        debouncedFetchActivity
-      )
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [user, useMockData, debouncedFetchActivity]);
+  }, [user, useMockData, startupDomains, debouncedFetchSupportTickets]);
 
   // Calculate statistics (Memoized to prevent churn)
   const emergencyStats = useMemo(() => {
@@ -871,23 +914,28 @@ export const PageDataProvider = ({ children }) => {
   // Refresh all data
   const refreshAllData = useCallback(async () => {
     try {
-      await Promise.all([
-        fetchEmergencyData(),
-        fetchVerificationData(),
-        fetchAnalyticsData(),
-        fetchDoctorsData(),
-        fetchVisitsData(),
-        fetchHospitalsData(),
-        fetchAmbulancesData(),
-        fetchUsersData(),
-        fetchSupportTicketsData(),
-        fetchInsurancePolicies(),
-        fetchWalletData()
-      ]);
+      const taskMap = {
+        emergency: fetchEmergencyData,
+        visits: fetchVisitsData,
+        supportTickets: fetchSupportTicketsData,
+        analytics: fetchAnalyticsData,
+        verification: fetchVerificationData,
+        doctors: fetchDoctorsData,
+        hospitals: fetchHospitalsData,
+        ambulances: fetchAmbulancesData,
+        users: fetchUsersData,
+        wallet: fetchWalletData,
+        pricing: fetchPricingData,
+        insurance: fetchInsurancePolicies,
+        organizations: fetchOrganizationsData
+      };
+
+      await Promise.all(startupDomains.map((domain) => taskMap[domain]?.()));
     } catch (error) {
       console.error('Error refreshing all data:', error);
     }
   }, [
+    startupDomains,
     fetchEmergencyData,
     fetchVerificationData,
     fetchAnalyticsData,
@@ -898,10 +946,25 @@ export const PageDataProvider = ({ children }) => {
     fetchUsersData,
     fetchSupportTicketsData,
     fetchInsurancePolicies,
-    fetchWalletData
+    fetchWalletData,
+    fetchPricingData,
+    fetchOrganizationsData
   ]);
 
   const insuranceStats = useMemo(() => {
+    if (insurancePageStats) {
+      return {
+        total: insurancePageStats.total || 0,
+        active: insurancePageStats.active || 0,
+        expired: insurancePageStats.expired || 0,
+        pending: insurancePageStats.pending || 0,
+        verified: insurancePageStats.verified || 0,
+        verificationRate: insurancePageStats.total > 0
+          ? Math.round(((insurancePageStats.verified || 0) / insurancePageStats.total) * 100)
+          : 0,
+      };
+    }
+
     const policies = insurancePolicies || [];
     const active = policies.filter(p => p.status === 'active').length;
     const expired = policies.filter(p => p.status === 'expired').length;
@@ -919,7 +982,7 @@ export const PageDataProvider = ({ children }) => {
       verified,
       verificationRate
     };
-  }, [insurancePolicies]);
+  }, [insurancePageStats, insurancePolicies]);
 
   const getEmergencyStats = useCallback(() => emergencyStats, [emergencyStats]);
   const getInsuranceStats = useCallback(() => insuranceStats, [insuranceStats]);
@@ -951,6 +1014,7 @@ export const PageDataProvider = ({ children }) => {
     organizationsData,
     servicePricing,
     roomPricing,
+    domainErrors,
 
     // Loading states
     loading: pageLoading,
@@ -979,11 +1043,13 @@ export const PageDataProvider = ({ children }) => {
     hospitalsData,
     ambulancesData,
     insurancePolicies,
+    insurancePageStats,
     insuranceStats,
     walletData,
     organizationsData,
     servicePricing,
     roomPricing,
+    domainErrors,
     pageLoading,
     useMockData
   ]);

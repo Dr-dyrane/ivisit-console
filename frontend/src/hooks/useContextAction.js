@@ -32,26 +32,30 @@ export const useContextAction = (openModal) => {
     } else if (currentPath.includes('/users')) {
         return {
             icon: Users,
-            label: 'Add User',
+            label: 'Add user',
             color: 'primary',
-            action: () => openModal('user')
+            action: () => {
+                window.dispatchEvent(new CustomEvent('openUserModal'));
+            }
         };
     } else if (currentPath.includes('/hospitals')) {
         return {
             icon: Hospital,
-            label: 'Add Hospital',
+            label: 'Add facility',
             color: 'info',
             action: () => {
-                // Trigger HospitalsPage modal instead of FAB modal
+                // Hospitals owns create authority and can show unavailable feedback.
                 window.dispatchEvent(new CustomEvent('openHospitalModal'));
             }
         };
     } else if (currentPath.includes('/ambulances')) {
         return {
             icon: Ambulance,
-            label: 'Add Ambulance',
+            label: 'Add unit',
             color: 'warning',
-            action: () => openModal('ambulance')
+            action: () => {
+                window.dispatchEvent(new CustomEvent('openAmbulanceModal'));
+            }
         };
     } else if (currentPath.includes('/map')) {
         return {
@@ -66,7 +70,7 @@ export const useContextAction = (openModal) => {
     } else if (currentPath.includes('/analytics')) {
         return {
             icon: BarChart3,
-            label: 'Generate Report',
+            label: 'View analytics',
             color: 'primary',
             action: () => {
                 // Open analytics modal via window event
@@ -76,9 +80,11 @@ export const useContextAction = (openModal) => {
     } else if (currentPath.includes('/doctors')) {
         return {
             icon: Stethoscope,
-            label: 'Add Doctor',
+            label: 'Add Staff',
             color: 'info',
-            action: () => openModal('doctor')
+            action: () => {
+                window.dispatchEvent(new CustomEvent('openDoctorModal'));
+            }
         };
     } else if (currentPath.includes('/visits')) {
         return {
@@ -119,9 +125,11 @@ export const useContextAction = (openModal) => {
     } else if (currentPath.includes('/health-news')) {
         return {
             icon: Newspaper,
-            label: 'Add News',
+            label: 'New article',
             color: 'primary',
-            action: () => openModal('healthNews')
+            action: () => {
+                window.dispatchEvent(new CustomEvent('openHealthNewsModal'));
+            }
         };
     } else if (currentPath.includes('/support-tickets')) {
         return {
@@ -133,9 +141,11 @@ export const useContextAction = (openModal) => {
     } else if (currentPath.includes('/insurance')) {
         return {
             icon: Shield,
-            label: 'Add Policy',
-            color: 'primary', // or 'success' depending on theme preference
-            action: () => openModal('insurance')
+            label: 'Add policy',
+            color: 'primary',
+            action: () => {
+                window.dispatchEvent(new CustomEvent('openInsuranceModal'));
+            }
         };
     } else if (currentPath.includes('/subscriptions')) {
         return {
@@ -144,19 +154,28 @@ export const useContextAction = (openModal) => {
             color: 'primary',
             action: () => openModal('emailActions')
         };
-    } else if (currentPath.includes('/wallet') || currentPath.includes('/pricing')) {
+    } else if (currentPath.includes('/wallet')) {
         return {
             icon: ArrowUpCircle,
-            label: 'Top Up',
+            label: 'Add funds',
             color: 'success',
             action: () => {
                 window.dispatchEvent(new CustomEvent('openTopUpModal'));
             }
         };
+    } else if (currentPath.includes('/pricing')) {
+        return {
+            icon: ArrowUpCircle,
+            label: 'Add price',
+            color: 'success',
+            action: () => {
+                window.dispatchEvent(new CustomEvent('openPricingModal'));
+            }
+        };
     } else if (currentPath.includes('/organizations')) {
         return {
             icon: Plus,
-            label: 'Add Organization',
+            label: 'Add organization',
             color: 'primary',
             action: () => {
                 window.dispatchEvent(new CustomEvent('openOrganizationModal'));

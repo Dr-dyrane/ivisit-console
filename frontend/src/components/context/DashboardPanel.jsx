@@ -1,237 +1,227 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
-import { Switch } from '../ui/switch';
-import { Input } from '../ui/input';
 import {
-  AlertTriangle,
-  Users,
-  TrendingUp,
-  Activity,
-  Settings,
-  Download,
-  RefreshCw,
-  Shield,
-  Clock,
-  Zap,
-  BarChart3,
-  Bell,
-  Hospital,
-  Ambulance,
-  Stethoscope
+  ArrowRight,
+  CheckCircle2,
+  CircleDashed,
+  Loader2,
+  LockKeyhole,
+  Sparkles,
 } from 'lucide-react';
-import { usePageData } from '../../contexts/PageDataContext';
-import { transformActivityData } from '../../utils/activityUtils';
 
-export const DashboardPanel = ({ emergencyStats, analyticsData, doctorsData, verificationData, activityData, refreshAllData }) => {
-  const navigate = useNavigate();
+const toneClass = {
+  danger: 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-red-100',
+  warning: 'bg-amber-500/10 text-amber-700 dark:bg-amber-300/15 dark:text-amber-100',
+  primary: 'bg-sky-500/10 text-sky-700 dark:bg-sky-300/15 dark:text-sky-100',
+  success: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-300/15 dark:text-emerald-100',
+  muted: 'bg-muted/34 text-muted-foreground',
+};
 
-  // Command Center State
-  const [realTimeEnabled, setRealTimeEnabled] = useState(true);
-  const [alertThresholds, setAlertThresholds] = useState({
-    criticalEmergencies: 5,
-    responseTimeMinutes: 10,
-    lowAmbulances: 3
-  });
+const getToneClass = (tone = 'muted') => toneClass[tone] || toneClass.muted;
 
-  // Transform activity data for mini-feed
-  const recentActivities = transformActivityData(activityData || []).slice(0, 5);
+const normalizeTodayActions = ({ today, glanceItems, rows }) => {
+  const actions = [];
+  const seen = new Set();
 
-  // Helper to format time
-  const formatTime = (minutes) => {
-    if (minutes < 1) {
-      const seconds = Math.round(minutes * 60);
-      return `${seconds}s`;
-    }
-    return `${Math.round(minutes)}m`;
-  };
+  const pushAction = (candidate) => {
+    const path = candidate?.path;
+    if (!path || seen.has(path)) return;
 
-  // Helper to format percentage
-  const formatPercentage = (value) => {
-    return Math.round(value || 0);
-  };
-
-  const handleEmergencyResponse = () => {
-    // BentoHome special case: navigate to emergencies page then open modal
-    navigate('/emergencies');
-    // Small delay to ensure navigation completes before opening modal
-    setTimeout(() => {
-      const event = new CustomEvent('openEmergencyModal');
-      window.dispatchEvent(event);
-    }, 100);
-  };
-
-  const handleRefreshAll = () => {
-    refreshAllData && refreshAllData();
-  };
-
-  const handleExportReport = () => {
-    // Open the new unified reports modal
-    const event = new CustomEvent('openAnalyticsModal', {
-      detail: { type: 'performance' }
+    seen.add(path);
+    actions.push({
+      label: candidate.actionLabel || candidate.label || candidate.primaryAction || 'Open',
+      path,
+      tone: candidate.tone || 'muted',
+      disabled: Boolean(candidate.disabled),
+      disabledReason: candidate.disabledReason,
     });
-    window.dispatchEvent(event);
   };
 
-  const handleSystemBackup = async () => {
-    try {
-      // Trigger system backup via API
-      const response = await fetch('/api/backup', { method: 'POST' });
-      if (response.ok) {
-        const event = new CustomEvent('systemBackupTriggered');
-        window.dispatchEvent(event);
-      }
-    } catch (error) {
-      console.error('Backup failed:', error);
+  pushAction(today);
+  glanceItems.forEach(pushAction);
+  rows.forEach(pushAction);
+
+  return actions.slice(0, 3);
+};
+
+const CurrentListRow = ({ row }) => {
+  const StatusIcon = row.loading ? Loader2 : row.disabled ? LockKeyhole : row.done ? CheckCircle2 : CircleDashed;
+  const state = row.disabled ? 'unavailable' : row.loading ? 'loading' : row.done ? 'ready' : 'open';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      data-state={state}
+      className="group rounded-inner bg-background/46 p-3 shadow-[0_12px_36px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-muted/36"
+    >
+      <div className="flex items-start gap-3">
+        <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-button transition-transform duration-200 group-hover:scale-105 ${getToneClass(row.tone)}`}>
+          <StatusIcon className={`h-4 w-4 ${row.loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold text-foreground">
+            {row.label || 'Today item'}
+          </span>
+          <span className="mt-0.5 block truncate text-xs font-medium text-muted-foreground">
+            {row.meta || row.detail || 'Open Today for details'}
+          </span>
+        </span>
+      </div>
+    </motion.div>
+  );
+};
+
+export const DashboardPanel = ({ todayContext }) => {
+  const context = todayContext || {};
+  const today = context.today || {};
+  const glanceItems = Array.isArray(context.glanceItems) ? context.glanceItems : [];
+  const rows = Array.isArray(context.rows) ? context.rows : [];
+  const hasContext = Boolean(todayContext);
+  const loading = Boolean(context.loading) || !hasContext;
+  const roleLabel = context.roleLabel || 'Today';
+  const routeStatus = today.status || (loading ? 'Loading' : 'Ready');
+  const actions = React.useMemo(
+    () => normalizeTodayActions({ today, glanceItems, rows }),
+    [glanceItems, rows, today],
+  );
+  const [panelNotice, setPanelNotice] = React.useState('Today actions ready.');
+
+  React.useEffect(() => {
+    if (!hasContext || loading) {
+      setPanelNotice('Today is loading.');
+      return;
     }
-  };
 
-  const handleThresholdChange = (key, value) => {
-    setAlertThresholds(prev => ({
-      ...prev,
-      [key]: parseInt(value) || 0
-    }));
-  };
+    if (context.hasError) {
+      setPanelNotice('Today did not fully refresh. Open the role page to continue.');
+      return;
+    }
 
-  const handleViewAnalytics = () => {
-    // Navigate to analytics page
-    navigate('/analytics');
+    setPanelNotice('Today actions ready.');
+  }, [context.hasError, hasContext, loading]);
+
+  const handlePanelAction = (action) => {
+    if (action.disabled || !action.path) {
+      setPanelNotice(action.disabledReason || 'This action is unavailable.');
+      return;
+    }
+
+    if (typeof context.onNavigate !== 'function') {
+      setPanelNotice('Open Today to continue.');
+      return;
+    }
+
+    setPanelNotice(`Opening ${action.label.toLowerCase()}.`);
+    context.onNavigate(action.path);
   };
 
   return (
     <div className="space-y-3">
-      {/* System Controls */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+      <motion.section
+        initial={{ opacity: 0, scale: 0.97 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-        className="bg-primary/5 dark:bg-primary/10 backdrop-blur-sm p-4 rounded-3xl relative overflow-hidden group border-0"
+        transition={{ duration: 0.22 }}
+        className="space-y-3"
+        aria-label="Today overview"
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Shield className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-bold text-xs uppercase tracking-wider text-primary">System</h3>
-              <p className="text-[10px] text-muted-foreground">Real-time Command</p>
-            </div>
-          </div>
-          <Switch
-            checked={realTimeEnabled}
-            onCheckedChange={setRealTimeEnabled}
-            className="scale-90"
-          />
-        </div>
-      </motion.div>
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Today overview
+        </p>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-2">
-        <Button
-          onClick={handleRefreshAll}
-          className="h-auto py-3 px-4 rounded-3xl bg-secondary/30 dark:bg-white/5 border-0 hover:bg-secondary/40 flex flex-col items-center gap-2 group shadow-none"
-          variant="outline"
-        >
-          <RefreshCw className="h-5 w-5 text-primary group-active:rotate-180 transition-transform duration-500" />
-          <span className="text-[10px] font-bold uppercase tracking-widest">Refresh</span>
-        </Button>
-        <Button
-          onClick={handleExportReport}
-          className="h-auto py-3 px-4 rounded-3xl bg-secondary/30 dark:bg-white/5 border-0 hover:bg-secondary/40 flex flex-col items-center gap-2 group shadow-none"
-          variant="outline"
-        >
-          <Download className="h-5 w-5 text-success" />
-          <span className="text-[10px] font-bold uppercase tracking-widest">Export</span>
-        </Button>
-      </div>
-
-      {/* Activity Mini-feed */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
-        className="bg-muted/10 dark:bg-white/5 backdrop-blur-sm p-4 rounded-3xl relative overflow-hidden group border-0"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-warning/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Activity className="h-5 w-5 text-warning" />
-          </div>
-          <div>
-            <h3 className="font-bold text-xs uppercase tracking-wider text-warning">Feed</h3>
-            <p className="text-[10px] text-muted-foreground">Recent events</p>
+        <div className="rounded-card bg-sky-500/10 p-4 text-sky-900 shadow-[0_18px_54px_rgb(14_165_233/0.14)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700/75 dark:text-sky-100/70">
+                Current route scope
+              </p>
+              <p className="mt-2 text-2xl font-semibold tracking-normal text-foreground [overflow-wrap:anywhere]">
+                {loading ? '...' : roleLabel}
+              </p>
+              <p className="mt-1 text-xs font-medium text-muted-foreground">
+                {routeStatus}
+              </p>
+            </div>
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-button bg-background/55 text-sky-700 transition-transform duration-200 group-hover:scale-105 dark:text-sky-200">
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+            </span>
           </div>
         </div>
 
-        <div className="space-y-2 max-h-40 overflow-y-auto pr-1 no-scrollbar">
-          {recentActivities.length > 0 ? (
-            recentActivities.map((activity, idx) => (
-              <motion.div
-                key={activity.id || idx}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1, ease: [0.4, 0, 0.2, 1] }}
-                className="p-2 border-b border-white/5 last:border-0 rounded-xl hover:bg-white/5 transition-colors"
-              >
-                <div className="flex items-start gap-2">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${activity.bg} flex-shrink-0`}>
-                    <activity.icon className={`h-4 w-4 ${activity.color}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-normal leading-tight text-foreground line-clamp-2">{activity.msg}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{activity.time}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))
-          ) : (
-            <div className="text-center py-4 text-muted-foreground text-xs">
-              No recent activity
+        <div className="grid grid-cols-2 gap-2">
+          {glanceItems.slice(0, 2).map((item) => (
+            <div
+              key={item.label}
+              className={`rounded-inner p-3 shadow-[0_14px_38px_rgb(0_0_0/0.10)] ${getToneClass(item.tone)}`}
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-75">
+                {item.label}
+              </p>
+              <p className="mt-1 truncate text-sm font-semibold text-foreground">
+                {loading ? '...' : item.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      </motion.section>
+
+      <section className="space-y-2" aria-label="Panel actions">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Panel actions
+        </p>
+        <div className="grid grid-cols-1 gap-2">
+          {actions.map((action) => (
+            <motion.button
+              key={action.path}
+              type="button"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => handlePanelAction(action)}
+              disabled={action.disabled}
+              data-state={action.disabled ? 'unavailable' : context.routingPath === action.path ? 'opening' : 'idle'}
+              aria-disabled={action.disabled ? 'true' : undefined}
+              className={`group flex min-h-[58px] items-center justify-between gap-3 rounded-inner px-4 text-left shadow-[0_14px_42px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 disabled:cursor-not-allowed disabled:opacity-55 ${getToneClass(action.tone)}`}
+            >
+              <span className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                {action.label}
+              </span>
+              {context.routingPath === action.path ? (
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+              ) : (
+                <ArrowRight className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
+              )}
+            </motion.button>
+          ))}
+        </div>
+        <p className="px-1 text-xs font-medium text-muted-foreground" role="status" aria-live="polite">
+          {panelNotice}
+        </p>
+      </section>
+
+      <section className="space-y-2" aria-label="Current list">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Current list
+        </p>
+
+        <div className="space-y-2">
+          {rows.slice(0, 4).map((row) => (
+            <CurrentListRow key={row.id || row.label} row={row} />
+          ))}
+
+          {!loading && rows.length === 0 && (
+            <div className="rounded-inner bg-muted/24 px-4 py-5 text-center text-xs font-medium text-muted-foreground">
+              No Today items in this role.
+            </div>
+          )}
+
+          {loading && rows.length === 0 && (
+            <div className="rounded-inner bg-muted/24 px-4 py-5 text-center text-xs font-medium text-muted-foreground">
+              Loading Today.
             </div>
           )}
         </div>
-      </motion.div>
-
-      {/* Alert Configuration */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
-        className="bg-destructive/5 dark:bg-destructive/10 p-4 rounded-3xl border-0"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-destructive/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Bell className="h-5 w-5 text-destructive" />
-          </div>
-          <div>
-            <h3 className="font-bold text-xs uppercase tracking-wider text-destructive">Alerts</h3>
-            <p className="text-[10px] text-muted-foreground">Threshold triggers</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-2">
-          <div className="flex items-center justify-between gap-4 p-2 rounded-2xl bg-white/5 transition-all">
-            <label className="text-xs text-muted-foreground font-normal">Emergencies</label>
-            <Input
-              type="number"
-              value={alertThresholds.criticalEmergencies}
-              onChange={(e) => handleThresholdChange('criticalEmergencies', e.target.value)}
-              className="h-8 w-16 bg-transparent border-0 text-center font-bold text-sm focus-visible:ring-0"
-            />
-          </div>
-          <div className="flex items-center justify-between gap-4 p-2 rounded-2xl bg-white/5 transition-all">
-            <label className="text-xs text-muted-foreground font-normal">Response (min)</label>
-            <Input
-              type="number"
-              value={alertThresholds.responseTimeMinutes}
-              onChange={(e) => handleThresholdChange('responseTimeMinutes', e.target.value)}
-              className="h-8 w-16 bg-transparent border-0 text-center font-bold text-sm focus-visible:ring-0"
-            />
-          </div>
-        </div>
-      </motion.div>
+      </section>
     </div>
   );
 };

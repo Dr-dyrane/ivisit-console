@@ -8,31 +8,28 @@ import {
     DialogFooter
 } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Separator } from '../ui/separator';
-import { CreditCard, ArrowUpRight, Plus, ShieldCheck } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePageData } from '../../contexts/PageDataContext';
 import { toast } from 'sonner';
-import { loadStripe } from '@stripe/stripe-js';
+import { loadStripe } from '@stripe/stripe-js/pure';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import {
     createSetupIntent,
     listPaymentMethods as fetchPaymentMethods,
     topUpWallet,
-    withdrawFunds,
-    setPayoutMethod
+    withdrawFunds
 } from '../../services/walletService';
 
 const STRIPE_PUBLISHABLE_KEY = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
 const canUseStripeInCurrentOrigin =
     typeof window !== 'undefined' &&
     window.location.protocol === 'https:';
-const stripePromise =
-    STRIPE_PUBLISHABLE_KEY && canUseStripeInCurrentOrigin
-        ? loadStripe(STRIPE_PUBLISHABLE_KEY)
-        : null;
+const canLoadStripe = Boolean(STRIPE_PUBLISHABLE_KEY && canUseStripeInCurrentOrigin);
+
+const modalSurfaceClass = 'w-[calc(100vw-1rem)] overflow-hidden rounded-[36px] bg-card/92 p-0 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.18)] backdrop-blur-2xl sm:max-w-[425px]';
+const amountInputClass = 'h-14 w-full rounded-[24px] bg-muted/30 pl-10 pr-4 text-xl font-semibold text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]';
 
 const AddPaymentMethodForm = ({ organizationId, onSuccess }) => {
     const stripe = useStripe();
@@ -75,7 +72,7 @@ const AddPaymentMethodForm = ({ organizationId, onSuccess }) => {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="p-4 rounded-2xl bg-muted/40 border border-border/10">
+            <div className="rounded-[24px] bg-muted/30 p-4 shadow-sm">
                 <CardElement options={{
                     style: {
                         base: {
@@ -89,9 +86,9 @@ const AddPaymentMethodForm = ({ organizationId, onSuccess }) => {
             <Button
                 type="submit"
                 disabled={!stripe || loading}
-                className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-bold tracking-widest uppercase text-[10px]"
+                className="h-12 w-full rounded-[22px] bg-primary text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98]"
             >
-                {loading ? 'Securing...' : 'Verify & Add Card'}
+                {loading ? 'Saving...' : 'Verify and add card'}
             </Button>
         </form>
     );
@@ -100,7 +97,7 @@ const AddPaymentMethodForm = ({ organizationId, onSuccess }) => {
 export const GlobalFinancialModals = () => {
     const { profile, isAdmin } = useAuth();
     const { walletData, fetchWalletData } = usePageData();
-    const { wallet } = walletData;
+    const contextWallet = walletData?.wallet;
 
     const [isTopUpOpen, setIsTopUpOpen] = useState(false);
     const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
@@ -110,25 +107,44 @@ export const GlobalFinancialModals = () => {
     const [processing, setProcessing] = useState(false);
     const [paymentMethods, setPaymentMethods] = useState([]);
     const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
+    const [eventWallet, setEventWallet] = useState(null);
+    const [stripePromise, setStripePromise] = useState(null);
+    const activeWallet = eventWallet || contextWallet;
+    const parsedAmount = Number(amount);
+    const hasValidAmount = amount.trim() !== '' && Number.isFinite(parsedAmount) && parsedAmount > 0;
+    const availableBalance = Number(activeWallet?.balance || 0);
+    const exceedsBalance = hasValidAmount && parsedAmount > availableBalance;
 
     const fetchData = useCallback(async () => {
         if (!profile) return;
         setLoadingPaymentMethods(true);
         try {
             const orgId = isAdmin() ? null : profile.organization_id;
-            const methods = await fetchPaymentMethods(orgId);
+            const methods = await fetchPaymentMethods(orgId, { quiet: true });
             setPaymentMethods(methods || []);
         } catch (error) {
-            console.error('Error fetching billing data:', error);
+            setPaymentMethods([]);
         } finally {
             setLoadingPaymentMethods(false);
         }
     }, [profile, isAdmin]);
 
     useEffect(() => {
-        const handleOpenTopUp = () => setIsTopUpOpen(true);
-        const handleOpenWithdraw = () => setIsWithdrawOpen(true);
-        const handleOpenBilling = () => setIsBillingOpen(true);
+        const applyEventWallet = (event) => {
+            setEventWallet(event.detail?.wallet || null);
+        };
+        const handleOpenTopUp = (event) => {
+            applyEventWallet(event);
+            setIsTopUpOpen(true);
+        };
+        const handleOpenWithdraw = (event) => {
+            applyEventWallet(event);
+            setIsWithdrawOpen(true);
+        };
+        const handleOpenBilling = (event) => {
+            applyEventWallet(event);
+            setIsBillingOpen(true);
+        };
 
         window.addEventListener('openTopUpModal', handleOpenTopUp);
         window.addEventListener('openWithdrawModal', handleOpenWithdraw);
@@ -142,24 +158,46 @@ export const GlobalFinancialModals = () => {
     }, []);
 
     useEffect(() => {
+        if (!isTopUpOpen && !isWithdrawOpen && !isBillingOpen) {
+            setEventWallet(null);
+            setAmount('');
+        }
+    }, [isTopUpOpen, isWithdrawOpen, isBillingOpen]);
+
+    useEffect(() => {
         if (isTopUpOpen || isWithdrawOpen || isBillingOpen) {
             fetchData();
         }
     }, [isTopUpOpen, isWithdrawOpen, isBillingOpen, fetchData]);
 
+    useEffect(() => {
+        if (!isBillingOpen || !canLoadStripe || stripePromise) return;
+        setStripePromise(loadStripe(STRIPE_PUBLISHABLE_KEY));
+    }, [isBillingOpen, stripePromise]);
+
     const handleTopUp = async (e) => {
         e.preventDefault();
-        if (!amount || isNaN(amount)) return;
+        if (!hasValidAmount) {
+            toast.error('Enter an amount above 0.');
+            return;
+        }
+
+        if (paymentMethods.length === 0) {
+            toast.error('Add a card before adding funds.');
+            return;
+        }
+
         setProcessing(true);
         try {
             const orgId = isAdmin() ? null : profile.organization_id;
-            await topUpWallet(Number(amount), 'Wallet Top-up', orgId);
-            toast.success('Wallet topped up successfully');
+            await topUpWallet(parsedAmount, 'Add funds', orgId);
+            toast.success('Funds added.');
             setIsTopUpOpen(false);
             setAmount('');
             fetchWalletData();
+            window.dispatchEvent(new CustomEvent('paymentsDataChanged'));
         } catch (error) {
-            toast.error(error.message || 'Top up failed');
+            toast.error(error.message || 'Add funds failed.');
         } finally {
             setProcessing(false);
         }
@@ -167,15 +205,25 @@ export const GlobalFinancialModals = () => {
 
     const handleWithdraw = async (e) => {
         e.preventDefault();
-        if (!amount || isNaN(amount)) return;
+        if (!hasValidAmount) {
+            toast.error('Enter an amount above 0.');
+            return;
+        }
+
+        if (exceedsBalance) {
+            toast.error('Amount is above the available balance.');
+            return;
+        }
+
         setProcessing(true);
         try {
             const orgId = isAdmin() ? null : profile.organization_id;
-            await withdrawFunds(Number(amount), 'Manual Withdrawal', orgId);
-            toast.success('Withdrawal initiated successfully');
+            await withdrawFunds(parsedAmount, 'Withdraw funds', orgId);
+            toast.success('Withdrawal started.');
             setIsWithdrawOpen(false);
             setAmount('');
             fetchWalletData();
+            window.dispatchEvent(new CustomEvent('paymentsDataChanged'));
         } catch (error) {
             toast.error(error.message || 'Withdrawal failed');
         } finally {
@@ -184,32 +232,36 @@ export const GlobalFinancialModals = () => {
     };
 
     const formatCurrency = (val) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: wallet?.currency || 'USD' }).format(val || 0);
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: activeWallet?.currency || 'USD' }).format(val || 0);
     };
 
     return (
         <>
-            {/* Top Up Modal */}
+            {/* Add funds modal */}
             <Dialog open={isTopUpOpen} onOpenChange={setIsTopUpOpen}>
-                <DialogContent className="squircle-3xl glass-card border-border/10 p-0 overflow-hidden sm:max-w-[425px]">
-                    <div className="p-8">
+                <DialogContent className={modalSurfaceClass}>
+                    <div className="p-6 md:p-8">
+                        <div className="mx-auto mb-5 h-1.5 w-[42px] rounded-full bg-foreground/20" />
                         <DialogHeader className="mb-6">
-                            <DialogTitle className="text-2xl font-black tracking-tighter text-foreground">Top Up Wallet</DialogTitle>
-                            <DialogDescription className="text-muted-foreground font-medium font-sans">
-                                Add funds to your organization's wallet via secured payment card.
+                            <DialogTitle className="text-2xl font-semibold tracking-tight text-foreground">Add funds</DialogTitle>
+                            <DialogDescription className="text-muted-foreground">
+                                Add funds with a saved card.
                             </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleTopUp} className="space-y-6">
                             <div className="space-y-3">
-                                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Funding Amount (USD)</Label>
+                                <Label className="ml-1 text-sm font-medium text-muted-foreground">Amount</Label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold opacity-50 text-foreground">$</span>
-                                    <Input
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">$</span>
+                                    <input
                                         type="number"
+                                        min="0.01"
+                                        step="0.01"
+                                        inputMode="decimal"
                                         value={amount}
                                         onChange={(e) => setAmount(e.target.value)}
                                         placeholder="0.00"
-                                        className="py-6 pl-10 rounded-2xl bg-muted/30 border-none focus-visible:ring-primary font-bold text-xl text-foreground"
+                                        className={amountInputClass}
                                         required
                                     />
                                 </div>
@@ -217,15 +269,20 @@ export const GlobalFinancialModals = () => {
                             <DialogFooter className="mt-8">
                                 <Button
                                     type="submit"
-                                    disabled={processing || !amount || (paymentMethods.length === 0)}
-                                    className="w-full py-6 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold tracking-widest uppercase text-xs transition-all shadow-lg shadow-emerald-500/20"
+                                    disabled={processing || !hasValidAmount || paymentMethods.length === 0}
+                                    className="h-12 w-full rounded-[22px] bg-emerald-500 text-sm font-semibold text-white shadow-[0_18px_56px_rgba(16,185,129,0.24)] transition-all hover:bg-emerald-600 active:scale-[0.98]"
                                 >
-                                    {processing ? 'Processing...' : 'Complete Funding'}
+                                    {processing ? 'Adding...' : 'Add funds'}
                                 </Button>
                             </DialogFooter>
+                            {!hasValidAmount && amount.trim() !== '' && !processing && (
+                                <p className="mt-2 text-center text-xs font-medium text-muted-foreground">
+                                    Enter an amount above 0.
+                                </p>
+                            )}
                             {paymentMethods.length === 0 && !processing && (
-                                <p className="text-center text-[10px] text-destructive font-bold uppercase tracking-widest mt-2">
-                                    Please add a payment card in billing settings first
+                                <p className="mt-2 text-center text-xs font-medium text-muted-foreground">
+                                    Add a card before adding funds.
                                 </p>
                             )}
                         </form>
@@ -235,39 +292,53 @@ export const GlobalFinancialModals = () => {
 
             {/* Withdraw Modal */}
             <Dialog open={isWithdrawOpen} onOpenChange={setIsWithdrawOpen}>
-                <DialogContent className="squircle-3xl glass-card border-border/10 p-0 overflow-hidden sm:max-w-[425px]">
-                    <div className="p-8">
+                <DialogContent className={modalSurfaceClass}>
+                    <div className="p-6 md:p-8">
+                        <div className="mx-auto mb-5 h-1.5 w-[42px] rounded-full bg-foreground/20" />
                         <DialogHeader className="mb-6">
-                            <DialogTitle className="text-2xl font-black tracking-tighter text-foreground">Withdraw Funds</DialogTitle>
-                            <DialogDescription className="text-muted-foreground font-medium font-sans">
-                                Funds will be transferred to your primary payout method instantly.
+                            <DialogTitle className="text-2xl font-semibold tracking-tight text-foreground">Withdraw</DialogTitle>
+                            <DialogDescription className="text-muted-foreground">
+                                Withdraw available funds.
                             </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleWithdraw} className="space-y-6">
                             <div className="space-y-3">
-                                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Amount to Withdraw</Label>
+                                <Label className="ml-1 text-sm font-medium text-muted-foreground">Amount</Label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold opacity-50 text-foreground">$</span>
-                                    <Input
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">$</span>
+                                    <input
                                         type="number"
+                                        min="0.01"
+                                        step="0.01"
+                                        inputMode="decimal"
                                         value={amount}
                                         onChange={(e) => setAmount(e.target.value)}
                                         placeholder="0.00"
-                                        className="py-6 pl-10 rounded-2xl bg-muted/30 border-none focus-visible:ring-primary font-bold text-xl text-foreground"
+                                        className={amountInputClass}
                                         required
                                     />
                                 </div>
-                                <p className="text-[10px] text-muted-foreground ml-1">Available: {formatCurrency(wallet?.balance)}</p>
+                                <p className="ml-1 text-xs text-muted-foreground">Available: {formatCurrency(activeWallet?.balance)}</p>
                             </div>
                             <DialogFooter className="mt-8">
                                 <Button
                                     type="submit"
-                                    disabled={processing || !amount || Number(amount) > (wallet?.balance || 0)}
-                                    className="w-full py-6 rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-bold tracking-widest uppercase text-xs transition-all"
+                                    disabled={processing || !hasValidAmount || exceedsBalance}
+                                    className="h-12 w-full rounded-[22px] bg-muted text-sm font-semibold text-foreground transition-all hover:bg-muted/80 active:scale-[0.98]"
                                 >
-                                    {processing ? 'Processing...' : 'Confirm Withdrawal'}
+                                    {processing ? 'Withdrawing...' : 'Withdraw'}
                                 </Button>
                             </DialogFooter>
+                            {!hasValidAmount && amount.trim() !== '' && !processing && (
+                                <p className="mt-2 text-center text-xs font-medium text-muted-foreground">
+                                    Enter an amount above 0.
+                                </p>
+                            )}
+                            {exceedsBalance && !processing && (
+                                <p className="mt-2 text-center text-xs font-medium text-muted-foreground">
+                                    Amount is above the available balance.
+                                </p>
+                            )}
                         </form>
                     </div>
                 </DialogContent>
@@ -275,58 +346,62 @@ export const GlobalFinancialModals = () => {
 
             {/* Billing Management Modal */}
             <Dialog open={isBillingOpen} onOpenChange={setIsBillingOpen}>
-                <DialogContent className="squircle-3xl glass-card border-border/10 p-0 overflow-hidden sm:max-w-[500px]">
-                    <div className="p-8">
+                <DialogContent className={`${modalSurfaceClass} sm:max-w-[500px]`}>
+                    <div className="p-6 md:p-8">
+                        <div className="mx-auto mb-5 h-1.5 w-[42px] rounded-full bg-foreground/20" />
                         <DialogHeader className="mb-6">
-                            <DialogTitle className="text-2xl font-black tracking-tighter text-foreground">Billing & Payments</DialogTitle>
-                            <DialogDescription className="text-muted-foreground font-medium font-sans">
-                                Manage cards and secure transaction gateways.
+                            <DialogTitle className="text-2xl font-semibold tracking-tight text-foreground">Payment cards</DialogTitle>
+                            <DialogDescription className="text-muted-foreground">
+                                Manage saved cards.
                             </DialogDescription>
                         </DialogHeader>
 
                         <div className="space-y-8">
                             <div className="space-y-3">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active Methods</Label>
+                                <Label className="text-sm font-medium text-muted-foreground">Saved cards</Label>
                                 <div className="grid gap-3">
                                     {loadingPaymentMethods ? (
                                         <div className="h-20 animate-pulse bg-muted/10 rounded-2xl" />
                                     ) : paymentMethods.map(pm => (
-                                        <div key={pm.id} className="p-4 rounded-2xl bg-muted/10 border border-border/10 flex items-center justify-between group">
+                                        <div key={pm.id} className="flex items-center justify-between gap-3 rounded-[24px] bg-muted/16 p-4 transition-all hover:bg-muted/26">
                                             <div className="flex items-center gap-3">
-                                                <CreditCard className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                                                <CreditCard className="h-5 w-5 text-muted-foreground transition-colors" />
                                                 <div>
-                                                    <p className="text-sm font-bold text-foreground uppercase tracking-tight">{pm.card?.brand} •••• {pm.card?.last4}</p>
-                                                    <p className="text-[10px] text-muted-foreground font-mono">Exp: {pm.card?.exp_month}/{pm.card?.exp_year}</p>
+                                                    <p className="text-sm font-semibold text-foreground">{pm.card?.brand || 'Card'} **** {pm.card?.last4}</p>
+                                                    <p className="text-xs text-muted-foreground">Expires {pm.card?.exp_month}/{pm.card?.exp_year}</p>
                                                 </div>
                                             </div>
-                                            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest">Primary</Badge>
+                                            <span className="rounded-full bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">Primary</span>
                                         </div>
                                     ))}
                                     {!loadingPaymentMethods && paymentMethods.length === 0 && (
-                                        <div className="py-6 text-center bg-muted/10 rounded-2xl border border-dashed border-border/20">
-                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No methods found</p>
+                                        <div className="rounded-[24px] bg-muted/16 py-6 text-center">
+                                            <p className="text-sm font-medium text-muted-foreground">No saved cards</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-
-                            <Separator className="bg-border/10" />
-
                             <div className="space-y-4">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Secure New Source</Label>
-                                {stripePromise ? (
-                                    <Elements stripe={stripePromise}>
-                                        <AddPaymentMethodForm
-                                            organizationId={isAdmin() ? null : profile?.organization_id}
-                                            onSuccess={() => {
-                                                fetchData();
-                                                toast.success('New source verified.');
-                                            }}
-                                        />
-                                    </Elements>
+                                <Label className="text-sm font-medium text-muted-foreground">Add card</Label>
+                                {canLoadStripe ? (
+                                    stripePromise ? (
+                                        <Elements stripe={stripePromise}>
+                                            <AddPaymentMethodForm
+                                                organizationId={isAdmin() ? null : profile?.organization_id}
+                                                onSuccess={() => {
+                                                    fetchData();
+                                                    toast.success('Card added.');
+                                                }}
+                                            />
+                                        </Elements>
+                                    ) : (
+                                        <div className="rounded-[24px] bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
+                                            Card setup is loading.
+                                        </div>
+                                    )
                                 ) : (
-                                    <div className="rounded-2xl border border-border/20 bg-muted/20 px-4 py-3 text-[11px] text-muted-foreground">
+                                    <div className="rounded-[24px] bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
                                         Card setup is available only over HTTPS.
                                     </div>
                                 )}
@@ -338,9 +413,3 @@ export const GlobalFinancialModals = () => {
         </>
     );
 };
-
-const Badge = ({ children, className, variant = "default" }) => (
-    <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${variant === 'outline' ? 'border-border/20 text-muted-foreground' : 'bg-primary text-primary-foreground'} ${className}`}>
-        {children}
-    </span>
-);

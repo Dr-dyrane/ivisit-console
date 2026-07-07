@@ -1,0 +1,298 @@
+import fs from 'fs';
+import { getPageDataAccessForRole, getPageDataStartupDomainsForRole, routeOwnsStartupDomains } from '../config/pageDataAccess';
+
+describe('PageDataContext role loading contract', () => {
+  it('keeps viewers out of startup domain loads', () => {
+    expect(getPageDataAccessForRole('viewer')).toEqual({
+      canLoadProviderData: false,
+      canLoadSponsorData: false,
+      canLoadAnalyticsData: false,
+      canLoadOrgData: false,
+      canLoadAdminData: false,
+    });
+  });
+
+  it('keeps providers scoped to provider startup domains only', () => {
+    const source = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+
+    expect(getPageDataAccessForRole('provider')).toEqual({
+      canLoadProviderData: true,
+      canLoadSponsorData: false,
+      canLoadAnalyticsData: false,
+      canLoadOrgData: false,
+      canLoadAdminData: false,
+    });
+    expect(source).toContain('getPageDataStartupDomainsForRole(profile?.role, location.pathname)');
+  });
+
+  it('keeps sponsors read-only and out of provider realtime domains', () => {
+    expect(getPageDataAccessForRole('sponsor')).toEqual({
+      canLoadProviderData: false,
+      canLoadSponsorData: true,
+      canLoadAnalyticsData: true,
+      canLoadOrgData: false,
+      canLoadAdminData: false,
+    });
+  });
+
+  it('keeps org admins on provider, analytics, and org domains', () => {
+    expect(getPageDataAccessForRole('org_admin')).toEqual({
+      canLoadProviderData: true,
+      canLoadSponsorData: false,
+      canLoadAnalyticsData: true,
+      canLoadOrgData: true,
+      canLoadAdminData: false,
+    });
+  });
+
+  it('keeps admins on every console domain', () => {
+    expect(getPageDataAccessForRole('admin')).toEqual({
+      canLoadProviderData: true,
+      canLoadSponsorData: false,
+      canLoadAnalyticsData: true,
+      canLoadOrgData: true,
+      canLoadAdminData: true,
+    });
+  });
+
+  it('keeps global analytics startup loads in summary mode', () => {
+    const source = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+
+    expect(source).toContain("getAnalyticsData({ timeRange: 'all', includeRawData: false, quiet: true })");
+    expect(source).not.toContain("getAnalyticsData({ timeRange: 'all', includeRawData: true })");
+  });
+
+  it('keeps PageData analytics summaries from inventing healthy numbers', () => {
+    const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+    const analyticsSource = fs.readFileSync('src/services/analyticsService.js', 'utf8');
+
+    expect(analyticsSource).toContain("const successRateSource = totalEmergencies > 0 ? 'measured' : 'source_pending';");
+    expect(analyticsSource).toContain('successRateSource,');
+    expect(analyticsSource).toContain('analyticsSourceState: successRateSource');
+    expect(analyticsSource).not.toContain('successRate: totalEmergencies > 0 ? Math.round((completedEmergencies.length / totalEmergencies) * 100) : 95');
+
+    expect(pageDataSource).toContain('completionRateSource: fullAnalytics.successRateSource');
+    expect(pageDataSource).toContain('sourceState: fullAnalytics.analyticsSourceState');
+    expect(pageDataSource).toContain('onRouteAmbulances: null');
+    expect(pageDataSource).toContain("onRouteAmbulancesSource: 'source_pending'");
+    expect(pageDataSource).toContain("sourceState: 'mock_unavailable'");
+    expect(pageDataSource).not.toContain('totalRequests: 156');
+    expect(pageDataSource).not.toContain('completionRate: 94');
+    expect(pageDataSource).not.toContain('onRouteAmbulances: 4');
+    expect(pageDataSource).not.toContain('Math.floor(fullAnalytics.totalAmbulances * 0.3)');
+  });
+
+  it('keeps provider Today emergency failures as UI state instead of noisy console fallback', () => {
+    const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+    const emergencySource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
+
+    expect(pageDataSource).toContain("getEmergencyRequests({ quiet: true })");
+    expect(pageDataSource).toContain("markDomainError('emergency', error)");
+    expect(pageDataSource).toContain('domainErrors,');
+    expect(emergencySource).toContain("if (!filter?.quiet) {");
+  });
+
+  it('keeps startup and manually loaded domain failures as explicit domain errors', () => {
+    const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+
+    for (const domain of [
+      'verification',
+      'doctors',
+      'visits',
+      'analytics',
+      'supportTickets',
+      'hospitals',
+      'ambulances',
+      'users',
+      'wallet',
+      'pricing',
+      'insurance',
+      'organizations',
+    ]) {
+      expect(pageDataSource).toContain(`markDomainError('${domain}'`);
+      expect(pageDataSource).toContain(`clearDomainError('${domain}'`);
+    }
+
+    expect(pageDataSource).toContain('getDoctors({ quiet: true })');
+    expect(pageDataSource).toContain('getVisits({ quiet: true })');
+    expect(pageDataSource).toContain('getSupportTickets({ quiet: true })');
+    expect(pageDataSource).toContain('getHospitals({ quiet: true })');
+    expect(pageDataSource).toContain('getAmbulances({ quiet: true })');
+    expect(pageDataSource).toContain('getUserStatistics({ quiet: true })');
+    expect(pageDataSource).toContain('getProfiles({ quiet: true })');
+    expect(pageDataSource).toContain('getInsurancePage({ limit: 10, quiet: true })');
+    expect(pageDataSource).toContain('setInsurancePageStats(page.stats || null)');
+    expect(pageDataSource).not.toContain("from '../services/insurancePoliciesService'");
+    expect(pageDataSource).toContain('getOrganizations({ quiet: true })');
+    expect(pageDataSource).not.toContain("console.error('Error fetching doctors data:'");
+    expect(pageDataSource).not.toContain("console.error('Error fetching visits data:'");
+    expect(pageDataSource).not.toContain("console.error('Error fetching analytics data:'");
+    expect(pageDataSource).not.toContain("console.error('[PageDataContext] Support tickets fetch failed:'");
+    expect(pageDataSource).not.toContain("console.error('Error fetching hospitals data:'");
+    expect(pageDataSource).not.toContain("console.error('Error fetching ambulances data:'");
+    expect(pageDataSource).not.toContain("console.error('Error fetching users data:'");
+    expect(pageDataSource).not.toContain("console.error('Error fetching insurance policies:'");
+    expect(pageDataSource).not.toContain("console.error('Error fetching wallet data:'");
+    expect(pageDataSource).not.toContain("console.error('Error fetching pricing data:'");
+    expect(pageDataSource).not.toContain("console.error('Error fetching organizations data:'");
+  });
+
+  it('keeps Today startup service fan-out quiet below PageData', () => {
+    const analyticsSource = fs.readFileSync('src/services/analyticsService.js', 'utf8');
+    const ambulancesSource = fs.readFileSync('src/services/ambulancesService.js', 'utf8');
+    const profilesSource = fs.readFileSync('src/services/profilesService.js', 'utf8');
+    const insuranceSource = fs.readFileSync('src/services/insuranceService.js', 'utf8');
+    const organizationsSource = fs.readFileSync('src/services/organizationsService.js', 'utf8');
+    const doctorsSource = fs.readFileSync('src/services/doctorsService.js', 'utf8');
+
+    expect(analyticsSource).toContain('const quietOptions = { quiet };');
+    expect(analyticsSource).toContain('getHospitals(quietOptions)');
+    expect(analyticsSource).toContain('getAmbulances(quietOptions)');
+    expect(analyticsSource).toContain('getSubscriptionAnalytics(quietOptions)');
+    expect(analyticsSource).toContain('if (!options?.quiet) {');
+    expect(ambulancesSource).toContain('if (!filter?.quiet) {');
+    expect(profilesSource).toContain('getDisplayIds(profileIds, { quiet: filter?.quiet })');
+    expect(profilesSource).toContain('if (!options?.quiet) {');
+    expect(insuranceSource).toContain('export async function getInsurancePage');
+    expect(insuranceSource).toContain('if (!filter?.quiet) {');
+    expect(organizationsSource).toContain('if (!filter?.quiet) {');
+    expect(doctorsSource).toContain('getDisplayIds(profileIds, { quiet: filter?.quiet })');
+  });
+
+  it('keeps startup domains explicit and leaves support, insurance, and activity lazy', () => {
+    const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+
+    expect(routeOwnsStartupDomains('/')).toBe(false);
+    expect(routeOwnsStartupDomains('/emergencies')).toBe(true);
+    expect(routeOwnsStartupDomains('/emergencies/REQ-123')).toBe(true);
+    expect(routeOwnsStartupDomains('/analytics')).toBe(true);
+
+    expect(getPageDataStartupDomainsForRole('provider')).toEqual([
+      'emergency',
+      'visits',
+    ]);
+    expect(getPageDataStartupDomainsForRole('provider', '/')).toEqual([
+      'emergency',
+      'visits',
+    ]);
+    expect(getPageDataStartupDomainsForRole('provider', '/emergencies')).toEqual([]);
+
+    expect(getPageDataStartupDomainsForRole('sponsor')).toEqual(['analytics']);
+    expect(getPageDataStartupDomainsForRole('sponsor', '/analytics')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('sponsor', '/verification')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('org_admin')).toEqual([
+      'emergency',
+      'visits',
+      'analytics',
+      'verification',
+      'doctors',
+      'hospitals',
+      'ambulances',
+      'users',
+      'wallet',
+      'pricing',
+    ]);
+    expect(getPageDataStartupDomainsForRole('org_admin', '/')).toEqual([
+      'emergency',
+      'visits',
+      'analytics',
+      'verification',
+      'doctors',
+      'hospitals',
+      'ambulances',
+      'users',
+      'wallet',
+      'pricing',
+    ]);
+    expect(getPageDataStartupDomainsForRole('org_admin', '/emergencies')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('org_admin', '/analytics')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('org_admin', '/verification')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('org_admin', '/users')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('org_admin', '/hospitals')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('org_admin', '/ambulances')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('org_admin', '/wallet')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('admin', '/emergencies')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('admin', '/analytics')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('admin', '/verification')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('admin', '/users')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('admin', '/hospitals')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('admin', '/ambulances')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('admin', '/wallet')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('admin', '/insurance')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('admin', '/subscriptions')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('admin', '/organizations')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('admin', '/settings')).toEqual([]);
+    expect(routeOwnsStartupDomains('/emergencies')).toBe(true);
+    expect(routeOwnsStartupDomains('/analytics')).toBe(true);
+    expect(routeOwnsStartupDomains('/verification')).toBe(true);
+    expect(routeOwnsStartupDomains('/users')).toBe(true);
+    expect(routeOwnsStartupDomains('/doctors')).toBe(true);
+    expect(routeOwnsStartupDomains('/hospitals')).toBe(true);
+    expect(routeOwnsStartupDomains('/ambulances')).toBe(true);
+    expect(routeOwnsStartupDomains('/wallet')).toBe(true);
+    expect(routeOwnsStartupDomains('/insurance')).toBe(true);
+    expect(routeOwnsStartupDomains('/subscriptions')).toBe(true);
+    expect(routeOwnsStartupDomains('/organizations')).toBe(true);
+    expect(routeOwnsStartupDomains('/settings')).toBe(true);
+    expect(pageDataSource).toContain('if (routeOwnsStartup) {');
+
+    expect(getPageDataStartupDomainsForRole('admin')).not.toContain('supportTickets');
+    expect(getPageDataStartupDomainsForRole('admin')).not.toContain('insurance');
+    expect(getPageDataStartupDomainsForRole('admin', '/emergencies')).not.toContain('emergency');
+    expect(getPageDataStartupDomainsForRole('admin', '/analytics')).not.toContain('analytics');
+    expect(getPageDataStartupDomainsForRole('admin', '/verification')).not.toContain('verification');
+    expect(getPageDataStartupDomainsForRole('admin', '/users')).not.toContain('users');
+    expect(getPageDataStartupDomainsForRole('admin', '/hospitals')).not.toContain('hospitals');
+    expect(getPageDataStartupDomainsForRole('admin', '/ambulances')).not.toContain('ambulances');
+    expect(getPageDataStartupDomainsForRole('admin', '/wallet')).not.toContain('wallet');
+    expect(getPageDataStartupDomainsForRole('admin', '/insurance')).not.toContain('insurance');
+    expect(getPageDataStartupDomainsForRole('admin', '/subscriptions')).toEqual([]);
+    expect(getPageDataStartupDomainsForRole('admin', '/organizations')).not.toContain('organizations');
+    expect(getPageDataStartupDomainsForRole('admin', '/settings')).toEqual([]);
+    expect(pageDataSource).toContain("!startupDomains.includes('supportTickets')");
+    expect(pageDataSource).toContain("!startupDomains.includes('insurance')");
+
+    for (const role of ['provider', 'sponsor', 'org_admin', 'admin']) {
+      expect(getPageDataStartupDomainsForRole(role)).not.toContain('activity');
+    }
+  });
+
+  it('keeps map data route-owned instead of loading from the app shell', () => {
+    const mapContextSource = fs.readFileSync('src/contexts/MapContext.jsx', 'utf8');
+    const mapPageSource = fs.readFileSync('src/components/pages/GodModeMap.jsx', 'utf8');
+
+    expect(mapContextSource).toContain("const isMapPath = (pathname = '') => pathname === '/map' || pathname.startsWith('/map/')");
+    expect(mapContextSource).toContain('const mapRouteActive = isMapPath(location.pathname)');
+    expect(mapContextSource.indexOf('if (!mapRouteActive)'))
+      .toBeLessThan(mapContextSource.indexOf('initializeMapData({ shouldCommit: () => mounted })'));
+    expect(mapContextSource.indexOf('if (!mapRouteActive)'))
+      .toBeLessThan(mapContextSource.indexOf('supabaseMapService.subscribeToEmergencies'));
+    expect(mapContextSource.indexOf('if (!mapRouteActive)'))
+      .toBeLessThan(mapContextSource.indexOf('supabaseMapService.subscribeToAmbulances'));
+    expect(mapContextSource.indexOf('if (!mapRouteActive)'))
+      .toBeLessThan(mapContextSource.indexOf('supabaseMapService.subscribeToUsers'));
+    expect(mapPageSource).not.toContain('<MapProvider>');
+  });
+
+  it('keeps PageData realtime subscriptions behind the active route startup domains', () => {
+    const pageDataSource = fs.readFileSync('src/contexts/PageDataContext.jsx', 'utf8');
+
+    for (const domain of [
+      'emergency',
+      'doctors',
+      'visits',
+      'insurance',
+      'verification',
+      'users',
+      'organizations',
+      'pricing',
+      'supportTickets',
+    ]) {
+      expect(pageDataSource).toContain(`startupDomains.includes('${domain}')`);
+    }
+
+    expect(pageDataSource).not.toContain('!canLoadProviderData) return;');
+    expect(pageDataSource).not.toContain('!canLoadOrgData) return;');
+    expect(pageDataSource).not.toContain('!canLoadAdminData) return;');
+  });
+});

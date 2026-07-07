@@ -51,6 +51,12 @@ A revamped console that feels like a premium professional tool to a non-technica
 - **For a hospital admin:** Credential approvals and staff status on the home screen. A wallet balance they can read without knowing what a "ledger" is. Navigation that uses words from their professional vocabulary, not engineering vocabulary.
 - **For a system admin:** What already works, cleaned up. Global oversight with no broken nav links and no fabricated metrics.
 
+### Today Decision
+
+The accepted direction is **Today**: console inherits the `ivisit-app` sheet/canvas operating system and adapts it into a simple role-scoped home. It answers one question: what needs my attention now? The first slice is `Today Home + Emergency Requests Sheet`.
+
+See [TODAY_PRODUCT_ROOM.md](./TODAY_PRODUCT_ROOM.md) for the controller/staff model, Supabase governance promise, and first product slice gate.
+
 ---
 
 ## Success Metrics

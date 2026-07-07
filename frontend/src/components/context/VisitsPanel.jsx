@@ -1,124 +1,239 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
 import {
+  BarChart3,
   Calendar,
-  Clock,
   CheckCircle,
-  Plus,
-  Filter,
-  Download,
-  BarChart3
+  Clock,
+  Loader2,
+  Plus
 } from 'lucide-react';
 import { formatDate } from '../../lib/utils';
 
-export const VisitsPanel = ({ visitsData }) => {
-  const stats = visitsData?.stats || { today: 0, pending: 0, completed: 0, upcoming: 0 };
-  const recent = visitsData?.recent || [];
+const toCount = (value, fallback = 0) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
+const statusTone = {
+  scheduled: {
+    label: 'Scheduled',
+    iconClass: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+    chipClass: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
+  },
+  in_progress: {
+    label: 'Active',
+    iconClass: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+    chipClass: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+  },
+  completed: {
+    label: 'Done',
+    iconClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+    chipClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    iconClass: 'bg-muted/40 text-muted-foreground',
+    chipClass: 'bg-muted/40 text-muted-foreground',
+  },
+};
+
+const getStatusTone = (status) => statusTone[status] || statusTone.scheduled;
+
+const getVisitTitle = (visit) => (
+  visit?.patient?.username ||
+  visit?.patient_name ||
+  visit?.visit_type ||
+  visit?.type ||
+  'Visit record'
+);
+
+const getVisitTime = (visit) => {
+  const value = visit?.scheduled_at || visit?.date || visit?.created_at;
+  return value ? formatDate(value) : 'Time not set';
+};
+
+export const VisitsPanel = ({ visitContext }) => {
+  const context = visitContext || {};
+  const stats = context.stats || {};
+  const recent = Array.isArray(context.recent) ? context.recent : [];
+  const total = toCount(stats.total ?? stats.today ?? context.count, recent.length);
+  const active = toCount(stats.inProgress ?? stats.in_progress ?? stats.pending, 0);
+  const completed = toCount(stats.completed, 0);
+  const loading = Boolean(context.loading);
+  const canCreate = context.canCreate !== false;
+  const [panelNotice, setPanelNotice] = React.useState('Visit actions ready.');
 
   const handleCreateVisit = () => {
+    if (!canCreate) {
+      setPanelNotice('New visits are unavailable for this role.');
+      return;
+    }
+
+    setPanelNotice('Opening visit form.');
     window.dispatchEvent(new CustomEvent('openVisitModal'));
+  };
+
+  const handleOpenAnalytics = () => {
+    setPanelNotice('Opening visit statistics.');
+    window.dispatchEvent(new CustomEvent('openAnalyticsModal'));
   };
 
   return (
     <div className="space-y-3">
-      {/* Visit Statistics */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+      <motion.section
+        initial={{ opacity: 0, scale: 0.97 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="space-y-2"
+        transition={{ duration: 0.22 }}
+        className="space-y-3"
+        aria-label="Visits overview"
       >
-        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Daily Pulse</h3>
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Visits overview
+        </p>
 
-        <div className="bg-primary/5 p-4 rounded-3xl flex items-center justify-between group transition-all">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Calendar className="h-5 w-5 text-primary" />
+        <div className="rounded-[28px] bg-sky-500/10 p-4 text-sky-900 shadow-[0_18px_54px_rgb(14_165_233/0.14)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 dark:text-sky-100">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700/75 dark:text-sky-100/70">
+                Current route scope
+              </p>
+              <p className="mt-2 text-3xl font-semibold tracking-normal text-foreground">
+                {loading ? '...' : total}
+              </p>
+              <p className="mt-1 text-xs font-medium text-muted-foreground">
+                {total === 1 ? 'Visit in this view' : 'Visits in this view'}
+              </p>
             </div>
-            <span className="text-sm font-bold tracking-tight">Today's Visits</span>
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] bg-background/55 text-sky-700 transition-transform duration-200 group-hover:scale-105 dark:text-sky-200">
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Calendar className="h-5 w-5" />}
+            </span>
           </div>
-          <Badge className="bg-primary/20 text-primary border-0 rounded-full">{stats.today}</Badge>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="bg-warning/5 p-3 rounded-3xl flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-warning/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Clock className="h-4 w-4 text-warning" />
-            </div>
-            <div>
-              <p className="font-bold text-xs">{stats.pending}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Awaiting</p>
+          <div className="rounded-[24px] bg-amber-500/10 p-3 text-amber-800 shadow-[0_14px_38px_rgb(245_158_11/0.12)] dark:text-amber-200">
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[16px] bg-background/55">
+                <Clock className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-lg font-semibold tracking-normal text-foreground">
+                  {loading ? '...' : active}
+                </span>
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Active
+                </span>
+              </span>
             </div>
           </div>
 
-          <div className="bg-success/5 p-3 rounded-3xl flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-success/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <CheckCircle className="h-4 w-4 text-success" />
-            </div>
-            <div>
-              <p className="font-bold text-xs">{stats.completed}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Resolved</p>
+          <div className="rounded-[24px] bg-emerald-500/10 p-3 text-emerald-800 shadow-[0_14px_38px_rgb(16_185_129/0.12)] dark:text-emerald-200">
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[16px] bg-background/55">
+                <CheckCircle className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-lg font-semibold tracking-normal text-foreground">
+                  {loading ? '...' : completed}
+                </span>
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Done
+                </span>
+              </span>
             </div>
           </div>
         </div>
-      </motion.div>
+      </motion.section>
 
-      {/* Actions */}
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={handleCreateVisit}
-          className="flex items-center justify-center gap-3 p-4 rounded-3xl bg-primary/10 hover:bg-primary/20 transition-all border-0 group"
-        >
-          <Plus className="h-5 w-5 text-primary group-hover:rotate-90 transition-transform" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Schedule</span>
-        </button>
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('openAnalyticsModal'))}
-          className="flex items-center justify-center gap-3 p-4 rounded-3xl bg-info/10 hover:bg-info/20 transition-all border-0 group"
-        >
-          <BarChart3 className="h-5 w-5 text-info group-hover:scale-110 transition-transform" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-info">Analytics</span>
-        </button>
-      </div>
+      <section className="space-y-2" aria-label="Panel actions">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Panel actions
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <motion.button
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleCreateVisit}
+            disabled={!canCreate}
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-[24px] bg-sky-500/10 px-3 text-sky-700 shadow-[0_14px_42px_rgb(14_165_233/0.12)] transition-[background,box-shadow,transform] duration-200 hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-55 dark:text-sky-200"
+            title="New visit"
+            aria-disabled={!canCreate}
+          >
+            <Plus className="h-5 w-5 transition-transform duration-200 group-hover:rotate-90" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">New visit</span>
+          </motion.button>
 
-      {/* Recent Visits */}
-      <div className="space-y-2">
-        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground ml-1">Live Queue</h3>
-        <div className="space-y-1">
-          {recent.map((visit, idx) => (
-            <div key={visit.id || idx} className="bg-white/5 p-3 rounded-2xl flex items-center justify-between border-0 transition-colors hover:bg-white/10 group">
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${visit.status === 'completed' ? 'bg-success/20' :
-                  visit.status === 'cancelled' ? 'bg-destructive/10' :
-                    'bg-warning/20'
-                  } group-hover:scale-105 transition-transform`}>
-                  <Calendar className={`h-4 w-4 ${visit.status === 'completed' ? 'text-success' :
-                    visit.status === 'cancelled' ? 'text-destructive' :
-                      'text-warning'
-                    }`} />
+          <motion.button
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleOpenAnalytics}
+            className="group flex min-h-[68px] items-center justify-center gap-3 rounded-[24px] bg-cyan-500/10 px-3 text-cyan-700 shadow-[0_14px_42px_rgb(6_182_212/0.12)] transition-[background,box-shadow,transform] duration-200 hover:bg-cyan-500/15 dark:text-cyan-200"
+            title="View visit statistics"
+          >
+            <BarChart3 className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">Stats</span>
+          </motion.button>
+        </div>
+        <p className="px-1 text-xs font-medium text-muted-foreground" role="status" aria-live="polite">
+          {panelNotice}
+        </p>
+      </section>
+
+      <section className="space-y-2" aria-label="Current list">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Current list
+        </p>
+
+        <div className="space-y-2">
+          {recent.map((visit, index) => {
+            const tone = getStatusTone(visit?.status);
+
+            return (
+              <motion.div
+                key={visit?.id || index}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+                className="group rounded-[24px] bg-background/46 p-3 shadow-[0_12px_36px_rgb(0_0_0/0.10)] transition-[background,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-muted/36"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[18px] transition-transform duration-200 group-hover:scale-105 ${tone.iconClass}`}>
+                      <Calendar className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block max-w-[150px] truncate text-sm font-semibold text-foreground">
+                        {getVisitTitle(visit)}
+                      </span>
+                      <span className="mt-0.5 block truncate text-xs font-medium text-muted-foreground">
+                        {getVisitTime(visit)}
+                      </span>
+                    </span>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] ${tone.chipClass}`}>
+                    {tone.label}
+                  </span>
                 </div>
-                <div className="min-w-0">
-                  <p className="font-bold text-xs truncate max-w-[120px]">
-                    {visit.patient_name || 'Ambulatory Care'}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground truncate">
-                    {visit.scheduled_at ? formatDate(visit.scheduled_at) : 'Active Session'}
-                  </p>
-                </div>
-              </div>
-              <Badge variant="ghost" className="text-[8px] font-bold uppercase tracking-widest p-0 h-auto opacity-60">
-                {visit.status}
-              </Badge>
+              </motion.div>
+            );
+          })}
+
+          {!loading && recent.length === 0 && (
+            <div className="rounded-[24px] bg-muted/24 px-4 py-5 text-center text-xs font-medium text-muted-foreground">
+              No visits in the current view.
             </div>
-          ))}
-          {recent.length === 0 && (
-            <div className="text-center py-4 text-xs text-muted-foreground">
-              Queue clear
+          )}
+
+          {loading && recent.length === 0 && (
+            <div className="rounded-[24px] bg-muted/24 px-4 py-5 text-center text-xs font-medium text-muted-foreground">
+              Loading visits.
             </div>
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 };

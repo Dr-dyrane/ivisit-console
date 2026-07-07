@@ -3,38 +3,30 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Home, MapPin, FileCheck, TrendingUp, Menu,
-  Stethoscope, Calendar, AlertTriangle, Hospital, Ambulance,
-  Users, Newspaper, Headphones, Shield, ChevronLeft, ChevronDown, Check,
-  FolderKanban, Handshake, Mail, PanelLeftDashed, Laptop, PanelLeftClose, PanelLeftOpen
+  ChevronLeft, ChevronDown, Check, Moon, Sun,
+  PanelLeftDashed, Laptop, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import ThemeToggle from '../ui/theme-toggle';
-import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
+import { getAvatarFallback } from '../../lib/avatarUtils';
 
 
-import { NAV_CONFIG, getAccessibleNav } from '../../config/navigation';
-
-// Memoize the navigation function to prevent object recreation
-const memoizedGetAccessibleNav = (profile, can) => {
-  if (!profile || !can) return { main: [], ops: null, mgmt: null };
-  return getAccessibleNav(profile, can);
-};
+import { getAccessibleNav } from '../../config/navigation';
 
 export const IslandNavigation = () => {
-  const { sidebarMode, setSidebarMode, sidebarWidth, isScrolledDown } = useLayout();
+  const { sidebarMode, setSidebarMode, isScrolledDown } = useLayout();
   const { profile, user, can } = useAuth();
   const { toggle, theme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [isHovered, setIsHovered] = useState(false);
+  const [isFocusWithin, setIsFocusWithin] = useState(false);
   const [openGroups, setOpenGroups] = useState([]);
   const [configOpen, setConfigOpen] = useState(false);
 
@@ -47,13 +39,18 @@ export const IslandNavigation = () => {
   const isBroad = useMemo(() => {
     if (sidebarMode === 'expanded') return true;
     if (sidebarMode === 'collapsed') return false;
-    return isHovered; // 'smart' mode
-  }, [sidebarMode, isHovered]);
+    return isHovered || isFocusWithin; // 'smart' mode
+  }, [sidebarMode, isHovered, isFocusWithin]);
 
   // Width for the navigation sidebar itself (visual)
   const navWidth = isBroad ? 260 : 72;
 
   const isNotHome = location.pathname !== '/';
+  const avatarToneClass = profile?.role === 'admin' ? 'bg-[hsl(var(--spark)/0.14)] text-[hsl(var(--spark)/0.92)]' :
+    profile?.role === 'org_admin' ? 'bg-blue-500/15 text-blue-500 dark:text-blue-100' :
+      profile?.role === 'provider' ? 'bg-green-500/15 text-green-500 dark:text-green-100' :
+        profile?.role === 'sponsor' ? 'bg-purple-500/15 text-purple-500 dark:text-purple-100' :
+          'bg-muted text-muted-foreground';
 
   // --- Progressive Reveal & Auto-Cleanup Logic ---
 
@@ -72,19 +69,48 @@ export const IslandNavigation = () => {
     setOpenGroups(prev => prev.includes(groupId) ? [] : [groupId]);
   };
 
+  const closeSmartReveal = () => {
+    if (sidebarMode !== 'smart') return;
+    setIsHovered(false);
+    setIsFocusWithin(false);
+  };
+
+  const handleNavigate = (path) => {
+    closeSmartReveal();
+    navigate(path);
+  };
+
+  const handleNavBlur = (event) => {
+    const nextTarget = event.relatedTarget;
+    if (!event.currentTarget.contains(nextTarget)) {
+      closeSmartReveal();
+    }
+  };
+
+  const handleNavKeyDown = (event) => {
+    if (event.key === 'Tab' && sidebarMode === 'smart') {
+      setIsHovered(false);
+    }
+
+    if (event.key === 'Escape') {
+      closeSmartReveal();
+    }
+  };
+
   const renderNavButton = (item, isSubItem = false, isCentered = false) => {
     const isActive = location.pathname === item.path;
 
     const buttonContent = (
       <button
-        onClick={() => navigate(item.path)}
+        type="button"
+        onClick={() => handleNavigate(item.path)}
         className={`flex items-center h-10 rounded-2xl transition-all duration-300 relative overflow-hidden group ${isCentered ? 'w-10 justify-center' : `w-full ${isSubItem ? 'pl-9' : 'px-3'}`}`}
         aria-label={item.label}
+        aria-current={isActive ? 'page' : undefined}
+        data-desktop-nav-item={item.id}
+        data-state={isActive ? 'active' : 'idle'}
       >
-        {/* Shared RGB Hive Effect - Subtle */}
-        <div className={`hover-glow ${isActive ? 'hover-glow-primary/50' : 'hover-glow-muted/30'}`} />
-
-        <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${isActive ? 'text-primary scale-110' : 'text-muted-foreground group-hover:text-foreground group-hover:scale-105'}`} />
+        <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${isActive ? 'text-[hsl(var(--spark)/0.92)] scale-110' : 'text-muted-foreground group-hover:text-foreground group-hover:scale-105'}`} />
         {isBroad && !isCentered && (
           <AnimatePresence>
             <motion.span
@@ -92,7 +118,7 @@ export const IslandNavigation = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0 }}
               className="ml-3 text-sm font-normal truncate transition-colors duration-300"
-              style={{ color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}
+              style={{ color: isActive ? 'hsl(var(--spark))' : 'hsl(var(--muted-foreground))' }}
             >
               {item.label}
             </motion.span>
@@ -107,7 +133,7 @@ export const IslandNavigation = () => {
           // Active indicator - Apple-style
           <motion.div
             layoutId="activeRail"
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-full"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[hsl(var(--spark)/0.75)] rounded-full"
             initial={{ opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
@@ -119,7 +145,7 @@ export const IslandNavigation = () => {
             <TooltipTrigger asChild>
               {buttonContent}
             </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background border-0 rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
+            <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
               {item.label}
             </TooltipContent>
           </Tooltip>
@@ -144,15 +170,18 @@ export const IslandNavigation = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
+                  type="button"
                   onClick={() => toggleGroup(id)}
-                  className={`w-10 h-10 rounded-xl transition-colors flex items-center justify-center ${isAnyChildActive ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground/60 hover:bg-muted/50 hover:text-foreground'
+                  aria-expanded={isOpen}
+                  data-desktop-nav-group={id}
+                  className={`w-10 h-10 rounded-xl transition-colors flex items-center justify-center ${isAnyChildActive ? 'bg-[hsl(var(--spark)/0.12)] text-[hsl(var(--spark)/0.92)] font-medium' : 'text-muted-foreground/60 hover:bg-muted/50 hover:text-foreground'
                     }`}
                   aria-label={`Toggle ${label} group`}
                 >
                   <GroupIcon className="w-5 h-5" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background border-0 rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
+              <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
                 {label}
               </TooltipContent>
             </Tooltip>
@@ -182,8 +211,12 @@ export const IslandNavigation = () => {
       <div key={id} className="w-full space-y-1">
         <div className="px-3">
           <button
+            type="button"
             onClick={() => toggleGroup(id)}
-            className={`w-full flex items-center h-10 px-3 rounded-xl transition-colors ${isAnyChildActive && !isOpen ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground/60 hover:text-foreground'
+            aria-expanded={isOpen}
+            aria-label={`${isOpen ? 'Hide' : 'Show'} ${label}`}
+            data-desktop-nav-group={id}
+            className={`w-full flex items-center h-10 px-3 rounded-xl transition-colors ${isAnyChildActive && !isOpen ? 'bg-[hsl(var(--spark)/0.12)] text-[hsl(var(--spark)/0.92)] font-medium' : 'text-muted-foreground/60 hover:text-foreground'
               }`}
           >
             <GroupIcon className="w-5 h-5 flex-shrink-0" />
@@ -219,9 +252,14 @@ export const IslandNavigation = () => {
       <motion.nav
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onFocus={() => setIsFocusWithin(true)}
+        onBlur={handleNavBlur}
+        onKeyDown={handleNavKeyDown}
         animate={{ width: navWidth, x: 0 }}
         transition={{ type: "spring", stiffness: 250, damping: 28 }}
         className={`fixed left-0 top-0 bottom-0 z-50 flex flex-col backdrop-blur-sm ${isScrolledDown ? 'bg-background/70' : 'bg-background/30'}`}
+        aria-label="Primary desktop"
+        data-desktop-nav-shell="true"
       >
         {/* Simple Static Dot Grid - Apple-level simplicity */}
 
@@ -232,10 +270,14 @@ export const IslandNavigation = () => {
               {isNotHome ? (
                 <motion.button
                   key="back"
+                  type="button"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  onClick={() => navigate(-1)}
+                  onClick={() => {
+                    closeSmartReveal();
+                    navigate(-1);
+                  }}
                   className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
                   aria-label="Go back"
                 >
@@ -273,36 +315,42 @@ export const IslandNavigation = () => {
             {accessibleNav.main.map(item => renderNavButton(item))}
           </div>
 
-          <div className="h-px bg-border/10 mx-4" />
+          <div className="mx-4 py-1" aria-hidden="true" />
 
           {renderGroup(accessibleNav.ops)}
           {renderGroup(accessibleNav.mgmt)}
           {renderGroup(accessibleNav.finance)}
         </div>
 
-        <div className="p-4 border-t border-border/10 space-y-3">
+        <div className="p-4 pt-5 space-y-3">
           {/* Sidebar Control Trigger */}
           <div className="flex w-full">
             {!isBroad ? (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
+                    type="button"
                     onClick={() => setConfigOpen(true)}
                     className={`flex items-center gap-3 w-full rounded-xl h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group ${!isBroad ? 'justify-center px-0' : ''}`}
                     aria-label="Sidebar Layout Settings"
+                    aria-haspopup="dialog"
+                    aria-expanded={configOpen}
                   >
                     <PanelLeftDashed className="w-5 h-5 flex-shrink-0" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background border-0 rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
+                <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
                   Layout
                 </TooltipContent>
               </Tooltip>
             ) : (
               <button
+                type="button"
                 onClick={() => setConfigOpen(true)}
                 className={`flex items-center gap-3 w-full rounded-xl h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group`}
                 aria-label="Sidebar Layout Settings"
+                aria-haspopup="dialog"
+                aria-expanded={configOpen}
               >
                 <PanelLeftDashed className="w-5 h-5 flex-shrink-0" />
                 <motion.span
@@ -320,31 +368,28 @@ export const IslandNavigation = () => {
             {!isBroad ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div
+                  <button
+                    type="button"
                     onClick={toggle}
-                    role="button"
-                    tabIndex={0}
-                    className="flex justify-center w-full rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group cursor-pointer"
-                    aria-label="Toggle Theme"
+                    className="flex justify-center w-full rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group"
+                    aria-label="Toggle theme"
                   >
-                    <div className="pointer-events-none">
-                      <ThemeToggle size="sm" />
-                    </div>
-                  </div>
+                    {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                  </button>
                 </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background border-0 rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
+                <TooltipContent side="right" sideOffset={20} className="bg-foreground/35 backdrop-blur-md text-background rounded-full px-4 py-2 font-bold tracking-wide shadow-xl">
                   {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <div
+              <button
+                type="button"
                 onClick={toggle}
-                role="button"
-                tabIndex={0}
-                className="flex items-center gap-3 w-full rounded-xl h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group cursor-pointer"
+                className="flex items-center gap-3 w-full rounded-xl h-10 px-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 group"
+                aria-label="Toggle theme"
               >
-                <div className="w-5 h-5 flex items-center justify-center pointer-events-none">
-                  <ThemeToggle size="sm" />
+                <div className="w-5 h-5 flex items-center justify-center">
+                  {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                 </div>
                 <motion.span
                   initial={{ opacity: 0, x: -10 }}
@@ -353,36 +398,22 @@ export const IslandNavigation = () => {
                 >
                   {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                 </motion.span>
-              </div>
+              </button>
             )}
           </div>
 
           <button
-            onClick={() => navigate('/settings')}
+            type="button"
+            onClick={() => handleNavigate('/settings')}
             className="w-full flex items-center gap-3 p-1 rounded-xl hover:bg-muted transition-colors group"
             aria-label="User Settings"
           >
             <div className="relative">
-              <Avatar className={`h-9 w-9 rounded-lg border-2 flex-shrink-0 ${!isBroad ? profile?.role === 'admin' ? 'border-red-500' :
-                profile?.role === 'org_admin' ? 'border-blue-500' :
-                  profile?.role === 'provider' ? 'border-green-500' :
-                    profile?.role === 'sponsor' ? 'border-purple-500' :
-                      'border-gray-500' : 'border-border'
-                }`}>
-                <AvatarImage src={getAvatarUrl(profile, user)} />
-                <AvatarFallback className="bg-primary/5 text-primary text-xs font-semibold">
+              <Avatar className={`h-9 w-9 rounded-lg flex-shrink-0 ${avatarToneClass}`}>
+                <AvatarFallback className="bg-transparent text-xs font-semibold">
                   {getAvatarFallback(profile, user)}
                 </AvatarFallback>
               </Avatar>
-              {/* Status dot for expanded state - Apple style */}
-              {isBroad && (
-                <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${profile?.role === 'admin' ? 'bg-red-500' :
-                  profile?.role === 'org_admin' ? 'bg-blue-500' :
-                    profile?.role === 'provider' ? 'bg-green-500' :
-                      profile?.role === 'sponsor' ? 'bg-purple-500' :
-                        'bg-gray-500'
-                  }`} />
-              )}
             </div>
             {isBroad && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-left overflow-hidden">
@@ -394,11 +425,14 @@ export const IslandNavigation = () => {
         </div>
 
         <Dialog open={configOpen} onOpenChange={setConfigOpen}>
-          <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden border-0 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-2xl shadow-2xl rounded-[28px]">
+          <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden bg-white/50 dark:bg-zinc-900/50 backdrop-blur-2xl shadow-2xl rounded-[28px]" style={{ borderWidth: 0 }}>
             <DialogHeader className="pt-6 px-6">
               <DialogTitle className="text-center text-[17px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                 Sidebar Layout
               </DialogTitle>
+              <DialogDescription className="sr-only">
+                Choose how the desktop sidebar opens and stays visible.
+              </DialogDescription>
             </DialogHeader>
 
             <div className="px-3 pb-6 pt-2">
@@ -424,7 +458,9 @@ export const IslandNavigation = () => {
                   },
                 ].map((item) => (
                   <button
+                    type="button"
                     key={item.id}
+                    aria-pressed={sidebarMode === item.id}
                     onClick={() => {
                       setSidebarMode(item.id);
                       setTimeout(() => setConfigOpen(false), 200); // Slight delay for visual feedback
@@ -432,7 +468,7 @@ export const IslandNavigation = () => {
                     className={`
               relative flex items-center gap-4 p-3 rounded-[14px] transition-all duration-200 group
               ${sidebarMode === item.id
-                        ? 'bg-white/40 dark:bg-white/10 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
+                        ? 'bg-white/40 dark:bg-white/10 shadow-sm'
                         : 'hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.98]'}
             `}
                   >
@@ -440,7 +476,7 @@ export const IslandNavigation = () => {
                     <div className={`
               w-10 h-10 rounded-xl flex items-center justify-center transition-colors
               ${sidebarMode === item.id
-                        ? 'bg-primary text-white shadow-primary/20 shadow-lg'
+                        ? 'bg-[hsl(var(--spark)/0.88)] text-black dark:text-zinc-950 shadow-[0_14px_30px_-18px_hsl(var(--spark)/0.65)]'
                         : 'bg-zinc-200/50 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100'}
             `}>
                       <item.icon className="w-5 h-5" strokeWidth={2.2} />
@@ -459,7 +495,7 @@ export const IslandNavigation = () => {
                     {/* Selection Checkmark */}
                     {sidebarMode === item.id && (
                       <div className="mr-2">
-                        <Check className="w-4 h-4 text-primary" strokeWidth={3} />
+                        <Check className="w-4 h-4 text-[hsl(var(--spark)/0.92)]" strokeWidth={3} />
                       </div>
                     )}
                   </button>

@@ -13,18 +13,26 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useLayout } from '../../contexts/LayoutContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Avatar, AvatarFallback } from '../ui/avatar';
 import { getAccessibleNav } from '../../config/navigation';
 import { ContextPanel } from './ContextPanel';
 
 export const MobileNavMenu = ({ onClose }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { signOut, can, profile, user } = useAuth();
+    const { signOut, can, profile } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const { headerConfig } = useLayout();
     const isNotHome = location.pathname !== '/';
     const [activeTab, setActiveTab] = useState('menu'); // 'menu' | 'context'
+    const accountName = profile?.full_name || profile?.username || 'User';
+    const avatarInitial = accountName.trim().charAt(0).toUpperCase();
+    const routeOwnsMobileAction =
+        location.pathname === '/' ||
+        location.pathname.startsWith('/emergencies') ||
+        location.pathname.startsWith('/verification') ||
+        location.pathname.startsWith('/doctors');
+    const showPageActions = Boolean(headerConfig.actions) && location.pathname !== '/' && !routeOwnsMobileAction;
 
     // Get accessible navigation items based on current user permissions
     const accessibleNav = useMemo(() => {
@@ -37,13 +45,15 @@ export const MobileNavMenu = ({ onClose }) => {
     useEffect(() => {
         const isOps = accessibleNav.ops?.items.some(item => item.path === location.pathname);
         const isMgmt = accessibleNav.mgmt?.items.some(item => item.path === location.pathname);
+        const isFinance = accessibleNav.finance?.items.some(item => item.path === location.pathname);
 
         if (isOps) setActiveGroup('ops');
         else if (isMgmt) setActiveGroup('mgmt');
+        else if (isFinance) setActiveGroup('finance');
     }, [location.pathname, accessibleNav]);
 
-    // Auto-close sheet when context panel actions trigger a modal
-    // Canon #18: Preserve Spatial Memory — sheet dismisses, modal appears
+    // Auto-close sheet when context panel actions trigger a modal.
+    // Canon #18: Preserve spatial memory: sheet dismisses, modal appears.
     useEffect(() => {
         const modalEvents = [
             'openAnalyticsModal', 'openVisitModal', 'openEmergencyModal',
@@ -77,6 +87,7 @@ export const MobileNavMenu = ({ onClose }) => {
                 onClick={() => handleNavigate(item.path)}
                 className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${active ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
                     } ${isSub ? 'pl-12' : ''}`}
+                aria-label={item.label}
             >
                 <item.icon className={`h-5 w-5 ${active ? 'opacity-100' : 'opacity-50'}`} />
                 <span className={`text-xs md:text-base tracking-tight ${active ? 'font-semibold' : 'font-normal'}`}>
@@ -117,6 +128,7 @@ export const MobileNavMenu = ({ onClose }) => {
                         onClick={() => setActiveTab('menu')}
                         className={`flex-1 relative z-10 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-center transition-colors duration-200 ${activeTab === 'menu' ? 'text-[hsl(var(--spark)/0.92)]' : 'text-muted-foreground/50'
                             }`}
+                        aria-label="Show menu"
                     >
                         Menu
                     </button>
@@ -124,6 +136,7 @@ export const MobileNavMenu = ({ onClose }) => {
                         onClick={() => setActiveTab('context')}
                         className={`flex-1 relative z-10 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-center transition-colors duration-200 ${activeTab === 'context' ? 'text-[hsl(var(--spark)/0.92)]' : 'text-muted-foreground/50'
                             }`}
+                        aria-label="Show quick actions"
                     >
                         Quick Actions
                     </button>
@@ -153,10 +166,11 @@ export const MobileNavMenu = ({ onClose }) => {
                                         <div key={groupId} className="space-y-1">
                                             <button
                                                 onClick={() => setActiveGroup(isOpen ? null : groupId)}
-                                                className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${isOpen ? 'text-foreground' : 'text-muted-foreground/60'
+                                                className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${isOpen ? 'text-foreground' : 'text-muted-foreground/75'
                                                     }`}
+                                                aria-label={`${isOpen ? 'Hide' : 'Show'} ${group.label}`}
                                             >
-                                                <group.icon className="h-5 w-5 opacity-50" />
+                                                <group.icon className="h-5 w-5 opacity-65" />
                                                 <span className="text-xs md:text-sm font-normal uppercase tracking-[0.2em]">{group.label}</span>
                                                 <ChevronDown className={`ml-auto h-4 w-4 transition-transform duration-300 ${isOpen ? '' : '-rotate-90 opacity-30'}`} />
                                             </button>
@@ -178,12 +192,11 @@ export const MobileNavMenu = ({ onClose }) => {
                                 })}
                             </div>
 
-                            <div className="h-px bg-border/40 mx-4" />
+                            <div className="mx-4 py-1" aria-hidden="true" />
 
-                            {/* Page Actions (Moved below Groups) */}
-                            {headerConfig.actions && (
+                            {showPageActions && (
                                 <div className="p-4 rounded-2xl bg-primary/10">
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/60 mb-3 ml-1">Page Actions</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/60 mb-3 ml-1">Actions</p>
                                     <div className="flex flex-wrap gap-2">
                                         {headerConfig.actions}
                                     </div>
@@ -206,17 +219,19 @@ export const MobileNavMenu = ({ onClose }) => {
 
             {/* 3. UTILITY FOOTER */}
             <div className="flex-shrink-0 p-6 pt-0 space-y-4">
-                <div className="h-px bg-white/5 mb-4" />
+                <div className="mb-4" aria-hidden="true" />
                 <div className="flex gap-2">
                     <button
                         onClick={toggleTheme}
-                        className="flex-1 flex items-center justify-center h-12 rounded-2xl bg-black/5 dark:bg-white/5 text-muted-foreground transition-[background,color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] active:bg-white/10 hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
+                        className="flex-1 flex items-center justify-center h-12 rounded-2xl bg-black/5 dark:bg-white/5 text-muted-foreground transition-[background,color] duration-200 ease-out active:bg-white/10 hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
+                        aria-label="Toggle theme"
                     >
                         {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                     </button>
                     <button
                         onClick={() => { signOut(); navigate('/login'); }}
                         className="flex-1 flex items-center justify-center h-12 rounded-2xl bg-destructive/5 text-destructive transition-colors active:bg-destructive/10"
+                        aria-label="Sign out"
                     >
                         <LogOut className="h-5 w-5" />
                     </button>
@@ -224,16 +239,16 @@ export const MobileNavMenu = ({ onClose }) => {
 
                 <button
                     onClick={() => handleNavigate('/settings')}
-                    className="w-full flex items-center gap-4 p-3 rounded-2xl apple-glass shadow-sm border-0"
+                    className="w-full flex items-center gap-4 p-3 rounded-2xl apple-glass shadow-sm"
+                    aria-label="Open account settings"
                 >
                     <Avatar className="h-10 w-10 rounded-xl">
-                        <AvatarImage src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username || 'User'}&background=random`} />
                         <AvatarFallback className="bg-primary/5 text-primary text-xs">
-                            {profile?.username?.charAt(0).toUpperCase()}
+                            {avatarInitial}
                         </AvatarFallback>
                     </Avatar>
                     <div className="text-left flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">{profile?.full_name || profile?.username || 'User'}</p>
+                        <p className="text-sm font-semibold text-foreground truncate">{accountName}</p>
                         <p className="text-[8px] font-normal text-muted-foreground uppercase tracking-wider">Account Settings</p>
                     </div>
                 </button>

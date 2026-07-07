@@ -1,181 +1,124 @@
 import React from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Checkbox } from '../ui/checkbox';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from '../ui/dropdown-menu';
-import { Edit, Trash2, Eye, ArrowUpDown, ChevronUp, ChevronDown, MoreHorizontal, Star, CalendarDays } from 'lucide-react';
-import { Card } from '../ui/card';
+  ArrowUpDown,
+  ChevronDown,
+  ChevronUp,
+  Edit,
+  Eye,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
+
+const rowGridClass = 'grid grid-cols-[100px_minmax(170px,1.15fr)_minmax(140px,1fr)_minmax(140px,1fr)_74px_100px_96px_116px] items-center gap-3';
+
+const normalizeStatusLabel = (status) => String(status || 'available').replace(/_/g, ' ');
 
 export const DoctorTableView = ({
   doctors,
   onView,
   onEdit,
-  onDelete,
   getStatusBadge,
-  onSchedule,
-  selectedIds = [], // Array of selected doctor IDs
-  onSelect,        // (id) => void
-  onSelectAll,     // (checked) => void
-  sortConfig,      // { key: string, direction: 'asc' | 'desc' }
-  onSort,          // (key) => void
-  isMobile = false
+  sortConfig,
+  onSort,
+  isMobile = false,
+  canManage = false,
 }) => {
-
-  const handleSelectAll = (checked) => {
-    if (onSelectAll) {
-      onSelectAll(checked);
-    }
-  };
-
-  const handleSelectOne = (id, checked) => {
-    if (onSelect) {
-      onSelect(id, checked);
-    }
-  };
-
-  const selectedCountOnPage = doctors.filter(d => selectedIds.includes(d.id)).length;
-  const isAllSelected = doctors.length > 0 && selectedCountOnPage === doctors.length;
-  const isIndeterminate = selectedCountOnPage > 0 && selectedCountOnPage < doctors.length;
+  const gridClass = rowGridClass;
 
   const SortIcon = ({ columnKey }) => {
-    if (sortConfig?.key !== columnKey) return <ArrowUpDown className="ml-2 h-3 w-3 text-muted-foreground/30" />;
+    if (sortConfig?.key !== columnKey) return <ArrowUpDown className="ml-2 h-3 w-3 text-muted-foreground/35" />;
     return sortConfig.direction === 'asc'
-      ? <ChevronUp className="ml-2 h-3 w-3 text-primary" />
-      : <ChevronDown className="ml-2 h-3 w-3 text-primary" />;
+      ? <ChevronUp className="ml-2 h-3 w-3 text-sky-300" />
+      : <ChevronDown className="ml-2 h-3 w-3 text-sky-300" />;
   };
 
-  const SortableHead = ({ label, columnKey, className = "" }) => (
-    <TableHead
-      className={`font-bold uppercase tracking-wider cursor-pointer select-none hover:bg-white/5 transition-colors ${className}`}
+  const SortableHead = ({ label, columnKey, className = '' }) => (
+    <button
+      type="button"
+      className={`flex items-center text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground ${className}`}
       onClick={() => onSort && onSort(columnKey)}
     >
-      <div className="flex items-center">
-        {label}
-        <SortIcon columnKey={columnKey} />
-      </div>
-    </TableHead>
+      {label}
+      <SortIcon columnKey={columnKey} />
+    </button>
   );
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      className="overflow-hidden rounded-[32px] bg-background/45 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.16)] backdrop-blur-xl dark:bg-white/[0.035]"
     >
-      <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium border-0 overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b border-white/10 hover:bg-transparent">
-              <TableHead className="w-[50px]">
-                <Checkbox
-                  checked={isAllSelected || (isIndeterminate && "indeterminate")}
-                  onCheckedChange={handleSelectAll}
-                  aria-label="Select all"
-                />
-              </TableHead>
-              <SortableHead label="ID" columnKey="display_id" />
-              <SortableHead label="Name" columnKey="name" />
-              <SortableHead label="Specialization" columnKey="specialization" />
-              <TableHead className="font-bold uppercase tracking-wider">Hospital</TableHead>
-              <SortableHead label="Exp" columnKey="experience" />
-              <SortableHead label="Status" columnKey="status" />
-              <SortableHead label="Rating" columnKey="rating" />
-              <SortableHead label="Joined" columnKey="created_at" />
-              <TableHead className="font-bold uppercase tracking-wider text-right pr-6">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {doctors.map((doctor, index) => {
-              const isSelected = selectedIds.includes(doctor.id);
-              return (
-                <motion.tr
-                  key={doctor.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: index * 0.02 }}
-                  className={`border-b border-white/10 transition-colors group ${isSelected ? 'bg-primary/5' : 'hover:bg-white/5'}`}
+      <div className={`${gridClass} px-4 pb-3 pt-2`}>
+        <SortableHead label="ID" columnKey="display_id" />
+        <SortableHead label="Name" columnKey="name" />
+        <SortableHead label="Specialty" columnKey="specialization" />
+        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Facility</span>
+        <SortableHead label="Years" columnKey="experience" />
+        <SortableHead label="Status" columnKey="status" />
+        <SortableHead label="Joined" columnKey="created_at" />
+        <span className="text-right text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Actions</span>
+      </div>
+
+      <div className="space-y-2">
+        {doctors.map((doctor, index) => {
+          const name = doctor.name || 'Unknown staff';
+
+          return (
+            <motion.div
+              key={doctor.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: index * 0.02 }}
+              className={`${gridClass} rounded-[24px] px-4 py-3 transition-colors hover:bg-muted/28`}
+            >
+              <span className="truncate font-mono text-[11px] font-semibold text-sky-300/80">
+                {doctor.display_id || '-'}
+              </span>
+              <span className="truncate font-semibold text-foreground">{name}</span>
+              <span className="truncate text-muted-foreground">{doctor.specialization || 'General'}</span>
+              <span className="truncate text-muted-foreground">{doctor.hospitals?.name || '-'}</span>
+              <span className="font-medium">{doctor.experience || '0'}y</span>
+              <span className={`w-fit rounded-full px-3 py-1 text-[11px] font-semibold capitalize ${getStatusBadge(doctor.status)}`}>
+                {normalizeStatusLabel(doctor.status)}
+              </span>
+              <span className="whitespace-nowrap text-xs text-muted-foreground">
+                {doctor.created_at ? new Date(doctor.created_at).toLocaleDateString() : '-'}
+              </span>
+              <span className={`flex justify-end gap-2 ${isMobile ? 'opacity-100' : 'opacity-100'} transition-opacity`}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onView(doctor)}
+                  className="h-8 w-8 rounded-full bg-muted/24 text-muted-foreground transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
+                  aria-label={`View details for ${name}`}
                 >
-                  <TableCell>
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={(checked) => handleSelectOne(doctor.id, checked)}
-                      aria-label={`Select ${doctor.name}`}
-                    />
-                  </TableCell>
-                  <TableCell className="font-mono text-[10px] font-bold text-primary/80">
-                    {doctor.display_id || '-'}
-                  </TableCell>
-                  <TableCell className="font-bold">{doctor.name || 'Unknown'}</TableCell>
-                  <TableCell>{doctor.specialization || 'General Practitioner'}</TableCell>
-                  <TableCell className="text-muted-foreground">{doctor.hospitals?.name || '-'}</TableCell>
-                  <TableCell className="font-medium">{doctor.experience || '0'}y</TableCell>
-                  <TableCell>
-                    <Badge className={`squircle-sm ${getStatusBadge(doctor.status)} border-0 font-bold`}>
-                      {doctor.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 font-bold">
-                      <Star className="h-3.5 w-3.5 text-warning fill-warning" />
-                      {doctor.rating || 'N/A'}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
-                    {doctor.created_at ? new Date(doctor.created_at).toLocaleDateString() : '-'}
-                  </TableCell>
-                  <TableCell>
-                    <div className={`flex justify-end pr-2 ${isMobile ? 'opacity-100' : 'opacity-100'} transition-opacity`}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10 text-muted-foreground hover:text-foreground">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[160px] rounded-xl bg-background/70 backdrop-blur-xl border-white/10 shadow-premium">
-                          <DropdownMenuItem onClick={() => onView(doctor)} className="cursor-pointer font-medium text-xs py-2">
-                            <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onEdit(doctor)} className="cursor-pointer font-medium text-xs py-2">
-                            <Edit className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                            Edit Doctor
-                          </DropdownMenuItem>
-                          {onSchedule && (
-                            <DropdownMenuItem onClick={() => onSchedule(doctor)} className="cursor-pointer font-medium text-xs py-2">
-                              <CalendarDays className="mr-2 h-3.5 w-3.5 text-purple-500" />
-                              Schedule Shift
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator className="bg-white/5" />
-                          <DropdownMenuItem onClick={() => onDelete(doctor)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
-                            <Trash2 className="mr-2 h-3.5 w-3.5" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TableCell>
-                </motion.tr>
-              );
-            })}
-            {doctors.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                  No doctors found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </Card>
+                  <Eye className="h-4 w-4" />
+                </Button>
+                {canManage && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onEdit(doctor)}
+                      className="h-8 w-8 rounded-full bg-muted/24 text-muted-foreground transition-all hover:bg-sky-400/10 hover:text-sky-300 active:scale-95"
+                      aria-label={`Edit ${name}`}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </span>
+            </motion.div>
+          );
+        })}
+
+        {doctors.length === 0 && (
+          <div className="flex h-28 items-center justify-center rounded-[24px] bg-muted/22 text-sm font-medium text-muted-foreground">
+            No staff found.
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 };

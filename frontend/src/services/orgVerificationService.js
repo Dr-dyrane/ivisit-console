@@ -1,13 +1,13 @@
 /**
- * Organization Verification Service
+ * Facility Verification Service
  * 
  * @description
- * Handles verification of organizations (hospitals, clinics, etc.) that register
+ * Handles verification of facilities (hospitals, clinics, etc.) that register
  * through onboarding. Uses hospitals.verification_status column.
  * 
  * Verification Flow:
- * 1. Org registers via onboarding → verification_status = 'pending'
- * 2. Admin reviews in Verification Queue → approves/rejects
+ * 1. Facility registers via onboarding -> verification_status = 'pending'
+ * 2. Admin reviews in Approvals -> approves/rejects
  * 3. Status updates to 'verified' or 'rejected'
  * 
  * @see migrations/20260202180000_id_beautification_system.sql
@@ -21,7 +21,7 @@ import { getDisplayIds } from './displayIdService';
 const TABLE_NAME = 'hospitals';
 
 /**
- * Get organization verification queue
+ * Get facility verification queue
  * @param {Object} filters - status, search, page, limit
  * @returns {Promise<Object>} Queue data with pagination
  */
@@ -30,10 +30,10 @@ export async function getOrgVerificationQueue(filters = {}) {
         const user = await getCurrentUser();
         const role = user?.role || 'viewer';
 
-        // Only admin and org_admin can access verification queue
+        // Admin and org_admin can read Approvals. Mutations stay admin-only.
         if (!['admin', 'org_admin'].includes(role)) {
             throw new AuthorizationError(
-                'Admin access required for organization verification queue',
+                'Admin or Org Admin access required for facility approvals',
                 'org_verification',
                 'getQueue'
             );
@@ -53,9 +53,10 @@ export async function getOrgVerificationQueue(filters = {}) {
             .from(TABLE_NAME)
             .select('*', { count: 'exact' });
 
-        // Apply status filter
-        if (status !== 'all') {
-            query = query.eq('verification_status', status);
+        // Apply status filter. UI says approved; storage uses verified.
+        const normalizedStatus = status === 'approved' ? 'verified' : status;
+        if (normalizedStatus !== 'all') {
+            query = query.eq('verification_status', normalizedStatus);
         }
 
         // Apply search filter
@@ -77,7 +78,7 @@ export async function getOrgVerificationQueue(filters = {}) {
         let enrichedData = data || [];
         if (enrichedData.length > 0) {
             const orgIds = enrichedData.map(org => org.id);
-            const displayIds = await getDisplayIds(orgIds);
+            const displayIds = await getDisplayIds(orgIds, { quiet: filters.quiet });
             enrichedData = enrichedData.map(org => ({
                 ...org,
                 display_id: displayIds.get(org.id) || null
@@ -117,8 +118,8 @@ export async function getOrgVerificationQueue(filters = {}) {
 }
 
 /**
- * Verify or reject an organization
- * @param {string} hospitalId - Organization/Hospital ID
+ * Verify or reject a facility
+ * @param {string} hospitalId - Facility/Hospital ID
  * @param {boolean} approved - true = verify, false = reject
  * @param {string} notes - Optional admin notes
  * @returns {Promise<Object>} Updated organization
@@ -143,7 +144,7 @@ export async function verifyOrganization(hospitalId, approved, notes = '') {
             .single();
 
         if (fetchError) throw fetchError;
-        if (!org) throw new Error('Organization not found');
+        if (!org) throw new Error('Facility not found');
 
         // Update verification status
         const newStatus = approved ? 'verified' : 'rejected';
@@ -165,7 +166,7 @@ export async function verifyOrganization(hospitalId, approved, notes = '') {
             'verify',
             hospitalId,
             true,
-            `${approved ? 'Verified' : 'Rejected'} organization: ${org.name}${notes ? ` - ${notes}` : ''}`
+            `${approved ? 'Approved' : 'Rejected'} facility: ${org.name}${notes ? ` - ${notes}` : ''}`
         );
 
         return data;
@@ -176,7 +177,7 @@ export async function verifyOrganization(hospitalId, approved, notes = '') {
 }
 
 /**
- * Get organization verification stats
+ * Get facility verification stats
  * @returns {Promise<Object>} Stats object
  */
 export async function getOrgVerificationStats() {
@@ -219,7 +220,7 @@ export async function getOrgVerificationStats() {
 }
 
 /**
- * Subscribe to organization verification queue updates
+ * Subscribe to facility verification queue updates
  * @param {Function} callback - Callback for updates
  * @returns {Function} Unsubscribe function
  */

@@ -8,21 +8,44 @@ import {
   ShieldCheck,
   ArrowUpRight,
   ArrowDownLeft,
-  ArrowDownRight,
   Eye,
   EyeOff,
   Building,
   BarChart3,
-  Minus
+  Loader2 as LoaderIcon
 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { MobileKPIStrip } from './MobileKPIStrip';
-import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
+import { MobileMetricRow } from './MobileMetricList';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEmpty } from './MobileListStates';
 import { MobileActionRail } from './MobileActionRail';
+
+const mobilePaymentTone = {
+  success: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-300/15 dark:text-emerald-100',
+  warning: 'bg-amber-500/10 text-amber-700 dark:bg-amber-300/15 dark:text-amber-100',
+  info: 'bg-sky-500/10 text-sky-700 dark:bg-sky-300/15 dark:text-sky-100',
+  muted: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06] dark:text-slate-200',
+};
+
+const mobileMetricTone = {
+  success: {
+    active: 'bg-emerald-500/14 text-emerald-700 shadow-[0_18px_54px_rgba(16,185,129,0.18)] dark:text-emerald-100',
+    rest: 'bg-muted/30 text-muted-foreground',
+  },
+  info: {
+    active: 'bg-sky-500/14 text-sky-700 shadow-[0_18px_54px_rgba(14,165,233,0.18)] dark:text-sky-100',
+    rest: 'bg-muted/30 text-muted-foreground',
+  },
+  muted: {
+    active: 'bg-foreground/[0.08] text-foreground',
+    rest: 'bg-muted/30 text-muted-foreground',
+  },
+};
+
+const mobilePaymentReadyColor = 'hsl(160 84% 39%)';
+const mobilePaymentWaitingColor = 'hsl(199 89% 48%)';
+const mobilePaymentNeutralColor = 'hsl(215 16% 47%)';
 
 export const MobileWallet = ({
   loading,
@@ -60,73 +83,105 @@ export const MobileWallet = ({
     if (payment?.emergency_request_id) return 'Emergency service payment';
     return 'Service payment';
   };
-  const creditEntries = useMemo(
-    () => ledger.filter(entry => entry.transaction_type === 'credit').length,
-    [ledger]
-  );
-  const completedPayments = useMemo(
-    () => payments.filter(payment => payment.status === 'completed').length,
-    [payments]
-  );
-  const periodTrends = useMemo(() => {
-    const periodMs = 30 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    const getTime = (item) => new Date(item.created_at || item.updated_at || 0).getTime();
-    const splitByPeriod = (collection) => ({
-      current: collection.filter((item) => {
-        const ts = getTime(item);
-        return Number.isFinite(ts) && ts >= now - periodMs;
-      }),
-      previous: collection.filter((item) => {
-        const ts = getTime(item);
-        return Number.isFinite(ts) && ts < now - periodMs && ts >= now - (2 * periodMs);
-      })
-    });
-    const buildTrend = (currentValue, previousValue) => {
-      if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue) || currentValue === 0 || previousValue === 0) {
-        return { direction: 'flat', deltaText: 'N/A' };
-      }
-      const delta = ((currentValue - previousValue) / Math.abs(previousValue)) * 100;
-      return { direction: delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat', deltaText: `${delta > 0 ? '+' : ''}${delta.toFixed(Math.abs(delta) >= 10 ? 0 : 1)}%` };
-    };
-    const ledgerSplit = splitByPeriod(ledger);
-    const paymentSplit = splitByPeriod(payments);
-    const currentInflowRatio = ledgerSplit.current.length > 0
-      ? ledgerSplit.current.filter((entry) => entry.transaction_type === 'credit').length / ledgerSplit.current.length
-      : 0;
-    const previousInflowRatio = ledgerSplit.previous.length > 0
-      ? ledgerSplit.previous.filter((entry) => entry.transaction_type === 'credit').length / ledgerSplit.previous.length
-      : 0;
-    const currentPaymentSuccessRatio = paymentSplit.current.length > 0
-      ? paymentSplit.current.filter((payment) => payment.status === 'completed').length / paymentSplit.current.length
-      : 0;
-    const previousPaymentSuccessRatio = paymentSplit.previous.length > 0
-      ? paymentSplit.previous.filter((payment) => payment.status === 'completed').length / paymentSplit.previous.length
-      : 0;
-    return {
-      inflowRatio: buildTrend(currentInflowRatio, previousInflowRatio),
-      paymentSuccess: buildTrend(currentPaymentSuccessRatio, previousPaymentSuccessRatio)
-    };
-  }, [ledger, payments]);
+  const signal = useMemo(() => {
+    if (showTopSectionLoading) {
+      return {
+        icon: LoaderIcon,
+        spin: true,
+        tone: 'muted',
+        label: 'Loading',
+        headline: 'Payments are loading',
+        subhead: 'Balance, cards, and recent activity will appear here.',
+      };
+    }
 
-  const kpis = useMemo(() => [
-    { id: 'balance', label: 'Balance', value: formatCurrency(wallet?.balance || 0), color: 'hsl(var(--primary))', delta: 'LIVE', direction: 'flat' },
-    { id: 'projection', label: '30d', value: formatCurrency(projection || 0), color: 'hsl(var(--success))', delta: 'LIVE', direction: 'up' },
-    { id: 'credits', label: 'Credits', value: creditEntries, color: 'hsl(var(--info))', delta: periodTrends.inflowRatio.deltaText, direction: periodTrends.inflowRatio.direction },
-    { id: 'payments', label: 'Paid', value: completedPayments, color: 'hsl(var(--warning))', delta: periodTrends.paymentSuccess.deltaText, direction: periodTrends.paymentSuccess.direction },
-    { id: 'methods', label: 'Cards', value: paymentMethods.length, color: 'hsl(var(--secondary))', delta: 'LIVE', direction: 'flat' }
-  ], [wallet?.balance, projection, paymentMethods.length, formatCurrency, creditEntries, completedPayments, periodTrends]);
+    if (paymentMethods.length === 0) {
+      return {
+        icon: CreditCard,
+        tone: 'warning',
+        label: 'Cards needed',
+        headline: 'Add a card to keep payments ready',
+        subhead: 'Add a saved card before adding funds.',
+      };
+    }
+
+    if (payments.length > 0) {
+      return {
+        icon: ShieldCheck,
+        tone: 'success',
+        label: 'Ready',
+        headline: `${payments.length} patient payment${payments.length === 1 ? '' : 's'}`,
+        subhead: 'Open patient payments or review transactions from the sheet.',
+      };
+    }
+
+    return {
+      icon: Wallet,
+      tone: 'info',
+      label: 'Ready',
+      headline: 'Balance is ready',
+      subhead: 'Review transactions, add funds, or manage saved cards.',
+    };
+  }, [paymentMethods.length, payments.length, showTopSectionLoading]);
+  const SignalIcon = signal.icon;
+  const compactBalance = useMemo(() => {
+    const value = Number(wallet?.balance || 0);
+    const compact = Math.abs(value) >= 10000;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: wallet?.currency || 'USD',
+      notation: compact ? 'compact' : 'standard',
+      maximumFractionDigits: compact ? 1 : 0,
+    }).format(value);
+  }, [wallet?.balance, wallet?.currency]);
+
+  const metricCards = useMemo(() => [
+    {
+      id: 'balance',
+      label: 'Balance',
+      value: showBalance ? compactBalance : '****',
+      icon: Wallet,
+      tone: 'info',
+      tab: 'ledger',
+      onClick: () => setActiveTab('ledger'),
+    },
+    {
+      id: 'ledger',
+      label: 'Transactions',
+      value: ledger.length,
+      icon: History,
+      tone: 'muted',
+      tab: 'ledger',
+      onClick: () => setActiveTab('ledger'),
+    },
+    {
+      id: 'payments',
+      label: 'Patient payments',
+      value: payments.length,
+      icon: ShieldCheck,
+      tone: 'success',
+      tab: 'payments',
+      onClick: () => setActiveTab('payments'),
+    },
+    {
+      id: 'cards',
+      label: 'Cards',
+      value: paymentMethods.length,
+      icon: CreditCard,
+      tone: paymentMethods.length > 0 ? 'success' : 'muted',
+      onClick: onOpenBilling,
+    },
+  ], [compactBalance, ledger.length, onOpenBilling, paymentMethods.length, payments.length, setActiveTab, showBalance]);
 
   const railActions = useMemo(() => {
     const actions = [];
     if (isOrgAdmin || isAdmin) {
       actions.push({
         id: 'topup',
-        label: isAdmin ? 'Credit Main' : 'Top Up',
+        label: 'Add funds',
         icon: ArrowDownLeft,
         onClick: onTopUp,
-        tone: 'success',
-        color: 'hsl(var(--success))'
+        tone: 'neutral'
       });
     }
     actions.push({
@@ -138,7 +193,7 @@ export const MobileWallet = ({
     });
     actions.push({
       id: 'billing',
-      label: paymentMethods.length > 0 ? 'Billing' : 'Link Card',
+      label: paymentMethods.length > 0 ? 'Cards' : 'Link card',
       icon: CreditCard,
       onClick: onOpenBilling,
       tone: 'neutral'
@@ -146,7 +201,7 @@ export const MobileWallet = ({
     if (onViewAnalytics) {
       actions.push({
         id: 'analytics',
-        label: 'Analytics',
+        label: 'Stats',
         icon: BarChart3,
         onClick: onViewAnalytics,
         tone: 'spark',
@@ -160,223 +215,183 @@ export const MobileWallet = ({
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         animatePageLoad={false}
-        kpiStrip={<MobileKPIStrip loading={showTopSectionLoading} kpis={kpis} activeKpi="balance" onKpiClick={() => { }} />}
-        contentClassName="pt-4 pb-4 text-foreground"
+        contentClassName="pt-4 pb-32 text-foreground"
       >
-        <section className="mb-4 px-1">
-          {showTopSectionLoading ? (
-            <div className="rounded-3xl apple-glass-heavy p-6 min-h-[160px] space-y-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-2 min-w-0 flex-1">
-                  <div className="h-3 w-24 rounded bg-muted/20 shimmer" />
-                  <div className="h-10 w-36 rounded bg-muted/20 shimmer" />
-                </div>
-                <div className="w-9 h-9 rounded-xl bg-muted/20 shimmer" />
-              </div>
-              <div className="h-8 w-36 rounded-full bg-muted/15 shimmer" />
-            </div>
-          ) : (
-          <div className="relative overflow-hidden rounded-3xl p-6 min-h-[160px] flex flex-col justify-between bg-[linear-gradient(135deg,hsl(var(--primary)/0.14)_0%,hsl(var(--spark)/0.12)_35%,hsl(var(--background)/0.96)_100%)] shadow-xl">
-            <div className="absolute -top-14 -right-8 h-32 w-32 rounded-full bg-[hsl(var(--spark)/0.16)] blur-3xl" />
-            <div className="absolute -bottom-12 -left-10 h-32 w-32 rounded-full bg-[hsl(var(--primary)/0.14)] blur-3xl" />
-            <div className="absolute top-5 right-4 opacity-20">
-              <Wallet className="h-6 w-6 text-[hsl(var(--spark))]" />
+        <div className="space-y-5">
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="space-y-4 px-5"
+          >
+            <div className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${mobilePaymentTone[signal.tone] || mobilePaymentTone.muted}`}>
+              <SignalIcon size={15} className={signal.spin ? 'animate-spin' : ''} />
+              {signal.label}
             </div>
 
-            <div className="relative z-10 flex items-start justify-between">
+            <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/75 font-semibold">Wallet Balance</p>
-                <p className="mt-2 text-[36px] leading-none font-dashboard-numbers tracking-tighter text-foreground">
-                  {showBalance ? formatCurrency(wallet?.balance || 0) : '******'}
+                <h1 className="text-[34px] font-semibold leading-[1.03] tracking-normal text-foreground">
+                  {signal.headline}
+                </h1>
+                <p className="mt-3 max-w-[22rem] text-[15px] leading-6 text-muted-foreground">
+                  {signal.subhead}
                 </p>
               </div>
-
               <button
+                type="button"
                 onClick={() => setShowBalance((prev) => !prev)}
-                className="h-9 w-9 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center text-muted-foreground/75 hover:text-foreground transition-colors"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[20px] bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
                 aria-label={showBalance ? 'Hide balance' : 'Show balance'}
               >
                 {showBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
 
-            <div className="relative z-10 mt-5 inline-flex w-fit items-center gap-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-3 py-1.5">
-              <TrendingUp className="h-3 w-3 text-[hsl(var(--spark))]" />
-              <span className="text-[9px] uppercase tracking-[0.16em] text-foreground/80">
-                30D {showBalance ? formatCurrency(projection || 0) : '****'}
+            <div className="grid grid-cols-2 gap-2">
+              {metricCards.map((item) => {
+                const Icon = item.icon;
+                const active = item.tab ? activeTab === item.tab : false;
+                const tone = mobileMetricTone[item.tone] || mobileMetricTone.muted;
+
+                return (
+                  <motion.button
+                    key={item.id}
+                    type="button"
+                    whileTap={{ scale: 0.97 }}
+                    onClick={item.onClick}
+                    className={`min-h-[86px] rounded-[28px] px-4 py-3 text-left transition-all ${active ? tone.active : tone.rest}`}
+                    aria-pressed={active}
+                  >
+                    <span className="flex items-start justify-between gap-3">
+                      <span className="min-w-0">
+                        <span className="block text-xs font-semibold leading-tight">{item.label}</span>
+                        <span className="mt-2 block truncate text-2xl font-semibold tracking-normal text-foreground">{item.value}</span>
+                      </span>
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-background/40">
+                        <Icon size={16} />
+                      </span>
+                    </span>
+                  </motion.button>
+                );
+              })}
+            </div>
+
+            <div className="inline-flex w-fit items-center gap-2 rounded-full bg-card/70 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-xl dark:bg-white/[0.06]">
+              <TrendingUp className="h-3.5 w-3.5" />
+              Next 30 days {showBalance ? formatCurrency(projection || 0) : '****'}
+            </div>
+          </motion.section>
+
+          <section className="-mx-1 rounded-t-[44px] bg-card/78 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55">
+            <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+
+            {showTopSectionLoading ? (
+              <div className="mb-3 flex gap-2 overflow-hidden">
+                <div className="h-12 flex-1 rounded-2xl bg-muted/20 shimmer" />
+                <div className="h-12 flex-1 rounded-2xl bg-muted/20 shimmer" />
+                <div className="h-12 flex-1 rounded-2xl bg-muted/20 shimmer" />
+              </div>
+            ) : (
+              <MobileActionRail actions={railActions} />
+            )}
+
+            <div className="mt-3 flex items-center gap-2 rounded-[34px] bg-background/42 p-2 dark:bg-black/[0.10]">
+              <button
+                type="button"
+                onClick={() => setActiveTab('ledger')}
+                className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-[22px] text-xs font-semibold transition-all active:scale-95 ${activeTab === 'ledger' ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.08]' : 'text-muted-foreground'}`}
+                aria-pressed={activeTab === 'ledger'}
+              >
+                <History size={15} />
+                Transactions
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('payments')}
+                className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-[22px] text-xs font-semibold transition-all active:scale-95 ${activeTab === 'payments' ? 'bg-background text-foreground shadow-sm dark:bg-white/[0.08]' : 'text-muted-foreground'}`}
+                aria-pressed={activeTab === 'payments'}
+              >
+                <ShieldCheck size={15} />
+                Patients
+              </button>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between px-2">
+              <h2 className="text-lg font-semibold tracking-tight">{activeTab === 'ledger' ? 'Transaction History' : 'Patient Payments'}</h2>
+              <span className="rounded-full bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                {loading ? 'Updating' : `${items.length}`}
               </span>
             </div>
-          </div>
-          )}
-        </section>
 
-        <section className="mb-3">
-          <MobileSectionHeader
-            label="Treasury Dynamics"
-            count={ledger.length}
-            color="hsl(var(--info))"
-          />
-          {showTopSectionLoading ? (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="h-[88px] rounded-2xl bg-muted/20 shimmer" />
-              <div className="h-[88px] rounded-2xl bg-muted/20 shimmer" />
-            </div>
-          ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <ArrowDownLeft className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Inflow Ratio</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Credit share</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {Math.round((creditEntries / (ledger.length || 1)) * 100)}%
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.inflowRatio.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-success" />}
-                  {periodTrends.inflowRatio.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  {periodTrends.inflowRatio.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.inflowRatio.deltaText}
-                </span>
-              </div>
-            </div>
-            <div className="relative p-4 apple-glass-heavy rounded-2xl flex items-center justify-between border-0 overflow-hidden">
-              <CreditCard className="absolute top-3 right-3 h-4 w-4 text-primary/30" />
-              <div className="flex flex-col pr-6">
-                <span className="text-[11px] font-medium tracking-tight">Payment Success</span>
-                <span className="text-[8px] text-muted-foreground uppercase tracking-[0.2em] opacity-50">Completed</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-medium tracking-tighter font-dashboard-numbers">
-                  {Math.round((completedPayments / (payments.length || 1)) * 100)}%
-                </span>
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {periodTrends.paymentSuccess.direction === 'up' && <ArrowUpRight className="h-3 w-3 text-success" />}
-                  {periodTrends.paymentSuccess.direction === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
-                  {periodTrends.paymentSuccess.direction === 'flat' && <Minus className="h-3 w-3 text-muted-foreground/60" />}
-                  {periodTrends.paymentSuccess.deltaText}
-                </span>
-              </div>
-            </div>
-          </div>
-          )}
-        </section>
-
-        {showTopSectionLoading ? (
-          <div className="mb-3 px-1">
-            <div className="flex gap-2 overflow-hidden">
-              <div className="h-12 flex-1 rounded-2xl bg-muted/20 shimmer" />
-              <div className="h-12 flex-1 rounded-2xl bg-muted/20 shimmer" />
-              <div className="h-12 flex-1 rounded-2xl bg-muted/20 shimmer" />
-            </div>
-          </div>
-        ) : (
-          <MobileActionRail actions={railActions} />
-        )}
-
-        <div className="flex items-center gap-2 mb-3 px-1">
-          <div className="p-1 rounded-xl bg-muted/20 backdrop-blur-md flex relative w-full">
-            <motion.div
-              className="absolute top-1 bottom-1 bg-[hsl(var(--spark)/0.10)] shadow-sm rounded-lg"
-              initial={false}
-              animate={{
-                left: activeTab === 'ledger' ? '4px' : '50%',
-                width: 'calc(50% - 4px)',
-              }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            />
-            <button
-              onClick={() => setActiveTab('ledger')}
-              className={`flex-1 relative z-10 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-center transition-colors duration-200 ${activeTab === 'ledger'
-                ? 'text-[hsl(var(--spark)/0.92)]'
-                : 'text-muted-foreground/50'
-                }`}
-            >
-              Ledger
-            </button>
-            <button
-              onClick={() => setActiveTab('payments')}
-              className={`flex-1 relative z-10 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-center transition-colors duration-200 ${activeTab === 'payments'
-                ? 'text-[hsl(var(--spark)/0.92)]'
-                : 'text-muted-foreground/50'
-                }`}
-            >
-              Payments
-            </button>
-          </div>
-        </div>
-
-        <MobileSectionHeader
-          label={activeTab === 'ledger' ? 'Transaction Ledger' : 'Service Payments'}
-          count={items.length}
-          color="hsl(var(--primary))"
-        />
-
-        <div className="space-y-1">
-          <AnimatePresence mode="popLayout">
-            {items.map((item) => {
-              const isLedger = activeTab === 'ledger';
-              const isCredit = isLedger ? item.transaction_type === 'credit' : item.status === 'completed';
-              const amount = Math.abs(Number(item.amount || 0));
-              return (
-                <MobileMetricRow
-                  key={item.id}
-                  icon={isLedger ? (isCredit ? ArrowDownLeft : ArrowUpRight) : CreditCard}
-                  color={isCredit ? 'hsl(var(--success))' : 'hsl(var(--warning))'}
-                  label={(isLedger ? item.transaction_type : item.status || 'payment').toUpperCase()}
-                  value={isLedger ? (item.description || 'Transaction') : formatPaymentDescription(item)}
-                  rightBlade={{
-                    badge: isLedger ? 'LEDGER' : 'PAYMENT',
-                    direction: isCredit ? 'up' : 'down',
-                    label: 'Amount',
-                    value: `${isLedger ? (isCredit ? '+' : '-') : ''} ${formatCurrency(amount)}`,
-                    color: isCredit ? 'hsl(var(--success))' : 'hsl(var(--warning))'
-                  }}
-                  isExpanded={expandedId === item.id}
-                  onExpand={(id) => setExpandedId(prev => prev === id ? null : id)}
-                  itemId={item.id}
-                  expandedContent={(
-                    <div className="space-y-4 py-3">
-                      <div className="grid grid-cols-1 gap-2">
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
-                          <History size={14} className="text-muted-foreground/40" />
-                          <span className="text-xs font-normal opacity-80">
-                            {new Date(item.created_at).toLocaleString()}
-                          </span>
-                        </div>
-                        {!isLedger && (
-                          <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
-                            <Building size={14} className="text-muted-foreground/40" />
-                            <span className="text-xs font-normal opacity-80">
-                              {item.emergency_requests?.hospitals?.name || 'Hospital unavailable'}
-                            </span>
+            <div className="mt-3 space-y-2">
+              <AnimatePresence mode="popLayout">
+                {items.map((item) => {
+                  const isLedger = activeTab === 'ledger';
+                  const isCredit = isLedger ? item.transaction_type === 'credit' : item.status === 'completed';
+                  const rowColor = isLedger
+                    ? (isCredit ? mobilePaymentReadyColor : mobilePaymentNeutralColor)
+                    : (isCredit ? mobilePaymentReadyColor : mobilePaymentWaitingColor);
+                  const rowDirection = isLedger ? (isCredit ? 'up' : 'down') : undefined;
+                  const amount = Math.abs(Number(item.amount || 0));
+                  return (
+                    <MobileMetricRow
+                      key={item.id}
+                      icon={isLedger ? (isCredit ? ArrowDownLeft : ArrowUpRight) : CreditCard}
+                      color={rowColor}
+                      label={isLedger ? (item.transaction_type || 'transaction') : (item.status || 'payment')}
+                      value={isLedger ? (item.description || 'Transaction') : formatPaymentDescription(item)}
+                      rightBlade={{
+                        badge: isLedger ? 'Transaction' : 'Payment',
+                        direction: rowDirection,
+                        label: 'Amount',
+                        value: `${isLedger ? (isCredit ? '+' : '-') : ''} ${formatCurrency(amount)}`,
+                        color: rowColor
+                      }}
+                      isExpanded={expandedId === item.id}
+                      onExpand={(id) => setExpandedId(prev => prev === id ? null : id)}
+                      itemId={item.id}
+                      expandedContent={(
+                        <div className="space-y-4 py-3">
+                          <div className="grid grid-cols-1 gap-2">
+                            <div className="flex items-center gap-3 rounded-2xl bg-white/[0.02] p-3">
+                              <History size={14} className="text-muted-foreground/40" />
+                              <span className="text-xs font-normal opacity-80">
+                                {new Date(item.created_at).toLocaleString()}
+                              </span>
+                            </div>
+                            {!isLedger && (
+                              <div className="flex items-center gap-3 rounded-2xl bg-white/[0.02] p-3">
+                                <Building size={14} className="text-muted-foreground/40" />
+                                <span className="text-xs font-normal opacity-80">
+                                  {item.emergency_requests?.hospitals?.name || 'Hospital unavailable'}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
 
-                      <div className="flex items-center gap-2">
-                        <Badge className={`border-0 text-[9px] uppercase ${isCredit ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
-                          {isCredit ? 'SUCCESS' : 'PENDING'}
-                        </Badge>
-                      </div>
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${isCredit ? 'bg-emerald-500/15 text-emerald-200' : 'bg-sky-500/15 text-sky-200'}`}>
+                            {isCredit ? 'Ready' : 'Waiting'}
+                          </span>
 
-                      {!isLedger && (
-                        <Button variant="ghost" className="w-full h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2" onClick={() => onOpenPayment(item)}>
-                          <Eye size={16} className="text-primary/60" />
-                          <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Receipt</span>
-                        </Button>
+                          {!isLedger && (
+                            <Button variant="ghost" className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-muted/25" onClick={() => onOpenPayment(item)}>
+                              <Eye size={16} className="text-primary/60" />
+                              <span className="text-[11px] font-semibold">Receipt</span>
+                            </Button>
+                          )}
+                        </div>
                       )}
-                    </div>
-                  )}
-                />
-              );
-            })}
-          </AnimatePresence>
+                    />
+                  );
+                })}
+              </AnimatePresence>
 
-          {!loading && items.length === 0 && (
-            <MobileListEmpty icon={activeTab === 'ledger' ? History : ShieldCheck} label={`No ${activeTab} recorded yet`} />
-          )}
+              {!loading && items.length === 0 && (
+                <MobileListEmpty icon={activeTab === 'ledger' ? History : ShieldCheck} label={activeTab === 'ledger' ? 'No transactions yet' : 'No patient payments yet'} />
+              )}
+            </div>
+          </section>
         </div>
       </MobilePageShell>
     </PullToRefresh>

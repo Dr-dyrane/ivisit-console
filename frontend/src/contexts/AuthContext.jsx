@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { DynamicAuthSkeleton } from '../components/ui/skeleton';
 import { updateProfile as updateProfileService, uploadProfileAvatar } from '../services/profilesService';
-import { updatePassword as updatePasswordService } from '../services/authService';
+import { clearCurrentUserCache, primeCurrentUserCache, updatePassword as updatePasswordService } from '../services/authService';
 
 const AuthContext = createContext({});
 
@@ -28,7 +28,9 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [authError, setAuthError] = useState(null);
   const profileRef = React.useRef(null);
+  const loadedProfileUserIdRef = React.useRef(null);
 
   // Sync ref with state
   const setProfileState = (newProfile) => {
@@ -42,9 +44,13 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   // Ref to track active fetch to prevent loops
   const activeFetchRef = React.useRef(null);
 
-  const fetchProfile = async (userId, email) => {
+  const fetchProfile = async (userId, email, sessionUser = null) => {
     // Prevent concurrent fetches for same user
-    if (activeFetchRef.current === userId) {
+    if (
+      activeFetchRef.current === userId ||
+      profileRef.current?.id === userId ||
+      loadedProfileUserIdRef.current === userId
+    ) {
       return;
     }
 
@@ -55,70 +61,39 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
 
     try {
       activeFetchRef.current = userId;
+      setAuthError(null);
 
       const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       const { data, error } = await Promise.race([profilePromise, timeoutPromise]);
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
 
       if (data) {
-        // Check if this is the admin email and update role if needed
-        if (email === 'halodyrane@gmail.com' && data.role !== 'admin') {
-          await supabase
-            .from('profiles')
-            .update({ role: 'admin' })
-            .eq('id', userId);
-          data.role = 'admin';
-        }
-
-        // Optimized: display_id is already in 'data' due to select('*')
+        loadedProfileUserIdRef.current = userId;
+        primeCurrentUserCache(sessionUser || { id: userId, email }, data);
         setProfileState(data);
       } else {
-        // Create new profile if doesn't exist
-        const role = email === 'halodyrane@gmail.com' ? 'admin' : 'viewer';
-        const newProfile = {
-          id: userId,
-          email: email,
-          role: role,
-          username: email?.split('@')[0] || 'User',
-          created_at: new Date().toISOString(),
-          onboarding_status: 'pending'
-        };
-
-        const { data: createdProfile, error: createError } = await supabase
-          .from('profiles')
-          .upsert([newProfile], { onConflict: 'id' })
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('[AuthContext] Error creating profile:', createError);
-          // Fallback fetch
-          const { data: finalProfile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-
-          setProfileState(finalProfile || newProfile);
-        } else {
-          setProfileState(createdProfile);
-        }
+        clearCurrentUserCache();
+        loadedProfileUserIdRef.current = null;
+        setProfileState(null);
+        setAuthError({
+          type: 'profile_missing',
+          message: 'Your console profile is not ready yet.',
+        });
       }
     } catch (error) {
-      console.error('[AuthContext] Error in profile flow:', error);
-      // Fallback profile to prevent app from breaking
-      setProfileState({
-        id: userId,
-        role: email === 'halodyrane@gmail.com' ? 'admin' : 'org_admin',
-        username: email?.split('@')[0] || 'User',
-        email: email,
-        display_id: 'USR-OFFLINE'
+      // Keep degraded auth startup visible through app state, not raw browser diagnostics.
+      clearCurrentUserCache();
+      loadedProfileUserIdRef.current = null;
+      setProfileState(null);
+      setAuthError({
+        type: 'profile_unavailable',
+        message: 'We could not load your console profile.',
       });
     } finally {
       activeFetchRef.current = null;
@@ -156,16 +131,22 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
 
         if (session?.user) {
           setUser(session.user);
-          await fetchProfile(session.user.id, session.user.email);
+          await fetchProfile(session.user.id, session.user.email, session.user);
         } else {
+          clearCurrentUserCache();
           setUser(null);
+          setAuthError(null);
+          loadedProfileUserIdRef.current = null;
           setProfileState(null);
           setLoading(false);
           setInitializing(false);
         }
       } catch (error) {
-        console.error('[AuthContext] Session fetch error:', error);
         if (mounted) {
+          setAuthError({
+            type: 'session_unavailable',
+            message: 'We could not confirm your session.',
+          });
           setLoading(false);
           setInitializing(false);
         }
@@ -189,11 +170,14 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
           setInitializing(false);
         } else {
           // Need to fetch (ref check inside fetchProfile prevents loops)
-          fetchProfile(currentUser.id, currentUser.email);
+          fetchProfile(currentUser.id, currentUser.email, currentUser);
         }
       }
 
       if (event === 'SIGNED_OUT') {
+        clearCurrentUserCache();
+        setAuthError(null);
+        loadedProfileUserIdRef.current = null;
         setProfileState(null);
         setUser(null);
         setLoading(false);
@@ -240,7 +224,10 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
       console.error('Unexpected error during sign out:', error);
     } finally {
       // Always clear local state regardless of server response
+      clearCurrentUserCache();
       setUser(null);
+      setAuthError(null);
+      loadedProfileUserIdRef.current = null;
       setProfileState(null);
       // Optional: Clear any other local storage items if you have custom ones
       localStorage.removeItem('supabase.auth.token'); // Fallback cleanup
@@ -283,9 +270,10 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
    */
   const can = useCallback((action, resource) => {
     if (isAdmin()) return true;
+    const normalizedResource = resource === 'emergencies' ? 'emergency_requests' : resource;
 
     // Finance & Analytics access (Privileged)
-    if (['finance', 'analytics', 'subscriptions'].includes(resource)) {
+    if (['finance', 'analytics', 'subscriptions'].includes(normalizedResource)) {
       if (isAdmin() || isOrgAdmin() || isSponsor()) {
         if (isSponsor() && action !== 'view') return false; // Sponsors are read-only for finance
         return true;
@@ -296,13 +284,13 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
     // Org Admins can manage their own resources
     if (isOrgAdmin()) {
       const manageable = ['doctors', 'ambulances', 'visits', 'users', 'emergency_requests', 'drivers', 'staff'];
-      if (manageable.includes(resource)) return true;
+      if (manageable.includes(normalizedResource)) return true;
     }
 
     // Sponsors can view operational data for transparency
     if (isSponsor()) {
       const viewable = ['emergency_requests', 'hospitals', 'visits'];
-      if (action === 'view' && viewable.includes(resource)) return true;
+      if (action === 'view' && viewable.includes(normalizedResource)) return true;
     }
 
     // Providers can view and sometimes edit their own stuff
@@ -315,12 +303,12 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
         'emergency_requests',
         'medical_profiles'
       ];
-      if (action === 'view' && viewable.includes(resource)) return true;
+      if (action === 'view' && viewable.includes(normalizedResource)) return true;
 
       // Dispatchers (special provider type) have more operational control
       if (profile?.provider_type === 'dispatcher' || profile?.role === 'dispatcher') {
         const dispatchable = ['ambulances', 'emergency_requests', 'drivers'];
-        if (dispatchable.includes(resource)) return true;
+        if (dispatchable.includes(normalizedResource)) return true;
       }
     }
 
@@ -361,6 +349,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   const value = useMemo(() => ({
     user,
     profile,
+    authError,
     orgId: profile?.organization_id || null,
     loading,
     signIn,
@@ -383,6 +372,7 @@ export const AuthProvider = ({ children, pathname = "/" }) => {
   }), [
     user,
     profile,
+    authError,
     loading,
     signIn,
     signUp,

@@ -1,506 +1,345 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import React, { useEffect, useState } from 'react';
 import { Badge } from '../ui/badge';
-import { X, Upload, Shield, Calendar, Building, CreditCard, FileText, CheckCircle, ImageIcon, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { handleApiError } from "../../utils/errorHandler";
-import { uploadInsuranceCardImage } from '../../services/insuranceService';
+import { Button } from '../ui/button';
+import { ModalShell } from '../ui/ModalShell';
+import {
+  AlertTriangle,
+  Building,
+  Calendar,
+  CheckCircle,
+  CreditCard,
+  FileImage,
+  FileText,
+  ReceiptText,
+  Shield,
+} from 'lucide-react';
+import { getInsuranceBillingOutcomes } from '../../services/insuranceService';
+
+const formatText = (value, fallback = 'Not set') => {
+  const text = String(value || '').trim();
+  if (!text) return fallback;
+  return text.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
+const formatRaw = (value, fallback = 'Not set') => {
+  const text = String(value || '').trim();
+  return text || fallback;
+};
+
+const formatDate = (value) => {
+  if (!value) return 'Not set';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not set';
+  return date.toLocaleDateString();
+};
+
+const formatMoney = (value) => {
+  const number = Number(value || 0);
+  return number > 0 ? `$${number.toLocaleString()}` : 'Not set';
+};
+
+const getStatusClass = (status) => {
+  switch (String(status || '').toLowerCase()) {
+    case 'active':
+      return 'bg-success/10 text-success';
+    case 'expired':
+      return 'bg-destructive/10 text-destructive';
+    case 'pending':
+      return 'bg-warning/10 text-warning';
+    default:
+      return 'bg-muted/30 text-muted-foreground';
+  }
+};
 
 export const InsuranceModal = ({
   isOpen,
   policy,
   mode,
   onClose,
-  onSave,
-  coverageTypes = [
-    'health_maintenance',
-    'preferred_provider',
-    'point_of_service'
-  ],
-  providers = [
-    'Blue Cross Blue Shield',
-    'UnitedHealthcare',
-    'Aetna',
-    'Cigna'
-  ],
-  statuses = [
-    { value: 'active', label: 'Active', color: 'success' },
-    { value: 'expired', label: 'Expired', color: 'destructive' },
-    { value: 'pending', label: 'Pending', color: 'warning' }
-  ]
 }) => {
-  const isView = mode === 'view';
-  const isEdit = mode === 'edit';
-  const isCreate = mode === 'create';
-
-  const [formData, setFormData] = useState({
-    user_id: '',
-    provider_name: '',
-    policy_number: '',
-    group_number: '',
-    policy_holder_name: '',
-    coverage_type: 'health_maintenance',
-    start_date: '',
-    end_date: '',
-    front_image_url: '',
-    back_image_url: '',
-    status: 'active',
-    verified: false,
-    ...policy // ✅ Pattern B: Initial spread
-  });
-  const [loading, setLoading] = useState(false);
-  const [frontImageFile, setFrontImageFile] = useState(null);
-  const [backImageFile, setBackImageFile] = useState(null);
+  const [billingOutcomes, setBillingOutcomes] = useState([]);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingError, setBillingError] = useState(null);
+  const isBlockedCommand = mode === 'create' || mode === 'edit';
+  const title = isBlockedCommand ? 'Policy changes unavailable' : 'Policy details';
+  const subtitle = isBlockedCommand
+    ? 'Admin policy changes need receiver proof.'
+    : formatRaw(policy?.provider_name, 'Review policy record.');
+  const status = formatText(policy?.status || 'unknown', 'Unknown');
+  const statusBadge = policy ? (
+    <Badge className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(policy.status)}`}>
+      {status}
+    </Badge>
+  ) : null;
 
   useEffect(() => {
-    if (policy && (mode === 'edit' || mode === 'view')) {
-      setFormData(prev => ({
-        ...prev, // ✅ Keep existing
-        ...policy, // ✅ Merge
-        // Explicit Select fallbacks
-        provider_name: policy.provider_name || prev.provider_name,
-        coverage_type: policy.coverage_type || 'health_maintenance',
-        status: policy.status || 'active',
-        // Ensure other fields are mapped if null
-        user_id: policy.user_id || prev.user_id,
-        policy_number: policy.policy_number || prev.policy_number || '',
-        group_number: policy.group_number || prev.group_number || '',
-        front_image_url: policy.front_image_url || prev.front_image_url || '',
-        back_image_url: policy.back_image_url || prev.back_image_url || '',
-        verified: policy.verified ?? prev.verified ?? false
-      }));
-    } else if (mode === 'create') {
-      setFormData({
-        user_id: '',
-        provider_name: '',
-        policy_number: '',
-        group_number: '',
-        policy_holder_name: '',
-        coverage_type: 'health_maintenance',
-        start_date: '',
-        end_date: '',
-        front_image_url: '',
-        back_image_url: '',
-        status: 'active',
-        verified: false
-      });
+    if (!isOpen || !policy?.id) {
+      setBillingOutcomes([]);
+      setBillingError(null);
+      setBillingLoading(false);
+      return undefined;
     }
-    setFrontImageFile(null);
-    setBackImageFile(null);
-  }, [policy, mode]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+    let isActive = true;
+    const fetchBillingOutcomes = async () => {
+      try {
+        setBillingLoading(true);
+        setBillingError(null);
+        const page = await getInsuranceBillingOutcomes({
+          policyId: policy.id,
+          limit: 5,
+          sortKey: 'created_at',
+          sortDirection: 'desc',
+          quiet: true,
+        });
 
-    try {
-      let finalFormData = { ...formData };
+        if (!isActive) return;
+        if (page.denied) {
+          setBillingOutcomes([]);
+          setBillingError('Billing outcomes are unavailable for this role.');
+          return;
+        }
+        if (page.failed) {
+          setBillingError('Billing outcomes could not load.');
+          return;
+        }
 
-      if (frontImageFile) {
-        const url = await uploadInsuranceCardImage(frontImageFile);
-        finalFormData.front_image_url = url;
+        setBillingOutcomes(page.data || []);
+      } catch {
+        if (!isActive) return;
+        setBillingOutcomes([]);
+        setBillingError('Billing outcomes could not load.');
+      } finally {
+        if (isActive) setBillingLoading(false);
       }
-      if (backImageFile) {
-        const url = await uploadInsuranceCardImage(backImageFile);
-        finalFormData.back_image_url = url;
-      }
+    };
 
-      if (mode === 'create') {
-        await onSave(finalFormData);
-        toast.success('Insurance policy created successfully');
-      } else {
-        await onSave(policy.id, finalFormData);
-        toast.success('Insurance policy updated successfully');
-      }
-      onClose();
-    } catch (error) {
-      console.error(error);
-      handleApiError(error, mode);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchBillingOutcomes();
 
-  const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleImageUpload = (type, file) => {
-    if (type === 'front') {
-      setFrontImageFile(file);
-      handleChange('front_image_url', file ? URL.createObjectURL(file) : '');
-    } else {
-      setBackImageFile(file);
-      handleChange('back_image_url', file ? URL.createObjectURL(file) : '');
-    }
-  };
-
-  const getStatusColor = (status) => {
-    const statusConfig = statuses.find(s => s.value === status);
-    const color = statusConfig?.color || 'secondary';
-    switch (color) {
-      case 'success': return 'bg-green-500/20 text-green-500';
-      case 'destructive': return 'bg-red-500/20 text-red-500';
-      case 'warning': return 'bg-orange-500/20 text-orange-500';
-      default: return 'bg-muted/20 text-muted-foreground';
-    }
-  };
+    return () => {
+      isActive = false;
+    };
+  }, [isOpen, policy?.id]);
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[120] flex items-end md:items-center justify-center p-2 md:p-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/30 backdrop-blur-md"
-            onClick={() => onClose(false)}
+    <ModalShell
+      isOpen={isOpen}
+      onClose={() => onClose(false)}
+      title={title}
+      subtitle={subtitle}
+      icon={<Shield className="h-5 w-5 text-info" />}
+      badge={statusBadge}
+      size="lg"
+      managed
+      className="bg-background"
+    >
+      <div className="flex flex-col flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-4 md:px-6 pb-4 md:pb-6 space-y-4">
+          <Notice
+            icon={isBlockedCommand ? AlertTriangle : FileText}
+            tone={isBlockedCommand ? 'warning' : 'muted'}
+            title={isBlockedCommand ? 'Changes are off for now' : 'Read-only review'}
+            text={
+              isBlockedCommand
+                ? 'Policy changes, verification, deletion, and card upload need admin authority first.'
+                : 'This policy is shown as backend evidence. Changes stay unavailable until the receiver and storage contract are proved.'
+            }
           />
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            role="dialog"
+          {policy ? (
+            <>
+              <Section icon={<Building />} title="Member and provider">
+                <Field label="Policy holder" value={formatRaw(policy.policy_holder_name)} />
+                <Field label="Provider" value={formatRaw(policy.provider_name)} />
+                <Field label="Policy number" value={formatRaw(policy.policy_number)} mono />
+                <Field label="Group number" value={formatRaw(policy.group_number)} mono />
+              </Section>
 
-            aria-modal="true"
+              <Section icon={<Calendar />} title="Coverage">
+                <Field label="Plan type" value={formatText(policy.policy_type || policy.coverage_type || policy.plan_type)} />
+                <Field label="Coverage amount" value={formatMoney(policy.coverage_amount)} />
+                <Field label="Start date" value={formatDate(policy.start_date)} />
+                <Field label="End date" value={formatDate(policy.end_date)} />
+              </Section>
 
-            className="relative z-10 w-full max-w-3xl max-h-[calc(100dvh-5rem)] md:max-h-[90vh] overflow-hidden rounded-[24px] md:rounded-[32px] shadow-2xl"
-          >
-            {/* Header Area */}
-            <div className="flex items-center justify-between p-2 md:p-8 pb-2 md:pb-4">
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-primary/20 rounded-2xl">
-                  <Shield className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground/90">
-                    {mode === 'create' ? 'New Policy' : mode === 'edit' ? 'Edit Policy' : 'Policy Details'}
-                  </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge className={`rounded-full border-0 font-semibold px-3 py-0.5 text-xs ${getStatusColor(formData.status)}`}>
-                      {formData.status?.toUpperCase()}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {formData.provider_name || 'Select Provider'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                onClick={() => onClose(false)}
-                className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </Button>
+              <Section icon={<CheckCircle />} title="Review state">
+                <Field label="Status" value={status} />
+                <Field label="Verified" value={policy.verified ? 'Verified' : 'Not verified'} />
+                <Field label="Created" value={formatDate(policy.created_at)} />
+                <Field label="Updated" value={formatDate(policy.updated_at)} />
+              </Section>
+
+              <BillingOutcomeSection
+                outcomes={billingOutcomes}
+                loading={billingLoading}
+                error={billingError}
+              />
+
+              <Section icon={<FileImage />} title="Insurance card">
+                <CardImage label="Front" src={policy.front_image_url} />
+                <CardImage label="Back" src={policy.back_image_url} />
+              </Section>
+            </>
+          ) : (
+            <div className="rounded-3xl bg-muted/25 p-6 text-center">
+              <Shield className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+              <h3 className="text-base font-semibold">No policy selected</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Open a policy from the list to review its details.
+              </p>
             </div>
-
-            <div className="p-2 md:p-8 pt-1 md:pt-2 overflow-y-auto max-h-[calc(100dvh-9rem)] md:max-h-[calc(90vh-120px)] space-y-4 md:space-y-6 no-scrollbar">
-              <form onSubmit={handleSubmit} className="space-y-6">
-
-                {/* Basic Information */}
-                <GlassCard icon={<Building className="text-primary" />} title="Provider Details">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Provider Name</Label>
-                      <Select
-                        value={formData.provider_name}
-                        onValueChange={(val) => handleChange('provider_name', val)}
-                        disabled={isView}
-                      >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
-                          <SelectValue placeholder="Select provider" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                          {providers.map(p => (
-                            <SelectItem key={p} value={p}>{p}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Policy Holder</Label>
-                      <Input
-                        value={formData.policy_holder_name}
-                        onChange={(e) => handleChange('policy_holder_name', e.target.value)}
-                        disabled={isView}
-                        placeholder="Full Name"
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-normal"
-                      />
-                    </div>
-                  </div>
-                </GlassCard>
-
-                {/* Policy Numbers */}
-                <GlassCard icon={<CreditCard className="text-primary" />} title="Policy Information">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Policy Number</Label>
-                      <Input
-                        value={formData.policy_number}
-                        onChange={(e) => handleChange('policy_number', e.target.value)}
-                        disabled={isView}
-                        placeholder="e.g. POL-12345678"
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-mono"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Group Number</Label>
-                      <Input
-                        value={formData.group_number}
-                        onChange={(e) => handleChange('group_number', e.target.value)}
-                        disabled={isView}
-                        placeholder="Optional"
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12 font-mono"
-                      />
-                    </div>
-                  </div>
-                </GlassCard>
-
-                {/* Coverage & Dates */}
-                <GlassCard icon={<Calendar className="text-primary" />} title="Coverage Period">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Start Date</Label>
-                      <Input
-                        type="date"
-                        value={formData.start_date}
-                        onChange={(e) => handleChange('start_date', e.target.value)}
-                        disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase">End Date</Label>
-                      <Input
-                        type="date"
-                        value={formData.end_date}
-                        onChange={(e) => handleChange('end_date', e.target.value)}
-                        disabled={isView}
-                        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 h-12"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Coverage Type</Label>
-                      <Select
-                        value={formData.coverage_type}
-                        onValueChange={(val) => handleChange('coverage_type', val)}
-                        disabled={isView}
-                      >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                          {coverageTypes.map(t => (
-                            <SelectItem key={t} value={t}>
-                              {t.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase">Status</Label>
-                      <Select
-                        value={formData.status}
-                        onValueChange={(val) => handleChange('status', val)}
-                        disabled={isView}
-                      >
-                        <SelectTrigger className="rounded-2xl bg-muted/30 border-0 h-12 font-normal">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-0 shadow-xl bg-background/95 backdrop-blur-xl">
-                          {statuses.map(s => (
-                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </GlassCard>
-
-                {/* Card Images */}
-                <GlassCard icon={<ImageIcon className="text-primary" />} title="Insurance Card Images">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <ImageUploadBox
-                      label="Front of Card"
-                      image={formData.front_image_url}
-                      onUpload={(f) => handleImageUpload('front', f)}
-                      onRemove={() => handleImageUpload('front', null)}
-                      disabled={isView}
-                    />
-                    <ImageUploadBox
-                      label="Back of Card"
-                      image={formData.back_image_url}
-                      onUpload={(f) => handleImageUpload('back', f)}
-                      onRemove={() => handleImageUpload('back', null)}
-                      disabled={isView}
-                    />
-                  </div>
-                </GlassCard>
-
-                {/* Verification Checkbox */}
-                {(isEdit || isView) && (
-                  <div className="p-4 rounded-[24px] bg-muted/30  flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${formData.verified ? 'bg-green-500/20 text-green-500' : 'bg-muted text-muted-foreground'}`}>
-                        <CheckCircle className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-sm">Verification Status</h4>
-                        <p className="text-xs text-muted-foreground">Is this policy verified by admin?</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.verified}
-                        onChange={(e) => handleChange('verified', e.target.checked)}
-                        className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
-                        disabled={isView}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Disclaimer */}
-                <div className="p-4 rounded-[24px] bg-primary/5 border border-primary/10">
-                  <div className="flex gap-3">
-                    <FileText className="h-5 w-5 text-primary shrink-0" />
-                    <div className="text-sm text-primary/80">
-                      <p className="font-semibold mb-1">Important Note</p>
-                      <p className="text-xs leading-relaxed opacity-90">
-                        Ensure all information matches your physical insurance card exactly.
-                        Incorrect details may lead to claim rejections.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="p-4 sm:p-6 rounded-[24px] bg-muted/30  flex gap-3 justify-end">
-                  {!isView ? (
-                    <>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => onClose(false)}
-                        className="rounded-2xl font-semibold text-muted-foreground hover:bg-muted"
-                        disabled={loading}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="submit"
-                        className="rounded-2xl bg-primary hover:bg-primary/90 font-semibold px-8 text-primary-foreground"
-                        disabled={loading}
-                      >
-                        {loading ? 'Saving...' : (isCreate ? 'Add Policy' : 'Save Changes')}
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      type="button"
-                      onClick={() => onClose(false)}
-                      className="rounded-2xl bg-muted text-foreground hover:bg-muted/80 font-semibold px-8"
-                    >
-                      Close
-                    </Button>
-                  )}
-                </div>
-              </form>
-            </div>
-          </motion.div>
+          )}
         </div>
-      )}
-    </AnimatePresence>
+
+        <div className="shrink-0 border-t border-border/40 px-4 md:px-6 py-4 flex justify-end">
+          <Button
+            type="button"
+            onClick={() => onClose(false)}
+            className="rounded-2xl px-6"
+          >
+            Close
+          </Button>
+        </div>
+      </div>
+    </ModalShell>
   );
 };
 
-/* Sub-components */
-const GlassCard = ({ children, title, icon }) => (
-  <div className="p-4 sm:p-6 rounded-[28px] bg-muted/30 ">
-    <div className="flex items-center gap-3 mb-4 sm:mb-6">
-      <div className="p-1.5 sm:p-2 bg-muted/50 rounded-lg">
-        {React.cloneElement(icon, { size: 16, className: 'sm:h-5 sm:w-5' })}
+const Section = ({ icon, title, children }) => (
+  <section className="rounded-3xl bg-muted/25 p-4 md:p-5">
+    <div className="mb-4 flex items-center gap-3">
+      <div className="rounded-2xl bg-info/10 p-2 text-info">
+        {React.cloneElement(icon, { className: 'h-4 w-4' })}
       </div>
-      <h3 className="font-semibold tracking-tight text-sm sm:text-base uppercase">{title}</h3>
+      <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
     </div>
-    {children}
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      {children}
+    </div>
+  </section>
+);
+
+const BillingOutcomeSection = ({ outcomes, loading, error }) => (
+  <Section icon={<ReceiptText />} title="Billing outcomes">
+    <div className="md:col-span-2 space-y-3">
+      {loading && (
+        <div className="rounded-2xl bg-background/45 p-3 text-sm text-muted-foreground">
+          Loading billing outcomes
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="rounded-2xl bg-background/45 p-3 text-sm text-muted-foreground">
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && outcomes.length === 0 && (
+        <div className="rounded-2xl bg-background/45 p-3 text-sm text-muted-foreground">
+          No billing outcomes are linked to this policy yet.
+        </div>
+      )}
+
+      {!loading && !error && outcomes.map((outcome) => (
+        <div key={outcome.id} className="rounded-2xl bg-background/45 p-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold text-foreground">
+                {outcome.claim_number || `Claim ${String(outcome.id || '').slice(0, 8)}`}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Billed {formatDate(outcome.billing_date || outcome.created_at)}
+              </div>
+            </div>
+            <Badge className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${getBillingStatusClass(outcome.status)}`}>
+              {formatText(outcome.status)}
+            </Badge>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+            <Field label="Total" value={formatMoney(outcome.total_amount)} />
+            <Field label="Insurance" value={formatMoney(outcome.insurance_amount)} />
+            <Field label="Patient" value={formatMoney(outcome.user_amount)} />
+          </div>
+
+          <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+            <Field label="Request ID" value={formatRaw(outcome.emergency_request_id)} mono />
+            <Field label="Hospital ID" value={formatRaw(outcome.hospital_id)} mono />
+          </div>
+        </div>
+      ))}
+    </div>
+  </Section>
+);
+
+const getBillingStatusClass = (status) => {
+  switch (String(status || '').toLowerCase()) {
+    case 'paid':
+      return 'bg-success/10 text-success';
+    case 'approved':
+      return 'bg-info/10 text-info';
+    case 'rejected':
+      return 'bg-destructive/10 text-destructive';
+    default:
+      return 'bg-warning/10 text-warning';
+  }
+};
+
+const Field = ({ label, value, mono = false }) => (
+  <div className="rounded-2xl bg-background/45 p-3">
+    <div className="text-xs font-semibold text-muted-foreground">
+      {label}
+    </div>
+    <div className={`mt-1 text-sm font-medium text-foreground ${mono ? 'font-mono' : ''}`}>
+      {value}
+    </div>
   </div>
 );
 
-const ImageUploadBox = ({ label, image, onUpload, onRemove, disabled }) => (
-  <div>
-    <Label className="text-xs font-semibold text-muted-foreground uppercase mb-2 block">{label}</Label>
-    <div
-      className={`border-2 border-dashed border-border/50 rounded-2xl p-4 text-center transition-colors relative ${!disabled ? 'hover:bg-muted/30 hover:border-primary/30 cursor-pointer' : ''}`}
-      onClick={() => !disabled && !image && document.getElementById(`upload-${label.replace(/\s+/g, '-')}`).click()}
-    >
-      {image ? (
-        <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
-          <div className="relative aspect-video bg-muted/20 rounded-xl overflow-hidden">
-            <img
-              src={image || "/placeholder.svg"}
-              alt={label}
-              className="w-full h-full object-contain"
-            />
-          </div>
-          {!disabled && (
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={onRemove}
-              className="rounded-xl h-8 text-xs z-10 relative"
-            >
-              <Trash2 className="w-3 h-3 mr-2" />
-              Remove
-            </Button>
-          )}
+const CardImage = ({ label, src }) => {
+  const hasImageReference = Boolean(String(src || '').trim());
+
+  return (
+    <div className="rounded-2xl bg-background/45 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="text-xs font-semibold text-muted-foreground">
+          {label}
         </div>
-      ) : (
-        <div className="py-6 space-y-3">
-          <div className="w-12 h-12 rounded-full bg-muted/50 mx-auto flex items-center justify-center">
-            <Upload className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <p className="text-xs text-muted-foreground font-normal">Click to upload image</p>
-          {!disabled && (
-            <>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => e.target.files[0] && onUpload(e.target.files[0])}
-                className="hidden"
-                id={`upload-${label.replace(/\s+/g, '-')}`}
-                onClick={(e) => e.stopPropagation()} // Prevent infinite loop
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="rounded-xl h-8 text-xs font-semibold bg-transparent pointer-events-none" // pointer-events-none passes click to parent
-              >
-                Choose File
-              </Button>
-            </>
-          )}
-        </div>
-      )}
+        <CreditCard className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <div className="flex aspect-video flex-col items-center justify-center rounded-xl bg-muted/30 px-4 text-center">
+        <FileImage className="mb-2 h-6 w-6 text-muted-foreground" />
+        <p className="text-xs font-semibold text-foreground">
+          {hasImageReference ? 'Image reference on file' : 'No card image'}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {hasImageReference
+            ? 'Preview stays unavailable until the storage path is verified.'
+            : 'No stored card reference is available.'}
+        </p>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+const Notice = ({ icon: Icon, tone, title, text }) => {
+  const toneClass = tone === 'warning'
+    ? 'bg-warning/10 text-warning'
+    : 'bg-muted/25 text-muted-foreground';
+
+  return (
+    <div className={`rounded-3xl p-4 ${toneClass}`}>
+      <div className="flex gap-3">
+        <Icon className="mt-0.5 h-5 w-5 shrink-0" />
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{text}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default InsuranceModal;

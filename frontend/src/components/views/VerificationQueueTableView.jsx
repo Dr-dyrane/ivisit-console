@@ -9,24 +9,18 @@ import {
 } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Card } from '../ui/card';
 import { Checkbox } from '../ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuTrigger,
-    DropdownMenuSeparator
+    DropdownMenuTrigger
 } from '../ui/dropdown-menu';
-import { getAvatarUrl, getAvatarFallback } from '../../lib/avatarUtils';
+import { getAvatarFallback } from '../../lib/avatarUtils';
 import {
     Eye,
-    Trash2,
     CheckCircle,
-    Clock,
-    UserCheck,
-    Mail,
     Calendar,
     X,
     MoreHorizontal
@@ -37,29 +31,32 @@ export const VerificationQueueTableView = ({
     providers,
     onView,
     onVerify,
-    onDelete,
     getStatusBadge,
     selectedIds = [],
     onSelect,
     onSelectAll
 }) => {
     if (!providers || providers.length === 0) return null;
+    const canSelect = typeof onSelect === 'function' && typeof onSelectAll === 'function';
 
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            data-testid="approval-provider-table"
         >
-            <Card className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium border-0 overflow-hidden">
+            <div className="squircle-lg bg-background/35 backdrop-blur-xs shadow-premium overflow-hidden">
                 <Table>
                     <TableHeader className="bg-muted/30">
-                        <TableRow className="border-b border-white/10 hover:bg-transparent">
+                        <TableRow className="hover:bg-transparent">
                             <TableHead className="w-12 text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4">
-                                <Checkbox
-                                    checked={selectedIds.length === providers.length && providers.length > 0}
-                                    onCheckedChange={(checked) => onSelectAll(checked)}
-                                    aria-label="Select all"
-                                />
+                                {canSelect && (
+                                    <Checkbox
+                                        checked={selectedIds.length === providers.length && providers.length > 0}
+                                        onCheckedChange={(checked) => onSelectAll(checked)}
+                                        aria-label="Select all"
+                                    />
+                                )}
                             </TableHead>
                             <TableHead className="w-[100px] text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4">ID</TableHead>
                             <TableHead className="w-[300px] text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 pl-6">Applicant</TableHead>
@@ -79,23 +76,25 @@ export const VerificationQueueTableView = ({
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.98 }}
                                     transition={{ delay: index * 0.03 }}
-                                    className="group border-b border-white/5 transition-colors hover:bg-white/5"
+                                    className="group transition-colors odd:bg-white/[0.025] hover:bg-white/[0.06]"
                                 >
                                     <TableCell className="py-4">
-                                        <Checkbox
-                                            checked={selectedIds.includes(provider.id)}
-                                            onCheckedChange={(checked) => onSelect(provider.id, checked)}
-                                            aria-label={`Select ${provider.full_name || provider.name}`}
-                                        />
+                                        {canSelect && (
+                                            <Checkbox
+                                                checked={selectedIds.includes(provider.id)}
+                                                onCheckedChange={(checked) => onSelect(provider.id, checked)}
+                                                aria-label={`Select ${provider.full_name || provider.name}`}
+                                            />
+                                        )}
                                     </TableCell>
-                                    <TableCell className="font-mono text-[10px] font-bold text-primary/80">
+                                    <TableCell className="font-mono text-[10px] font-bold text-foreground/50">
                                         {provider.display_id || 'PRV-PENDING'}
                                     </TableCell>
                                     <TableCell className="py-4 pl-6">
                                         <div className="flex items-center gap-3">
-                                            <Avatar className="h-10 w-10 squircle border-2 border-white/5 shadow-inner shrink-0">
-                                                <AvatarImage src={getAvatarUrl(provider)} />
-                                                <AvatarFallback className="font-bold bg-primary/10 text-primary text-xs">
+                                            <Avatar className="h-10 w-10 squircle shadow-inner shrink-0">
+                                                <AvatarImage src={provider.avatar_url || provider.image_uri || undefined} />
+                                                <AvatarFallback className="font-bold bg-amber-400/10 text-amber-700 dark:text-amber-200 text-xs">
                                                     {getAvatarFallback(provider)}
                                                 </AvatarFallback>
                                             </Avatar>
@@ -103,7 +102,7 @@ export const VerificationQueueTableView = ({
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="font-semibold text-sm tracking-tight text-foreground">{provider.username || provider.full_name || 'Unknown'}</span>
                                                     {provider.bvn_verified && (
-                                                        <CheckCircle className="h-3.5 w-3.5 text-primary fill-primary/10" />
+                                                        <CheckCircle className="h-3.5 w-3.5 text-emerald-300 fill-emerald-500/10" />
                                                     )}
                                                 </div>
                                                 <span className="text-xs text-muted-foreground line-clamp-1">{provider.email || 'No email provided'}</span>
@@ -111,7 +110,7 @@ export const VerificationQueueTableView = ({
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest border-white/10 text-foreground/70 bg-white/5">
+                                        <Badge className="text-[10px] font-bold uppercase tracking-widest text-foreground/70 bg-white/5">
                                             {provider.role || 'N/A'}
                                         </Badge>
                                     </TableCell>
@@ -124,7 +123,7 @@ export const VerificationQueueTableView = ({
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge className={`geo-sharp border-0 px-2.5 py-1 ${getStatusBadge ? getStatusBadge(provider.verification_status) : 'bg-muted text-muted-foreground'}`}>
+                                        <Badge className={`geo-sharp px-2.5 py-1 ${getStatusBadge ? getStatusBadge(provider.verification_status) : 'bg-muted text-muted-foreground'}`}>
                                             {provider.verification_status || 'pending'}
                                         </Badge>
                                     </TableCell>
@@ -137,7 +136,8 @@ export const VerificationQueueTableView = ({
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() => onVerify(provider.id, true)}
-                                                        className="squircle h-8 w-8 p-0 hover:bg-success/20 text-success hover:text-success transition-colors"
+                                                        aria-label={`Approve ${provider.username || provider.email || 'provider'}`}
+                                                        className="squircle h-8 w-8 p-0 hover:bg-emerald-500/15 text-emerald-300 hover:text-emerald-200 transition-colors"
                                                         title="Approve"
                                                     >
                                                         <CheckCircle className="h-4 w-4" />
@@ -146,6 +146,7 @@ export const VerificationQueueTableView = ({
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() => onVerify(provider.id, false)}
+                                                        aria-label={`Reject ${provider.username || provider.email || 'provider'}`}
                                                         className="squircle h-8 w-8 p-0 hover:bg-destructive/20 text-destructive hover:text-destructive transition-colors"
                                                         title="Reject"
                                                     >
@@ -162,20 +163,11 @@ export const VerificationQueueTableView = ({
                                                         <span className="sr-only">Open menu</span>
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-[160px] rounded-xl bg-background/70 backdrop-blur-xl border-white/10 shadow-premium">
+                                                <DropdownMenuContent align="end" className="w-[160px] rounded-xl bg-background/70 backdrop-blur-xl shadow-premium">
                                                     <DropdownMenuItem onClick={() => onView(provider)} className="cursor-pointer font-medium text-xs py-2">
                                                         <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                                                         View Details
                                                     </DropdownMenuItem>
-                                                    {onDelete && (
-                                                        <>
-                                                            <DropdownMenuSeparator className="bg-white/5" />
-                                                            <DropdownMenuItem onClick={() => onDelete(provider)} className="cursor-pointer font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10">
-                                                                <Trash2 className="mr-2 h-3.5 w-3.5" />
-                                                                Delete
-                                                            </DropdownMenuItem>
-                                                        </>
-                                                    )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>
@@ -185,7 +177,7 @@ export const VerificationQueueTableView = ({
                         </AnimatePresence>
                     </TableBody>
                 </Table>
-            </Card>
+            </div>
         </motion.div>
     );
 };

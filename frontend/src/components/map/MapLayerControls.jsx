@@ -12,7 +12,7 @@ export const MapLayerControls = ({ showLayers, setShowLayers }) => {
 	};
 
 	const toggleLayer = (layer, e) => {
-		e.stopPropagation(); // Prevent collapsing when clicking a layer
+		e.stopPropagation();
 		setShowLayers(layer);
 	};
 
@@ -20,17 +20,20 @@ export const MapLayerControls = ({ showLayers, setShowLayers }) => {
 		<div className="flex items-center justify-end">
 			<motion.div
 				initial={false}
-				className="apple-glass-heavy rounded-full p-1 cursor-pointer flex flex-row-reverse items-center"
-				onClick={() => setIsExpanded(!isExpanded)}
+				className="apple-glass-heavy rounded-full p-1 flex flex-row-reverse items-center"
 			>
-				{/* MASTER ICON (Always Visible - Now on the right) */}
-				<div className="p-2 flex items-center justify-center">
+				<button
+					type="button"
+					className="p-2 flex items-center justify-center rounded-full transition-all hover:bg-foreground/[0.04] active:scale-[0.98] focus-visible:bg-foreground/[0.06]"
+					onClick={() => setIsExpanded(prev => !prev)}
+					aria-label={isExpanded ? "Hide map layers" : "Show map layers"}
+					aria-expanded={isExpanded}
+				>
 					<Layers
 						className={`h-5 w-5 transition-colors ${isExpanded ? 'text-primary' : 'text-foreground/60'}`}
 					/>
-				</div>
+				</button>
 
-				{/* EXPANDABLE SECTION (Now appears to the left) */}
 				<AnimatePresence>
 					{isExpanded && (
 						<motion.div
@@ -39,7 +42,7 @@ export const MapLayerControls = ({ showLayers, setShowLayers }) => {
 							exit={{ opacity: 0, width: 0, x: 20 }}
 							className="flex items-center overflow-hidden"
 						>
-							<div className="flex items-center gap-2 pl-2 border-r border-foreground/10 mr-1">
+							<div className="flex items-center gap-2 pl-2 pr-1 mr-1 bg-foreground/[0.03] rounded-full">
 								{Object.entries(layerConfig).map(([key, config]) => {
 									const isVisible = showLayers[key];
 									const Icon = config.icon;
@@ -52,6 +55,8 @@ export const MapLayerControls = ({ showLayers, setShowLayers }) => {
 											animate={{ scale: 1, opacity: 1 }}
 											whileTap={{ scale: 0.9 }}
 											onClick={(e) => toggleLayer(key, e)}
+											aria-label={`${isVisible ? 'Hide' : 'Show'} ${config.label.toLowerCase()}`}
+											aria-pressed={isVisible}
 											className={`
                         h-10 w-10 flex items-center justify-center rounded-2xl transition-all
                         ${isVisible ? 'bg-primary text-white shadow-lg' : 'bg-foreground/5 text-foreground/40 hover:bg-foreground/10'}

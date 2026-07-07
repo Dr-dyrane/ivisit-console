@@ -9,6 +9,10 @@ import { logEmergencyActivity } from './activityService';
 import { getVisitByRequestId } from './visitsService';
 import { isValidUUID } from '../lib/utils';
 import { canonicalizeEmergencyStatus } from '../utils/emergencyStatus';
+import {
+  buildLatestPaymentMap,
+  normalizeEmergencyRequestRow,
+} from '../utils/emergencyRequestMapper';
 
 const TABLE_NAME = 'emergency_requests';
 // PULLBACK NOTE: Expanded to include all columns added to logistics pillar during schema audit
@@ -210,6 +214,153 @@ function calculateResponseTime(createdAt) {
   return Math.round(diffMs / 60000); // Convert to minutes
 }
 
+const EMERGENCY_REQUEST_SORT_FIELDS = new Set([
+  'created_at',
+  'display_id',
+  'requester_name',
+  'service_type',
+  'status',
+  'requester_phone',
+  'patient_location',
+  'hospital_name',
+  'payment_status',
+]);
+
+function applyEmergencyListFilters(query, filter = {}) {
+  if (Array.isArray(filter.status) && filter.status.length > 0) {
+    query = query.in('status', filter.status);
+  } else if (filter.status) {
+    query = query.eq('status', filter.status);
+  }
+
+  if (filter.user_id) {
+    query = query.eq('user_id', filter.user_id);
+  }
+  if (filter.hospital_id) {
+    query = query.eq('hospital_id', filter.hospital_id);
+  }
+  if (filter.ambulance_id) {
+    query = query.eq('ambulance_id', filter.ambulance_id);
+  }
+  if (filter.service_type) {
+    query = query.eq('service_type', filter.service_type);
+  }
+  if (filter.search) {
+    const term = String(filter.search).replace(/,/g, ' ').trim();
+    if (term) {
+      query = query.or(`display_id.ilike.%${term}%,service_type.ilike.%${term}%,hospital_name.ilike.%${term}%,responder_name.ilike.%${term}%`);
+    }
+  }
+  if (filter.date_from) {
+    query = query.gte('created_at', filter.date_from);
+  }
+  if (filter.date_to) {
+    query = query.lte('created_at', filter.date_to);
+  }
+
+  return query;
+}
+
+function applyEmergencyKpiFilter(query, kpiFilter) {
+  if (kpiFilter === 'ambulance') return query.eq('service_type', 'ambulance');
+  if (kpiFilter === 'bed') return query.eq('service_type', 'bed');
+  if (kpiFilter === 'critical') return query.eq('service_type', 'critical_care');
+  if (kpiFilter === 'pending') return query.eq('status', 'pending_approval');
+  if (kpiFilter === 'inProgress') return query.eq('status', 'in_progress');
+  if (kpiFilter === 'active') return query.in('status', ['pending_approval', 'in_progress', 'accepted', 'arrived']);
+  return query;
+}
+
+function applyEmergencyRequestScope(query, user) {
+  return applyAuthFilter(query, user, {
+    userIdField: 'user_id',
+    orgIdField: 'hospital_id',
+    providerIdField: 'responder_id',
+    resourceType: 'emergency'
+  });
+}
+
+async function getEmergencyPageExactCount(filter = {}, user) {
+  let query = supabase.from(TABLE_NAME).select('*', { count: 'exact', head: true });
+  query = applyEmergencyRequestScope(query, user);
+  query = applyEmergencyListFilters(query, filter);
+  query = applyEmergencyKpiFilter(query, filter.kpiFilter);
+
+  const { count, error } = await query;
+  if (error) throw error;
+  return count || 0;
+}
+
+export async function getEmergencyRequestsPageStats(filter = {}, user, quiet = false) {
+  try {
+    const scopedUser = user || await getCurrentUser();
+    const baseFilter = { ...filter, kpiFilter: undefined };
+
+    const [
+      total,
+      pending,
+      active,
+      bed,
+      ambulance,
+      critical,
+      emergency,
+      inProgress,
+      accepted,
+      arrived,
+      completed,
+      cancelled,
+    ] = await Promise.all([
+      getEmergencyPageExactCount(baseFilter, scopedUser),
+      getEmergencyPageExactCount({ ...baseFilter, status: 'pending_approval' }, scopedUser),
+      getEmergencyPageExactCount({ ...baseFilter, kpiFilter: 'active' }, scopedUser),
+      getEmergencyPageExactCount({ ...baseFilter, service_type: 'bed' }, scopedUser),
+      getEmergencyPageExactCount({ ...baseFilter, service_type: 'ambulance' }, scopedUser),
+      getEmergencyPageExactCount({ ...baseFilter, service_type: 'critical_care' }, scopedUser),
+      getEmergencyPageExactCount({ ...baseFilter, service_type: 'emergency_room' }, scopedUser),
+      getEmergencyPageExactCount({ ...baseFilter, status: 'in_progress' }, scopedUser),
+      getEmergencyPageExactCount({ ...baseFilter, status: 'accepted' }, scopedUser),
+      getEmergencyPageExactCount({ ...baseFilter, status: 'arrived' }, scopedUser),
+      getEmergencyPageExactCount({ ...baseFilter, status: 'completed' }, scopedUser),
+      getEmergencyPageExactCount({ ...baseFilter, status: 'cancelled' }, scopedUser),
+    ]);
+
+    return {
+      total,
+      active,
+      pending,
+      pending_approval: pending,
+      bed,
+      ambulance,
+      critical,
+      emergency,
+      inProgress,
+      accepted,
+      arrived,
+      completed,
+      cancelled,
+    };
+  } catch (error) {
+    if (!quiet) {
+      console.error('Error fetching emergency requests page stats:', error);
+    }
+    throw error;
+  }
+}
+
+async function getLatestPaymentMapForRequests(rows) {
+  const requestIds = (rows || []).map((row) => row.id).filter(Boolean);
+  if (requestIds.length === 0) return new Map();
+
+  const { data, error } = await supabase
+    .from('payments')
+    .select('id,emergency_request_id,payment_method,status,amount,currency,created_at')
+    .in('emergency_request_id', requestIds)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return buildLatestPaymentMap(data || []);
+}
+
 /**
  * Get all emergency requests with optional filters
  * Admin users can see all requests, org admins see their hospital's, providers see assigned
@@ -220,35 +371,8 @@ export async function getEmergencyRequests(filter) {
     let query = supabase.from(TABLE_NAME).select('*');
 
     // Apply RBAC Scoping with enhanced filtering
-    query = applyAuthFilter(query, user, {
-      userIdField: 'user_id',           // Patient who requested emergency
-      orgIdField: 'hospital_id',       // Org admins see emergencies at their hospital
-      providerIdField: 'responder_id', // Providers (drivers) see emergencies assigned to them
-      resourceType: 'emergency'        // Enables provider-specific logic
-    });
-
-    if (filter?.status) {
-      query = query.eq('status', filter.status);
-    }
-    if (filter?.user_id) {
-      query = query.eq('user_id', filter.user_id);
-    }
-    if (filter?.hospital_id) {
-      query = query.eq('hospital_id', filter.hospital_id);
-    }
-    if (filter?.ambulance_id) {
-      query = query.eq('ambulance_id', filter.ambulance_id);
-    }
-    if (filter?.service_type) {
-      query = query.eq('service_type', filter.service_type);
-    }
-
-    if (filter?.date_from) {
-      query = query.gte('created_at', filter.date_from);
-    }
-    if (filter?.date_to) {
-      query = query.lte('created_at', filter.date_to);
-    }
+    query = applyEmergencyRequestScope(query, user);
+    query = applyEmergencyListFilters(query, filter);
 
     // Sorting
     query = query.order('created_at', { ascending: false });
@@ -266,7 +390,59 @@ export async function getEmergencyRequests(filter) {
 
     return data || [];
   } catch (error) {
-    console.error('Error fetching emergency requests:', error);
+    if (!filter?.quiet) {
+      console.error('Error fetching emergency requests:', error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get the Requests page projection with exact count and payment-method enrichment.
+ */
+export async function getEmergencyRequestsPage(filter = {}) {
+  try {
+    const user = await getCurrentUser();
+
+    const statsFilter = filter.statsFilter || { ...filter, kpiFilter: undefined };
+    const countPromise = getEmergencyPageExactCount(filter, user);
+    const statsPromise = getEmergencyRequestsPageStats(statsFilter, user, true);
+
+    let dataQuery = supabase.from(TABLE_NAME).select('*');
+    dataQuery = applyEmergencyRequestScope(dataQuery, user);
+    dataQuery = applyEmergencyListFilters(dataQuery, filter);
+    dataQuery = applyEmergencyKpiFilter(dataQuery, filter.kpiFilter);
+
+    const sortKey = EMERGENCY_REQUEST_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';
+    dataQuery = dataQuery.order(sortKey, { ascending: filter.sortDirection === 'asc' });
+
+    const limit = Number(filter.limit);
+    const offset = Number(filter.offset) || 0;
+    if (Number.isFinite(limit) && limit > 0) {
+      dataQuery = dataQuery.range(offset, offset + limit - 1);
+    }
+
+    const [{ data, error }, count, stats] = await Promise.all([
+      dataQuery,
+      countPromise,
+      statsPromise,
+    ]);
+    if (error) throw error;
+
+    const paymentByRequestId = await getLatestPaymentMapForRequests(data || []);
+    const normalizedRows = (data || []).map((row) =>
+      normalizeEmergencyRequestRow(row, paymentByRequestId.get(row.id))
+    );
+
+    return {
+      data: normalizedRows,
+      count: count || 0,
+      stats,
+    };
+  } catch (error) {
+    if (!filter?.quiet) {
+      console.error('Error fetching emergency requests page:', error);
+    }
     throw error;
   }
 }

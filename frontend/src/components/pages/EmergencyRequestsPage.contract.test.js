@@ -1,0 +1,629 @@
+import fs from 'fs';
+import { getAccessibleNav } from '../../config/navigation';
+import { getProtectedRoutesForRole, getRouteProtection } from '../../config/routes';
+
+describe('EmergencyRequestsPage service ownership contract', () => {
+  it('keeps Requests list/count/payment reads owned by emergencyService', () => {
+    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const serviceSource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
+
+    expect(pageSource).toContain('getEmergencyRequestsPage({');
+    expect(pageSource).not.toContain("supabase.from('emergency_requests')");
+    expect(pageSource).not.toContain("supabase.from('payments')");
+    expect(pageSource).not.toContain('applyAuthFilter(query');
+    expect(pageSource).not.toContain('usePageData');
+    expect(pageSource).not.toContain('emergencyData?.stats');
+    expect(pageSource).toContain('const [requestStats, setRequestStats] = useState(null)');
+    expect(pageSource).toContain('setRequestStats(stats || null)');
+    expect(pageSource).toContain('statistics={requestStats}');
+    expect(pageSource).toContain('stats={requestStats}');
+    expect(pageSource).toContain('analytics={requestStats || {');
+
+    expect(serviceSource).toContain('export async function getEmergencyRequestsPage');
+    expect(serviceSource).toContain('export async function getEmergencyRequestsPageStats');
+    expect(serviceSource).toContain('async function getEmergencyPageExactCount');
+    expect(serviceSource).toContain("supabase.from(TABLE_NAME).select('*', { count: 'exact', head: true })");
+    expect(serviceSource).toContain(".from('payments')");
+    expect(serviceSource).toContain('applyEmergencyRequestScope');
+    expect(serviceSource).toContain('normalizeEmergencyRequestRow');
+  });
+
+  it('keeps Requests filters, exact counts, sort, and pagination service-owned', () => {
+    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const serviceSource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
+
+    expect(pageSource).toContain('const buildRequestsServiceFilter = (filters = {}) =>');
+    expect(pageSource).toContain('status: filters.status');
+    expect(pageSource).toContain('search: filters.search');
+    expect(pageSource).toContain('date_from: dateRange.start ?');
+    expect(pageSource).toContain('date_to: dateRange.end ?');
+    expect(pageSource).toContain('const serviceFilter = buildRequestsServiceFilter(filters);');
+    expect(pageSource).toContain('getEmergencyRequestsPage({');
+    expect(pageSource).toContain('kpiFilter,');
+    expect(pageSource).toContain('limit: pagination.itemsPerPage');
+    expect(pageSource).toContain('offset: pagination.paginationRange.start');
+    expect(pageSource).toContain('sortKey: sortConfig.key');
+    expect(pageSource).toContain('sortDirection: sortConfig.direction');
+    expect(pageSource).toContain('pagination.setTotalCount(count || 0);');
+    expect(pageSource).toContain('<PaginationControls');
+    expect(pageSource).toContain('totalCount={pagination.totalCount}');
+    expect(pageSource).toContain('itemsPerPage={pagination.itemsPerPage}');
+    expect(pageSource).toContain('Number(pagination.totalCount) === 0');
+    expect(pageSource).not.toContain('setTotalCount(data.length');
+    expect(pageSource).not.toContain('setTotalCount(normalizedRows.length');
+    expect(pageSource).not.toContain('pagination.setTotalCount(requests.length');
+
+    expect(serviceSource).toContain('async function getEmergencyPageExactCount(filter = {}, user) {');
+    expect(serviceSource).toContain("supabase.from(TABLE_NAME).select('*', { count: 'exact', head: true })");
+    expect(serviceSource).toContain('query = applyEmergencyRequestScope(query, user);');
+    expect(serviceSource).toContain('query = applyEmergencyListFilters(query, filter);');
+    expect(serviceSource).toContain('query = applyEmergencyKpiFilter(query, filter.kpiFilter);');
+    expect(serviceSource).toContain("if (kpiFilter === 'critical') return query.eq('service_type', 'critical_care');");
+    expect(serviceSource).toContain('const countPromise = getEmergencyPageExactCount(filter, user);');
+    expect(serviceSource).toContain('const statsPromise = getEmergencyRequestsPageStats(statsFilter, user, true);');
+    expect(serviceSource).toContain("const sortKey = EMERGENCY_REQUEST_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';");
+    expect(serviceSource).toContain("dataQuery = dataQuery.order(sortKey, { ascending: filter.sortDirection === 'asc' });");
+    expect(serviceSource).toContain('const limit = Number(filter.limit);');
+    expect(serviceSource).toContain('const offset = Number(filter.offset) || 0;');
+    expect(serviceSource).toContain('dataQuery = dataQuery.range(offset, offset + limit - 1);');
+    expect(serviceSource).not.toContain('.limit(1000)');
+  });
+
+  it('keeps legacy Requests density views out of the active route renderer', () => {
+    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const mobileSource = fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');
+    const activeRequestsSource = `${pageSource}\n${mobileSource}`;
+
+    expect(pageSource).toContain('const RequestsDesktopWorkspace = (');
+    expect(pageSource).toContain('<RequestSignalPanel');
+    expect(pageSource).toContain('<RequestKpiStrip');
+    expect(pageSource).toContain('<RequestRow');
+    expect(pageSource).toContain('<RequestDetailRail');
+    expect(pageSource).toContain('viewToggle={null}');
+    expect(mobileSource).toContain('const MobileRequestRow = ({');
+    expect(mobileSource).toContain('data-mobile-request-row={request.id}');
+
+    expect(activeRequestsSource).not.toContain('EmergencyRequestListView');
+    expect(activeRequestsSource).not.toContain('EmergencyRequestTableView');
+    expect(activeRequestsSource).not.toContain('useViewMode');
+    expect(activeRequestsSource).not.toContain('setViewMode');
+    expect(activeRequestsSource).not.toContain('ViewToggle');
+  });
+
+  it('keeps Requests out of private shell chrome', () => {
+    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const mobileSource = fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');
+    const activeRequestsSource = `${pageSource}\n${mobileSource}`;
+    const forbiddenShellOwners = [
+      'SmartHeader',
+      'ResponsiveSidebar',
+      'IslandNavigation',
+      'DynamicBottomBar',
+      'ContextAwareFAB',
+      'NotificationCenter',
+      'MobileNavMenu',
+      'ContextPanelShell',
+      'SmartFooter',
+    ];
+
+    forbiddenShellOwners.forEach((owner) => {
+      expect(activeRequestsSource).not.toContain(owner);
+    });
+
+    expect(pageSource).toContain("import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';");
+    expect(pageSource).toContain("import { ConsoleModuleRail } from '../common/ConsoleModuleRail';");
+    expect(pageSource).toContain("import { FilterSheet } from '../common/FilterSheet';");
+    expect(pageSource).toContain("import { ModalShell } from '../ui/ModalShell';");
+    expect(pageSource).toContain('const RequestDetailRail = ({');
+    expect(mobileSource).toContain('const MobileRequestRow = ({');
+    expect(pageSource).toContain('usePageHeader(');
+    expect(pageSource).toContain("'Requests',");
+    expect(pageSource).toContain("usePageFooter(null, 'status', false);");
+    expect(pageSource).toContain('usePageShell({ bleed: true, hideFab: true });');
+  });
+
+  it('keeps Requests realtime and route event side effects scoped and cleaned up', () => {
+    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const addListeners = pageSource.match(/window\.addEventListener\('/g) || [];
+    const removeListeners = pageSource.match(/window\.removeEventListener\('/g) || [];
+
+    expect(pageSource).toContain('const requestSeqRef = useRef(0)');
+    expect(pageSource).toContain('const fetchRequests = useCallback(async () => {');
+    expect(pageSource).toContain('const requestSeq = requestSeqRef.current + 1;');
+    expect(pageSource).toContain('requestSeqRef.current = requestSeq;');
+    expect(pageSource).toContain('if (requestSeq !== requestSeqRef.current) return;');
+    expect(pageSource).toContain('if (isTransientRequestRefreshError(error)) return;');
+    expect(pageSource.indexOf('if (requestSeq !== requestSeqRef.current) return;'))
+      .toBeLessThan(pageSource.indexOf("console.error('Error fetching requests:', error);"));
+    expect(pageSource.indexOf('if (isTransientRequestRefreshError(error)) return;'))
+      .toBeLessThan(pageSource.indexOf("console.error('Error fetching requests:', error);"));
+    expect(pageSource).toContain('if (requestSeq === requestSeqRef.current) {');
+    expect(pageSource).toContain('setLoading(false);');
+
+    expect(pageSource).toContain(".channel('emergency_changes')");
+    expect(pageSource).toContain(".on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_requests' }, fetchRequests)");
+    expect(pageSource).toContain(".on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, fetchRequests)");
+    expect(pageSource).toContain('.subscribe();');
+    expect(pageSource).toContain('return () => supabase.removeChannel(channel);');
+
+    expect(addListeners).toHaveLength(4);
+    expect(removeListeners).toHaveLength(4);
+    expect(pageSource).toContain('const requestPanelContext = useMemo(() => ({');
+    expect(pageSource).toContain("window.dispatchEvent(new CustomEvent('emergencyRouteContextUpdated', {");
+    expect(pageSource).toContain("window.addEventListener('requestEmergencyRouteContext', publishEmergencyRouteContext);");
+    expect(pageSource).toContain("window.removeEventListener('requestEmergencyRouteContext', publishEmergencyRouteContext);");
+    expect(pageSource).toContain("window.addEventListener('openEmergencyModal', handleOpenModal);");
+    expect(pageSource).toContain("window.addEventListener('openFilters', handleOpenFilters);");
+    expect(pageSource).toContain("window.addEventListener('openAnalyticsModal', handleOpenAnalytics);");
+    expect(pageSource).toContain("window.removeEventListener('openEmergencyModal', handleOpenModal);");
+    expect(pageSource).toContain("window.removeEventListener('openFilters', handleOpenFilters);");
+    expect(pageSource).toContain("window.removeEventListener('openAnalyticsModal', handleOpenAnalytics);");
+    expect(pageSource).not.toContain("window.addEventListener('resize'");
+    expect(pageSource).not.toContain("window.addEventListener('scroll'");
+  });
+
+  it('keeps Requests loading, error, empty, selected, and mobile states distinct', () => {
+    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const mobileSource = fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');
+
+    expect(pageSource).toContain('Loading requests');
+    expect(pageSource).toContain('One moment');
+    expect(pageSource).toContain('{loading && <RequestSkeletonRows />}');
+    expect(pageSource).toContain('<RequestLoadErrorState message={loadError} onRetry={onRetry} />');
+    expect(pageSource).toContain('<RequestLoadNotice message={loadError} onRetry={onRetry} />');
+    expect(pageSource).toContain('Number(pagination.totalCount) === 0');
+    expect(pageSource).toContain('No matching requests');
+    expect(pageSource).toContain('Change filters');
+    expect(pageSource).toContain('const RequestSkeletonRows = () => (');
+    expect(pageSource).toContain('const RequestLoadErrorState = ({ message, onRetry }) => (');
+    expect(pageSource).toContain('const RequestLoadNotice = ({ message, onRetry }) => (');
+    expect(pageSource).toContain("data-state={active ? 'selected' : 'idle'}");
+    expect(pageSource).toContain("data-state={selected ? 'selected' : 'idle'}");
+    expect(pageSource).toContain('aria-pressed={active}');
+    expect(pageSource).toContain('aria-pressed={selected}');
+    expect(pageSource).toContain('data-state={filterTriggerState}');
+    expect(pageSource).toContain('aria-expanded={filterSheetOpen}');
+
+    expect(mobileSource).toContain('<PullToRefresh onRefresh={onRefresh}>');
+    expect(mobileSource).toContain('const showSkeleton = loading && displayItems.length === 0;');
+    expect(mobileSource).toContain('{showSkeleton && <MobileListSkeletonRows />}');
+    expect(mobileSource).toContain('MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain"');
+    expect(mobileSource).toContain('label="Requests did not load"');
+    expect(mobileSource).toContain('label="No requests found"');
+    expect(mobileSource).toContain("const filterTriggerState = filterSheetOpen ? 'open' : hasMobileRequestFilters(filters) ? 'filtered' : 'idle';");
+    expect(mobileSource).toContain("const analyticsTriggerState = analyticsOpen ? 'open' : 'idle';");
+    expect(mobileSource).toContain("data-state={active ? 'selected' : 'idle'}");
+    expect(mobileSource).toContain("data-state={expanded ? 'expanded' : 'idle'}");
+    expect(mobileSource).toContain('aria-expanded={expanded}');
+  });
+
+  it('keeps Requests UI language simple and interaction-safe', () => {
+    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const mobileSource = fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');
+    const listSource = fs.readFileSync('src/components/views/EmergencyRequestListView.jsx', 'utf8');
+    const tableSource = fs.readFileSync('src/components/views/EmergencyRequestTableView.jsx', 'utf8');
+    const hardgateSource = fs.readFileSync('scripts/check-ui-surface-hardgate.js', 'utf8');
+    const fabSource = fs.readFileSync('src/components/navigation/ContextAwareFAB.jsx', 'utf8');
+    const bottomBarSource = fs.readFileSync('src/components/navigation/DynamicBottomBar.jsx', 'utf8');
+    const railSource = fs.readFileSync('src/config/consoleModuleRail.js', 'utf8');
+    const railComponentSource = fs.readFileSync('src/components/common/ConsoleModuleRail.jsx', 'utf8');
+    const mobileMenuSource = fs.readFileSync('src/components/navigation/MobileNavMenu.jsx', 'utf8');
+    const smartHeaderSource = fs.readFileSync('src/components/navigation/SmartHeader.jsx', 'utf8');
+    const filterSheetSource = fs.readFileSync('src/components/common/FilterSheet.jsx', 'utf8');
+    const analyticsModalSource = fs.readFileSync('src/components/modals/AnalyticsModal.jsx', 'utf8');
+    const installPromptSource = fs.readFileSync('src/components/pwa/InstallPrompt.jsx', 'utf8');
+    const contextPanelSource = fs.readFileSync('src/components/navigation/ContextPanel.jsx', 'utf8');
+    const emergencyPanelSource = fs.readFileSync('src/components/context/EmergencyPanel.jsx', 'utf8');
+    const activeRequestsSource = `${pageSource}\n${mobileSource}`;
+    const allRequestsSource = `${activeRequestsSource}\n${listSource}\n${tableSource}`;
+
+    expect(activeRequestsSource).toContain("'Requests'");
+    expect(pageSource).toContain('<SEOHead title="Requests"');
+    expect(activeRequestsSource).not.toContain('Emergency Logs');
+    expect(activeRequestsSource).not.toContain('Emergency Requests');
+    expect(activeRequestsSource).not.toContain('NEW REQUEST');
+    expect(activeRequestsSource).not.toContain('Live Buffer');
+    expect(activeRequestsSource).not.toContain('growthData');
+    expect(activeRequestsSource).not.toMatch(/\bmission\b/i);
+    expect(activeRequestsSource).not.toMatch(/\bcontrol\b/i);
+    expect(pageSource).toContain('Number(pagination.totalCount) === 0');
+    expect(pageSource).toContain('No matching requests');
+    expect(pageSource).toContain('Change filters');
+    expect(pageSource).toContain('Loading requests');
+    expect(pageSource).toContain('One moment');
+    expect(pageSource).toContain('const EMPTY_REQUEST_FILTERS = Object.freeze({');
+    expect(pageSource).toContain('const buildRequestsServiceFilter = (filters = {}) =>');
+    expect(pageSource).toContain('date_from: dateRange.start');
+    expect(pageSource).toContain('date_to: dateRange.end');
+    expect(pageSource).toContain('const getFilterTriggerState = ({ isOpen, hasFilter }) =>');
+    expect(pageSource).toContain('const filterTriggerState = getFilterTriggerState({ isOpen: filterSheetOpen, hasFilter });');
+    expect(pageSource).toContain("data-state={isEmergencyModalOpen ? 'open' : 'idle'}");
+    expect(pageSource).toContain('aria-expanded={isEmergencyModalOpen}');
+    expect(pageSource).toContain('data-state={filterTriggerState}');
+    expect(pageSource).toContain('aria-haspopup="dialog"');
+    expect(pageSource).toContain('aria-expanded={filterSheetOpen}');
+    expect(pageSource).toContain('const [loadError, setLoadError] = useState(null)');
+    expect(pageSource).toContain('setLoadError(null)');
+    expect(pageSource).toContain('setLoadError(message)');
+    expect(pageSource).toContain('resetValues={EMPTY_REQUEST_FILTERS}');
+    expect(pageSource).toContain('resetLabel="Clear"');
+    expect(pageSource).toContain('<RequestLoadErrorState message={loadError} onRetry={onRetry} />');
+    expect(pageSource).toContain('<RequestLoadNotice message={loadError} onRetry={onRetry} />');
+    expect(mobileSource).toContain('loadError,');
+    expect(mobileSource).toContain('Requests did not load');
+    expect(mobileSource).toContain('onRecover={onRetry}');
+    expect(mobileSource).toContain('const hasMobileRequestFilters = (filters = {}) => Boolean(');
+    expect(mobileSource).toContain('filterSheetOpen = false,');
+    expect(mobileSource).toContain('analyticsOpen = false,');
+    expect(mobileSource).toContain("const filterTriggerState = filterSheetOpen ? 'open' : hasMobileRequestFilters(filters) ? 'filtered' : 'idle';");
+    expect(mobileSource).toContain("const analyticsTriggerState = analyticsOpen ? 'open' : 'idle';");
+    expect(mobileSource).toContain('data-state={filterTriggerState}');
+    expect(mobileSource).toContain('data-state={analyticsTriggerState}');
+    expect(mobileSource).toContain('aria-expanded={filterSheetOpen}');
+    expect(mobileSource).toContain('aria-expanded={analyticsOpen}');
+    expect(filterSheetSource).toContain('resetValues = null');
+    expect(filterSheetSource).toContain('resetLabel = \'Reset\'');
+    expect(filterSheetSource).toContain('const filterBackdropTransition = { duration: 0.18');
+    expect(filterSheetSource).toContain('const filterSheetTransition = { duration: 0.22');
+    expect(filterSheetSource).toContain('if (!isOpen) return null;');
+    expect(filterSheetSource).toContain('key="filter-sheet-backdrop"');
+    expect(filterSheetSource).toContain('key="filter-sheet-shell"');
+    expect(filterSheetSource).toContain('transition={filterBackdropTransition}');
+    expect(filterSheetSource).toContain('transition={filterSheetTransition}');
+    expect(filterSheetSource).not.toContain("transition={{ type: 'spring', stiffness: 300, damping: 30 }}\n            role=\"dialog\"");
+    expect(filterSheetSource).toContain('aria-labelledby={titleId}');
+    expect(filterSheetSource).toContain('aria-describedby={descriptionId}');
+    expect(filterSheetSource).toContain('data-filter-sheet-shell="true"');
+    expect(filterSheetSource).toContain('htmlFor={startDateId}');
+    expect(filterSheetSource).toContain('htmlFor={endDateId}');
+    expect(filterSheetSource).toContain('Start date');
+    expect(filterSheetSource).toContain('End date');
+    expect(filterSheetSource).toContain('grid max-h-[min(68dvh,620px)] grid-cols-2');
+    expect(filterSheetSource).toContain('space-y-6 max-h-[58dvh]');
+    expect(filterSheetSource).toContain('bg-foreground text-background');
+    expect(filterSheetSource).not.toContain('bg-primary hover:bg-primary/90');
+    expect(filterSheetSource).toContain('hover:bg-foreground hover:text-background');
+    expect(filterSheetSource).not.toContain('hover:bg-primary hover:text-primary-foreground');
+    expect(filterSheetSource).toContain('setFilters(resetValues || initialValues)');
+    expect(analyticsModalSource).toContain("import { ModalShell } from '../ui/ModalShell';");
+    expect(analyticsModalSource).toContain('<ModalShell');
+    expect(analyticsModalSource).toContain('title="Statistics"');
+    expect(analyticsModalSource).toContain('subtitle={displayType}');
+    expect(analyticsModalSource).toContain('footer={footer}');
+    expect(analyticsModalSource).toContain('Statistics');
+    expect(analyticsModalSource).toContain("emergency: [\n    { id: 'summary', label: 'Summary' }");
+    expect(analyticsModalSource).toContain('const formatMinutes = (value, total) => {');
+    expect(analyticsModalSource).toContain("if (!hasRows || !Number.isFinite(parsed)) return 'No data';");
+    expect(analyticsModalSource).toContain("label: 'Avg response'");
+    expect(analyticsModalSource).toContain("label: 'Needs review'");
+    expect(analyticsModalSource).toContain("{isFirst ? 'Close' : 'Previous'}");
+    expect(analyticsModalSource).toContain('Next');
+    expect(analyticsModalSource).not.toContain('Analytic Engine');
+    expect(analyticsModalSource).not.toContain('Response Pulse');
+    expect(analyticsModalSource).not.toContain('Priority Heat');
+    expect(analyticsModalSource).not.toContain('Status Flow');
+    expect(analyticsModalSource).not.toContain('Health Index');
+    expect(analyticsModalSource).not.toContain('In-Flow');
+    expect(analyticsModalSource).not.toContain('Signal processing');
+    expect(analyticsModalSource).not.toContain('No segments detected');
+    expect(analyticsModalSource).not.toContain('avgResponseTime || 12');
+    expect(analyticsModalSource).not.toContain('bg-primary');
+    expect(analyticsModalSource).not.toContain('text-primary');
+    expect(analyticsModalSource).not.toContain('var(--primary');
+    expect(analyticsModalSource).not.toContain('fixed inset-0');
+    expect(analyticsModalSource).not.toContain('role="dialog"');
+    expect(analyticsModalSource).not.toContain('aria-modal="true"');
+    expect(installPromptSource).toContain('hasBlockingSurface');
+    expect(installPromptSource).toContain('[role="dialog"][aria-modal="true"], [data-filter-sheet-shell="true"], [data-modal-shell="true"]');
+    expect(installPromptSource).toContain('isVisible && !hasBlockingSurface');
+    expect(installPromptSource).toContain('bottom-24 left-4 right-4');
+    expect(installPromptSource).toContain('md:bottom-4');
+    expect(pageSource).toContain('const requestSeqRef = useRef(0)');
+    expect(pageSource).toContain("const [kpiFilter, setKpiFilter] = useState('pending');");
+    expect(pageSource).toContain('const isTransientRequestRefreshError = (error) =>');
+    expect(pageSource.indexOf('if (requestSeq !== requestSeqRef.current) return;'))
+      .toBeLessThan(pageSource.indexOf("console.error('Error fetching requests:', error);"));
+    expect(pageSource.indexOf('if (isTransientRequestRefreshError(error)) return;'))
+      .toBeLessThan(pageSource.indexOf("console.error('Error fetching requests:', error);"));
+    expect(pageSource).toContain('usePageShell({ bleed: true, hideFab: true })');
+    expect(pageSource).toContain("usePageFooter(null, 'status', false)");
+    expect(pageSource).toContain('const RequestsAtlasLayer = () => (');
+    expect(pageSource).toContain('<ConsoleModuleRail');
+    expect(pageSource).toContain('activePath="/emergencies"');
+    expect(pageSource).toContain('getConsoleModuleRailItems(roleKind)');
+    expect(pageSource).toContain('setRoutingPath(path)');
+    expect(railSource).toContain("admin: ['today', 'requests', 'staff', 'payments', 'help']");
+    expect(railComponentSource).toContain('aria-current={isActive ? \'page\' : undefined}');
+    expect(pageSource).toContain('const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter }) =>');
+    expect(pageSource).toContain('getRequestSignal({ stats, requests, kpiFilter })');
+    expect(pageSource).toContain('return normalizeCount(stats?.pending, rowCount);');
+    expect(pageSource).toContain("id: 'critical'");
+    expect(pageSource).toContain("label: 'Critical care'");
+    expect(pageSource).toContain("request.service_type === 'critical_care'");
+    expect(pageSource).toContain("critical: requests.filter((request) => request.service_type === 'critical_care').length");
+    expect(pageSource).toContain('return normalizeCount(stats?.critical, rowCount);');
+    expect(pageSource).toContain("tone: 'critical'");
+    expect(pageSource).toContain('No critical care requests');
+    expect(pageSource).not.toContain("id: 'active'");
+    expect(pageSource).not.toContain('No active requests');
+    expect(pageSource).not.toContain("priority === 'critical'");
+    expect(pageSource).not.toContain('requests.length > 0 ? rowCount : normalizeCount(stats?.pending, rowCount)');
+    expect(pageSource).toContain('data-request-kpi={item.id}');
+    expect(pageSource).toContain("data-state={active ? 'selected' : 'idle'}");
+    expect(pageSource).toContain('aria-pressed={active}');
+    expect(pageSource).toContain('aria-label={`${item.label}: ${count}`}');
+    expect(pageSource).toContain('data-request-row={request.id}');
+    expect(pageSource).toContain("data-state={selected ? 'selected' : 'idle'}");
+    expect(pageSource).toContain('aria-pressed={selected}');
+    expect(pageSource).toContain("tone: hasPending ? 'danger' : 'clear'");
+    expect(pageSource).toContain("label: hasPending ? 'Needs attention' : 'Clear'");
+    expect(pageSource).toContain('const getRequestAvatarClass = (request) =>');
+    expect(pageSource).toContain('const rowAvatarClass = getRequestAvatarClass(request);');
+    expect(pageSource).toContain('const avatarClass = getRequestAvatarClass(request);');
+    expect(pageSource).toContain('bg-emerald-500/10 text-emerald-700');
+    expect(pageSource).toContain('bg-amber-500/10 text-amber-700');
+    expect(pageSource).toContain('bg-cyan-500/10 text-cyan-700');
+    expect(pageSource).toContain('bg-sky-500/10 text-sky-700');
+    expect(pageSource).not.toContain('bg-success/14 text-success');
+    expect(pageSource).not.toContain('bg-warning/14 text-warning');
+    expect(pageSource).not.toContain('bg-info/14 text-info');
+    expect(pageSource).not.toContain('bg-primary/14 text-primary');
+    expect(pageSource).not.toContain('bg-primary text-white');
+    expect(pageSource).not.toContain('bg-warning text-background');
+    expect(pageSource).toContain('hover:bg-foreground/10 hover:text-foreground');
+    expect(pageSource).toContain('bg-sky-500 shadow-[0_0_24px_rgba(14,165,233,0.55)]');
+    expect(pageSource).not.toContain('hover:bg-primary/10 hover:text-primary');
+    expect(pageSource).not.toContain('bg-primary shadow-[0_0_24px_hsl(var(--primary)');
+    expect(pageSource).not.toContain('rounded-full bg-destructive/16 text-lg font-semibold text-destructive');
+    expect(pageSource).toContain('min-h-[calc(100dvh-3rem)] overflow-hidden bg-background text-foreground');
+    expect(pageSource).toContain('lg:h-[calc(100dvh-3rem)]');
+    expect(pageSource).toContain('rounded-t-sheet bg-card/68');
+    expect(pageSource).toContain('md:rounded-sheet');
+    expect(pageSource).toContain('overflow-y-auto rounded-card');
+    expect(pageSource).not.toContain('rounded-t-[44px] bg-card/68');
+    expect(pageSource).not.toContain('overflow-y-auto rounded-[30px]');
+    expect(pageSource).toContain('lg:h-[calc(100dvh-5.5rem)]');
+    expect(pageSource).toContain('mx-auto mb-3 h-1.5 w-[42px]');
+    expect(pageSource).toContain('const railPrimaryActionClass = {');
+    expect(activeRequestsSource).not.toContain('opacity-0 group-hover:opacity-100');
+    expect(activeRequestsSource).not.toContain('group-hover:opacity-100');
+    expect(activeRequestsSource).not.toContain('hover:opacity');
+    expect(pageSource).toContain('const primaryAction = getPrimaryRailAction({');
+    expect(pageSource).toContain('const primaryClass = railPrimaryActionClass[primaryAction.kind] || railPrimaryActionClass.details;');
+    expect(pageSource).toContain('onClick={() => primaryAction.onClick(request)}');
+    expect(pageSource).toContain('{primaryAction.label}');
+    expect(pageSource).toContain("primaryAction.kind !== 'dispatch'");
+    expect(pageSource).toContain("primaryAction.kind !== 'complete'");
+    expect(pageSource).toContain("primaryAction.kind !== 'retry'");
+    expect(pageSource).toContain('<RailActionButton icon={Info} label="Details" onClick={() => onView(request)} />');
+    expect(pageSource).toContain("aria-label={`${selected ? 'Selected' : 'Open'} ${patientName}`}");
+    expect(pageSource).not.toContain('aria-label={`Select ${patientName}`}');
+    expect(pageSource).not.toContain('container mx-auto');
+    expect(pageSource).not.toContain('inset_0_1px');
+    expect(mobileSource).toContain('getMobileRequestSignal');
+    expect(mobileSource).toContain('return countNumber(statistics?.pending, rowCount);');
+    expect(mobileSource).toContain("id: 'critical'");
+    expect(mobileSource).toContain("label: 'Critical care'");
+    expect(mobileSource).toContain("item.service_type === 'critical_care'");
+    expect(mobileSource).toContain('return countNumber(statistics?.critical, rowCount);');
+    expect(mobileSource).toContain('No critical care requests');
+    expect(mobileSource).not.toContain("id: 'active'");
+    expect(mobileSource).not.toContain('No active requests');
+    expect(mobileSource).not.toContain('emergencies.length > 0 ? rowCount : countNumber(statistics?.pending, rowCount)');
+    expect(mobileSource).toContain("id: hasPending ? active.id : 'clear'");
+    expect(mobileSource).toContain("label: hasPending ? active.label : 'Clear'");
+    expect(mobileSource).toContain('const getMobileRequestAvatarClass = (request) =>');
+    expect(mobileSource).toContain('const avatarClass = getMobileRequestAvatarClass(request);');
+    expect(mobileSource).toContain('bg-emerald-500/10 text-emerald-700');
+    expect(mobileSource).toContain('bg-amber-500/10 text-amber-700');
+    expect(mobileSource).toContain('bg-cyan-500/10 text-cyan-700');
+    expect(mobileSource).toContain('bg-sky-500/10 text-sky-700');
+    expect(mobileSource).not.toContain('bg-success/14 text-success');
+    expect(mobileSource).not.toContain('bg-warning/14 text-warning');
+    expect(mobileSource).not.toContain('bg-info/14 text-info');
+    expect(mobileSource).not.toContain('bg-primary/14 text-primary');
+    expect(mobileSource).toContain("color: 'hsl(var(--foreground))'");
+    expect(mobileSource).toContain('hover:bg-foreground/10 hover:text-foreground');
+    expect(mobileSource).not.toContain("color: 'hsl(var(--primary))'");
+    expect(mobileSource).not.toContain('hover:bg-primary/10 hover:text-primary');
+    expect(mobileSource).toContain('const MobileRequestsAtlasLayer = () => (');
+    expect(mobileSource).toContain('relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-16 text-foreground');
+    expect(mobileSource).toContain('grid grid-cols-2 gap-2');
+    expect(mobileSource).toContain('data-request-kpi={item.id}');
+    expect(mobileSource).toContain("data-state={active ? 'selected' : 'idle'}");
+    expect(mobileSource).toContain('aria-pressed={active}');
+    expect(mobileSource).toContain('data-mobile-request-row={request.id}');
+    expect(mobileSource).toContain("data-state={expanded ? 'expanded' : 'idle'}");
+    expect(mobileSource).toContain('aria-expanded={expanded}');
+    expect(mobileSource).toContain('className="space-y-4 px-5"');
+    expect(mobileSource).toContain('rounded-t-sheet bg-card/78');
+    expect(mobileSource).toContain('rounded-card px-4 py-3');
+    expect(mobileSource).toContain('rounded-inner bg-background/30 p-3');
+    expect(mobileSource).not.toContain('rounded-t-[44px] bg-card/78');
+    expect(mobileSource).not.toContain('rounded-[28px]');
+    expect(mobileSource).toContain('mx-auto mb-3 h-1.5 w-[42px]');
+    expect(mobileSource).toContain('MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain"');
+    expect(mobileSource).not.toContain('overflow-x-auto');
+    expect(fabSource).toContain("location.pathname === '/'");
+    expect(fabSource).toContain("location.pathname.startsWith('/emergencies')");
+    expect(fabSource).toContain("location.pathname.startsWith('/verification')");
+    expect(fabSource).toContain("location.pathname.startsWith('/map')");
+    expect(fabSource).toContain("location.pathname.startsWith('/wallet')");
+    expect(fabSource).toContain('const hideFab = Boolean(pageShellConfig?.hideFab)');
+    expect(fabSource).toContain('if (isMobile || isContextPanelOpen || hideFab) return null;');
+    expect(fabSource.indexOf('if (isMobile || isContextPanelOpen || hideFab) return null;'))
+      .toBeLessThan(fabSource.indexOf('useSupportTickets({ autoFetch: false, autoSubscribe: false, quiet: true })'));
+    expect(bottomBarSource).toContain("location.pathname === '/'");
+    expect(bottomBarSource).toContain("location.pathname.startsWith('/emergencies')");
+    expect(bottomBarSource).toContain("location.pathname.startsWith('/verification')");
+    expect(bottomBarSource).toContain("location.pathname.startsWith('/map')");
+    expect(bottomBarSource).toContain("location.pathname.startsWith('/wallet')");
+    expect(bottomBarSource).toContain('!hideContextFab && <DynamicBottomAction isScrolledDown={isScrolledDown} />');
+    expect(bottomBarSource).toContain('getRouteOwnedMobileAction(location.pathname, userRole)');
+    expect(bottomBarSource).toContain("pathname.startsWith('/emergencies') && (userRole === 'admin' || userRole === 'org_admin')");
+    expect(bottomBarSource).toContain("label: 'New request'");
+    expect(bottomBarSource).toContain("window.dispatchEvent(new CustomEvent('openEmergencyModal'))");
+    expect(mobileMenuSource).toContain("location.pathname.startsWith('/emergencies')");
+    expect(mobileMenuSource).toContain('!routeOwnsMobileAction');
+    expect(mobileMenuSource).not.toContain('Page Actions');
+    expect(smartHeaderSource).toContain("if (pathname.startsWith('/emergencies')) return 'Requests';");
+    expect(bottomBarSource.indexOf('!hideContextFab && <DynamicBottomAction isScrolledDown={isScrolledDown} />'))
+      .toBeLessThan(bottomBarSource.indexOf('useSupportTickets({ autoFetch: false, autoSubscribe: false, quiet: true })'));
+
+    expect(allRequestsSource).not.toContain('window.prompt');
+    expect(allRequestsSource).not.toContain('window.confirm');
+    expect(allRequestsSource).not.toMatch(/\bprompt\s*\(/);
+    expect(allRequestsSource).not.toMatch(/\bconfirm\s*\(/);
+    expect(pageSource).toContain('setRetryModal({');
+    expect(pageSource).toContain('selectedId: methods[defaultIndex]?.id || methods[0]?.id');
+    expect(pageSource).toContain('name="paymentMethod"');
+    expect(pageSource).toContain('checked={retryModal.selectedId === method.id}');
+    expect(pageSource).toContain("setCompleteModal({ open: true, request });");
+    expect(pageSource).toContain('title="Mark request complete"');
+    expect(pageSource).toContain('onConfirm={() => executeComplete(completeModal.request)}');
+    expect(pageSource).not.toContain('processCashPayment');
+
+    expect(hardgateSource).toContain('src/components/pages/EmergencyRequestsPage.jsx');
+    expect(hardgateSource).toContain('src/components/mobile/MobileEmergency.jsx');
+    expect(hardgateSource).toContain('src/components/context/EmergencyPanel.jsx');
+    expect(hardgateSource).toContain('src/components/modals/EmergencyDetailsModal.jsx');
+    expect(hardgateSource).toContain('src/components/modals/EmergencyRequestModal.jsx');
+    expect(contextPanelSource).toContain('const [emergencyRouteContext, setEmergencyRouteContext] = React.useState(null);');
+    expect(contextPanelSource).toContain("window.addEventListener('emergencyRouteContextUpdated', handleEmergencyRouteContext);");
+    expect(contextPanelSource).toContain("window.dispatchEvent(new CustomEvent('requestEmergencyRouteContext'));");
+    expect(contextPanelSource).toContain('<EmergencyPanel requestContext={emergencyRouteContext} />');
+    expect(contextPanelSource).not.toContain('emergencyData={emergencyData}');
+    expect(emergencyPanelSource).toContain('export const EmergencyPanel = ({ requestContext }) =>');
+    expect(emergencyPanelSource).toContain('Requests overview');
+    expect(emergencyPanelSource).toContain('Current route scope');
+    expect(emergencyPanelSource).toContain('Panel actions');
+    expect(emergencyPanelSource).toContain('Current list');
+    expect(emergencyPanelSource).toContain('role="status" aria-live="polite"');
+    expect(emergencyPanelSource).toContain("window.dispatchEvent(new CustomEvent('openEmergencyModal'))");
+    expect(emergencyPanelSource).toContain("window.dispatchEvent(new CustomEvent('openFilters'))");
+    expect(emergencyPanelSource).toContain("window.dispatchEvent(new CustomEvent('openAnalyticsModal'))");
+    expect(emergencyPanelSource).not.toContain('usePageData');
+    expect(emergencyPanelSource).not.toContain('Using Mock Data');
+    expect(emergencyPanelSource).not.toContain('Live Status');
+    expect(emergencyPanelSource).not.toContain('Quick Actions');
+    expect(emergencyPanelSource).not.toContain('Clear runway');
+  });
+
+  it('keeps Requests provider-owned and sponsor-excluded across route and nav contracts', () => {
+    expect(getRouteProtection('/emergencies')).toEqual({
+      minRole: 'provider',
+      resource: 'emergency_requests',
+      title: 'Requests',
+      excludedRoles: ['sponsor'],
+    });
+
+    expect(getProtectedRoutesForRole('admin')).toContain('/emergencies');
+    expect(getProtectedRoutesForRole('org_admin')).toContain('/emergencies');
+    expect(getProtectedRoutesForRole('provider')).toContain('/emergencies');
+    expect(getProtectedRoutesForRole('sponsor')).not.toContain('/emergencies');
+    expect(getProtectedRoutesForRole('viewer')).not.toContain('/emergencies');
+
+    expect(getAccessibleNav({ role: 'provider' }).ops.items.map((item) => item.path)).toContain('/emergencies');
+    expect(getAccessibleNav({ role: 'sponsor' }).ops).toBeNull();
+  });
+
+  it('keeps Requests actions tied to explicit receivers and removes mobile destructive shortcuts', () => {
+    const pageSource = fs.readFileSync('src/components/pages/EmergencyRequestsPage.jsx', 'utf8');
+    const mobileSource = fs.readFileSync('src/components/mobile/MobileEmergency.jsx', 'utf8');
+    const detailsModalSource = fs.readFileSync('src/components/modals/EmergencyDetailsModal.jsx', 'utf8');
+    const requestModalSource = fs.readFileSync('src/components/modals/EmergencyRequestModal.jsx', 'utf8');
+    const actionSource = fs.readFileSync('src/utils/emergencyActions.js', 'utf8');
+    const responseServiceSource = fs.readFileSync('src/services/emergencyResponseService.js', 'utf8');
+    const emergencyServiceSource = fs.readFileSync('src/services/emergencyService.js', 'utf8');
+
+    expect(pageSource).toContain('dispatchEmergency(request.id, request)');
+    expect(pageSource).toContain('completeEmergency(request.id)');
+    expect(pageSource).toContain('retryPaymentWithDifferentMethod(requestId');
+    expect(pageSource).toContain("if (currentUser.isAdmin() || currentUser.isOrgAdmin())");
+    expect(pageSource).toContain('const canManage = currentUser.isAdmin() || currentUser.isOrgAdmin();');
+    expect(pageSource).toContain('const canCompleteAsProvider = currentUser.isProvider() && actionState.canComplete;');
+    expect(pageSource).toContain('if (!actionState.canDispatch)');
+    expect(pageSource).toContain('This request is not ready to dispatch. Refreshing list...');
+    expect(pageSource).toContain("toast.loading('Dispatching request...', { id: 'dispatch' });");
+    expect(pageSource).toContain("toast.success('Request dispatched', { id: 'dispatch' });");
+    expect(pageSource).toContain("toast.error('Failed to dispatch request', { id: 'dispatch' });");
+    expect(pageSource).toContain('setCompleteModal({ open: true, request });');
+    expect(pageSource).toContain('await completeEmergency(request.id);');
+    expect(pageSource).toContain("toast.success('Request completed');");
+    expect(pageSource).toContain("toast.error('Failed to complete request');");
+    expect(pageSource).toContain("toast.info('Cash settlement is not ready here yet'");
+    expect(pageSource).toContain('The finance receiver pass still owns this action.');
+    expect(pageSource).toContain('if (!actionState.canRetryPayment)');
+    expect(pageSource).toContain('This request is not ready for payment retry. Refreshing list...');
+    expect(pageSource).toContain('Missing request or patient identifier for retry');
+    expect(pageSource).toContain("toast.loading('Preparing payment retry...', { id: 'retry-pay' });");
+    expect(pageSource).toContain("toast.success('Payment retry created', { id: 'retry-pay' });");
+    expect(pageSource).toContain("toast.error(error.message || 'Failed to retry payment', { id: 'retry-pay' });");
+    expect(pageSource).toContain("import { ModalShell } from '../ui/ModalShell';");
+    expect(pageSource).toContain('<ModalShell');
+    expect(pageSource).toContain('title="Select payment method"');
+    expect(pageSource).toContain('onClick={executeRetryPayment}');
+    expect(pageSource).toContain('onClose={closeRetryModal}');
+    expect(pageSource).toContain("cancelEmergencyRequest(request.id, 'cancelled_from_console')");
+    expect(pageSource).toContain('if (!getEmergencyActionState(request).canCancel)');
+    expect(pageSource).toContain('currentUser.isAdmin() && actionState.canCancel');
+    expect(pageSource).not.toContain(".from('emergency_requests').update");
+    expect(pageSource).not.toContain(".from(TABLE_NAME).update");
+    expect(pageSource).not.toContain('fixed inset-0');
+    expect(pageSource).not.toContain('Close payment retry');
+
+    expect(detailsModalSource).toContain("import { ModalShell } from '../ui/ModalShell';");
+    expect(detailsModalSource).toContain('<ModalShell');
+    expect(detailsModalSource).toContain('title={modalTitle}');
+    expect(detailsModalSource).toContain('subtitle={modalSubtitle}');
+    expect(detailsModalSource).toContain('const formatRequestTitle = (value) =>');
+    expect(detailsModalSource).toContain('return `${label.charAt(0).toUpperCase()}${label.slice(1)} request`;');
+    expect(detailsModalSource).toContain('onClose={() => onClose(false)}');
+    expect(detailsModalSource).not.toContain('fixed inset-0');
+    expect(detailsModalSource).not.toContain('role="dialog"');
+    expect(detailsModalSource).not.toContain('aria-modal="true"');
+    expect(detailsModalSource).not.toMatch(/\bborder(?:-| |")/);
+
+    expect(requestModalSource).toContain("import { ModalShell } from '../ui/ModalShell';");
+    expect(requestModalSource).toContain('<ModalShell');
+    expect(requestModalSource).toContain('title={modalTitle}');
+    expect(requestModalSource).toContain('subtitle={modalSubtitle}');
+    expect(requestModalSource).toContain('const STATUS_SHORT_LABELS = {');
+    expect(requestModalSource).toContain('sm:hidden');
+    expect(requestModalSource).toContain('form={formId}');
+    expect(requestModalSource).toContain("'New request'");
+    expect(requestModalSource).toContain("'Create request'");
+    expect(requestModalSource).not.toContain('fixed inset-0');
+    expect(requestModalSource).not.toContain('role="dialog"');
+    expect(requestModalSource).not.toContain('aria-modal="true"');
+    expect(requestModalSource).not.toContain('Dispatch Unit');
+    expect(requestModalSource).not.toContain('NEW EMERGENCY');
+    expect(requestModalSource).not.toContain('Incident dispatch');
+    expect(requestModalSource).not.toMatch(/\bborder(?:-| |")/);
+
+    expect(responseServiceSource).toContain("supabase.rpc('console_dispatch_emergency'");
+    expect(responseServiceSource).toContain("supabase.rpc('console_complete_emergency'");
+    expect(emergencyServiceSource).toContain("supabase.rpc('console_cancel_emergency'");
+    expect(emergencyServiceSource).toContain("supabase.rpc('retry_payment_with_different_method'");
+    expect(actionSource).toContain('const canCancel = !isTerminal');
+    expect(actionSource).toContain('canDispatch,');
+    expect(actionSource).toContain('canComplete,');
+    expect(actionSource).toContain('canRetryPayment,');
+    expect(actionSource).toContain('canProcessCash: false');
+    expect(actionSource).toContain('canCancel,');
+
+    expect(mobileSource).not.toContain('Cancel request');
+    expect(mobileSource).not.toContain('Dispatch');
+    expect(mobileSource).not.toContain('onEdit');
+    expect(mobileSource).not.toContain('Trash2');
+  });
+
+  it('keeps closed request modals from preloading requester profiles', () => {
+    const modalSource = fs.readFileSync('src/components/modals/EmergencyRequestModal.jsx', 'utf8');
+
+    expect(modalSource).toContain('if (!isOpen) return;');
+    expect(modalSource.indexOf('if (!isOpen) return;'))
+      .toBeLessThan(modalSource.indexOf('fetchUsers();'));
+    expect(modalSource).toContain('[fetchUsers, isOpen]');
+  });
+});

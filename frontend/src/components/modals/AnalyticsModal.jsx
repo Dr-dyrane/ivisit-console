@@ -1,28 +1,8 @@
-"use client";
-
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { X, BarChart3, TrendingUp, Calendar, Globe, Tag, Newspaper, Eye, ChevronRight, ChevronLeft, AlertTriangle, Clock, Activity, Headphones, CheckCircle, Users, Shield, Star, FileText, Ban } from 'lucide-react';
-
-/**
- * AnalyticsModal — Progressive Disclosure, Multiphase
- * Canon #3: Reveal Gradually
- * Canon #4: One Screen, One Action
- * Canon #19: Focused Forms (one phase at a time)
- *
- * Phase 0: Summary bubbles (always visible)
- * Phase 1: Source breakdown (drill-down)
- * Phase 2: Category breakdown (drill-down)
- */
-
-/**
- * AnalyticsModal — Adaptive Progressive Disclosure (Universal)
- * Canon #3: Reveal Gradually
- * Canon #36: Consistency Wins
- * Canon #43: Mutate, Don't Multiply
- */
+import { ModalShell } from '../ui/ModalShell';
+import { BarChart3, TrendingUp, Calendar, Tag, Newspaper, Eye, AlertTriangle, Clock, Activity, Headphones, CheckCircle, Users, Shield, Star, FileText, Ban } from 'lucide-react';
 
 const PHASES_CONFIG = {
   news: [
@@ -31,60 +11,89 @@ const PHASES_CONFIG = {
     { id: 'categories', label: 'By Category' },
   ],
   emergency: [
-    { id: 'summary', label: 'Response Pulse' },
-    { id: 'priority', label: 'Priority Heat' },
-    { id: 'status', label: 'Status Flow' },
+    { id: 'summary', label: 'Summary' },
+    { id: 'priority', label: 'Priority' },
+    { id: 'status', label: 'Status' },
   ],
   hospital: [
-    { id: 'summary', label: 'Network Pulse' },
-    { id: 'resources', label: 'Availability' },
+    { id: 'summary', label: 'Summary' },
+    { id: 'resources', label: 'Capacity' },
     { id: 'verification', label: 'Verification' },
   ],
   ambulance: [
-    { id: 'summary', label: 'Fleet Status' },
-    { id: 'types', label: 'Vehicle Mix' },
-    { id: 'verification', label: 'Compliance' },
+    { id: 'summary', label: 'Summary' },
+    { id: 'types', label: 'Vehicle types' },
+    { id: 'verification', label: 'Verification' },
   ],
   doctor: [
-    { id: 'summary', label: 'Specialist Mesh' },
+    { id: 'summary', label: 'Summary' },
     { id: 'specialty', label: 'Specialties' },
-    { id: 'verification', label: 'Credentials' },
+    { id: 'verification', label: 'Verification' },
   ],
   insurance: [
-    { id: 'summary', label: 'Policy Coverage' },
+    { id: 'summary', label: 'Summary' },
     { id: 'providers', label: 'Providers' },
-    { id: 'types', label: 'Policy Mix' },
+    { id: 'types', label: 'Policy types' },
   ],
   verification: [
-    { id: 'summary', label: 'Identity Pulse' },
-    { id: 'queue', label: 'Review Queue' },
-    { id: 'trust', label: 'Trust Ratio' },
+    { id: 'summary', label: 'Summary' },
+    { id: 'queue', label: 'Review queue' },
+    { id: 'trust', label: 'Outcomes' },
   ],
   support: [
-    { id: 'summary', label: 'Support Pulse' },
-    { id: 'priority', label: 'Urgency' },
-    { id: 'category', label: 'Segments' },
+    { id: 'summary', label: 'Summary' },
+    { id: 'priority', label: 'Priority' },
+    { id: 'category', label: 'Category' },
   ],
   user: [
-    { id: 'summary', label: 'Trust Network' },
-    { id: 'roles', label: 'Role Mesh' },
+    { id: 'summary', label: 'Summary' },
+    { id: 'roles', label: 'Roles' },
     { id: 'growth', label: 'Activity' },
   ],
   subscription: [
-    { id: 'summary', label: 'Revenue Pulse' },
-    { id: 'tiers', label: 'Tier Mix' },
+    { id: 'summary', label: 'Summary' },
+    { id: 'tiers', label: 'Plans' },
     { id: 'growth', label: 'Retention' },
   ],
   visit: [
-    { id: 'summary', label: 'Visits Pulse' },
+    { id: 'summary', label: 'Summary' },
     { id: 'status', label: 'Lifecycle' },
     { id: 'trends', label: 'Volume' },
   ],
   generic: [
-    { id: 'summary', label: 'Pulse' },
-    { id: 'distribution', label: 'Segments' },
-    { id: 'activity', label: 'History' },
+    { id: 'summary', label: 'Summary' },
+    { id: 'distribution', label: 'Distribution' },
+    { id: 'activity', label: 'Activity' },
   ]
+};
+
+const TYPE_LABELS = {
+  news: 'News',
+  emergency: 'Requests',
+  hospital: 'Hospitals',
+  ambulance: 'Ambulances',
+  doctor: 'Doctors',
+  insurance: 'Insurance',
+  verification: 'Approvals',
+  support: 'Support',
+  user: 'Users',
+  subscription: 'Subscriptions',
+  visit: 'Visits',
+  generic: 'Statistics',
+};
+
+const SHARE_LABELS = {
+  news: 'Published',
+  emergency: 'Active',
+  hospital: 'Verified',
+  ambulance: 'Active',
+  doctor: 'Verified',
+  insurance: 'Active',
+  verification: 'Approved',
+  support: 'Resolved',
+  user: 'Verified',
+  subscription: 'Active',
+  visit: 'Completed',
 };
 
 export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
@@ -93,11 +102,35 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
   if (!analytics) return null;
 
   const phases = PHASES_CONFIG[type] || PHASES_CONFIG.generic;
+  const displayType = TYPE_LABELS[type] || TYPE_LABELS.generic;
   const getPercentage = (value, total) => {
     const v = Number(value) || 0;
     const t = Number(total) || 0;
     return t > 0 ? Math.round((v / t) * 100) : 0;
   };
+  const getSafePercentage = (value, total) => {
+    const t = Number(total) || 0;
+    if (t <= 0) return 'No data';
+    return `${getPercentage(value, total)}%`;
+  };
+  const getTrendPercentage = (value, total) => {
+    const t = Number(total) || 0;
+    return t > 0 ? `${getPercentage(value, total)}%` : null;
+  };
+  const getCount = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+  const formatMinutes = (value, total) => {
+    const parsed = Number(value);
+    const hasRows = Number(total) > 0;
+    if (!hasRows || !Number.isFinite(parsed)) return 'No data';
+    return `${parsed.toFixed(1)}m`;
+  };
+  const getDataSetTotal = (dataSet = {}) => (
+    Object.values(dataSet).reduce((sum, value) => sum + (Number(value) || 0), 0)
+  );
+  const isVisibleScopedDistribution = analytics.distributionScope === 'visible_page';
 
   const nextPhase = () => setPhase(p => Math.min(p + 1, phases.length - 1));
   const prevPhase = () => setPhase(p => Math.max(p - 1, 0));
@@ -109,76 +142,77 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
     onClose();
   };
 
-  // ── Phase Renderers ──────────────────────────────────
-
   const renderSummaryPhase = () => {
+    const requestTotal = getCount(analytics.total || analytics.totalEmergencies);
+    const userTotal = getCount(analytics.totalUsers);
+    const genericTotal = getCount(analytics.total);
     const data = {
       news: [
-        { label: 'Total News', value: analytics.total, icon: Newspaper, color: 'hsl(var(--primary))' },
-        { label: 'Published', value: analytics.published, trend: `${getPercentage(analytics.published, analytics.total)}%`, icon: Eye, color: 'hsl(var(--success))' },
-        { label: 'Recent', value: analytics.recent, icon: Calendar, color: 'hsl(var(--info))' },
-        { label: 'Segments', value: Object.keys(analytics.byCategory || {}).length, icon: Tag, color: 'hsl(var(--warning))' }
+        { label: 'Articles', value: getCount(analytics.total), icon: Newspaper, color: 'hsl(var(--info))' },
+        { label: 'Published', value: getCount(analytics.published), trend: getTrendPercentage(analytics.published, analytics.total), icon: Eye, color: 'hsl(var(--success))' },
+        { label: 'Recent', value: getCount(analytics.recent), icon: Calendar, color: 'hsl(var(--info))' },
+        { label: 'Groups', value: Object.keys(analytics.byCategory || {}).length, icon: Tag, color: 'hsl(var(--warning))' }
       ],
       emergency: [
-        { label: 'Requests', value: analytics.total || analytics.totalEmergencies, icon: AlertTriangle, color: 'hsl(var(--destructive))' },
-        { label: 'Critical', value: analytics.critical, trend: `+${analytics.critical}`, icon: TrendingUp, color: 'hsl(var(--destructive))' },
-        { label: 'Avg. Resp', value: `${(analytics.avgResponseTime || 12).toFixed(1)}m`, icon: Clock, color: 'hsl(var(--info))' },
-        { label: 'Active', value: analytics.active, icon: Activity, color: 'hsl(var(--success))' }
+        { label: 'Requests', value: requestTotal, icon: AlertTriangle, color: 'hsl(var(--info))' },
+        { label: 'Needs review', value: getCount(analytics.pending ?? analytics.critical), icon: TrendingUp, color: getCount(analytics.pending ?? analytics.critical) > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))' },
+        { label: 'Avg response', value: formatMinutes(analytics.avgResponseTime, requestTotal), icon: Clock, color: 'hsl(var(--info))' },
+        { label: 'Active', value: getCount(analytics.active), icon: Activity, color: 'hsl(var(--success))' }
       ],
       support: [
-        { label: 'Total Tickets', value: analytics.total, icon: Headphones, color: 'hsl(var(--primary))' },
-        { label: 'Resolved', value: analytics.resolved, trend: `${getPercentage(analytics.resolved, analytics.total)}%`, icon: CheckCircle, color: 'hsl(var(--success))' },
-        { label: 'Avg Speed', value: `${Math.round(analytics.averageResolutionTime || 0)}h`, icon: Clock, color: 'hsl(var(--info))' },
-        { label: 'Urgent', value: analytics.byPriority?.high || 0, icon: AlertTriangle, color: 'hsl(var(--warning))' }
+        { label: 'Tickets', value: getCount(analytics.total), icon: Headphones, color: 'hsl(var(--info))' },
+        { label: 'Resolved', value: getCount(analytics.resolved), trend: getTrendPercentage(analytics.resolved, analytics.total), icon: CheckCircle, color: 'hsl(var(--success))' },
+        { label: 'Avg time', value: analytics.total > 0 ? `${Math.round(Number(analytics.averageResolutionTime) || 0)}h` : 'No data', icon: Clock, color: 'hsl(var(--info))' },
+        { label: 'High priority', value: getCount(analytics.byPriority?.high), icon: AlertTriangle, color: getCount(analytics.byPriority?.high) > 0 ? 'hsl(var(--warning))' : 'hsl(var(--muted-foreground))' }
       ],
       user: [
-        { label: 'Total Users', value: analytics.totalUsers || 0, icon: Users, color: 'hsl(var(--primary))' },
-        { label: 'Verified', value: analytics.verifiedUsers, trend: `${getPercentage(analytics.verifiedUsers, analytics.totalUsers)}%`, icon: Shield, color: 'hsl(var(--success))' },
-        { label: 'New Signups', value: analytics.recentSignups, icon: TrendingUp, color: 'hsl(var(--info))' },
-        { label: 'Profiles', value: analytics.totalProfiles, icon: Activity, color: 'hsl(var(--warning))' }
+        { label: 'Users', value: userTotal, icon: Users, color: 'hsl(var(--info))' },
+        { label: 'Verified', value: getCount(analytics.verifiedUsers), trend: getTrendPercentage(analytics.verifiedUsers, analytics.totalUsers), icon: Shield, color: 'hsl(var(--success))' },
+        { label: 'New users', value: getCount(analytics.recentSignups), icon: TrendingUp, color: 'hsl(var(--info))' },
+        { label: 'Profiles', value: getCount(analytics.totalProfiles), icon: Activity, color: 'hsl(var(--warning))' }
       ],
       visit: [
-        { label: 'Total Visits', value: analytics.total, icon: Calendar, color: 'hsl(var(--primary))' },
-        { label: 'Completed', value: analytics.completed, trend: `${getPercentage(analytics.completed, analytics.total)}%`, icon: CheckCircle, color: 'hsl(var(--success))' },
-        { label: 'Scheduled', value: analytics.scheduled, icon: Clock, color: 'hsl(var(--info))' },
-        { label: 'In Progress', value: analytics.inProgress, icon: Activity, color: 'hsl(var(--warning))' }
+        { label: 'Visits', value: genericTotal, icon: Calendar, color: 'hsl(var(--info))' },
+        { label: 'Completed', value: getCount(analytics.completed), trend: getTrendPercentage(analytics.completed, analytics.total), icon: CheckCircle, color: 'hsl(var(--success))' },
+        { label: 'Scheduled', value: getCount(analytics.scheduled), icon: Clock, color: 'hsl(var(--info))' },
+        { label: 'In progress', value: getCount(analytics.inProgress), icon: Activity, color: 'hsl(var(--warning))' }
       ],
       ambulance: [
-        { label: 'Total Fleet', value: analytics.total, icon: Activity, color: 'hsl(var(--primary))' },
-        { label: 'Active', value: analytics.active, trend: `${getPercentage(analytics.active, analytics.total)}%`, icon: TrendingUp, color: 'hsl(var(--success))' },
-        { label: 'Verified', value: analytics.verified, icon: Shield, color: 'hsl(var(--info))' },
-        { label: 'Emergency', value: analytics.emergency || 0, icon: AlertTriangle, color: 'hsl(var(--destructive))' }
+        { label: 'Units', value: genericTotal, icon: Activity, color: 'hsl(var(--info))' },
+        { label: 'Active', value: getCount(analytics.active), trend: getTrendPercentage(analytics.active, analytics.total), icon: TrendingUp, color: 'hsl(var(--success))' },
+        { label: 'Verified', value: getCount(analytics.verified), icon: Shield, color: 'hsl(var(--info))' },
+        { label: 'Emergency', value: getCount(analytics.emergency), icon: AlertTriangle, color: getCount(analytics.emergency) > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))' }
       ],
       hospital: [
-        { label: 'Total Network', value: analytics.total, icon: Activity, color: 'hsl(var(--primary))' },
-        { label: 'Verified', value: analytics.verified, trend: `${getPercentage(analytics.verified, analytics.total)}%`, icon: Shield, color: 'hsl(var(--success))' },
-        { label: 'Emergency', value: analytics.emergency || 0, icon: AlertTriangle, color: 'hsl(var(--destructive))' },
-        { label: 'Active', value: analytics.active, icon: TrendingUp, color: 'hsl(var(--info))' }
+        { label: 'Facilities', value: genericTotal, icon: Activity, color: 'hsl(var(--info))' },
+        { label: 'Verified', value: getCount(analytics.verified), trend: getTrendPercentage(analytics.verified, analytics.total), icon: Shield, color: 'hsl(var(--success))' },
+        { label: 'Emergency', value: getCount(analytics.emergency), icon: AlertTriangle, color: getCount(analytics.emergency) > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))' },
+        { label: 'Active', value: getCount(analytics.active), icon: TrendingUp, color: 'hsl(var(--info))' }
       ],
       doctor: [
-        { label: 'Total Doctors', value: analytics.total, icon: Users, color: 'hsl(var(--primary))' },
-        { label: 'Verified', value: analytics.verified, trend: `${getPercentage(analytics.verified, analytics.total)}%`, icon: Shield, color: 'hsl(var(--success))' },
-        { label: 'Active', value: analytics.active, icon: Activity, color: 'hsl(var(--info))' },
-        { label: 'Specialized', value: analytics.specialized || 0, icon: Star, color: 'hsl(var(--warning))' }
+        { label: 'Doctors', value: genericTotal, icon: Users, color: 'hsl(var(--info))' },
+        { label: 'Verified', value: getCount(analytics.verified), trend: getTrendPercentage(analytics.verified, analytics.total), icon: Shield, color: 'hsl(var(--success))' },
+        { label: 'Active', value: getCount(analytics.active), icon: Activity, color: 'hsl(var(--info))' },
+        { label: 'Specialists', value: getCount(analytics.specialized), icon: Star, color: 'hsl(var(--warning))' }
       ],
       insurance: [
-        { label: 'Total Policies', value: analytics.total, icon: Shield, color: 'hsl(var(--primary))' },
-        { label: 'Active', value: analytics.active, trend: `${getPercentage(analytics.active, analytics.total)}%`, icon: CheckCircle, color: 'hsl(var(--success))' },
-        { label: 'Verified', value: analytics.verified, icon: Shield, color: 'hsl(var(--info))' },
-        { label: 'Expired', value: analytics.expired, icon: AlertTriangle, color: 'hsl(var(--destructive))' }
+        { label: 'Policies', value: genericTotal, icon: Shield, color: 'hsl(var(--info))' },
+        { label: 'Active', value: getCount(analytics.active), trend: getTrendPercentage(analytics.active, analytics.total), icon: CheckCircle, color: 'hsl(var(--success))' },
+        { label: 'Verified', value: getCount(analytics.verified), icon: Shield, color: 'hsl(var(--info))' },
+        { label: 'Expired', value: getCount(analytics.expired), icon: AlertTriangle, color: getCount(analytics.expired) > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))' }
       ],
       verification: [
-        { label: 'Applications', value: analytics.total, icon: FileText, color: 'hsl(var(--primary))' },
-        { label: 'Verified', value: analytics.approved || analytics.verified, trend: `${getPercentage(analytics.approved || analytics.verified, analytics.total)}%`, icon: CheckCircle, color: 'hsl(var(--success))' },
-        { label: 'Pending', value: analytics.pending, icon: Clock, color: 'hsl(var(--warning))' },
-        { label: 'Rejected', value: analytics.rejected, icon: Ban, color: 'hsl(var(--destructive))' }
+        { label: 'Applications', value: genericTotal, icon: FileText, color: 'hsl(var(--info))' },
+        { label: 'Approved', value: getCount(analytics.approved || analytics.verified), trend: getTrendPercentage(analytics.approved || analytics.verified, analytics.total), icon: CheckCircle, color: 'hsl(var(--success))' },
+        { label: 'Pending', value: getCount(analytics.pending), icon: Clock, color: 'hsl(var(--warning))' },
+        { label: 'Rejected', value: getCount(analytics.rejected), icon: Ban, color: getCount(analytics.rejected) > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))' }
       ]
     };
 
     const currentItems = data[type] || [
-      { label: 'Total Items', value: analytics.total || 0, icon: BarChart3, color: 'hsl(var(--primary))' },
-      { label: 'Active', value: analytics.active || 0, trend: `${getPercentage(analytics.active, analytics.total)}%`, icon: Activity, color: 'hsl(var(--success))' },
-      { label: 'Movement', value: analytics.recent || 0, icon: TrendingUp, color: 'hsl(var(--info))' },
+      { label: 'Items', value: getCount(analytics.total), icon: BarChart3, color: 'hsl(var(--info))' },
+      { label: 'Active', value: getCount(analytics.active), trend: getTrendPercentage(analytics.active, analytics.total), icon: Activity, color: 'hsl(var(--success))' },
+      { label: 'Recent', value: getCount(analytics.recent), icon: TrendingUp, color: 'hsl(var(--info))' },
       { label: 'Diversity', value: Object.keys(analytics.byCategory || analytics.roleDistribution || {}).length, icon: Tag, color: 'hsl(var(--warning))' }
     ];
 
@@ -203,25 +237,25 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
           ))}
         </div>
 
-        <div className="p-4 apple-glass-heavy rounded-[24px] border-0 flex items-center justify-around text-center mt-2 group">
+        <div className="p-4 apple-glass-heavy rounded-[24px] flex items-center justify-around text-center mt-2 group">
           <div className="flex flex-col items-center">
-            <span className="text-[14px] font-normal tracking-tight">
-              {getPercentage(
+            <span className="text-[14px] font-normal tracking-normal">
+              {getSafePercentage(
                 analytics.active || analytics.published || analytics.verifiedUsers || analytics.resolved || analytics.completed,
-                analytics.total || analytics.totalUsers || 1
-              )}%
+                analytics.total || analytics.totalUsers
+              )}
             </span>
-            <span className="text-[7px] text-muted-foreground/40 uppercase tracking-[0.2em] mt-1 font-bold">Health Index</span>
+            <span className="mt-1 text-[10px] font-semibold text-muted-foreground/55">{SHARE_LABELS[type] || 'Share'}</span>
           </div>
-          <div className="w-px h-6 bg-foreground/5" />
+          <div className="h-1.5 w-1.5 rounded-full bg-foreground/10" />
           <div className="flex flex-col items-center">
-            <span className="text-[14px] font-normal tracking-tight">{analytics.recent || analytics.recentSignups || analytics.critical || 0}</span>
-            <span className="text-[7px] text-muted-foreground/40 uppercase tracking-[0.2em] mt-1 font-bold">In-Flow</span>
+            <span className="text-[14px] font-normal tracking-normal">{getCount(analytics.recent || analytics.recentSignups || analytics.pending || analytics.critical)}</span>
+            <span className="mt-1 text-[10px] font-semibold text-muted-foreground/55">Recent</span>
           </div>
-          <div className="w-px h-6 bg-foreground/5" />
+          <div className="h-1.5 w-1.5 rounded-full bg-foreground/10" />
           <div className="flex flex-col items-center">
-            <span className="text-[14px] font-normal tracking-tight">{Object.keys(analytics.byCategory || analytics.roleDistribution || analytics.byStatus || {}).length}</span>
-            <span className="text-[7px] text-muted-foreground/40 uppercase tracking-[0.2em] mt-1 font-bold">Segments</span>
+            <span className="text-[14px] font-normal tracking-normal">{Object.keys(analytics.byCategory || analytics.roleDistribution || analytics.byStatus || {}).length}</span>
+            <span className="mt-1 text-[10px] font-semibold text-muted-foreground/55">Groups</span>
           </div>
         </div>
       </motion.div>
@@ -231,6 +265,9 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
   const renderDistributionPhase = () => {
     const dataSet = analytics.bySource || analytics.byPriority || analytics.roleDistribution || analytics.byProvider || analytics.byOrg || analytics.byCategory || {};
     const total = analytics.total || analytics.totalUsers || 1;
+    const scopedTotal = isVisibleScopedDistribution
+      ? (Number(analytics.visibleCount) || getDataSetTotal(dataSet) || 1)
+      : total;
 
     return (
       <motion.div
@@ -240,11 +277,16 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
         exit={{ opacity: 0, x: -10 }}
         className="space-y-2"
       >
-        <div className="apple-glass-heavy rounded-[28px] p-4 border-0">
+        <div className="apple-glass-heavy rounded-[28px] p-4">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-1 h-1 rounded-full bg-primary/40" />
-            <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground/60">{phases[phase].label}</span>
+            <div className="h-1.5 w-1.5 rounded-full bg-sky-500/55" />
+            <span className="text-xs font-semibold text-muted-foreground/70">{phases[phase].label}</span>
           </div>
+          {isVisibleScopedDistribution && (
+            <p className="mb-4 rounded-2xl bg-muted/25 px-3 py-2 text-xs font-semibold text-muted-foreground">
+              {analytics.distributionLabel || 'Visible page only'}
+            </p>
+          )}
           <div className="space-y-3">
             {Object.entries(dataSet)
               .sort(([, a], [, b]) => b - a)
@@ -252,21 +294,21 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
               .map(([key, count]) => (
                 <div key={key} className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-end px-1">
-                    <span className="text-[11px] font-normal tracking-tight capitalize opacity-80">{key.replace('_', ' ')}</span>
-                    <span className="text-[10px] font-medium tabular-nums opacity-40">{getPercentage(count, total)}%</span>
+                    <span className="text-[11px] font-normal tracking-normal capitalize opacity-80">{key.replace('_', ' ')}</span>
+                    <span className="text-[10px] font-medium tabular-nums opacity-40">{getPercentage(count, scopedTotal)}%</span>
                   </div>
                   <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${getPercentage(count, total)}%` }}
+                      animate={{ width: `${getPercentage(count, scopedTotal)}%` }}
                       transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                      className="h-full bg-primary/60 rounded-full shadow-[0_0_8px_rgba(var(--primary-rgb),0.2)]"
+                      className="h-full rounded-full bg-sky-500/65 shadow-[0_0_8px_rgba(14,165,233,0.18)]"
                     />
                   </div>
                 </div>
               ))}
             {Object.keys(dataSet).length === 0 && (
-              <p className="text-[9px] text-muted-foreground/30 text-center py-10 uppercase tracking-[0.2em]">Signal processing...</p>
+              <p className="py-10 text-center text-xs font-semibold text-muted-foreground/55">No data yet</p>
             )}
           </div>
         </div>
@@ -276,6 +318,9 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
 
   const renderDetailsPhase = () => {
     const dataSet = analytics.byCategory || analytics.byStatus || analytics.byTier || analytics.hospitalStats || {};
+    const scopedTotal = isVisibleScopedDistribution
+      ? (Number(analytics.visibleCount) || getDataSetTotal(dataSet) || 1)
+      : (analytics.total || analytics.totalUsers || 100);
 
     return (
       <motion.div
@@ -284,25 +329,30 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -10 }}
       >
-        <div className="apple-glass-heavy rounded-[28px] p-4 border-0">
+        <div className="apple-glass-heavy rounded-[28px] p-4">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-1 h-1 rounded-full bg-success/40" />
-            <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground/60">{phases[phase].label}</span>
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500/55" />
+            <span className="text-xs font-semibold text-muted-foreground/70">{phases[phase].label}</span>
           </div>
+          {isVisibleScopedDistribution && (
+            <p className="mb-4 rounded-2xl bg-muted/25 px-3 py-2 text-xs font-semibold text-muted-foreground">
+              {analytics.distributionLabel || 'Visible page only'}
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-2">
             {Object.entries(dataSet)
               .sort(([, a], [, b]) => b - a)
               .map(([key, count]) => (
                 <div key={key} className="p-3 rounded-2xl bg-foreground/[0.03] flex flex-col items-center text-center group active:scale-[0.98] transition-transform">
-                  <span className="text-[7px] font-bold uppercase tracking-[0.15em] opacity-30 mb-1 truncate w-full px-1 capitalize tracking-widest">{key.replace('_', ' ')}</span>
-                  <span className="text-[16px] font-normal tracking-tighter tabular-nums">{count}</span>
-                  <span className="text-[8px] font-medium text-primary/40 mt-0.5">
-                    {getPercentage(count, analytics.total || analytics.totalUsers || 100)}%
+                  <span className="mb-1 w-full truncate px-1 text-xs font-semibold capitalize text-muted-foreground/65">{key.replace('_', ' ')}</span>
+                  <span className="text-[16px] font-normal tracking-normal tabular-nums">{count}</span>
+                  <span className="mt-0.5 text-[10px] font-semibold text-sky-600/70 dark:text-sky-300/80">
+                    {getPercentage(count, scopedTotal)}%
                   </span>
                 </div>
               ))}
             {Object.keys(dataSet).length === 0 && (
-              <p className="col-span-2 text-[9px] text-muted-foreground/30 text-center py-10 uppercase tracking-[0.2em]">No segments detected</p>
+              <p className="col-span-2 py-10 text-center text-xs font-semibold text-muted-foreground/55">No groups yet</p>
             )}
           </div>
         </div>
@@ -312,127 +362,88 @@ export const AnalyticsModal = ({ open, onClose, analytics, type = 'news' }) => {
 
   const phaseRenderers = [renderSummaryPhase, renderDistributionPhase, renderDetailsPhase];
 
-  return (
-    <AnimatePresence>
-      {open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 overflow-hidden">
-          {/* Backdrop (Canon #20) */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/25 dark:bg-black/60 backdrop-blur-md"
-            onClick={handleClose}
+  const footer = (
+    <div className="flex items-center justify-between gap-3">
+      <Button
+        variant="ghost"
+        onClick={isFirst ? handleClose : prevPhase}
+        className="h-12 rounded-[18px] px-5 text-xs font-semibold text-muted-foreground/70 transition-all hover:bg-foreground/5 active:scale-95 sm:px-6"
+      >
+        {isFirst ? 'Close' : 'Previous'}
+      </Button>
+
+      <div className="flex items-center gap-1.5">
+        {phases.map((_, i) => (
+          <div
+            key={i}
+            className={`h-1 rounded-full transition-all duration-500 ${i === phase ? 'w-2.5 bg-sky-500' : 'w-1 bg-foreground/10'}`}
           />
+        ))}
+      </div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 15 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 15 }}
-            transition={{ type: "spring", damping: 25, stiffness: 350 }}
-            role="dialog"
-
-            aria-modal="true"
-
-            className="relative z-10 w-full max-w-[400px] max-h-[85vh] overflow-hidden rounded-[32px] flex flex-col bg-background/90 dark:bg-transparent apple-glass-heavy border-0 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]"
-          >
-            {/* Header (Canon #30, #39) */}
-            <div className="flex items-center justify-between p-6 pb-2">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-[14px] flex items-center justify-center relative z-10 shadow-md"
-                  style={{ background: 'radial-gradient(circle at 30% 30%, hsl(var(--primary) / 0.15), hsl(var(--primary) / 0.05))' }}
-                >
-                  <BarChart3 className="h-5 w-5 text-primary opacity-80" />
-                </div>
-                <div className="flex flex-col">
-                  <p className="text-[8px] font-thin uppercase tracking-[0.2em] text-muted-foreground/60 mb-0.5">Analytic Engine</p>
-                  <h2 className="text-[15px] font-normal tracking-tight text-foreground/90 capitalize leading-none">
-                    {type.replace('-', ' ')}
-                  </h2>
-                </div>
-              </div>
-              <motion.button
-                whileTap={{ scale: 0.92 }}
-                onClick={handleClose}
-                className="h-10 w-10 rounded-[14px] apple-glass flex items-center justify-center border-0 text-muted-foreground/40 hover:text-foreground/80 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </motion.button>
-            </div>
-
-            {/* Context Breadcrumb */}
-            <div className="px-6 pb-4">
-              <span className="text-[7px] font-bold text-primary/40 uppercase tracking-[0.3em]">{phases[phase]?.label}</span>
-            </div>
-
-            {/* Phase Progress Indicator */}
-            <div className="flex gap-1 px-6 pb-6">
-              {phases.map((p, i) => (
-                <div
-                  key={p.id}
-                  className={`h-0.5 flex-1 rounded-full transition-all duration-700 ${i === phase
-                    ? 'bg-primary'
-                    : i < phase
-                      ? 'bg-primary/20'
-                      : 'bg-foreground/5'
-                    }`}
-                />
-              ))}
-            </div>
-
-            {/* Content (Canon #5, #24) */}
-            <div className="px-6 pb-8 overflow-y-auto no-scrollbar flex-1 min-h-[320px]">
-              <AnimatePresence mode="wait">
-                {phaseRenderers[phase] ? phaseRenderers[phase]() : null}
-              </AnimatePresence>
-            </div>
-
-            {/* Control Strip (Canon #28, #37) */}
-            <div className="p-6 pt-4 flex items-center justify-between bg-foreground/[0.02]">
-              <Button
-                variant="ghost"
-                onClick={isFirst ? handleClose : prevPhase}
-                className="h-12 rounded-[18px] text-[8px] font-bold tracking-[0.25em] uppercase px-6 border-0 hover:bg-white/5 active:scale-95 transition-all text-muted-foreground/60"
-              >
-                {isFirst ? 'DIMMISS' : 'PREVIOUS'}
-              </Button>
-
-              <div className="flex gap-1.5 items-center">
-                {phases.map((_, i) => (
-                  <div key={i} className={`h-1 rounded-full transition-all duration-500 ${i === phase ? 'bg-primary w-2.5' : 'bg-foreground/10 w-1'}`} />
-                ))}
-              </div>
-
-              {!isLast ? (
-                <Button
-                  onClick={nextPhase}
-                  className="h-12 rounded-[18px] text-[8px] font-bold tracking-[0.25em] uppercase px-8 bg-primary hover:bg-primary/90 text-white shadow-none active:scale-[0.97] transition-all"
-                >
-                  CONTINUE
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleClose}
-                  className="h-12 rounded-[18px] text-[8px] font-bold tracking-[0.25em] uppercase px-8 apple-glass border-0 text-foreground active:scale-[0.97] transition-all"
-                >
-                  COMPLETE
-                </Button>
-              )}
-            </div>
-          </motion.div>
-        </div>
+      {!isLast ? (
+        <Button
+          onClick={nextPhase}
+          className="h-12 rounded-[18px] bg-foreground px-7 text-xs font-semibold text-background shadow-none transition-all hover:bg-foreground/90 active:scale-[0.97] sm:px-8"
+        >
+          Next
+        </Button>
+      ) : (
+        <Button
+          onClick={handleClose}
+          className="h-12 rounded-[18px] px-7 text-xs font-semibold text-foreground transition-all active:scale-[0.97] apple-glass sm:px-8"
+        >
+          Done
+        </Button>
       )}
-    </AnimatePresence>
+    </div>
+  );
+
+  return (
+    <ModalShell
+      isOpen={open}
+      onClose={handleClose}
+      title="Statistics"
+      subtitle={displayType}
+      icon={<BarChart3 className="h-5 w-5 text-sky-600 opacity-90 dark:text-sky-300" />}
+      footer={footer}
+      size="md"
+      className="rounded-[32px] bg-background/95 apple-glass-heavy dark:bg-background/90"
+    >
+      <div className="px-5 pb-6 sm:px-6">
+        <div className="pb-4">
+          <span className="text-xs font-semibold text-sky-600/75 dark:text-sky-300/80">{phases[phase]?.label}</span>
+        </div>
+
+        <div className="flex gap-1 pb-6">
+          {phases.map((p, i) => (
+            <div
+              key={p.id}
+              className={`h-0.5 flex-1 rounded-full transition-all duration-700 ${i === phase
+                ? 'bg-sky-500'
+                : i < phase
+                  ? 'bg-sky-500/25'
+                  : 'bg-foreground/5'
+                }`}
+            />
+          ))}
+        </div>
+
+        <div className="min-h-[320px]">
+          <AnimatePresence mode="wait">
+            {phaseRenderers[phase] ? phaseRenderers[phase]() : null}
+          </AnimatePresence>
+        </div>
+      </div>
+    </ModalShell>
   );
 };
 
-/* ── Refined Sub-components ──────────────────────────── */
 
 const StatNode = ({ label, value, trend, icon: Icon, color }) => (
   <motion.div
     whileTap={{ scale: 0.98 }}
-    className="p-3.5 rounded-[22px] bg-foreground/[0.04] dark:bg-transparent apple-glass-heavy border-0 relative overflow-hidden group active:bg-muted/40 transition-colors"
+    className="p-3.5 rounded-[22px] bg-foreground/[0.04] dark:bg-transparent apple-glass-heavy relative overflow-hidden group active:bg-muted/40 transition-colors"
   >
     {/* Raised Action Node (Canon #369) */}
     <div className="flex justify-between items-start mb-2.5">
@@ -450,13 +461,12 @@ const StatNode = ({ label, value, trend, icon: Icon, color }) => (
     </div>
 
     <div className="flex flex-col">
-      <span className="text-[8px] font-thin uppercase tracking-[0.15em] mb-0.5 opacity-40 group-hover:opacity-60 transition-opacity">
+      <span className="mb-0.5 text-[10px] font-semibold text-muted-foreground/60 transition-opacity group-hover:text-muted-foreground/80">
         {label}
       </span>
-      <span className="text-[18px] font-normal tracking-tighter tabular-nums leading-none">
+      <span className="text-[18px] font-normal tracking-normal tabular-nums leading-none">
         {value}
       </span>
     </div>
   </motion.div>
 );
-

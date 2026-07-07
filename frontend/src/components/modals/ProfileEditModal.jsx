@@ -32,17 +32,17 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
     }, [profile]);
 
     const handleImageUpload = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
         try {
             setUploading(true);
-            const file = event.target.files?.[0];
-            if (!file) return;
 
             const publicUrl = await uploadAvatar(file);
 
             setFormData(prev => ({ ...prev, image_uri: publicUrl }));
             toast.success('Image uploaded successfully');
-        } catch (error) {
-            console.error('Error uploading image:', error);
+        } catch {
             toast.error('Error uploading image');
         } finally {
             setUploading(false);
@@ -63,7 +63,6 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
             toast.success('Profile updated successfully');
             onClose();
         } catch (error) {
-            console.error(error);
             handleApiError(error, 'update');
         } finally {
             setLoading(false);
@@ -91,14 +90,15 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
 
                         aria-modal="true"
 
-                        className="relative z-10 w-full max-w-xl bg-background/95 backdrop-blur-xl rounded-[24px] md:rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-5rem)] md:max-h-[85vh]"
+                        className="relative z-10 flex w-full max-w-xl max-h-[calc(100dvh-5rem)] flex-col overflow-hidden rounded-modal bg-background/95 shadow-2xl backdrop-blur-xl md:max-h-[85vh]"
                     >
-                        <div className="p-3 md:p-6 border-b border-border/10 flex justify-between items-center shrink-0">
+                        <div className="flex shrink-0 items-center justify-between p-3 shadow-[0_18px_42px_rgb(0_0_0/0.06)] md:p-6">
                             <h2 className="text-xl font-bold tracking-tight">Edit Profile</h2>
                             <Button
                                 variant="ghost"
                                 onClick={onClose}
-                                className="h-8 w-8 rounded-full bg-muted/50 hover:bg-muted transition-colors p-0"
+                                aria-label="Close profile editor"
+                                className="h-8 w-8 rounded-pill bg-muted/50 p-0 transition-colors hover:bg-muted"
                             >
                                 <X className="h-4 w-4" />
                             </Button>
@@ -109,10 +109,11 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                                 {/* Avatar Section */}
                                 <div className="flex flex-col items-center gap-4">
                                     <div className="relative group cursor-pointer">
-                                        <div className="h-28 w-28 rounded-full overflow-hidden border-4 border-background shadow-xl ring-2 ring-muted">
+                                        <div className="h-28 w-28 overflow-hidden rounded-card bg-muted shadow-xl">
                                             {(uploading) ? (
-                                                <div className="flex items-center justify-center h-full bg-muted">
-                                                    <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                                                <div role="status" aria-live="polite" className="flex h-full flex-col items-center justify-center gap-2 bg-muted text-muted-foreground">
+                                                    <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+                                                    <span className="text-[10px] font-semibold">Uploading</span>
                                                 </div>
                                             ) : (
                                                 <img
@@ -124,7 +125,9 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                                         </div>
                                         <label
                                             htmlFor="avatar-upload"
-                                            className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 rounded-full transition-all cursor-pointer"
+                                            aria-disabled={uploading ? 'true' : undefined}
+                                            data-state={uploading ? 'pending' : 'ready'}
+                                            className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-card bg-black/40 opacity-0 transition-all group-hover:opacity-100"
                                         >
                                             <Camera className="w-8 h-8 text-white" />
                                         </label>
@@ -137,35 +140,35 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                                             disabled={uploading}
                                         />
                                     </div>
-                                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Tap to change photo</p>
+                                    <p className="text-xs font-medium text-muted-foreground">{uploading ? 'Uploading photo...' : 'Tap to change photo'}</p>
                                 </div>
 
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2 col-span-2">
-                                            <Label className="text-xs font-bold uppercase text-muted-foreground ml-1">Identity</Label>
-                                            <div className="p-4 bg-muted/20 border border-white/5 rounded-2xl flex flex-col gap-4">
+                                            <Label className="ml-1 text-xs font-bold text-muted-foreground">Identity</Label>
+                                            <div className="flex flex-col gap-4 rounded-inner bg-muted/20 p-4 shadow-sm">
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div>
-                                                        <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">First Name</span>
+                                                        <span className="mb-1 block text-[10px] font-bold text-muted-foreground">First name</span>
                                                         <div className="text-sm font-semibold">{profile?.first_name || 'Not Set'}</div>
                                                     </div>
                                                     <div>
-                                                        <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Last Name</span>
+                                                        <span className="mb-1 block text-[10px] font-bold text-muted-foreground">Last name</span>
                                                         <div className="text-sm font-semibold">{profile?.last_name || 'Not Set'}</div>
                                                     </div>
                                                 </div>
-                                                <div className="h-px bg-border/10 w-full" />
+                                                <div className="h-1 w-full rounded-pill bg-muted/20" />
                                                 <div>
-                                                    <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Electronic Mail</span>
+                                                    <span className="mb-1 block text-[10px] font-bold text-muted-foreground">Email</span>
                                                     <div className="text-sm font-semibold font-mono tracking-tight">{profile?.email || user?.email || 'No email linked'}</div>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div className="space-y-2 col-span-2">
-                                            <Label className="text-xs font-bold uppercase text-muted-foreground ml-1">Member Since</Label>
-                                            <div className="p-3 bg-muted/20 border border-white/5 rounded-2xl text-sm font-medium text-muted-foreground opacity-80 cursor-not-allowed">
+                                            <Label className="ml-1 text-xs font-bold text-muted-foreground">Member since</Label>
+                                            <div className="cursor-not-allowed rounded-inner bg-muted/20 p-3 text-sm font-medium text-muted-foreground opacity-80 shadow-sm">
                                                 {profile?.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, {
                                                     year: 'numeric',
                                                     month: 'long',
@@ -175,29 +178,29 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                                         </div>
                                     </div>
 
-                                    <div className="h-px bg-border/10 my-1" />
+                                    <div className="my-1 h-1 rounded-pill bg-muted/20" />
 
                                     <div className="space-y-2">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground ml-1">Username</Label>
+                                        <Label className="ml-1 text-xs font-bold text-muted-foreground">Username</Label>
                                         <div className="relative">
                                             <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                                             <Input
                                                 value={formData.username}
                                                 onChange={(e) => setFormData(p => ({ ...p, username: e.target.value }))}
-                                                className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary"
+                                                className="h-12 rounded-button bg-muted/30 pl-10 shadow-sm"
                                                 placeholder="jdoe"
                                             />
                                         </div>
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground ml-1">Phone Number</Label>
+                                        <Label className="ml-1 text-xs font-bold text-muted-foreground">Phone number</Label>
                                         <div className="relative">
                                             <Smartphone className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                                             <Input
                                                 value={formData.phone}
                                                 onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
-                                                className="pl-10 h-12 rounded-2xl bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-primary"
+                                                className="h-12 rounded-button bg-muted/30 pl-10 shadow-sm"
                                                 placeholder="+1 (555) 000-0000"
                                             />
                                         </div>
@@ -206,13 +209,32 @@ export const ProfileEditModal = ({ isOpen, onClose }) => {
                             </form>
                         </div>
 
-                        <div className="p-6 pt-2 shrink-0 border-t border-border/5 mt-auto bg-background/50 backdrop-blur-md">
+                        <div className="mt-auto shrink-0 bg-background/50 p-6 pt-2 shadow-[0_-18px_42px_rgb(0_0_0/0.06)] backdrop-blur-md">
                             <div className="flex gap-3">
-                                <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-2xl h-12 border-0 bg-muted/50 hover:bg-muted font-semibold">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={onClose}
+                                    disabled={loading || uploading}
+                                    data-state={(loading || uploading) ? 'blocked' : 'ready'}
+                                    className="h-12 flex-1 rounded-button bg-muted/50 font-semibold hover:bg-muted"
+                                >
                                     Cancel
                                 </Button>
-                                <Button type="submit" form="profile-edit-form" disabled={loading || uploading} className="flex-1 rounded-2xl h-12 font-bold bg-primary hover:bg-primary/90 text-primary-foreground">
-                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
+                                <Button
+                                    type="submit"
+                                    form="profile-edit-form"
+                                    disabled={loading || uploading}
+                                    aria-busy={loading ? 'true' : undefined}
+                                    data-state={loading ? 'pending' : uploading ? 'blocked' : 'ready'}
+                                    className="h-12 flex-1 rounded-button bg-primary font-bold text-primary-foreground hover:bg-primary/90"
+                                >
+                                    {loading ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                                            Saving...
+                                        </>
+                                    ) : 'Save Changes'}
                                 </Button>
                             </div>
                         </div>

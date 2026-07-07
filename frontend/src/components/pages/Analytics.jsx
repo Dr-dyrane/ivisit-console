@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '../../lib/supabase';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getCurrentUser, applyAuthFilter } from '../../services/authService';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -48,12 +46,12 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { usePageHeader } from '../../contexts/LayoutContext';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
-import { useSubscription } from '../../hooks/useSubscription';
-import { getFinanceAnalytics } from '../../services/walletService';
+import { DEFAULT_ANALYTICS_SUBSCRIPTION_STATS, getAnalyticsIntakePage } from '../../services/analyticsService';
 import { Wallet } from 'lucide-react';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { MobileAnalytics } from '../mobile/MobileAnalytics';
 import { MobileAnalyticsSkeleton } from '../mobile/MobileSkeleton';
+import { SEOHead } from '../common/SEOHead';
 
 const CHART_COLORS = {
   primary: 'hsl(var(--primary))',
@@ -66,10 +64,139 @@ const CHART_COLORS = {
   mutedForeground: 'hsl(var(--muted-foreground))'
 };
 
+const ANALYTICS_EXPORT_UNAVAILABLE_MESSAGE = 'Reports unavailable until analytics scope is verified.';
+const ANALYTICS_LOAD_ERROR_MESSAGE = 'Statistics did not load.';
+const ANALYTICS_REFRESH_PENDING_MESSAGE = 'Refreshing statistics.';
+const ANALYTICS_STALE_SOURCE_MESSAGE = 'Statistics could not refresh. Showing the last loaded view.';
+const ANALYTICS_PARTIAL_SOURCE_MESSAGE = 'Some statistics are unavailable.';
+const ANALYTICS_DENIED_SOURCE_MESSAGE = 'Some statistics are not available for this role.';
+const SOURCE_PENDING_LABEL = 'Source pending';
+const ADMIN_ONLY_LABEL = 'Admin only';
+const SCOPE_PENDING_LABEL = 'Scope pending';
+const ANALYTICS_SOURCE_LABELS = {
+  requests: 'Requests',
+  users: 'Users',
+  hospitals: 'Hospitals',
+  ambulances: 'Ambulances',
+  subscriptions: 'Subscriptions',
+  finance: 'Payments',
+};
+const RESPONSE_TIME_CHART_HEIGHT = 300;
+const DAILY_VOLUME_CHART_HEIGHT = 250;
+const CASE_TYPE_CHART_HEIGHT = 200;
+const PIE_CHART_SIZE = 220;
+const FINANCE_CHART_HEIGHT = 160;
+const RESPONSE_TIME_INITIAL_DIMENSION = { width: 1, height: RESPONSE_TIME_CHART_HEIGHT };
+const DAILY_VOLUME_INITIAL_DIMENSION = { width: 1, height: DAILY_VOLUME_CHART_HEIGHT };
+const CASE_TYPE_INITIAL_DIMENSION = { width: 1, height: CASE_TYPE_CHART_HEIGHT };
+const PIE_CHART_INITIAL_DIMENSION = { width: PIE_CHART_SIZE, height: PIE_CHART_SIZE };
+const FINANCE_CHART_INITIAL_DIMENSION = { width: 1, height: FINANCE_CHART_HEIGHT };
+const DEFAULT_SUBSCRIPTION_STATS = {
+  total: 0,
+  active: 0,
+  paid: 0,
+  free: 0,
+  newUsers: 0,
+  welcomeEmailsSent: 0,
+  paidConversionRate: 0,
+  activeFree: 0,
+  activePremium: 0,
+  inactiveFree: 0,
+  inactivePremium: 0,
+  ...(DEFAULT_ANALYTICS_SUBSCRIPTION_STATS || {}),
+};
+const DEFAULT_HOSPITAL_CAPACITY = { total: 0, occupied: 0, icu: 0 };
+
+const normalizeSubscriptionStats = (value) => ({
+  ...DEFAULT_SUBSCRIPTION_STATS,
+  ...(value || {}),
+});
+
+const getAnalyticsSourceIssueSummary = (issues = []) => {
+  if (!issues.length) return null;
+
+  const deniedLabels = issues
+    .filter((issue) => issue.kind === 'denied')
+    .map((issue) => ANALYTICS_SOURCE_LABELS[issue.source] || issue.source);
+  const failedLabels = issues
+    .filter((issue) => issue.kind !== 'denied')
+    .map((issue) => ANALYTICS_SOURCE_LABELS[issue.source] || issue.source);
+  const detailParts = [
+    deniedLabels.length ? `${deniedLabels.join(', ')} need role access.` : null,
+    failedLabels.length ? `${failedLabels.join(', ')} did not load.` : null,
+  ].filter(Boolean);
+
+  return {
+    kind: deniedLabels.length ? 'denied' : 'failed',
+    title: deniedLabels.length && !failedLabels.length
+      ? ANALYTICS_DENIED_SOURCE_MESSAGE
+      : ANALYTICS_PARTIAL_SOURCE_MESSAGE,
+    detail: detailParts.join(' ') || 'Try again when the source is ready.',
+  };
+};
+
+const AnalyticsLoadErrorBanner = ({ onRetry }) => (
+  <div
+    data-testid="analytics-error-state"
+    role="alert"
+    className="mb-4 mx-4 md:mx-6 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-sm"
+  >
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="font-semibold">{ANALYTICS_LOAD_ERROR_MESSAGE}</p>
+        <p className="mt-1 text-xs text-destructive/75">
+          Retry when the source is available.
+        </p>
+      </div>
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        onClick={onRetry}
+        className="self-start rounded-full bg-background/70 px-4 text-xs font-semibold text-destructive hover:bg-background/90 sm:self-auto"
+      >
+        Retry
+      </Button>
+    </div>
+  </div>
+);
+
+const AnalyticsSourceIssueBanner = ({ issueSummary, onRetry }) => {
+  if (!issueSummary) return null;
+
+  return (
+    <div
+      data-testid="analytics-source-state"
+      role="status"
+      aria-live="polite"
+      className="mb-4 mx-4 md:mx-6 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:bg-amber-950/30 dark:text-amber-200"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="font-semibold">{issueSummary.title}</p>
+          <p className="mt-1 text-xs text-amber-800/75 dark:text-amber-100/70">
+            {issueSummary.detail}
+          </p>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={onRetry}
+          className="self-start rounded-full bg-background/70 px-4 text-xs font-semibold text-amber-900 hover:bg-background/90 dark:text-amber-100 sm:self-auto"
+        >
+          Retry
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 export const Analytics = () => {
   const { hasMinRole, isAdmin, isProvider, isPatient, isViewer, isSponsor, isOrgAdmin } = useAuth();
   const [timeRange, setTimeRange] = useState('7d');
   const [loading, setLoading] = useState(true);
+  const analyticsSnapshotReadyRef = useRef(false);
   const [stats, setStats] = useState({
     totalEmergencies: 0,
     avgResponseTime: 0,
@@ -78,24 +205,13 @@ export const Analytics = () => {
     totalHospitals: 0,
     totalAmbulances: 0,
   });
+  const [analyticsLoadError, setAnalyticsLoadError] = useState(null);
+  const [analyticsRefreshNotice, setAnalyticsRefreshNotice] = useState(null);
 
-  // Use subscription hook instead of direct service call
-  const { fetchAnalytics: fetchSubscriptionAnalytics } = useSubscription();
-  const [subscriptionStats, setSubscriptionStats] = useState({
-    total: 0,
-    active: 0,
-    paid: 0,
-    free: 0,
-    newUsers: 0,
-    welcomeEmailsSent: 0,
-    paidConversionRate: 0,
-    activeFree: 0,
-    activePremium: 0,
-    inactiveFree: 0,
-    inactivePremium: 0,
-  });
+  const [subscriptionStats, setSubscriptionStats] = useState(() => normalizeSubscriptionStats());
 
   const [financeData, setFinanceData] = useState([]);
+  const [analyticsSourceIssues, setAnalyticsSourceIssues] = useState([]);
 
   const [responseTimeData, setResponseTimeData] = useState([]);
   const [requestsByStatus, setRequestsByStatus] = useState([]);
@@ -103,67 +219,48 @@ export const Analytics = () => {
   const [emergencyTypes, setEmergencyTypes] = useState([]);
   const [dominantType, setDominantType] = useState(null); // Storytelling state
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [commandNotice, setCommandNotice] = useState(null);
   const [demandHeatmap, setDemandHeatmap] = useState([]);
   const [hospitalCapacity, setHospitalCapacity] = useState({ total: 0, occupied: 0, icu: 0 });
   const [sparseBannerDismissed, setSparseBannerDismissed] = useState(false);
+  const resolvedSubscriptionStats = useMemo(
+    () => normalizeSubscriptionStats(subscriptionStats),
+    [subscriptionStats],
+  );
+  const resolvedHospitalCapacity = useMemo(
+    () => ({ ...DEFAULT_HOSPITAL_CAPACITY, ...(hospitalCapacity || {}) }),
+    [hospitalCapacity],
+  );
   const isDataSparse = !sparseBannerDismissed && (!stats?.totalEmergencies || stats.totalEmergencies < 5);
+  const hospitalCapacityPercent = resolvedHospitalCapacity.total > 0
+    ? Math.round((resolvedHospitalCapacity.occupied / resolvedHospitalCapacity.total) * 100)
+    : 0;
+  const canReadSubscriptionAnalytics = isAdmin();
+  const canReadFinanceAnalytics = isAdmin() || isSponsor();
+  const subscriptionScopeLabel = canReadSubscriptionAnalytics ? SOURCE_PENDING_LABEL : ADMIN_ONLY_LABEL;
+  const financeScopeLabel = canReadFinanceAnalytics ? SOURCE_PENDING_LABEL : SCOPE_PENDING_LABEL;
+  const analyticsSourceIssueSummary = useMemo(
+    () => getAnalyticsSourceIssueSummary(analyticsSourceIssues),
+    [analyticsSourceIssues],
+  );
+  const visibleAnalyticsSourceIssueSummary = useMemo(() => {
+    if (analyticsRefreshNotice) {
+      return {
+        kind: 'stale',
+        title: analyticsRefreshNotice,
+        detail: analyticsRefreshNotice === ANALYTICS_REFRESH_PENDING_MESSAGE
+          ? 'Last loaded view stays visible.'
+          : 'Retry when the source is available.',
+      };
+    }
+
+    return analyticsSourceIssueSummary;
+  }, [analyticsRefreshNotice, analyticsSourceIssueSummary]);
 
   const handleExport = useCallback(() => {
-    // Create CSV data from analytics
-    const csvData = [
-      ['Metric', 'Value', 'Trend'],
-      ['Total Emergencies', stats.totalEmergencies, ''],
-      ['Avg Response Time (min)', stats.avgResponseTime.toFixed(1), ''],
-      ['Success Rate (%)', stats.successRate, ''],
-      ['Total Users', stats.totalUsers, ''],
-      ['Total Hospitals', stats.totalHospitals, ''],
-      ['Total Ambulances', stats.totalAmbulances, ''],
-      [],
-      ['Subscription Metrics', 'Value', 'Percentage'],
-      ['Total Subscribers', subscriptionStats.total, ''],
-      ['Active Subscribers', subscriptionStats.active, subscriptionStats.total > 0 ? `${Math.round((subscriptionStats.active / subscriptionStats.total) * 100)}%` : ''],
-      ['Paid Subscribers', subscriptionStats.paid, subscriptionStats.total > 0 ? `${Math.round((subscriptionStats.paid / subscriptionStats.total) * 100)}%` : ''],
-      ['Free Subscribers', subscriptionStats.free, subscriptionStats.total > 0 ? `${Math.round((subscriptionStats.free / subscriptionStats.total) * 100)}%` : ''],
-      ['New Users', subscriptionStats.newUsers, subscriptionStats.total > 0 ? `${Math.round((subscriptionStats.newUsers / subscriptionStats.total) * 100)}%` : ''],
-      ['Welcome Emails Sent', subscriptionStats.welcomeEmailsSent, subscriptionStats.total > 0 ? `${Math.round((subscriptionStats.welcomeEmailsSent / subscriptionStats.total) * 100)}%` : ''],
-      ['Paid Conversion Rate', `${subscriptionStats.paidConversionRate}%`, ''],
-      [],
-      ['Emergency Types', 'Count', 'Percentage'],
-      ...emergencyTypes.map(type => [
-        type.name,
-        type.value,
-        `${Math.round((type.value / stats.totalEmergencies) * 100)}%`
-      ]),
-      [],
-      ['Request Status', 'Count', 'Percentage'],
-      ...requestsByStatus.map(status => [
-        status.name,
-        status.value,
-        `${Math.round((status.value / requestsByStatus.reduce((sum, s) => sum + s.value, 0)) * 100)}%`
-      ]),
-      [],
-      ['Daily Response Times', 'Day', 'Avg Time (min)', 'Requests'],
-      ...responseTimeData.map(day => [
-        day.day,
-        day.avgTime,
-        day.requests
-      ])
-    ];
-
-    // Convert to CSV string
-    const csvString = csvData.map(row => row.join(',')).join('\n');
-
-    // Create and download CSV file
-    const blob = new Blob([csvString], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `analytics-export-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    toast.success('Analytics data exported successfully');
-  }, [stats, subscriptionStats, emergencyTypes, requestsByStatus, responseTimeData]);
+    setCommandNotice(ANALYTICS_EXPORT_UNAVAILABLE_MESSAGE);
+    toast.info(ANALYTICS_EXPORT_UNAVAILABLE_MESSAGE);
+  }, []);
 
   // Prepare analytics data for reports
   const analyticsDataForReports = useMemo(() => ({
@@ -178,17 +275,21 @@ export const Analytics = () => {
     requestsByDay,
     emergencyTypes,
     dominantType,
-    // Add subscription analytics
-    subscriptionAnalytics: {
-      totalSubscribers: subscriptionStats.total,
-      activeSubscribers: subscriptionStats.active,
-      paidSubscribers: subscriptionStats.paid,
-      freeSubscribers: subscriptionStats.free,
-      newUsers: subscriptionStats.newUsers,
-      welcomeEmailsSent: subscriptionStats.welcomeEmailsSent,
-      paidConversionRate: subscriptionStats.paidConversionRate,
-    }
-  }), [stats, responseTimeData, requestsByStatus, requestsByDay, emergencyTypes, dominantType, subscriptionStats]);
+    // Add subscription analytics only for the proved admin subscriber scope.
+    subscriptionAnalytics: canReadSubscriptionAnalytics
+      ? {
+        totalSubscribers: resolvedSubscriptionStats.total,
+        activeSubscribers: resolvedSubscriptionStats.active,
+        paidSubscribers: resolvedSubscriptionStats.paid,
+        freeSubscribers: resolvedSubscriptionStats.free,
+        newUsers: resolvedSubscriptionStats.newUsers,
+        welcomeEmailsSent: resolvedSubscriptionStats.welcomeEmailsSent,
+        paidConversionRate: resolvedSubscriptionStats.paidConversionRate,
+      }
+      : {
+        scope: ADMIN_ONLY_LABEL,
+      }
+  }), [stats, responseTimeData, requestsByStatus, requestsByDay, emergencyTypes, dominantType, resolvedSubscriptionStats, canReadSubscriptionAnalytics]);
 
   // Financial summary metrics
   const financeSummary = useMemo(() => {
@@ -207,6 +308,45 @@ export const Analytics = () => {
       health: health || 0
     };
   }, [financeData]);
+  const hasFinanceData = Array.isArray(financeData) && financeData.length > 0;
+  const hasMeasuredResponseSeries = responseTimeData.some((point) => Number(point?.avgTime) > 0);
+  const responseScopeBadge = hasMeasuredResponseSeries ? 'Measured avg' : SOURCE_PENDING_LABEL;
+  const providerResponseScopeBadge = hasMeasuredResponseSeries ? 'Personal' : SOURCE_PENDING_LABEL;
+  const financeScale = Math.max(
+    Number(financeSummary.total) || 0,
+    Number(financeSummary.weeklyAvg) * 7 || 0,
+    Number(financeSummary.today) || 0,
+    1
+  );
+  const formatFinanceValue = (value) => (
+    hasFinanceData ? `$${Number(value || 0).toFixed(0)}` : financeScopeLabel
+  );
+  const financeMetricRows = [
+    {
+      label: 'Today',
+      value: formatFinanceValue(financeSummary.today),
+      progress: hasFinanceData ? Math.min(100, Math.round(((Number(financeSummary.today) || 0) / financeScale) * 100)) : 0,
+      color: 'success'
+    },
+    {
+      label: 'Avg/Week',
+      value: formatFinanceValue((Number(financeSummary.weeklyAvg) || 0) * 7),
+      progress: hasFinanceData ? Math.min(100, Math.round((((Number(financeSummary.weeklyAvg) || 0) * 7) / financeScale) * 100)) : 0,
+      color: 'primary'
+    },
+    {
+      label: 'Total',
+      value: formatFinanceValue(financeSummary.total),
+      progress: hasFinanceData ? Math.min(100, Math.round(((Number(financeSummary.total) || 0) / financeScale) * 100)) : 0,
+      color: 'info'
+    }
+  ];
+  const paidConversionLabel = canReadSubscriptionAnalytics && Number(resolvedSubscriptionStats.paidConversionRate) > 0
+    ? `${Number(resolvedSubscriptionStats.paidConversionRate).toFixed(1)}%`
+    : subscriptionScopeLabel;
+  const avgPerRequestLabel = hasFinanceData && stats.totalEmergencies > 0
+    ? `$${(financeSummary.total / stats.totalEmergencies).toFixed(0)}`
+    : financeScopeLabel;
 
   const headerActions = useMemo(() => (
     <div className="flex items-center gap-3">
@@ -226,12 +366,13 @@ export const Analytics = () => {
         size="sm"
         className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
         onClick={handleExport}
+        aria-describedby={commandNotice ? 'analytics-export-feedback' : undefined}
       >
         <Download className="h-3 w-3 mr-2" />
         EXPORT
       </Button>
     </div>
-  ), [timeRange, handleExport]);
+  ), [timeRange, handleExport, commandNotice]);
 
   usePageHeader("Impact Analytics", headerActions);
 
@@ -356,64 +497,14 @@ export const Analytics = () => {
       color: i >= 16 && i <= 20 ? CHART_COLORS.destructive : i >= 8 && i <= 15 ? CHART_COLORS.info : CHART_COLORS.muted
     }));
 
-    // Predictive fallback for empty/null intervals: deterministic and stable, never random.
+    // Source-pending fallback: do not synthesize measured analytics.
     if (!hasLiveVolume && !hasLiveBreakdown && maxBucketValue === 0) {
-      const predictedDayData = dayKeys.map((key, idx) => {
-        const d = dayMap.get(key).date;
-        const weekday = d.getDay();
-        const base = weekday === 0 || weekday === 6 ? 7 : 10;
-        const wave = (idx % 4) - 1;
-        const requests = Math.max(3, base + wave);
-        const completed = Math.max(1, Math.round(requests * 0.76));
-        const avgTime = Math.max(2.2, 5.8 - (completed / Math.max(requests, 1)) * 2.1);
-        return {
-          day: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-          shortDay: d.toLocaleDateString('en-US', { weekday: 'short' }),
-          avgTime: Math.round(avgTime * 10) / 10,
-          requests,
-          completed
-        };
-      });
-
-      const predictedTotal = predictedDayData.reduce((sum, row) => sum + row.requests, 0);
-      const predictedCompleted = predictedDayData.reduce((sum, row) => sum + row.completed, 0);
-      const predictedInProgress = Math.max(1, Math.round(predictedTotal * 0.14));
-      const predictedPending = Math.max(1, predictedTotal - predictedCompleted - predictedInProgress);
-
-      const predictedStatuses = [
-        { name: 'Completed', value: predictedCompleted, color: CHART_COLORS.success },
-        { name: 'In Progress', value: predictedInProgress, color: CHART_COLORS.info },
-        { name: 'Pending', value: predictedPending, color: CHART_COLORS.warning }
-      ];
-
-      const predictedTypes = [
-        { name: 'Cardiac', value: Math.max(1, Math.round(predictedTotal * 0.34)), baseColor: CHART_COLORS.destructive },
-        { name: 'Trauma', value: Math.max(1, Math.round(predictedTotal * 0.28)), baseColor: CHART_COLORS.warning },
-        { name: 'Respiratory', value: Math.max(1, Math.round(predictedTotal * 0.22)), baseColor: CHART_COLORS.info },
-        { name: 'Other', value: Math.max(1, Math.round(predictedTotal * 0.16)), baseColor: CHART_COLORS.secondary }
-      ].sort((a, b) => b.value - a.value);
-      const predictedMax = predictedTypes[0]?.value || 0;
-      const normalizedPredictedTypes = predictedTypes.map((type) => ({
-        ...type,
-        color: type.value === predictedMax ? type.baseColor : 'hsl(var(--muted))',
-        isDominant: type.value === predictedMax
-      }));
-
-      const predictedHeatmap = Array.from({ length: 24 }).map((_, hour) => {
-        const pulse = hour >= 7 && hour <= 10 ? 72 : hour >= 16 && hour <= 20 ? 100 : hour >= 11 && hour <= 15 ? 58 : 24;
-        return {
-          hour: `${hour.toString().padStart(2, '0')}:00`,
-          value: pulse,
-          color: hour >= 16 && hour <= 20 ? CHART_COLORS.destructive : hour >= 8 && hour <= 15 ? CHART_COLORS.info : CHART_COLORS.muted
-        };
-      });
-
-      setResponseTimeData(predictedDayData);
-      setRequestsByDay(predictedDayData);
-      setRequestsByStatus(predictedStatuses);
-      setEmergencyTypes(normalizedPredictedTypes);
-      setDominantType(normalizedPredictedTypes[0] || null);
-      setDemandHeatmap(predictedHeatmap);
+      setResponseTimeData([]);
+      setRequestsByDay([]);
+      setRequestsByStatus([]);
+      setEmergencyTypes([]);
+      setDominantType(null);
+      setDemandHeatmap([]);
       return;
     }
 
@@ -426,54 +517,24 @@ export const Analytics = () => {
   }, [extractResponseMinutes, timeRange]);
 
   const fetchAnalytics = useCallback(async () => {
-    setLoading(true);
+    const hasVisibleSnapshot = analyticsSnapshotReadyRef.current;
+
+    if (!hasVisibleSnapshot) {
+      setLoading(true);
+      setAnalyticsSourceIssues([]);
+    }
+    setAnalyticsLoadError(null);
+    setAnalyticsRefreshNotice(hasVisibleSnapshot ? ANALYTICS_REFRESH_PENDING_MESSAGE : null);
     try {
-      // Get current user for RBAC filtering
-      const user = await getCurrentUser();
-
-      // Apply RBAC filtering to queries
-      let requestsQuery = supabase.from('emergency_requests').select('*');
-      let usersQuery = supabase.from('profiles').select('*', { count: 'exact' });
-      let hospitalsQuery = supabase.from('hospitals').select('*', { count: 'exact' });
-      let ambulancesQuery = supabase.from('ambulances').select('*', { count: 'exact' });
-
-      // Apply RBAC filters
-      requestsQuery = applyAuthFilter(requestsQuery, user, {
-        userIdField: 'user_id',
-        orgIdField: 'hospital_id',
-        resourceType: 'emergency'
+      const analyticsPage = await getAnalyticsIntakePage({
+        timeRange,
+        includeSubscriptionAnalytics: canReadSubscriptionAnalytics,
+        includeFinanceAnalytics: canReadFinanceAnalytics,
       });
+      setFinanceData(canReadFinanceAnalytics ? analyticsPage.financeData || [] : []);
+      setAnalyticsSourceIssues(analyticsPage.sourceIssues || []);
 
-      usersQuery = applyAuthFilter(usersQuery, user, {
-        userIdField: 'id',
-        orgIdField: 'organization_id',
-        resourceType: 'users'
-      });
-
-      hospitalsQuery = applyAuthFilter(hospitalsQuery, user, {
-        orgIdField: 'organization_id',
-        resourceType: 'hospitals'
-      });
-
-      ambulancesQuery = applyAuthFilter(ambulancesQuery, user, {
-        orgIdField: 'organization_id',
-        resourceType: 'ambulances'
-      });
-
-      // Fetch all data in parallel with RBAC filtering applied
-      const [requestsRes, usersRes, hospitalsRes, ambulancesRes, subscriptionData] = await Promise.all([
-        requestsQuery,
-        usersQuery,
-        hospitalsQuery,
-        ambulancesQuery,
-        fetchSubscriptionAnalytics() // Use hook instead of direct service call
-      ]);
-
-      if (isAdmin() || isOrgAdmin() || isSponsor()) {
-        getFinanceAnalytics(user, isAdmin() || isSponsor(), timeRange === '7d' ? 7 : 30).then(setFinanceData);
-      }
-
-      const requests = requestsRes.data || [];
+      const requests = analyticsPage.requests || [];
       const completed = requests.filter(r => r.status === 'completed');
       const totalRequests = requests.length;
 
@@ -487,14 +548,14 @@ export const Analytics = () => {
       setStats({
         totalEmergencies: totalRequests,
         avgResponseTime: Math.round(avgResponseTime * 10) / 10,
-        totalUsers: usersRes.count || 0,
+        totalUsers: analyticsPage.usersCount || 0,
         successRate: totalRequests > 0 ? Math.round((completed.length / totalRequests) * 100) : 0,
-        totalHospitals: hospitalsRes.count || 0,
-        totalAmbulances: ambulancesRes.count || 0,
+        totalHospitals: analyticsPage.hospitalsCount || 0,
+        totalAmbulances: analyticsPage.ambulancesCount || 0,
       });
 
       // Calculate Hospital Capacity Metrics
-      const hospitals = hospitalsRes.data || [];
+      const hospitals = analyticsPage.hospitals || [];
       const totalBeds = hospitals.reduce((sum, h) => sum + (h.total_beds || 0), 0);
       const availableBeds = hospitals.reduce((sum, h) => sum + (h.available_beds || 0), 0);
       const icuAvailable = hospitals.reduce((sum, h) => sum + (h.icu_beds_available || 0), 0);
@@ -505,16 +566,29 @@ export const Analytics = () => {
         icu: icuAvailable || 0
       });
 
-      setSubscriptionStats(subscriptionData);
+      setSubscriptionStats(canReadSubscriptionAnalytics
+        ? normalizeSubscriptionStats(analyticsPage.subscriptionStats)
+        : normalizeSubscriptionStats());
 
       generateChartData(requests);
+      analyticsSnapshotReadyRef.current = true;
+      setAnalyticsRefreshNotice(null);
     } catch (error) {
       console.error('Error fetching analytics:', error);
-      toast.error('Failed to load analytics data');
+      if (hasVisibleSnapshot) {
+        setAnalyticsLoadError(null);
+        setAnalyticsRefreshNotice(ANALYTICS_STALE_SOURCE_MESSAGE);
+        toast.error(ANALYTICS_STALE_SOURCE_MESSAGE);
+      } else {
+        setAnalyticsLoadError(ANALYTICS_LOAD_ERROR_MESSAGE);
+        setAnalyticsRefreshNotice(null);
+        setAnalyticsSourceIssues([]);
+        toast.error(ANALYTICS_LOAD_ERROR_MESSAGE);
+      }
     } finally {
       setLoading(false);
     }
-  }, [extractResponseMinutes, fetchSubscriptionAnalytics, generateChartData]);
+  }, [canReadFinanceAnalytics, canReadSubscriptionAnalytics, extractResponseMinutes, generateChartData, timeRange]);
 
   useEffect(() => {
     fetchAnalytics();
@@ -578,11 +652,12 @@ export const Analytics = () => {
   if (isMobile) {
     return (
       <>
+        <SEOHead title="Statistics" description="Review source-pending analytics and scoped reporting readiness in iVisit Console." />
         <MobileAnalytics
           stats={stats}
-          subscriptionStats={subscriptionStats}
+          subscriptionStats={resolvedSubscriptionStats}
           financeSummary={financeSummary}
-          hospitalCapacity={hospitalCapacity}
+          hospitalCapacity={resolvedHospitalCapacity}
           responseTimeData={responseTimeData}
           requestsByStatus={requestsByStatus}
           emergencyTypes={emergencyTypes}
@@ -591,7 +666,15 @@ export const Analytics = () => {
           demandHeatmap={demandHeatmap}
           timeRange={timeRange}
           onRefresh={fetchAnalytics}
+          loadError={analyticsLoadError}
+          onRetry={fetchAnalytics}
           handleExport={handleExport}
+          exportNotice={commandNotice}
+          sourceIssueSummary={visibleAnalyticsSourceIssueSummary}
+          subscriptionScopeLabel={subscriptionScopeLabel}
+          financeScopeLabel={financeScopeLabel}
+          canReadSubscriptionAnalytics={canReadSubscriptionAnalytics}
+          canReadFinanceAnalytics={canReadFinanceAnalytics}
           roleContext={roleContext}
         />
         <AnalyticsModal
@@ -602,7 +685,7 @@ export const Analytics = () => {
             active: stats.totalAmbulances,
             verified: stats.totalHospitals,
             emergency: stats.totalEmergencies,
-            ...subscriptionStats
+            ...resolvedSubscriptionStats
           }}
           type="emergency"
         />
@@ -612,11 +695,29 @@ export const Analytics = () => {
 
   return (
     <>
+      <SEOHead title="Statistics" description="Review source-pending analytics and scoped reporting readiness in iVisit Console." />
       <div className="min-h-screen py-6 md:py-8">
+        {analyticsLoadError && (
+          <AnalyticsLoadErrorBanner onRetry={fetchAnalytics} />
+        )}
+        <AnalyticsSourceIssueBanner
+          issueSummary={visibleAnalyticsSourceIssueSummary}
+          onRetry={fetchAnalytics}
+        />
         {isDataSparse && (
           <div className="mb-4 mx-4 md:mx-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300 flex items-center justify-between">
-            <span>Activity charts show estimated baseline data. Actuals will appear after 7 days of operational data.</span>
-            <button onClick={() => setSparseBannerDismissed(true)} className="ml-4 shrink-0 text-amber-600 hover:text-amber-800 dark:text-amber-400">✕</button>
+            <span>Analytics source is pending. Verify report scope before using these charts.</span>
+            <button onClick={() => setSparseBannerDismissed(true)} className="ml-4 shrink-0 text-amber-600 hover:text-amber-800 dark:text-amber-400">Close</button>
+          </div>
+        )}
+        {commandNotice && (
+          <div
+            id="analytics-export-feedback"
+            role="status"
+            aria-live="polite"
+            className="mb-4 mx-4 md:mx-6 rounded-2xl bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
+          >
+            {commandNotice}
           </div>
         )}
         {/* Layout padding adjustment */}
@@ -631,9 +732,9 @@ export const Analytics = () => {
           {/* Stat Cards - Row 1 - Role-based visibility */}
           {/* Admin see system-wide stats */}
           {isAdmin() && [
-            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: "up", trendValue: "+12%", color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "geo-sharp" },
-            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: "down", trendValue: "15% faster", color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-round" },
-            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Excellent", color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
+            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "geo-sharp" },
+            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-round" },
+            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
           ].map((stat, idx) => (
             <motion.div
               layout
@@ -670,9 +771,9 @@ export const Analytics = () => {
 
           {/* Org Admin see organization-level stats */}
           {isOrgAdmin() && [
-            { title: "Org Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: "up", trendValue: "Your org", color: CHART_COLORS.warning, colSpan: "col-span-1 lg:col-span-2", shape: "geo-round" },
-            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: "down", trendValue: "Org performance", color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
-            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Org success", color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-sharp" },
+            { title: "Org Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.warning, colSpan: "col-span-1 lg:col-span-2", shape: "geo-round" },
+            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
+            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-sharp" },
           ].map((stat, idx) => (
             <motion.div
               layout
@@ -708,9 +809,9 @@ export const Analytics = () => {
 
           {/* Sponsor see system-wide stats */}
           {isSponsor() && [
-            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: "up", trendValue: "+12%", color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "geo-sharp" },
-            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: "down", trendValue: "15% faster", color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-round" },
-            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Excellent", color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
+            { title: "Total Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.destructive, colSpan: "col-span-1 lg:col-span-2", shape: "geo-sharp" },
+            { title: "Avg Response", value: `${stats.avgResponseTime.toFixed(1)}m`, icon: Clock, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-round" },
+            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
           ].map((stat, idx) => (
             <motion.div
               layout
@@ -746,8 +847,8 @@ export const Analytics = () => {
 
           {/* Provider-specific limited stats */}
           {isProvider() && [
-            { title: "Your Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: "up", trendValue: "Your assigned", color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2", shape: "geo-round" },
-            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Your performance", color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
+            { title: "Your Emergencies", value: stats.totalEmergencies, icon: AlertTriangle, trend: null, trendValue: null, color: CHART_COLORS.info, colSpan: "col-span-1 lg:col-span-2", shape: "geo-round" },
+            { title: "Success Rate", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.success, colSpan: "col-span-1 lg:col-span-2 xl:col-span-1", shape: "geo-chamfer" },
           ].map((stat, idx) => (
             <motion.div
               layout
@@ -805,13 +906,13 @@ export const Analytics = () => {
                   <div className="flex gap-2">
                     <Badge className="squircle bg-success/10 text-success border-0 font-semibold px-3 py-1">
                       <TrendingDown className="h-4 w-4 mr-1" />
-                      -2.4m avg
+                      {responseScopeBadge}
                     </Badge>
                   </div>
                 </div>
 
                 <div className="flex-1 w-full min-h-[300px]">
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={RESPONSE_TIME_CHART_HEIGHT} initialDimension={RESPONSE_TIME_INITIAL_DIMENSION}>
                     <AreaChart data={responseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1">
@@ -874,13 +975,13 @@ export const Analytics = () => {
                   <div className="flex gap-2">
                     <Badge className="squircle bg-warning/10 text-warning border-0 font-semibold px-3 py-1">
                       <TrendingDown className="h-4 w-4 mr-1" />
-                      Org avg
+                      {responseScopeBadge}
                     </Badge>
                   </div>
                 </div>
 
                 <div className="flex-1 w-full min-h-[300px]">
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={RESPONSE_TIME_CHART_HEIGHT} initialDimension={RESPONSE_TIME_INITIAL_DIMENSION}>
                     <AreaChart data={responseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorTimeOrg" x1="0" y1="0" x2="0" y2="1">
@@ -943,13 +1044,13 @@ export const Analytics = () => {
                   <div className="flex gap-2">
                     <Badge className="squircle bg-success/10 text-success border-0 font-semibold px-3 py-1">
                       <TrendingDown className="h-4 w-4 mr-1" />
-                      -2.4m avg
+                      {responseScopeBadge}
                     </Badge>
                   </div>
                 </div>
 
                 <div className="flex-1 w-full min-h-[300px]">
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={RESPONSE_TIME_CHART_HEIGHT} initialDimension={RESPONSE_TIME_INITIAL_DIMENSION}>
                     <AreaChart data={responseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorTimeSponsor" x1="0" y1="0" x2="0" y2="1">
@@ -1012,13 +1113,13 @@ export const Analytics = () => {
                   <div className="flex gap-2">
                     <Badge className="squircle bg-info/10 text-info border-0 font-semibold px-3 py-1">
                       <Activity className="h-4 w-4 mr-1" />
-                      Personal
+                      {providerResponseScopeBadge}
                     </Badge>
                   </div>
                 </div>
 
                 <div className="flex-1 w-full min-h-[300px]">
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={RESPONSE_TIME_CHART_HEIGHT} initialDimension={RESPONSE_TIME_INITIAL_DIMENSION}>
                     <AreaChart data={responseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorTimeProvider" x1="0" y1="0" x2="0" y2="1">
@@ -1083,10 +1184,10 @@ export const Analytics = () => {
                 </div>
 
                 <h3 className="font-bold text-xl mb-1 tracking-tight">System Status</h3>
-                <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Live distribution of all system requests</p>
+                <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Current distribution of all system requests</p>
 
                 <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
-                  <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
+                  <ResponsiveContainer width={PIE_CHART_SIZE} height={PIE_CHART_SIZE} minWidth={200} aspect={1} initialDimension={PIE_CHART_INITIAL_DIMENSION}>
                     <PieChart>
                       <Pie
                         data={requestsByStatus}
@@ -1148,10 +1249,10 @@ export const Analytics = () => {
                 </div>
 
                 <h3 className="font-bold text-xl mb-1 tracking-tight">Organization Status</h3>
-                <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Live distribution of your organization's requests</p>
+                <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Current distribution of your organization's requests</p>
 
                 <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
-                  <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
+                  <ResponsiveContainer width={PIE_CHART_SIZE} height={PIE_CHART_SIZE} minWidth={200} aspect={1} initialDimension={PIE_CHART_INITIAL_DIMENSION}>
                     <PieChart>
                       <Pie
                         data={requestsByStatus}
@@ -1212,10 +1313,10 @@ export const Analytics = () => {
                 </div>
 
                 <h3 className="font-bold text-xl mb-1 tracking-tight">System Status</h3>
-                <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Live distribution of all system requests</p>
+                <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Current distribution of all system requests</p>
 
                 <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
-                  <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
+                  <ResponsiveContainer width={PIE_CHART_SIZE} height={PIE_CHART_SIZE} minWidth={200} aspect={1} initialDimension={PIE_CHART_INITIAL_DIMENSION}>
                     <PieChart>
                       <Pie
                         data={requestsByStatus}
@@ -1278,10 +1379,10 @@ export const Analytics = () => {
                 </div>
 
                 <h3 className="font-bold text-xl mb-1 tracking-tight">Your Status</h3>
-                <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Live distribution of your requests</p>
+                <p className="text-sm text-muted-foreground font-medium mb-6 w-3/4">Current distribution of your requests</p>
 
                 <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
-                  <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
+                  <ResponsiveContainer width={PIE_CHART_SIZE} height={PIE_CHART_SIZE} minWidth={200} aspect={1} initialDimension={PIE_CHART_INITIAL_DIMENSION}>
                     <PieChart>
                       <Pie
                         data={requestsByStatus}
@@ -1350,12 +1451,12 @@ export const Analytics = () => {
                 </div>
 
                 <div className="flex-1 relative min-h-[200px] min-w-[200px] flex items-center justify-center">
-                  <ResponsiveContainer width={220} height={220} minWidth={200} aspect={1}>
+                  <ResponsiveContainer width={PIE_CHART_SIZE} height={PIE_CHART_SIZE} minWidth={200} aspect={1} initialDimension={PIE_CHART_INITIAL_DIMENSION}>
                     <PieChart>
                       <Pie
                         data={[
-                          { name: 'Active', value: subscriptionStats.active, fill: CHART_COLORS.success },
-                          { name: 'Inactive', value: subscriptionStats.total - subscriptionStats.active, fill: CHART_COLORS.muted },
+                          { name: 'Active', value: resolvedSubscriptionStats.active, fill: CHART_COLORS.success },
+                          { name: 'Inactive', value: resolvedSubscriptionStats.total - resolvedSubscriptionStats.active, fill: CHART_COLORS.muted },
                         ]}
                         cx="50%"
                         cy="50%"
@@ -1375,7 +1476,7 @@ export const Analytics = () => {
                   {/* Center Text Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
                     <div className="text-center">
-                      <p className="text-4xl font-bold tracking-tighter text-foreground">{subscriptionStats.total}</p>
+                      <p className="text-4xl font-bold tracking-tighter text-foreground">{resolvedSubscriptionStats.total}</p>
                       <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">TOTAL</p>
                     </div>
                   </div>
@@ -1385,11 +1486,11 @@ export const Analytics = () => {
                 <div className="mt-4 flex flex-wrap gap-2 justify-center">
                   <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-warning/20 text-xs font-medium">
                     <div className="w-2 h-2 rounded-full bg-warning" />
-                    <span>Premium {subscriptionStats.paid}</span>
+                    <span>Premium {resolvedSubscriptionStats.paid}</span>
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1.5 squircle bg-muted/20 text-xs font-medium">
                     <div className="w-2 h-2 rounded-full bg-muted" />
-                    <span>Free {subscriptionStats.free}</span>
+                    <span>Free {resolvedSubscriptionStats.free}</span>
                   </div>
                 </div>
               </Card>
@@ -1400,7 +1501,7 @@ export const Analytics = () => {
           {/* Admin/Org Admin/Sponsor see system-wide stats */}
           {(isAdmin() || isOrgAdmin() || isSponsor()) && [
             { title: "Ambulances", value: stats.totalAmbulances, icon: Ambulance, trend: null, trendValue: null, color: CHART_COLORS.success },
-            { title: "Total Users", value: stats.totalUsers, icon: Users, trend: "up", trendValue: "+8", color: CHART_COLORS.secondary, },
+            { title: "Total Users", value: stats.totalUsers, icon: Users, trend: null, trendValue: null, color: CHART_COLORS.secondary, },
             { title: "Hospitals", value: stats.totalHospitals, icon: Hospital, trend: null, trendValue: null, color: CHART_COLORS.info },
           ].map((stat, idx) => (
             <motion.div
@@ -1434,7 +1535,7 @@ export const Analytics = () => {
 
           {/* Provider-specific limited stats */}
           {isProvider() && [
-            { title: "Your Performance", value: `${stats.successRate}%`, icon: Activity, trend: "up", trendValue: "Excellent", color: CHART_COLORS.info },
+            { title: "Your Performance", value: `${stats.successRate}%`, icon: Activity, trend: null, trendValue: null, color: CHART_COLORS.info },
           ].map((stat, idx) => (
             <motion.div
               layout
@@ -1479,10 +1580,10 @@ export const Analytics = () => {
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Fleet Readiness</p>
                     <div className="flex items-baseline gap-2">
                       <h3 className="text-3xl font-bold tracking-tighter">
-                        {Math.floor(stats.totalAmbulances * 0.7)}
-                        <span className="text-sm text-muted-foreground font-medium ml-1">/ {stats.totalAmbulances}</span>
+                        {stats.totalAmbulances}
+                        <span className="text-sm text-muted-foreground font-medium ml-1">units</span>
                       </h3>
-                      <Badge className="squircle-sm bg-success/10 text-success border-0 text-[10px] font-bold">READY</Badge>
+                      <Badge className="squircle-sm bg-muted/30 text-muted-foreground border-0 text-[10px] font-bold">{SOURCE_PENDING_LABEL}</Badge>
                     </div>
                   </div>
                   <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
@@ -1495,13 +1596,13 @@ export const Analytics = () => {
                     <motion.div
                       className="h-full bg-success shadow-[0_0_10px_rgba(var(--success),0.5)]"
                       initial={{ width: 0 }}
-                      animate={{ width: '70%' }}
+                      animate={{ width: 0 }}
                       transition={{ duration: 1.5, delay: 0.7 }}
                     />
                   </div>
                   <p className="text-[9px] text-muted-foreground font-medium flex justify-between uppercase tracking-wider">
-                    <span>Operational Efficiency</span>
-                    <span>70% Nominal</span>
+                    <span>Readiness Source</span>
+                    <span>{SOURCE_PENDING_LABEL}</span>
                   </p>
                 </div>
               </Card>
@@ -1519,10 +1620,10 @@ export const Analytics = () => {
                       <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Hospital Resources</p>
                       <div className="flex items-baseline gap-2">
                         <h3 className="text-3xl font-bold tracking-tighter">
-                          {hospitalCapacity.occupied || 0}
-                          <span className="text-sm text-muted-foreground font-medium ml-1">/ {hospitalCapacity.total || 0} BEDS</span>
+                          {resolvedHospitalCapacity.occupied || 0}
+                          <span className="text-sm text-muted-foreground font-medium ml-1">/ {resolvedHospitalCapacity.total || 0} BEDS</span>
                         </h3>
-                        <Badge className="squircle-sm bg-info/10 text-info border-0 text-[10px] font-bold">STABLE</Badge>
+                        <Badge className="squircle-sm bg-info/10 text-info border-0 text-[10px] font-bold">{resolvedHospitalCapacity.total > 0 ? 'Current' : SOURCE_PENDING_LABEL}</Badge>
                       </div>
                     </div>
                     <div className="w-12 h-12 rounded-full bg-info/10 flex items-center justify-center">
@@ -1532,16 +1633,16 @@ export const Analytics = () => {
                   <div className="mt-4 flex items-center gap-4 relative z-10">
                     <div className="flex-1 space-y-2">
                       <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden">
-                        <motion.div className="h-full bg-info shadow-[0_0_10px_rgba(var(--info),0.5)]" initial={{ width: 0 }} animate={{ width: `${Math.round((hospitalCapacity.occupied / hospitalCapacity.total) * 100)}%` }} transition={{ duration: 1.5, delay: 0.8 }} />
+                        <motion.div className="h-full bg-info shadow-[0_0_10px_rgba(var(--info),0.5)]" initial={{ width: 0 }} animate={{ width: `${hospitalCapacityPercent}%` }} transition={{ duration: 1.5, delay: 0.8 }} />
                       </div>
                       <p className="text-[9px] text-muted-foreground font-medium flex justify-between uppercase tracking-wider">
                         <span>Occ. Rate</span>
-                        <span>{Math.round((hospitalCapacity.occupied / hospitalCapacity.total) * 100)}% Capacity</span>
+                        <span>{resolvedHospitalCapacity.total > 0 ? `${hospitalCapacityPercent}% Capacity` : SOURCE_PENDING_LABEL}</span>
                       </p>
                     </div>
                     <div className="px-3 py-1 bg-white/5 rounded-lg ">
                       <p className="text-[8px] font-bold text-muted-foreground uppercase">ICU Free</p>
-                      <p className="text-sm font-black text-foreground">{hospitalCapacity.icu || 0}</p>
+                      <p className="text-sm font-black text-foreground">{resolvedHospitalCapacity.icu || 0}</p>
                     </div>
                   </div>
                 </Card>
@@ -1577,7 +1678,7 @@ export const Analytics = () => {
                 </div>
 
                 <div className="flex-1 w-full min-h-[250px] min-w-[300px] relative z-10">
-                  <ResponsiveContainer width="100%" height={250}>
+                  <ResponsiveContainer width="100%" height={DAILY_VOLUME_CHART_HEIGHT} initialDimension={DAILY_VOLUME_INITIAL_DIMENSION}>
                     <BarChart data={requestsByDay} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
                       <XAxis
@@ -1624,8 +1725,8 @@ export const Analytics = () => {
                     </div>
                     <div className="flex flex-col items-end">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest">Active Monitoring</p>
+                        <div className="w-2 h-2 rounded-full bg-muted" />
+                        <p className="text-[10px] font-bold uppercase tracking-widest">{SOURCE_PENDING_LABEL}</p>
                       </div>
                     </div>
                   </div>
@@ -1634,7 +1735,7 @@ export const Analytics = () => {
                       <motion.div key={idx} initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.8 + (idx * 0.02) }} className="relative group/cell">
                         <div className={`w-full h-full rounded-md border-white/5 transition-all duration-500 cursor-crosshair ${item.value > 80 ? 'bg-destructive/60' : item.value > 50 ? 'bg-warning/40' : item.value > 30 ? 'bg-info/20' : 'bg-white/5'}`} />
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-background/90 backdrop-blur-md rounded text-[8px] font-bold opacity-0 group-hover/cell:opacity-100 transition-opacity z-50 whitespace-nowrap  shadow-xl pointer-events-none">
-                          {item.hour} • {item.value}% LOAD
+                          {item.hour} - {item.value > 0 ? `${item.value}% load` : SOURCE_PENDING_LABEL}
                         </div>
                       </motion.div>
                     ))}
@@ -1646,7 +1747,7 @@ export const Analytics = () => {
                         <span className="text-[8px] font-bold text-muted-foreground uppercase">Critical</span>
                       </div>
                     </div>
-                    <p className="text-[10px] font-black text-muted-foreground/50 italic tracking-widest uppercase">Predictive Dispatch v4.0</p>
+                    <p className="text-[10px] font-black text-muted-foreground/50 italic tracking-widest uppercase">{SOURCE_PENDING_LABEL}</p>
                   </div>
                 </Card>
               </motion.div>
@@ -1679,7 +1780,7 @@ export const Analytics = () => {
                 </div>
 
                 <div className="flex-1 w-full min-h-[250px] min-w-[300px] relative z-10">
-                  <ResponsiveContainer width="100%" height={250}>
+                  <ResponsiveContainer width="100%" height={DAILY_VOLUME_CHART_HEIGHT} initialDimension={DAILY_VOLUME_INITIAL_DIMENSION}>
                     <BarChart data={requestsByDay} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" vertical={false} opacity={0.4} />
                       <XAxis
@@ -1737,18 +1838,20 @@ export const Analytics = () => {
 
                 <div className="mb-2 relative z-10">
                   <h3 className="font-bold text-xl tracking-tight">Dominant System Case</h3>
-                  {dominantType && (
+                  {dominantType && stats.totalEmergencies > 0 ? (
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-3xl font-bold text-destructive tracking-tighter">{dominantType.name}</span>
                       <Badge className="squircle bg-destructive/10 text-destructive border-0 font-semibold">
                         {Math.round((dominantType.value / stats.totalEmergencies) * 100)}% of system cases
                       </Badge>
                     </div>
+                  ) : (
+                    <p className="mt-2 text-sm font-semibold text-muted-foreground">{SOURCE_PENDING_LABEL}</p>
                   )}
                 </div>
 
                 <div className="flex-1 w-full min-h-[200px] min-w-[300px] mt-4 relative z-10">
-                  <ResponsiveContainer width="100%" height={200}>
+                  <ResponsiveContainer width="100%" height={CASE_TYPE_CHART_HEIGHT} initialDimension={CASE_TYPE_INITIAL_DIMENSION}>
                     <BarChart data={emergencyTypes} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
                       <XAxis type="number" hide />
                       <YAxis
@@ -1801,18 +1904,20 @@ export const Analytics = () => {
 
                 <div className="mb-2 relative z-10">
                   <h3 className="font-bold text-xl tracking-tight">Your Case Types</h3>
-                  {dominantType && (
+                  {dominantType && stats.totalEmergencies > 0 ? (
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-3xl font-bold text-info tracking-tighter">{dominantType.name}</span>
                       <Badge className="squircle bg-info/10 text-info border-0 font-semibold">
                         {Math.round((dominantType.value / stats.totalEmergencies) * 100)}% of your cases
                       </Badge>
                     </div>
+                  ) : (
+                    <p className="mt-2 text-sm font-semibold text-muted-foreground">{SOURCE_PENDING_LABEL}</p>
                   )}
                 </div>
 
                 <div className="flex-1 w-full min-h-[200px] mt-4 relative z-10">
-                  <ResponsiveContainer width="100%" height={200}>
+                  <ResponsiveContainer width="100%" height={CASE_TYPE_CHART_HEIGHT} initialDimension={CASE_TYPE_INITIAL_DIMENSION}>
                     <BarChart data={emergencyTypes} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
                       <XAxis type="number" hide />
                       <YAxis
@@ -1878,15 +1983,15 @@ export const Analytics = () => {
 
               <div className="grid grid-cols-2 gap-4 flex-1 relative z-10">
                 {[
-                  { label: 'Total Searches', value: '1,284', change: '+12%', positive: true },
-                  { label: 'Success Rate', value: '87%', change: '+3%', positive: true },
-                  { label: 'Avg Time', value: '2.3s', change: '-0.5s', positive: true },
-                  { label: 'No Results', value: '8%', change: '-2%', positive: true }
+                  { label: 'Total Searches', value: SOURCE_PENDING_LABEL, change: 'Pending', positive: true },
+                  { label: 'Success Rate', value: SOURCE_PENDING_LABEL, change: 'Pending', positive: true },
+                  { label: 'Avg Time', value: SOURCE_PENDING_LABEL, change: 'Pending', positive: true },
+                  { label: 'No Results', value: SOURCE_PENDING_LABEL, change: 'Pending', positive: true }
                 ].map((metric, idx) => (
                   <div key={idx} className="p-4 geo-round bg-muted/30 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs text-muted-foreground font-medium">{metric.label}</span>
-                      <Badge className={`squircle-sm ${metric.positive ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'} border-0 font-bold text-xs`}>
+                      <Badge className="squircle-sm bg-muted/30 text-muted-foreground border-0 font-bold text-xs">
                         {metric.change}
                       </Badge>
                     </div>
@@ -1930,17 +2035,17 @@ export const Analytics = () => {
 
               <div className="space-y-4 flex-1 relative z-10">
                 {[
-                  { label: 'API Response Time', value: '142ms', target: '200ms', status: 'excellent' },
-                  { label: 'Database Query Time', value: '28ms', target: '50ms', status: 'excellent' },
-                  { label: 'Page Load Time', value: '1.2s', target: '2s', status: 'good' },
-                  { label: 'Error Rate', value: '0.12%', target: '1%', status: 'excellent' },
-                  { label: 'Uptime', value: '99.97%', target: '99.9%', status: 'excellent' }
+                  { label: 'API Response Time', value: SOURCE_PENDING_LABEL, target: SOURCE_PENDING_LABEL, status: 'pending' },
+                  { label: 'Database Query Time', value: SOURCE_PENDING_LABEL, target: SOURCE_PENDING_LABEL, status: 'pending' },
+                  { label: 'Page Load Time', value: SOURCE_PENDING_LABEL, target: SOURCE_PENDING_LABEL, status: 'pending' },
+                  { label: 'Error Rate', value: SOURCE_PENDING_LABEL, target: SOURCE_PENDING_LABEL, status: 'pending' },
+                  { label: 'Uptime', value: SOURCE_PENDING_LABEL, target: SOURCE_PENDING_LABEL, status: 'pending' }
                 ].map((metric, idx) => (
                   <div key={idx} className="flex items-center justify-between p-3 geo-sharp bg-muted/20 hover:bg-muted/30 transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-semibold">{metric.label}</span>
-                        <Badge className={`squircle-sm ${metric.status === 'excellent' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
+                        <Badge className={`squircle-sm ${metric.status === 'excellent' ? 'bg-success/10 text-success' : metric.status === 'good' ? 'bg-warning/10 text-warning' : 'bg-muted/30 text-muted-foreground'
                           } border-0 font-bold text-xs`}>
                           {metric.status}
                         </Badge>
@@ -1952,11 +2057,13 @@ export const Analytics = () => {
                     </div>
                     <div className="w-16 h-2 bg-muted/30 squircle-sm overflow-hidden">
                       <motion.div
-                        className={`h-full ${metric.status === 'excellent' ? 'bg-success' : 'bg-warning'
+                        className={`h-full ${metric.status === 'excellent' ? 'bg-success' : metric.status === 'pending' ? 'bg-muted' : 'bg-warning'
                           } squircle-sm`}
                         initial={{ width: 0 }}
                         animate={{
-                          width: metric.status === 'excellent'
+                          width: metric.status === 'pending'
+                            ? 0
+                            : metric.status === 'excellent'
                             ? '90%'
                             : metric.status === 'good'
                               ? '75%'
@@ -1971,8 +2078,8 @@ export const Analytics = () => {
             </Card>
           </motion.div>
 
-          {/* Financial Performance Card - Admin/Org Admin/Sponsor only */}
-          {(isAdmin() || isOrgAdmin() || isSponsor()) && (
+          {/* Financial Performance Card - Admin/Sponsor only until org finance scope is proved */}
+          {canReadFinanceAnalytics && (
             <motion.div
               layout
               className="col-span-1 sm:col-span-2 lg:col-span-4 xl:col-span-3 row-span-2"
@@ -1997,16 +2104,12 @@ export const Analytics = () => {
                   </div>
                 </div>
 
-                {/* Body — always 2 columns */}
+                {/* Body - always 2 columns */}
                 <div className="flex-1 grid grid-cols-2 gap-4 relative z-10">
 
                   {/* LEFT: Revenue Metrics */}
                   <div className="flex flex-col justify-between gap-3">
-                    {[
-                      { label: 'Today', value: `$${financeSummary.today.toFixed(0)}`, progress: 75, color: 'success' },
-                      { label: 'Avg/Week', value: `$${(financeSummary.weeklyAvg * 7).toFixed(0)}`, progress: 60, color: 'primary' },
-                      { label: 'Total', value: `$${financeSummary.total.toFixed(0)}`, progress: 90, color: 'info' }
-                    ].map((m, idx) => (
+                    {financeMetricRows.map((m, idx) => (
                       <div key={idx} className="space-y-1.5 p-3 rounded-xl bg-white/5 border-white/5">
                         <div className="flex justify-between items-center">
                           <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{m.label}</span>
@@ -2039,15 +2142,15 @@ export const Analytics = () => {
                       </div>
                       <div>
                         <p className="text-[9px] font-black uppercase tracking-widest text-success">Health</p>
-                        <p className="text-[8px] text-muted-foreground leading-tight">Vitals nominal</p>
+                        <p className="text-[8px] text-muted-foreground leading-tight">{SOURCE_PENDING_LABEL}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* RIGHT: Area Chart */}
                   <div className="flex flex-col gap-3">
-                    <div className="flex-1 bg-success/5 rounded-2xl overflow-hidden p-2 border-success/10">
-                      <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-[160px] min-h-[160px] bg-success/5 rounded-2xl overflow-hidden p-2 border-success/10">
+                      <ResponsiveContainer width="100%" height={FINANCE_CHART_HEIGHT} initialDimension={FINANCE_CHART_INITIAL_DIMENSION}>
                         <AreaChart data={financeData} margin={{ top: 4, right: 4, left: -30, bottom: 0 }}>
                           <defs>
                             <linearGradient id="financeGrad" x1="0" y1="0" x2="0" y2="1">
@@ -2074,11 +2177,11 @@ export const Analytics = () => {
                     <div className="grid grid-cols-2 gap-2">
                       <div className="p-2 rounded-lg bg-white/5 border-white/5 text-center">
                         <p className="text-[8px] font-bold text-muted-foreground uppercase">Paid Conv.</p>
-                        <p className="text-sm font-black text-foreground">{financeSummary.paidConversion || 0}%</p>
+                        <p className="text-sm font-black text-foreground">{paidConversionLabel}</p>
                       </div>
                       <div className="p-2 rounded-lg bg-white/5 border-white/5 text-center">
                         <p className="text-[8px] font-bold text-muted-foreground uppercase">Avg/Req</p>
-                        <p className="text-sm font-black text-foreground">${financeSummary.avgPerRequest || 0}</p>
+                        <p className="text-sm font-black text-foreground">{avgPerRequestLabel}</p>
                       </div>
                     </div>
                   </div>
@@ -2100,7 +2203,7 @@ export const Analytics = () => {
           active: stats.totalAmbulances,
           verified: stats.totalHospitals,
           emergency: stats.totalEmergencies,
-          ...subscriptionStats
+          ...resolvedSubscriptionStats
         }}
         type="emergency"
       />

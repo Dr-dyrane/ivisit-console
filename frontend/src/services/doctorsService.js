@@ -8,6 +8,129 @@ import { getCurrentUser, applyAuthFilter } from './authService';
 import { supabase } from '../lib/supabase';
 
 const TABLE_NAME = 'doctors';
+const STAFF_STATUSES = ['available', 'on_call', 'busy', 'off_duty'];
+const DOCTOR_SORT_FIELDS = new Set([
+  'created_at',
+  'updated_at',
+  'name',
+  'specialization',
+  'status',
+  'phone',
+  'experience'
+]);
+
+const normalizeFilterList = (value) => {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry || '').trim()).filter(Boolean);
+  }
+  const text = String(value || '').trim();
+  return text ? [text] : [];
+};
+
+const sanitizeSearchTerm = (value) => String(value || '')
+  .trim()
+  .replace(/[%_,]/g, ' ')
+  .replace(/\s+/g, ' ');
+
+const applyDateRange = (query, dateRange) => {
+  if (!dateRange || typeof dateRange !== 'object') return query;
+  if (dateRange.start) {
+    query = query.gte('created_at', new Date(`${dateRange.start}T00:00:00`).toISOString());
+  }
+  if (dateRange.end) {
+    query = query.lte('created_at', new Date(`${dateRange.end}T23:59:59.999`).toISOString());
+  }
+  return query;
+};
+
+function applyDoctorFilters(query, user, filter = {}) {
+  query = applyAuthFilter(query, user, {
+    userIdField: 'profile_id',
+    orgIdField: 'hospital_id'
+  });
+
+  if (filter.forceEmpty) {
+    query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+  }
+
+  if (filter.hospital_id) {
+    query = query.eq('hospital_id', filter.hospital_id);
+  }
+
+  const specializationValues = normalizeFilterList(filter.specialization);
+  if (specializationValues.length === 1) {
+    query = query.eq('specialization', specializationValues[0]);
+  } else if (specializationValues.length > 1) {
+    query = query.in('specialization', specializationValues);
+  }
+
+  const statusValues = normalizeFilterList(filter.status);
+  if (statusValues.length === 1) {
+    query = query.eq('status', statusValues[0]);
+  } else if (statusValues.length > 1) {
+    query = query.in('status', statusValues);
+  }
+
+  const search = sanitizeSearchTerm(filter.search);
+  if (search) {
+    query = query.or(`name.ilike.%${search}%,specialization.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
+  }
+
+  return applyDateRange(query, filter.created_at);
+}
+
+async function getDoctorExactCount(filter = {}, user, quiet = false) {
+  try {
+    let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
+    query = applyDoctorFilters(query, user, filter);
+
+    const { error, count } = await query;
+    if (error) throw error;
+    return Number.isFinite(count) ? count : 0;
+  } catch (error) {
+    if (!quiet) {
+      console.error('Error fetching staff exact count:', error);
+    }
+    throw error;
+  }
+}
+
+const withStatusForCount = (filter = {}, status) => {
+  const statusValues = normalizeFilterList(filter.status);
+  if (statusValues.length > 0 && !statusValues.includes(status)) {
+    return { ...filter, status, forceEmpty: true };
+  }
+  return { ...filter, status };
+};
+
+async function getDoctorPageStats(filter = {}, user, quiet = false) {
+  const statsFilter = {
+    search: filter.search,
+    specialization: filter.specialization,
+    status: filter.statsStatus,
+    hospital_id: filter.hospital_id,
+    created_at: filter.created_at,
+  };
+
+  const [total, available, onCall, busy, offDuty] = await Promise.all([
+    getDoctorExactCount(statsFilter, user, quiet),
+    getDoctorExactCount(withStatusForCount(statsFilter, 'available'), user, quiet),
+    getDoctorExactCount(withStatusForCount(statsFilter, 'on_call'), user, quiet),
+    getDoctorExactCount(withStatusForCount(statsFilter, 'busy'), user, quiet),
+    getDoctorExactCount(withStatusForCount(statsFilter, 'off_duty'), user, quiet),
+  ]);
+
+  return {
+    total,
+    totalDoctors: total,
+    available,
+    on_call: onCall,
+    onCall,
+    busy,
+    off_duty: offDuty,
+    exactCounts: true,
+  };
+}
 
 // Helper to clean empty strings to null (Fixes UUID "" error)
 const sanitizeInput = (input) => {
@@ -27,36 +150,11 @@ export async function getDoctors(filter = {}) {
   try {
     const user = await getCurrentUser();
     let query = supabase.from(TABLE_NAME).select('*, hospitals(name)', { count: 'exact' });
+    query = applyDoctorFilters(query, user, filter);
 
-    // 1. Apply RBAC Scoping
-    query = applyAuthFilter(query, user, {
-      userIdField: 'profile_id',
-      orgIdField: 'hospital_id'
-    });
-
-    // 2. Apply Custom Filters
-    if (filter.hospital_id) {
-      query = query.eq('hospital_id', filter.hospital_id);
-    }
-    if (filter.specialization) {
-      if (Array.isArray(filter.specialization)) {
-        query = query.in('specialization', filter.specialization);
-      } else {
-        query = query.eq('specialization', filter.specialization);
-      }
-    }
-    if (filter.status) {
-      if (Array.isArray(filter.status)) {
-        query = query.in('status', filter.status);
-      } else {
-        query = query.eq('status', filter.status);
-      }
-    }
-    if (filter.search) {
-      query = query.ilike('name', `%${filter.search}%`);
-    }
-
-    query = query.order('created_at', { ascending: false });
+    const sortKey = DOCTOR_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';
+    const sortDirection = filter.sortDirection === 'asc' ? 'asc' : 'desc';
+    query = query.order(sortKey, { ascending: sortDirection === 'asc' });
 
     if (filter.limit) {
       const from = filter.offset || 0;
@@ -71,7 +169,7 @@ export async function getDoctors(filter = {}) {
     if (enrichedData.length > 0) {
       const { getDisplayIds } = await import('./displayIdService');
       const profileIds = enrichedData.map(d => d.profile_id).filter(Boolean);
-      const displayIds = await getDisplayIds(profileIds);
+      const displayIds = await getDisplayIds(profileIds, { quiet: filter?.quiet });
 
       enrichedData = enrichedData.map(d => ({
         ...d,
@@ -79,9 +177,13 @@ export async function getDoctors(filter = {}) {
       }));
     }
 
-    return { data: enrichedData, count: count || 0 };
+    const stats = await getDoctorPageStats(filter, user, filter?.quiet);
+
+    return { data: enrichedData, count: count || 0, stats };
   } catch (error) {
-    console.error('Error fetching doctors:', error);
+    if (!filter?.quiet) {
+      console.error('Error fetching doctors:', error);
+    }
     throw error;
   }
 }
@@ -117,8 +219,8 @@ export async function createDoctor(input) {
       specialization: input.specialization,
       hospital_id: input.hospital_id === '' ? null : input.hospital_id,
       image: input.image,
-      rating: input.rating || 4.5,
-      reviews_count: input.reviews_count || 0,
+      rating: input.rating ?? null,
+      reviews_count: input.reviews_count ?? 0,
       experience: input.experience,
       about: input.about,
       consultation_fee: input.consultation_fee,

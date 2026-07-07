@@ -1,30 +1,20 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
-import { useViewMode } from '../../hooks/useViewMode';
-import { LocationCell } from '../ui/LocationCell';
-import {
-  getServiceTypeBadge,
-  getServiceTypeDisplay,
-  getStatusDisplay
-} from '../../constants/emergency';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { createNotification, NotificationTypes, NotificationActions } from '../../services/notificationService';
 import {
   cancelEmergencyRequest,
-  getEmergencyRequests,
+  getEmergencyRequestsPage,
   getUserActivePaymentMethods,
   retryPaymentWithDifferentMethod,
 } from '../../services/emergencyService';
 import { dispatchEmergency, completeEmergency } from '../../services/emergencyResponseService';
-import { getCurrentUser, applyAuthFilter } from '../../services/authService';
 import * as walletService from '../../services/walletService';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { TableSkeleton } from '../ui/skeleton';
+import { ModalShell } from '../ui/ModalShell';
 import { PaginationControls } from '../ui/PaginationControls';
 import { useAuth } from '../../contexts/AuthContext';
 import { EmergencyDetailsModal } from '../modals/EmergencyDetailsModal';
@@ -34,51 +24,313 @@ import { withTimeout } from '../../lib/utils';
 import { toast } from 'sonner';
 import { AnalyticsModal } from '../modals/AnalyticsModal';
 import {
-  AlertTriangle,
-  MapPin,
+  AlertCircle,
+  Ambulance,
+  BedDouble,
+  CheckCheck,
+  ChevronRight,
+  ClipboardCheck,
   Clock,
-  Phone,
-  User,
-  Navigation,
-  Activity,
-  Eye,
-  Trash2,
-  RefreshCw,
   Filter as FilterIcon,
-  Siren,
-  Shield,
-  Zap,
-  CheckCircle,
-  FileText,
-  BarChart3,
   Hospital,
+  Info,
+  Loader2,
+  MapPin,
+  RefreshCw,
+  Search,
   Send,
-  CheckCheck
+  ShieldCheck,
+  Trash2,
+  UserRound
 } from 'lucide-react';
-import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
-import { ViewToggle } from '../common/ViewToggle';
+import { AnimatePresence, motion } from 'framer-motion';
 import { FilterSheet } from '../common/FilterSheet';
-
-import { EmergencyRequestListView } from '../views/EmergencyRequestListView';
-import { EmergencyRequestTableView } from '../views/EmergencyRequestTableView';
+import { ConsoleModuleRail } from '../common/ConsoleModuleRail';
 import { MobileEmergency } from '../mobile/MobileEmergency';
-import { usePageData } from '../../contexts/PageDataContext';
 import { SEOHead } from '../common/SEOHead';
-import { isActiveEmergencyStatus } from '../../utils/emergencyStatus';
+import { canonicalizeEmergencyStatus, isActiveEmergencyStatus } from '../../utils/emergencyStatus';
 import { getEmergencyActionState } from '../../utils/emergencyActions';
 import {
-  buildLatestPaymentMap,
+  buildEmergencyRenderProjection,
   isCashPaymentMethod,
-  normalizeEmergencyRequestRow,
 } from '../../utils/emergencyRequestMapper';
+import { getConsoleModuleRailItems } from '../../config/consoleModuleRail';
+
+const routeFeedbackMs = 320;
+
+const EMPTY_REQUEST_FILTERS = Object.freeze({
+  search: '',
+  status: [],
+  created_at: { start: '', end: '' },
+});
+
+const hasActiveRequestFilters = (filters = {}) => Boolean(
+  filters.search ||
+  (Array.isArray(filters.status) && filters.status.length > 0) ||
+  filters.created_at?.start ||
+  filters.created_at?.end
+);
+
+const getFilterTriggerState = ({ isOpen, hasFilter }) => {
+  if (isOpen) return 'open';
+  if (hasFilter) return 'filtered';
+  return 'idle';
+};
+
+const buildRequestsServiceFilter = (filters = {}) => {
+  const dateRange = filters.created_at || {};
+  return {
+    status: filters.status,
+    search: filters.search,
+    date_from: dateRange.start ? `${dateRange.start}T00:00:00.000Z` : undefined,
+    date_to: dateRange.end ? `${dateRange.end}T23:59:59.999Z` : undefined,
+  };
+};
+
+const kpiOptions = [
+  {
+    id: 'pending',
+    label: 'Needs attention',
+    icon: AlertCircle,
+    colorClass: 'text-destructive',
+    activeClass: 'bg-destructive/16 text-destructive shadow-[0_18px_54px_rgba(239,68,68,0.20)]',
+    restClass: 'bg-muted/30 text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
+  },
+  {
+    id: 'critical',
+    label: 'Critical care',
+    icon: ShieldCheck,
+    colorClass: 'text-rose-700 dark:text-rose-200',
+    activeClass: 'bg-rose-500/10 text-rose-700 shadow-[0_18px_54px_rgba(244,63,94,0.16)] dark:text-rose-200',
+    restClass: 'bg-muted/30 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-200',
+  },
+  {
+    id: 'bed',
+    label: 'Beds',
+    icon: BedDouble,
+    colorClass: 'text-cyan-600 dark:text-cyan-200',
+    activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_18px_54px_rgba(6,182,212,0.14)] dark:text-cyan-200',
+    restClass: 'bg-muted/30 text-muted-foreground hover:bg-cyan-500/10 hover:text-cyan-700 dark:hover:text-cyan-200',
+  },
+  {
+    id: 'ambulance',
+    label: 'Ambulance',
+    icon: Ambulance,
+    colorClass: 'text-sky-600 dark:text-sky-200',
+    activeClass: 'bg-sky-500/10 text-sky-700 shadow-[0_18px_54px_rgba(14,165,233,0.14)] dark:text-sky-200',
+    restClass: 'bg-muted/30 text-muted-foreground hover:bg-sky-500/10 hover:text-sky-700 dark:hover:text-sky-200',
+  },
+];
+
+const statusStyles = {
+  pending_approval: {
+    label: 'Needs attention',
+    className: 'bg-destructive/14 text-destructive shadow-[0_12px_38px_rgba(239,68,68,0.14)]',
+  },
+  in_progress: {
+    label: 'Active',
+    className: 'bg-amber-500/10 text-amber-700 shadow-[0_12px_38px_rgba(245,158,11,0.12)] dark:text-amber-200',
+  },
+  accepted: {
+    label: 'Accepted',
+    className: 'bg-cyan-500/10 text-cyan-700 shadow-[0_12px_38px_rgba(6,182,212,0.12)] dark:text-cyan-200',
+  },
+  arrived: {
+    label: 'Arrived',
+    className: 'bg-sky-500/10 text-sky-700 shadow-[0_12px_38px_rgba(14,165,233,0.12)] dark:text-sky-200',
+  },
+  completed: {
+    label: 'Completed',
+    icon: CheckCheck,
+    className: 'bg-emerald-500/10 text-emerald-700 shadow-[0_12px_38px_rgba(16,185,129,0.12)] dark:text-emerald-200',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    className: 'bg-muted/40 text-muted-foreground',
+  },
+  payment_declined: {
+    label: 'Payment issue',
+    className: 'bg-destructive/14 text-destructive shadow-[0_12px_38px_rgba(239,68,68,0.14)]',
+  },
+};
+
+const serviceIconMap = {
+  ambulance: Ambulance,
+  bed: BedDouble,
+  critical_care: ShieldCheck,
+};
+
+const normalizeCount = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const getInitials = (name = 'Request') => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] || 'R';
+  const second = parts[1]?.[0] || '';
+  return `${first}${second}`.toUpperCase();
+};
+
+const formatRequestTime = (value) => {
+  if (!value) return 'No time';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No time';
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+};
+
+const getStatusMeta = (request) => {
+  const canonical = canonicalizeEmergencyStatus(request?.status, 'pending_approval');
+  return statusStyles[canonical] || {
+    label: 'New',
+    className: 'bg-muted/40 text-muted-foreground',
+  };
+};
+
+const getRequestProjection = (request) => buildEmergencyRenderProjection(request || {});
+
+const getRequestAvatarClass = (request) => {
+  const canonical = canonicalizeEmergencyStatus(request?.status, 'pending_approval');
+  if (canonical === 'pending_approval' || canonical === 'payment_declined') {
+    return 'bg-destructive/16 text-destructive';
+  }
+  if (canonical === 'completed') {
+    return 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-200';
+  }
+  if (canonical === 'cancelled') {
+    return 'bg-muted/40 text-muted-foreground';
+  }
+  if (canonical === 'in_progress') {
+    return 'bg-amber-500/10 text-amber-700 dark:text-amber-200';
+  }
+  if (canonical === 'accepted') {
+    return 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200';
+  }
+  if (canonical === 'arrived') {
+    return 'bg-sky-500/10 text-sky-700 dark:text-sky-200';
+  }
+  return 'bg-muted/34 text-muted-foreground';
+};
+
+const getServiceLabel = (request) => {
+  const raw = String(request?.service_type || 'request').replace(/_/g, ' ');
+  return raw.replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
+const getKpiCount = ({ id, stats, requests }) => {
+  if (id === 'pending') {
+    const rowCount = requests.filter((request) => request.status === 'pending_approval').length;
+    return normalizeCount(stats?.pending, rowCount);
+  }
+  if (id === 'critical') {
+    const rowCount = requests.filter((request) => request.service_type === 'critical_care').length;
+    return normalizeCount(stats?.critical, rowCount);
+  }
+  if (id === 'bed') {
+    const rowCount = requests.filter((request) => request.service_type === 'bed').length;
+    return normalizeCount(stats?.bed, rowCount);
+  }
+  if (id === 'ambulance') {
+    const rowCount = requests.filter((request) => request.service_type === 'ambulance').length;
+    return normalizeCount(stats?.ambulance, rowCount);
+  }
+  return normalizeCount(stats?.total, requests.length);
+};
+
+const getRequestSignal = ({ stats, requests, kpiFilter }) => {
+  const activeId = kpiFilter || 'pending';
+  const activeOption = kpiOptions.find((item) => item.id === activeId) || kpiOptions[0];
+  const count = getKpiCount({ id: activeOption.id, stats, requests });
+
+  if (activeOption.id === 'pending') {
+    const hasPending = count > 0;
+    return {
+      icon: hasPending ? AlertCircle : CheckCheck,
+      tone: hasPending ? 'danger' : 'clear',
+      label: hasPending ? 'Needs attention' : 'Clear',
+      headline: hasPending ? `${count} request${count === 1 ? '' : 's'} to review` : 'No requests need review',
+      subhead: hasPending ? 'Start with the newest item.' : 'Keep Requests open for new care needs.',
+    };
+  }
+
+  if (activeOption.id === 'critical') {
+    return {
+      icon: ShieldCheck,
+      tone: 'critical',
+      label: 'Critical care',
+      headline: count > 0 ? `${count} critical care request${count === 1 ? '' : 's'}` : 'No critical care requests',
+      subhead: count > 0 ? 'Review high-acuity care needs first.' : 'Critical care requests will appear here.',
+    };
+  }
+
+  if (activeOption.id === 'bed') {
+    return {
+      icon: BedDouble,
+      tone: 'info',
+      label: 'Beds',
+      headline: count > 0 ? `${count} bed request${count === 1 ? '' : 's'}` : 'No bed requests',
+      subhead: count > 0 ? 'Review facility needs first.' : 'Bed requests will appear here.',
+    };
+  }
+
+  return {
+    icon: Ambulance,
+    tone: 'primary',
+    label: 'Ambulance',
+    headline: count > 0 ? `${count} ambulance request${count === 1 ? '' : 's'}` : 'No ambulance requests',
+    subhead: count > 0 ? 'Check response state before acting.' : 'Ambulance requests will appear here.',
+  };
+};
+
+const isTransientRequestRefreshError = (error) => {
+  const message = String(error?.message || error?.details || error || '');
+  return error?.name === 'AbortError' || /failed to fetch|abort/i.test(message);
+};
+
+const requestToneClass = {
+  danger: 'bg-destructive/12 text-destructive shadow-[0_16px_42px_rgba(239,68,68,0.16)]',
+  clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_16px_42px_rgba(16,185,129,0.14)] dark:text-emerald-200',
+  warning: 'bg-amber-500/10 text-amber-700 shadow-[0_16px_42px_rgba(245,158,11,0.14)] dark:text-amber-200',
+  critical: 'bg-rose-500/10 text-rose-700 shadow-[0_16px_42px_rgba(244,63,94,0.14)] dark:text-rose-200',
+  info: 'bg-cyan-500/10 text-cyan-700 shadow-[0_16px_42px_rgba(6,182,212,0.14)] dark:text-cyan-200',
+  primary: 'bg-sky-500/10 text-sky-700 shadow-[0_16px_42px_rgba(14,165,233,0.14)] dark:text-sky-200',
+  muted: 'bg-foreground/[0.055] text-muted-foreground dark:bg-white/[0.06]',
+};
+
+const railPrimaryActionClass = {
+  review: 'bg-destructive text-white shadow-[0_18px_56px_rgba(239,68,68,0.28)] hover:bg-destructive/90',
+  dispatch: 'bg-sky-600 text-white shadow-[0_18px_56px_rgba(14,165,233,0.22)] hover:bg-sky-500',
+  complete: 'bg-emerald-600 text-white shadow-[0_18px_56px_rgba(16,185,129,0.22)] hover:bg-emerald-500',
+  retry: 'bg-amber-500 text-slate-950 shadow-[0_18px_56px_rgba(245,158,11,0.22)] hover:bg-amber-400',
+  details: 'bg-foreground text-background shadow-[0_18px_56px_rgba(0,0,0,0.24)] hover:bg-foreground/90',
+};
+
+const RequestsAtlasLayer = () => (
+  <div className="absolute inset-0 overflow-hidden bg-background">
+    <div
+      className="absolute inset-0 opacity-[0.30] dark:opacity-[0.24]"
+      style={{
+        backgroundImage:
+          'linear-gradient(115deg, transparent 0 45%, hsl(var(--foreground) / 0.06) 45% 48%, transparent 48%), linear-gradient(28deg, transparent 0 42%, hsl(var(--foreground) / 0.05) 42% 45%, transparent 45%), linear-gradient(155deg, transparent 0 64%, hsl(var(--destructive) / 0.07) 64% 67%, transparent 67%)',
+        backgroundSize: '260px 180px, 340px 240px, 420px 280px',
+        backgroundPosition: '20px 10px, -80px 50px, 18% 38%',
+      }}
+    />
+    <div
+      className="absolute inset-0"
+      style={{
+        background:
+          'radial-gradient(circle at 22% 34%, hsl(var(--destructive) / 0.11), transparent 28%), radial-gradient(circle at 78% 62%, hsl(var(--foreground) / 0.06), transparent 26%), linear-gradient(180deg, hsl(var(--background) / 0.22), hsl(var(--background)) 92%)',
+      }}
+    />
+  </div>
+);
 
 export const EmergencyRequestsPage = () => {
-  const { isAdmin, isOrgAdmin, isProvider, orgId, profile, can, user } = useAuth();
-  const location = useLocation();
+  const navigate = useNavigate();
+  const { isAdmin, isOrgAdmin, isProvider, orgId, profile, user, loading: authLoading } = useAuth();
   const { isMobile } = useNavigation();
-  const { emergencyData, refreshAllData } = usePageData();
 
-  // Create currentUser object with methods expected by child components
   const currentUser = useMemo(() => ({
     isAdmin: () => isAdmin(),
     isOrgAdmin: () => isOrgAdmin(),
@@ -86,16 +338,19 @@ export const EmergencyRequestsPage = () => {
     user,
     profile
   }), [isAdmin, isOrgAdmin, isProvider, user, profile]);
+
   const [requests, setRequests] = useState([]);
+  const [requestStats, setRequestStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [focusedRequestId, setFocusedRequestId] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
-  const [filters, setFilters] = useState({});
-  const [kpiFilter, setKpiFilter] = useState('all');
+  const [filters, setFilters] = useState(EMPTY_REQUEST_FILTERS);
+  const [kpiFilter, setKpiFilter] = useState('pending');
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
@@ -103,127 +358,108 @@ export const EmergencyRequestsPage = () => {
     description: '',
     onConfirm: null,
     variant: 'destructive',
-    confirmLabel: 'Delete'
+    confirmLabel: 'Cancel'
   });
-  const [bulkCancelModal, setBulkCancelModal] = useState({ open: false });
   const [completeModal, setCompleteModal] = useState({ open: false, request: null });
-  const [cashModal, setCashModal] = useState({ open: false, request: null, amount: '50.00' });
   const [retryModal, setRetryModal] = useState({ open: false, request: null, methods: [], selectedId: null });
+  const [routingPath, setRoutingPath] = useState(null);
+  const requestSeqRef = useRef(0);
 
-  const { viewMode, setViewMode } = useViewMode('emergency-requests-page', 'grid');
   const pagination = usePagination(20);
+  const authReady = Boolean(user?.id && profile?.role) && !authLoading;
+  const roleKind = useMemo(() => {
+    if (isAdmin()) return 'admin';
+    if (isOrgAdmin()) return 'org_admin';
+    if (isProvider()) return 'provider';
+    return 'viewer';
+  }, [isAdmin, isOrgAdmin, isProvider]);
+  const visibleModuleRail = useMemo(
+    () => getConsoleModuleRailItems(roleKind),
+    [roleKind]
+  );
+
+  const handleRailNavigate = useCallback((path) => {
+    if (!path) return;
+    setRoutingPath(path);
+    window.setTimeout(() => {
+      if (path !== window.location.pathname) {
+        navigate(path);
+      }
+      setRoutingPath(null);
+    }, routeFeedbackMs);
+  }, [navigate]);
 
   const getEmergencyLabel = useCallback((request) => (
     request?.display_id ||
     request?.hospital_name ||
     request?.service_type ||
-    'selected emergency request'
+    'selected request'
   ), []);
 
   const fetchRequests = useCallback(async () => {
+    if (!authReady) {
+      setLoading(true);
+      return;
+    }
+
+    const requestSeq = requestSeqRef.current + 1;
+    requestSeqRef.current = requestSeq;
+
     try {
       setLoading(true);
+      const serviceFilter = buildRequestsServiceFilter(filters);
 
-      // Get current user for RBAC filtering
-      const user = await getCurrentUser();
+      const { data, count, stats } = await withTimeout(
+        getEmergencyRequestsPage({
+          ...serviceFilter,
+          kpiFilter,
+          limit: pagination.itemsPerPage,
+          offset: pagination.paginationRange.start,
+          sortKey: sortConfig.key,
+          sortDirection: sortConfig.direction,
+          quiet: true,
+        }),
+        15000,
+        'Failed to load requests - timeout'
+      );
 
-      let query = supabase.from('emergency_requests').select('*', { count: 'exact', head: true });
+      if (requestSeq !== requestSeqRef.current) return;
 
-      // Apply RBAC filter using centralized service
-      query = applyAuthFilter(query, user, {
-        userIdField: 'user_id',
-        orgIdField: 'hospital_id',
-        providerIdField: 'responder_id',
-        resourceType: 'emergency'
-      });
-
-      if (filters.status && filters.status.length > 0) {
-        query = query.in('status', filters.status);
-      }
-      if (filters.search) {
-        const term = filters.search.replace(/,/g, ' ').trim();
-        query = query.or(`display_id.ilike.%${term}%,service_type.ilike.%${term}%,hospital_name.ilike.%${term}%,responder_name.ilike.%${term}%`);
-      }
-
-      // Apply KPI Filter to count query
-      if (kpiFilter === 'ambulance') query = query.eq('service_type', 'ambulance');
-      if (kpiFilter === 'bed') query = query.eq('service_type', 'bed');
-      if (kpiFilter === 'pending') query = query.eq('status', 'pending_approval');
-      if (kpiFilter === 'inProgress') query = query.eq('status', 'in_progress');
-      if (kpiFilter === 'active') query = query.in('status', ['pending_approval', 'in_progress', 'accepted', 'arrived']);
-
-      const { count } = await query;
       pagination.setTotalCount(count || 0);
 
-      let dataQuery = supabase
-        .from('emergency_requests')
-        .select('*')
-        .range(pagination.paginationRange.start, pagination.paginationRange.end)
-        .order(sortConfig.key || 'created_at', { ascending: sortConfig.direction === 'asc' });
-
-      // Apply RBAC filter to data query using centralized service
-      dataQuery = applyAuthFilter(dataQuery, user, {
-        userIdField: 'user_id',
-        orgIdField: 'hospital_id',
-        providerIdField: 'responder_id',
-        resourceType: 'emergency'
-      });
-
-      if (filters.status && filters.status.length > 0) {
-        dataQuery = dataQuery.in('status', filters.status);
-      }
-      if (filters.search) {
-        const term = filters.search.replace(/,/g, ' ').trim();
-        dataQuery = dataQuery.or(`display_id.ilike.%${term}%,service_type.ilike.%${term}%,hospital_name.ilike.%${term}%,responder_name.ilike.%${term}%`);
-      }
-
-      // Apply KPI Filter to data query
-      if (kpiFilter === 'ambulance') dataQuery = dataQuery.eq('service_type', 'ambulance');
-      if (kpiFilter === 'bed') dataQuery = dataQuery.eq('service_type', 'bed');
-      if (kpiFilter === 'pending') dataQuery = dataQuery.eq('status', 'pending_approval');
-      if (kpiFilter === 'inProgress') dataQuery = dataQuery.eq('status', 'in_progress');
-      if (kpiFilter === 'active') dataQuery = dataQuery.in('status', ['pending_approval', 'in_progress', 'accepted', 'arrived']);
-
-      const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load emergency requests - timeout');
-
-      if (error) throw error;
-      const rawRows = data || [];
-      let paymentByRequestId = new Map();
-      if (rawRows.length > 0) {
-        const requestIds = rawRows.map((row) => row.id).filter(Boolean);
-        const { data: paymentRows, error: paymentError } = await supabase
-          .from('payments')
-          .select('emergency_request_id,payment_method,status,created_at')
-          .in('emergency_request_id', requestIds)
-          .order('created_at', { ascending: false });
-
-        if (paymentError) {
-          console.warn('[EmergencyRequestsPage] Unable to load payment methods:', paymentError);
-        } else {
-          paymentByRequestId = buildLatestPaymentMap(paymentRows);
-        }
-      }
-
-      const normalizedRows = rawRows.map((row) =>
-        normalizeEmergencyRequestRow(row, paymentByRequestId.get(row.id))
-      );
+      const normalizedRows = data || [];
       setRequests(normalizedRows);
+      setRequestStats(stats || null);
+      setLoadError(null);
       setSelectedRequest((prev) => {
         if (!prev?.id) return prev;
         return normalizedRows.find((row) => row.id === prev.id) || prev;
       });
     } catch (error) {
-      console.error('Error fetching emergency requests:', error);
-      toast.error(error.message || 'Failed to load emergency requests');
+      if (requestSeq !== requestSeqRef.current) return;
+      if (isTransientRequestRefreshError(error)) return;
+      console.error('Error fetching requests:', error);
+      const message = error.message || 'Failed to load requests';
+      setLoadError(message);
+      toast.error(message);
     } finally {
-      setLoading(false);
+      if (requestSeq === requestSeqRef.current) {
+        setLoading(false);
+      }
     }
-  }, [pagination.currentPage, pagination.itemsPerPage, filters, kpiFilter, orgId, isOrgAdmin, isAdmin, sortConfig]);
+  }, [
+    filters,
+    authReady,
+    kpiFilter,
+    pagination.itemsPerPage,
+    pagination.paginationRange.start,
+    pagination.setTotalCount,
+    sortConfig,
+  ]);
 
   useEffect(() => {
     fetchRequests();
 
-    // Real-time updates
     const channel = supabase
       .channel('emergency_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_requests' }, fetchRequests)
@@ -238,7 +474,6 @@ export const EmergencyRequestsPage = () => {
     setIsEmergencyModalOpen(true);
   }, []);
 
-  // Handle custom events
   useEffect(() => {
     const handleOpenModal = () => handleCreateEmergency();
     const handleOpenFilters = () => setFilterSheetOpen(true);
@@ -255,107 +490,147 @@ export const EmergencyRequestsPage = () => {
     };
   }, [handleCreateEmergency]);
 
-  const filterSchema = React.useMemo(() => [
+  const filterSchema = useMemo(() => [
     {
       key: 'search',
       type: 'text',
-      label: 'Search Requests',
-      placeholder: 'Search by request ID, hospital, responder, or type...'
+      label: 'Search requests',
+      placeholder: 'Search by request ID, facility, responder, or type...'
     },
     {
       key: 'status',
       type: 'multiselect',
       label: 'Status',
       options: [
-        { value: 'pending_approval', label: 'Pending Approval' },
-        { value: 'in_progress', label: 'In Progress' },
+        { value: 'pending_approval', label: 'Needs attention' },
+        { value: 'in_progress', label: 'In progress' },
         { value: 'accepted', label: 'Accepted' },
         { value: 'arrived', label: 'Arrived' },
         { value: 'completed', label: 'Completed' },
         { value: 'cancelled', label: 'Cancelled' },
-        { value: 'payment_declined', label: 'Payment Declined' },
+        { value: 'payment_declined', label: 'Payment issue' },
       ]
     },
     {
       key: 'created_at',
       type: 'date',
-      label: 'Date Range',
+      label: 'Date range',
       placeholder: 'Select dates',
       shortcuts: [
         { label: 'Today', value: 'today' },
-        { label: 'Last 7 Days', value: '7days' },
-        { label: 'Last 30 Days', value: '30days' },
-        { label: 'This Month', value: 'month' }
+        { label: 'Last 7 days', value: '7days' },
+        { label: 'Last 30 days', value: '30days' },
+        { label: 'This month', value: 'month' }
       ]
     }
   ], []);
 
-  const viewToggleComponent = React.useMemo(() => (
-    <ViewToggle value={viewMode} onChange={setViewMode} />
-  ), [viewMode, setViewMode]);
+  const hasFilter = hasActiveRequestFilters(filters);
+  const filterTriggerState = getFilterTriggerState({ isOpen: filterSheetOpen, hasFilter });
 
-  const filterButtonComponent = React.useMemo(() => (
+  const filterButtonComponent = useMemo(() => (
     <Button
       variant="ghost"
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
-      aria-label="Filter emergency requests"
+      data-state={filterTriggerState}
+      className="squircle h-9 w-9 bg-muted/20 text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
+      aria-label="Filter requests"
+      aria-haspopup="dialog"
+      aria-expanded={filterSheetOpen}
     >
       <FilterIcon className="h-4 w-4" />
-      {(filters.search || (filters.status && filters.status.length > 0)) && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+      {hasFilter && (
+        <span className="absolute right-2 top-2 h-2 w-2 rounded-pill bg-sky-500 shadow-[0_0_24px_rgba(14,165,233,0.55)]" />
       )}
     </Button>
-  ), [filters]);
+  ), [filterSheetOpen, filterTriggerState, hasFilter]);
 
-  const headerActions = React.useMemo(() => {
-    // Only Admins and Org Admins can create new emergency requests
+  const headerActions = useMemo(() => {
     if (currentUser.isAdmin() || currentUser.isOrgAdmin()) {
       return (
         <Button
           onClick={handleCreateEmergency}
-          className="bg-muted/20 text-foreground hover:bg-muted/30 border border-border/20 squircle-full h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
-          aria-label="Create new emergency request"
+          data-state={isEmergencyModalOpen ? 'open' : 'idle'}
+          className="h-9 rounded-pill bg-foreground px-4 text-[12px] font-semibold text-background shadow-[0_18px_48px_rgba(0,0,0,0.24)] transition-all hover:scale-[1.02] hover:bg-foreground/90 active:scale-95"
+          aria-label="Create new request"
+          aria-haspopup="dialog"
+          aria-expanded={isEmergencyModalOpen}
         >
-          <Zap className="h-4 w-4 mr-2" />
-          NEW REQUEST
+          <ClipboardCheck className="mr-2 h-4 w-4" />
+          New request
         </Button>
       );
     }
     return null;
-  }, [handleCreateEmergency, currentUser]);
+  }, [handleCreateEmergency, currentUser, isEmergencyModalOpen]);
 
   usePageHeader(
-    'Emergency Logs',
+    'Requests',
     headerActions,
-    !isMobile ? viewToggleComponent : null,
+    null,
     filterButtonComponent
   );
 
-  const pendingCount = React.useMemo(() =>
-    requests.filter(r => r.status === 'pending_approval').length,
-    [requests]);
+  usePageFooter(null, 'status', false);
+  usePageShell({ bleed: true, hideFab: true });
 
-  const footerContent = React.useMemo(() => (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-destructive/10 border border-destructive/20 uppercase tracking-widest text-[10px] font-bold text-destructive">
-        <Activity className="w-3 h-3 animate-pulse" />
-        <span>Live Buffer: {pendingCount} Active</span>
-      </div>
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5  uppercase tracking-widest text-[10px] font-bold">
-        <span>Page {pagination.currentPage} of {pagination.totalPages} / {pagination.totalCount} Requests</span>
-      </div>
-    </div>
-  ), [pendingCount, pagination]);
+  const focusedRequest = useMemo(() => (
+    requests.find((request) => request.id === focusedRequestId) || requests[0] || null
+  ), [requests, focusedRequestId]);
 
-  usePageFooter(footerContent, 'status', !loading && requests.length > 0);
+  const requestPanelContext = useMemo(() => ({
+    stats: requestStats || {},
+    recent: requests.slice(0, 4),
+    focusedRequest,
+    count: pagination.totalCount || requests.length,
+    loading,
+    errorMessage: loadError,
+    currentState: kpiFilter,
+    hasFilters: hasFilter,
+    canCreate: currentUser.isAdmin() || currentUser.isOrgAdmin(),
+  }), [
+    currentUser,
+    focusedRequest,
+    hasFilter,
+    kpiFilter,
+    loadError,
+    loading,
+    pagination.totalCount,
+    requestStats,
+    requests,
+  ]);
+
+  const publishEmergencyRouteContext = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    window.dispatchEvent(new CustomEvent('emergencyRouteContextUpdated', {
+      detail: requestPanelContext,
+    }));
+  }, [requestPanelContext]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    publishEmergencyRouteContext();
+    window.addEventListener('requestEmergencyRouteContext', publishEmergencyRouteContext);
+
+    return () => {
+      window.removeEventListener('requestEmergencyRouteContext', publishEmergencyRouteContext);
+    };
+  }, [publishEmergencyRouteContext]);
 
   const handleDelete = useCallback(async (request) => {
+    if (!getEmergencyActionState(request).canCancel) {
+      toast.info('This request is already closed.');
+      await fetchRequests();
+      return;
+    }
+
     setConfirmationModal({
       isOpen: true,
-      title: 'Delete Emergency Request',
-      description: `Are you sure you want to delete ${getEmergencyLabel(request)}? This action cannot be undone.`,
+      title: 'Cancel request',
+      description: `Cancel ${getEmergencyLabel(request)}? This cannot be undone.`,
       onConfirm: async () => {
         try {
           await cancelEmergencyRequest(request.id, 'cancelled_from_console');
@@ -364,96 +639,60 @@ export const EmergencyRequestsPage = () => {
             NotificationTypes.EMERGENCY,
             NotificationActions.CANCELLED,
             request.id,
-            { message: `Emergency request has been cancelled` }
+            { message: 'Request has been cancelled' }
           );
-          toast.success('Emergency request cancelled successfully');
+          toast.success('Request cancelled');
           fetchRequests();
           setConfirmationModal(prev => ({ ...prev, isOpen: false }));
         } catch (error) {
-          console.error('Error cancelling emergency request:', error);
-          toast.error(error.message || 'Failed to cancel emergency request');
+          console.error('Error cancelling request:', error);
+          toast.error(error.message || 'Failed to cancel request');
         }
       },
       variant: 'destructive',
-      confirmLabel: 'Cancel Request'
+      confirmLabel: 'Cancel request'
     });
   }, [fetchRequests, getEmergencyLabel]);
 
-  const handleViewDetails = (request) => {
+  const handleViewDetails = useCallback((request) => {
+    setFocusedRequestId(request?.id || null);
     setSelectedRequest(request);
     setIsDetailsModalOpen(true);
-  };
-
-
+  }, []);
 
   const handleCloseEmergencyModal = () => {
     setIsEmergencyModalOpen(false);
-    fetchRequests(); // Refresh the list
+    fetchRequests();
   };
-
-  const handleSelect = useCallback((id) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  }, []);
-
-  const handleSelectAll = useCallback((checked) => {
-    setSelectedIds(checked ? requests.map(r => r.id) : []);
-  }, [requests]);
-
-  const handleSort = useCallback((key) => {
-    setSortConfig(current => ({
-      key,
-      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
-    }));
-  }, []);
-
-  const handleBulkDelete = useCallback(() => {
-    setBulkCancelModal({ open: true });
-  }, []);
-
-  const executeBulkCancel = useCallback(async () => {
-    setBulkCancelModal({ open: false });
-    try {
-      await Promise.all(selectedIds.map((id) => cancelEmergencyRequest(id, 'bulk_cancel_from_console')));
-      toast.success(`${selectedIds.length} emergencies cancelled`);
-      setSelectedIds([]);
-      fetchRequests();
-    } catch (error) {
-      toast.error(error.message || 'Failed to cancel emergencies');
-    }
-  }, [selectedIds, fetchRequests]);
 
   const handleDispatch = useCallback(async (request) => {
     const actionState = getEmergencyActionState(request);
     if (!actionState.canDispatch) {
-      toast.info('This request is no longer dispatchable. Refreshing list...');
+      toast.info('This request is not ready to dispatch. Refreshing list...');
       await fetchRequests();
       return;
     }
 
     try {
-      // 1. Wallet Cap Check for Cash Payments
-      // We check eligibility based on estimated base costs ($50 for ambulance, $25 for beds)
       if (isOrgAdmin() || isAdmin()) {
         const targetOrgId = orgId || request.organization_id || request.hospital_id;
-        if (targetOrgId && targetOrgId.length === 36) { // Ensure it's a UUID
+        if (targetOrgId && targetOrgId.length === 36) {
           const estimatedAmount = request.service_type === 'ambulance' ? 50 : 25;
           const isEligible = await walletService.checkCashEligibility(targetOrgId, estimatedAmount);
 
           if (!isEligible) {
-            toast.error("Insufficient Wallet Balance", {
-              description: "Your organization balance must cover the 2.5% platform fee to accept cash jobs. Please top up."
+            toast.error('Wallet balance is too low', {
+              description: 'Top up the organization wallet before accepting cash jobs.'
             });
             return;
           }
         }
       }
 
-      toast.loading('Dispatching emergency response...', { id: 'dispatch' });
-
+      toast.loading('Dispatching request...', { id: 'dispatch' });
       const result = await dispatchEmergency(request.id, request);
-
-      toast.success('Emergency dispatched! Resources assigned.', { id: 'dispatch' });
-      toast.info(`Ambulance: ${result.assignments.ambulance?.type || 'Assigned'}`, { duration: 3000 });
+      toast.success('Request dispatched', { id: 'dispatch' });
+      toast.info(`Responder: ${result.assignments.ambulance?.type || 'Assigned'}`, { duration: 3000 });
 
       fetchRequests();
     } catch (error) {
@@ -467,7 +706,7 @@ export const EmergencyRequestsPage = () => {
         await fetchRequests();
         return;
       }
-      toast.error('Failed to dispatch emergency', { id: 'dispatch' });
+      toast.error('Failed to dispatch request', { id: 'dispatch' });
     }
   }, [fetchRequests, isAdmin, isOrgAdmin, orgId]);
 
@@ -480,46 +719,26 @@ export const EmergencyRequestsPage = () => {
     try {
       await completeEmergency(request.id);
 
-      // Auto-trigger cash processing if it's a cash job and not yet completed
       if (isCashPaymentMethod(request.payment_method) && request.payment_status !== 'completed') {
-        // PULLBACK NOTE: Defer manual cash settlement to Pass 2 finance authority.
-        // OLD: prompt operator to run walletService.processCashPayment after completion.
-        // NEW: complete request only, then surface a blocked finance follow-up.
-        toast.warning('Cash settlement deferred', {
-          description: 'Emergency completion was recorded. Manual cash settlement needs the finance receiver pass before it can be processed here.'
+        toast.warning('Cash follow-up needed', {
+          description: 'Completion was saved. Cash settlement stays with the finance receiver pass.'
         });
       } else {
-        toast.success('Emergency completed. Resources freed.');
+        toast.success('Request completed');
       }
 
       fetchRequests();
     } catch (error) {
       console.error('Complete failed:', error);
-      toast.error('Failed to complete emergency');
+      toast.error('Failed to complete request');
     }
   }, [fetchRequests]);
 
-  const handleProcessCash = useCallback((request) => {
-    setCashModal({ open: true, request, amount: '50.00' });
+  const handleProcessCash = useCallback(() => {
+    toast.info('Cash settlement is not ready here yet', {
+      description: 'The finance receiver pass still owns this action.'
+    });
   }, []);
-
-  const executeCashPayment = useCallback(async (request, amount) => {
-    setCashModal({ open: false, request: null, amount: '50.00' });
-    try {
-      if (!amount || isNaN(amount)) {
-        toast.error('Invalid amount entered');
-        return;
-      }
-      toast.loading('Processing cash payment...', { id: 'cash-pay' });
-      const targetOrgId = orgId || request.organization_id || request.hospital_id;
-      await walletService.processCashPayment(request.id, targetOrgId, amount);
-      toast.success('Cash payment confirmed and fee deducted.', { id: 'cash-pay' });
-      fetchRequests();
-    } catch (error) {
-      console.error('Cash processing failed:', error);
-      toast.error(error.message || 'Failed to process cash payment', { id: 'cash-pay' });
-    }
-  }, [fetchRequests, orgId]);
 
   const formatMethodLabel = useCallback((method, index) => {
     const brand = String(method?.brand || method?.provider || method?.type || 'Card').toUpperCase();
@@ -535,7 +754,7 @@ export const EmergencyRequestsPage = () => {
   const handleRetryPayment = useCallback(async (request, preferredPaymentMethodId = null) => {
     const actionState = getEmergencyActionState(request);
     if (!actionState.canRetryPayment) {
-      toast.info('This request is not eligible for payment retry. Refreshing list...');
+      toast.info('This request is not ready for payment retry. Refreshing list...');
       await fetchRequests();
       return false;
     }
@@ -552,7 +771,7 @@ export const EmergencyRequestsPage = () => {
 
       if (preferredPaymentMethodId) {
         await retryPaymentWithDifferentMethod(requestId, preferredPaymentMethodId, userId);
-        toast.success('Payment retry created. Ask patient to complete payment.', { id: 'retry-pay' });
+        toast.success('Payment retry created', { id: 'retry-pay' });
         await fetchRequests();
         return true;
       }
@@ -566,13 +785,12 @@ export const EmergencyRequestsPage = () => {
 
       if (methods.length === 1) {
         await retryPaymentWithDifferentMethod(requestId, methods[0].id, userId);
-        toast.success('Payment retry created. Ask patient to complete payment.', { id: 'retry-pay' });
+        toast.success('Payment retry created', { id: 'retry-pay' });
         await fetchRequests();
         return true;
       }
 
-      // Multiple methods: open selection modal
-      const defaultIndex = Math.max(0, methods.findIndex((m) => m.is_default));
+      const defaultIndex = Math.max(0, methods.findIndex((method) => method.is_default));
       setRetryModal({
         open: true,
         request,
@@ -587,638 +805,80 @@ export const EmergencyRequestsPage = () => {
     }
   }, [fetchRequests]);
 
+  const closeRetryModal = useCallback(() => {
+    setRetryModal({ open: false, request: null, methods: [], selectedId: null });
+  }, []);
+
   const executeRetryPayment = useCallback(async () => {
     const { request, selectedId } = retryModal;
-    setRetryModal({ open: false, request: null, methods: [], selectedId: null });
+    closeRetryModal();
     if (!request?.id || !selectedId) return;
     try {
       toast.loading('Retrying payment...', { id: 'retry-pay' });
       await retryPaymentWithDifferentMethod(request.id, selectedId, request.user_id);
-      toast.success('Payment retry created. Ask patient to complete payment.', { id: 'retry-pay' });
+      toast.success('Payment retry created', { id: 'retry-pay' });
       await fetchRequests();
     } catch (error) {
       console.error('Payment retry failed:', error);
       toast.error(error.message || 'Failed to retry payment', { id: 'retry-pay' });
     }
-  }, [retryModal, fetchRequests]);
-
-  // Handle custom events from context panel
-  useEffect(() => {
-    const handleOpenModal = () => {
-      handleCreateEmergency();
-    };
-
-    window.addEventListener('openEmergencyModal', handleOpenModal);
-
-    return () => {
-      window.removeEventListener('openEmergencyModal', handleOpenModal);
-    };
-  }, [handleCreateEmergency]);
+  }, [retryModal, fetchRequests, closeRetryModal]);
 
   return (
-    <div className="min-h-screen">
-      <SEOHead title="Emergency Requests" description="Monitor and respond to critical emergency requests in real-time." />
+    <div className="min-h-screen text-foreground">
+      <SEOHead title="Requests" description="Review requests and route care from one place." />
 
       {isMobile ? (
-        <>
-          <MobileEmergency
-            emergencies={requests}
-            loading={loading}
-            statistics={emergencyData?.stats}
-            filters={filters}
-            setFilters={setFilters}
-            onView={handleViewDetails}
-            onEdit={handleDispatch}
-            onDelete={handleDelete}
-            onRefresh={fetchRequests}
-            onViewAnalytics={() => setAnalyticsModalOpen(true)}
-            isAdmin={isAdmin() || isOrgAdmin()}
-            onOpenFilters={() => setFilterSheetOpen(true)}
-            hasMore={pagination.hasNextPage}
-            onLoadMore={pagination.nextPage}
-            kpiFilter={kpiFilter}
-            setKpiFilter={setKpiFilter}
-          />
-
-          <EmergencyDetailsModal
-            isOpen={isDetailsModalOpen}
-            onClose={(shouldRefresh) => {
-              setIsDetailsModalOpen(false);
-              setSelectedRequest(null);
-              if (shouldRefresh === true) {
-                fetchRequests();
-              }
-            }}
-            request={selectedRequest}
-            onRetryPayment={handleRetryPayment}
-          />
-
-          <EmergencyRequestModal
-            isOpen={isEmergencyModalOpen}
-            onClose={handleCloseEmergencyModal}
-            request={selectedRequest}
-            mode="create"
-          />
-
-          <FilterSheet
-            isOpen={filterSheetOpen}
-            onOpenChange={setFilterSheetOpen}
-            filterSchema={filterSchema}
-            onApply={setFilters}
-            initialValues={filters}
-            viewToggle={null}
-            isMobile
-          />
-
-          <AnalyticsModal
-            open={analyticsModalOpen}
-            onClose={() => setAnalyticsModalOpen(false)}
-            analytics={emergencyData?.stats || {
-              total: requests.length,
-              active: requests.filter(r => isActiveEmergencyStatus(r.status)).length,
-              pending: requests.filter(r => r.status === 'pending_approval').length,
-              critical: requests.filter(r => r.priority === 'critical').length,
-              avgResponseTime: 0
-            }}
-            type="emergency"
-          />
-
-          <ConfirmationModal
-            isOpen={confirmationModal.isOpen}
-            onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-            onConfirm={confirmationModal.onConfirm}
-            title={confirmationModal.title}
-            description={confirmationModal.description}
-            variant={confirmationModal.variant}
-            confirmLabel={confirmationModal.confirmLabel}
-          />
-        </>
+        <MobileEmergency
+          emergencies={requests}
+          loading={loading}
+          statistics={requestStats}
+          filters={filters}
+          setFilters={setFilters}
+          onView={handleViewDetails}
+          onRefresh={fetchRequests}
+          onViewAnalytics={() => setAnalyticsModalOpen(true)}
+          isAdmin={isAdmin() || isOrgAdmin()}
+          onOpenFilters={() => setFilterSheetOpen(true)}
+          filterSheetOpen={filterSheetOpen}
+          analyticsOpen={analyticsModalOpen}
+          hasMore={pagination.hasNextPage}
+          onLoadMore={pagination.nextPage}
+          loadError={loadError}
+          onRetry={fetchRequests}
+          kpiFilter={kpiFilter}
+          setKpiFilter={setKpiFilter}
+        />
       ) : (
-        <>
-          {loading ? (
-            <TableSkeleton rows={8} />
-          ) : (
-            <>
-              {/* Bento Overview Cards - Always visible */}
-          <AnimatePresence>
-            {selectedIds.length > 0 && (
-              <motion.div
-                initial={{ x: 50, opacity: 0, scale: 0.9 }}
-                animate={{ x: 0, opacity: 1, scale: 1 }}
-                exit={{ x: 50, opacity: 0, scale: 0.9 }}
-                className="fixed top-1/2 -translate-y-1/2 right-6 z-50 flex flex-col items-center gap-3 p-2 bg-background/15 backdrop-blur-sm border-0 shadow-none rounded-full"
-              >
-                <div className="bg-primary text-primary-foreground text-[10px] font-bold h-6 min-w-[24px] px-1.5 rounded-full flex items-center justify-center shadow-sm mb-1">
-                  {selectedIds.length}
-                </div>
-
-                {(currentUser.isAdmin() || (typeof currentUser.isProvider === 'function' && currentUser.isProvider())) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleBulkDelete}
-                    className="h-10 w-10 rounded-full bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
-                    title="Delete Selected"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </Button>
-                )}
-
-                <div className="w-8 h-[1px] bg-white/10 my-0.5" />
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSelectedIds([])}
-                  className="h-8 w-8 rounded-full hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all"
-                  title="Clear Selection"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4"
-                  >
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
-                  </svg>
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          {!loading && emergencyData?.stats && (
-            <LayoutGroup>
-              <motion.div
-                layout
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8"
-              >
-                {/* Total Requests Card */}
-                <motion.div
-                  layout
-                  className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, delay: 0.1 }}
-                >
-                  <Card
-                    className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'all' ? 'ring-2 ring-primary shadow-lg' : ''
-                      }`}
-                    onClick={() => setKpiFilter('all')}
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Show all emergency requests"
-                  >
-                    {/* Apple hover glow effect */}
-                    <div className="hover-glow hover-glow-primary" />
-                    <div className="absolute top-0 right-0 p-4 z-20">
-                      <div className="relative">
-                        <div className={`absolute inset-0 ${kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                        <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                          <FileText className={`h-5 w-5 ${kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="relative z-10">
-                      <div className="flex items-center gap-2 mb-2">
-                        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Requests</p>
-                        {kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
-                      </div>
-                      <h3 className="text-3xl font-bold tracking-tighter">{emergencyData.stats.total || 0}</h3>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge className="geo-sharp bg-primary/20 text-primary border-0 font-bold text-xs">
-                          {kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </Card>
-                </motion.div>
-
-                {/* Ambulance Card - Main Emergency Type */}
-                <motion.div
-                  layout
-                  className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, delay: 0.15 }}
-                >
-                  <Card
-                    className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'ambulance' ? 'ring-2 ring-primary shadow-lg' : ''
-                      }`}
-                    onClick={() => setKpiFilter('ambulance')}
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Filter by ambulance requests"
-                  >
-                    <div className="hover-glow hover-glow-primary" />
-                    <div className="absolute top-0 right-0 p-4 z-20">
-                      <div className="relative">
-                        <div className={`absolute inset-0 ${kpiFilter === 'ambulance' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                        <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                          <Navigation className={`h-5 w-5 ${kpiFilter === 'ambulance' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="relative z-10">
-                      <div className="flex items-center gap-2 mb-2">
-                        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Ambulance</p>
-                        {kpiFilter === 'ambulance' && <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
-                      </div>
-                      <h3 className="text-3xl font-bold tracking-tighter">{emergencyData.stats.ambulance || 0}</h3>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge className="geo-round bg-primary/20 text-primary border-0 font-bold text-xs">
-                          DISPATCH
-                        </Badge>
-                      </div>
-                    </div>
-                  </Card>
-                </motion.div>
-
-                {/* Bed Booking Card - Main Emergency Type */}
-                <motion.div
-                  layout
-                  className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, delay: 0.2 }}
-                >
-                  <Card
-                    className={`h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'bed' ? 'ring-2 ring-warning shadow-lg' : ''
-                      }`}
-                    onClick={() => setKpiFilter('bed')}
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Filter by bed booking requests"
-                  >
-                    <div className="hover-glow hover-glow-warning" />
-                    <div className="absolute top-0 right-0 p-4 z-20">
-                      <div className="relative">
-                        <div className={`absolute inset-0 ${kpiFilter === 'bed' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                        <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                          <Hospital className={`h-5 w-5 ${kpiFilter === 'bed' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="relative z-10">
-                      <div className="flex items-center gap-2 mb-2">
-                        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Bed Booking</p>
-                        {kpiFilter === 'bed' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
-                      </div>
-                      <h3 className="text-3xl font-bold tracking-tighter">{emergencyData.stats.bed || 0}</h3>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge className="squircle-3xl bg-warning/20 text-warning border-0 font-bold text-xs">
-                          RESERVE
-                        </Badge>
-                      </div>
-                    </div>
-                  </Card>
-                </motion.div>
-
-                {/* Pending Card */}
-                <motion.div
-                  layout
-                  className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, delay: 0.25 }}
-                >
-                  <Card
-                    className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'pending' ? 'ring-2 ring-info shadow-lg' : ''
-                      }`}
-                    onClick={() => setKpiFilter('pending')}
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Filter by pending requests"
-                  >
-                    {/* Apple hover glow effect */}
-                    <div className="hover-glow hover-glow-info" />
-                    <div className="absolute top-0 right-0 p-4 z-20">
-                      <div className="relative">
-                        <div className={`absolute inset-0 ${kpiFilter === 'pending' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                        <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                          <Clock className={`h-5 w-5 ${kpiFilter === 'pending' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="relative z-10">
-                      <div className="flex items-center gap-2 mb-2">
-                        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pending</p>
-                        {kpiFilter === 'pending' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
-                      </div>
-                      <h3 className="text-3xl font-bold tracking-tighter">{emergencyData.stats.pending || 0}</h3>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge className="geo-ticket bg-info/20 text-info border-0 font-bold text-xs">
-                          NEW
-                        </Badge>
-                      </div>
-                    </div>
-                  </Card>
-                </motion.div>
-
-                {/* Active Card */}
-                <motion.div
-                  layout
-                  className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, delay: 0.3 }}
-                >
-                  <Card
-                    className={`h-full min-h-[140px] geo-wave glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${kpiFilter === 'active' ? 'ring-2 ring-success shadow-lg' : ''
-                      }`}
-                    onClick={() => setKpiFilter('active')}
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Filter by active requests"
-                  >
-                    {/* Apple hover glow effect */}
-                    <div className="hover-glow hover-glow-success" />
-                    <div className="absolute top-0 right-0 p-4 z-20">
-                      <div className="relative">
-                        <div className={`absolute inset-0 ${kpiFilter === 'active' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                        <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                          <Zap className={`h-5 w-5 ${kpiFilter === 'active' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="relative z-10">
-                      <div className="flex items-center gap-2 mb-2">
-                        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Active</p>
-                        {kpiFilter === 'active' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
-                      </div>
-                      <h3 className="text-3xl font-bold tracking-tighter">{emergencyData.stats.active || 0}</h3>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge className="geo-wave bg-success/20 text-success border-0 font-bold text-xs">
-                          NOW
-                        </Badge>
-                      </div>
-                    </div>
-                  </Card>
-                </motion.div>
-              </motion.div>
-            </LayoutGroup>
-          )}
-
-          {/* Grid View Cards */}
-          {viewMode === 'grid' && (
-            <>
-              {requests.length === 0 ? (
-                <Card className="squircle-lg glass-card-premium p-12 text-center">
-                  <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="font-bold text-xl mb-2">No Active Emergencies</h3>
-                  <p className="text-muted-foreground">All clear for now</p>
-                </Card>
-              ) : (
-                <LayoutGroup>
-                  <motion.div
-                    layout
-                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-min grid-flow-dense"
-                  >
-                    {requests.map((req, index) => {
-                      const actionState = getEmergencyActionState(req);
-                      return (
-                      <motion.div
-                        layout
-                        key={req.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="col-span-1"
-                      >
-                        <Card className={`h-full geo-arrow glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col ${req.service_type === 'critical_care' || req.service_type === 'ambulance' ? 'ring-1 ring-destructive/20' : ''}`}>
-                          {/* Apple hover glow effect */}
-                          <div className={`hover-glow ${req.service_type === 'critical_care' ? 'hover-glow-destructive' : req.service_type === 'ambulance' ? 'hover-glow-primary' : req.service_type === 'bed' ? 'hover-glow-warning' : 'hover-glow-success'}`} />
-                          <div className="absolute top-0 right-0 p-5 z-20">
-                            <div className="relative">
-                              <div className={`absolute inset-0 ${req.service_type === 'critical_care' ? 'bg-destructive/20' : req.service_type === 'ambulance' ? 'bg-primary/20' : req.service_type === 'bed' ? 'bg-warning/20' : 'bg-success/10'} blur-xl rounded-full scale-150`} />
-                              <div className="w-10 h-10 geo-round surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
-                                {req.service_type === 'ambulance' ? (
-                                  <Navigation className={`h-5 w-5 text-primary`} />
-                                ) : req.service_type === 'bed' ? (
-                                  <Hospital className={`h-5 w-5 text-warning`} />
-                                ) : (
-                                  <Siren className={`h-5 w-5 ${req.service_type === 'critical_care' ? 'text-destructive' : 'text-warning'}`} />
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 mb-4 relative z-10">
-                            <Badge className={`geo-sharp ${getServiceTypeBadge(req.service_type)} border-0 font-bold editorial-subtitle px-3 py-1`}>
-                              {getServiceTypeDisplay(req.service_type)}
-                            </Badge>
-                            <Badge className="geo-sharp bg-muted text-muted-foreground border-0 px-2 py-1 font-semibold">
-                              {getStatusDisplay(req.status)}
-                            </Badge>
-                          </div>
-                          <h3 className="font-bold text-2xl mb-1 tracking-tight group-hover:text-primary transition-colors line-clamp-1 relative z-10">
-                            {req.patient_snapshot?.fullName || req.requester_name || req.patient_name || 'Unknown Requester'}
-                          </h3>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 relative z-10">
-                            <User className="h-4 w-4" />
-                            <span className="font-normal">{req.patient_snapshot?.phone || req.requester_phone || req.patient_phone || 'No contact info'}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 relative z-10">
-                            <Clock className="h-4 w-4 text-info" />
-                            <span className="font-normal">{req.created_at ? new Date(req.created_at).toLocaleTimeString() : 'Just now'}</span>
-                          </div>
-                          <div className="space-y-3 mb-6 relative z-10">
-                            <div className="flex items-start gap-3 text-sm p-3 geo-sharp bg-muted/30">
-                              <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                              <span className="font-normal leading-snug truncate-2">
-                                <LocationCell
-                                  location={req.patient_location}
-                                  pickupLocation={req.pickup_location}
-                                  responderLocation={req.responder_location}
-                                />
-                              </span>
-                            </div>
-                            {req.hospital_name && (
-                              <div className="flex items-start gap-3 text-sm p-3 geo-sharp bg-muted/30">
-                                <Hospital className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-                                <span className="font-normal leading-snug truncate-2">
-                                  {req.hospital_name}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
-                            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">ACTIONS</div>
-                            <div className="flex gap-2 mr-12">
-                              {/* View Details - Always First */}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleViewDetails(req)}
-                                className="geo-round h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-colors"
-                                  aria-label={`View details for ${getEmergencyLabel(req)}`}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-
-                              {/* Primary Action: Dispatch OR Complete */}
-                              {(currentUser.isAdmin() || currentUser.isOrgAdmin()) && (
-                                <>
-                                  {/* Dispatch Case: Pending/In-Progress & No Ambulance */}
-                                  {actionState.canDispatch && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleDispatch(req)}
-                                      className="geo-round h-8 w-8 p-0 hover:bg-success/10 hover:text-success transition-colors"
-                                      title="Dispatch Emergency Response"
-                                    >
-                                      <Send className="h-4 w-4" />
-                                    </Button>
-                                  )}
-
-                                  {/* Complete Case: Accepted/Has Ambulance & Not Completed */}
-                                  {actionState.canComplete && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleComplete(req)}
-                                      className="geo-round h-8 w-8 p-0 hover:bg-info/10 hover:text-info transition-colors"
-                                      title="Mark as Completed"
-                                    >
-                                      <CheckCheck className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                  {/* Cash Payment Action */}
-                                  {actionState.canProcessCash && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleProcessCash(req)}
-                                      className="geo-round h-8 w-8 p-0 hover:bg-yellow-500/10 hover:text-yellow-500 transition-colors"
-                                      title="Process Cash Payment"
-                                    >
-                                      <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="18"
-                                        height="18"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      >
-                                        <circle cx="8" cy="8" r="6" />
-                                        <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
-                                        <path d="M7 6h1v4" />
-                                        <path d="m16.71 13.88.7.71-2.82 2.82" />
-                                      </svg>
-                                    </Button>
-                                  )}
-                                  {actionState.canRetryPayment && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleRetryPayment(req)}
-                                      className="geo-round h-8 w-8 p-0 hover:bg-warning/10 hover:text-warning transition-colors"
-                                      title="Retry Payment"
-                                    >
-                                      <RefreshCw className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                </>
-                              )}
-
-                              {/* Delete Action - Always Last */}
-                              {currentUser.isAdmin() && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDelete(req)}
-                                  className="geo-round h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
-                                  aria-label={`Delete ${getEmergencyLabel(req)}`}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
-
-                              {/* Provider-specific actions */}
-                              {currentUser.isProvider() && actionState.canComplete && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleComplete(req)}
-                                  className="geo-round h-8 w-8 p-0 hover:bg-info/10 hover:text-info transition-colors"
-                                  title="Mark as Completed"
-                                >
-                                  <CheckCheck className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </Card>
-                      </motion.div>
-                      );
-                    })}
-                  </motion.div>
-                </LayoutGroup>
-              )}
-            </>
-          )}
-
-          {/* List View */}
-          {viewMode === 'list' && (
-            <EmergencyRequestListView
-              requests={requests}
-              onView={handleViewDetails}
-              onDelete={handleDelete}
-              onDispatch={handleDispatch}
-              onComplete={handleComplete}
-              onProcessCash={handleProcessCash}
-              onRetryPayment={handleRetryPayment}
-              isMobile={isMobile}
-              selectedIds={selectedIds}
-              onSelect={handleSelect}
-              currentUser={currentUser}
-            />
-          )}
-
-          {/* Table View */}
-          {viewMode === 'table' && (
-            <EmergencyRequestTableView
-              requests={requests}
-              onView={handleViewDetails}
-              onDelete={handleDelete}
-              onDispatch={handleDispatch}
-              onComplete={handleComplete}
-              onProcessCash={handleProcessCash}
-              onRetryPayment={handleRetryPayment}
-              isMobile={isMobile}
-              selectedIds={selectedIds}
-              onSelect={handleSelect}
-              onSelectAll={handleSelectAll}
-              sortConfig={sortConfig}
-              onSort={handleSort}
-              currentUser={currentUser}
-            />
-          )}
-        </>
+        <RequestsDesktopWorkspace
+          requests={requests}
+          loading={loading}
+          stats={requestStats}
+          filters={filters}
+          setFilters={setFilters}
+          kpiFilter={kpiFilter}
+          setKpiFilter={setKpiFilter}
+          focusedRequest={focusedRequest}
+          setFocusedRequestId={setFocusedRequestId}
+          currentUser={currentUser}
+          onView={handleViewDetails}
+          onDelete={handleDelete}
+          onDispatch={handleDispatch}
+          onComplete={handleComplete}
+          onProcessCash={handleProcessCash}
+          onRetryPayment={handleRetryPayment}
+          pagination={pagination}
+          openFilters={() => setFilterSheetOpen(true)}
+          filterSheetOpen={filterSheetOpen}
+          filterTriggerState={filterTriggerState}
+          loadError={loadError}
+          onRetry={fetchRequests}
+          moduleRailItems={visibleModuleRail}
+          routingPath={routingPath}
+          onRailNavigate={handleRailNavigate}
+        />
       )}
 
-      {/* Pagination Controls */}
-      <PaginationControls
-        currentPage={pagination.currentPage}
-        totalPages={pagination.totalPages}
-        totalCount={pagination.totalCount}
-        itemsPerPage={pagination.itemsPerPage}
-        onPrevPage={pagination.prevPage}
-        onNextPage={pagination.nextPage}
-        hasPrevPage={pagination.hasPrevPage}
-        hasNextPage={pagination.hasNextPage}
-        loading={loading}
-      />
-
-      {/* Emergency Details Modal */}
       <EmergencyDetailsModal
         isOpen={isDetailsModalOpen}
         onClose={(shouldRefresh) => {
@@ -1232,7 +892,6 @@ export const EmergencyRequestsPage = () => {
         onRetryPayment={handleRetryPayment}
       />
 
-      {/* Emergency Request Modal */}
       <EmergencyRequestModal
         isOpen={isEmergencyModalOpen}
         onClose={handleCloseEmergencyModal}
@@ -1246,6 +905,10 @@ export const EmergencyRequestsPage = () => {
         filterSchema={filterSchema}
         onApply={setFilters}
         initialValues={filters}
+        resetValues={EMPTY_REQUEST_FILTERS}
+        resetLabel="Clear"
+        title="Filters"
+        description="Filter Requests by search, status, and date range."
         viewToggle={null}
         isMobile={isMobile}
       />
@@ -1253,11 +916,16 @@ export const EmergencyRequestsPage = () => {
       <AnalyticsModal
         open={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
-        analytics={emergencyData?.stats}
+        analytics={requestStats || {
+          total: requests.length,
+          active: requests.filter((request) => isActiveEmergencyStatus(request.status)).length,
+          pending: requests.filter((request) => request.status === 'pending_approval').length,
+          critical: requests.filter((request) => request.service_type === 'critical_care').length,
+          avgResponseTime: 0
+        }}
         type="emergency"
       />
 
-      {/* Existing delete/cancel single-item confirmation modal */}
       <ConfirmationModal
         isOpen={confirmationModal.isOpen}
         onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
@@ -1268,84 +936,632 @@ export const EmergencyRequestsPage = () => {
         confirmLabel={confirmationModal.confirmLabel}
       />
 
-      {/* Bulk cancel confirmation */}
-      <ConfirmationModal
-        isOpen={bulkCancelModal.open}
-        onClose={() => setBulkCancelModal({ open: false })}
-        onConfirm={executeBulkCancel}
-        title={`Cancel ${selectedIds.length} Emergencies`}
-        description={`Are you sure you want to cancel ${selectedIds.length} selected emergency requests? This action cannot be undone.`}
-        variant="destructive"
-        confirmLabel="Cancel All"
-      />
-
-      {/* Mark complete confirmation */}
       <ConfirmationModal
         isOpen={completeModal.open}
         onClose={() => setCompleteModal({ open: false, request: null })}
         onConfirm={() => executeComplete(completeModal.request)}
-        title="Mark Emergency Completed"
-        description="Are you sure you want to mark this emergency as completed? Resources will be freed."
+        title="Mark request complete"
+        description="Mark this request complete and free assigned resources?"
         variant="default"
-        confirmLabel="Mark Complete"
+        confirmLabel="Mark complete"
       />
 
-      {/* Cash payment modal */}
-      {cashModal.open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCashModal({ open: false, request: null, amount: '50.00' })} />
-          <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-[32px] bg-background/90 dark:bg-muted/50 backdrop-blur-sm shadow-2xl p-6 flex flex-col gap-4">
-            <h3 className="text-xl font-semibold tracking-tight text-foreground">Record Cash Payment</h3>
-            <p className="text-sm text-muted-foreground">Enter the total cash amount received from the patient (USD).</p>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              className="w-full rounded-2xl border border-border bg-muted/30 px-4 py-3 text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary"
-              value={cashModal.amount}
-              onChange={(e) => setCashModal(prev => ({ ...prev, amount: e.target.value }))}
-              autoFocus
-            />
-            <div className="flex gap-3">
-              <Button variant="ghost" className="flex-1 rounded-2xl" onClick={() => setCashModal({ open: false, request: null, amount: '50.00' })}>Cancel</Button>
-              <Button className="flex-1 rounded-2xl font-bold" onClick={() => executeCashPayment(cashModal.request, cashModal.amount)}>Confirm Payment</Button>
-            </div>
+      <ModalShell
+        isOpen={retryModal.open}
+        onClose={closeRetryModal}
+        title="Select payment method"
+        subtitle="Choose a saved method for the retry."
+        icon={<RefreshCw className="h-4 w-4 text-primary" />}
+        size="sm"
+        footer={(
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              className="flex-1 rounded-button"
+              onClick={closeRetryModal}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="flex-1 rounded-button font-bold"
+              onClick={executeRetryPayment}
+              disabled={!retryModal.selectedId}
+            >
+              Retry
+            </Button>
           </div>
+        )}
+      >
+        <div className="flex flex-col gap-2 p-4 pt-1 md:px-6 md:pb-6">
+          {retryModal.methods.map((method, index) => (
+            <label
+              key={method.id}
+              className={`flex cursor-pointer items-center gap-3 rounded-inner p-3 transition-colors ${retryModal.selectedId === method.id ? 'bg-primary/12 text-primary' : 'bg-muted/25 hover:bg-muted/40'}`}
+            >
+              <input
+                type="radio"
+                name="paymentMethod"
+                value={method.id}
+                checked={retryModal.selectedId === method.id}
+                onChange={() => setRetryModal(prev => ({ ...prev, selectedId: method.id }))}
+                className="accent-primary"
+              />
+              <span className="text-sm font-medium">{formatMethodLabel(method, index)}</span>
+            </label>
+          ))}
         </div>
-      )}
-
-      {/* Payment method retry modal */}
-      {retryModal.open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setRetryModal({ open: false, request: null, methods: [], selectedId: null })} />
-          <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-[32px] bg-background/90 dark:bg-muted/50 backdrop-blur-sm shadow-2xl p-6 flex flex-col gap-4">
-            <h3 className="text-xl font-semibold tracking-tight text-foreground">Select Payment Method</h3>
-            <p className="text-sm text-muted-foreground">Choose a payment method to retry for this emergency request.</p>
-            <div className="flex flex-col gap-2">
-              {retryModal.methods.map((method, i) => (
-                <label key={method.id} className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-colors ${retryModal.selectedId === method.id ? 'border-primary bg-primary/10' : 'border-border bg-muted/20 hover:bg-muted/40'}`}>
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value={method.id}
-                    checked={retryModal.selectedId === method.id}
-                    onChange={() => setRetryModal(prev => ({ ...prev, selectedId: method.id }))}
-                    className="accent-primary"
-                  />
-                  <span className="text-sm font-medium">{formatMethodLabel(method, i)}</span>
-                </label>
-              ))}
-            </div>
-            <div className="flex gap-3">
-              <Button variant="ghost" className="flex-1 rounded-2xl" onClick={() => setRetryModal({ open: false, request: null, methods: [], selectedId: null })}>Cancel</Button>
-              <Button className="flex-1 rounded-2xl font-bold" onClick={executeRetryPayment} disabled={!retryModal.selectedId}>Retry Payment</Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-        </>
-      )}
+      </ModalShell>
     </div>
   );
 };
+
+const RequestsDesktopWorkspace = ({
+  requests,
+  loading,
+  stats,
+  filters,
+  setFilters,
+  kpiFilter,
+  setKpiFilter,
+  focusedRequest,
+  setFocusedRequestId,
+  currentUser,
+  onView,
+  onDelete,
+  onDispatch,
+  onComplete,
+  onProcessCash,
+  onRetryPayment,
+  pagination,
+  openFilters,
+  filterSheetOpen,
+  filterTriggerState,
+  loadError,
+  onRetry,
+  moduleRailItems,
+  routingPath,
+  onRailNavigate,
+}) => {
+  const signal = getRequestSignal({ stats, requests, kpiFilter });
+
+  return (
+    <section className="relative min-h-[calc(100dvh-3rem)] overflow-hidden bg-background text-foreground">
+      <RequestsAtlasLayer />
+      <ConsoleModuleRail
+        items={moduleRailItems}
+        activePath="/emergencies"
+        routingPath={routingPath}
+        onNavigate={onRailNavigate}
+      />
+
+      <div className="relative z-10 flex min-h-[calc(100dvh-3rem)] w-full min-w-0 flex-col gap-5 px-4 pb-8 pt-20 sm:px-5 md:pt-24 lg:h-[calc(100dvh-3rem)] lg:flex-row lg:items-center lg:px-6 lg:pl-24 lg:pt-8 xl:pl-28">
+        <section className="flex min-w-0 flex-1 flex-col gap-4 lg:min-h-0 lg:self-stretch">
+          <RequestSignalPanel
+            signal={signal}
+            stats={stats}
+            requests={requests}
+            kpiFilter={kpiFilter}
+            setKpiFilter={setKpiFilter}
+          />
+
+          <div className="flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
+            <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+            <RequestToolbar
+              filters={filters}
+              setFilters={setFilters}
+              openFilters={openFilters}
+              filterSheetOpen={filterSheetOpen}
+              filterTriggerState={filterTriggerState}
+            />
+
+            <div className="mt-3 flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground">
+              <span>{loading ? 'Loading requests' : `${pagination.totalCount} requests`}</span>
+              <span>{loading ? 'One moment' : `Page ${pagination.currentPage} of ${pagination.totalPages}`}</span>
+            </div>
+
+            <div className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-card bg-background/30 p-3 no-scrollbar dark:bg-black/[0.08]">
+              <div className="grid grid-cols-[minmax(150px,1.2fr)_minmax(92px,0.66fr)_minmax(124px,1fr)_64px_72px] gap-2 px-4 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <span>Person</span>
+                <span>Service</span>
+                <span>Facility</span>
+                <span>Time</span>
+                <span className="text-right">Action</span>
+              </div>
+
+              {loading && <RequestSkeletonRows />}
+              {!loading && loadError && requests.length === 0 && (
+                <RequestLoadErrorState message={loadError} onRetry={onRetry} />
+              )}
+              {!loading && loadError && requests.length > 0 && (
+                <RequestLoadNotice message={loadError} onRetry={onRetry} />
+              )}
+              {!loading && !loadError && Number(pagination.totalCount) === 0 && (
+                <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-muted/16 p-10 text-center">
+                  <ClipboardCheck className="mb-4 h-12 w-12 text-muted-foreground/65" />
+                  <h3 className="text-xl font-semibold">No matching requests</h3>
+                  <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                    Change filters or search again.
+                  </p>
+                  <Button
+                    variant="ghost"
+                    onClick={openFilters}
+                    data-state={filterTriggerState}
+                    className="mt-5 rounded-pill bg-muted/30 px-5 font-semibold transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
+                    aria-haspopup="dialog"
+                    aria-expanded={filterSheetOpen}
+                  >
+                    Change filters
+                  </Button>
+                </div>
+              )}
+              {!loading && requests.length > 0 && (
+                <AnimatePresence mode="popLayout">
+                  {requests.map((request, index) => (
+                    <RequestRow
+                      key={request.id}
+                      request={request}
+                      index={index}
+                      selected={focusedRequest?.id === request.id}
+                      onFocus={() => setFocusedRequestId(request.id)}
+                      onView={onView}
+                    />
+                  ))}
+                </AnimatePresence>
+              )}
+            </div>
+
+            <PaginationControls
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalCount={pagination.totalCount}
+              itemsPerPage={pagination.itemsPerPage}
+              onPrevPage={pagination.prevPage}
+              onNextPage={pagination.nextPage}
+              hasPrevPage={pagination.hasPrevPage}
+              hasNextPage={pagination.hasNextPage}
+              loading={loading}
+            />
+          </div>
+        </section>
+
+        <RequestDetailRail
+          request={focusedRequest}
+          currentUser={currentUser}
+          onView={onView}
+          onDelete={onDelete}
+          onDispatch={onDispatch}
+          onComplete={onComplete}
+          onProcessCash={onProcessCash}
+          onRetryPayment={onRetryPayment}
+        />
+      </div>
+    </section>
+  );
+};
+
+const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter }) => {
+  const SignalIcon = signal.icon;
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.42 }}
+      className="flex min-h-[270px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[330px]"
+    >
+      <div className="min-w-0">
+        <div className="max-w-2xl">
+          <div className={`mb-3 inline-flex items-center gap-2 rounded-pill px-3 py-2 text-xs font-semibold ${requestToneClass[signal.tone] || requestToneClass.muted}`}>
+            <SignalIcon className="h-4 w-4" />
+            {signal.label}
+          </div>
+          <h1 className="max-w-2xl text-[34px] font-semibold leading-[1.05] tracking-tight text-foreground md:text-6xl">
+            {signal.headline}
+          </h1>
+          <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
+            {signal.subhead}
+          </p>
+        </div>
+
+        <RequestKpiStrip
+          stats={stats}
+          requests={requests}
+          kpiFilter={kpiFilter}
+          setKpiFilter={setKpiFilter}
+        />
+      </div>
+    </motion.section>
+  );
+};
+
+const RequestKpiStrip = ({ stats, requests, kpiFilter, setKpiFilter }) => (
+  <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-4">
+    {kpiOptions.map((item) => {
+      const Icon = item.icon;
+      const active = (kpiFilter || 'pending') === item.id;
+      const count = getKpiCount({ id: item.id, stats, requests });
+      const clearPending = item.id === 'pending' && count === 0;
+      const activeClass = clearPending
+        ? 'bg-emerald-500/10 text-emerald-700 shadow-[0_18px_54px_rgba(16,185,129,0.16)] dark:text-emerald-200'
+        : item.activeClass;
+      const colorClass = clearPending ? 'text-emerald-700 dark:text-emerald-200' : item.colorClass;
+      return (
+        <motion.button
+          key={item.id}
+          type="button"
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setKpiFilter(item.id)}
+          data-request-kpi={item.id}
+          data-state={active ? 'selected' : 'idle'}
+          className={`group min-h-[78px] rounded-inner px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? activeClass : item.restClass}`}
+          aria-pressed={active}
+          aria-label={`${item.label}: ${count}`}
+        >
+          <span className="flex items-start justify-between gap-2">
+            <span className="min-w-0">
+              <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
+              <span className="mt-1 block text-2xl font-semibold tracking-normal text-foreground">{count}</span>
+            </span>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-button bg-background/45 transition-transform group-hover:scale-105 ${active ? colorClass : ''}`}>
+              <Icon className="h-4 w-4" />
+            </span>
+          </span>
+        </motion.button>
+      );
+    })}
+  </div>
+);
+
+const RequestLoadErrorState = ({ message, onRetry }) => (
+  <div className="flex min-h-[360px] flex-col items-center justify-center rounded-card bg-destructive/10 p-10 text-center shadow-[0_20px_64px_rgba(239,68,68,0.12)]">
+    <AlertCircle className="mb-4 h-12 w-12 text-destructive/75" />
+    <h3 className="text-xl font-semibold">Requests did not load</h3>
+    <p className="mt-2 max-w-md text-sm text-muted-foreground">
+      {message || 'Try again to refresh this list.'}
+    </p>
+    <Button
+      type="button"
+      variant="ghost"
+      onClick={onRetry}
+      className="mt-5 rounded-pill bg-destructive/10 px-5 font-semibold text-destructive transition-all hover:bg-destructive/15 active:scale-95"
+    >
+      Retry
+    </Button>
+  </div>
+);
+
+const RequestLoadNotice = ({ message, onRetry }) => (
+  <div className="mb-3 flex flex-col gap-3 rounded-inner bg-destructive/10 p-4 text-sm text-destructive shadow-[0_18px_54px_rgba(239,68,68,0.10)] sm:flex-row sm:items-center sm:justify-between">
+    <span className="font-medium">{message || 'Requests could not refresh.'}</span>
+    <Button
+      type="button"
+      variant="ghost"
+      onClick={onRetry}
+      className="h-9 rounded-pill bg-destructive/10 px-4 text-xs font-semibold text-destructive hover:bg-destructive/15"
+    >
+      Retry
+    </Button>
+  </div>
+);
+
+const RequestToolbar = ({ filters, setFilters, openFilters, filterSheetOpen, filterTriggerState }) => (
+  <div className="flex items-center gap-3">
+    <div className="relative flex-1">
+      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/65" />
+      <input
+        type="search"
+        value={filters.search || ''}
+        onChange={(event) => setFilters(prev => ({ ...prev, search: event.target.value }))}
+        placeholder="Search requests..."
+        className="h-12 w-full rounded-button bg-muted/30 pl-11 pr-4 text-sm font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/55 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)]"
+      />
+    </div>
+    <Button
+      variant="ghost"
+      onClick={openFilters}
+      data-state={filterTriggerState}
+      className="h-12 rounded-button bg-muted/30 px-4 text-sm font-semibold text-muted-foreground shadow-sm transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95"
+      aria-haspopup="dialog"
+      aria-expanded={filterSheetOpen}
+    >
+      <FilterIcon className="mr-2 h-4 w-4" />
+      Filters
+    </Button>
+  </div>
+);
+
+const RequestRow = ({ request, index, selected, onFocus, onView }) => {
+  const projection = getRequestProjection(request);
+  const status = getStatusMeta(request);
+  const ServiceIcon = serviceIconMap[request?.service_type] || ClipboardCheck;
+  const patientName = projection.patientDisplay.name;
+  const facilityName = projection.facilityDisplay.name;
+  const rowAvatarClass = getRequestAvatarClass(request);
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.24, delay: Math.min(index * 0.025, 0.2) }}
+      className={`mb-2 grid min-h-[78px] grid-cols-[minmax(150px,1.2fr)_minmax(92px,0.66fr)_minmax(124px,1fr)_64px_72px] items-center gap-2 rounded-card px-4 py-3 transition-all duration-200 ${selected ? 'bg-foreground/[0.07] shadow-[0_24px_70px_rgba(0,0,0,0.14)] dark:bg-white/[0.075]' : 'bg-muted/22 hover:bg-muted/34 hover:shadow-[0_18px_54px_rgba(0,0,0,0.10)]'}`}
+      data-request-row={request.id}
+      data-state={selected ? 'selected' : 'idle'}
+      role="button"
+      tabIndex={0}
+      onClick={onFocus}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onFocus();
+        }
+      }}
+      aria-pressed={selected}
+      aria-label={`${selected ? 'Selected' : 'Open'} ${patientName}`}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-pill text-sm font-semibold ${rowAvatarClass}`}>
+          {getInitials(patientName)}
+        </div>
+        <div className="min-w-0">
+          <div className="truncate text-[15px] font-semibold text-foreground">{patientName}</div>
+          <div className="mt-1 truncate text-xs text-muted-foreground">{projection.patientDisplay.phone}</div>
+        </div>
+      </div>
+
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
+          <ServiceIcon className="h-4 w-4" />
+        </span>
+        <span className="truncate text-sm font-medium">{getServiceLabel(request)}</span>
+      </div>
+
+      <div className="min-w-0">
+        <div className={`inline-flex max-w-full items-center rounded-pill px-3 py-1 text-xs font-semibold ${status.className}`}>
+          <span className="truncate">{status.label}</span>
+        </div>
+        <div className="mt-2 truncate text-xs text-muted-foreground">{facilityName}</div>
+      </div>
+
+      <div className="text-sm font-medium text-muted-foreground">
+        {formatRequestTime(request.created_at)}
+      </div>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={(event) => {
+          event.stopPropagation();
+          onView(request);
+        }}
+        className="justify-self-end rounded-pill bg-background/45 px-3 text-xs font-semibold shadow-sm transition-all hover:bg-foreground hover:text-background active:scale-95"
+      >
+        Details
+      </Button>
+    </motion.div>
+  );
+};
+
+const RequestDetailRail = ({
+  request,
+  currentUser,
+  onView,
+  onDelete,
+  onDispatch,
+  onComplete,
+  onProcessCash,
+  onRetryPayment,
+}) => {
+  if (!request) {
+    return (
+      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+        <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+        <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+          <Info className="mb-4 h-10 w-10 text-muted-foreground/60" />
+          <h2 className="text-xl font-semibold">No request selected</h2>
+          <p className="mt-2 max-w-[260px] text-sm text-muted-foreground">
+            Requests that match your filters will appear here.
+          </p>
+        </div>
+      </aside>
+    );
+  }
+
+  const projection = getRequestProjection(request);
+  const status = getStatusMeta(request);
+  const avatarClass = getRequestAvatarClass(request);
+  const actionState = getEmergencyActionState(request);
+  const canManage = currentUser.isAdmin() || currentUser.isOrgAdmin();
+  const canCompleteAsProvider = currentUser.isProvider() && actionState.canComplete;
+  const primaryAction = getPrimaryRailAction({
+    request,
+    actionState,
+    canManage,
+    canCompleteAsProvider,
+    onView,
+    onDispatch,
+    onComplete,
+    onRetryPayment,
+  });
+  const PrimaryIcon = primaryAction.icon;
+  const StatusIcon = status.icon || AlertCircle;
+  const primaryClass = railPrimaryActionClass[primaryAction.kind] || railPrimaryActionClass.details;
+
+  return (
+    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+      <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">Request details</h2>
+          <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${status.className}`}>
+            <StatusIcon className="h-3.5 w-3.5" />
+            {status.label}
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
+          onClick={() => onView(request)}
+          aria-label="Open full request details"
+        >
+          <Info className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="mb-5 flex items-center gap-4">
+        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-pill text-lg font-semibold ${avatarClass}`}>
+          {getInitials(projection.patientDisplay.name)}
+        </div>
+        <div className="min-w-0">
+          <h3 className="truncate text-lg font-semibold">{projection.patientDisplay.name}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {formatRequestTime(request.created_at)} - {projection.patientDisplay.phone}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <DetailLine icon={Hospital} label="Facility" value={projection.facilityDisplay.name} />
+        <DetailLine icon={MapPin} label="Location" value={projection.locationDisplay.label} />
+        <DetailLine icon={ClipboardCheck} label="Service" value={getServiceLabel(request)} />
+        <DetailLine icon={Clock} label="Requested" value={formatRequestTime(request.created_at)} />
+      </div>
+
+      <div className="mt-5 space-y-2.5">
+        <Button
+          className={`h-12 w-full rounded-button text-base font-semibold transition-all active:scale-[0.99] ${primaryClass}`}
+          onClick={() => primaryAction.onClick(request)}
+          disabled={primaryAction.disabled}
+        >
+          <PrimaryIcon className="mr-2 h-5 w-5" />
+          {primaryAction.label}
+          <ChevronRight className="ml-auto h-5 w-5" />
+        </Button>
+
+        <div className="grid grid-cols-2 gap-3">
+          {canManage && actionState.canDispatch && primaryAction.kind !== 'dispatch' && (
+            <RailActionButton icon={Send} label="Dispatch" onClick={() => onDispatch(request)} />
+          )}
+          {(canManage || canCompleteAsProvider) && actionState.canComplete && primaryAction.kind !== 'complete' && (
+            <RailActionButton icon={CheckCheck} label="Complete" onClick={() => onComplete(request)} />
+          )}
+          {actionState.canRetryPayment && primaryAction.kind !== 'retry' && (
+            <RailActionButton icon={RefreshCw} label="Retry" onClick={() => onRetryPayment(request)} />
+          )}
+          <RailActionButton icon={Info} label="Details" onClick={() => onView(request)} />
+        </div>
+
+        {actionState.canProcessCash && (
+          <Button
+            variant="ghost"
+            className="h-12 w-full rounded-button bg-muted/25 text-sm font-semibold text-muted-foreground transition-all hover:bg-muted/35 active:scale-[0.99]"
+            onClick={() => onProcessCash(request)}
+          >
+            Cash settlement not ready here
+          </Button>
+        )}
+
+        {currentUser.isAdmin() && actionState.canCancel && (
+          <Button
+            variant="ghost"
+            className="h-10 w-full rounded-button bg-destructive/8 text-sm font-semibold text-destructive transition-all hover:bg-destructive/12 active:scale-[0.99]"
+            onClick={() => onDelete(request)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Cancel request
+          </Button>
+        )}
+      </div>
+    </aside>
+  );
+};
+
+const DetailLine = ({ icon: Icon, label, value }) => (
+  <div className="flex items-center gap-3 rounded-inner bg-muted/20 p-2.5">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
+      <Icon className="h-4 w-4" />
+    </span>
+    <div className="min-w-0">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
+      <div className="mt-1 truncate text-sm font-semibold text-foreground">{value || 'Not set'}</div>
+    </div>
+  </div>
+);
+
+const RailActionButton = ({ icon: Icon, label, onClick }) => (
+  <Button
+    variant="ghost"
+    className="h-11 rounded-button bg-muted/28 text-sm font-semibold text-foreground transition-all hover:bg-muted/42 active:scale-[0.98]"
+    onClick={onClick}
+  >
+    <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
+    {label}
+  </Button>
+);
+
+const getPrimaryRailAction = ({
+  request,
+  actionState,
+  canManage,
+  canCompleteAsProvider,
+  onView,
+  onDispatch,
+  onComplete,
+  onRetryPayment,
+}) => {
+  const status = canonicalizeEmergencyStatus(request?.status, null);
+  if (status === 'pending_approval') {
+    return {
+      kind: 'review',
+      label: 'Review',
+      icon: ClipboardCheck,
+      onClick: onView,
+    };
+  }
+  if (canManage && actionState.canDispatch) {
+    return {
+      kind: 'dispatch',
+      label: 'Dispatch',
+      icon: Send,
+      onClick: onDispatch,
+    };
+  }
+  if ((canManage || canCompleteAsProvider) && actionState.canComplete) {
+    return {
+      kind: 'complete',
+      label: 'Complete',
+      icon: CheckCheck,
+      onClick: onComplete,
+    };
+  }
+  if (actionState.canRetryPayment) {
+    return {
+      kind: 'retry',
+      label: 'Retry payment',
+      icon: RefreshCw,
+      onClick: onRetryPayment,
+    };
+  }
+  return {
+    kind: 'details',
+    label: 'Details',
+    icon: Info,
+    onClick: onView,
+  };
+};
+
+const RequestSkeletonRows = () => (
+  <div className="space-y-2">
+    {Array.from({ length: 7 }).map((_, index) => (
+      <div
+        key={index}
+        className="h-[78px] animate-pulse rounded-card bg-muted/38 dark:bg-white/[0.055]"
+      />
+    ))}
+  </div>
+);

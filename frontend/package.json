@@ -69,7 +69,9 @@
   "scripts": {
     "start": "craco start",
     "check:database-types-encoding": "node scripts/check-database-types-encoding.js",
-    "build": "npm run check:database-types-encoding && craco build",
+    "check:ui-hardgate": "node scripts/check-ui-surface-hardgate.js",
+    "check:ui-hardgate:revamp": "node scripts/check-ui-surface-hardgate.js --strict-radius",
+    "build": "npm run check:database-types-encoding && npm run check:ui-hardgate && craco build",
     "test": "craco test",
     "lint": "eslint src"
   },

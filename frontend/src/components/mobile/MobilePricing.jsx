@@ -24,6 +24,11 @@ import { MobileListEmpty } from './MobileListStates';
 import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 
+const formatLabel = (value, fallback = 'Unknown') => {
+  const text = String(value || fallback).replace(/_/g, ' ').trim();
+  return text ? text.replace(/\b\w/g, (letter) => letter.toUpperCase()) : fallback;
+};
+
 export const MobilePricing = ({
   pricing = [],
   allPricing = [],
@@ -40,67 +45,80 @@ export const MobilePricing = ({
   onRefresh,
   canEdit,
   onViewAnalytics,
+  actionNotice = '',
+  pricingProjection = null,
+  selectionEnabled = false,
   selectedIds = [],
   onSelect,
   onSelectAll
 }) => {
   const [expandedId, setExpandedId] = useState(null);
-  const selectionMode = selectedIds.length > 0;
+  const selectionMode = selectionEnabled && selectedIds.length > 0;
   const { triggerFromEvent } = useFeedback();
+  const projectionSummary = pricingProjection?.summary || null;
+  const projectionTotalCount = Number(pricingProjection?.totalCount);
+  const currentBasisLabel = pricingProjection?.readState?.basis === 'current_filter' ? 'Current' : 'Source';
 
-  const avgPrice = useMemo(() => {
+  const computedAvgPrice = useMemo(() => {
     if (!allPricing.length) return 0;
-    const total = allPricing.reduce((sum, item) => sum + (item.base_price || item.price_per_night || 0), 0);
+    const total = allPricing.reduce((sum, item) => sum + getItemPrice(item), 0);
     return total / allPricing.length;
   }, [allPricing]);
 
-  const counts = useMemo(() => ({
-    all: allPricing.length,
-    global: allPricing.filter(item => !item.organization_id && !item.hospital_id).length,
-    override: allPricing.filter(item => item.organization_id || item.hospital_id).length
-  }), [allPricing]);
+  const avgPrice = projectionSummary?.averageAmount ?? computedAvgPrice;
+
+  const counts = useMemo(() => {
+    if (projectionSummary) {
+      return {
+        all: Number.isFinite(projectionTotalCount) ? projectionTotalCount : 0,
+        global: projectionSummary.globalFallbackCount || 0,
+        override: projectionSummary.facilityPriceCount || 0
+      };
+    }
+
+    return {
+      all: allPricing.length,
+      global: allPricing.filter(item => !item.organization_id && !item.hospital_id).length,
+      override: allPricing.filter(item => item.organization_id || item.hospital_id).length
+    };
+  }, [allPricing, projectionSummary, projectionTotalCount]);
 
   const kpis = [
-    { id: 'all', label: 'Rules', value: counts.all, color: 'hsl(var(--primary))', delta: 'LIVE', direction: 'flat' },
-    { id: 'global', label: 'Global', value: counts.global, color: 'hsl(var(--info))', delta: 'LIVE', direction: 'flat' },
-    { id: 'override', label: 'Overrides', value: counts.override, color: 'hsl(var(--success))', delta: 'LIVE', direction: 'flat' }
+    { id: 'all', label: 'Rules', value: counts.all, color: 'hsl(var(--primary))', delta: currentBasisLabel, direction: 'flat' },
+    { id: 'global', label: 'Platform', value: counts.global, color: 'hsl(var(--info))', delta: currentBasisLabel, direction: 'flat' },
+    { id: 'override', label: 'Facility', value: counts.override, color: 'hsl(var(--success))', delta: currentBasisLabel, direction: 'flat' }
   ];
 
-  const getItemName = (item) => item.service_name || item.room_name || 'Unnamed Rule';
-  const getItemType = (item) => item.service_type || item.room_type || 'general';
-  const getItemPrice = (item) => Number(item.base_price || item.price_per_night || 0);
+  function getItemPrice(item) {
+    const value = item.amount ?? item.base_price ?? item.price_per_night ?? 0;
+    const amount = Number(value);
+    return Number.isFinite(amount) ? amount : 0;
+  }
+
+  const getItemName = (item) => item.name || item.service_name || item.room_name || 'Unnamed price';
+  const getItemType = (item) => item.type || item.service_type || item.room_type || 'general';
+  const getItemFamily = (item) => item.family || item._pricingType || (item.price_per_night !== undefined ? 'room' : 'service');
+  const getUpdatedAt = (item) => item.updatedAt || item.updated_at || item.created_at;
+  const getSourceLabel = (item, globalRule) => item.sourceLabel || item.source_label || (globalRule ? 'platform fallback' : 'facility price');
+  const getCompactSourceLabel = (item, globalRule) => (globalRule ? 'Platform' : 'Facility');
+  const getSectionLabel = () => {
+    if (activeTab === 'services') return 'Service Pricing';
+    if (activeTab === 'rooms') return 'Room Pricing';
+    return 'Pricing';
+  };
+  const getAverageLabel = () => {
+    if (activeTab === 'services') return 'Average Service Price';
+    if (activeTab === 'rooms') return 'Average Room Price';
+    return 'Average Price';
+  };
   const isGlobal = (item) => !item.organization_id && !item.hospital_id;
   const hasActiveRecovery = Boolean(searchTerm) || kpiFilter !== 'all';
   const showTopSectionLoading = loading && pricing.length === 0 && allPricing.length === 0;
 
-  const periodTrends = useMemo(() => {
-    const periodMs = 30 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    const getTime = (item) => new Date(item.updated_at || item.created_at || 0).getTime();
-    const currentWindow = allPricing.filter((item) => {
-      const ts = getTime(item);
-      return Number.isFinite(ts) && ts >= now - periodMs;
-    });
-    const previousWindow = allPricing.filter((item) => {
-      const ts = getTime(item);
-      return Number.isFinite(ts) && ts < now - periodMs && ts >= now - (2 * periodMs);
-    });
-    const buildTrend = (currentValue, previousValue) => {
-      if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue) || currentValue === 0 || previousValue === 0) {
-        return { direction: 'flat', deltaText: 'N/A' };
-      }
-      const delta = ((currentValue - previousValue) / Math.abs(previousValue)) * 100;
-      return { direction: delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat', deltaText: `${delta > 0 ? '+' : ''}${delta.toFixed(Math.abs(delta) >= 10 ? 0 : 1)}%` };
-    };
-    const currentGlobalRatio = currentWindow.length > 0 ? currentWindow.filter((item) => !item.organization_id && !item.hospital_id).length / currentWindow.length : 0;
-    const previousGlobalRatio = previousWindow.length > 0 ? previousWindow.filter((item) => !item.organization_id && !item.hospital_id).length / previousWindow.length : 0;
-    const currentOverrideRatio = currentWindow.length > 0 ? currentWindow.filter((item) => item.organization_id || item.hospital_id).length / currentWindow.length : 0;
-    const previousOverrideRatio = previousWindow.length > 0 ? previousWindow.filter((item) => item.organization_id || item.hospital_id).length / previousWindow.length : 0;
-    return {
-      globalRatio: buildTrend(currentGlobalRatio, previousGlobalRatio),
-      overrideLoad: buildTrend(currentOverrideRatio, previousOverrideRatio)
-    };
-  }, [allPricing]);
+  const periodTrends = useMemo(() => ({
+    globalRatio: { direction: 'flat', deltaText: currentBasisLabel },
+    overrideLoad: { direction: 'flat', deltaText: currentBasisLabel }
+  }), [currentBasisLabel]);
 
   return (
     <PullToRefresh onRefresh={onRefresh}>
@@ -120,53 +138,54 @@ export const MobilePricing = ({
           loading={showTopSectionLoading}
           items={[
             {
-              label: activeTab === 'services' ? 'Average Service Price' : 'Average Room Price',
+              label: getAverageLabel(),
               value: `$${avgPrice.toFixed(2)}`,
-              trend: 'LIVE',
+              trend: currentBasisLabel,
               icon: BadgeDollarSign,
               color: 'hsl(var(--primary))',
-              chartData: [{ value: 20 }, { value: 24 }, { value: 21 }, { value: 31 }, { value: 28 }, { value: 35 }]
+              chartData: [{ value: avgPrice }]
             },
             {
-              label: 'Global Ratio',
+              label: 'Platform Ratio',
               value: `${Math.round((counts.global / (counts.all || 1)) * 100)}%`,
               trend: periodTrends.globalRatio.deltaText,
               icon: Globe,
               color: 'hsl(var(--info))',
-              chartData: [{ value: 18 }, { value: 25 }, { value: 22 }, { value: 30 }, { value: 27 }, { value: 34 }]
+              chartData: [{ value: counts.global }]
             },
             {
-              label: 'Override Load',
+              label: 'Facility Prices',
               value: `${Math.round((counts.override / (counts.all || 1)) * 100)}%`,
               trend: periodTrends.overrideLoad.deltaText,
               icon: Building2,
               color: 'hsl(var(--warning))',
-              chartData: [{ value: 16 }, { value: 20 }, { value: 19 }, { value: 26 }, { value: 24 }, { value: 29 }]
+              chartData: [{ value: counts.override }]
             },
             {
               label: 'Total Items',
               value: counts.all,
-              trend: 'LIVE',
+              trend: currentBasisLabel,
               icon: Layers,
               color: 'hsl(var(--secondary))',
-              chartData: [{ value: 10 }, { value: 14 }, { value: 17 }, { value: 20 }, { value: 23 }, { value: 28 }]
+              chartData: [{ value: counts.all }]
             }
           ]}
         />
 
         <section className="mb-3">
           <MobileSectionHeader
-            label="Pricing Dynamics"
+            label="Pricing basis"
             count={counts.all}
             color="hsl(var(--info))"
+            labelTone="plain"
           />
           <MobileSecondaryMetricRail
             loading={showTopSectionLoading}
             items={[
               {
                 icon: Globe,
-                title: 'Global Ratio',
-                subtitle: 'System baseline',
+                title: 'Platform',
+                subtitle: 'Fallback',
                 value: `${Math.round((counts.global / (counts.all || 1)) * 100)}%`,
                 color: 'hsl(var(--primary))',
                 trendDirection: periodTrends.globalRatio.direction,
@@ -175,8 +194,8 @@ export const MobilePricing = ({
               },
               {
                 icon: Building2,
-                title: 'Override Load',
-                subtitle: 'Local adjustments',
+                title: 'Facility',
+                subtitle: 'Scoped',
                 value: `${Math.round((counts.override / (counts.all || 1)) * 100)}%`,
                 color: 'hsl(var(--primary))',
                 trendDirection: periodTrends.overrideLoad.direction,
@@ -185,12 +204,12 @@ export const MobilePricing = ({
               },
               {
                 icon: BadgeDollarSign,
-                title: 'Avg Price',
+                title: 'Average',
                 subtitle: 'Current mean',
                 value: `$${avgPrice.toFixed(2)}`,
                 color: 'hsl(var(--info))',
                 trendDirection: 'flat',
-                trendText: 'LIVE',
+                trendText: currentBasisLabel,
                 onClick: onViewAnalytics
               },
               {
@@ -200,7 +219,7 @@ export const MobilePricing = ({
                 value: counts.all,
                 color: 'hsl(var(--secondary))',
                 trendDirection: 'flat',
-                trendText: 'LIVE',
+                trendText: currentBasisLabel,
                 onClick: onViewAnalytics
               }
             ]}
@@ -208,19 +227,28 @@ export const MobilePricing = ({
         </section>
 
         <div className="flex items-center gap-2 mb-3 px-1">
-          <div className="p-1 rounded-xl bg-muted/20 backdrop-blur-md flex relative w-full">
+          <div className="p-1 rounded-inner bg-muted/20 backdrop-blur-md flex relative w-full">
             <motion.div
-              className="absolute top-1 bottom-1 bg-[hsl(var(--spark)/0.10)] shadow-sm rounded-lg"
+              className="absolute top-1 bottom-1 bg-[hsl(var(--spark)/0.10)] shadow-sm rounded-button"
               initial={false}
               animate={{
-                left: activeTab === 'services' ? '4px' : '50%',
-                width: 'calc(50% - 4px)',
+                left: activeTab === 'services' ? 'calc(33.333% + 2px)' : activeTab === 'rooms' ? 'calc(66.666% + 0px)' : '4px',
+                width: 'calc(33.333% - 4px)',
               }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             />
             <button
+              onClick={() => setActiveTab('all')}
+              className={`flex-1 relative z-10 py-1.5 text-[11px] font-semibold text-center transition-colors duration-200 ${activeTab === 'all'
+                ? 'text-[hsl(var(--spark)/0.92)]'
+                : 'text-muted-foreground/50'
+                }`}
+            >
+              All
+            </button>
+            <button
               onClick={() => setActiveTab('services')}
-              className={`flex-1 relative z-10 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-center transition-colors duration-200 ${activeTab === 'services'
+              className={`flex-1 relative z-10 py-1.5 text-[11px] font-semibold text-center transition-colors duration-200 ${activeTab === 'services'
                 ? 'text-[hsl(var(--spark)/0.92)]'
                 : 'text-muted-foreground/50'
                 }`}
@@ -229,7 +257,7 @@ export const MobilePricing = ({
             </button>
             <button
               onClick={() => setActiveTab('rooms')}
-              className={`flex-1 relative z-10 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-center transition-colors duration-200 ${activeTab === 'rooms'
+              className={`flex-1 relative z-10 py-1.5 text-[11px] font-semibold text-center transition-colors duration-200 ${activeTab === 'rooms'
                 ? 'text-[hsl(var(--spark)/0.92)]'
                 : 'text-muted-foreground/50'
                 }`}
@@ -247,13 +275,13 @@ export const MobilePricing = ({
               placeholder="Search pricing..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy border-0 text-[12px] placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary/20 outline-none"
+              className="w-full h-11 pl-10 pr-4 rounded-inner apple-glass-heavy text-[12px] placeholder:text-muted-foreground/30 focus-visible:bg-white/[0.06]"
             />
           </div>
           {onViewAnalytics && (
             <Button
               variant="ghost"
-              className="w-11 h-11 rounded-2xl apple-glass-heavy border-0 flex items-center justify-center text-[hsl(var(--spark)/0.78)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
+              className="w-11 h-11 rounded-button apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)]"
               onClick={(event) => {
                 onViewAnalytics?.();
                 triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
@@ -266,12 +294,18 @@ export const MobilePricing = ({
         </div>
 
         <MobileSectionHeader
-          label={activeTab === 'services' ? 'Service Pricing' : 'Room Pricing'}
+          label={getSectionLabel()}
           count={pricing.length}
           color="hsl(var(--primary))"
-          onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== pricing.length) : null}
-          isAllSelected={pricing.length > 0 && selectedIds.length === pricing.length}
+          onSelectAll={selectionEnabled && onSelectAll ? () => onSelectAll(selectedIds.length !== pricing.length) : null}
+          isAllSelected={selectionEnabled && pricing.length > 0 && selectedIds.length === pricing.length}
         />
+
+        {actionNotice && (
+          <p role="status" aria-live="polite" className="mb-3 rounded-inner bg-muted/15 px-4 py-3 text-xs leading-5 text-muted-foreground">
+            {actionNotice}
+          </p>
+        )}
 
         <div className="space-y-1">
           <AnimatePresence mode="popLayout">
@@ -279,68 +313,78 @@ export const MobilePricing = ({
               const globalRule = isGlobal(item);
               const editable = canEdit?.(item);
               const price = getItemPrice(item);
+              const sourceLabel = getSourceLabel(item, globalRule);
+              const compactSourceLabel = getCompactSourceLabel(item, globalRule);
+              const itemFamily = getItemFamily(item);
+              const updatedAt = getUpdatedAt(item);
               return (
                 <MobileMetricRow
                   key={item.id}
                   icon={BadgeDollarSign}
                   color={globalRule ? 'hsl(var(--info))' : 'hsl(var(--success))'}
-                  label={getItemType(item).toUpperCase()}
+                  label={formatLabel(getItemType(item))}
                   value={getItemName(item)}
                   rightBlade={{
-                    badge: globalRule ? 'GLOBAL' : 'LOCAL',
+                    badge: compactSourceLabel,
                     direction: globalRule ? 'flat' : 'up',
-                    label: activeTab === 'services' ? 'Price / Unit' : 'Price / Night',
+                    label: itemFamily === 'room' ? 'Night' : 'Unit',
                     value: `$${price.toFixed(2)}`,
                     color: globalRule ? 'hsl(var(--info))' : 'hsl(var(--success))'
                   }}
                   isExpanded={expandedId === item.id}
                   onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
                   itemId={item.id}
-                  isSelected={selectedIds.includes(item.id)}
-                  onSelect={onSelect ? (id) => onSelect(id, !selectedIds.includes(id)) : null}
+                  isSelected={selectionEnabled && selectedIds.includes(item.id)}
+                  onSelect={selectionEnabled && onSelect ? (id) => onSelect(id, !selectedIds.includes(id)) : null}
                   selectionMode={selectionMode}
                   expandedContent={(
                     <div className="space-y-4 py-3">
                       <div className="grid grid-cols-1 gap-2">
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
+                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
                           <Layers size={14} className="text-muted-foreground/40" />
-                          <span className="text-xs font-normal opacity-80">Unit: {item.unit || (activeTab === 'rooms' ? 'Night' : 'Unit')}</span>
+                          <span className="text-xs font-normal opacity-80">Unit: {item.unit || (itemFamily === 'room' ? 'Night' : 'Unit')}</span>
                         </div>
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
+                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
                           {globalRule ? <Globe size={14} className="text-muted-foreground/40" /> : <Building2 size={14} className="text-muted-foreground/40" />}
-                          <span className="text-xs font-normal opacity-80">{globalRule ? 'Global rule' : 'Organization override'}</span>
+                          <span className="text-xs font-normal opacity-80">{sourceLabel}</span>
                         </div>
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
+                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
                           <CalendarDays size={14} className="text-muted-foreground/40" />
                           <span className="text-xs font-normal opacity-80">
-                            Updated: {item.updated_at ? new Date(item.updated_at).toLocaleDateString() : 'N/A'}
+                            Updated: {updatedAt ? new Date(updatedAt).toLocaleDateString() : 'Date unknown'}
                           </span>
                         </div>
+                        {item.facilityName || item.facility_name ? (
+                          <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-inner">
+                            <Building2 size={14} className="text-muted-foreground/40" />
+                            <span className="text-xs font-normal opacity-80">{item.facilityName || item.facility_name}</span>
+                          </div>
+                        ) : null}
                         {item.description || item.metadata?.description ? (
-                          <div className="p-3 bg-white/[0.02] rounded-2xl border-0">
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50 mb-1">Notes</p>
+                          <div className="p-3 bg-white/[0.02] rounded-inner">
+                            <p className="mb-1 text-[11px] font-semibold text-muted-foreground/60">Notes</p>
                             <p className="text-xs opacity-80">{item.description || item.metadata?.description}</p>
                           </div>
                         ) : null}
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <Badge className={`border-0 ${globalRule ? 'bg-info/20 text-info' : 'bg-success/20 text-success'} text-[9px] uppercase`}>
-                          {globalRule ? 'GLOBAL' : 'OVERRIDE'}
+                        <Badge className={`rounded-pill ${globalRule ? 'bg-info/20 text-info' : 'bg-success/20 text-success'} text-[11px]`}>
+                          {sourceLabel}
                         </Badge>
                       </div>
 
                       <div className="flex gap-2 pt-1">
-                        <Button variant="ghost" className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2" onClick={() => onView(item)}>
+                        <Button variant="ghost" className="flex-1 h-12 rounded-button apple-glass flex items-center justify-center gap-2" onClick={() => onView(item)}>
                           <Eye size={16} className="text-primary/60" />
-                          <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Details</span>
+                          <span className="text-[11px] font-semibold">Details</span>
                         </Button>
                         {editable && (
                           <>
-                            <Button variant="ghost" className="h-12 rounded-2xl apple-glass border-0 px-3" onClick={() => onEdit(item)}>
+                            <Button variant="ghost" className="h-12 rounded-button apple-glass px-3" onClick={() => onEdit(item)}>
                               <Edit size={16} className="text-warning/60" />
                             </Button>
-                            <Button variant="ghost" className="h-12 rounded-2xl apple-glass border-0 px-3 hover:bg-destructive/10 hover:text-destructive" onClick={() => onDelete(item)}>
+                            <Button variant="ghost" className="h-12 rounded-button apple-glass px-3 hover:bg-destructive/10 hover:text-destructive" onClick={() => onDelete(item)}>
                               <Trash2 size={16} className="text-destructive/60" />
                             </Button>
                           </>

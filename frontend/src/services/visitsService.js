@@ -6,66 +6,36 @@
 
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
-import { isValidUUID } from '../lib/utils';
+import { isValidUUID, withTimeout } from '../lib/utils';
 
 const TABLE_NAME = 'visits';
 
-// PULLBACK NOTE: Expanded to include all columns added to logistics pillar during schema audit
-// OLD: minimal set - missing snapshot, booking, location, financial, and legacy alias columns
-// NEW: full parity with database.ts visits Row type
-const VISIT_COLUMNS = new Set([
-  'id',
+const VISIT_PAGE_WRITE_COLUMNS = new Set([
   'user_id',
   'hospital_id',
-  'request_id',
-  // Hospital snapshot
-  'hospital_name',
-  'hospital',           // legacy alias - mapFromDb reads both
-  'hospital_image',
-  'address',
-  'phone',
-  'image',              // legacy alias for hospital_image
-  // Clinician snapshot
-  'doctor_name',
-  'doctor',             // legacy alias - mapFromDb reads both
-  'doctor_image',
-  // Visit metadata
-  'specialty',
   'date',
   'time',
   'type',
   'status',
   'notes',
   'cost',
-  'summary',
   'preparation',
-  'prescriptions',
-  // Booking details
   'room_number',
   'estimated_duration',
-  'meeting_link',
-  'insurance_covered',
-  'next_visit',
-  // Patient location at time of booking
-  'latitude',
-  'longitude',
-  // Financial
-  'tip_amount',
-  'tip_currency',
-  'tipped_at',
-  'tip_payment_id',
-  // Lifecycle
-  'lifecycle_state',
-  'lifecycle_updated_at',
-  // Rating
-  'rating',
-  'rating_comment',
-  'rated_at',
-  // System
-  'display_id',
-  'created_at',
-  'updated_at'
+  'insurance_covered'
 ]);
+
+const VISIT_PAGE_STATUS_VALUES = new Set([
+  'scheduled',
+  'upcoming',
+  'in_progress'
+]);
+
+const sanitizeVisitSearchTerm = (value) => String(value || '')
+  .trim()
+  .replace(/[,%]/g, ' ')
+  .replace(/\s+/g, ' ')
+  .slice(0, 80);
 
 function normalizeVisitForUI(visit) {
   if (!visit) return visit;
@@ -90,7 +60,8 @@ function buildVisitWritePayload(input = {}, { includeCreateDefaults = false } = 
     if (value === undefined) continue;
     const targetKey = aliases[key] || key;
 
-    if (!VISIT_COLUMNS.has(targetKey) || targetKey === 'id') continue;
+    if (!VISIT_PAGE_WRITE_COLUMNS.has(targetKey)) continue;
+    if (targetKey === 'status' && !VISIT_PAGE_STATUS_VALUES.has(value)) continue;
     payload[targetKey] = value;
   }
 
@@ -99,14 +70,269 @@ function buildVisitWritePayload(input = {}, { includeCreateDefaults = false } = 
     if (!payload.date && input.visit_date) payload.date = input.visit_date;
     if (!payload.type && input.type) payload.type = input.type;
     if (!payload.type && input.visit_type) payload.type = input.visit_type;
-    if (!payload.doctor_name && input.doctor_name) payload.doctor_name = input.doctor_name;
-    if (!payload.doctor_name && input.doctor) payload.doctor_name = input.doctor;
     if (!payload.status) payload.status = 'scheduled';
     payload.created_at = new Date().toISOString();
   }
 
   payload.updated_at = new Date().toISOString();
   return payload;
+}
+
+const mapVisitSortKey = (key) => {
+  if (key === 'visit_type') return 'type';
+  if (key === 'room_number') return 'hospital_name';
+  if (key === 'doctor') return 'doctor_name';
+  return key || 'date';
+};
+
+const applyVisitPageFilters = (query, filters = {}, kpiFilter = 'all') => {
+  let nextQuery = query;
+  const search = sanitizeVisitSearchTerm(filters.search);
+
+  if (filters.status && filters.status.length > 0) {
+    nextQuery = nextQuery.in('status', filters.status);
+  }
+
+  if (filters.visit_type && filters.visit_type.length > 0) {
+    nextQuery = nextQuery.in('type', filters.visit_type);
+  }
+
+  if (filters.date) {
+    if (filters.date.start) nextQuery = nextQuery.gte('date', filters.date.start);
+    if (filters.date.end) nextQuery = nextQuery.lte('date', filters.date.end);
+  }
+
+  if (search) {
+    const pattern = `%${search}%`;
+    nextQuery = nextQuery.or([
+      `display_id.ilike.${pattern}`,
+      `type.ilike.${pattern}`,
+      `status.ilike.${pattern}`,
+      `notes.ilike.${pattern}`,
+      `hospital_name.ilike.${pattern}`,
+      `doctor_name.ilike.${pattern}`,
+      `room_number.ilike.${pattern}`,
+      `cost.ilike.${pattern}`,
+    ].join(','));
+  }
+
+  if (kpiFilter === 'scheduled') nextQuery = nextQuery.eq('status', 'scheduled');
+  if (kpiFilter === 'in_progress') nextQuery = nextQuery.eq('status', 'in_progress');
+  if (kpiFilter === 'completed') nextQuery = nextQuery.eq('status', 'completed');
+  if (kpiFilter === 'cancelled') nextQuery = nextQuery.eq('status', 'cancelled');
+
+  return nextQuery;
+};
+
+const applyVisitPageAuth = (query, user) => applyAuthFilter(query, user, {
+  userIdField: 'user_id',
+  orgIdField: 'hospital_id',
+  providerIdField: 'doctor_name',
+  resourceType: 'visit'
+});
+
+const readCount = async (query) => {
+  const { count, error } = await query;
+  if (error) throw error;
+  return count || 0;
+};
+
+async function getVisitPageStats(user) {
+  const today = new Date();
+  const todayStart = today.toISOString().split('T')[0];
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const tomorrowStart = tomorrow.toISOString().split('T')[0];
+
+  const createCountQuery = (status = null) => {
+    let query = supabase.from(TABLE_NAME).select('*', { count: 'exact', head: true });
+    query = applyVisitPageAuth(query, user);
+    if (status) query = query.eq('status', status);
+    return query;
+  };
+
+  const todayQuery = applyVisitPageAuth(
+    supabase
+      .from(TABLE_NAME)
+      .select('*', { count: 'exact', head: true })
+      .gte('date', todayStart)
+      .lt('date', tomorrowStart),
+    user
+  );
+
+  const [total, todayCount, scheduled, inProgress, completed, cancelled] = await Promise.all([
+    readCount(createCountQuery()),
+    readCount(todayQuery),
+    readCount(createCountQuery('scheduled')),
+    readCount(createCountQuery('in_progress')),
+    readCount(createCountQuery('completed')),
+    readCount(createCountQuery('cancelled')),
+  ]);
+
+  return {
+    total,
+    today: todayCount,
+    scheduled,
+    inProgress,
+    completed,
+    cancelled,
+  };
+}
+
+async function enrichVisitsForPage(visits = []) {
+  if (!visits.length) return [];
+
+  const userIds = [...new Set(visits.map(v => v.user_id).filter(Boolean))];
+  const emergencyLookupIds = [
+    ...new Set(
+      visits
+        .map((v) => v.request_id || v.id)
+        .filter(Boolean)
+    )
+  ];
+  const directHospitalIds = [...new Set(visits.map(v => v.hospital_id).filter(Boolean))];
+
+  const [{ data: profiles }, { data: emergencyRows }] = await Promise.all([
+    userIds.length > 0
+      ? supabase
+        .from('profiles')
+        .select('id, username, email')
+        .in('id', userIds)
+      : Promise.resolve({ data: [] }),
+    emergencyLookupIds.length > 0
+      ? supabase
+        .from('emergency_requests')
+        .select('id, hospital_id, hospital_name, status, service_type, assigned_doctor_id')
+        .in('id', emergencyLookupIds)
+      : Promise.resolve({ data: [] })
+  ]);
+
+  const profilesMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
+  const emergencyByRequest = (emergencyRows || []).reduce((acc, row) => ({ ...acc, [row.id]: row }), {});
+
+  const doctorIds = [
+    ...new Set((emergencyRows || []).map(r => r.assigned_doctor_id).filter(Boolean))
+  ];
+
+  let doctorsMap = {};
+  if (doctorIds.length > 0) {
+    const { data: doctors } = await supabase
+      .from('doctors')
+      .select('id, name')
+      .in('id', doctorIds);
+    doctorsMap = (doctors || []).reduce((acc, d) => ({ ...acc, [d.id]: d }), {});
+  }
+
+  const hospitalIds = [
+    ...new Set([
+      ...directHospitalIds,
+      ...(emergencyRows || []).map(r => r.hospital_id).filter(Boolean)
+    ])
+  ];
+
+  let hospitalsMap = {};
+  if (hospitalIds.length > 0) {
+    const { data: hospitalRows } = await supabase
+      .from('hospitals')
+      .select('id, name, address')
+      .in('id', hospitalIds);
+    hospitalsMap = (hospitalRows || []).reduce((acc, h) => ({ ...acc, [h.id]: h }), {});
+  }
+
+  const emergencyToVisitStatus = {
+    pending_approval: 'scheduled',
+    payment_declined: 'cancelled',
+    in_progress: 'in_progress',
+    accepted: 'in_progress',
+    arrived: 'in_progress',
+    completed: 'completed',
+    cancelled: 'cancelled'
+  };
+
+  return visits.map((visit) => {
+    const emergency =
+      (visit.request_id ? emergencyByRequest[visit.request_id] : null) ||
+      emergencyByRequest[visit.id] ||
+      null;
+    const linkedHospitalId = visit.hospital_id || emergency?.hospital_id || null;
+    const linkedHospitalName =
+      visit.hospital_name ||
+      emergency?.hospital_name ||
+      hospitalsMap[linkedHospitalId]?.name ||
+      null;
+    const emergencyDerivedStatus = emergency?.status
+      ? emergencyToVisitStatus[emergency.status] || null
+      : null;
+    const originalStatus = String(visit.status || '').toLowerCase();
+    const normalizedStatus =
+      !originalStatus || ['upcoming', 'scheduled'].includes(originalStatus)
+        ? emergencyDerivedStatus || visit.status || 'scheduled'
+        : visit.status;
+    const emergencyDoctorName = emergency?.assigned_doctor_id
+      ? doctorsMap[emergency.assigned_doctor_id]?.name || null
+      : null;
+    const doctorName = visit.doctor_name || emergencyDoctorName || null;
+    const visitType = visit.visit_type || visit.type || emergency?.service_type || null;
+
+    return normalizeVisitForUI({
+      ...visit,
+      request_id: visit.request_id || emergency?.id || null,
+      hospital_id: linkedHospitalId,
+      hospital_name: linkedHospitalName,
+      status: normalizedStatus,
+      type: visitType,
+      visit_type: visitType,
+      doctor_name: doctorName,
+      patient: profilesMap[visit.user_id] || null,
+      doctor: visit.doctor || doctorName || null
+    });
+  });
+}
+
+export async function getVisitsPageData({
+  filters = {},
+  kpiFilter = 'all',
+  range = { start: 0, end: 19 },
+  sortConfig = { key: 'status', direction: 'desc' },
+  quiet = false,
+} = {}) {
+  try {
+    const user = await getCurrentUser();
+
+    let countQuery = supabase.from(TABLE_NAME).select('*', { count: 'exact', head: true });
+    countQuery = applyVisitPageAuth(countQuery, user);
+    countQuery = applyVisitPageFilters(countQuery, filters, kpiFilter);
+
+    const count = await readCount(countQuery);
+
+    let dataQuery = supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .range(range.start, range.end)
+      .order(mapVisitSortKey(sortConfig.key || 'date'), { ascending: sortConfig.direction === 'asc' });
+
+    dataQuery = applyVisitPageAuth(dataQuery, user);
+    dataQuery = applyVisitPageFilters(dataQuery, filters, kpiFilter);
+
+    const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load visits - timeout');
+    if (error) throw error;
+
+    const [visits, stats] = await Promise.all([
+      enrichVisitsForPage(data || []),
+      getVisitPageStats(user),
+    ]);
+
+    return {
+      visits,
+      count,
+      stats,
+    };
+  } catch (error) {
+    if (!quiet) {
+      console.error('Error fetching visits page data:', error);
+    }
+    throw error;
+  }
 }
 
 /**
@@ -188,7 +414,9 @@ export async function getVisits(filter = {}) {
       profiles: undefined, // Remove original profiles to avoid confusion
     }));
   } catch (error) {
-    console.error('Error fetching visits:', error);
+    if (!filter?.quiet) {
+      console.error('Error fetching visits:', error);
+    }
     throw error;
   }
 }

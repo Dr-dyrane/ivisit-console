@@ -10,9 +10,13 @@ import {
   subscribeToSupportTickets
 } from '../services/supportTicketsService';
 
-export const useSupportTickets = () => {
+export const useSupportTickets = ({
+  autoFetch = true,
+  autoSubscribe = true,
+  quiet = false,
+} = {}) => {
   const [supportTickets, setSupportTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(autoFetch));
   const [error, setError] = useState(null);
   const [analytics, setAnalytics] = useState(null);
 
@@ -21,15 +25,20 @@ export const useSupportTickets = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getSupportTickets(filter);
+      const data = await getSupportTickets({
+        ...(filter || {}),
+        quiet: Boolean(quiet || filter?.quiet),
+      });
       setSupportTickets(data);
     } catch (err) {
       setError(err.message || 'Failed to fetch support tickets');
-      console.error('Error fetching support tickets:', err);
+      if (!quiet) {
+        console.error('Error fetching support tickets:', err);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [quiet]);
 
   // Create support ticket
   const createTicket = useCallback(async (ticketData) => {
@@ -115,18 +124,27 @@ export const useSupportTickets = () => {
 
   // Initial fetch
   useEffect(() => {
+    if (!autoFetch) {
+      setLoading(false);
+      return;
+    }
+
     fetchSupportTickets();
-  }, [fetchSupportTickets]);
+  }, [autoFetch, fetchSupportTickets]);
 
   // Set up real-time subscription
   useEffect(() => {
+    if (!autoSubscribe) return undefined;
+
     const unsubscribe = subscribeToSupportTickets((payload) => {
-      console.log('Support ticket change:', payload);
+      if (!quiet) {
+        console.log('Support ticket change:', payload);
+      }
       fetchSupportTickets(); // Refetch on any change
     });
 
     return unsubscribe;
-  }, [fetchSupportTickets]);
+  }, [autoSubscribe, fetchSupportTickets, quiet]);
 
   return {
     supportTickets,

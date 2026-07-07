@@ -1,5 +1,167 @@
 import { supabase } from '../lib/supabase';
 
+const PRICING_MUTATION_UNAVAILABLE_REASON = 'Price changes need a selected facility before they can run.';
+const USD_CURRENCY = 'USD';
+
+const normalizePricingFamily = (family = 'all') => {
+    if (family === 'services' || family === 'service') return 'services';
+    if (family === 'rooms' || family === 'room') return 'rooms';
+    return 'all';
+};
+
+const getFamiliesForPage = (family = 'all') => {
+    const normalizedFamily = normalizePricingFamily(family);
+    if (normalizedFamily === 'services') return ['service'];
+    if (normalizedFamily === 'rooms') return ['room'];
+    return ['service', 'room'];
+};
+
+const getPricingTableForFamily = (family) => (family === 'service' ? 'service_pricing' : 'room_pricing');
+
+const normalizeSearch = (value = '') => String(value || '').trim().toLowerCase();
+
+const getPricingRowUpdatedAt = (row) => row.updated_at || row.created_at || null;
+
+const sortPricingRows = (a, b) => {
+    const dateA = new Date(getPricingRowUpdatedAt(a) || 0).getTime();
+    const dateB = new Date(getPricingRowUpdatedAt(b) || 0).getTime();
+    return dateB - dateA;
+};
+
+const normalizePricingRow = (row, family, hospitalMap) => {
+    const hospitalId = row.hospital_id || null;
+    const hospital = hospitalId ? hospitalMap.get(hospitalId) : null;
+    const organizationId = hospital?.organization_id || null;
+    const isService = family === 'service';
+    const amount = Number(isService ? row.base_price : row.price_per_night) || 0;
+    const name = isService ? row.service_name : row.room_name;
+    const type = isService ? row.service_type : row.room_type;
+    const sourceLabel = hospitalId ? 'facility price' : 'platform fallback';
+
+    return {
+        ...row,
+        _pricingType: family,
+        family,
+        hospitalId,
+        hospital_id: hospitalId,
+        organizationId,
+        organization_id: organizationId,
+        facilityName: hospital?.name || null,
+        sourceLabel,
+        source_label: sourceLabel,
+        name,
+        type,
+        amount,
+        currency: USD_CURRENCY,
+        active: null,
+        updatedAt: getPricingRowUpdatedAt(row),
+        unit: isService ? 'Unit' : 'Night'
+    };
+};
+
+const matchesPricingSearch = (row, searchTerm) => {
+    if (!searchTerm) return true;
+    return [
+        row.name,
+        row.type,
+        row.facilityName,
+        row.sourceLabel,
+    ].some((value) => normalizeSearch(value).includes(searchTerm));
+};
+
+const matchesPricingScope = (row, scope = 'all') => {
+    if (scope === 'global') return !row.hospitalId;
+    if (scope === 'override') return Boolean(row.hospitalId);
+    return true;
+};
+
+const buildPricingSummary = (rows) => {
+    const totalAmount = rows.reduce((sum, row) => sum + row.amount, 0);
+    const recentCutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
+
+    return {
+        globalFallbackCount: rows.filter((row) => !row.hospitalId).length,
+        facilityPriceCount: rows.filter((row) => Boolean(row.hospitalId)).length,
+        averageAmount: rows.length > 0 ? totalAmount / rows.length : null,
+        recentCount: rows.filter((row) => {
+            const updatedAt = new Date(row.updatedAt || 0).getTime();
+            return Number.isFinite(updatedAt) && updatedAt >= recentCutoff;
+        }).length,
+        basis: 'current_filter'
+    };
+};
+
+export const getPricingPageData = async ({
+    family = 'all',
+    organizationId = null,
+    search = '',
+    scope = 'all',
+    page = 1,
+    pageSize = 12,
+} = {}) => {
+    const requestedFamilies = getFamiliesForPage(family);
+    const searchTerm = normalizeSearch(search);
+    const safePage = Math.max(1, Number(page) || 1);
+    const safePageSize = Math.max(1, Number(pageSize) || 12);
+
+    const { data: hospitals, error: hospitalsError } = await supabase
+        .from('hospitals')
+        .select('id, organization_id, name');
+
+    if (hospitalsError) throw hospitalsError;
+
+    const hospitalMap = new Map((hospitals || []).map((hospital) => [hospital.id, hospital]));
+
+    const rowGroups = await Promise.all(requestedFamilies.map(async (requestedFamily) => {
+        const table = getPricingTableForFamily(requestedFamily);
+        const { data, error } = await supabase
+            .from(table)
+            .select('*')
+            .order('updated_at', { ascending: false });
+
+        if (error) throw error;
+
+        return (data || []).map((row) => normalizePricingRow(row, requestedFamily, hospitalMap));
+    }));
+
+    const allRows = rowGroups.flat();
+    const scopedRows = allRows
+        .filter((row) => !organizationId || !row.hospitalId || row.organizationId === organizationId)
+        .filter((row) => matchesPricingScope(row, scope))
+        .filter((row) => matchesPricingSearch(row, searchTerm))
+        .sort(sortPricingRows);
+
+    const start = (safePage - 1) * safePageSize;
+    const rows = scopedRows.slice(start, start + safePageSize);
+
+    return {
+        actor: {
+            organizationId: organizationId || null,
+        },
+        scope: {
+            mode: organizationId ? 'organization_summary' : 'platform_default',
+            hospitalId: null,
+            organizationId: organizationId || null,
+            editable: false,
+            reason: PRICING_MUTATION_UNAVAILABLE_REASON,
+        },
+        rows,
+        totalCount: scopedRows.length,
+        summary: buildPricingSummary(scopedRows),
+        readState: {
+            basis: 'current_filter',
+            source: 'service_pricing_room_pricing_projection',
+            boundedBy: {
+                family: normalizePricingFamily(family),
+                scope,
+                search: searchTerm,
+                page: safePage,
+                pageSize: safePageSize,
+            },
+        },
+    };
+};
+
 /**
  * Pricing Service
  * Handles service and room pricing operations via RPCs
@@ -109,11 +271,3 @@ export const deleteRoomPricing = async (id) => {
     if (data && !data.success) throw new Error(data.error);
     return data;
 };
-
-/**
- * For Room Pricing, we don't have an RPC yet, so we use direct table access if allowed
- * or we should create one. For now, let's use direct access if it's simpler or 
- * I should create the RPC for consistency if I have time.
- * The instruction says "implement full CRUD for pricing", and I already added RPC for service_pricing.
- * I'll add one for room_pricing too to be safe.
- */

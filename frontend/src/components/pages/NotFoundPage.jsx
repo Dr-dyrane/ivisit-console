@@ -1,5 +1,4 @@
-import React, { useMemo } from 'react';
-import { usePageHeader } from '../../contexts/LayoutContext';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AlertTriangle, ArrowLeft, Clock } from 'lucide-react';
@@ -8,7 +7,17 @@ import { Card } from '../ui/card';
 
 export const NotFoundPage = () => {
   const navigate = useNavigate();
-  usePageHeader("Lost Signal", null);
+  const [pendingAction, setPendingAction] = React.useState(null);
+
+  const handleBack = () => {
+    setPendingAction('back');
+    navigate(-1);
+  };
+
+  const handleToday = () => {
+    setPendingAction('today');
+    navigate('/');
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
@@ -40,20 +49,22 @@ export const NotFoundPage = () => {
 
             <div className="flex flex-col gap-3 w-full">
               <Button
-                onClick={() => navigate(-1)}
+                onClick={handleBack}
+                disabled={Boolean(pendingAction)}
                 variant="outline"
                 className="w-full squircle-xl h-12 font-semibold border-0 bg-muted/30 hover:bg-muted/50"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Go Back
+                {pendingAction === 'back' ? 'Opening previous page...' : 'Go Back'}
               </Button>
 
               <Button
-                onClick={() => navigate('/')}
+                onClick={handleToday}
+                disabled={Boolean(pendingAction)}
                 className="w-full squircle-xl h-12 font-semibold shadow-glow bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 <Clock className="w-4 h-4 mr-2" />
-                Return to Dashboard
+                {pendingAction === 'today' ? 'Opening Today...' : 'Return to Dashboard'}
               </Button>
             </div>
           </div>

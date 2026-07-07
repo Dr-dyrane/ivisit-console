@@ -1,50 +1,57 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Headphones, Search, Eye, Edit, Trash2, User, Calendar, AlertTriangle, CheckCircle, Ticket, Clock, SlidersHorizontal, BarChart3, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { BarChart3, CheckCircle, Edit, Eye, Headphones, Search, SlidersHorizontal } from 'lucide-react';
 import { Button } from '../ui/button';
-import { motion } from 'framer-motion';
 import { MobileKPIStrip } from './MobileKPIStrip';
-import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
-import { MobileFeaturedMetric } from './MobileFeaturedMetric';
-import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
+import { MobileMetricRow, MobileSectionHeader } from './MobileMetricList';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
-import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
-import { useStableList } from './useStableList';
+import { MobileListEmpty, MobileListEnd, MobileListLoadMore, MobileListSkeletonRows } from './MobileListStates';
 import { useLoadMoreControl } from './useLoadMoreControl';
+import { useStableList } from './useStableList';
+
+const STATUS_LABELS = {
+  open: 'Open',
+  in_progress: 'In progress',
+  resolved: 'Resolved',
+  closed: 'Closed',
+};
+
+const priorityLabel = (value) => {
+  const text = String(value || 'normal').replace('_', ' ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+const statusLabel = (value) => STATUS_LABELS[value] || STATUS_LABELS.open;
 
 export const MobileSupportTickets = ({
   tickets = [],
-  analytics,
+  stats,
   filters,
   setFilters,
   onView,
   onEdit,
-  onDelete,
-  onAssign,
   onRefresh,
   canManage = false,
-  canAssign = false,
   loading = false,
+  errorMessage = null,
+  onRetry,
   onOpenFilters,
   onViewAnalytics,
-  selectedIds = [],
-  onSelect,
-  onSelectAll,
   hasMore = false,
-  onLoadMore
+  onLoadMore,
 }) => {
   const [expandedId, setExpandedId] = useState(null);
   const observerTarget = useRef(null);
-  const selectionMode = selectedIds.length > 0;
-
   const { armed, requestLoad, triggerLoad } = useLoadMoreControl({ hasMore, loading, onLoadMore });
+  const { displayItems, isBuffering } = useStableList(tickets, loading);
+  const showSkeleton = loading && displayItems.length === 0;
 
   useEffect(() => {
-    if (!hasMore) return;
+    if (!hasMore) return undefined;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) triggerLoad();
+        if (entries[0]?.isIntersecting) triggerLoad();
       },
       { threshold: 0.1, rootMargin: '120px' }
     );
@@ -53,262 +60,152 @@ export const MobileSupportTickets = ({
   }, [hasMore, triggerLoad]);
 
   const counts = useMemo(() => ({
-    total: analytics?.total || tickets.length,
-    open: analytics?.open || tickets.filter(t => t.status === 'open').length,
-    inProgress: analytics?.inProgress || tickets.filter(t => t.status === 'in_progress').length,
-    resolved: analytics?.resolved || tickets.filter(t => t.status === 'resolved').length
-  }), [analytics, tickets]);
+    total: Number(stats?.total) || tickets.length,
+    open: Number(stats?.open) || tickets.filter((ticket) => ticket.status === 'open').length,
+    active: Number(stats?.active) || tickets.filter((ticket) => ticket.status === 'open' || ticket.status === 'in_progress').length,
+    resolved: Number(stats?.resolved) || tickets.filter((ticket) => ticket.status === 'resolved').length,
+  }), [stats, tickets]);
 
   const kpis = [
-    { id: 'all', label: 'Tickets', value: counts.total, color: 'hsl(var(--primary))', delta: 'LIVE', direction: 'flat' },
-    { id: 'open', label: 'Open', value: counts.open, color: 'hsl(var(--warning))', delta: 'LIVE', direction: 'flat' },
-    { id: 'in_progress', label: 'Active', value: counts.inProgress, color: 'hsl(var(--info))', delta: 'LIVE', direction: 'flat' },
-    { id: 'resolved', label: 'Resolved', value: counts.resolved, color: 'hsl(var(--success))', delta: 'LIVE', direction: 'flat' }
+    { id: 'all', label: 'Requests', value: counts.total, color: 'hsl(var(--primary))' },
+    { id: 'open', label: 'Open', value: counts.open, color: 'hsl(var(--warning))' },
+    { id: 'in_progress', label: 'Active', value: counts.active, color: 'hsl(var(--info))' },
+    { id: 'resolved', label: 'Resolved', value: counts.resolved, color: 'hsl(var(--success))' },
   ];
 
-  const filteredTickets = useMemo(() => {
-    let result = [...tickets];
-    const search = String(filters?.search || '').toLowerCase();
-    const kpi = String(filters?.kpiFilter || 'all');
-    if (search) {
-      result = result.filter(t =>
-        String(t.subject || '').toLowerCase().includes(search) ||
-        String(t.customer_name || '').toLowerCase().includes(search) ||
-        String(t.id || '').toLowerCase().includes(search)
-      );
-    }
-    if (kpi !== 'all' && kpi !== 'avg') result = result.filter(t => t.status === kpi);
-    return result;
-  }, [tickets, filters]);
-  const { displayItems: displayTickets, isBuffering } = useStableList(filteredTickets, loading);
-  const showTopSectionLoading = loading && displayTickets.length === 0;
-
-  const periodTrends = useMemo(() => {
-    const periodMs = 30 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    const getTime = (item) => new Date(item.created_at || item.updated_at || 0).getTime();
-    const currentWindow = tickets.filter((item) => {
-      const ts = getTime(item);
-      return Number.isFinite(ts) && ts >= now - periodMs;
-    });
-    const previousWindow = tickets.filter((item) => {
-      const ts = getTime(item);
-      return Number.isFinite(ts) && ts < now - periodMs && ts >= now - (2 * periodMs);
-    });
-    const buildTrend = (currentValue, previousValue) => {
-      if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue) || currentValue === 0 || previousValue === 0) {
-        return { direction: 'flat', deltaText: 'N/A' };
-      }
-      const delta = ((currentValue - previousValue) / Math.abs(previousValue)) * 100;
-      return { direction: delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat', deltaText: `${delta > 0 ? '+' : ''}${delta.toFixed(Math.abs(delta) >= 10 ? 0 : 1)}%` };
-    };
-    const currentResolvedRatio = currentWindow.length > 0
-      ? currentWindow.filter((t) => t.status === 'resolved' || t.status === 'closed').length / currentWindow.length
-      : 0;
-    const previousResolvedRatio = previousWindow.length > 0
-      ? previousWindow.filter((t) => t.status === 'resolved' || t.status === 'closed').length / previousWindow.length
-      : 0;
-    const currentOpenQueue = currentWindow.filter((t) => t.status === 'open' || t.status === 'in_progress').length;
-    const previousOpenQueue = previousWindow.filter((t) => t.status === 'open' || t.status === 'in_progress').length;
-    return {
-      resolutionRate: buildTrend(currentResolvedRatio, previousResolvedRatio),
-      queueLoad: buildTrend(currentOpenQueue, previousOpenQueue)
-    };
-  }, [tickets]);
+  const handleSearch = (event) => {
+    setFilters((current) => ({ ...current, search: event.target.value }));
+  };
 
   return (
     <PullToRefresh onRefresh={onRefresh}>
       <MobilePageShell
         animatePageLoad={false}
-        kpiStrip={<MobileKPIStrip
-            loading={showTopSectionLoading} kpis={kpis} activeKpi={filters?.kpiFilter || 'all'} onKpiClick={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))} />}
+        kpiStrip={(
+          <MobileKPIStrip
+            loading={showSkeleton}
+            kpis={kpis}
+            activeKpi={filters?.kpiFilter || 'all'}
+            onKpiClick={(id) => setFilters((current) => ({ ...current, kpiFilter: id }))}
+            labelTone="plain"
+          />
+        )}
         contentClassName="pt-4 pb-4 text-foreground"
       >
-        <MobileFeaturedMetric
-          loading={showTopSectionLoading}
-          items={[
-            {
-              label: 'Avg Resolution',
-              value: `${analytics?.averageResolutionTime || 0}h`,
-              trend: 'LIVE',
-              icon: Headphones,
-              color: 'hsl(var(--info))',
-              chartData: [{ value: 60 }, { value: 56 }, { value: 51 }, { value: 46 }, { value: 42 }, { value: 38 }]
-            },
-            {
-              label: 'Resolution Rate',
-              value: `${Math.round(((counts.resolved || 0) / (counts.total || 1)) * 100)}%`,
-              trend: periodTrends.resolutionRate.deltaText,
-              icon: CheckCircle,
-              color: 'hsl(var(--success))',
-              chartData: [{ value: 42 }, { value: 46 }, { value: 50 }, { value: 54 }, { value: 58 }, { value: 62 }]
-            },
-            {
-              label: 'Active Queue',
-              value: counts.open + counts.inProgress,
-              trend: periodTrends.queueLoad.deltaText,
-              icon: AlertTriangle,
-              color: 'hsl(var(--warning))',
-              chartData: [{ value: 34 }, { value: 38 }, { value: 42 }, { value: 45 }, { value: 41 }, { value: 36 }]
-            },
-            {
-              label: 'Total Tickets',
-              value: counts.total,
-              trend: 'LIVE',
-              icon: Ticket,
-              color: 'hsl(var(--primary))',
-              chartData: [{ value: 22 }, { value: 28 }, { value: 31 }, { value: 36 }, { value: 40 }, { value: 45 }]
-            }
-          ]}
-        />
-
-        <section className="mb-3">
-          <MobileSectionHeader
-            label="Queue Dynamics"
-            count={counts.total}
-            color="hsl(var(--info))"
-          />
-          <MobileSecondaryMetricRail
-            loading={showTopSectionLoading}
-            items={[
-              {
-                icon: CheckCircle,
-                title: 'Resolution Rate',
-                subtitle: 'Service quality',
-                value: `${Math.round(((counts.resolved || 0) / (counts.total || 1)) * 100)}%`,
-                color: 'hsl(var(--success))',
-                trendDirection: periodTrends.resolutionRate.direction,
-                trendText: periodTrends.resolutionRate.deltaText
-              },
-              {
-                icon: AlertTriangle,
-                title: 'Active Queue',
-                subtitle: 'Open + In Progress',
-                value: counts.open + counts.inProgress,
-                color: 'hsl(var(--warning))',
-                trendDirection: periodTrends.queueLoad.direction,
-                trendText: periodTrends.queueLoad.deltaText
-              },
-              {
-                icon: Ticket,
-                title: 'Total Tickets',
-                subtitle: 'Registry',
-                value: counts.total,
-                color: 'hsl(var(--primary))',
-                trendDirection: 'flat',
-                trendText: 'LIVE'
-              },
-              {
-                icon: Clock,
-                title: 'Avg Resolution',
-                subtitle: 'Hours',
-                value: `${analytics?.averageResolutionTime || 0}h`,
-                color: 'hsl(var(--info))',
-                trendDirection: 'flat',
-                trendText: 'LIVE'
-              }
-            ]}
-          />
+        <section className="mb-3 rounded-[32px] bg-card/72 p-4 shadow-[0_22px_64px_rgb(0_0_0/0.14)] backdrop-blur-xl dark:bg-card/46">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-3xl bg-primary/10 text-primary shadow-[0_14px_34px_hsl(var(--primary)/0.12)]">
+              <Headphones className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-muted-foreground">Support</p>
+              <h2 className="mt-1 text-2xl font-semibold leading-tight text-foreground">
+                {counts.active > 0 ? `${counts.active} active request${counts.active === 1 ? '' : 's'}` : 'Support queue is clear'}
+              </h2>
+              <p className="mt-2 text-sm leading-5 text-muted-foreground">
+                {errorMessage || 'Review one request, then open details when more context is needed.'}
+              </p>
+            </div>
+          </div>
+          {errorMessage && onRetry && (
+            <Button
+              type="button"
+              onClick={onRetry}
+              className="mt-4 h-10 rounded-2xl px-4 text-sm font-semibold shadow-[0_14px_34px_hsl(var(--primary)/0.18)]"
+            >
+              Try again
+            </Button>
+          )}
         </section>
 
-        <div className="flex items-center gap-2 mb-3 px-1">
-          <div className="flex-1 relative">
+        <div className="mb-3 flex items-center gap-2 px-1">
+          <div className="relative flex-1">
             <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60" />
             <input
               type="text"
-              placeholder="Search tickets..."
+              placeholder="Search support"
               value={filters?.search || ''}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy border-0 text-[12px] placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary/20 outline-none"
+              onChange={handleSearch}
+              className="h-11 w-full rounded-2xl bg-card/72 pl-10 pr-4 text-[13px] shadow-inner placeholder:text-muted-foreground/45 transition-[background,box-shadow] focus-visible:bg-card/88 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.14)] dark:bg-card/46"
             />
           </div>
           {onOpenFilters && (
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onOpenFilters()}
-              className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 border-0"
-              aria-label="Open filters"
+            <button
+              type="button"
+              onClick={onOpenFilters}
+              className="flex h-11 w-11 items-center justify-center rounded-2xl bg-card/72 text-muted-foreground shadow-[0_14px_32px_rgb(0_0_0/0.10)] transition-[background,color,transform] active:scale-[0.96] hover:bg-card/88 hover:text-primary dark:bg-card/46"
+              aria-label="Filter support"
             >
               <SlidersHorizontal size={18} />
-            </motion.button>
+            </button>
           )}
           {onViewAnalytics && (
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onViewAnalytics()}
-              className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 border-0 shadow-sm"
-              aria-label="Open analytics"
+            <button
+              type="button"
+              onClick={onViewAnalytics}
+              className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-[0_14px_32px_hsl(var(--primary)/0.12)] transition-[background,transform] active:scale-[0.96] hover:bg-primary/15"
+              aria-label="Open support analytics"
             >
               <BarChart3 size={18} />
-            </motion.button>
+            </button>
           )}
         </div>
 
         <MobileSectionHeader
-          label="Support Queue"
-          count={displayTickets.length}
+          label="Support queue"
+          count={Number(stats?.total) || displayItems.length}
           color="hsl(var(--primary))"
-          onSelectAll={onSelectAll ? () => onSelectAll(selectedIds.length !== displayTickets.length) : null}
-          isAllSelected={displayTickets.length > 0 && selectedIds.length === displayTickets.length}
+          labelTone="plain"
         />
 
         <div className="space-y-1">
           <AnimatePresence mode="popLayout">
-            {displayTickets.map((ticket) => {
-              const urgent = ticket.priority === 'urgent' || ticket.priority === 'high';
+            {displayItems.map((ticket) => {
               const resolved = ticket.status === 'resolved' || ticket.status === 'closed';
-              const color = resolved ? 'hsl(var(--success))' : urgent ? 'hsl(var(--warning))' : 'hsl(var(--primary))';
+              const active = ticket.status === 'open' || ticket.status === 'in_progress';
+              const color = resolved ? 'hsl(var(--success))' : active ? 'hsl(var(--warning))' : 'hsl(var(--primary))';
+
               return (
                 <MobileMetricRow
                   key={ticket.id}
-                  icon={Headphones}
+                  icon={resolved ? CheckCircle : Headphones}
                   color={color}
-                  label={String(ticket.status || 'open').replace('_', ' ').toUpperCase()}
+                  label={statusLabel(ticket.status)}
                   value={ticket.subject || `Ticket ${String(ticket.id || '').slice(0, 8)}`}
                   rightBlade={{
-                    badge: String(ticket.priority || 'normal').toUpperCase(),
-                    direction: resolved ? 'up' : urgent ? 'down' : 'flat',
-                    label: 'Customer',
-                    value: ticket.customer_name || String(ticket.id || '').slice(0, 8),
-                    color
+                    badge: priorityLabel(ticket.priority),
+                    direction: resolved ? 'up' : active ? 'flat' : 'down',
+                    label: 'Category',
+                    value: ticket.category || 'general',
+                    color,
                   }}
                   isExpanded={expandedId === ticket.id}
-                  onExpand={(id) => setExpandedId(prev => (prev === id ? null : id))}
+                  onExpand={(id) => setExpandedId((current) => (current === id ? null : id))}
                   itemId={ticket.id}
-                  isSelected={selectedIds.includes(ticket.id)}
-                  onSelect={onSelect ? (id) => onSelect(id, !selectedIds.includes(id)) : null}
-                  selectionMode={selectionMode}
                   expandedContent={(
-                    <div className="space-y-4 py-3">
-                      <div className="grid grid-cols-1 gap-2">
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
-                          <User size={14} className="text-muted-foreground/40" />
-                          <span className="text-xs font-normal">Customer: {ticket.customer_name || 'Unknown'}</span>
-                        </div>
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
-                          <Calendar size={14} className="text-muted-foreground/40" />
-                          <span className="text-xs font-normal">Created: {ticket.created_at ? new Date(ticket.created_at).toLocaleString() : 'N/A'}</span>
-                        </div>
+                    <div className="space-y-3 py-3">
+                      <div className="rounded-2xl bg-white/[0.03] p-3 text-xs leading-5 text-muted-foreground">
+                        {ticket.message || 'No extra message was added.'}
                       </div>
-
                       <div className="flex gap-2 pt-1">
-                        <Button variant="ghost" className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2" onClick={() => onView(ticket)}>
-                          <Eye size={16} className="text-primary/60" />
-                          <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Details</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-card/70 text-sm font-medium shadow-[0_12px_28px_rgb(0_0_0/0.08)] hover:bg-card/90"
+                          onClick={() => onView?.(ticket)}
+                        >
+                          <Eye className="h-4 w-4 text-primary" />
+                          Details
                         </Button>
-                        {(canManage || canAssign) && (
-                          <Button variant="ghost" className="h-12 rounded-2xl apple-glass border-0 px-3" onClick={() => onEdit(ticket)}>
-                            <Edit size={16} className="text-warning/60" />
-                          </Button>
-                        )}
-                        {canAssign && (
-                          <Button variant="ghost" className="h-12 rounded-2xl apple-glass border-0 px-3" onClick={() => onAssign(ticket)}>
-                            {resolved ? <CheckCircle className="h-4 w-4 text-success/70" /> : <AlertTriangle className="h-4 w-4 text-info/70" />}
-                          </Button>
-                        )}
                         {canManage && (
-                          <Button variant="ghost" className="h-12 rounded-2xl apple-glass border-0 px-3 hover:bg-destructive/10 hover:text-destructive" onClick={() => onDelete(ticket)}>
-                            <Trash2 size={16} className="text-destructive/60" />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="flex h-11 items-center justify-center rounded-2xl bg-card/70 px-4 shadow-[0_12px_28px_rgb(0_0_0/0.08)] hover:bg-card/90"
+                            onClick={() => onEdit?.(ticket)}
+                            aria-label={`Edit ${ticket.subject || 'support request'}`}
+                          >
+                            <Edit className="h-4 w-4 text-primary" />
                           </Button>
                         )}
                       </div>
@@ -319,17 +216,22 @@ export const MobileSupportTickets = ({
             })}
           </AnimatePresence>
 
-          {displayTickets.length === 0 && <MobileListEmpty icon={Headphones} label="No tickets found" />}
+          {displayItems.length === 0 && !loading && (
+            <MobileListEmpty
+              icon={Headphones}
+              label={errorMessage ? 'Support did not load' : 'No support requests'}
+              hint={errorMessage ? 'Try again before treating support as clear.' : 'Use New ticket when you need support.'}
+              labelTone="plain"
+            />
+          )}
 
-          <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
-            {loading && <MobileListSkeletonRows />}
-            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
-            {!loading && !hasMore && displayTickets.length > 0 && <MobileListEnd label="End of ticket list" />}
+          <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
+            {(loading || isBuffering) && <MobileListSkeletonRows />}
+            {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} labelTone="plain" />}
+            {!loading && !hasMore && displayItems.length > 0 && <MobileListEnd label="End of support queue" />}
           </div>
         </div>
       </MobilePageShell>
     </PullToRefresh>
   );
 };
-
-

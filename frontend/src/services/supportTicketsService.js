@@ -10,25 +10,131 @@ import { isValidUUID } from '../lib/utils';
 
 const TABLE_NAME = 'support_tickets';
 const SUPPORT_TICKET_CREATE_FIELDS = [
-  'user_id',
-  'organization_id',
   'subject',
   'message',
   'category',
   'priority',
-  'status',
-  'assigned_to',
 ];
 const SUPPORT_TICKET_UPDATE_FIELDS = [
-  'user_id',
-  'organization_id',
   'subject',
   'message',
   'category',
   'priority',
-  'status',
-  'assigned_to',
 ];
+
+const SUPPORT_TICKET_SORT_FIELDS = new Set(['created_at', 'updated_at', 'subject', 'status', 'priority', 'category']);
+
+const normalizeFilterList = (value) => {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry || '').trim()).filter(Boolean);
+  }
+  const text = String(value || '').trim();
+  return text ? [text] : [];
+};
+
+const sanitizeSearchTerm = (value) => String(value || '')
+  .trim()
+  .replace(/[%_,]/g, ' ')
+  .replace(/\s+/g, ' ');
+
+const normalizeSupportTicketRow = (row = {}) => ({
+  ...row,
+  id: row.id,
+  user_id: row.user_id || null,
+  organization_id: row.organization_id || null,
+  subject: String(row.subject || 'Support request').trim() || 'Support request',
+  message: String(row.message || '').trim(),
+  category: row.category || 'general',
+  priority: row.priority || 'normal',
+  status: row.status || 'open',
+  assigned_to: row.assigned_to || null,
+  customer_name: row.customer_name || row.requester_name || null,
+  created_at: row.created_at || null,
+  updated_at: row.updated_at || null,
+});
+
+function applySupportTicketScope(query, user) {
+  return applyAuthFilter(query, user, {
+    userIdField: 'user_id',
+    orgIdField: 'organization_id',
+    resourceType: 'support'
+  });
+}
+
+function applySupportTicketFilters(query, filter = {}) {
+  const statusValues = normalizeFilterList(filter.status);
+  if (statusValues.length === 1) {
+    query = query.eq('status', statusValues[0]);
+  } else if (statusValues.length > 1) {
+    query = query.in('status', statusValues);
+  }
+
+  const priorityValues = normalizeFilterList(filter.priority);
+  if (priorityValues.length === 1) {
+    query = query.eq('priority', priorityValues[0]);
+  } else if (priorityValues.length > 1) {
+    query = query.in('priority', priorityValues);
+  }
+
+  const categoryValues = normalizeFilterList(filter.category);
+  if (categoryValues.length === 1) {
+    query = query.eq('category', categoryValues[0]);
+  } else if (categoryValues.length > 1) {
+    query = query.in('category', categoryValues);
+  }
+
+  if (filter.assigned_to) {
+    query = query.eq('assigned_to', filter.assigned_to);
+  }
+
+  const search = sanitizeSearchTerm(filter.search);
+  if (search) {
+    query = query.or(`subject.ilike.%${search}%,message.ilike.%${search}%,category.ilike.%${search}%`);
+  }
+
+  return query;
+}
+
+async function getSupportTicketExactCount(filter = {}, quiet = false) {
+  try {
+    const user = await getCurrentUser();
+    let query = supabase.from(TABLE_NAME).select('id', { count: 'exact', head: true });
+    query = applySupportTicketScope(query, user);
+    query = applySupportTicketFilters(query, filter);
+
+    const { count, error } = await query;
+    if (error) throw error;
+
+    return Number.isFinite(count) ? count : 0;
+  } catch (error) {
+    if (!quiet) {
+      console.error('Error fetching support ticket exact count:', error);
+    }
+    throw error;
+  }
+}
+
+export async function getSupportTicketsPageStats(filter = {}, quiet = false) {
+  const [total, open, inProgress, resolved, closed, urgent] = await Promise.all([
+    getSupportTicketExactCount(filter, quiet),
+    getSupportTicketExactCount({ ...filter, status: 'open' }, quiet),
+    getSupportTicketExactCount({ ...filter, status: 'in_progress' }, quiet),
+    getSupportTicketExactCount({ ...filter, status: 'resolved' }, quiet),
+    getSupportTicketExactCount({ ...filter, status: 'closed' }, quiet),
+    getSupportTicketExactCount({ ...filter, priority: 'urgent' }, quiet),
+  ]);
+
+  return {
+    total,
+    open,
+    inProgress,
+    resolved,
+    closed,
+    urgent,
+    active: open + inProgress,
+    exactCounts: true,
+  };
+}
 
 function pickAllowedSupportTicketFields(input, allowedFields) {
   const payload = {};
@@ -85,11 +191,10 @@ export async function getSupportTickets(filter = {}) {
 
     query = query.order('created_at', { ascending: false });
 
-    if (filter.limit) {
-      query = query.limit(filter.limit);
-    }
-    if (filter.offset) {
-      query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
+    const limit = Number(filter.limit);
+    const offset = Number(filter.offset) || 0;
+    if (Number.isFinite(limit) && limit > 0) {
+      query = query.range(offset, offset + limit - 1);
     }
 
     const { data, error } = await query;
@@ -97,8 +202,56 @@ export async function getSupportTickets(filter = {}) {
 
     return data || [];
   } catch (error) {
-    console.error('Error fetching support tickets:', error);
+    if (!filter?.quiet) {
+      console.error('Error fetching support tickets:', error);
+    }
+    if (filter?.quiet) throw error;
     return [];
+  }
+}
+
+/**
+ * Get the Support page projection with exact count and scoped status metrics.
+ */
+export async function getSupportTicketsPage(filter = {}) {
+  try {
+    const user = await getCurrentUser();
+    const statsFilter = filter.statsFilter || {};
+
+    const countPromise = getSupportTicketExactCount(filter, true);
+    const statsPromise = getSupportTicketsPageStats(statsFilter, true);
+
+    let dataQuery = supabase.from(TABLE_NAME).select('*');
+    dataQuery = applySupportTicketScope(dataQuery, user);
+    dataQuery = applySupportTicketFilters(dataQuery, filter);
+
+    const sortKey = SUPPORT_TICKET_SORT_FIELDS.has(filter.sortKey) ? filter.sortKey : 'created_at';
+    dataQuery = dataQuery.order(sortKey, { ascending: filter.sortDirection === 'asc' });
+
+    const limit = Number(filter.limit);
+    const offset = Number(filter.offset) || 0;
+    if (Number.isFinite(limit) && limit > 0) {
+      dataQuery = dataQuery.range(offset, offset + limit - 1);
+    }
+
+    const [{ count }, { data, error }, stats] = await Promise.all([
+      countPromise.then((value) => ({ count: value })),
+      dataQuery,
+      statsPromise,
+    ]);
+
+    if (error) throw error;
+
+    return {
+      data: (data || []).map(normalizeSupportTicketRow),
+      count: count || 0,
+      stats,
+    };
+  } catch (error) {
+    if (!filter?.quiet) {
+      console.error('Error fetching support tickets page:', error);
+    }
+    throw error;
   }
 }
 
@@ -314,9 +467,13 @@ export async function assignTicket(ticketId, assignedTo) {
  */
 export async function getSupportTicketsAnalytics() {
   try {
-    const { data, error } = await supabase
+    const user = await getCurrentUser();
+    let query = supabase
       .from(TABLE_NAME)
       .select('status, priority, category, created_at, updated_at');
+    query = applySupportTicketScope(query, user);
+
+    const { data, error } = await query;
 
     if (error) throw error;
 

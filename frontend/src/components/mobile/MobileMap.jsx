@@ -1,22 +1,18 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Layers,
     RefreshCw,
     Navigation,
-    ChevronUp,
-    ChevronDown,
     AlertTriangle,
     Ambulance,
     Hospital as HospitalIcon,
     Phone,
     Send,
-    CheckCheck
+    CheckCheck,
+    X
 } from 'lucide-react';
-import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { MobileKPIStrip } from './MobileKPIStrip';
 import {
     GoogleMapsRenderer,
     LeafletMapRenderer,
@@ -28,10 +24,11 @@ import { getStandardizedPatient } from '../../utils/patientUtils';
 import { LocationCell } from '../ui/LocationCell';
 import { dispatchEmergency, completeEmergency } from '../../services/emergencyResponseService';
 import { toast } from 'sonner';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * MobileMap
- * Specialized Mission Control for small screens
+ * Mobile map surface for small screens.
  * Canon #9: Stress-Ready
  * Canon #20: Premium Lightness
  */
@@ -56,12 +53,16 @@ export const MobileMap = ({
     theme,
     isSwitchingMap,
     setMapProvider,
-    setIsSwitchingMap
+    setIsSwitchingMap,
+    fallbackMap
 }) => {
-    const { selectedMarker, showLayers, loading, error } = mapData;
-    const [isSheetExpanded, setIsSheetExpanded] = useState(false);
+    const { selectedMarker, showLayers, loading } = mapData;
+    const { isAdmin, isOrgAdmin } = useAuth();
+    const canManageRequests = Boolean(isAdmin?.() || isOrgAdmin?.());
+    const [mapCommand, setMapCommand] = useState(null);
+    const [confirmClose, setConfirmClose] = useState(false);
 
-    // Contextual KPIs for the Map Strip
+    // Compact map filters for the top overlay.
     const mapKPIs = useMemo(() => [
         {
             id: 'all',
@@ -97,18 +98,31 @@ export const MobileMap = ({
 
     // Format selected marker for the sheet
     const patientData = selectedMarker?.type === "emergency" ? getStandardizedPatient(selectedMarker.data) : null;
+    const commandBusy = mapCommand !== null;
+
+    useEffect(() => {
+        setMapCommand(null);
+        setConfirmClose(false);
+    }, [selectedMarker?.type, selectedMarker?.data?.id]);
+
+    const runMapCommand = async (command, loadingCopy, successCopy, fallbackCopy, action) => {
+        const toastId = `mobile-map-${command}`;
+        setMapCommand(command);
+        toast.loading(loadingCopy, { id: toastId });
+        try {
+            await action();
+            toast.success(successCopy, { id: toastId });
+        } catch (error) {
+            toast.error(error?.message || fallbackCopy, { id: toastId });
+        } finally {
+            setMapCommand(null);
+        }
+    };
 
     return (
-        <div className="fixed inset-0 z-[20] bg-background overflow-hidden flex flex-col pt-12">
-            {/* 1. Tactical KPI Strip */}
-            <MobileKPIStrip
-                kpis={mapKPIs}
-                activeKpi={mapData?.filter || 'all'}
-                onKpiClick={(id) => setFilter?.(id || 'all')}
-            />
-
-            {/* 2. Main Map Layer */}
-            <div className="flex-1 relative">
+        <div className="fixed inset-0 z-[20] bg-background overflow-hidden">
+            {/* 1. Main map layer */}
+            <div className="absolute inset-0 pt-12">
                 {isSwitchingMap && (
                     <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center">
                         <AlertTriangle className="h-12 w-12 text-destructive mb-4 animate-bounce" />
@@ -118,7 +132,18 @@ export const MobileMap = ({
 
                 <div className="absolute inset-0">
                     <MapErrorBoundary
-                        fallback={<MapFallback />}
+                        fallback={fallbackMap || (
+                            <MapFallback
+                                filteredRequests={filteredRequests}
+                                ambulances={processedAmbulances}
+                                hospitals={processedHospitals}
+                                activeRoutes={activeRoutes}
+                                showLayers={showLayers}
+                                userLocation={userLocation}
+                                selectedMarker={selectedMarker}
+                                setSelectedMarker={setSelectedMarker}
+                            />
+                        )}
                         onError={() => {
                             if (!isSwitchingMap) {
                                 setIsSwitchingMap(true);
@@ -144,6 +169,18 @@ export const MobileMap = ({
                                 routePrimaryColor={routePrimaryColor}
                                 setSelectedMarker={setSelectedMarker}
                                 selectedMarker={selectedMarker}
+                                fallback={fallbackMap || (
+                                    <MapFallback
+                                        filteredRequests={filteredRequests}
+                                        ambulances={processedAmbulances}
+                                        hospitals={processedHospitals}
+                                        activeRoutes={activeRoutes}
+                                        showLayers={showLayers}
+                                        userLocation={userLocation}
+                                        selectedMarker={selectedMarker}
+                                        setSelectedMarker={setSelectedMarker}
+                                    />
+                                )}
                             />
                         ) : (
                             <LeafletMapRenderer
@@ -165,41 +202,71 @@ export const MobileMap = ({
                     </MapErrorBoundary>
                 </div>
 
-                {/* 3. Floating Tactical Controls */}
-                <div className="absolute bottom-32 right-4 flex flex-col items-end gap-3 z-[100]">
-                    <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            refresh();
-                        }}
-                        className="w-12 h-12 rounded-2xl apple-glass-heavy flex items-center justify-center shadow-lg border-0 pointer-events-auto"
-                    >
-                        <RefreshCw size={20} className={`${loading ? 'animate-spin' : ''} text-primary`} />
-                    </motion.button>
+            </div>
 
-                    <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (userLocation) {
-                                toast.info("Re-centering map...");
-                                window.dispatchEvent(new CustomEvent('recenter-map'));
-                            }
-                        }}
-                        className="w-12 h-12 rounded-2xl apple-glass-heavy flex items-center justify-center shadow-lg border-0 pointer-events-auto"
-                    >
-                        <Navigation size={20} className="text-foreground/60" />
-                    </motion.button>
-
-                    <MapLayerControls
-                        showLayers={showLayers}
-                        setShowLayers={toggleLayer}
-                    />
+            <div className="absolute left-3 right-3 top-14 z-[80] pointer-events-auto">
+                <div className="apple-glass-heavy rounded-[28px] p-2 shadow-premium">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                        {mapKPIs.slice(0, 4).map((item) => {
+                            const isActive = (mapData?.filter || 'all') === item.id;
+                            return (
+                                <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => setFilter?.(item.id || 'all')}
+                                    className={`min-w-[5.2rem] rounded-[22px] px-3 py-2 text-left transition-all active:scale-[0.98] ${isActive ? 'bg-primary text-primary-foreground shadow-lg' : 'bg-foreground/[0.04] text-foreground/78'}`}
+                                >
+                                    <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] opacity-70">
+                                        {item.label}
+                                    </span>
+                                    <span className="block text-lg font-semibold leading-none">
+                                        {item.value}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
-            {/* 4. Adaptive Detail Sheet (Physicality) */}
+            {/* 3. Floating map controls */}
+            <div className={`absolute right-4 flex flex-col items-end gap-3 z-[100] transition-all ${selectedMarker ? 'bottom-[25rem]' : 'bottom-24'}`}>
+                <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        refresh();
+                    }}
+                    className="w-12 h-12 rounded-2xl apple-glass-heavy flex items-center justify-center shadow-lg pointer-events-auto"
+                    aria-label="Refresh map"
+                >
+                    <RefreshCw size={20} className={`${loading ? 'animate-spin' : ''} text-primary`} />
+                </motion.button>
+
+                <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (userLocation) {
+                            toast.info("Centering map...");
+                            window.dispatchEvent(new CustomEvent('recenter-map'));
+                        } else {
+                            toast.info("Location not ready");
+                        }
+                    }}
+                    className="w-12 h-12 rounded-2xl apple-glass-heavy flex items-center justify-center shadow-lg pointer-events-auto"
+                    aria-label="Center map"
+                >
+                    <Navigation size={20} className="text-foreground/60" />
+                </motion.button>
+
+                <MapLayerControls
+                    showLayers={showLayers}
+                    setShowLayers={toggleLayer}
+                />
+            </div>
+
+            {/* 4. Adaptive detail sheet */}
             <AnimatePresence>
                 {selectedMarker && (
                     <motion.div
@@ -209,15 +276,16 @@ export const MobileMap = ({
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         className="fixed bottom-20 left-4 right-4 z-40"
                     >
-                        <Card className="apple-glass-heavy rounded-[2.5rem] p-0 overflow-hidden border-0 shadow-2xl relative">
+                        <div className="apple-glass-heavy rounded-[2.5rem] p-0 overflow-hidden shadow-2xl relative">
                             {/* Drag Handle */}
                             <div className="w-12 h-1 bg-foreground/10 rounded-full mx-auto my-3" />
 
                             <button
                                 onClick={() => setSelectedMarker(null)}
-                                className="absolute top-4 right-6 text-foreground/20 text-2xl font-light"
+                                className="absolute right-5 top-4 flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-all hover:bg-muted/30 hover:text-foreground active:scale-95"
+                                aria-label="Close details"
                             >
-                                ×
+                                <X className="h-4 w-4" />
                             </button>
 
                             <div className="px-6 pb-8">
@@ -234,7 +302,7 @@ export const MobileMap = ({
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
-                                            {selectedMarker.type} • {selectedMarker.data.status || 'Active'}
+                                            {selectedMarker.type} - {selectedMarker.data.status || 'Active'}
                                         </p>
                                         <h3 className="text-lg font-semibold tracking-tight truncate">
                                             {patientData?.name || selectedMarker.data.name || selectedMarker.data.call_sign || `#${selectedMarker.data.id?.slice(-6)}`}
@@ -247,7 +315,7 @@ export const MobileMap = ({
                                     {selectedMarker.type === 'emergency' && (
                                         <>
                                             <div className="flex items-center gap-2">
-                                                <Badge className={`squircle-sm border-0 font-black tracking-widest text-[9px] ${selectedMarker.data.priority === "critical" ? "bg-destructive text-white" : "bg-info text-white"
+                                                <Badge className={`squircle-sm font-black tracking-widest text-[9px] ${selectedMarker.data.priority === "critical" ? "bg-destructive text-white" : "bg-info text-white"
                                                     }`}>
                                                     {selectedMarker.data.priority?.toUpperCase()}
                                                 </Badge>
@@ -271,36 +339,51 @@ export const MobileMap = ({
                                             </div>
 
                                             <div className="flex gap-3 pt-2">
-                                                {!selectedMarker.data.ambulance_id && (
+                                                {canManageRequests && !selectedMarker.data.ambulance_id && (
                                                     <Button
-                                                        className="flex-1 apple-glass-heavy bg-success/20 text-success border-0 rounded-2xl h-14 font-semibold tracking-tight"
+                                                        className="flex-1 apple-glass-heavy bg-success/20 text-success rounded-2xl h-14 font-semibold tracking-tight"
+                                                        disabled={commandBusy}
+                                                        aria-busy={mapCommand === "send"}
                                                         onClick={async () => {
-                                                            const id = toast.loading('Dispatching unit...');
-                                                            try {
+                                                            await runMapCommand("send", "Sending unit...", "Unit sent", "Could not send unit", async () => {
                                                                 await dispatchEmergency(selectedMarker.data.id, selectedMarker.data);
-                                                                toast.success('Unit Dispatched', { id });
                                                                 setSelectedMarker(null);
-                                                                refresh();
-                                                            } catch (e) { toast.error('Dispatch Failed', { id }); }
+                                                                await refresh();
+                                                            });
                                                         }}
                                                     >
-                                                        <Send className="mr-2 h-4 w-4" /> Dispatch Unit
+                                                        {mapCommand === "send" ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                                                        {mapCommand === "send" ? "Sending" : "Send unit"}
                                                     </Button>
                                                 )}
-                                                {selectedMarker.data.ambulance_id && (
+                                                {canManageRequests && selectedMarker.data.ambulance_id && (
                                                     <Button
-                                                        className="flex-1 apple-glass-heavy bg-info/20 text-info border-0 rounded-2xl h-14 font-semibold tracking-tight"
+                                                        className="flex-1 apple-glass-heavy bg-info/20 text-info rounded-2xl h-14 font-semibold tracking-tight"
+                                                        disabled={commandBusy}
+                                                        aria-busy={mapCommand === "close"}
+                                                        data-confirming={confirmClose ? "true" : "false"}
                                                         onClick={async () => {
-                                                            try {
+                                                            if (!confirmClose) {
+                                                                setConfirmClose(true);
+                                                                toast.info("Confirm close to finish");
+                                                                return;
+                                                            }
+
+                                                            await runMapCommand("close", "Closing request...", "Request closed", "Could not close request", async () => {
                                                                 await completeEmergency(selectedMarker.data.id);
-                                                                toast.success('Mission Complete');
                                                                 setSelectedMarker(null);
-                                                                refresh();
-                                                            } catch (e) { toast.error('Update Failed'); }
+                                                                await refresh();
+                                                            });
                                                         }}
                                                     >
-                                                        <CheckCheck className="mr-2 h-4 w-4" /> Mark Complete
+                                                        {mapCommand === "close" ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <CheckCheck className="mr-2 h-4 w-4" />}
+                                                        {mapCommand === "close" ? "Closing" : confirmClose ? "Confirm close" : "Close request"}
                                                     </Button>
+                                                )}
+                                                {!canManageRequests && (
+                                                    <div className="flex-1 rounded-2xl bg-white/[0.04] px-4 py-3 text-xs font-medium text-muted-foreground">
+                                                        Review this request from Requests.
+                                                    </div>
                                                 )}
                                             </div>
                                         </>
@@ -342,7 +425,7 @@ export const MobileMap = ({
                                     )}
                                 </div>
                             </div>
-                        </Card>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

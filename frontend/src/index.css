@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -75,7 +75,7 @@ body {
 ::-webkit-scrollbar-thumb {
 	background: hsl(var(--primary) / 0.3);
 	/* Muted Brand Color */
-	border-radius: 10px;
+	border-radius: var(--radius-pill);
 	transition: background 0.3s;
 }
 
@@ -108,7 +108,7 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
 	background: rgba(155, 155, 155, 0.1);
-	border-radius: 20px;
+	border-radius: var(--radius-pill);
 }
 
 .custom-scrollbar:hover::-webkit-scrollbar-thumb {
@@ -200,7 +200,18 @@ code {
 		--chart-4: 0 84% 60%;
 		--chart-5: 15 80% 50%;
 		--radius: 1.75rem;
-		--squircle: 1.75rem;
+
+		/* iVisit design-system radius tokens - CONSOLE_DESIGN_SYSTEM_FROM_APP.md.
+		   Consumed by tailwind.config.js (rounded-card/inner/icon/modal).
+		   Brand color lives in --primary (#86100E); do NOT add a parallel --color-brand. */
+		--radius-sheet: 44px;
+		--radius-card: 30px;
+		--radius-inner: 22px;
+		--radius-icon: 14px;
+		--radius-button: 20px;
+		--radius-pill: 999px;
+		--radius-modal: 38px;
+		--squircle: var(--radius-card);
 		--font-dashboard-numbers: "JetBrains Mono", "Geist Mono", "SF Mono", "Roboto Mono", monospace;
 		--mobile-neon-accent: var(--primary);
 		/* Harmonized Copper Gold for Light Mode */
@@ -432,14 +443,6 @@ code {
 		-webkit-backdrop-filter: saturate(125%) blur(12px);
 	}
 
-	/* Optimized Background Orbs (No Blur Property) */
-	.bg-orb {
-		/* Use radial gradients instead of the 'blur' filter for background depth */
-		background: radial-gradient(circle,
-				hsl(var(--primary) / 0.15) 0%,
-				transparent 70%);
-	}
-
 	.ios-material {
 		/* Optimized for Safari performance */
 		background: hsl(var(--background) / 0.85);
@@ -473,100 +476,141 @@ code {
 		@apply text-white;
 	}
 
-	/* Global Surface Geometry - Uniform Sharp Edges */
+	/* Global Surface Geometry - iVisit continuous corners.
+	   geo-* aliases are compatibility shims for older pages. New revamp files
+	   use role-based rounded-* tokens or semantic squircle-* aliases. */
 	.geo-chamfer {
-		border-radius: 0;
+		border-radius: var(--radius-card);
 	}
 
 	.geo-shard {
-		border-radius: 0;
+		border-radius: var(--radius-card);
 	}
 
 	.geo-hexagon {
-		border-radius: 0;
+		border-radius: var(--radius-card);
 	}
 
 	.geo-ticket {
-		border-radius: 0;
+		border-radius: var(--radius-card);
 	}
 
 	.geo-leaf {
-		border-radius: 0;
+		border-radius: var(--radius-card);
 	}
 
 	.geo-arrow {
-		border-radius: 0;
+		border-radius: var(--radius-card);
 	}
 
 	.geo-badge {
-		border-radius: 0;
+		border-radius: var(--radius-pill);
 	}
 
 	.geo-trapezoid {
-		border-radius: 0;
+		border-radius: var(--radius-card);
 	}
 
 	.geo-block {
-		border-radius: 0;
+		border-radius: var(--radius-card);
 	}
 
-	/* Additional geo classes used in components */
+	/* Additional legacy geo classes used in components. They now map back to the same system. */
 	.geo-round {
-		border-radius: 0;
+		border-radius: var(--radius-inner);
 	}
 
 	.geo-sharp {
-		border-radius: 0;
+		border-radius: var(--radius-inner);
 	}
 
 	.geo-sharp-xs {
-		border-radius: 0;
+		border-radius: var(--radius-icon);
 	}
 
 	.geo-wave {
-		border-radius: 0;
+		border-radius: var(--radius-card);
 	}
 
 	.geo-bg {
-		border-radius: 0;
+		border-radius: var(--radius-card);
 	}
 
+	/* Semantic squircle aliases. Prefer these or Tailwind's rounded-* token names
+	   when adding new revamp surfaces. */
+	.squircle-sheet {
+		border-radius: var(--radius-sheet);
+	}
+
+	.squircle-modal {
+		border-radius: var(--radius-modal);
+	}
+
+	.squircle-card {
+		border-radius: var(--radius-card);
+	}
+
+	.squircle-inner {
+		border-radius: var(--radius-inner);
+	}
+
+	.squircle-button {
+		border-radius: var(--radius-button);
+	}
+
+	.squircle-icon {
+		border-radius: var(--radius-icon);
+	}
+
+	.squircle-pill {
+		border-radius: var(--radius-pill);
+	}
+
+	/* Legacy size aliases kept only while old pages migrate. The revamp
+	   hardgate rejects these in candidate files; use the role tokens above. */
 	.squircle-3xl {
-		border-radius: 0;
+		border-radius: var(--radius-sheet);
 	}
 
 	.squircle-2xl {
-		border-radius: 0;
+		border-radius: var(--radius-modal);
 	}
 
 	.squircle-xl {
-		border-radius: 0;
+		border-radius: var(--radius-card);
 	}
 
 	.squircle-lg {
-		border-radius: 0;
+		border-radius: var(--radius-inner);
+	}
+
+	.squircle-md {
+		border-radius: var(--radius-button);
 	}
 
 	.squircle {
-		border-radius: 0;
+		border-radius: var(--radius-button);
 	}
 
 	.squircle-sm {
-		border-radius: 0;
+		border-radius: var(--radius-icon);
+	}
+
+	.squircle-xs {
+		border-radius: var(--radius-icon);
 	}
 
 	.editorial-title {
 		font-size: 1.75rem;
 		font-weight: 900;
-		letter-spacing: -0.075rem;
+		letter-spacing: 0;
 		line-height: 1.1;
 	}
 
 	.editorial-subtitle {
 		font-size: 0.625rem;
 		font-weight: 900;
-		letter-spacing: 0.125rem;
-		text-transform: uppercase;
+		letter-spacing: 0;
 	}
 
 	.text-gradient-primary {

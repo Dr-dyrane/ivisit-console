@@ -1,9 +1,8 @@
-import React, { useMemo, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Calendar,
     Clock,
-    User,
     Hospital,
     Eye,
     Edit,
@@ -12,21 +11,15 @@ import {
     AlertCircle,
     MapPin,
     Stethoscope,
-    Activity,
     Search,
     SlidersHorizontal,
-    Loader2,
     BarChart3,
     Siren,
-    BadgeCheck,
-    BadgeX
+    RefreshCw,
+    ChevronDown,
+    ChevronRight,
 } from 'lucide-react';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { MobileKPIStrip } from './MobileKPIStrip';
-import { MobileSectionHeader, MobileMetricRow } from './MobileMetricList';
-import { MobileFeaturedMetric } from './MobileFeaturedMetric';
-import { MobileSecondaryMetricRail } from './MobileSecondaryMetricCard';
 import { PullToRefresh } from './PullToRefresh';
 import { MobilePageShell } from './MobilePageShell';
 import { MobileListEnd, MobileListEmpty, MobileListSkeletonRows, MobileListLoadMore } from './MobileListStates';
@@ -35,7 +28,144 @@ import { useFeedback } from '../../hooks/useFeedback';
 import { FEEDBACK_TYPES } from '../../contexts/FeedbackContext';
 import { useStableList } from './useStableList';
 import { useLoadMoreControl } from './useLoadMoreControl';
-import { calcDeltaPercent, formatSignedPercent, toDeltaBadge } from '../../utils/metricsUtils';
+
+const countNumber = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const mobileVisitStates = [
+    {
+        id: 'all',
+        label: 'All',
+        icon: Calendar,
+        countKey: 'total',
+        activeClass: 'bg-sky-500/10 text-sky-700 shadow-[0_18px_54px_rgba(14,165,233,0.16)] dark:text-sky-200',
+        restClass: 'bg-muted/28 text-muted-foreground',
+    },
+    {
+        id: 'scheduled',
+        label: 'Scheduled',
+        icon: Clock,
+        countKey: 'scheduled',
+        activeClass: 'bg-cyan-500/10 text-cyan-700 shadow-[0_18px_54px_rgba(6,182,212,0.14)] dark:text-cyan-200',
+        restClass: 'bg-muted/28 text-muted-foreground',
+    },
+    {
+        id: 'in_progress',
+        label: 'Active',
+        icon: Stethoscope,
+        countKey: 'inProgress',
+        activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_18px_54px_rgba(245,158,11,0.14)] dark:text-amber-200',
+        restClass: 'bg-muted/28 text-muted-foreground',
+    },
+    {
+        id: 'completed',
+        label: 'Done',
+        icon: CheckCircle2,
+        countKey: 'completed',
+        activeClass: 'bg-emerald-500/10 text-emerald-700 shadow-[0_18px_54px_rgba(16,185,129,0.14)] dark:text-emerald-200',
+        restClass: 'bg-muted/28 text-muted-foreground',
+    },
+    {
+        id: 'cancelled',
+        label: 'Cancelled',
+        icon: AlertCircle,
+        countKey: 'cancelled',
+        activeClass: 'bg-muted/36 text-foreground shadow-[0_18px_54px_rgb(0_0_0/0.10)]',
+        restClass: 'bg-muted/28 text-muted-foreground',
+    },
+];
+
+const mobileVisitSignalTone = {
+    all: 'bg-sky-500/10 text-sky-700 shadow-[0_16px_42px_rgba(14,165,233,0.14)] dark:text-sky-200',
+    scheduled: 'bg-cyan-500/10 text-cyan-700 shadow-[0_16px_42px_rgba(6,182,212,0.14)] dark:text-cyan-200',
+    in_progress: 'bg-amber-500/10 text-amber-700 shadow-[0_16px_42px_rgba(245,158,11,0.14)] dark:text-amber-200',
+    completed: 'bg-emerald-500/10 text-emerald-700 shadow-[0_16px_42px_rgba(16,185,129,0.14)] dark:text-emerald-200',
+    cancelled: 'bg-muted/34 text-muted-foreground shadow-[0_16px_42px_rgb(0_0_0/0.08)]',
+};
+
+const MobileVisitsAtlasLayer = () => (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden bg-background">
+        <div
+            className="absolute inset-0 opacity-[0.28] dark:opacity-[0.22]"
+            style={{
+                backgroundImage:
+                    'linear-gradient(118deg, transparent 0 46%, hsl(var(--foreground) / 0.055) 46% 49%, transparent 49%), linear-gradient(32deg, transparent 0 42%, hsl(var(--foreground) / 0.045) 42% 45%, transparent 45%), linear-gradient(154deg, transparent 0 64%, hsl(var(--primary) / 0.07) 64% 67%, transparent 67%)',
+                backgroundSize: '250px 178px, 330px 236px, 410px 276px',
+                backgroundPosition: '18px 10px, -72px 48px, 16% 38%',
+            }}
+        />
+        <div
+            className="absolute inset-0"
+            style={{
+                background:
+                    'radial-gradient(circle at 20% 32%, hsl(var(--primary) / 0.10), transparent 28%), radial-gradient(circle at 82% 62%, hsl(var(--foreground) / 0.055), transparent 26%), linear-gradient(180deg, hsl(var(--background) / 0.18), hsl(var(--background)) 92%)',
+            }}
+        />
+    </div>
+);
+
+const getMobileVisitStateCount = ({ item, statistics, visits }) => {
+    const fallback = item.id === 'all'
+        ? visits.length
+        : visits.filter((visit) => visit.status === item.id).length;
+
+    return countNumber(statistics?.[item.countKey], fallback);
+};
+
+const getMobileVisitSignal = ({ states, activeKpi }) => {
+    const activeId = activeKpi || 'all';
+    const active = states.find((item) => item.id === activeId) || states[0];
+    const count = countNumber(active?.value, 0);
+
+    if (active.id === 'scheduled') {
+        return {
+            ...active,
+            headline: count > 0 ? `${count} scheduled visit${count === 1 ? '' : 's'}` : 'No scheduled visits',
+            subhead: count > 0 ? 'Open the next visit before changing the schedule.' : 'Scheduled visits will appear here.',
+        };
+    }
+
+    if (active.id === 'in_progress') {
+        return {
+            ...active,
+            headline: count > 0 ? `${count} active visit${count === 1 ? '' : 's'}` : 'No active visits',
+            subhead: count > 0 ? 'Check the focused record before acting.' : 'Active visits will appear here.',
+        };
+    }
+
+    if (active.id === 'completed') {
+        return {
+            ...active,
+            headline: count > 0 ? `${count} completed visit${count === 1 ? '' : 's'}` : 'No completed visits',
+            subhead: count > 0 ? 'Use completed visits as read-only care history.' : 'Completed visits will appear here.',
+        };
+    }
+
+    if (active.id === 'cancelled') {
+        return {
+            ...active,
+            headline: count > 0 ? `${count} cancelled visit${count === 1 ? '' : 's'}` : 'No cancelled visits',
+            subhead: count > 0 ? 'Review these records without changing outcomes.' : 'Cancelled visits will appear here.',
+        };
+    }
+
+    return {
+        ...active,
+        headline: count > 0 ? `${count} visit record${count === 1 ? '' : 's'}` : 'No visit records',
+        subhead: count > 0 ? 'Pick one visit, then view details or edit scheduling.' : 'Schedule the first visit when care is ready.',
+    };
+};
+
+const getStatusTone = (status) => {
+    switch (status) {
+        case 'completed': return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200';
+        case 'in_progress': return 'bg-amber-500/10 text-amber-700 dark:text-amber-200';
+        case 'cancelled': return 'bg-muted/34 text-muted-foreground';
+        default: return 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-200';
+    }
+};
 
 /**
  * MobileVisits
@@ -48,24 +178,30 @@ export const MobileVisits = ({
     statistics,
     filters,
     setFilters,
+    activeKpi = 'all',
+    onKpiChange,
     onView,
     onEdit,
     onDelete,
     onRefresh,
+    errorMessage,
+    onRetry,
     onViewAnalytics,
     isAdmin,
     isOrgAdmin,
+    canEdit = isAdmin || isOrgAdmin,
+    canDelete = false,
+    selectionEnabled = false,
     onOpenFilters,
     hasMore,
     onLoadMore,
     selectedIds = [],
-    onSelect,
-    onSelectAll
+    onSelect
 }) => {
     // 1. Infinite scroll setup with Intersection Observer
     const observerTarget = useRef(null);
     const [expandedVisitId, setExpandedVisitId] = useState(null);
-    const selectionMode = selectedIds.length > 0;
+    const selectionMode = selectionEnabled && selectedIds.length > 0;
     const { triggerFromEvent } = useFeedback();
 
 
@@ -88,93 +224,22 @@ export const MobileVisits = ({
 
         return () => observer.disconnect();
     }, [hasMore, triggerLoad]);
-    const scheduledCount = Number(statistics?.scheduled) || visits.filter(v => v.status === 'scheduled').length;
-    const activeCount = Number(statistics?.inProgress) || visits.filter(v => v.status === 'in_progress').length;
-    const completedCount = Number(statistics?.completed) || visits.filter(v => v.status === 'completed').length;
-    const cancelledCount = Number(statistics?.cancelled) || visits.filter(v => v.status === 'cancelled').length;
-
-    const scheduledTrend = toDeltaBadge(calcDeltaPercent(scheduledCount, statistics?.previous?.scheduled ?? statistics?.previousScheduled));
-    const activeTrend = toDeltaBadge(calcDeltaPercent(activeCount, statistics?.previous?.inProgress ?? statistics?.previousInProgress));
-    const completedTrend = toDeltaBadge(calcDeltaPercent(completedCount, statistics?.previous?.completed ?? statistics?.previousCompleted));
-    const cancelledTrend = toDeltaBadge(calcDeltaPercent(cancelledCount, statistics?.previous?.cancelled ?? statistics?.previousCancelled));
-
-    // Visit KPIs with tiny live deltas and adaptive 3/4 packing
-    const visitKPIs = [
-        {
-            id: 'scheduled',
-            label: 'Scheduled',
-            value: scheduledCount,
-            color: 'hsl(var(--info))',
-            delta: scheduledTrend.delta,
-            direction: scheduledTrend.direction
-        },
-        {
-            id: 'active',
-            label: 'Active',
-            value: activeCount,
-            color: 'hsl(var(--warning))',
-            delta: activeTrend.delta,
-            direction: activeTrend.direction
-        },
-        {
-            id: 'completed',
-            label: 'Done',
-            value: completedCount,
-            color: 'hsl(var(--success))',
-            delta: completedTrend.delta,
-            direction: completedTrend.direction
-        },
-        ...((isAdmin || isOrgAdmin) ? [{
-            id: 'cancelled',
-            label: 'Cancelled',
-            value: cancelledCount,
-            color: 'hsl(var(--spark))',
-            delta: cancelledTrend.delta,
-            direction: cancelledTrend.direction
-        }] : [])
-    ];
-
-    const growthData = useMemo(() => [
-        { value: 25 }, { value: 40 }, { value: 55 }, { value: 45 }, { value: 65 }, { value: 80 }
-    ], []);
-
-    const todayCount = visits.filter(v => {
-        const today = new Date().toDateString();
-        const visitDate = new Date(v.date || v.created_at).toDateString();
-        return today === visitDate;
-    }).length;
-    const completionRate = visits.length ? (completedCount / visits.length) * 100 : 0;
-    const filteredVisits = useMemo(() => {
-        let result = Array.isArray(visits) ? [...visits] : [];
-        const search = String(filters?.search || '').trim().toLowerCase();
-        const kpi = String(filters?.kpiFilter || 'all');
-
-        if (search) {
-            result = result.filter(v => {
-                const patientName = String(v?.patient?.username || v?.patient?.full_name || '').toLowerCase();
-                const visitType = String(v?.visit_type || v?.type || '').toLowerCase();
-                const facility = String(v?.hospital_name || v?.hospital?.name || '').toLowerCase();
-                const notes = String(v?.notes || '').toLowerCase();
-                return (
-                    patientName.includes(search) ||
-                    visitType.includes(search) ||
-                    facility.includes(search) ||
-                    notes.includes(search)
-                );
-            });
-        }
-
-        if (kpi !== 'all') {
-            if (kpi === 'scheduled') result = result.filter(v => v.status === 'scheduled');
-            if (kpi === 'active') result = result.filter(v => v.status === 'in_progress');
-            if (kpi === 'completed') result = result.filter(v => v.status === 'completed');
-            if (kpi === 'cancelled') result = result.filter(v => v.status === 'cancelled');
-        }
-
-        return result;
-    }, [visits, filters]);
-    const { displayItems: displayVisits, isBuffering } = useStableList(filteredVisits, loading);
-  const showTopSectionLoading = loading && displayVisits.length === 0;
+    const visitRows = Array.isArray(visits) ? visits : [];
+    const { displayItems: displayVisits, isBuffering } = useStableList(visitRows, loading);
+    const showSkeleton = loading && displayVisits.length === 0;
+    const stateChoices = mobileVisitStates.map((item) => ({
+        ...item,
+        value: loading ? '...' : getMobileVisitStateCount({ item, statistics, visits: visitRows }),
+    }));
+    const signal = getMobileVisitSignal({ states: stateChoices, activeKpi });
+    const SignalIcon = signal.icon || Calendar;
+    const totalCount = countNumber(statistics?.total, visitRows.length);
+    const hasFilter = Boolean(
+        filters?.search ||
+        (filters?.status && filters.status.length > 0) ||
+        (filters?.visit_type && filters.visit_type.length > 0) ||
+        filters?.date
+    );
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -198,286 +263,341 @@ export const MobileVisits = ({
         <PullToRefresh onRefresh={onRefresh}>
             <MobilePageShell
                 animatePageLoad={false}
-                kpiStrip={(
-                    <MobileKPIStrip
-            loading={showTopSectionLoading}
-                        kpis={visitKPIs}
-                        activeKpi={filters?.kpiFilter || 'all'}
-                        onKpiClick={(id) => setFilters?.(prev => ({ ...prev, kpiFilter: id }))}
-                    />
-                )}
-                contentClassName="pt-4 pb-4 text-foreground"
+                contentClassName="relative min-h-[calc(100dvh-3rem)] overflow-hidden px-0 pb-32 pt-16 text-foreground"
             >
-                {/* B. TODAY'S APPOINTMENTS */}
-                <MobileFeaturedMetric
-          loading={showTopSectionLoading}
-                    items={[
-                        {
-                            label: "Today's Appointments",
-                            value: todayCount,
-                            trend: formatSignedPercent(completionRate - 50) || 'LIVE',
-                            icon: Calendar,
-                            color: 'hsl(var(--info))',
-                            chartData: growthData
-                        },
-                        {
-                            label: 'Completed Today',
-                            value: completedCount,
-                            trend: formatSignedPercent(completionRate - 50) || 'LIVE',
-                            icon: CheckCircle2,
-                            color: 'hsl(var(--success))',
-                            chartData: growthData
-                        },
-                        {
-                            label: 'Completion Rate',
-                            value: `${Math.round(completionRate)}%`,
-                            trend: 'LIVE',
-                            icon: Activity,
-                            color: 'hsl(var(--primary))',
-                            chartData: growthData
-                        },
-                        {
-                            label: 'Active Queue',
-                            value: filteredVisits.length,
-                            trend: 'LIVE',
-                            icon: Clock,
-                            color: 'hsl(var(--warning))',
-                            chartData: growthData
-                        }
-                    ]}
-                />
-
-                {/* C. VISIT VELOCITY */}
-                <section className="mb-3">
-                    <MobileSectionHeader
-                        label="Visit Velocity"
-                        count={completedCount}
-                        color="hsl(var(--success))"
-                    />
-                    <MobileSecondaryMetricRail
-            loading={showTopSectionLoading}
-                        variant="icon"
-                        items={[
-                            {
-                                variant: 'icon',
-                                icon: Activity,
-                                title: 'Completed Today',
-                                subtitle: 'Last 24h',
-                                value: completedCount,
-                                color: 'hsl(var(--success))',
-                                iconColorClass: 'text-success',
-                                iconBgClass: 'bg-success/5',
-                                onClick: onViewAnalytics
-                            },
-                            {
-                                variant: 'icon',
-                                icon: CheckCircle2,
-                                title: 'Completion',
-                                subtitle: 'Current ratio',
-                                value: `${Math.round(completionRate)}%`,
-                                color: 'hsl(var(--info))',
-                                iconColorClass: 'text-info',
-                                iconBgClass: 'bg-info/5',
-                                onClick: onViewAnalytics
-                            },
-                            {
-                                variant: 'icon',
-                                icon: Calendar,
-                                title: 'Scheduled',
-                                subtitle: 'Upcoming',
-                                value: scheduledCount,
-                                color: 'hsl(var(--primary))',
-                                iconColorClass: 'text-primary',
-                                iconBgClass: 'bg-primary/5',
-                                onClick: onViewAnalytics
-                            },
-                            {
-                                variant: 'icon',
-                                icon: Clock,
-                                title: 'Active',
-                                subtitle: 'In progress',
-                                value: activeCount,
-                                color: 'hsl(var(--warning))',
-                                iconColorClass: 'text-warning',
-                                iconBgClass: 'bg-warning/5',
-                                onClick: onViewAnalytics
-                            }
-                        ]}
-                    />
-                </section>
-
-                {/* D. SEARCH & FILTER */}
-                <div className="flex items-center gap-2 mb-3 px-1">
-                    <div className="flex-1 relative group">
-                        <Search size={15} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Search visits..."
-                            value={filters?.search || ''}
-                            onChange={(e) => setFilters?.(prev => ({ ...prev, search: e.target.value }))}
-                            className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy border-0 text-[12px] font-normal placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary/20 outline-none transition-all"
-                        />
-                    </div>
-                    <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={(event) => {
-                            onOpenFilters?.();
-                            triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--spark))', haptic: true, sound: true });
-                        }}
-                        className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-muted-foreground/60 active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0"
+                <MobileVisitsAtlasLayer />
+                <div className="relative z-10 space-y-5">
+                    <motion.section
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35 }}
+                        className="space-y-4 px-5"
                     >
-                        <SlidersHorizontal size={18} />
-                    </motion.button>
+                        <div className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${mobileVisitSignalTone[signal.id] || mobileVisitSignalTone.all}`}>
+                            <SignalIcon size={15} />
+                            {signal.label}
+                        </div>
+                        <div>
+                            <h1 className="text-[34px] font-semibold leading-[1.03] tracking-normal text-foreground">
+                                {loading ? 'Loading visits' : signal.headline}
+                            </h1>
+                            <p className="mt-3 max-w-[22rem] text-[15px] leading-6 text-muted-foreground">
+                                {loading ? 'One moment while the latest records come in.' : signal.subhead}
+                            </p>
+                        </div>
 
-                    {(isAdmin || isOrgAdmin) && (
-                        <motion.button
-                            whileTap={{ scale: 0.95 }}
-                            onClick={(event) => {
-                                onViewAnalytics?.();
-                                triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--spark))', haptic: true, sound: true });
-                            }}
-                            className="w-11 h-11 rounded-2xl apple-glass-heavy flex items-center justify-center text-[hsl(var(--spark)/0.78)] active:text-[hsl(var(--spark)/0.92)] hover:text-[hsl(var(--spark)/0.92)] hover:bg-[hsl(var(--spark)/0.08)] transition-[color,background,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] border-0 shadow-sm"
-                        >
-                            <BarChart3 size={18} />
-                        </motion.button>
-                    )}
-                </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            {stateChoices.map((item) => {
+                                const Icon = item.icon;
+                                const active = (activeKpi || 'all') === item.id;
 
-                {/* E. VISIT DIRECTORY */}
-                <MobileSectionHeader
-                    label="Visit Directory"
-                    count={displayVisits.length}
-                    color="hsl(var(--primary))"
-                    onSelectAll={displayVisits.length > 0 ? () => onSelectAll?.(displayVisits) : null}
-                    isAllSelected={displayVisits.length > 0 && selectedIds.length === displayVisits.length}
-                />
+                                return (
+                                    <motion.button
+                                        key={item.id}
+                                        type="button"
+                                        whileTap={{ scale: 0.97 }}
+                                        onClick={() => onKpiChange?.(item.id)}
+                                        className={`min-h-[82px] rounded-[28px] px-4 py-3 text-left transition-all ${active ? item.activeClass : item.restClass}`}
+                                        aria-pressed={active}
+                                        aria-label={`Show ${item.label.toLowerCase()} visits`}
+                                        data-state={active ? 'selected' : 'idle'}
+                                    >
+                                        <span className="flex items-start justify-between gap-3">
+                                            <span className="min-w-0">
+                                                <span className="block text-xs font-semibold leading-tight">{item.label}</span>
+                                                <span className="mt-2 block text-2xl font-semibold tracking-normal text-foreground">{item.value}</span>
+                                            </span>
+                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-background/40">
+                                                <Icon size={16} />
+                                            </span>
+                                        </span>
+                                    </motion.button>
+                                );
+                            })}
+                        </div>
+                    </motion.section>
 
-                <div className="space-y-1">
-                    <AnimatePresence mode="popLayout">
-                        {displayVisits.map((visit) => (
-                            <MobileMetricRow
-                                key={visit.id}
-                                icon={getStatusIcon(visit.status)}
-                                color={getStatusColor(visit.status)}
-                                label={visit.visit_type?.replace('_', ' ').toUpperCase() || 'GENERAL VISIT'}
-                                value={visit.patient?.username || visit.patient?.full_name || `Patient #${visit.user_id?.slice(-4) || '??'}`}
-                                rightBlade={{
-                                    badge: visit.status === 'completed' ? 'DONE' : visit.status === 'in_progress' ? 'LIVE' : 'SCHED',
-                                    direction: visit.status === 'completed' ? 'up' : visit.status === 'cancelled' ? 'down' : 'flat',
-                                    label: 'Visit',
-                                    value: visit.status?.replace('_', ' ').toUpperCase() || 'PENDING',
-                                    color: getStatusColor(visit.status)
+                    <section
+                        className="-mx-1 rounded-t-[44px] bg-card/78 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55"
+                        data-testid="mobile-visits-activity-sheet"
+                    >
+                        <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-full bg-foreground/20" />
+                        <div className="flex items-center gap-2 rounded-[34px] bg-background/42 p-2 dark:bg-black/[0.10]">
+                            <div className="relative flex-1">
+                                <Search size={15} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                                <input
+                                    type="search"
+                                    placeholder="Search visits..."
+                                    value={filters?.search || ''}
+                                    onChange={(event) => setFilters?.(prev => ({ ...prev, search: event.target.value }))}
+                                    className="h-11 w-full rounded-[22px] bg-background/60 pl-10 pr-4 text-[13px] font-medium text-foreground shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.18)] dark:bg-white/[0.06]"
+                                    data-testid="mobile-visits-sheet-search"
+                                />
+                            </div>
+                            <motion.button
+                                type="button"
+                                whileTap={{ scale: 0.95 }}
+                                onClick={(event) => {
+                                    onOpenFilters?.();
+                                    triggerFromEvent(event, { variant: FEEDBACK_TYPES.INFO, color: 'hsl(var(--primary))', haptic: true, sound: true });
                                 }}
-                                statusIndicators={[
-                                    {
-                                        icon: visit.visit_type?.includes('emergency') || visit.type?.includes('emergency') ? Siren : Stethoscope,
-                                        color: visit.visit_type?.includes('emergency') || visit.type?.includes('emergency') ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground)/0.4)',
-                                        label: visit.visit_type || 'Routine'
-                                    },
-                                    {
-                                        icon: getStatusIcon(visit.status),
-                                        color: getStatusColor(visit.status),
-                                        label: visit.status
-                                    }
-                                ]}
-                                isExpanded={expandedVisitId === visit.id}
-                                onExpand={(id) => setExpandedVisitId(prev => prev === id ? null : id)}
-                                itemId={visit.id}
-                                isSelected={selectedIds.includes(visit.id)}
-                                onSelect={onSelect}
-                                selectionMode={selectionMode}
-                                expandedContent={
-                                    <div className="space-y-4 py-3">
-                                        {/* Visit Details */}
-                                        <div className="grid grid-cols-1 gap-2">
-                                            <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
-                                                <Stethoscope size={14} className="text-muted-foreground/40" />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Practitioner</span>
-                                                    <span className="text-xs font-semibold">{visit.doctor?.name || visit.doctor || 'Unassigned'}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
-                                                <Hospital size={14} className="text-muted-foreground/40" />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Facility</span>
-                                                    <span className="text-xs font-semibold truncate">{visit.hospital?.name || visit.hospital_name || visit.hospital || 'Direct Consultation'}</span>
-                                                </div>
-                                            </div>
-                                            {visit.room_number && (
-                                                <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border-0">
-                                                    <MapPin size={14} className="text-muted-foreground/40" />
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Location</span>
-                                                        <span className="text-xs font-semibold">Ward 4 • Room {visit.room_number}</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
+                                className="relative flex h-11 w-11 items-center justify-center rounded-[22px] bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-95 dark:bg-white/[0.06]"
+                                aria-label="Filter visits"
+                                data-state={hasFilter ? 'filtered' : 'idle'}
+                            >
+                                <SlidersHorizontal size={18} />
+                                {hasFilter && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />}
+                            </motion.button>
 
-                                        {/* Visit Information */}
-                                        <div className="flex items-center justify-between px-1">
-                                            <div className="flex flex-col">
-                                                <span className="text-[8px] uppercase tracking-widest text-muted-foreground font-medium">Visit ID</span>
-                                                <span className="text-[10px] font-mono text-foreground/40 font-normal">#{visit.id?.slice(0, 12).toUpperCase()}</span>
-                                            </div>
-                                            <Badge className={`squircle-sm border-0 font-semibold tracking-tight text-[9px] py-1 px-3 ${getStatusColor(visit.status).replace('hsl(var(', 'bg-').replace('))', '/20 text-')}`}>
-                                                {visit.status?.replace('_', ' ').toUpperCase() || 'SCHEDULED'}
-                                            </Badge>
-                                        </div>
+                            {(isAdmin || isOrgAdmin) && (
+                                <motion.button
+                                    type="button"
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={(event) => {
+                                        onViewAnalytics?.();
+                                        triggerFromEvent(event, { variant: FEEDBACK_TYPES.CLICK, color: 'hsl(var(--primary))', haptic: true, sound: true });
+                                    }}
+                                    className="flex h-11 w-11 items-center justify-center rounded-[22px] bg-background/60 text-muted-foreground shadow-sm transition-all hover:bg-primary/10 hover:text-primary active:scale-95 dark:bg-white/[0.06]"
+                                    aria-label="Open visit statistics"
+                                    data-state="idle"
+                                >
+                                    <BarChart3 size={18} />
+                                </motion.button>
+                            )}
+                        </div>
 
-                                        {/* Quick Actions */}
-                                        <div className="flex gap-2 pt-2">
-                                            <Button
-                                                variant="ghost"
-                                                className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
-                                                onClick={() => onView(visit)}
-                                            >
-                                                <Eye size={16} className="text-primary/60" />
-                                                <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Details</span>
-                                            </Button>
-                                            {(isAdmin || isOrgAdmin) && (
-                                                <>
-                                                    <Button
-                                                        variant="ghost"
-                                                        className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2 active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.06] active:bg-white/[0.12] hover:text-foreground"
-                                                        onClick={() => onEdit(visit)}
-                                                    >
-                                                        <Edit size={16} className="text-warning/60" />
-                                                        <span className="text-[9px] uppercase font-semibold tracking-[0.2em]">Edit</span>
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        className="w-12 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center active:scale-95 transition-[transform,color,background] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-destructive/10 active:bg-destructive/15 hover:text-destructive"
-                                                        onClick={() => onDelete(visit)}
-                                                    >
-                                                        <Trash2 size={16} className="text-destructive/60" />
-                                                    </Button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                }
-                            />
-                        ))}
-                    </AnimatePresence>
+                        <div className="mt-4 flex items-center justify-between px-2">
+                            <h2 className="text-lg font-semibold tracking-tight">Visits</h2>
+                            <span className="rounded-full bg-muted/28 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                                {isBuffering ? 'Updating' : `${totalCount} total`}
+                            </span>
+                        </div>
 
-                    {/* Infinite Scroll Sentinel */}
-                    <div ref={observerTarget} className="min-h-[64px] flex items-center justify-center">
-                        {loading && <MobileListSkeletonRows />}
-                        {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
-                        {!loading && !hasMore && displayVisits.length > 0 && (
-                            <MobileListEnd label="End of visit list" />
-                        )}
-                    </div>
+                        <div className="mt-3 space-y-2">
+                            {errorMessage && (
+                                <MobileVisitErrorBanner message={errorMessage} onRetry={onRetry || onRefresh} />
+                            )}
 
-                    {displayVisits.length === 0 && !loading && (
-                        <MobileListEmpty icon={Calendar} label="No visits found" />
-                    )}
+                            <AnimatePresence mode="popLayout">
+                                {displayVisits.map((visit) => (
+                                    <MobileVisitRow
+                                        key={visit.id}
+                                        visit={visit}
+                                        expanded={expandedVisitId === visit.id}
+                                        setExpandedVisitId={setExpandedVisitId}
+                                        onView={onView}
+                                        onEdit={onEdit}
+                                        onDelete={onDelete}
+                                        canEdit={canEdit}
+                                        canDelete={canDelete}
+                                        selectionEnabled={selectionEnabled}
+                                        selectionMode={selectionMode}
+                                        isSelected={selectionEnabled && selectedIds.includes(visit.id)}
+                                        onSelect={selectionEnabled ? onSelect : undefined}
+                                        getStatusIcon={getStatusIcon}
+                                        getStatusColor={getStatusColor}
+                                    />
+                                ))}
+                            </AnimatePresence>
+
+                            <div ref={observerTarget} className="flex min-h-[64px] items-center justify-center">
+                                {showSkeleton && <MobileListSkeletonRows />}
+                                {!loading && hasMore && <MobileListLoadMore armed={armed} onRequest={requestLoad} />}
+                                {!loading && !hasMore && displayVisits.length > 0 && (
+                                    <MobileListEnd label="End of visits" />
+                                )}
+                            </div>
+
+                            {displayVisits.length === 0 && !loading && (
+                                <MobileListEmpty icon={Calendar} label="No visits found" />
+                            )}
+                        </div>
+                    </section>
                 </div>
             </MobilePageShell>
         </PullToRefresh>
     );
 };
 
+const MobileVisitErrorBanner = ({ message, onRetry }) => (
+    <div
+        className="rounded-[24px] bg-amber-500/10 p-4 text-amber-800 shadow-[inset_0_0_0_1px_rgba(245,158,11,0.14)] dark:text-amber-200"
+        data-testid="mobile-visits-error-state"
+    >
+        <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+            <div className="min-w-0">
+                <p className="text-sm font-semibold">Visits could not load</p>
+                <p className="mt-1 text-xs leading-5 opacity-80">{message}</p>
+            </div>
+        </div>
+        <Button
+            type="button"
+            variant="ghost"
+            onClick={onRetry}
+            className="mt-3 h-10 w-full rounded-[20px] bg-background/55 text-sm font-semibold text-foreground transition-all hover:bg-background active:scale-95"
+        >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Retry
+        </Button>
+    </div>
+);
 
+const formatVisitType = (visit) => {
+    const raw = String(visit?.visit_type || visit?.type || 'Visit').replace(/_/g, ' ');
+    return raw.replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
+const getPatientName = (visit) => (
+    visit?.patient?.username ||
+    visit?.patient?.full_name ||
+    visit?.patient_name ||
+    (visit?.user_id ? 'Linked patient' : 'No patient')
+);
+
+const getDoctorName = (visit) => (
+    visit?.doctor?.name ||
+    visit?.doctor ||
+    visit?.doctor_name ||
+    'Unassigned'
+);
+
+const getFacilityName = (visit) => (
+    visit?.hospital?.name ||
+    visit?.hospital_name ||
+    visit?.hospital ||
+    (visit?.hospital_id ? 'Linked facility' : 'No facility')
+);
+
+const getStatusLabel = (status) => {
+    if (status === 'completed') return 'Done';
+    if (status === 'in_progress') return 'Active';
+    if (status === 'cancelled') return 'Cancelled';
+    return 'Scheduled';
+};
+
+const MobileVisitRow = ({
+    visit,
+    expanded,
+    setExpandedVisitId,
+    onView,
+    onEdit,
+    onDelete,
+    canEdit,
+    canDelete,
+    selectionEnabled,
+    selectionMode,
+    isSelected,
+    onSelect,
+    getStatusIcon,
+    getStatusColor,
+}) => {
+    const StatusIcon = getStatusIcon(visit.status);
+    const isEmergency = String(visit.visit_type || visit.type || '').includes('emergency');
+    const ServiceIcon = isEmergency ? Siren : Stethoscope;
+    const statusLabel = getStatusLabel(visit.status);
+    const patientName = getPatientName(visit);
+    const serviceName = formatVisitType(visit);
+    const dateLabel = formatDate(visit.date || visit.created_at);
+    const rowColor = getStatusColor(visit.status);
+
+    return (
+        <motion.div
+            layout
+            className={`overflow-hidden rounded-[28px] bg-muted/22 shadow-sm transition-all ${expanded ? 'bg-muted/34 shadow-[0_20px_60px_rgba(0,0,0,0.18)]' : ''}`}
+        >
+            <button
+                type="button"
+                onClick={() => setExpandedVisitId(expanded ? null : visit.id)}
+                className="flex w-full items-center gap-3 p-4 text-left"
+                aria-label={`${expanded ? 'Close' : 'Open'} ${serviceName}`}
+                aria-expanded={expanded}
+                data-state={expanded ? 'open' : 'closed'}
+            >
+                <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${getStatusTone(visit.status)}`}>
+                    <StatusIcon size={17} />
+                </span>
+                <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[15px] font-semibold text-foreground">{serviceName}</span>
+                    <span className="mt-1 block truncate text-sm text-muted-foreground">{patientName}</span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end gap-2">
+                    <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${getStatusTone(visit.status)}`}>{statusLabel}</span>
+                    <span className="text-xs font-medium text-muted-foreground">{dateLabel}</span>
+                </span>
+                {expanded ? (
+                    <ChevronDown size={18} className="text-muted-foreground" />
+                ) : (
+                    <ChevronRight size={18} className="text-muted-foreground" />
+                )}
+            </button>
+
+            {expanded && (
+                <div className="space-y-3 px-4 pb-4">
+                    <MobileVisitDetailLine icon={ServiceIcon} label="Visit type" value={serviceName} />
+                    <MobileVisitDetailLine icon={Stethoscope} label="Practitioner" value={getDoctorName(visit)} />
+                    <MobileVisitDetailLine icon={Hospital} label="Facility" value={getFacilityName(visit)} />
+                    <MobileVisitDetailLine icon={MapPin} label="Location" value={visit.room_number ? `Room ${visit.room_number}` : 'No room'} />
+                    <MobileVisitDetailLine icon={Calendar} label="Record" value={`#${visit.id?.slice(0, 12) || 'visit'}`} />
+
+                    <div className={`${canEdit ? 'grid-cols-2' : 'grid-cols-1'} grid gap-2 pt-1`}>
+                        <Button
+                            variant="ghost"
+                            className="h-12 rounded-[20px] bg-background/36 font-semibold transition-all hover:bg-foreground hover:text-background active:scale-95"
+                            onClick={() => onView(visit)}
+                            data-state="idle"
+                        >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Details
+                        </Button>
+                        {canEdit && (
+                            <Button
+                                variant="ghost"
+                                className="h-12 rounded-[20px] bg-background/36 font-semibold transition-all hover:bg-primary/10 hover:text-primary active:scale-95"
+                                onClick={() => onEdit(visit)}
+                                data-state="idle"
+                            >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                            </Button>
+                        )}
+                    </div>
+
+                    {canDelete && (
+                        <Button
+                            variant="ghost"
+                            className="h-12 w-full rounded-[20px] bg-destructive/10 font-semibold text-destructive transition-all hover:bg-destructive/16 active:scale-95"
+                            onClick={() => onDelete?.(visit)}
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                        </Button>
+                    )}
+
+                    {selectionEnabled && (
+                        <Button
+                            variant="ghost"
+                            className="h-11 w-full rounded-[20px] bg-muted/26 text-sm font-semibold transition-all hover:bg-muted/38 active:scale-95"
+                            onClick={() => onSelect?.(visit.id, !isSelected)}
+                            style={{ color: rowColor }}
+                        >
+                            {selectionMode || isSelected ? (isSelected ? 'Selected' : 'Select') : 'Select visit'}
+                        </Button>
+                    )}
+                </div>
+            )}
+        </motion.div>
+    );
+};
+
+const MobileVisitDetailLine = ({ icon: Icon, label, value }) => (
+    <div className="flex items-center gap-3 rounded-[20px] bg-background/30 p-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-muted/28 text-muted-foreground">
+            <Icon size={15} />
+        </span>
+        <span className="min-w-0">
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
+            <span className="mt-1 block truncate text-sm font-semibold text-foreground">{value || 'Not set'}</span>
+        </span>
+    </div>
+);

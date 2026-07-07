@@ -1,21 +1,78 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import {
-  Shield,
+  BarChart3,
   CheckCircle,
   Clock,
-  TrendingUp,
-  BarChart3,
-  Plus,
   Download,
-  ExternalLink,
-  Filter
+  Filter,
+  Plus,
+  ReceiptText,
+  Shield,
+  TrendingUp,
 } from 'lucide-react';
 
-export const InsurancePanel = ({ loading, getInsuranceStats, insuranceData = [] }) => {
-  const stats = getInsuranceStats ? getInsuranceStats() : { total: 0, active: 0, expired: 0, pending: 0, verified: 0, verificationRate: 0 };
+const EMPTY_STATS = {
+  total: 0,
+  active: 0,
+  expired: 0,
+  pending: 0,
+  verified: 0,
+  unverified: 0,
+  verificationRate: 0,
+};
+
+const EMPTY_BILLING_STATS = {
+  total: 0,
+  pending: 0,
+  approved: 0,
+  paid: 0,
+  rejected: 0,
+};
+
+const toPanelStats = (stats = {}) => {
+  const total = Number(stats.total || 0);
+  const verified = Number(stats.verified || 0);
+
+  return {
+    ...EMPTY_STATS,
+    total,
+    active: Number(stats.active || 0),
+    expired: Number(stats.expired || 0),
+    pending: Number(stats.pending || 0),
+    verified,
+    unverified: Number(stats.unverified || 0),
+    verificationRate: total > 0 ? Math.round((verified / total) * 100) : 0,
+  };
+};
+
+const formatDate = (value) => {
+  if (!value) return 'No date';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'No date' : date.toLocaleDateString();
+};
+
+export const InsurancePanel = ({ insuranceContext = null }) => {
+  const stats = toPanelStats(insuranceContext?.stats);
+  const recentPolicies = insuranceContext?.recentPolicies || insuranceContext?.policies?.slice(0, 3) || [];
+  const billingContext = insuranceContext?.billing || {};
+  const billingStats = {
+    ...EMPTY_BILLING_STATS,
+    ...(billingContext.stats || {}),
+  };
+  const recentBilling = billingContext.recentBilling || billingContext.outcomes || [];
+  const policyLoading = insuranceContext?.loading ?? !insuranceContext;
+  const policyError = insuranceContext?.errorMessage
+    || (insuranceContext?.denied ? 'Insurance context is unavailable for this role.' : null)
+    || (insuranceContext?.failed ? 'Insurance summary could not load.' : null);
+  const billingLoading = billingContext.loading ?? !insuranceContext;
+  const billingError = billingContext.errorMessage
+    || (billingContext.denied ? 'Billing outcomes are unavailable for this role.' : null)
+    || (billingContext.failed ? 'Billing outcomes could not load.' : null);
+  const loading = policyLoading && billingLoading;
 
   const handleCreate = () => {
     window.dispatchEvent(new CustomEvent('openInsuranceModal'));
@@ -25,166 +82,203 @@ export const InsurancePanel = ({ loading, getInsuranceStats, insuranceData = [] 
     window.dispatchEvent(new CustomEvent('openAnalyticsModal'));
   };
 
+  const handleFilters = () => {
+    window.dispatchEvent(new CustomEvent('openFilters'));
+  };
+
+  const handleExport = () => {
+    toast.info('Insurance export is unavailable until report scope is verified.');
+  };
+
   return (
     <div className="space-y-4">
-      {/* Loading State */}
-      {loading.insurance && (
+      {loading ? (
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="h-8 w-8 animate-pulse rounded-full bg-info/20" />
         </div>
-      )}
-
-      {!loading.insurance && (
+      ) : (
         <>
-          {/* Policy Overview */}
+          {policyError && (
+            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 shadow-sm">
+              <p className="text-sm font-medium text-muted-foreground">{policyError}</p>
+            </Card>
+          )}
+
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-3"
           >
-            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Policy Overview</h3>
+            <h3 className="text-sm font-semibold text-muted-foreground">Policy overview</h3>
 
-            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 shadow-premium">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 geo-round bg-primary/20 flex items-center justify-center">
-                    <Shield className="h-5 w-5 text-primary" />
+                  <div className="geo-round flex h-10 w-10 items-center justify-center bg-info/20">
+                    <Shield className="h-5 w-5 text-info" />
                   </div>
                   <div>
-                    <span className="font-bold tracking-tight">Total Policies</span>
-                    <p className="text-xs text-muted-foreground">All insurance records</p>
+                    <span className="font-bold tracking-tight">Policy Registry</span>
+                    <p className="text-xs text-muted-foreground">Current admin scope</p>
                   </div>
                 </div>
-                <Badge className="bg-primary/20 text-primary border-0">{stats.total}</Badge>
+                <Badge className="bg-info/20 text-info">{stats.total}</Badge>
               </div>
             </Card>
 
             <div className="grid grid-cols-2 gap-2">
-              <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 geo-round bg-success/20 flex items-center justify-center">
-                    <CheckCircle className="h-4 w-4 text-success" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm">{stats.active}</p>
-                    <p className="text-xs text-muted-foreground">Active</p>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 geo-round bg-warning/20 flex items-center justify-center">
-                    <Clock className="h-4 w-4 text-warning" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm">{stats.pending}</p>
-                    <p className="text-xs text-muted-foreground">Pending</p>
-                  </div>
-                </div>
-              </Card>
+              <MetricCard icon={CheckCircle} label="Active" value={stats.active} tone="success" />
+              <MetricCard icon={Clock} label="Pending" value={stats.pending} tone="warning" />
             </div>
 
-            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 border-0 shadow-premium">
+            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 shadow-premium">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 geo-round bg-info/20 flex items-center justify-center">
+                  <div className="geo-round flex h-10 w-10 items-center justify-center bg-info/20">
                     <TrendingUp className="h-5 w-5 text-info" />
                   </div>
                   <div>
                     <span className="font-bold tracking-tight">Verification Rate</span>
-                    <p className="text-xs text-muted-foreground">Verified policies</p>
+                    <p className="text-xs text-muted-foreground">Verified in scope</p>
                   </div>
                 </div>
-                <Badge className="bg-info/20 text-info border-0">{stats.verificationRate}%</Badge>
+                <Badge className="bg-info/20 text-info">{stats.verificationRate}%</Badge>
               </div>
             </Card>
           </motion.div>
 
-          {/* Quick Actions */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="space-y-3"
+          >
+            <h3 className="text-sm font-semibold text-muted-foreground">Billing outcomes</h3>
+
+            <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 shadow-premium">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="geo-round flex h-10 w-10 items-center justify-center bg-success/20">
+                    <ReceiptText className="h-5 w-5 text-success" />
+                  </div>
+                  <div>
+                    <span className="font-bold tracking-tight">Claim Results</span>
+                    <p className="text-xs text-muted-foreground">Trigger-created rows</p>
+                  </div>
+                </div>
+                <Badge className="bg-success/20 text-success">{billingStats.total}</Badge>
+              </div>
+            </Card>
+
+            <div className="grid grid-cols-2 gap-2">
+              <MetricCard icon={Clock} label="Pending" value={billingLoading ? '...' : billingStats.pending} tone="warning" />
+              <MetricCard icon={CheckCircle} label="Paid" value={billingLoading ? '...' : billingStats.paid} tone="success" />
+            </div>
+
+            {billingError && (
+              <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 shadow-sm">
+                <p className="text-sm text-muted-foreground">{billingError}</p>
+              </Card>
+            )}
+          </motion.div>
+
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="space-y-3"
           >
-            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Quick Actions</h3>
+            <h3 className="text-sm font-semibold text-muted-foreground">Quick actions</h3>
 
             <div className="grid grid-cols-2 gap-2">
-              <motion.button
-                whileTap={{ scale: 0.98 }}
+              <PanelAction
+                icon={Plus}
+                label="Add"
+                tone="muted"
+                unavailable
                 onClick={handleCreate}
-                className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-                title="Add New Policy"
-              >
-                <Plus className="h-4 w-4" />
-                <span className="font-normal text-xs">Add</span>
-              </motion.button>
-
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                onClick={handleAnalytics}
-                className="bg-info/10 hover:bg-info/20 text-info border border-info/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-                title="View Analytics"
-              >
-                <BarChart3 className="h-4 w-4" />
-                <span className="font-normal text-xs">Analytics</span>
-              </motion.button>
-
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                onClick={() => window.dispatchEvent(new CustomEvent('openFilters'))}
-                className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-                title="Filter"
-              >
-                <Filter className="h-4 w-4" />
-                <span className="font-normal text-xs">Filter</span>
-              </motion.button>
-
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                className="bg-muted/10 hover:bg-muted/20 text-muted-foreground border border-muted/20 rounded-xl p-3 flex flex-col items-center gap-2 transition-colors"
-                disabled
-                title="Export (Coming Soon)"
-              >
-                <Download className="h-4 w-4" />
-                <span className="font-normal text-xs">Export</span>
-              </motion.button>
+                title="Add unavailable until policy authority is verified"
+              />
+              <PanelAction icon={BarChart3} label="Analytics" tone="info" onClick={handleAnalytics} title="View analytics" />
+              <PanelAction icon={Filter} label="Filter" tone="muted" onClick={handleFilters} title="Filter policies" />
+              <PanelAction
+                icon={Download}
+                label="Export"
+                tone="muted"
+                unavailable
+                onClick={handleExport}
+                title="Export unavailable until report scope is verified"
+              />
             </div>
           </motion.div>
 
-          {/* Recent Policies */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="space-y-3"
+          >
+            <h3 className="text-sm font-semibold text-muted-foreground">Recent claims</h3>
+
+            <div className="space-y-2">
+              {recentBilling.map((claim) => (
+                <Card key={claim.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 shadow-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="max-w-[140px] truncate text-sm font-normal">
+                        {claim.claim_number || `Claim ${String(claim.id || '').slice(0, 8)}`}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatMoney(claim.insurance_amount)} insurance - {formatDate(claim.billing_date || claim.created_at)}
+                      </p>
+                    </div>
+                    <Badge className="bg-muted/30 text-xs capitalize text-muted-foreground">
+                      {claim.status || 'pending'}
+                    </Badge>
+                  </div>
+                </Card>
+              ))}
+
+              {recentBilling.length === 0 && !billingError && (
+                <div className="py-4 text-center text-sm text-muted-foreground">
+                  No recent claims found
+                </div>
+              )}
+            </div>
+          </motion.div>
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
             className="space-y-3"
           >
-            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Recent Policies</h3>
+            <h3 className="text-sm font-semibold text-muted-foreground">Recent policies</h3>
 
             <div className="space-y-2">
-              {insuranceData.slice(0, 3).map((policy) => (
-                <Card key={policy.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 border-0 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 geo-round ${policy.status === 'active' ? 'bg-success' :
-                        policy.status === 'expired' ? 'bg-destructive' : 'bg-warning'
-                        }`} />
-                      <div>
-                        <p className="font-normal text-sm truncate max-w-[120px]">{policy.policy_number || 'Policy #' + policy.id.substring(0, 8)}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {policy.provider || 'Unknown'} • {policy.created_at ? new Date(policy.created_at).toLocaleDateString() : 'N/A'}
+              {recentPolicies.map((policy) => (
+                <Card key={policy.id} className="bg-background/50 backdrop-blur-xs squircle-lg p-3 shadow-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <div className={`geo-round h-2 w-2 shrink-0 ${statusDotClass(policy.status)}`} />
+                      <div className="min-w-0">
+                        <p className="max-w-[140px] truncate text-sm font-normal">
+                          {policy.policy_number || `Policy ${String(policy.id || '').slice(0, 8)}`}
+                        </p>
+                        <p className="text-xs capitalize text-muted-foreground">
+                          {policy.provider_name || 'Unknown provider'} - {formatDate(policy.created_at)}
                         </p>
                       </div>
                     </div>
-                    <Badge variant="outline" className="text-xs capitalize">
-                      {policy.status}
+                    <Badge className="bg-muted/30 text-xs capitalize text-muted-foreground">
+                      {policy.status || 'unknown'}
                     </Badge>
                   </div>
                 </Card>
               ))}
-              {insuranceData.length === 0 && (
-                <div className="text-center py-4 text-sm text-muted-foreground">
+
+              {recentPolicies.length === 0 && !policyError && (
+                <div className="py-4 text-center text-sm text-muted-foreground">
                   No recent policies found
                 </div>
               )}
@@ -194,4 +288,65 @@ export const InsurancePanel = ({ loading, getInsuranceStats, insuranceData = [] 
       )}
     </div>
   );
+};
+
+const formatMoney = (value) => {
+  const number = Number(value || 0);
+  return number > 0 ? `$${number.toLocaleString()}` : '$0';
+};
+
+const MetricCard = ({ icon: Icon, label, value, tone }) => {
+  const classes = {
+    success: 'bg-success/20 text-success',
+    warning: 'bg-warning/20 text-warning',
+  }[tone] || 'bg-muted/30 text-muted-foreground';
+
+  return (
+    <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-3 shadow-sm">
+      <div className="flex items-center gap-2">
+        <div className={`geo-round flex h-8 w-8 items-center justify-center ${classes}`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <div>
+          <p className="text-sm font-bold">{value}</p>
+          <p className="text-xs text-muted-foreground">{label}</p>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+const PanelAction = ({ icon: Icon, label, tone, onClick, title, unavailable = false }) => {
+  const classes = {
+    info: 'bg-info/10 text-info hover:bg-info/20',
+    muted: 'bg-muted/20 text-muted-foreground hover:bg-muted/35',
+  }[tone] || 'bg-muted/20 text-muted-foreground hover:bg-muted/35';
+
+  return (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      aria-disabled={unavailable}
+      data-state={unavailable ? 'unavailable' : 'available'}
+      className={`${classes} flex flex-col items-center gap-2 rounded-xl p-3 transition-colors active:scale-[0.98]`}
+      title={title}
+    >
+      <Icon className="h-4 w-4" />
+      <span className="text-xs font-normal">{label}</span>
+    </motion.button>
+  );
+};
+
+const statusDotClass = (status) => {
+  switch (String(status || '').toLowerCase()) {
+    case 'active':
+      return 'bg-success';
+    case 'expired':
+      return 'bg-destructive';
+    case 'pending':
+      return 'bg-warning';
+    default:
+      return 'bg-muted-foreground/45';
+  }
 };

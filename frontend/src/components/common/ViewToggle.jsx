@@ -3,7 +3,7 @@ import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
 import { LayoutGrid, List, Table2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const ViewToggle = ({ value, onChange, size = 'default' }) => {
+export const ViewToggle = ({ value, onChange, size = 'default', tone = 'primary' }) => {
   const sizeClasses = {
     default: 'h-8 w-8',
     sm: 'h-7 w-7',
@@ -15,6 +15,14 @@ export const ViewToggle = ({ value, onChange, size = 'default' }) => {
     sm: 14,
     lg: 18,
   };
+
+  const toneClasses = {
+    primary: 'data-[state=on]:bg-primary/20 data-[state=on]:text-primary',
+    neutral: 'data-[state=on]:bg-muted/70 data-[state=on]:text-foreground data-[state=on]:shadow-[inset_0_0_18px_hsl(var(--foreground)/0.04)]',
+    review: 'data-[state=on]:bg-amber-400/15 data-[state=on]:text-amber-700 dark:data-[state=on]:text-amber-200 data-[state=on]:shadow-[inset_0_0_18px_rgba(251,191,36,0.12)]',
+  };
+
+  const activeTone = toneClasses[tone] || toneClasses.primary;
 
   return (
     <motion.div
@@ -31,21 +39,21 @@ export const ViewToggle = ({ value, onChange, size = 'default' }) => {
         <ToggleGroupItem
           value="grid"
           aria-label="Grid view"
-          className={`${sizeClasses[size]} rounded-full hover:bg-white/10 data-[state=on]:bg-primary/20 data-[state=on]:text-primary`}
+          className={`${sizeClasses[size]} rounded-full hover:bg-white/10 ${activeTone}`}
         >
           <LayoutGrid size={iconSize[size]} />
         </ToggleGroupItem>
         <ToggleGroupItem
           value="list"
           aria-label="List view"
-          className={`${sizeClasses[size]} rounded-full hover:bg-white/10 data-[state=on]:bg-primary/20 data-[state=on]:text-primary`}
+          className={`${sizeClasses[size]} rounded-full hover:bg-white/10 ${activeTone}`}
         >
           <List size={iconSize[size]} />
         </ToggleGroupItem>
         <ToggleGroupItem
           value="table"
           aria-label="Table view"
-          className={`${sizeClasses[size]} rounded-full hover:bg-white/10 data-[state=on]:bg-primary/20 data-[state=on]:text-primary`}
+          className={`${sizeClasses[size]} rounded-full hover:bg-white/10 ${activeTone}`}
         >
           <Table2 size={iconSize[size]} />
         </ToggleGroupItem>
