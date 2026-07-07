@@ -30,6 +30,8 @@ import {
   DollarSign,
   Eye,
   AlertTriangle,
+  Info,
+  ChevronRight,
   X
 } from 'lucide-react';
 import { toast } from "sonner";
@@ -246,6 +248,139 @@ const InsuranceSignalPanel = ({ stats, policies, loading, kpiFilter, setKpiFilte
   );
 };
 
+const getInsuranceInitials = (name = 'Policy') => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] || 'P';
+  const second = parts[1]?.[0] || '';
+  return `${first}${second}`.toUpperCase();
+};
+
+const insuranceRailStatusClass = {
+  active: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200',
+  expired: 'bg-destructive/20 text-destructive',
+  pending: 'bg-amber-500/15 text-amber-700 dark:text-amber-200',
+};
+
+const InsuranceDetailLine = ({ icon: Icon, label, value }) => (
+  <div className="flex items-center gap-3 rounded-inner bg-muted/20 p-2.5">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
+      <Icon className="h-4 w-4" />
+    </span>
+    <div className="min-w-0">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
+      <div className="mt-1 truncate text-sm font-semibold text-foreground">{value || 'Not set'}</div>
+    </div>
+  </div>
+);
+
+const InsuranceRailButton = ({ icon: Icon, label, onClick }) => (
+  <Button
+    variant="ghost"
+    className="h-11 rounded-button bg-muted/28 text-sm font-semibold text-foreground transition-all hover:bg-muted/42 active:scale-[0.98]"
+    onClick={onClick}
+  >
+    <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
+    {label}
+  </Button>
+);
+
+const InsuranceDetailRail = ({ policy, onView }) => {
+  if (!policy) {
+    return (
+      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+        <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+        <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+          <Shield className="mb-4 h-10 w-10 text-muted-foreground/60" />
+          <h2 className="text-xl font-semibold">No policy selected</h2>
+          <p className="mt-2 max-w-[260px] text-sm text-muted-foreground">
+            Policies that match your filters will appear here.
+          </p>
+        </div>
+      </aside>
+    );
+  }
+
+  const statusClass = insuranceRailStatusClass[policy.status] || 'bg-muted text-muted-foreground';
+  const StatusIcon = policy.status === 'active'
+    ? CheckCircle
+    : policy.status === 'expired'
+      ? AlertTriangle
+      : Clock;
+  const isExpired = policy.status === 'expired';
+  const coverageValue = policy.coverage_amount != null
+    ? `$${Number(policy.coverage_amount).toLocaleString()}`
+    : 'N/A';
+  const expiresValue = policy.end_date ? new Date(policy.end_date).toLocaleDateString() : 'N/A';
+
+  return (
+    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+      <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">Policy details</h2>
+          <div className={`mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 text-xs font-semibold ${statusClass}`}>
+            <StatusIcon className="h-3.5 w-3.5" />
+            {policy.status || 'unknown'}
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
+          onClick={() => onView(policy)}
+          aria-label="Open full policy details"
+        >
+          <Info className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="mb-5 flex items-center gap-4">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-pill bg-muted/30 text-lg font-semibold text-foreground">
+          {getInsuranceInitials(policy.policy_holder_name)}
+        </div>
+        <div className="min-w-0">
+          <h3 className="truncate text-lg font-semibold">{policy.policy_holder_name || 'Unnamed holder'}</h3>
+          <p className="mt-1 truncate text-sm text-muted-foreground">
+            {policy.policy_number || 'No policy number'}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <InsuranceDetailLine icon={Shield} label="Holder" value={policy.policy_holder_name} />
+        <InsuranceDetailLine icon={Eye} label="Policy #" value={policy.policy_number} />
+        <InsuranceDetailLine icon={CheckCircle} label="Provider" value={policy.provider_name} />
+        <InsuranceDetailLine icon={DollarSign} label="Coverage" value={coverageValue} />
+        <InsuranceDetailLine icon={AlertTriangle} label="Status" value={policy.status} />
+        <InsuranceDetailLine icon={Clock} label="Expires" value={expiresValue} />
+      </div>
+
+      <div className="mt-5 space-y-2.5">
+        <Button
+          className="h-12 w-full rounded-button bg-foreground text-base font-semibold text-background transition-all hover:bg-foreground/90 active:scale-[0.99]"
+          onClick={() => onView(policy)}
+        >
+          <Eye className="mr-2 h-5 w-5" />
+          View details
+          <ChevronRight className="ml-auto h-5 w-5" />
+        </Button>
+
+        <div className="grid grid-cols-1 gap-3">
+          <InsuranceRailButton icon={Info} label="Open record" onClick={() => onView(policy)} />
+        </div>
+
+        <div
+          role="note"
+          className={`flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-semibold ${isExpired ? 'text-destructive' : 'text-muted-foreground'}`}
+        >
+          <Shield className="h-4 w-4 shrink-0" />
+          Policy changes are read-only until admin authority is verified.
+        </div>
+      </div>
+    </aside>
+  );
+};
+
 export const InsuranceManagementPage = () => {
   const { isAdmin } = useAuth();
   const { isMobile } = useNavigation();
@@ -255,6 +390,7 @@ export const InsuranceManagementPage = () => {
   const [error, setError] = useState(null);
 
   const [selectedPolicy, setSelectedPolicy] = useState(null);
+  const [focusedPolicyId, setFocusedPolicyId] = useState(null);
   const [modalMode, setModalMode] = useState(null); // 'create' | 'edit' | 'view'
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [commandNotice, setCommandNotice] = useState(null);
@@ -510,6 +646,11 @@ export const InsuranceManagementPage = () => {
     return filteredPolicies || [];
   }, [filteredPolicies]);
 
+  const focusedPolicy = useMemo(
+    () => paginatedPolicies.find((p) => p.id === focusedPolicyId) || paginatedPolicies[0] || null,
+    [paginatedPolicies, focusedPolicyId],
+  );
+
   const hasDesktopRows = paginatedPolicies.length > 0;
   const hasMobileRows = mobileVisiblePolicies.length > 0;
 
@@ -614,9 +755,12 @@ export const InsuranceManagementPage = () => {
   }, [handlePolicyToolsUnavailable]);
 
   const handleView = useCallback((policy) => {
+    setFocusedPolicyId(policy?.id || null);
     setSelectedPolicy(policy);
     setModalMode('view');
   }, []);
+
+  const handleFocusPolicy = useCallback((policy) => setFocusedPolicyId(policy?.id || null), []);
 
   const handleViewAnalytics = useCallback(() => {
     setAnalyticsModalOpen(true);
@@ -820,16 +964,18 @@ export const InsuranceManagementPage = () => {
     <div className="min-h-screen py-6 md:py-8 pt-6">
       <SEOHead title="Insurance" description="Review insurance policy evidence and claim outcomes." />
 
-      {/* Signal panel (headline + state chips) replaces the bento KPI cards */}
-      <InsuranceSignalPanel
-        stats={insuranceStats}
-        policies={paginatedPolicies}
-        loading={loading}
-        kpiFilter={filters.kpiFilter}
-        setKpiFilter={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
-      />
+      <div className="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-stretch">
+        <section className="flex min-w-0 flex-1 flex-col gap-4 lg:min-h-0 lg:self-stretch">
+          {/* Signal panel (headline + state chips) replaces the bento KPI cards */}
+          <InsuranceSignalPanel
+            stats={insuranceStats}
+            policies={paginatedPolicies}
+            loading={loading}
+            kpiFilter={filters.kpiFilter}
+            setKpiFilter={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
+          />
 
-      <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
+          <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
         <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
         {commandNotice && (
         <div
@@ -929,7 +1075,11 @@ export const InsuranceManagementPage = () => {
                     transition={{ delay: index * 0.05 }}
                     className="col-span-1"
                   >
-                    <Card className="h-full rounded-card bg-card p-6 group relative overflow-hidden flex flex-col">
+                    <Card
+                      onClick={() => handleFocusPolicy(policy)}
+                      data-state={focusedPolicy?.id === policy.id ? 'selected' : 'idle'}
+                      className={`h-full rounded-card p-6 group relative overflow-hidden flex flex-col cursor-pointer transition-shadow ${focusedPolicy?.id === policy.id ? 'bg-card shadow-[0_18px_54px_rgb(0_0_0/0.14)]' : 'bg-card'}`}
+                    >
                       {/* Apple hover glow effect */}
                       {/* Decorative Elements */}
                       <div className="absolute top-0 right-0 p-5 z-20">
@@ -1042,6 +1192,10 @@ export const InsuranceManagementPage = () => {
         hasNextPage={pagination.hasNextPage}
         loading={loading}
       />
+          </div>
+        </section>
+
+        <InsuranceDetailRail policy={focusedPolicy} onView={handleView} />
       </div>
 
       {/* Modals */}
