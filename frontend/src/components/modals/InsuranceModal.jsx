@@ -43,11 +43,11 @@ const formatMoney = (value) => {
 const getStatusClass = (status) => {
   switch (String(status || '').toLowerCase()) {
     case 'active':
-      return 'bg-success/10 text-success';
+      return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200';
     case 'expired':
       return 'bg-destructive/10 text-destructive';
     case 'pending':
-      return 'bg-warning/10 text-warning';
+      return 'bg-amber-500/15 text-amber-700 dark:text-amber-200';
     default:
       return 'bg-muted/30 text-muted-foreground';
   }
@@ -129,7 +129,7 @@ export const InsuranceModal = ({
       onClose={() => onClose(false)}
       title={title}
       subtitle={subtitle}
-      icon={<Shield className="h-5 w-5 text-info" />}
+      icon={<Shield className="h-5 w-5 text-muted-foreground" />}
       badge={statusBadge}
       size="lg"
       managed
@@ -210,7 +210,7 @@ export const InsuranceModal = ({
 const Section = ({ icon, title, children }) => (
   <section className="rounded-3xl bg-muted/25 p-4 md:p-5">
     <div className="mb-4 flex items-center gap-3">
-      <div className="rounded-2xl bg-info/10 p-2 text-info">
+      <div className="rounded-2xl bg-muted p-2 text-muted-foreground">
         {React.cloneElement(icon, { className: 'h-4 w-4' })}
       </div>
       <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
@@ -277,13 +277,13 @@ const BillingOutcomeSection = ({ outcomes, loading, error }) => (
 const getBillingStatusClass = (status) => {
   switch (String(status || '').toLowerCase()) {
     case 'paid':
-      return 'bg-success/10 text-success';
+      return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200';
     case 'approved':
-      return 'bg-info/10 text-info';
+      return 'bg-sky-500/15 text-sky-700 dark:text-sky-200';
     case 'rejected':
       return 'bg-destructive/10 text-destructive';
     default:
-      return 'bg-warning/10 text-warning';
+      return 'bg-amber-500/15 text-amber-700 dark:text-amber-200';
   }
 };
 
@@ -326,7 +326,7 @@ const CardImage = ({ label, src }) => {
 
 const Notice = ({ icon: Icon, tone, title, text }) => {
   const toneClass = tone === 'warning'
-    ? 'bg-warning/10 text-warning'
+    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-200'
     : 'bg-muted/25 text-muted-foreground';
 
   return (

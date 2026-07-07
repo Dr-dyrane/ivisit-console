@@ -114,15 +114,15 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
             <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 shadow-premium">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="geo-round flex h-10 w-10 items-center justify-center bg-info/20">
-                    <Shield className="h-5 w-5 text-info" />
+                  <div className="geo-round flex h-10 w-10 items-center justify-center bg-sky-500/15">
+                    <Shield className="h-5 w-5 text-sky-600 dark:text-sky-200" />
                   </div>
                   <div>
                     <span className="font-bold tracking-tight">Policy Registry</span>
                     <p className="text-xs text-muted-foreground">Current admin scope</p>
                   </div>
                 </div>
-                <Badge className="bg-info/20 text-info">{stats.total}</Badge>
+                <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-200">{stats.total}</Badge>
               </div>
             </Card>
 
@@ -134,15 +134,15 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
             <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 shadow-premium">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="geo-round flex h-10 w-10 items-center justify-center bg-info/20">
-                    <TrendingUp className="h-5 w-5 text-info" />
+                  <div className="geo-round flex h-10 w-10 items-center justify-center bg-sky-500/15">
+                    <TrendingUp className="h-5 w-5 text-sky-600 dark:text-sky-200" />
                   </div>
                   <div>
                     <span className="font-bold tracking-tight">Verification Rate</span>
                     <p className="text-xs text-muted-foreground">Verified in scope</p>
                   </div>
                 </div>
-                <Badge className="bg-info/20 text-info">{stats.verificationRate}%</Badge>
+                <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-200">{stats.verificationRate}%</Badge>
               </div>
             </Card>
           </motion.div>
@@ -158,15 +158,15 @@ export const InsurancePanel = ({ insuranceContext = null }) => {
             <Card className="bg-background/50 backdrop-blur-xs squircle-lg p-4 shadow-premium">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="geo-round flex h-10 w-10 items-center justify-center bg-success/20">
-                    <ReceiptText className="h-5 w-5 text-success" />
+                  <div className="geo-round flex h-10 w-10 items-center justify-center bg-emerald-500/15">
+                    <ReceiptText className="h-5 w-5 text-emerald-700 dark:text-emerald-200" />
                   </div>
                   <div>
                     <span className="font-bold tracking-tight">Claim Results</span>
                     <p className="text-xs text-muted-foreground">Trigger-created rows</p>
                   </div>
                 </div>
-                <Badge className="bg-success/20 text-success">{billingStats.total}</Badge>
+                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-200">{billingStats.total}</Badge>
               </div>
             </Card>
 
@@ -297,8 +297,8 @@ const formatMoney = (value) => {
 
 const MetricCard = ({ icon: Icon, label, value, tone }) => {
   const classes = {
-    success: 'bg-success/20 text-success',
-    warning: 'bg-warning/20 text-warning',
+    success: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200',
+    warning: 'bg-amber-500/15 text-amber-700 dark:text-amber-200',
   }[tone] || 'bg-muted/30 text-muted-foreground';
 
   return (
@@ -318,7 +318,7 @@ const MetricCard = ({ icon: Icon, label, value, tone }) => {
 
 const PanelAction = ({ icon: Icon, label, tone, onClick, title, unavailable = false }) => {
   const classes = {
-    info: 'bg-info/10 text-info hover:bg-info/20',
+    info: 'bg-sky-500/15 text-sky-700 dark:text-sky-200 hover:bg-sky-500/20',
     muted: 'bg-muted/20 text-muted-foreground hover:bg-muted/35',
   }[tone] || 'bg-muted/20 text-muted-foreground hover:bg-muted/35';
 
@@ -341,11 +341,11 @@ const PanelAction = ({ icon: Icon, label, tone, onClick, title, unavailable = fa
 const statusDotClass = (status) => {
   switch (String(status || '').toLowerCase()) {
     case 'active':
-      return 'bg-success';
+      return 'bg-emerald-500';
     case 'expired':
       return 'bg-destructive';
     case 'pending':
-      return 'bg-warning';
+      return 'bg-amber-500';
     default:
       return 'bg-muted-foreground/45';
   }

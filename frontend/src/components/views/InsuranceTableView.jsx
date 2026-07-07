@@ -91,7 +91,7 @@ export const InsuranceTableView = ({
                                 )}
                                 <TableCell className="py-4 pl-6">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 squircle bg-info/10 flex items-center justify-center text-info shrink-0">
+                                        <div className="w-10 h-10 squircle bg-muted flex items-center justify-center text-muted-foreground shrink-0">
                                             <Shield className="w-5 h-5" />
                                         </div>
                                         <div className="flex flex-col">
@@ -119,8 +119,8 @@ export const InsuranceTableView = ({
                                             {policy.status}
                                         </Badge>
                                         {policy.verified && (
-                                            <div className="text-success" title="Verified">
-                                                <CheckCircle className="h-4 w-4 fill-success/10" />
+                                            <div className="text-emerald-700 dark:text-emerald-200" title="Verified">
+                                                <CheckCircle className="h-4 w-4 fill-emerald-500/10" />
                                             </div>
                                         )}
                                     </div>
@@ -140,7 +140,7 @@ export const InsuranceTableView = ({
                                                     View Details
                                                 </DropdownMenuItem>
                                                 {showVerifyAction && !policy.verified && (
-                                                    <DropdownMenuItem onClick={() => onVerify(policy)} className="cursor-pointer font-medium text-xs py-2 text-success focus:text-success focus:bg-success/10">
+                                                    <DropdownMenuItem onClick={() => onVerify(policy)} className="cursor-pointer font-medium text-xs py-2 text-emerald-700 dark:text-emerald-200 focus:text-emerald-700 dark:focus:text-emerald-200 focus:bg-emerald-500/15">
                                                         <CheckCircle className="mr-2 h-3.5 w-3.5" />
                                                         Verify Policy
                                                     </DropdownMenuItem>

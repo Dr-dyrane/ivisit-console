@@ -80,9 +80,9 @@ export const MobileInsurance = ({
   const currentLabel = loading ? 'Loading' : 'Current';
 
   const kpis = [
-    { id: 'all', label: 'Policies', value: counts.total, color: 'hsl(var(--info))', delta: currentLabel, direction: 'flat' },
-    { id: 'active', label: 'Active', value: counts.active, color: 'hsl(var(--success))', delta: currentLabel, direction: 'flat' },
-    { id: 'pending', label: 'Pending', value: counts.pending, color: 'hsl(var(--warning))', delta: currentLabel, direction: 'flat' },
+    { id: 'all', label: 'Policies', value: counts.total, color: 'hsl(var(--foreground))', delta: currentLabel, direction: 'flat' },
+    { id: 'active', label: 'Active', value: counts.active, color: 'hsl(var(--foreground))', delta: currentLabel, direction: 'flat' },
+    { id: 'pending', label: 'Pending', value: counts.pending, color: 'hsl(var(--foreground))', delta: currentLabel, direction: 'flat' },
     { id: 'expired', label: 'Expired', value: counts.expired, color: 'hsl(var(--destructive))', delta: currentLabel, direction: 'flat' }
   ];
 
@@ -104,28 +104,28 @@ export const MobileInsurance = ({
               value: counts.active,
               trend: currentLabel,
               icon: Shield,
-              color: 'hsl(var(--success))'
+              color: 'hsl(var(--foreground))'
             },
             {
               label: 'Verification Rate',
               value: `${verificationRate}%`,
               trend: currentLabel,
               icon: CheckCircle,
-              color: 'hsl(var(--info))'
+              color: 'hsl(var(--foreground))'
             },
             {
               label: 'Total policies',
               value: counts.total,
               trend: currentLabel,
               icon: FileCheck,
-              color: 'hsl(var(--info))'
+              color: 'hsl(var(--foreground))'
             },
             {
               label: 'Active Ratio',
               value: `${activeRatio}%`,
               trend: currentLabel,
               icon: ShieldCheck,
-              color: 'hsl(var(--warning))'
+              color: 'hsl(var(--foreground))'
             }
           ]}
         />
@@ -134,7 +134,7 @@ export const MobileInsurance = ({
           <MobileSectionHeader
             label="Coverage Dynamics"
             count={counts.total}
-            color="hsl(var(--info))"
+            color="hsl(var(--foreground))"
           />
           <MobileSecondaryMetricRail
             loading={showTopSectionLoading}
@@ -144,7 +144,7 @@ export const MobileInsurance = ({
                 title: 'Verification Rate',
                 subtitle: 'Current scope',
                 value: `${verificationRate}%`,
-                color: 'hsl(var(--info))',
+                color: 'hsl(var(--foreground))',
                 trendDirection: 'flat',
                 trendText: currentLabel
               },
@@ -153,7 +153,7 @@ export const MobileInsurance = ({
                 title: 'Active Load',
                 subtitle: 'Current scope',
                 value: `${activeRatio}%`,
-                color: 'hsl(var(--success))',
+                color: 'hsl(var(--foreground))',
                 trendDirection: 'flat',
                 trendText: currentLabel
               },
@@ -162,7 +162,7 @@ export const MobileInsurance = ({
                 title: 'Total policies',
                 subtitle: 'Current scope',
                 value: counts.total,
-                color: 'hsl(var(--info))',
+                color: 'hsl(var(--foreground))',
                 trendDirection: 'flat',
                 trendText: currentLabel
               },
@@ -171,7 +171,7 @@ export const MobileInsurance = ({
                 title: 'Active',
                 subtitle: 'Current scope',
                 value: counts.active,
-                color: 'hsl(var(--warning))',
+                color: 'hsl(var(--foreground))',
                 trendDirection: 'flat',
                 trendText: currentLabel
               }
@@ -187,7 +187,7 @@ export const MobileInsurance = ({
               placeholder="Search policies..."
               value={filters?.search || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy border-0 text-[12px] placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-info/20 outline-none"
+              className="w-full h-11 pl-10 pr-4 rounded-2xl apple-glass-heavy border-0 text-[12px] placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-muted-foreground/20 outline-none"
             />
           </div>
           {onOpenFilters && (
@@ -215,23 +215,23 @@ export const MobileInsurance = ({
         <MobileSectionHeader
           label="Insurance policies"
           count={displayPolicies.length}
-          color="hsl(var(--info))"
+          color="hsl(var(--foreground))"
         />
 
         {error && displayPolicies.length > 0 && (
           <div
-            className="mb-3 rounded-3xl bg-warning/10 p-4 text-warning"
+            className="mb-3 rounded-3xl bg-amber-500/15 p-4 text-amber-700 dark:text-amber-200"
             data-testid="mobile-insurance-degraded-state"
           >
             <p className="text-sm font-semibold">Insurance did not refresh</p>
-            <p className="mt-1 text-xs text-warning/80">
+            <p className="mt-1 text-xs text-amber-700/80 dark:text-amber-200/80">
               Showing the last loaded policy rows.
             </p>
             {onRetry && (
               <Button
                 type="button"
                 variant="ghost"
-                className="mt-3 h-9 rounded-2xl bg-warning/10 px-4 text-xs font-semibold text-warning hover:bg-warning/15"
+                className="mt-3 h-9 rounded-2xl bg-amber-500/15 px-4 text-xs font-semibold text-amber-700 dark:text-amber-200 hover:bg-amber-500/20"
                 onClick={onRetry}
               >
                 Try again
@@ -245,7 +245,7 @@ export const MobileInsurance = ({
             {displayPolicies.map((policy) => {
               const isActive = policy.status === 'active';
               const isPending = policy.status === 'pending';
-              const color = isActive ? 'hsl(var(--success))' : isPending ? 'hsl(var(--warning))' : 'hsl(var(--destructive))';
+              const color = isActive ? 'hsl(var(--foreground))' : isPending ? 'hsl(var(--foreground))' : 'hsl(var(--destructive))';
               return (
                 <MobileMetricRow
                   key={policy.id}
@@ -278,7 +278,7 @@ export const MobileInsurance = ({
 
                       <div className="flex gap-2 pt-1">
                         <Button variant="ghost" className="flex-1 h-12 rounded-2xl apple-glass border-0 flex items-center justify-center gap-2" onClick={() => onView(policy)}>
-                          <Eye size={16} className="text-info/70" />
+                          <Eye size={16} className="text-muted-foreground/70" />
                           <span className="text-xs font-semibold">Details</span>
                         </Button>
                       </div>
