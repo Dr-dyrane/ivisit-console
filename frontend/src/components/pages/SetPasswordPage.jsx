@@ -118,11 +118,11 @@ export const SetPasswordPage = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 className="relative z-10 w-full max-w-[440px] px-6"
             >
-                <div className="bg-card/80 backdrop-blur-xl shadow-2xl rounded-modal overflow-hidden">
+                <div className="bg-card shadow-lg rounded-modal overflow-hidden">
                     <div className="p-8 sm:p-10">
                         <div className="text-center mb-8">
                             <div className="w-16 h-16 surface-raised rounded-icon flex items-center justify-center mx-auto mb-6">
-                                <ShieldCheck className="w-8 h-8 text-primary" />
+                                <ShieldCheck className="w-8 h-8 text-muted-foreground" />
                             </div>
                             <h1 className="text-2xl font-bold mb-2">Set your password</h1>
                             <p className="text-muted-foreground text-sm">Create a strong password to access the console.</p>
@@ -135,7 +135,7 @@ export const SetPasswordPage = () => {
                                 className="mb-5 flex items-start gap-3 rounded-inner bg-muted/40 px-4 py-3 text-sm text-muted-foreground"
                             >
                                 {recoveryStatus === 'checking' ? (
-                                    <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-primary" />
+                                    <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-muted-foreground" />
                                 ) : (
                                     <AlertCircle className="mt-0.5 h-4 w-4 text-destructive" />
                                 )}
@@ -149,8 +149,8 @@ export const SetPasswordPage = () => {
 
                         <form onSubmit={handleSetPassword} className="space-y-5">
                             <div className="space-y-2">
-                                <div className="relative group rounded-inner bg-muted/40 focus-within:bg-background focus-within:shadow-xl focus-within:shadow-primary/5 transition-all">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <div className="relative group rounded-inner bg-muted/40 focus-within:bg-background focus-within:shadow-sm transition-all">
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-foreground transition-colors" />
                                     <input
                                         type={showPassword ? "text" : "password"}
                                         value={password}
@@ -170,8 +170,8 @@ export const SetPasswordPage = () => {
                             </div>
 
                             <div className="space-y-2">
-                                <div className="relative group rounded-inner bg-muted/40 focus-within:bg-background focus-within:shadow-xl focus-within:shadow-primary/5 transition-all">
-                                    <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <div className="relative group rounded-inner bg-muted/40 focus-within:bg-background focus-within:shadow-sm transition-all">
+                                    <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-foreground transition-colors" />
                                     <input
                                         type={showConfirmPassword ? "text" : "password"}
                                         value={confirmPassword}
@@ -193,7 +193,7 @@ export const SetPasswordPage = () => {
                             <button
                                 type="submit"
                                 disabled={loading || !sessionVerified}
-                                className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-button shadow-lg shadow-primary/20 mt-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-70"
+                                className="w-full h-14 bg-foreground hover:bg-foreground/90 text-background font-semibold rounded-button shadow-lg mt-4 flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-70"
                             >
                                 {loading ? (
                                     <Loader2 className="animate-spin" />

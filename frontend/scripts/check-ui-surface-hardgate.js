@@ -86,6 +86,7 @@ const defaultFiles = [
   'src/components/pages/NotFoundPage.jsx',
   'src/components/pages/OnboardingSuccessPage.jsx',
   'src/components/pages/LoginPage.jsx',
+  'src/components/pages/SetPasswordPage.jsx',
   'src/components/pages/OnboardingPage.jsx',
   'src/components/onboarding/OnboardingWizard.jsx',
   'src/components/onboarding/OrganizationTypeStep.jsx',
