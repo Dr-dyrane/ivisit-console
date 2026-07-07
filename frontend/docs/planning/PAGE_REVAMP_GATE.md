@@ -45,6 +45,19 @@ After the preservation baseline re-anchor above, the canon and the six unadmitte
 - Remaining blockers are not source-closable in this repo: each intake page still needs a named backend-owned projection (exact counts, scoped reads), receiver/RLS/RPC/Edge authority for its commands, app-consequence proof against `ivisit-app`, and rendered desktop/tablet/mobile proof before admission. These require shared backend truth and a browser proof session, not console-source edits.
 - Goal status: the console revamp is NOT complete. The source-closable safety layer is essentially done across all pages, but the remaining work is per-page backend-authority proof, projection-owner design, action-model decisions, strict-radius visual admission, and rendered proof. Do not mark the goal complete until each admitted page has current triad plus rendered proof and each intake page is either admitted through the gate or explicitly kept out of scope with its backend blocker named.
 
+## Rendered Proof Access Guide - 2026-07-07
+
+This guide exists so future Claude Code sessions do not stop at "rendered proof is needed."
+
+- Local rendered proof should use `frontend/.env.local`. This file is intentionally ignored by Git and must remain uncommitted.
+- `frontend/.env.local` contains the Supabase runtime variables used by the local console (`REACT_APP_SUPABASE_URL`, `REACT_APP_SUPABASE_ANON_KEY`, and related local keys) plus local proof credentials.
+- The local proof credential keys are `IVISIT_TEST_ADMIN_EMAIL` and `IVISIT_TEST_ADMIN_PASSWORD`. Do not print their values in logs, docs, commits, screenshots, or final answers.
+- If a page requires authentication, start or reuse the local frontend server from `frontend`, open `/login`, sign in with the local proof credential keys, and then navigate to the target route. Do not create a profile, promote a role, or mutate auth state to make proof pass.
+- If a page is public (`/login`, `/set-password`, `/onboarding`, `/onboarding-success`, `/unauthorized`, or the `*` catch-all), render it directly when possible. Only sign in when the route's gate explicitly needs authenticated redirect or denial behavior.
+- Reuse an existing `localhost:3000` server when it is already running. If a new server is required, start one cleanly, record the port, and stop it when proof is complete. Do not leave many local dev servers running.
+- Browser proof must capture desktop and mobile where the gate asks for rendered proof, plus the target interaction state. Save screenshots outside the repo, report their paths, and verify no framework overlay, no horizontal overflow, no duplicate nav, no unintended authenticated-shell leakage, and no relevant console warnings/errors.
+- Rendered proof does not bypass backend authority. If a button still lacks receiver/RLS/RPC/app-consequence proof, keep it unavailable or documented as intake-only even if it renders cleanly.
+
 ## Canonical Audit Reset - 2026-06-25
 
 Before expanding the revamp again, treat Today plus Requests as the canonical layout audit pair.

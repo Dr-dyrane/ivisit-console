@@ -146,6 +146,14 @@ describe('Today/Requests revamp gate contract', () => {
     expect(gate).toContain('Intake safety audit, zero remaining source-closable violations:');
     expect(gate).toContain('Goal status: the console revamp is NOT complete.');
 
+    expect(gate).toContain('## Rendered Proof Access Guide - 2026-07-07');
+    expect(gate).toContain('Local rendered proof should use `frontend/.env.local`.');
+    expect(gate).toContain('`frontend/.env.local` contains the Supabase runtime variables used by the local console');
+    expect(gate).toContain('The local proof credential keys are `IVISIT_TEST_ADMIN_EMAIL` and `IVISIT_TEST_ADMIN_PASSWORD`.');
+    expect(gate).toContain('Do not print their values in logs, docs, commits, screenshots, or final answers.');
+    expect(gate).toContain('Reuse an existing `localhost:3000` server when it is already running.');
+    expect(gate).toContain('Browser proof must capture desktop and mobile where the gate asks for rendered proof');
+
     // The pinned helper must still read the OLD Requests behavior from the baseline commit.
     const baselineRequests = gitShowHead('frontend/src/components/pages/EmergencyRequestsPage.jsx');
     expect(baselineRequests).toContain("import { useViewMode } from '../../hooks/useViewMode';");
