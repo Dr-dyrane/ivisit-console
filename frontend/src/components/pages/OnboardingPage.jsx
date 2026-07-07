@@ -77,7 +77,7 @@ export const OnboardingPage = () => {
                 {/* ============================================================
                     HEADER - Fixed navigation bar (matches SmartHeader)
                     ============================================================ */}
-                <header className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center bg-background/80 dark:bg-background/60 backdrop-blur-xl shadow-sm">
+                <header className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center bg-background shadow-sm">
                     <div className="w-full max-w-7xl mx-auto px-4 flex items-center justify-between">
                         {/* Back Link */}
                         <Link
@@ -124,7 +124,7 @@ export const OnboardingPage = () => {
                 {/* ============================================================
                     FOOTER
                     ============================================================ */}
-                <footer className="fixed bottom-0 left-0 right-0 py-3 text-center text-xs text-muted-foreground/50 bg-background/80 backdrop-blur-sm">
+                <footer className="fixed bottom-0 left-0 right-0 py-3 text-center text-xs text-muted-foreground/50 bg-background">
                     <p>&copy; {new Date().getFullYear()} iVisit. All rights reserved.</p>
                 </footer>
             </div>

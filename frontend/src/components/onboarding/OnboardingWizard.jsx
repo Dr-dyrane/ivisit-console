@@ -365,11 +365,11 @@ export const OnboardingWizard = () => {
         <div className="min-h-[calc(100vh-120px)] flex flex-col lg:flex-row gap-6">
             {/* Desktop: Progress Sidebar */}
             <aside className="hidden lg:block w-80 flex-shrink-0">
-                <div className="sticky top-4 bg-card/80 backdrop-blur-xl rounded-card overflow-hidden shadow-premium">
+                <div className="sticky top-4 bg-card rounded-card overflow-hidden shadow-sm">
                     {/* Progress bar */}
-                    <div className="h-1 bg-white/5">
+                    <div className="h-1 bg-muted">
                         <motion.div
-                            className="h-full bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)]"
+                            className="h-full bg-primary"
                             initial={{ width: 0 }}
                             animate={{ width: `${progressPercent}%` }}
                             transition={{ type: 'spring', stiffness: 100, damping: 20 }}
@@ -384,7 +384,7 @@ export const OnboardingWizard = () => {
 
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col">
-                <div className="h-auto bg-background/80 dark:bg-white/[0.02] backdrop-blur-xl rounded-card p-6 lg:p-8 shadow-xl">
+                <div className="h-auto bg-card rounded-card p-6 lg:p-8 shadow-sm">
                     {/* Desktop: Step Header */}
                     <div className="hidden lg:block mb-8">
                         <StepHeader />
