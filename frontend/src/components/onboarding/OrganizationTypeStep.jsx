@@ -32,7 +32,6 @@ const ORGANIZATION_TYPES = [
         description: 'Full-service medical facility with emergency care, inpatient beds, and multiple departments.',
         icon: Building2,
         features: ['Emergency Dept', 'Inpatient Beds', 'Multiple Specialties'],
-        accent: 'from-red-500/20 to-orange-500/20',
     },
     {
         id: 'clinic',
@@ -40,7 +39,6 @@ const ORGANIZATION_TYPES = [
         description: 'Outpatient medical practice focused on specific specialties or primary care services.',
         icon: Stethoscope,
         features: ['Outpatient Care', 'Specialty Focus', 'Appointments'],
-        accent: 'from-blue-500/20 to-cyan-500/20',
     },
     {
         id: 'ambulance_service',
@@ -48,7 +46,6 @@ const ORGANIZATION_TYPES = [
         description: 'Emergency medical transport with trained first responders and equipped vehicles.',
         icon: Ambulance,
         features: ['Emergency Response', 'Medical Transport', 'Trained EMTs'],
-        accent: 'from-green-500/20 to-emerald-500/20',
     },
 ];
 
@@ -83,9 +80,8 @@ const CollapsedCard = memo(({ type, onExpand }) => {
             onClick={() => onExpand(type.id)}
             className={`
                 relative w-full aspect-square lg:aspect-[4/3] p-6 lg:p-8
-                rounded-3xl overflow-hidden
-                bg-gradient-to-br ${type.accent}
-                backdrop-blur-xl
+                rounded-card overflow-hidden
+                bg-card
                 flex flex-col items-center justify-center text-center
                 cursor-pointer group
                 transition-colors duration-300
@@ -94,13 +90,13 @@ const CollapsedCard = memo(({ type, onExpand }) => {
             whileTap={{ scale: 0.98 }}
             transition={spring}
         >
-            {/* Subtle gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            {/* Subtle hover tone */}
+            <div className="absolute inset-0 bg-muted/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
             {/* Icon */}
             <motion.div
                 layoutId={`icon-${type.id}`}
-                className="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-background/80 backdrop-blur flex items-center justify-center mb-4 shadow-lg"
+                className="w-16 h-16 lg:w-20 lg:h-20 rounded-icon bg-muted flex items-center justify-center mb-4"
                 transition={gentleSpring}
             >
                 <Icon className="w-8 h-8 lg:w-10 lg:h-10 text-foreground" />
@@ -137,9 +133,8 @@ const ExpandedCard = memo(({ type, onConfirm, onBack }) => {
             layoutId={`card-${type.id}`}
             className={`
                 w-full p-8 lg:p-12
-                rounded-3xl overflow-hidden
-                bg-gradient-to-br ${type.accent}
-                backdrop-blur-xl
+                rounded-card overflow-hidden
+                bg-card
             `}
             transition={spring}
         >
@@ -148,7 +143,7 @@ const ExpandedCard = memo(({ type, onConfirm, onBack }) => {
                 <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
                     <motion.div
                         layoutId={`icon-${type.id}`}
-                        className="w-24 h-24 lg:w-32 lg:h-32 rounded-3xl bg-background/80 backdrop-blur flex items-center justify-center mb-4 shadow-xl"
+                        className="w-24 h-24 lg:w-32 lg:h-32 rounded-icon bg-muted flex items-center justify-center mb-4"
                         transition={gentleSpring}
                     >
                         <Icon className="w-12 h-12 lg:w-16 lg:h-16 text-foreground" />
@@ -185,7 +180,7 @@ const ExpandedCard = memo(({ type, onConfirm, onBack }) => {
                         {type.features.map((feature, i) => (
                             <span
                                 key={i}
-                                className="px-4 py-2 rounded-full bg-background/60 backdrop-blur text-sm font-medium text-foreground"
+                                className="px-4 py-2 rounded-pill bg-muted text-sm font-medium text-foreground"
                             >
                                 {feature}
                             </span>
@@ -201,9 +196,9 @@ const ExpandedCard = memo(({ type, onConfirm, onBack }) => {
                     >
                         <button
                             onClick={() => onConfirm(type.id)}
-                            className="w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-primary flex items-center justify-center shadow-2xl shadow-primary/40 hover:scale-110 active:scale-95 transition-transform"
+                            className="w-16 h-16 lg:w-20 lg:h-20 rounded-pill bg-foreground flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform"
                         >
-                            <ArrowRight className="w-7 h-7 lg:w-8 lg:h-8 text-primary-foreground" />
+                            <ArrowRight className="w-7 h-7 lg:w-8 lg:h-8 text-background" />
                         </button>
                     </motion.div>
                 </div>

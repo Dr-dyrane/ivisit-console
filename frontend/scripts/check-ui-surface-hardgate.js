@@ -85,6 +85,13 @@ const defaultFiles = [
   'src/components/modals/AnalyticsModal.jsx',
   'src/components/pages/NotFoundPage.jsx',
   'src/components/pages/OnboardingSuccessPage.jsx',
+  'src/components/pages/OnboardingPage.jsx',
+  'src/components/onboarding/OnboardingWizard.jsx',
+  'src/components/onboarding/OrganizationTypeStep.jsx',
+  'src/components/onboarding/AdminAccountStep.jsx',
+  'src/components/onboarding/OrganizationDetailsStep.jsx',
+  'src/components/onboarding/InitialSetupStep.jsx',
+  'src/components/onboarding/VerificationStep.jsx',
 ];
 
 const rawArgs = process.argv.slice(2);

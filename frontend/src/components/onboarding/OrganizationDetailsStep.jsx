@@ -133,18 +133,18 @@ const HospitalSuggestion = ({ hospital, onSelect, isSelected }) => {
             onClick={() => onSelect(hospital)}
             disabled={hospital.claimStatus === 'verified' || hospital.claimStatus === 'pending'}
             className={`
-                w-full text-left p-4 rounded-xl transition-all duration-200
+                w-full text-left p-4 rounded-inner transition-all duration-200
                 ${isSelected
-                    ? 'bg-primary/10 border border-primary/30'
+                    ? 'bg-muted/60'
                     : hospital.claimStatus === 'unclaimed'
-                        ? 'bg-muted/30 border border-transparent hover:bg-muted/50 hover:border-primary/20'
-                        : 'bg-muted/20 border border-transparent opacity-75 cursor-not-allowed'}
+                        ? 'bg-muted/30 hover:bg-muted/50'
+                        : 'bg-muted/20 opacity-75 cursor-not-allowed'}
             `}
         >
             <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                        <Building className="w-4 h-4 text-primary flex-shrink-0" />
+                        <Building className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         <span className="font-medium truncate">{hospital.name}</span>
                     </div>
 
@@ -171,7 +171,7 @@ const HospitalSuggestion = ({ hospital, onSelect, isSelected }) => {
                                         </div>
                                     )}
                                     {hospital.isGoogleImported && (
-                                        <div className="flex items-center gap-1 text-xs text-primary">
+                                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                             <Sparkles className="w-3 h-3" />
                                             <span>From Google Maps</span>
                                         </div>
@@ -183,7 +183,7 @@ const HospitalSuggestion = ({ hospital, onSelect, isSelected }) => {
                 </div>
 
                 {/* Status badge */}
-                <span className={`px-2 py-1 rounded-lg text-xs font-medium ${status.bg} ${status.color}`}>
+                <span className={`px-2 py-1 rounded-pill text-xs font-medium ${status.bg} ${status.color}`}>
                     {status.label}
                 </span>
             </div>
@@ -201,9 +201,9 @@ const BlockedHospitalCard = ({ hospital, onDismiss }) => {
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="p-6 rounded-2xl bg-destructive/5 border border-destructive/20 text-center space-y-4"
+            className="p-6 rounded-card bg-destructive/10 text-center space-y-4"
         >
-            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-pill bg-destructive/15 flex items-center justify-center mx-auto">
                 <AlertCircle className="w-6 h-6 text-destructive" />
             </div>
             <div className="space-y-2">
@@ -232,12 +232,12 @@ const SelectedHospitalCard = ({ hospital, onConfirm, onClear }) => {
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-5 rounded-2xl bg-primary/5 border border-primary/20 space-y-4"
+            className="p-5 rounded-card bg-muted/40 space-y-4"
         >
             <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Building className="w-5 h-5 text-primary" />
+                    <div className="w-10 h-10 rounded-icon bg-muted flex items-center justify-center">
+                        <Building className="w-5 h-5 text-muted-foreground" />
                     </div>
                     <div>
                         <h3 className="font-semibold text-foreground">{hospital.name}</h3>
@@ -248,7 +248,7 @@ const SelectedHospitalCard = ({ hospital, onConfirm, onClear }) => {
                 </div>
                 <button
                     onClick={onClear}
-                    className="p-1 rounded-lg hover:bg-muted/50 transition-colors"
+                    className="p-1 rounded-button hover:bg-muted/50 transition-colors"
                 >
                     <X className="w-4 h-4 text-muted-foreground" />
                 </button>
@@ -478,7 +478,7 @@ export const OrganizationDetailsStep = ({ formData, updateFormData, setStepValid
                         onChange={handleNameChange}
                         onFocus={() => hasSearched && setShowSuggestions(true)}
                         onBlur={(e) => validateField('organizationName', e.target.value)}
-                        className={`pr-10 ${errors.organizationName ? 'border-destructive' : ''}`}
+                        className="pr-10"
                         autoComplete="off"
                     />
                     {isSearching && (
@@ -496,7 +496,7 @@ export const OrganizationDetailsStep = ({ formData, updateFormData, setStepValid
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="absolute z-50 w-full mt-1 p-2 bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-lg max-h-[300px] overflow-y-auto"
+                            className="absolute z-50 w-full mt-1 p-2 bg-card rounded-inner shadow-lg max-h-[300px] overflow-y-auto"
                         >
                             {results.length > 0 ? (
                                 <div className="space-y-2">
@@ -613,7 +613,6 @@ const FormFields = ({ formData, errors, handleChange, validateField, disabled = 
                     value={formData.phone || ''}
                     onChange={(e) => handleChange('phone', e.target.value)}
                     onBlur={(e) => validateField('phone', e.target.value)}
-                    className={errors.phone ? 'border-destructive' : ''}
                     disabled={disabled}
                 />
                 {errors.phone && (
@@ -634,7 +633,6 @@ const FormFields = ({ formData, errors, handleChange, validateField, disabled = 
                     value={formData.email || ''}
                     onChange={(e) => handleChange('email', e.target.value)}
                     onBlur={(e) => validateField('email', e.target.value)}
-                    className={errors.email ? 'border-destructive' : ''}
                     disabled={disabled}
                 />
                 {errors.email && (

@@ -29,7 +29,7 @@ import { Mail, Lock, User, Eye, EyeOff, Check, X, Shield } from 'lucide-react';
 const sectionVariants = {
     inactive: {
         opacity: 0.5,
-        filter: 'blur(1px)',
+        filter: 'blur(0px)',
         scale: 0.98,
         transition: { type: 'spring', stiffness: 300, damping: 25 }
     },
@@ -152,8 +152,7 @@ export const AdminAccountStep = ({ formData, updateFormData, setStepValid }) => 
                     <motion.div
                         variants={sectionVariants}
                         animate={getSectionState('name')}
-                        className="space-y-2 p-4 rounded-2xl bg-muted/20 border border-transparent transition-colors"
-                        style={{ borderColor: activeSection === 'name' ? 'hsl(var(--primary) / 0.3)' : 'transparent' }}
+                        className="space-y-2 p-4 rounded-card bg-muted/20 transition-colors"
                     >
                         <Label htmlFor="adminName" className="flex items-center gap-2">
                             <User className="w-4 h-4 text-muted-foreground" />
@@ -174,8 +173,7 @@ export const AdminAccountStep = ({ formData, updateFormData, setStepValid }) => 
                     <motion.div
                         variants={sectionVariants}
                         animate={getSectionState('email')}
-                        className="space-y-2 p-4 rounded-2xl bg-muted/20 border border-transparent transition-colors"
-                        style={{ borderColor: activeSection === 'email' ? 'hsl(var(--primary) / 0.3)' : 'transparent' }}
+                        className="space-y-2 p-4 rounded-card bg-muted/20 transition-colors"
                     >
                         <Label htmlFor="adminEmail" className="flex items-center gap-2">
                             <Mail className="w-4 h-4 text-muted-foreground" />
@@ -190,7 +188,6 @@ export const AdminAccountStep = ({ formData, updateFormData, setStepValid }) => 
                             onChange={(e) => handleChange('adminEmail', e.target.value)}
                             onFocus={() => setActiveSection('email')}
                             autoComplete="email"
-                            className={errors.adminEmail ? 'border-destructive' : ''}
                         />
                         <AnimatePresence>
                             {activeSection === 'email' && (
@@ -214,8 +211,7 @@ export const AdminAccountStep = ({ formData, updateFormData, setStepValid }) => 
                     <motion.div
                         variants={sectionVariants}
                         animate={getSectionState('password')}
-                        className="space-y-2 p-4 rounded-2xl bg-muted/20 border border-transparent transition-colors"
-                        style={{ borderColor: activeSection === 'password' ? 'hsl(var(--primary) / 0.3)' : 'transparent' }}
+                        className="space-y-2 p-4 rounded-card bg-muted/20 transition-colors"
                     >
                         <Label htmlFor="adminPassword" className="flex items-center gap-2">
                             <Lock className="w-4 h-4 text-muted-foreground" />
@@ -260,7 +256,7 @@ export const AdminAccountStep = ({ formData, updateFormData, setStepValid }) => 
                                                 initial={{ scaleX: 0 }}
                                                 animate={{ scaleX: 1 }}
                                                 transition={{ delay: level * 0.05 }}
-                                                className={`h-1.5 flex-1 rounded-full transition-colors origin-left ${level <= passwordStrength.score
+                                                className={`h-1.5 flex-1 rounded-pill transition-colors origin-left ${level <= passwordStrength.score
                                                     ? strengthColors[passwordStrength.level]
                                                     : 'bg-muted'
                                                     }`}
@@ -308,8 +304,7 @@ export const AdminAccountStep = ({ formData, updateFormData, setStepValid }) => 
                     <motion.div
                         variants={sectionVariants}
                         animate={getSectionState('terms')}
-                        className="p-4 rounded-2xl bg-muted/20 border border-transparent transition-colors"
-                        style={{ borderColor: activeSection === 'terms' ? 'hsl(var(--primary) / 0.3)' : 'transparent' }}
+                        className="p-4 rounded-card bg-muted/20 transition-colors"
                         onFocus={() => setActiveSection('terms')}
                     >
                         <div className="flex items-start space-x-3">
@@ -326,11 +321,11 @@ export const AdminAccountStep = ({ formData, updateFormData, setStepValid }) => 
                                 className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
                             >
                                 I agree to iVisit's{' '}
-                                <a href="https://ivisit.ng/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                <a href="https://ivisit.ng/terms" target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-2 hover:text-muted-foreground">
                                     Terms of Service
                                 </a>
                                 {' '}and{' '}
-                                <a href="https://ivisit.ng/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                <a href="https://ivisit.ng/privacy" target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-2 hover:text-muted-foreground">
                                     Privacy Policy
                                 </a>
                             </Label>

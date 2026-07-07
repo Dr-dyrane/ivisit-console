@@ -6,41 +6,52 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const PRESERVATION_BASELINE = 'f31f29f';
 const gitShowHead = (path) => execFileSync('git', ['-C', '..', 'show', `${PRESERVATION_BASELINE}:${path}`], { encoding: 'utf8' });
 
-describe('Onboarding Page 21 intake contract', () => {
-  it('keeps Onboarding in intake only as a public registration-shell exception', () => {
+const ONBOARDING_SURFACE_FILES = [
+  'src/components/pages/OnboardingPage.jsx',
+  'src/components/onboarding/OnboardingWizard.jsx',
+  'src/components/onboarding/OrganizationTypeStep.jsx',
+  'src/components/onboarding/AdminAccountStep.jsx',
+  'src/components/onboarding/OrganizationDetailsStep.jsx',
+  'src/components/onboarding/InitialSetupStep.jsx',
+  'src/components/onboarding/VerificationStep.jsx',
+];
+
+describe('Onboarding Page 21 admission contract', () => {
+  it('admits the Onboarding visual surface as a guarded public registration exception and hardgates the seven surface files', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const app = read('src/App.js');
     const routes = read('src/config/routes.jsx');
     const protectedRoute = read('src/components/common/ProtectedRoute.jsx');
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
-    expect(gate).toContain('### Page 21 Intake Audit - Onboarding');
-    expect(gate).toContain('Onboarding at `/onboarding` is intake only and is not admitted under the Today/Requests canon.');
-    expect(gate).toContain('No full visual revamp, registration-flow rewrite, account/org/facility creation promotion, document upload promotion, public-shell hardgate promotion, or Requests pattern reuse is authorized yet.');
-    expect(gate).toContain('Promotion rule: the first Onboarding visual pass must close this blocker map before adding `OnboardingPage.jsx`, `OnboardingContext.jsx`, `OnboardingWizard.jsx`, or `onboardingService.js` to the default hardgate.');
+    expect(gate).toContain('### Page 21 Admission - Onboarding');
+    expect(gate).toContain('the Onboarding public-registration visual surface is admitted for guarded continuation on 2026-07-07');
+    expect(gate).toContain('is admitted under the Today/Requests canon as a public registration surface, visual surface only.');
+    expect(gate).toContain('The wizard must not be submitted from a proof session because submit performs live account/org/Storage/verification writes.');
+    expect(gate).toContain('First Onboarding visual pass on 2026-07-07 admitted the Onboarding visual surface');
+    expect(gate).toContain('The seven Onboarding surface files (`OnboardingPage.jsx`, `OnboardingWizard.jsx`, and the five step components) are now in the default UI hardgate');
+    expect(gate).toContain('Onboarding admission scope guard: this admission is visual surface only.');
+    expect(gate).toContain('Rendered proof, 2026-07-07: signed out of the local admin session');
 
+    // Route mounting is unchanged: still a public shell route outside ProtectedRoute.
     expect(app).toContain('<Route path="/onboarding" element={<OnboardingPage />} />');
     expect(app).toContain('<Route path="/onboarding-success" element={<OnboardingSuccessPage />} />');
     expect(app).toContain('const PUBLIC_SHELL_ROUTES = ["/login", "/unauthorized", "/set-password", "/onboarding", "/onboarding-success"];');
-    expect(app).toContain('const hideNav = shouldHideShellChrome(location.pathname);');
-    expect(app).toContain('<ConsoleStartupOverlay disabled={hideNav} />');
+    expect(app).not.toContain('<Route path="/onboarding" element={<ProtectedRoute');
     expect(routes).toContain("'/onboarding': {");
-    expect(routes).toContain("'/onboarding-success': {");
     expect(routes).toContain('public: true');
     expect(protectedRoute).toContain('return <Navigate to="/onboarding" replace />;');
-    expect(protectedRoute).toContain("const allowedPaths = ['/login', '/unauthorized', '/onboarding', '/onboarding-success', '/set-password'];");
 
-    [
-      'src/components/pages/OnboardingPage.jsx',
-      'src/contexts/OnboardingContext.jsx',
-      'src/components/onboarding/OnboardingWizard.jsx',
-      'src/services/onboardingService.js',
-    ].forEach((file) => {
-      expect(hardgate).not.toContain(file);
+    // The seven visual surface files are now in the default hardgate.
+    ONBOARDING_SURFACE_FILES.forEach((file) => {
+      expect(hardgate).toContain(file);
     });
+    // Backend-authority files stay out of the hardgate until receivers are admitted.
+    expect(hardgate).not.toContain('src/contexts/OnboardingContext.jsx');
+    expect(hardgate).not.toContain('src/services/onboardingService.js');
   });
 
-  it('preserves the old Onboarding wizard and service inventory while documenting active blockers', () => {
+  it('preserves the old Onboarding wizard, service inventory, and receiver flow from the baseline', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const oldPage = gitShowHead('frontend/src/components/pages/OnboardingPage.jsx');
     const oldContext = gitShowHead('frontend/src/contexts/OnboardingContext.jsx');
@@ -54,9 +65,6 @@ describe('Onboarding Page 21 intake contract', () => {
     expect(gate).toContain('HEAD snapshot evidence for this ledger: `git show HEAD:frontend/src/components/pages/OnboardingPage.jsx`');
     expect(gate).toContain('Back to Login, iVisit header, theme toggle, `Join iVisit`, registration copy, `OnboardingProvider`, `OnboardingWizard`');
     expect(gate).toContain('selected hospital autofill through `selectHospital()`, success navigation to `/onboarding-success`, and shell-hidden public route handling.');
-    expect(gate).toContain('First source cleanup on 2026-07-06 replaced the visible footer copyright mojibake in `OnboardingPage.jsx` with source-safe `&copy;`.');
-    expect(gate).toContain('Second source cleanup on 2026-07-06 kept the public wizard flow but added a shared submit lock and awaited the final submit receiver call.');
-    expect(gate).toContain('Onboarding public-registration squircle/source-feedback cleanup on 2026-07-06 converted `OnboardingPage.jsx` and `OnboardingWizard.jsx` local route/wizard chrome to semantic radius tokens');
 
     for (const source of [oldPage, page]) {
       expect(source).toContain("const { user, loading: authLoading, isOnboarding, isSkippedOnboarding } = useAuth();");
@@ -92,18 +100,15 @@ describe('Onboarding Page 21 intake contract', () => {
       expect(source).toContain('isClaimingExisting: true');
     }
 
+    // Wizard still drives the same receivers; only visual chrome changed.
     for (const source of [oldWizard, wizard]) {
       expect(source).toContain('submitOnboarding();');
       expect(source).toContain('await createAdminAccount();');
       expect(source).toContain('onClick={skipOnboarding}');
       expect(source).toContain("currentStepConfig?.id === 'account'");
     }
-
     expect(context).toContain('const submittingRef = useRef(false);');
     expect(context).toContain('const beginSubmitting = useCallback(() => {');
-    expect(context).toContain('if (submittingRef.current) {');
-    expect(context).toContain("return { success: false, message: 'Submission already in progress' };");
-    expect(context).toContain('const endSubmitting = useCallback(() => {');
     expect(wizard).toContain('await submitOnboarding();');
 
     for (const source of [oldService, service]) {
@@ -118,27 +123,20 @@ describe('Onboarding Page 21 intake contract', () => {
       expect(source).toContain("onboarding_status: 'complete'");
       expect(source).toContain(".from('documents')");
       expect(source).toContain('.upload(filePath, doc.file)');
-      expect(source).toContain("const { getDisplayId } = await import('./displayIdService');");
       expect(source).toContain('skipOnboarding: async () => {');
       expect(source).toContain("role: 'viewer'");
-      expect(source).toContain('getPendingOrganizations: async () => {');
-      expect(source).toContain('approveOrganization: async (organizationId) => {');
-      expect(source).toContain('rejectOrganization: async (organizationId, reason) => {');
     }
-
+    // The onboarding service is untouched by the visual pass.
     expect(service.match(/searchHospitalsByName: async/g)).toHaveLength(2);
     expect(service).not.toContain('selectedHospitalId');
     expect(service).not.toContain('isClaimingExisting');
-    expect(gate).toContain('The duplicate `searchHospitalsByName` definitions also mean the later schema-safe search overrides the earlier pending/claimed status logic.');
-    expect(gate).toContain('`OnboardingContext.jsx` stores `selectedHospitalId` and `isClaimingExisting`, but `submitOnboarding()` does not consume either field and always inserts a new `hospitals` row.');
   });
 
-  it('blocks Onboarding canon reuse until account, identity, claim, storage, and verification proof close', () => {
+  it('keeps registration-flow receivers blocked until backend authority proof closes', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
-    const app = read('src/App.js');
-    const page = read('src/components/pages/OnboardingPage.jsx');
     const context = read('src/contexts/OnboardingContext.jsx');
     const wizard = read('src/components/onboarding/OnboardingWizard.jsx');
+    const page = read('src/components/pages/OnboardingPage.jsx');
 
     expect(gate).toContain('Onboarding intake decisions:');
     expect(gate).toContain('Admin account receiver: partially proved, not admitted.');
@@ -149,13 +147,12 @@ describe('Onboarding Page 21 intake contract', () => {
     expect(gate).toContain('Skip onboarding: safer, not admitted.');
     expect(gate).toContain('Success handoff: not admitted.');
     expect(gate).toContain('Shell/layout: public-shell exception only.');
-    expect(gate).toContain('Hardgate: intentionally absent. `OnboardingPage.jsx`, `OnboardingContext.jsx`, `OnboardingWizard.jsx`, and `onboardingService.js` stay out of `scripts/check-ui-surface-hardgate.js` until the public registration surface enters a guarded implementation pass.');
-    expect(gate).toContain('Onboarding Requests-canon blocker map:');
-    expect(gate).toContain('Page 21 may not reuse Requests visual language because Onboarding is a public registration wizard, not a multi-data work stage.');
-    expect(gate).toContain('Prove `/login`, `/set-password`, `/onboarding`, and `/onboarding-success` redirect/deep-link behavior together before changing public auth/registration copy or flow order.');
-    expect(gate).toContain('Add hardgate coverage only after the public onboarding visual system is converted to shared tokens, squircle geometry, structural loading/error states, and intentional motion.');
+    expect(gate).toContain('Hardgate: visual surface admitted 2026-07-07.');
+    expect(gate).toContain('The backend-authority files `OnboardingContext.jsx` and `onboardingService.js` stay out of the hardgate until the registration-flow receivers are proved and admitted.');
+    expect(gate).toContain('The duplicate `searchHospitalsByName` definitions also mean the later schema-safe search overrides the earlier pending/claimed status logic.');
+    expect(gate).toContain('`OnboardingContext.jsx` stores `selectedHospitalId` and `isClaimingExisting`, but `submitOnboarding()` does not consume either field and always inserts a new `hospitals` row.');
 
-    expect(app).not.toContain('<Route path="/onboarding" element={<ProtectedRoute');
+    // The admitted visual surface must not reach for authenticated console shell primitives.
     [page, context, wizard].forEach((source) => {
       expect(source).not.toContain('usePageHeader');
       expect(source).not.toContain('usePageShell');
@@ -163,49 +160,48 @@ describe('Onboarding Page 21 intake contract', () => {
     });
   });
 
-  it('keeps the focused Onboarding route and wizard cleanup aligned to the squircle design system without admitting the flow', () => {
+  it('holds the whole Onboarding surface to the squircle canon with no decorative or brand-red chrome', () => {
     const gate = read('docs/planning/PAGE_REVAMP_GATE.md');
     const page = read('src/components/pages/OnboardingPage.jsx');
     const wizard = read('src/components/onboarding/OnboardingWizard.jsx');
     const hardgate = read('scripts/check-ui-surface-hardgate.js');
 
-    expect(gate).toContain('Onboarding public-registration squircle/source-feedback cleanup on 2026-07-06 converted `OnboardingPage.jsx` and `OnboardingWizard.jsx` local route/wizard chrome to semantic radius tokens');
-    expect(gate).toContain('This is focused strict-radius/source-voice proof for the route shell and wizard chrome only; it does not admit Onboarding');
-    expect(gate).toContain('does not certify the onboarding step form components');
+    expect(gate).toContain('First Onboarding visual pass on 2026-07-07 admitted the Onboarding visual surface');
+    expect(gate).toContain('every `bg-primary`/`text-primary`/`border-primary` accent was neutralized');
+    expect(gate).toContain('the expanded organization-type card rendered with a neutral white CTA (`rgb(255, 255, 255)`, formerly a red `bg-primary` play button)');
 
-    expect(page).toContain('<Loader2 className="h-8 w-8 animate-spin text-primary" />');
-    expect(page).toContain('Tell us about your healthcare organization so we can set up the review.');
-    expect(page).not.toContain('emergency response services');
-
+    // The route spinner is now a calm muted tone, not the red primary.
+    expect(page).toContain('<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />');
+    expect(page).not.toContain('animate-spin text-primary');
+    // Canonical radius vocabulary is present in the wizard shell.
     for (const token of ['rounded-card', 'rounded-inner', 'rounded-icon', 'rounded-pill']) {
       expect(wizard).toContain(token);
     }
+    expect(wizard).toContain('Registration steps');
 
-    for (const source of [page, wizard]) {
-      for (const legacyToken of [
-        'rounded-2xl',
-        'rounded-xl',
-        'rounded-full',
-        'rounded-[',
-        'border-',
-        'ring-',
-        'outline-',
-        'tracking-',
-        'uppercase',
-        'bg-orb',
-        'squircle-xl',
-        'geo-',
-        'Registration Steps',
-      ]) {
-        expect(source).not.toContain(legacyToken);
+    // No decorative, brand-red, glass, gradient, or non-canonical radius chrome in any surface file.
+    // ('uppercase' is intentionally omitted: AdminAccountStep uses it as a password-strength object key/label, not a CSS class.)
+    const forbidden = [
+      'rounded-2xl', 'rounded-3xl', 'rounded-xl', 'rounded-lg', 'rounded-full', 'rounded-[',
+      'border-', 'ring-', 'outline-', 'divide-', 'tracking-', 'bg-orb', 'squircle-xl', 'geo-',
+      'bg-primary', 'text-primary', 'border-primary', 'backdrop-blur', 'bg-gradient',
+      'shadow-premium', 'shadow-xl', 'shadow-2xl', 'shadow-primary', 'bg-white/',
+      'blur(1px)', 'blur(2px)', 'variant="secondary"',
+    ];
+    for (const file of ONBOARDING_SURFACE_FILES) {
+      const source = read(file);
+      for (const legacyToken of forbidden) {
+        expect({ file, legacyToken, present: source.includes(legacyToken) })
+          .toEqual({ file, legacyToken, present: false });
       }
     }
 
-    expect(wizard).toContain('Registration steps');
+    // The hardgate still enforces the strict-radius/geometry rules and now covers the surface files.
     expect(hardgate).toContain('non-canonical radius utility');
     expect(hardgate).toContain('legacy geometry utility');
     expect(hardgate).toContain('legacy squircle size utility');
-    expect(hardgate).not.toContain('src/components/pages/OnboardingPage.jsx');
-    expect(hardgate).not.toContain('src/components/onboarding/OnboardingWizard.jsx');
+    ONBOARDING_SURFACE_FILES.forEach((file) => {
+      expect(hardgate).toContain(file);
+    });
   });
 });

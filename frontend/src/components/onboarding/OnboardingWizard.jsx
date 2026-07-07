@@ -98,7 +98,7 @@ const ProgressSidebar = () => {
                         className={`
                             group relative flex items-center gap-3 p-3 rounded-inner text-left transition-all
                             ${isCurrent
-                                ? 'bg-primary/10 shadow-lg shadow-primary/10'
+                                ? 'bg-muted/60 shadow-lg'
                                 : isCompleted
                                     ? 'bg-muted/30 hover:bg-muted/50'
                                     : 'opacity-40 cursor-not-allowed'}
@@ -110,7 +110,7 @@ const ProgressSidebar = () => {
                         <div className={`
                             flex-shrink-0 w-8 h-8 rounded-icon flex items-center justify-center text-sm font-bold
                             ${isCurrent
-                                ? 'bg-primary text-primary-foreground'
+                                ? 'bg-foreground text-background'
                                 : isCompleted
                                     ? 'bg-green-500 text-white'
                                     : 'bg-muted text-muted-foreground'}
@@ -120,7 +120,7 @@ const ProgressSidebar = () => {
 
                         {/* Step info */}
                         <div className="flex-1 min-w-0">
-                            <p className={`font-medium text-sm ${isCurrent ? 'text-primary' : 'text-foreground'}`}>
+                            <p className={`font-medium text-sm ${isCurrent ? 'text-foreground' : 'text-muted-foreground'}`}>
                                 {step.title}
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
@@ -129,13 +129,13 @@ const ProgressSidebar = () => {
                         </div>
 
                         {/* Icon */}
-                        <Icon className={`w-4 h-4 flex-shrink-0 ${isCurrent ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <Icon className={`w-4 h-4 flex-shrink-0 ${isCurrent ? 'text-foreground' : 'text-muted-foreground'}`} />
 
                         {/* Active indicator line - centered vertically */}
                         {isCurrent && (
                             <motion.div
                                 layoutId="activeStep"
-                                className="absolute left-0 inset-y-0 my-auto w-1 h-8 bg-primary rounded-r-pill"
+                                className="absolute left-0 inset-y-0 my-auto w-1 h-8 bg-foreground rounded-r-pill"
                                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                             />
                         )}
@@ -164,13 +164,13 @@ const MobileProgress = () => {
                         className={`
                             relative flex items-center justify-center h-2 rounded-pill
                             transition-all duration-300
-                            ${isCompleted ? 'bg-primary' : isCurrent ? 'bg-primary' : 'bg-muted-foreground/30'}
+                            ${isCompleted ? 'bg-foreground' : isCurrent ? 'bg-foreground' : 'bg-muted-foreground/30'}
                         `}
                         animate={{ width: isCurrent ? 32 : 8 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                     >
                         {isCompleted && (
-                            <Check className="w-1.5 h-1.5 text-primary-foreground" />
+                            <Check className="w-1.5 h-1.5 text-background" />
                         )}
                     </motion.div>
                 );
@@ -319,7 +319,7 @@ const NavigationButtons = () => {
                 {currentStepConfig?.id !== 'type' && currentStepConfig?.id !== 'account' && (
                     <button
                         onClick={skipOnboarding}
-                        className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
                     >
                         Skip for now
                     </button>
@@ -369,7 +369,7 @@ export const OnboardingWizard = () => {
                     {/* Progress bar */}
                     <div className="h-1 bg-muted">
                         <motion.div
-                            className="h-full bg-primary"
+                            className="h-full bg-foreground"
                             initial={{ width: 0 }}
                             animate={{ width: `${progressPercent}%` }}
                             transition={{ type: 'spring', stiffness: 100, damping: 20 }}
@@ -418,8 +418,8 @@ const StepHeader = () => {
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-4 pb-6"
         >
-            <div className="w-12 h-12 rounded-icon bg-primary/10 flex items-center justify-center shadow-sm">
-                <Icon className="w-6 h-6 text-primary" />
+            <div className="w-12 h-12 rounded-icon bg-muted flex items-center justify-center shadow-sm">
+                <Icon className="w-6 h-6 text-muted-foreground" />
             </div>
             <div>
                 <h2 className="text-2xl font-bold text-foreground">

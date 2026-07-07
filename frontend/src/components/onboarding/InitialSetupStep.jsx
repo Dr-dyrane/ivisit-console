@@ -51,7 +51,7 @@ const VEHICLE_TYPES = [
 const sectionVariants = {
     inactive: {
         opacity: 0.5,
-        filter: 'blur(1px)',
+        filter: 'blur(0px)',
         scale: 0.98,
         transition: { type: 'spring', stiffness: 300, damping: 25 }
     },
@@ -65,7 +65,7 @@ const sectionVariants = {
 
 const cardVariants = {
     default: { scale: 1, filter: 'blur(0px)', opacity: 1 },
-    blurred: { scale: 0.97, filter: 'blur(2px)', opacity: 0.5 },
+    blurred: { scale: 0.97, filter: 'blur(0px)', opacity: 0.5 },
     focused: { scale: 1.02, filter: 'blur(0px)', opacity: 1 },
 };
 
@@ -123,14 +123,14 @@ export const InitialSetupStep = ({ formData, updateFormData, setStepValid }) => 
                 <motion.div
                     variants={sectionVariants}
                     animate={getSectionState('departments')}
-                    className="space-y-3 p-4 rounded-2xl bg-muted/20"
+                    className="space-y-3 p-4 rounded-card bg-muted/20"
                     onClick={() => setActiveSection('departments')}
                 >
                     <Label className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-muted-foreground" />
                         Departments
                         {(formData.departments?.length > 0) && (
-                            <Badge variant="secondary" className="ml-auto">
+                            <Badge variant="outline" className="ml-auto">
                                 {formData.departments.length} selected
                             </Badge>
                         )}
@@ -189,14 +189,14 @@ export const InitialSetupStep = ({ formData, updateFormData, setStepValid }) => 
             <motion.div
                 variants={sectionVariants}
                 animate={getSectionState('specialties')}
-                className="space-y-3 p-4 rounded-2xl bg-muted/20"
+                className="space-y-3 p-4 rounded-card bg-muted/20"
                 onClick={() => setActiveSection('specialties')}
             >
                 <Label className="flex items-center gap-2">
                     <Stethoscope className="w-4 h-4 text-muted-foreground" />
                     Medical Specialties
                     {(formData.specialties?.length > 0) && (
-                        <Badge variant="secondary" className="ml-auto">
+                        <Badge variant="outline" className="ml-auto">
                             {formData.specialties.length} selected
                         </Badge>
                     )}
@@ -242,7 +242,7 @@ export const InitialSetupStep = ({ formData, updateFormData, setStepValid }) => 
                 <motion.div
                     variants={sectionVariants}
                     animate={getSectionState('beds')}
-                    className="space-y-2 p-4 rounded-2xl bg-muted/20"
+                    className="space-y-2 p-4 rounded-card bg-muted/20"
                 >
                     <Label htmlFor="beds" className="flex items-center gap-2">
                         <Bed className="w-4 h-4 text-muted-foreground" />
@@ -274,7 +274,7 @@ export const InitialSetupStep = ({ formData, updateFormData, setStepValid }) => 
             <motion.div
                 variants={sectionVariants}
                 animate={getSectionState('fleet')}
-                className="space-y-2 p-4 rounded-2xl bg-muted/20"
+                className="space-y-2 p-4 rounded-card bg-muted/20"
             >
                 <Label htmlFor="fleet" className="flex items-center gap-2">
                     <Truck className="w-4 h-4 text-muted-foreground" />
@@ -299,7 +299,7 @@ export const InitialSetupStep = ({ formData, updateFormData, setStepValid }) => 
                 <Label className="flex items-center gap-2 px-4">
                     Vehicle Types
                     {(formData.vehicleTypes?.length > 0) && (
-                        <Badge variant="secondary" className="ml-2">
+                        <Badge variant="outline" className="ml-2">
                             {formData.vehicleTypes.length} selected
                         </Badge>
                     )}
@@ -323,12 +323,12 @@ export const InitialSetupStep = ({ formData, updateFormData, setStepValid }) => 
                                     onMouseLeave={() => setFocusedVehicle(null)}
                                     onTouchStart={() => setFocusedVehicle(vehicle.id)}
                                     className={`
-                                        relative w-full text-left p-5 lg:p-6 rounded-2xl transition-colors
+                                        relative w-full text-left p-5 lg:p-6 rounded-card transition-colors
                                         ${isSelected
-                                            ? 'bg-primary/10 border-2 border-primary/40 shadow-lg'
+                                            ? 'bg-muted/60 shadow-lg'
                                             : isFocused
-                                                ? 'bg-muted/60 border-2 border-primary/30'
-                                                : 'bg-muted/30 border-2 border-transparent'}
+                                                ? 'bg-muted/50'
+                                                : 'bg-muted/30'}
                                     `}
                                 >
                                     {/* Selection Check */}
@@ -336,20 +336,20 @@ export const InitialSetupStep = ({ formData, updateFormData, setStepValid }) => 
                                         <motion.div
                                             initial={{ scale: 0 }}
                                             animate={{ scale: 1 }}
-                                            className="absolute top-3 right-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+                                            className="absolute top-3 right-3 w-6 h-6 rounded-pill bg-foreground flex items-center justify-center"
                                         >
-                                            <Check className="w-3 h-3 text-primary-foreground" />
+                                            <Check className="w-3 h-3 text-background" />
                                         </motion.div>
                                     )}
 
                                     <div className="flex flex-col items-center text-center">
                                         {/* Short Name */}
                                         <div className={`
-                                            w-14 h-14 rounded-xl flex items-center justify-center mb-3 text-xl font-bold transition-colors
+                                            w-14 h-14 rounded-icon flex items-center justify-center mb-3 text-xl font-bold transition-colors
                                             ${isSelected
-                                                ? 'bg-primary text-primary-foreground'
+                                                ? 'bg-foreground text-background'
                                                 : isFocused
-                                                    ? 'bg-primary/20 text-primary'
+                                                    ? 'bg-muted text-foreground'
                                                     : 'bg-muted text-muted-foreground'}
                                         `}>
                                             {vehicle.short}
@@ -383,8 +383,8 @@ export const InitialSetupStep = ({ formData, updateFormData, setStepValid }) => 
                                                     animate="visible"
                                                     exit="hidden"
                                                 >
-                                                    <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center shadow-xl shadow-primary/30 cursor-pointer hover:scale-110 transition-transform">
-                                                        <Play className="w-5 h-5 text-primary-foreground ml-0.5" fill="currentColor" />
+                                                    <div className="w-12 h-12 rounded-pill bg-foreground flex items-center justify-center shadow-lg cursor-pointer hover:scale-110 transition-transform">
+                                                        <Play className="w-5 h-5 text-background ml-0.5" fill="currentColor" />
                                                     </div>
                                                 </motion.div>
                                             )}
@@ -406,7 +406,7 @@ export const InitialSetupStep = ({ formData, updateFormData, setStepValid }) => 
             <motion.div
                 variants={sectionVariants}
                 animate={getSectionState('coverage')}
-                className="space-y-2 p-4 rounded-2xl bg-muted/20"
+                className="space-y-2 p-4 rounded-card bg-muted/20"
             >
                 <Label htmlFor="coverage" className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-muted-foreground" />

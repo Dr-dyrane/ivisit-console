@@ -29,7 +29,7 @@ import { Badge } from '../ui/badge';
 const sectionVariants = {
     inactive: {
         opacity: 0.5,
-        filter: 'blur(1px)',
+        filter: 'blur(0px)',
         scale: 0.98,
         transition: { type: 'spring', stiffness: 300, damping: 25 }
     },
@@ -51,10 +51,9 @@ const revealVariants = {
 };
 
 const dropZoneVariants = {
-    default: { scale: 1, borderColor: 'hsl(var(--border) / 0.5)' },
+    default: { scale: 1 },
     dragover: {
         scale: 1.02,
-        borderColor: 'hsl(var(--primary))',
         transition: { type: 'spring', stiffness: 400, damping: 25 }
     },
 };
@@ -135,7 +134,7 @@ export const VerificationStep = ({ formData, updateFormData, setStepValid, onSub
         <motion.div
             variants={sectionVariants}
             animate={getSectionState('summary')}
-            className="relative overflow-hidden rounded-2xl bg-white/[0.03]  shadow-premium"
+            className="relative overflow-hidden rounded-card bg-card"
             onClick={() => setActiveSection('summary')}
         >
             {/* Header - Always visible */}
@@ -144,11 +143,11 @@ export const VerificationStep = ({ formData, updateFormData, setStepValid, onSub
                 className="w-full flex items-center justify-between p-5 text-left"
             >
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                        <Check className="w-5 h-5 text-primary" />
+                    <div className="w-10 h-10 rounded-icon bg-muted flex items-center justify-center">
+                        <Check className="w-5 h-5 text-muted-foreground" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Registration Summary</h3>
+                        <h3 className="text-sm font-semibold text-foreground">Registration Summary</h3>
                         <p className="text-[10px] text-muted-foreground font-medium">
                             {formData.organizationName} • {formData.organizationType?.replace('_', ' ')}
                         </p>
@@ -170,7 +169,7 @@ export const VerificationStep = ({ formData, updateFormData, setStepValid, onSub
                         initial="hidden"
                         animate="visible"
                         exit="hidden"
-                        className="px-5 pb-5 space-y-3 border-t border-white/5"
+                        className="px-5 pb-5 space-y-3"
                     >
                         <div className="pt-4 space-y-3">
                             {[
@@ -184,13 +183,13 @@ export const VerificationStep = ({ formData, updateFormData, setStepValid, onSub
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: i * 0.05 }}
-                                    className="flex justify-between items-center px-3 py-2 rounded-xl bg-white/5 border border-white/5"
+                                    className="flex justify-between items-center px-3 py-2 rounded-inner bg-muted/40"
                                 >
-                                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                    <span className="text-xs font-bold text-muted-foreground">
                                         {item.label}
                                     </span>
                                     {item.badge ? (
-                                        <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest">
+                                        <Badge variant="outline" className="bg-muted text-foreground text-[10px] font-semibold">
                                             {item.value}
                                         </Badge>
                                     ) : (
@@ -231,10 +230,10 @@ export const VerificationStep = ({ formData, updateFormData, setStepValid, onSub
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 className={`
-                    relative border-2 border-dashed rounded-2xl p-8 text-center transition-all
+                    relative rounded-card p-8 text-center transition-all
                     ${isDragOver
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border/50 bg-muted/20 hover:border-primary/30 hover:bg-muted/30'}
+                        ? 'bg-muted/60'
+                        : 'bg-muted/25 hover:bg-muted/40'}
                 `}
             >
                 <input
@@ -249,8 +248,8 @@ export const VerificationStep = ({ formData, updateFormData, setStepValid, onSub
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 >
                     <div className={`
-                        w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center transition-colors
-                        ${isDragOver ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}
+                        w-16 h-16 mx-auto mb-4 rounded-icon flex items-center justify-center transition-colors
+                        ${isDragOver ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'}
                     `}>
                         <Upload className="w-8 h-8" />
                     </div>
@@ -259,7 +258,7 @@ export const VerificationStep = ({ formData, updateFormData, setStepValid, onSub
                     Drag & drop files here
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                    or <span className="text-primary font-medium">browse</span> to upload
+                    or <span className="text-foreground font-medium">browse</span> to upload
                 </p>
                 <p className="text-[10px] text-muted-foreground/60 mt-3">
                     CAC Certificate, License, etc. (PDF, JPG, PNG)
@@ -282,11 +281,11 @@ export const VerificationStep = ({ formData, updateFormData, setStepValid, onSub
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: 20 }}
                                 transition={{ delay: i * 0.05 }}
-                                className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-xl"
+                                className="flex items-center justify-between p-3 bg-muted/40 rounded-inner"
                             >
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                                        <FileText className="w-4 h-4 text-primary" />
+                                    <div className="w-8 h-8 rounded-icon bg-muted flex items-center justify-center">
+                                        <FileText className="w-4 h-4 text-muted-foreground" />
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium truncate">{file.name}</p>
@@ -295,7 +294,7 @@ export const VerificationStep = ({ formData, updateFormData, setStepValid, onSub
                                 </div>
                                 <button
                                     onClick={() => removeFile(file.id)}
-                                    className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                    className="p-2 rounded-button hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
@@ -318,23 +317,23 @@ export const VerificationStep = ({ formData, updateFormData, setStepValid, onSub
             onClick={() => setActiveSection('info')}
         >
             {/* What happens next */}
-            <div className="flex gap-3 p-4 bg-primary/10 rounded-2xl border border-primary/20">
-                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-5 h-5 text-primary" />
+            <div className="flex gap-3 p-4 bg-muted/40 rounded-card">
+                <div className="w-10 h-10 rounded-icon bg-muted flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div className="space-y-2">
                     <p className="text-sm font-semibold text-foreground">What happens next?</p>
                     <ul className="text-xs text-muted-foreground space-y-1.5">
                         <li className="flex items-center gap-2">
-                            <div className="w-1 h-1 rounded-full bg-primary" />
+                            <div className="w-1 h-1 rounded-pill bg-muted-foreground" />
                             Your registration will be reviewed by our team
                         </li>
                         <li className="flex items-center gap-2">
-                            <div className="w-1 h-1 rounded-full bg-primary" />
+                            <div className="w-1 h-1 rounded-pill bg-muted-foreground" />
                             Confirmation email within 24-48 hours
                         </li>
                         <li className="flex items-center gap-2">
-                            <div className="w-1 h-1 rounded-full bg-primary" />
+                            <div className="w-1 h-1 rounded-pill bg-muted-foreground" />
                             Full access to iVisit Console once verified
                         </li>
                     </ul>
@@ -342,7 +341,7 @@ export const VerificationStep = ({ formData, updateFormData, setStepValid, onSub
             </div>
 
             {/* Pending status note */}
-            <div className="flex gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+            <div className="flex gap-3 p-3 bg-amber-500/10 rounded-inner">
                 <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-700 dark:text-amber-400">
                     Your organization will be in "Pending Verification" status until approved.
