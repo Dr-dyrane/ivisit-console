@@ -114,7 +114,9 @@ describe('PageDataContext role loading contract', () => {
     }
 
     expect(pageDataSource).toContain('getDoctors({ quiet: true })');
-    expect(pageDataSource).toContain('getVisits({ quiet: true })');
+    expect(pageDataSource).toContain('getVisitsPageData({');
+    expect(pageDataSource).toContain('range: { start: 0, end: 4 }');
+    expect(pageDataSource).toContain('stats: page?.stats || null');
     expect(pageDataSource).toContain('getSupportTickets({ quiet: true })');
     expect(pageDataSource).toContain('getHospitals({ quiet: true })');
     expect(pageDataSource).toContain('getAmbulances({ quiet: true })');

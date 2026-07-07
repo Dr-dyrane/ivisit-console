@@ -97,12 +97,12 @@ const kpiOptions = [
     restClass: 'bg-muted/30 text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
   },
   {
-    id: 'critical',
-    label: 'Critical care',
-    icon: ShieldCheck,
-    colorClass: 'text-rose-700 dark:text-rose-200',
-    activeClass: 'bg-rose-500/10 text-rose-700 shadow-[0_18px_54px_rgba(244,63,94,0.16)] dark:text-rose-200',
-    restClass: 'bg-muted/30 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-200',
+    id: 'active',
+    label: 'Active',
+    icon: Clock,
+    colorClass: 'text-amber-700 dark:text-amber-200',
+    activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_18px_54px_rgba(245,158,11,0.16)] dark:text-amber-200',
+    restClass: 'bg-muted/30 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-700 dark:hover:text-amber-200',
   },
   {
     id: 'bed',
@@ -222,6 +222,10 @@ const getKpiCount = ({ id, stats, requests }) => {
     const rowCount = requests.filter((request) => request.status === 'pending_approval').length;
     return normalizeCount(stats?.pending, rowCount);
   }
+  if (id === 'active') {
+    const rowCount = requests.filter((request) => isActiveEmergencyStatus(request.status)).length;
+    return normalizeCount(stats?.active, rowCount);
+  }
   if (id === 'critical') {
     const rowCount = requests.filter((request) => request.service_type === 'critical_care').length;
     return normalizeCount(stats?.critical, rowCount);
@@ -253,13 +257,13 @@ const getRequestSignal = ({ stats, requests, kpiFilter }) => {
     };
   }
 
-  if (activeOption.id === 'critical') {
+  if (activeOption.id === 'active') {
     return {
-      icon: ShieldCheck,
-      tone: 'critical',
-      label: 'Critical care',
-      headline: count > 0 ? `${count} critical care request${count === 1 ? '' : 's'}` : 'No critical care requests',
-      subhead: count > 0 ? 'Review high-acuity care needs first.' : 'Critical care requests will appear here.',
+      icon: Clock,
+      tone: 'warning',
+      label: 'Active',
+      headline: count > 0 ? `${count} active request${count === 1 ? '' : 's'}` : 'No active requests',
+      subhead: count > 0 ? 'Check current care activity.' : 'Active requests will appear here.',
     };
   }
 
@@ -285,6 +289,20 @@ const getRequestSignal = ({ stats, requests, kpiFilter }) => {
 const isTransientRequestRefreshError = (error) => {
   const message = String(error?.message || error?.details || error || '');
   return error?.name === 'AbortError' || /failed to fetch|abort/i.test(message);
+};
+
+const getDefaultRequestKpi = (stats) => {
+  const pending = normalizeCount(stats?.pending_approval ?? stats?.pending, 0);
+  const active = normalizeCount(stats?.active, 0);
+  const bed = normalizeCount(stats?.bed, 0);
+  const ambulance = normalizeCount(stats?.ambulance, 0);
+
+  if (pending > 0) return 'pending';
+  if (active > 0) return 'active';
+  if (bed > 0 && bed >= ambulance) return 'bed';
+  if (ambulance > 0) return 'ambulance';
+  if (bed > 0) return 'bed';
+  return 'pending';
 };
 
 const requestToneClass = {
@@ -349,7 +367,7 @@ export const EmergencyRequestsPage = () => {
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState(EMPTY_REQUEST_FILTERS);
-  const [kpiFilter, setKpiFilter] = useState('pending');
+  const [kpiFilter, setKpiFilter] = useState(null);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const [confirmationModal, setConfirmationModal] = useState({
@@ -367,6 +385,10 @@ export const EmergencyRequestsPage = () => {
 
   const pagination = usePagination(20);
   const authReady = Boolean(user?.id && profile?.role) && !authLoading;
+  const selectedKpiFilter = useMemo(
+    () => kpiFilter || getDefaultRequestKpi(requestStats),
+    [kpiFilter, requestStats]
+  );
   const roleKind = useMemo(() => {
     if (isAdmin()) return 'admin';
     if (isOrgAdmin()) return 'org_admin';
@@ -412,7 +434,7 @@ export const EmergencyRequestsPage = () => {
       const { data, count, stats } = await withTimeout(
         getEmergencyRequestsPage({
           ...serviceFilter,
-          kpiFilter,
+          kpiFilter: selectedKpiFilter,
           limit: pagination.itemsPerPage,
           offset: pagination.paginationRange.start,
           sortKey: sortConfig.key,
@@ -450,7 +472,7 @@ export const EmergencyRequestsPage = () => {
   }, [
     filters,
     authReady,
-    kpiFilter,
+    selectedKpiFilter,
     pagination.itemsPerPage,
     pagination.paginationRange.start,
     pagination.setTotalCount,
@@ -586,14 +608,14 @@ export const EmergencyRequestsPage = () => {
     count: pagination.totalCount || requests.length,
     loading,
     errorMessage: loadError,
-    currentState: kpiFilter,
+    currentState: selectedKpiFilter,
     hasFilters: hasFilter,
     canCreate: currentUser.isAdmin() || currentUser.isOrgAdmin(),
   }), [
     currentUser,
     focusedRequest,
     hasFilter,
-    kpiFilter,
+    selectedKpiFilter,
     loadError,
     loading,
     pagination.totalCount,
@@ -846,7 +868,7 @@ export const EmergencyRequestsPage = () => {
           onLoadMore={pagination.nextPage}
           loadError={loadError}
           onRetry={fetchRequests}
-          kpiFilter={kpiFilter}
+          kpiFilter={selectedKpiFilter}
           setKpiFilter={setKpiFilter}
         />
       ) : (
@@ -856,7 +878,7 @@ export const EmergencyRequestsPage = () => {
           stats={requestStats}
           filters={filters}
           setFilters={setFilters}
-          kpiFilter={kpiFilter}
+          kpiFilter={selectedKpiFilter}
           setKpiFilter={setKpiFilter}
           focusedRequest={focusedRequest}
           setFocusedRequestId={setFocusedRequestId}

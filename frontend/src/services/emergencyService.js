@@ -227,8 +227,10 @@ const EMERGENCY_REQUEST_SORT_FIELDS = new Set([
 ]);
 
 function applyEmergencyListFilters(query, filter = {}) {
-  if (Array.isArray(filter.status) && filter.status.length > 0) {
-    query = query.in('status', filter.status);
+  if (Array.isArray(filter.status)) {
+    if (filter.status.length > 0) {
+      query = query.in('status', filter.status);
+    }
   } else if (filter.status) {
     query = query.eq('status', filter.status);
   }

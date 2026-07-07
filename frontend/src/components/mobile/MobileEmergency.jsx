@@ -8,12 +8,12 @@ import {
     ChevronDown,
     ChevronRight,
     ClipboardCheck,
+    Clock,
     Filter,
     Hospital,
     Info,
     MapPin,
     Search,
-    ShieldCheck,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { PullToRefresh } from './PullToRefresh';
@@ -35,10 +35,10 @@ const mobileKpis = [
         restClass: 'bg-muted/28 text-muted-foreground',
     },
     {
-        id: 'critical',
-        label: 'Critical care',
-        icon: ShieldCheck,
-        activeClass: 'bg-rose-500/10 text-rose-700 shadow-[0_18px_54px_rgba(244,63,94,0.16)] dark:text-rose-200',
+        id: 'active',
+        label: 'Active',
+        icon: Clock,
+        activeClass: 'bg-amber-500/10 text-amber-700 shadow-[0_18px_54px_rgba(245,158,11,0.16)] dark:text-amber-200',
         restClass: 'bg-muted/28 text-muted-foreground',
     },
     {
@@ -150,6 +150,13 @@ const getKpiValue = ({ id, statistics, emergencies }) => {
         const rowCount = emergencies.filter((item) => item.status === 'pending_approval').length;
         return countNumber(statistics?.pending, rowCount);
     }
+    if (id === 'active') {
+        const rowCount = emergencies.filter((item) => {
+            const status = canonicalizeEmergencyStatus(item?.status, null);
+            return status === 'pending_approval' || status === 'in_progress' || status === 'accepted' || status === 'arrived';
+        }).length;
+        return countNumber(statistics?.active, rowCount);
+    }
     if (id === 'critical') {
         const rowCount = emergencies.filter((item) => item.service_type === 'critical_care').length;
         return countNumber(statistics?.critical, rowCount);
@@ -169,7 +176,6 @@ const mobileSignalTone = {
     pending: 'bg-destructive/14 text-destructive shadow-[0_16px_42px_rgba(239,68,68,0.16)]',
     clear: 'bg-emerald-500/10 text-emerald-700 shadow-[0_16px_42px_rgba(16,185,129,0.14)] dark:text-emerald-200',
     active: 'bg-amber-500/10 text-amber-700 shadow-[0_16px_42px_rgba(245,158,11,0.14)] dark:text-amber-200',
-    critical: 'bg-rose-500/10 text-rose-700 shadow-[0_16px_42px_rgba(244,63,94,0.14)] dark:text-rose-200',
     bed: 'bg-cyan-500/10 text-cyan-700 shadow-[0_16px_42px_rgba(6,182,212,0.14)] dark:text-cyan-200',
     ambulance: 'bg-sky-500/10 text-sky-700 shadow-[0_16px_42px_rgba(14,165,233,0.14)] dark:text-sky-200',
 };
@@ -200,11 +206,11 @@ const getMobileRequestSignal = ({ kpis, kpiFilter }) => {
     const active = kpis.find((item) => item.id === activeId) || kpis[0];
     const count = countNumber(active?.value, 0);
 
-    if (active?.id === 'critical') {
+    if (active?.id === 'active') {
         return {
             ...active,
-            headline: count > 0 ? `${count} critical care request${count === 1 ? '' : 's'}` : 'No critical care requests',
-            subhead: count > 0 ? 'Review high-acuity care needs first.' : 'Critical care requests will appear here.',
+            headline: count > 0 ? `${count} active request${count === 1 ? '' : 's'}` : 'No active requests',
+            subhead: count > 0 ? 'Check current care activity.' : 'Active requests will appear here.',
         };
     }
 

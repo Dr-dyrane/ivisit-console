@@ -219,7 +219,7 @@ describe('Today/Requests revamp gate contract', () => {
     expect(gate).toContain('Login is Page 19 intake audit only. It is not admitted and no visual revamp, auth copy rewrite, OAuth/reset/MFA promotion, public-shell hardgate promotion, or Requests pattern reuse is authorized until Auth receiver ownership, Edge `check-user` deployment truth, redirect/deep-link behavior, session/onboarding redirects, MFA factor/challenge state, and rendered public-flow proof blockers are closed.');
     expect(gate).toContain('Set Password is Page 20 intake audit only. It is not admitted and no visual revamp, recovery copy rewrite, Auth update promotion, public-shell hardgate promotion, or Requests pattern reuse is authorized until recovery-session truth, password update receiver ownership, invalid/expired-link handling, redirect behavior, and rendered public-flow proof blockers are closed.');
     expect(gate).toContain('Onboarding is Page 21 intake audit only. It is not admitted and no visual revamp, registration copy rewrite, account/org/facility creation promotion, document upload promotion, public-shell hardgate promotion, or Requests pattern reuse is authorized until admin account receiver ownership, organization/hospital identity, existing-facility claim behavior, Storage evidence, wallet/verification consequence, and rendered public-flow proof blockers are closed.');
-    expect(gate).toContain('Onboarding Success is Page 22 intake audit only. It is not admitted and no visual revamp, success copy rewrite, dashboard-access promise, review-timing promise, display-ID promotion, public-shell hardgate promotion, or Requests pattern reuse is authorized until success-state source, direct-link behavior, verification consequence, dashboard redirect outcome, support handoff, and rendered public-flow proof blockers are closed.');
+    expect(gate).toContain('Onboarding Success is Page 22 and its visual surface is admitted for guarded public confirmation-recovery continuation only. It is not a Requests multi-data pattern source. No success-flow rewrite, dashboard-access promise, review-timing promise, display-ID product promotion, support receiver, or backend success-state source is admitted until success-state source, direct-link behavior, verification consequence, dashboard redirect outcome, support handoff, and rendered public-flow proof blockers are closed.');
     expect(gate).toContain('Unauthorized is Page 23 intake audit only. It is not admitted and no visual revamp, denied-state copy rewrite, missing-profile recovery promotion, role display promotion, public-shell hardgate promotion, or Requests pattern reuse is authorized until redirect origin, role/resource denial source, missing-profile semantics, action feedback, sign-out receiver, and rendered public-flow proof blockers are closed. `ProtectedRoute.jsx` remains in the default hardgate as shared guard code, not as Unauthorized visual admission.');
     expect(gate).toContain('Catch-All Not Found is Page 24 intake audit only. It is not admitted and no visual revamp, 404 copy rewrite, unknown-route redirect behavior, app-shell rendering, public-shell hardgate promotion, or Requests pattern reuse is authorized until route ownership, auth/shell exposure, missing-route recovery, action feedback, and rendered public-flow proof blockers are closed.');
     expect(gate).toContain('Insurance | `/insurance` | Page 12 intake audit only. Not admitted under the Today/Requests canon.');
@@ -629,7 +629,7 @@ describe('Today/Requests revamp gate contract', () => {
     expect(gate).toContain('| `/settings` | Account nav `Settings`, viewer/sponsor mobile `Settings`; protected route. | Not admitted.');
     expect(gate).toContain('| `/subscriptions` | Admin nav `Email Subscribers`; route min role `admin`. | Not admitted.');
     expect(gate).toContain('| `/pricing` | Payments nav `Pricing`; route min role `org_admin`. | Not admitted.');
-    expect(gate).toContain('Public/auth shell routes are separate from the authenticated console route queue. `/login` has opened Page 19 intake only, `/set-password` has opened Page 20 intake only, `/onboarding` has opened Page 21 intake only, `/onboarding-success` has opened Page 22 intake only, `/unauthorized` has opened Page 23 intake only, and the `*` catch-all has opened Page 24 intake only. No public/auth shell route is visually admitted from this intake sequence until its own blockers and rendered proof close.');
+    expect(gate).toContain('Public/auth shell routes are separate from the authenticated console route queue. `/login` has opened Page 19 intake only, `/set-password` has opened Page 20 intake only, `/onboarding` has opened Page 21 intake only, `/onboarding-success` has Page 22 admitted as a guarded confirmation-recovery exception only, `/unauthorized` has opened Page 23 intake only, and the `*` catch-all has opened Page 24 intake only. No other public/auth shell route is visually admitted from this intake sequence until its own blockers and rendered proof close.');
 
     expect(app).toContain('<Route path="/analytics" element={<ProtectedRoute minRole="provider"><Analytics /></ProtectedRoute>} />');
     expect(app).toContain('<Route path="/users" element={<ProtectedRoute minRole="org_admin"><UsersPage /></ProtectedRoute>} />');
@@ -673,10 +673,11 @@ describe('Today/Requests revamp gate contract', () => {
       'src/contexts/OnboardingContext.jsx',
       'src/components/onboarding/OnboardingWizard.jsx',
       'src/services/onboardingService.js',
-      'src/components/pages/OnboardingSuccessPage.jsx',
     ].forEach((file) => {
       expect(hardgate).not.toContain(file);
     });
+    expect(hardgate).toContain('src/components/pages/OnboardingSuccessPage.jsx');
+    expect(gate).toContain('Public/auth hardgate exception, 2026-07-07: `OnboardingSuccessPage.jsx` is in the default UI hardgate as the admitted Page 22 public confirmation-recovery surface only.');
     expect(hardgate).toContain('src/components/common/ProtectedRoute.jsx');
     expect(gate).toContain('`ProtectedRoute.jsx` remains in the default hardgate as shared guard code, not as Unauthorized visual admission.');
   });
@@ -704,6 +705,13 @@ describe('Today/Requests revamp gate contract', () => {
     expect(gate).toContain('they are superseded by the current `Requests` canon and must not be used as present-day UI acceptance copy.');
     expect(gate).toContain('Route/nav permission resource is `emergency_requests`, matching the Supabase table and Requests service owner.');
     expect(gate).toContain('Route data owner is `getEmergencyRequestsPage()`');
+    expect(gate).toContain('Cross-page request language is locked: `Needs attention`, `to review`, and `Review requests` mean `pending_approval`; `active` means non-terminal care activity and must not be described as review-needed work.');
+    expect(gate).toContain('The page now starts from a smart selected state.');
+    expect(gate).toContain('if pending is clear and active requests exist, it selects `active`');
+    expect(gate).toContain('A dataset with `pending = 0` and `active > 0` must render the active request rows instead of an empty pending slice.');
+    expect(gate).toContain('Today `/` rendered the same semantic priority: pending approvals can own the page headline, but Requests is shown as `1 active`, not `1 request to review`, when `pending = 0` and `active > 0`.');
+    expect(gate).toContain('UI filter state is not backend query state until the route service normalizes it.');
+    expect(gate).toContain('Regression guard from 2026-07-07: an empty UI status array (`status: []`) once reached Supabase as an equality filter');
     expect(gate).toContain('Legacy Git behavior represented for Requests');
     expect(gate).toContain('Requests preservation ledger from `HEAD`');
     expect(gate).toContain('Do not copy the Requests markup into the rest of the app.');
@@ -712,6 +720,8 @@ describe('Today/Requests revamp gate contract', () => {
     expect(gate).toContain('When a later page says it follows Requests, it must map its old behavior into these slots before UI work starts.');
     expect(gate).toContain('| Signal field | One first-glance sentence, one support line, one status chip, and local semantic color.');
     expect(gate).toContain('| State choices | 2-4 clickable filters, KPI choices, or workflow states tied to the same projection.');
+    expect(gate).toContain('| Filter normalization | UI filter defaults, clear/reset state, date bounds, search terms, and status arrays normalized before the backend query.');
+    expect(gate).toContain('Empty arrays, blank strings, empty date objects, and cleared defaults do not become backend constraints');
     expect(gate).toContain('| Handled sheet | The main scan surface for rows, cards, or table variants.');
     expect(gate).toContain('| Focused detail | A right rail, selected row reveal, or context panel with one primary next action.');
     expect(gate).toContain('| Route-owned action | A single create/review/manage action in the header, page, or mobile FAB.');

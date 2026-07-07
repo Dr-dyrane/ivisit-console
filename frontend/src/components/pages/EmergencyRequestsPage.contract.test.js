@@ -57,6 +57,11 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(serviceSource).toContain("supabase.from(TABLE_NAME).select('*', { count: 'exact', head: true })");
     expect(serviceSource).toContain('query = applyEmergencyRequestScope(query, user);');
     expect(serviceSource).toContain('query = applyEmergencyListFilters(query, filter);');
+    expect(serviceSource).toContain('if (Array.isArray(filter.status)) {');
+    expect(serviceSource).toContain('if (filter.status.length > 0) {');
+    expect(serviceSource.indexOf('if (filter.status.length > 0) {'))
+      .toBeGreaterThan(serviceSource.indexOf('if (Array.isArray(filter.status)) {'));
+    expect(serviceSource).not.toContain("if (Array.isArray(filter.status) && filter.status.length > 0) {\n    query = query.in('status', filter.status);\n  } else if (filter.status) {");
     expect(serviceSource).toContain('query = applyEmergencyKpiFilter(query, filter.kpiFilter);');
     expect(serviceSource).toContain("if (kpiFilter === 'critical') return query.eq('service_type', 'critical_care');");
     expect(serviceSource).toContain('const countPromise = getEmergencyPageExactCount(filter, user);');
@@ -319,7 +324,9 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(installPromptSource).toContain('bottom-24 left-4 right-4');
     expect(installPromptSource).toContain('md:bottom-4');
     expect(pageSource).toContain('const requestSeqRef = useRef(0)');
-    expect(pageSource).toContain("const [kpiFilter, setKpiFilter] = useState('pending');");
+    expect(pageSource).toContain('const [kpiFilter, setKpiFilter] = useState(null);');
+    expect(pageSource).toContain('const selectedKpiFilter = useMemo(');
+    expect(pageSource).toContain('kpiFilter || getDefaultRequestKpi(requestStats)');
     expect(pageSource).toContain('const isTransientRequestRefreshError = (error) =>');
     expect(pageSource.indexOf('if (requestSeq !== requestSeqRef.current) return;'))
       .toBeLessThan(pageSource.indexOf("console.error('Error fetching requests:', error);"));
@@ -337,15 +344,18 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).toContain('const RequestSignalPanel = ({ signal, stats, requests, kpiFilter, setKpiFilter }) =>');
     expect(pageSource).toContain('getRequestSignal({ stats, requests, kpiFilter })');
     expect(pageSource).toContain('return normalizeCount(stats?.pending, rowCount);');
-    expect(pageSource).toContain("id: 'critical'");
-    expect(pageSource).toContain("label: 'Critical care'");
+    expect(pageSource).toContain("id: 'active'");
+    expect(pageSource).toContain("label: 'Active'");
+    expect(pageSource).toContain('isActiveEmergencyStatus(request.status)');
+    expect(pageSource).toContain('return normalizeCount(stats?.active, rowCount);');
+    expect(pageSource).toContain("headline: count > 0 ? `${count} active request");
+    expect(pageSource).toContain('getDefaultRequestKpi');
+    expect(pageSource).toContain("if (pending > 0) return 'pending';");
+    expect(pageSource).toContain("if (active > 0) return 'active';");
+    expect(pageSource).toContain('kpiFilter: selectedKpiFilter');
     expect(pageSource).toContain("request.service_type === 'critical_care'");
     expect(pageSource).toContain("critical: requests.filter((request) => request.service_type === 'critical_care').length");
-    expect(pageSource).toContain('return normalizeCount(stats?.critical, rowCount);');
-    expect(pageSource).toContain("tone: 'critical'");
-    expect(pageSource).toContain('No critical care requests');
-    expect(pageSource).not.toContain("id: 'active'");
-    expect(pageSource).not.toContain('No active requests');
+    expect(pageSource).not.toContain("label: 'Critical care'");
     expect(pageSource).not.toContain("priority === 'critical'");
     expect(pageSource).not.toContain('requests.length > 0 ? rowCount : normalizeCount(stats?.pending, rowCount)');
     expect(pageSource).toContain('data-request-kpi={item.id}');
@@ -402,13 +412,11 @@ describe('EmergencyRequestsPage service ownership contract', () => {
     expect(pageSource).not.toContain('inset_0_1px');
     expect(mobileSource).toContain('getMobileRequestSignal');
     expect(mobileSource).toContain('return countNumber(statistics?.pending, rowCount);');
-    expect(mobileSource).toContain("id: 'critical'");
-    expect(mobileSource).toContain("label: 'Critical care'");
-    expect(mobileSource).toContain("item.service_type === 'critical_care'");
-    expect(mobileSource).toContain('return countNumber(statistics?.critical, rowCount);');
-    expect(mobileSource).toContain('No critical care requests');
-    expect(mobileSource).not.toContain("id: 'active'");
-    expect(mobileSource).not.toContain('No active requests');
+    expect(mobileSource).toContain("id: 'active'");
+    expect(mobileSource).toContain("label: 'Active'");
+    expect(mobileSource).toContain('return countNumber(statistics?.active, rowCount);');
+    expect(mobileSource).toContain("headline: count > 0 ? `${count} active request");
+    expect(mobileSource).not.toContain("label: 'Critical care'");
     expect(mobileSource).not.toContain('emergencies.length > 0 ? rowCount : countNumber(statistics?.pending, rowCount)');
     expect(mobileSource).toContain("id: hasPending ? active.id : 'clear'");
     expect(mobileSource).toContain("label: hasPending ? active.label : 'Clear'");

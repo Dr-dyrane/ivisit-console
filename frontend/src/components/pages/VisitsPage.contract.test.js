@@ -60,7 +60,8 @@ describe('VisitsPage admission contract', () => {
 
     const pageData = pageDataSource();
     expect(pageData).toContain('const fetchVisitsData = useCallback(async () => {');
-    expect(pageData).toContain("const data = await getVisits({ quiet: true });");
+    expect(pageData).toContain('const page = await getVisitsPageData({');
+    expect(pageData).toContain('stats: page?.stats || null');
     expect(pageData).toContain("if (!user || useMockData || !startupDomains.includes('visits')) return;");
 
     expect(page).toContain('const visitPanelContext = React.useMemo(() => ({');
@@ -193,11 +194,12 @@ describe('VisitsPage admission contract', () => {
     expect(gate).toContain('convert Visits from normal content into a full-bleed stage using the shared app shell');
     expect(gate).toContain('hidden global FAB');
     expect(gate).toContain('no private sidebar, header, footer, notification, or modal chrome');
-    expect(gate).toContain('keep `getVisitsPageData()` as the single route read owner');
+    expect(gate).toContain('keep `visitStatus.js` plus `getVisitsPageData()` as the single Visits source room');
     expect(gate).toContain('`PageDataContext` must stay quiet on `/visits`');
     expect(gate).toContain('one signal field for the current visit work');
     expect(gate).toContain('The first visible command is `New visit` for allowed roles only');
     expect(gate).toContain('keep `all`, `scheduled`, `in_progress`, `completed`, and `cancelled` as route-query state choices');
+    expect(gate).toContain('Status filters and KPI filters run after the status source room resolves raw visit status plus linked emergency lifecycle');
     expect(gate).toContain('convert old grid/list/table scanning into one handled sheet');
     expect(gate).toContain('one focused detail rail or sheet for the selected visit');
     expect(gate).toContain('Terminal status changes, delete, bulk delete, and clinical/lifecycle outcomes remain unavailable');
@@ -528,15 +530,19 @@ describe('VisitsPage admission contract', () => {
     expect(page).not.toContain('applyAuthFilter');
 
     expect(service).toContain('export async function getVisitsPageData');
-    expect(service).toContain("supabase.from(TABLE_NAME).select('*', { count: 'exact', head: true })");
-    expect(service).toContain('applyVisitPageAuth(countQuery, user)');
-    expect(service).toContain('applyVisitPageFilters(countQuery, filters, kpiFilter)');
-    expect(service).toContain('const { data, error } = await withTimeout(dataQuery, 8000');
+    expect(service).toContain('getVisitResolutionRows({ filters, user })');
+    expect(service).toContain('resolveVisitStatus({');
+    expect(service).toContain('source_status: visit.status || null');
+    expect(service).toContain('emergency_status: emergency?.status || null');
+    expect(service).toContain('const statsRows = applyResolvedVisitFilters(resolvedRows, filters, \'all\');');
+    expect(service).toContain('const filteredRows = applyResolvedVisitFilters(resolvedRows, filters, kpiFilter);');
+    expect(service).toContain('count: filteredRows.length');
+    expect(service).toContain('const stats = getVisitPageStatsFromRows(statsRows);');
+    expect(service).not.toContain("if (kpiFilter === 'in_progress') nextQuery = nextQuery.eq('status', 'in_progress');");
     expect(service).toContain("from('profiles')");
     expect(service).toContain("from('emergency_requests')");
     expect(service).toContain("from('doctors')");
     expect(service).toContain("from('hospitals')");
-    expect(service).toContain('getVisitPageStats(user)');
   });
 
   it('keeps Visits search and KPI filtering service-owned instead of mobile-local', () => {
@@ -559,6 +565,8 @@ describe('VisitsPage admission contract', () => {
     expect(service).toContain('const sanitizeVisitSearchTerm');
     expect(service).toContain('const search = sanitizeVisitSearchTerm(filters.search)');
     expect(service).toContain('nextQuery = nextQuery.or([');
+    expect(service).toContain('const kpiState = getVisitStateFromKpi(kpiFilter);');
+    expect(service).toContain('visitMatchesResolvedState(visit, kpiState)');
     expect(service).toContain('display_id.ilike');
     expect(service).toContain('hospital_name.ilike');
     expect(service).toContain('doctor_name.ilike');
@@ -614,6 +622,8 @@ describe('VisitsPage admission contract', () => {
     expect(mobile).toContain('aria-label="Filter visits"');
     expect(gate).toContain('Responsive and deep-link admission proof, 2026-07-02');
     expect(gate).toContain('wide desktop, tablet, 390px mobile, and `?view=` deep-link');
+    expect(gate).toContain('Visit status source-room repair, 2026-07-07');
+    expect(gate).toContain('after linked emergency resolution the same rows become `completed 39`, `cancelled 20`, `scheduled 0`, and `active 0`');
   });
 
   it('admits Visits only as a guarded Page 7 with destructive actions still excluded', () => {

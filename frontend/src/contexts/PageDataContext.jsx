@@ -6,7 +6,7 @@ import { getSupportTickets } from '../services/supportTicketsService';
 import { getUserStatistics, getProfiles } from '../services/profilesService';
 import { getEmergencyRequests } from '../services/emergencyService';
 import { getDoctors } from '../services/doctorsService';
-import { getVisits } from '../services/visitsService';
+import { getVisitsPageData } from '../services/visitsService';
 import { getHospitals } from '../services/hospitalsService';
 import { getAmbulances } from '../services/ambulancesService';
 import { getAnalyticsData } from '../services/analyticsService';
@@ -328,25 +328,15 @@ export const PageDataProvider = ({ children }) => {
         return;
       }
 
-      const data = await getVisits({ quiet: true }); // RBAC enabled
-
-      const today = new Date().toISOString().split('T')[0];
-      const todayVisits = data?.filter(v => v.visit_date === today || (v.date && v.date.startsWith(today))).length || 0;
-      const scheduled = data?.filter(v => v.status === 'scheduled').length || 0;
-      const inProgress = data?.filter(v => v.status === 'in_progress').length || 0;
-      const completed = data?.filter(v => v.status === 'completed').length || 0;
-      const cancelled = data?.filter(v => v.status === 'cancelled').length || 0;
+      const page = await getVisitsPageData({
+        quiet: true,
+        range: { start: 0, end: 4 },
+        sortConfig: { key: 'date', direction: 'desc' },
+      });
 
       setVisitsData({
-        stats: {
-          total: data?.length || 0,
-          today: todayVisits,
-          scheduled,
-          inProgress,
-          completed,
-          cancelled
-        },
-        recent: data?.slice(0, 5) || []
+        stats: page?.stats || null,
+        recent: page?.visits || []
       });
       clearDomainError('visits');
 

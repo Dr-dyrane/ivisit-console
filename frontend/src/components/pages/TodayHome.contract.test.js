@@ -76,7 +76,7 @@ function rowsFor(roleKind, overrides = {}) {
 function renderTodayRole(roleKind, overrides = {}) {
   mockPageData = {
     doctorsStats: { totalDoctors: 8, total: 8 },
-    emergencyStats: { active: 3 },
+    emergencyStats: { active: 3, pending_approval: 3, pending: 3 },
     loading: {},
     domainErrors: {},
     useMockData: false,
@@ -276,7 +276,7 @@ describe('TodayHome role contract', () => {
     expect(viewerHtml).not.toContain('Review requests');
   });
 
-  it('keeps admin focused on emergency review first', () => {
+  it('keeps admin focused on pending request review first', () => {
     const today = buildToday({ roleKind: 'admin', ...liveCounts });
     const glanceItems = buildGlanceItems({ roleKind: 'admin', ...liveCounts });
     const rows = rowsFor('admin');
@@ -295,6 +295,44 @@ describe('TodayHome role contract', () => {
       'staff',
       'organizations',
     ]);
+  });
+
+  it('does not label active requests as review-needed work', () => {
+    const counts = {
+      live: true,
+      emergencyReviewCount: 0,
+      emergencyActiveCount: 1,
+      approvalCount: 736,
+      visitCount: 0,
+      providerCount: 322,
+    };
+    const today = buildToday({ roleKind: 'admin', ...counts });
+    const glanceItems = buildGlanceItems({ roleKind: 'admin', ...counts });
+    const rows = buildActionRows({
+      roleKind: 'admin',
+      roleCopy: ROLE_COPY.admin,
+      loading: {},
+      ...counts,
+    });
+    const requestCard = glanceItems.find((item) => item.label === 'Requests');
+    const requestRow = rows.find((row) => row.id === 'requests');
+
+    expect(today.headline).toBe('736 pending approvals');
+    expect(today.status).toBe('Needs attention');
+    expect(today.path).toBe('/verification');
+    expect(requestCard).toMatchObject({
+      value: '1 active',
+      tone: 'primary',
+    });
+    expect(requestRow).toMatchObject({
+      label: 'Check requests',
+      meta: '1 active',
+      tone: 'primary',
+    });
+    expect(rows[0].id).toBe('approvals');
+    expect(rows[1].id).toBe('requests');
+    expect(today.headline).not.toContain('request to review');
+    expect(requestRow.meta).not.toContain('to review');
   });
 
   it('uses provider profile statistics for Staff when doctor directory stats are empty', () => {
@@ -426,6 +464,9 @@ describe('TodayHome role contract', () => {
     expect(source).toContain("import { usePageData } from '../../contexts/PageDataContext';");
     expect(source).toContain('} = usePageData();');
     expect(source).toContain('emergencyStats,');
+    expect(source).toContain('emergencyStats?.pending_approval ?? emergencyStats?.pending');
+    expect(source).toContain('emergencyStats?.active');
+    expect(source).toContain('activeRequests: emergencyActiveCount');
     expect(source).toContain('verificationData,');
     expect(source).toContain('doctorsStats,');
     expect(source).toContain('visitsStats,');

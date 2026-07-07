@@ -96,8 +96,19 @@ function useRoleKind(explicitRole) {
   }, [explicitRole, isAdmin, isOrgAdmin, isProvider, isSponsor, isViewer]);
 }
 
-export function buildToday({ roleKind, live, emergencyCount, approvalCount, visitCount, providerCount }) {
+export function buildToday({
+  roleKind,
+  live,
+  emergencyCount,
+  emergencyReviewCount = emergencyCount,
+  emergencyActiveCount = emergencyCount,
+  approvalCount,
+  visitCount,
+  providerCount,
+}) {
   const role = ROLE_COPY[roleKind] || ROLE_COPY.viewer;
+  const requestReviewCount = Number(emergencyReviewCount) || 0;
+  const requestActiveCount = Number(emergencyActiveCount) || 0;
 
   if (!live) {
     return {
@@ -113,12 +124,12 @@ export function buildToday({ roleKind, live, emergencyCount, approvalCount, visi
     };
   }
 
-  if ((roleKind === 'admin' || roleKind === 'org_admin') && emergencyCount > 0) {
+  if ((roleKind === 'admin' || roleKind === 'org_admin') && requestReviewCount > 0) {
     return {
-      headline: `${emergencyCount} ${pluralize(emergencyCount, 'request')} to review`,
-      subhead: 'Open requests and start with the newest active item.',
+      headline: `${requestReviewCount} ${pluralize(requestReviewCount, 'request')} to review`,
+      subhead: 'Open requests and start with the newest item that needs review.',
       sheetTitle: 'Requests',
-      sheetHint: 'Review the first active request.',
+      sheetHint: 'Review the first waiting request.',
       status: 'Needs attention',
       primaryAction: 'Review',
       path: '/emergencies',
@@ -127,7 +138,7 @@ export function buildToday({ roleKind, live, emergencyCount, approvalCount, visi
     };
   }
 
-  if (roleKind === 'org_admin' && approvalCount > 0) {
+  if ((roleKind === 'admin' || roleKind === 'org_admin') && approvalCount > 0) {
     return {
       headline: `${approvalCount} pending ${pluralize(approvalCount, 'approval')}`,
       subhead: 'Open approvals and clear the first waiting record.',
@@ -138,6 +149,20 @@ export function buildToday({ roleKind, live, emergencyCount, approvalCount, visi
       path: '/verification',
       icon: ShieldCheck,
       tone: 'warning',
+    };
+  }
+
+  if ((roleKind === 'admin' || roleKind === 'org_admin') && requestActiveCount > 0) {
+    return {
+      headline: `${requestActiveCount} active ${pluralize(requestActiveCount, 'request')}`,
+      subhead: 'Open Requests to check current care activity.',
+      sheetTitle: 'Requests',
+      sheetHint: 'Check the active request.',
+      status: 'Active',
+      primaryAction: 'Open requests',
+      path: '/emergencies',
+      icon: Ambulance,
+      tone: 'primary',
     };
   }
 
@@ -196,8 +221,29 @@ export function buildToday({ roleKind, live, emergencyCount, approvalCount, visi
   };
 }
 
-export function buildGlanceItems({ roleKind, live, emergencyCount, approvalCount, visitCount, providerCount }) {
+export function buildGlanceItems({
+  roleKind,
+  live,
+  emergencyCount,
+  emergencyReviewCount = emergencyCount,
+  emergencyActiveCount = emergencyCount,
+  approvalCount,
+  visitCount,
+  providerCount,
+}) {
   const role = ROLE_COPY[roleKind] || ROLE_COPY.viewer;
+  const requestReviewCount = Number(emergencyReviewCount) || 0;
+  const requestActiveCount = Number(emergencyActiveCount) || 0;
+  const requestValue = requestReviewCount > 0
+    ? `${requestReviewCount} to review`
+    : requestActiveCount > 0
+      ? `${requestActiveCount} active`
+      : 'Clear';
+  const requestTone = requestReviewCount > 0
+    ? 'danger'
+    : requestActiveCount > 0
+      ? 'primary'
+      : 'success';
 
   if (!live) {
     return [
@@ -209,7 +255,7 @@ export function buildGlanceItems({ roleKind, live, emergencyCount, approvalCount
 
   if (roleKind === 'admin') {
     return [
-      { label: 'Requests', value: emergencyCount > 0 ? `${emergencyCount} to review` : 'Clear', path: '/emergencies', tone: emergencyCount > 0 ? 'danger' : 'success' },
+      { label: 'Requests', value: requestValue, path: '/emergencies', tone: requestTone },
       { label: 'Approvals', value: approvalCount > 0 ? `${approvalCount} waiting` : 'Clear', path: '/verification', tone: approvalCount > 0 ? 'warning' : 'success' },
       { label: 'Staff', value: providerCount > 0 ? `${providerCount} records` : 'Check staff', path: '/doctors', tone: providerCount > 0 ? 'primary' : 'muted' },
     ];
@@ -217,7 +263,7 @@ export function buildGlanceItems({ roleKind, live, emergencyCount, approvalCount
 
   if (roleKind === 'org_admin') {
     return [
-      { label: 'Requests', value: emergencyCount > 0 ? `${emergencyCount} active` : 'Clear', path: '/emergencies', tone: emergencyCount > 0 ? 'danger' : 'success' },
+      { label: 'Requests', value: requestValue, path: '/emergencies', tone: requestTone },
       { label: 'Approvals', value: approvalCount > 0 ? `${approvalCount} waiting` : 'Clear', path: '/verification', tone: approvalCount > 0 ? 'warning' : 'success' },
       { label: 'Staff', value: providerCount > 0 ? `${providerCount} records` : 'Check staff', path: '/doctors', tone: providerCount > 0 ? 'primary' : 'muted' },
     ];
@@ -226,7 +272,7 @@ export function buildGlanceItems({ roleKind, live, emergencyCount, approvalCount
   if (roleKind === 'provider') {
     return [
       { label: 'Visits', value: visitCount > 0 ? `${visitCount} today` : 'Clear', path: '/visits', tone: visitCount > 0 ? 'primary' : 'muted' },
-      { label: 'Requests', value: emergencyCount > 0 ? `${emergencyCount} active` : 'Clear', path: '/emergencies', tone: emergencyCount > 0 ? 'danger' : 'success' },
+      { label: 'Requests', value: requestValue, path: '/emergencies', tone: requestTone },
       { label: 'Help', value: 'Available', path: '/support-tickets', tone: 'muted' },
     ];
   }
@@ -246,7 +292,21 @@ export function buildGlanceItems({ roleKind, live, emergencyCount, approvalCount
   ];
 }
 
-export function buildActionRows({ roleKind, live, emergencyCount, approvalCount, visitCount, providerCount, roleCopy, loading }) {
+export function buildActionRows({
+  roleKind,
+  live,
+  emergencyCount,
+  emergencyReviewCount = emergencyCount,
+  emergencyActiveCount = emergencyCount,
+  approvalCount,
+  visitCount,
+  providerCount,
+  roleCopy,
+  loading,
+}) {
+  const requestReviewCount = Number(emergencyReviewCount) || 0;
+  const requestActiveCount = Number(emergencyActiveCount) || 0;
+
   if (!live) {
     return [
       {
@@ -273,16 +333,22 @@ export function buildActionRows({ roleKind, live, emergencyCount, approvalCount,
 
   const requestsRow = {
     id: 'requests',
-    label: 'Review requests',
-    meta: emergencyCount > 0 ? `${emergencyCount} active` : 'No active requests',
-    detail: emergencyCount > 0
-      ? 'Open Requests and start with the newest active item.'
-      : 'Open Requests only if you need to review recent activity.',
-    actionLabel: 'Open requests',
+    label: requestReviewCount > 0 ? 'Review requests' : 'Check requests',
+    meta: requestReviewCount > 0
+      ? `${requestReviewCount} to review`
+      : requestActiveCount > 0
+        ? `${requestActiveCount} active`
+        : 'No requests to review',
+    detail: requestReviewCount > 0
+      ? 'Open Requests and start with the newest item that needs review.'
+      : requestActiveCount > 0
+        ? 'Open Requests to check current care activity.'
+        : 'Open Requests only if you need recent activity.',
+    actionLabel: requestReviewCount > 0 ? 'Review requests' : 'Open requests',
     path: '/emergencies',
-    done: emergencyCount === 0,
+    done: requestReviewCount === 0 && requestActiveCount === 0,
     loading: Boolean(loading?.emergency),
-    tone: emergencyCount > 0 ? 'danger' : 'success',
+    tone: requestReviewCount > 0 ? 'danger' : requestActiveCount > 0 ? 'primary' : 'success',
   };
 
   const approvalsRow = {
@@ -345,20 +411,31 @@ export function buildActionRows({ roleKind, live, emergencyCount, approvalCount,
   };
 
   if (roleKind === 'admin') {
+    const organizationRow = {
+      id: 'organizations',
+      label: 'Review organizations',
+      meta: 'Admin access',
+      detail: 'Open Organizations before changing sponsor, hospital, or billing ownership.',
+      actionLabel: 'Open organizations',
+      path: '/organizations',
+      done: true,
+      tone: 'muted',
+    };
+
+    if (requestReviewCount === 0 && approvalCount > 0) {
+      return [
+        approvalsRow,
+        requestsRow,
+        staffRow,
+        organizationRow,
+      ];
+    }
+
     return [
       requestsRow,
       approvalsRow,
       staffRow,
-      {
-        id: 'organizations',
-        label: 'Review organizations',
-        meta: 'Admin access',
-        detail: 'Open Organizations before changing sponsor, hospital, or billing ownership.',
-        actionLabel: 'Open organizations',
-        path: '/organizations',
-        done: true,
-        tone: 'muted',
-      },
+      organizationRow,
     ];
   }
 
@@ -680,7 +757,8 @@ export const TodayHome = ({ role }) => {
     [roleKind]
   );
 
-  const emergencyCount = countOrNull(emergencyStats?.active, live) ?? 0;
+  const emergencyReviewCount = countOrNull(emergencyStats?.pending_approval ?? emergencyStats?.pending, live) ?? 0;
+  const emergencyActiveCount = countOrNull(emergencyStats?.active, live) ?? 0;
   const approvalCount = countOrNull(verificationData?.pending, live) ?? 0;
   const visitCount = countOrNull(visitsStats?.today, live) ?? 0;
   const providerCount = resolveTodayProviderCount({ doctorsStats, userData, live });
@@ -688,20 +766,22 @@ export const TodayHome = ({ role }) => {
   const today = useMemo(() => buildToday({
     roleKind,
     live,
-    emergencyCount,
+    emergencyReviewCount,
+    emergencyActiveCount,
     approvalCount,
     visitCount,
     providerCount,
-  }), [approvalCount, emergencyCount, live, providerCount, roleKind, visitCount]);
+  }), [approvalCount, emergencyActiveCount, emergencyReviewCount, live, providerCount, roleKind, visitCount]);
 
   const glanceItems = useMemo(() => buildGlanceItems({
     roleKind,
     live,
-    emergencyCount,
+    emergencyReviewCount,
+    emergencyActiveCount,
     approvalCount,
     visitCount,
     providerCount,
-  }), [approvalCount, emergencyCount, live, providerCount, roleKind, visitCount]);
+  }), [approvalCount, emergencyActiveCount, emergencyReviewCount, live, providerCount, roleKind, visitCount]);
 
   const headerAction = useMemo(() => (
     <span className="hidden md:inline-flex items-center rounded-pill bg-card/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -716,13 +796,14 @@ export const TodayHome = ({ role }) => {
   const rows = useMemo(() => buildActionRows({
     roleKind,
     live,
-    emergencyCount,
+    emergencyReviewCount,
+    emergencyActiveCount,
     approvalCount,
     visitCount,
     providerCount,
     roleCopy,
     loading,
-  }), [approvalCount, emergencyCount, live, loading, providerCount, roleCopy, roleKind, visitCount]);
+  }), [approvalCount, emergencyActiveCount, emergencyReviewCount, live, loading, providerCount, roleCopy, roleKind, visitCount]);
 
   const activeExpandedRow = useMemo(() => {
     if (expandedRow === '__collapsed__') return null;
@@ -765,7 +846,8 @@ export const TodayHome = ({ role }) => {
     glanceItems,
     rows,
     counts: {
-      requests: emergencyCount,
+      requests: emergencyReviewCount,
+      activeRequests: emergencyActiveCount,
       approvals: approvalCount,
       visits: visitCount,
       staff: providerCount,
@@ -774,7 +856,8 @@ export const TodayHome = ({ role }) => {
     onNavigate: handleAction,
   }), [
     approvalCount,
-    emergencyCount,
+    emergencyActiveCount,
+    emergencyReviewCount,
     glanceItems,
     handleAction,
     hasTodayDataError,

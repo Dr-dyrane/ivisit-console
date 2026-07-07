@@ -7,8 +7,16 @@
 import { supabase } from '../lib/supabase';
 import { getCurrentUser, applyAuthFilter } from './authService';
 import { isValidUUID, withTimeout } from '../lib/utils';
+import {
+  canonicalizeVisitStatus,
+  countVisitsByResolvedStatus,
+  getVisitStateFromKpi,
+  resolveVisitStatus,
+  visitMatchesResolvedState,
+} from '../utils/visitStatus';
 
 const TABLE_NAME = 'visits';
+const VISIT_RESOLUTION_ROW_LIMIT = 5000;
 
 const VISIT_PAGE_WRITE_COLUMNS = new Set([
   'user_id',
@@ -85,13 +93,9 @@ const mapVisitSortKey = (key) => {
   return key || 'date';
 };
 
-const applyVisitPageFilters = (query, filters = {}, kpiFilter = 'all') => {
+const applyVisitPageFilters = (query, filters = {}) => {
   let nextQuery = query;
   const search = sanitizeVisitSearchTerm(filters.search);
-
-  if (filters.status && filters.status.length > 0) {
-    nextQuery = nextQuery.in('status', filters.status);
-  }
 
   if (filters.visit_type && filters.visit_type.length > 0) {
     nextQuery = nextQuery.in('type', filters.visit_type);
@@ -116,12 +120,30 @@ const applyVisitPageFilters = (query, filters = {}, kpiFilter = 'all') => {
     ].join(','));
   }
 
-  if (kpiFilter === 'scheduled') nextQuery = nextQuery.eq('status', 'scheduled');
-  if (kpiFilter === 'in_progress') nextQuery = nextQuery.eq('status', 'in_progress');
-  if (kpiFilter === 'completed') nextQuery = nextQuery.eq('status', 'completed');
-  if (kpiFilter === 'cancelled') nextQuery = nextQuery.eq('status', 'cancelled');
-
   return nextQuery;
+};
+
+const getResolvedStatusFilters = (filters = {}) => (
+  Array.isArray(filters.status)
+    ? filters.status.map((status) => canonicalizeVisitStatus(status, null)).filter(Boolean)
+    : filters.status
+      ? [canonicalizeVisitStatus(filters.status, null)].filter(Boolean)
+      : []
+);
+
+const applyResolvedVisitFilters = (visits = [], filters = {}, kpiFilter = 'all') => {
+  const statusFilters = getResolvedStatusFilters(filters);
+  const kpiState = getVisitStateFromKpi(kpiFilter);
+
+  return (visits || []).filter((visit) => {
+    if (statusFilters.length > 0 && !statusFilters.some((status) => visitMatchesResolvedState(visit, status))) {
+      return false;
+    }
+    if (kpiState && !visitMatchesResolvedState(visit, kpiState)) {
+      return false;
+    }
+    return true;
+  });
 };
 
 const applyVisitPageAuth = (query, user) => applyAuthFilter(query, user, {
@@ -131,53 +153,47 @@ const applyVisitPageAuth = (query, user) => applyAuthFilter(query, user, {
   resourceType: 'visit'
 });
 
-const readCount = async (query) => {
-  const { count, error } = await query;
-  if (error) throw error;
-  return count || 0;
-};
+const getVisitDateValue = (visit) => String(visit?.date || visit?.visit_date || visit?.created_at || '');
 
-async function getVisitPageStats(user) {
+function getVisitPageStatsFromRows(visits = []) {
   const today = new Date();
   const todayStart = today.toISOString().split('T')[0];
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-  const tomorrowStart = tomorrow.toISOString().split('T')[0];
-
-  const createCountQuery = (status = null) => {
-    let query = supabase.from(TABLE_NAME).select('*', { count: 'exact', head: true });
-    query = applyVisitPageAuth(query, user);
-    if (status) query = query.eq('status', status);
-    return query;
-  };
-
-  const todayQuery = applyVisitPageAuth(
-    supabase
-      .from(TABLE_NAME)
-      .select('*', { count: 'exact', head: true })
-      .gte('date', todayStart)
-      .lt('date', tomorrowStart),
-    user
-  );
-
-  const [total, todayCount, scheduled, inProgress, completed, cancelled] = await Promise.all([
-    readCount(createCountQuery()),
-    readCount(todayQuery),
-    readCount(createCountQuery('scheduled')),
-    readCount(createCountQuery('in_progress')),
-    readCount(createCountQuery('completed')),
-    readCount(createCountQuery('cancelled')),
-  ]);
+  const counts = countVisitsByResolvedStatus(visits);
 
   return {
-    total,
-    today: todayCount,
-    scheduled,
-    inProgress,
-    completed,
-    cancelled,
+    ...counts,
+    today: (visits || []).filter((visit) => getVisitDateValue(visit).startsWith(todayStart)).length,
   };
 }
+
+const compareVisitValue = (left, right) => {
+  if (left === right) return 0;
+  if (left === null || left === undefined || left === '') return -1;
+  if (right === null || right === undefined || right === '') return 1;
+
+  const leftDate = Date.parse(left);
+  const rightDate = Date.parse(right);
+  if (Number.isFinite(leftDate) && Number.isFinite(rightDate)) {
+    return leftDate - rightDate;
+  }
+
+  if (typeof left === 'number' && typeof right === 'number') {
+    return left - right;
+  }
+
+  return String(left).localeCompare(String(right));
+};
+
+const sortVisitsForPage = (visits = [], sortConfig = { key: 'status', direction: 'desc' }) => {
+  const sortKey = mapVisitSortKey(sortConfig.key || 'date');
+  const direction = sortConfig.direction === 'asc' ? 1 : -1;
+
+  return [...(visits || [])].sort((left, right) => {
+    const leftValue = left?.[sortKey] ?? left?.[sortConfig.key];
+    const rightValue = right?.[sortKey] ?? right?.[sortConfig.key];
+    return compareVisitValue(leftValue, rightValue) * direction;
+  });
+};
 
 async function enrichVisitsForPage(visits = []) {
   if (!visits.length) return [];
@@ -239,16 +255,6 @@ async function enrichVisitsForPage(visits = []) {
     hospitalsMap = (hospitalRows || []).reduce((acc, h) => ({ ...acc, [h.id]: h }), {});
   }
 
-  const emergencyToVisitStatus = {
-    pending_approval: 'scheduled',
-    payment_declined: 'cancelled',
-    in_progress: 'in_progress',
-    accepted: 'in_progress',
-    arrived: 'in_progress',
-    completed: 'completed',
-    cancelled: 'cancelled'
-  };
-
   return visits.map((visit) => {
     const emergency =
       (visit.request_id ? emergencyByRequest[visit.request_id] : null) ||
@@ -260,14 +266,10 @@ async function enrichVisitsForPage(visits = []) {
       emergency?.hospital_name ||
       hospitalsMap[linkedHospitalId]?.name ||
       null;
-    const emergencyDerivedStatus = emergency?.status
-      ? emergencyToVisitStatus[emergency.status] || null
-      : null;
-    const originalStatus = String(visit.status || '').toLowerCase();
-    const normalizedStatus =
-      !originalStatus || ['upcoming', 'scheduled'].includes(originalStatus)
-        ? emergencyDerivedStatus || visit.status || 'scheduled'
-        : visit.status;
+    const normalizedStatus = resolveVisitStatus({
+      visitStatus: visit.status,
+      emergencyStatus: emergency?.status,
+    });
     const emergencyDoctorName = emergency?.assigned_doctor_id
       ? doctorsMap[emergency.assigned_doctor_id]?.name || null
       : null;
@@ -279,6 +281,8 @@ async function enrichVisitsForPage(visits = []) {
       request_id: visit.request_id || emergency?.id || null,
       hospital_id: linkedHospitalId,
       hospital_name: linkedHospitalName,
+      source_status: visit.status || null,
+      emergency_status: emergency?.status || null,
       status: normalizedStatus,
       type: visitType,
       visit_type: visitType,
@@ -287,6 +291,30 @@ async function enrichVisitsForPage(visits = []) {
       doctor: visit.doctor || doctorName || null
     });
   });
+}
+
+async function getVisitResolutionRows({ filters = {}, user }) {
+  let resolutionQuery = supabase
+    .from(TABLE_NAME)
+    .select('*', { count: 'exact' })
+    .range(0, VISIT_RESOLUTION_ROW_LIMIT - 1);
+
+  resolutionQuery = applyVisitPageAuth(resolutionQuery, user);
+  resolutionQuery = applyVisitPageFilters(resolutionQuery, filters);
+
+  const { data, error, count } = await withTimeout(
+    resolutionQuery,
+    8000,
+    'Failed to resolve visit source rows - timeout'
+  );
+  if (error) throw error;
+
+  const rows = data || [];
+  if (Number.isFinite(count) && count > rows.length) {
+    throw new Error('Visit source projection is larger than the client resolver limit; backend visit status projection required.');
+  }
+
+  return enrichVisitsForPage(rows);
 }
 
 export async function getVisitsPageData({
@@ -299,32 +327,18 @@ export async function getVisitsPageData({
   try {
     const user = await getCurrentUser();
 
-    let countQuery = supabase.from(TABLE_NAME).select('*', { count: 'exact', head: true });
-    countQuery = applyVisitPageAuth(countQuery, user);
-    countQuery = applyVisitPageFilters(countQuery, filters, kpiFilter);
-
-    const count = await readCount(countQuery);
-
-    let dataQuery = supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .range(range.start, range.end)
-      .order(mapVisitSortKey(sortConfig.key || 'date'), { ascending: sortConfig.direction === 'asc' });
-
-    dataQuery = applyVisitPageAuth(dataQuery, user);
-    dataQuery = applyVisitPageFilters(dataQuery, filters, kpiFilter);
-
-    const { data, error } = await withTimeout(dataQuery, 8000, 'Failed to load visits - timeout');
-    if (error) throw error;
-
-    const [visits, stats] = await Promise.all([
-      enrichVisitsForPage(data || []),
-      getVisitPageStats(user),
-    ]);
+    const resolvedRows = await getVisitResolutionRows({ filters, user });
+    const statsRows = applyResolvedVisitFilters(resolvedRows, filters, 'all');
+    const filteredRows = applyResolvedVisitFilters(resolvedRows, filters, kpiFilter);
+    const sortedRows = sortVisitsForPage(filteredRows, sortConfig);
+    const start = Math.max(Number(range.start) || 0, 0);
+    const end = Math.max(Number(range.end) || start, start);
+    const visits = sortedRows.slice(start, end + 1);
+    const stats = getVisitPageStatsFromRows(statsRows);
 
     return {
       visits,
-      count,
+      count: filteredRows.length,
       stats,
     };
   } catch (error) {
