@@ -15,7 +15,7 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { TableSkeleton } from '../ui/skeleton';
 import { PaginationControls } from '../ui/PaginationControls';
-import { Users, Plus, Edit, Trash2, Eye, Shield, UserCheck, ChevronRight, Phone, Mail, Filter, BarChart3, X } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Eye, Shield, UserCheck, ChevronRight, Phone, Mail, Filter, BarChart3, Info, X } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toast } from "sonner";
 import { handleApiError } from "../../utils/errorHandler";
@@ -145,6 +145,126 @@ const UsersSignalPanel = ({ stats, users, loading, kpiFilter, setKpiFilter }) =>
   );
 };
 
+const getUserInitials = (name = 'User') => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] || 'U';
+  const second = parts[1]?.[0] || '';
+  return `${first}${second}`.toUpperCase();
+};
+
+const UserDetailLine = ({ icon: Icon, label, value }) => (
+  <div className="flex items-center gap-3 rounded-inner bg-muted/20 p-2.5">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-background/45 text-muted-foreground">
+      <Icon className="h-4 w-4" />
+    </span>
+    <div className="min-w-0">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
+      <div className="mt-1 truncate text-sm font-semibold text-foreground">{value || 'Not set'}</div>
+    </div>
+  </div>
+);
+
+const UserRailButton = ({ icon: Icon, label, onClick }) => (
+  <Button
+    variant="ghost"
+    className="h-11 rounded-button bg-muted/28 text-sm font-semibold text-foreground transition-all hover:bg-muted/42 active:scale-[0.98]"
+    onClick={onClick}
+  >
+    <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
+    {label}
+  </Button>
+);
+
+const UsersDetailRail = ({ user, onView }) => {
+  if (!user) {
+    return (
+      <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+        <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+        <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+          <Users className="mb-4 h-10 w-10 text-muted-foreground/60" />
+          <h2 className="text-xl font-semibold">No user selected</h2>
+          <p className="mt-2 max-w-[260px] text-sm text-muted-foreground">
+            Users that match your filters will appear here.
+          </p>
+        </div>
+      </aside>
+    );
+  }
+
+  const displayName = user.full_name || user.name || user.username || user.profile_username || 'Unnamed user';
+  const isVerified = Boolean(user.bvn_verified);
+  const verifiedValue = isVerified ? 'Verified' : 'Unverified';
+  const joinedValue = user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A';
+
+  return (
+    <aside className="relative z-20 mt-auto mb-[calc(13rem+var(--safe-bottom))] overflow-y-auto rounded-t-sheet bg-card/78 p-4 text-foreground shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl no-scrollbar dark:bg-card/55 md:mx-5 md:mb-5 md:rounded-sheet lg:mt-5 lg:h-[calc(100dvh-5.5rem)] lg:w-[380px] lg:shrink-0 lg:self-stretch xl:w-[440px]">
+      <div className="mx-auto mb-4 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">User details</h2>
+          <div className="mt-4 inline-flex items-center gap-2 rounded-pill bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+            <Shield className="h-3.5 w-3.5" />
+            {user.role || 'unknown'}
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-pill bg-muted/30 text-muted-foreground transition-all hover:bg-muted/45 hover:text-foreground active:scale-95"
+          onClick={() => onView(user)}
+          aria-label="Open full user details"
+        >
+          <Info className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="mb-5 flex items-center gap-4">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-pill bg-muted/30 text-lg font-semibold text-foreground">
+          {getUserInitials(displayName)}
+        </div>
+        <div className="min-w-0">
+          <h3 className="truncate text-lg font-semibold">{displayName}</h3>
+          <p className="mt-1 truncate text-sm text-muted-foreground">
+            {user.email || 'No email on file'}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <UserDetailLine icon={Users} label="Name" value={user.full_name || user.name} />
+        <UserDetailLine icon={Mail} label="Email" value={user.email} />
+        <UserDetailLine icon={Shield} label="Role" value={user.role} />
+        <UserDetailLine icon={Phone} label="Organization" value={user.organization_name || 'N/A'} />
+        <UserDetailLine icon={UserCheck} label="Verified" value={verifiedValue} />
+        <UserDetailLine icon={Eye} label="Joined" value={joinedValue} />
+      </div>
+
+      <div className="mt-5 space-y-2.5">
+        <Button
+          className="h-12 w-full rounded-button bg-foreground text-base font-semibold text-background transition-all hover:bg-foreground/90 active:scale-[0.99]"
+          onClick={() => onView(user)}
+        >
+          <Eye className="mr-2 h-5 w-5" />
+          View details
+          <ChevronRight className="ml-auto h-5 w-5" />
+        </Button>
+
+        <div className="grid grid-cols-1 gap-3">
+          <UserRailButton icon={Info} label="Open record" onClick={() => onView(user)} />
+        </div>
+
+        <div
+          role="note"
+          className="flex items-center gap-2 rounded-button bg-muted/25 px-4 py-3 text-sm font-semibold text-muted-foreground"
+        >
+          <Shield className="h-4 w-4 shrink-0" />
+          User commands are disabled until identity authority is verified.
+        </div>
+      </div>
+    </aside>
+  );
+};
+
 export const UsersPage = () => {
   const { isAdmin, isOrgAdmin, orgId, profile, can } = useAuth();
   const { isMobile } = useNavigation();
@@ -154,6 +274,7 @@ export const UsersPage = () => {
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [focusedUserId, setFocusedUserId] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState({ kpiFilter: 'all' });
@@ -258,6 +379,11 @@ export const UsersPage = () => {
     }
     return result;
   }, [filteredUsers, sortConfig]);
+
+  const focusedUser = useMemo(
+    () => processedUsers.find((u) => u.id === focusedUserId) || processedUsers[0] || null,
+    [processedUsers, focusedUserId],
+  );
 
   const usersRouteContext = useMemo(() => {
     const recentUsers = [...users]
@@ -481,9 +607,12 @@ export const UsersPage = () => {
   }, [handleCreate, handleInvite, handleOpenAnalytics]);
 
   const handleView = useCallback((user) => {
+    setFocusedUserId(user?.id || null);
     setSelectedUser(user);
     setModalMode('view');
   }, []);
+
+  const handleFocusUser = useCallback((u) => setFocusedUserId(u?.id || null), []);
 
   const handleEdit = useCallback((user) => {
     setSelectedUser(user);
@@ -796,14 +925,16 @@ export const UsersPage = () => {
           {usersCommandNotice}
         </div>
       )}
-      <UsersSignalPanel
-        stats={statistics}
-        users={processedUsers}
-        loading={loading}
-        kpiFilter={filters.kpiFilter}
-        setKpiFilter={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
-      />
-      <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
+      <div className="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-stretch">
+        <section className="flex min-w-0 flex-1 flex-col gap-4 lg:min-h-0 lg:self-stretch">
+          <UsersSignalPanel
+            stats={statistics}
+            users={processedUsers}
+            loading={loading}
+            kpiFilter={filters.kpiFilter}
+            setKpiFilter={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
+          />
+          <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-t-sheet bg-card/68 p-3 shadow-[0_24px_70px_rgb(0_0_0/0.16)] backdrop-blur-2xl dark:bg-card/50 md:rounded-sheet">
         <div className="mx-auto mb-3 h-1.5 w-[42px] rounded-pill bg-foreground/20" />
         {/* Admin Statistics Section */}
         {isAdmin() && showStatistics && statistics && (
@@ -905,7 +1036,11 @@ export const UsersPage = () => {
                         transition={{ delay: index * 0.05 }}
                         className="col-span-1"
                       >
-                        <div className="h-full rounded-card bg-card/70 p-6 group relative overflow-hidden flex flex-col">
+                        <div
+                          onClick={() => handleFocusUser(user)}
+                          data-state={focusedUser?.id === user.id ? 'selected' : 'idle'}
+                          className={`h-full rounded-card p-6 group relative overflow-hidden flex flex-col cursor-pointer transition-shadow ${focusedUser?.id === user.id ? 'bg-card shadow-[0_18px_54px_rgb(0_0_0/0.14)]' : 'bg-card/70'}`}
+                        >
                           {/* Apple hover glow effect */}
                           {/* Top Right Icon */}
                           <div className="absolute top-0 right-0 p-5 z-20">
@@ -1066,6 +1201,10 @@ export const UsersPage = () => {
           hasNextPage={pagination.hasNextPage}
           loading={loading}
         />
+          </div>
+        </section>
+
+        <UsersDetailRail user={focusedUser} onView={handleView} />
       </div>
 
       {/* Modals & Overlays */}
