@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
@@ -35,6 +35,115 @@ import { CheckSquare, Archive } from 'lucide-react'; // Additional icons
 
 const USER_DELETE_UNAVAILABLE_MESSAGE = 'Delete is unavailable until identity authority is verified.';
 const USER_IDENTITY_ACTION_UNAVAILABLE_MESSAGE = 'Invites are not ready until identity authority is verified.';
+
+const USERS_STATE_OPTIONS = [
+  { id: 'all', label: 'Users', icon: Users, tone: 'sky',
+    activeClass: 'bg-sky-500/10 text-sky-800 shadow-[0_18px_54px_rgba(14,165,233,0.16)] dark:text-sky-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34', iconClass: 'text-sky-600 dark:text-sky-200' },
+  { id: 'verified', label: 'Verified', icon: UserCheck, tone: 'emerald',
+    activeClass: 'bg-emerald-500/10 text-emerald-800 shadow-[0_18px_54px_rgba(16,185,129,0.16)] dark:text-emerald-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34', iconClass: 'text-emerald-600 dark:text-emerald-200' },
+  { id: 'admin', label: 'Admins', icon: Shield, tone: 'violet',
+    activeClass: 'bg-violet-500/10 text-violet-800 shadow-[0_18px_54px_rgba(139,92,246,0.16)] dark:text-violet-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34', iconClass: 'text-violet-600 dark:text-violet-200' },
+  { id: 'provider', label: 'Providers', icon: Eye, tone: 'amber',
+    activeClass: 'bg-amber-500/10 text-amber-800 shadow-[0_18px_54px_rgba(245,158,11,0.16)] dark:text-amber-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34', iconClass: 'text-amber-600 dark:text-amber-200' },
+];
+
+const usersToneClass = {
+  sky: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
+  emerald: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+  violet: 'bg-violet-500/10 text-violet-700 dark:text-violet-200',
+  amber: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+  muted: 'bg-muted/30 text-muted-foreground',
+};
+
+const normalizeUsersCount = (value, fallback = 0) => {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : fallback;
+};
+
+const getUsersStateCount = ({ id, stats, users }) => {
+  const rows = Array.isArray(users) ? users : [];
+  const dist = stats?.roleDistribution || {};
+  switch (id) {
+    case 'verified':
+      return normalizeUsersCount(stats?.bvnVerifiedUsers, rows.filter((u) => u.bvn_verified).length);
+    case 'admin':
+      return normalizeUsersCount((dist.admin || 0) + (dist.org_admin || 0), rows.filter((u) => ['admin', 'org_admin'].includes(u.role)).length);
+    case 'provider':
+      return normalizeUsersCount(dist.provider, rows.filter((u) => u.role === 'provider').length);
+    default:
+      return normalizeUsersCount(stats?.totalUsers, rows.length);
+  }
+};
+
+const getUsersSignal = ({ stats, users, kpiFilter }) => {
+  const activeId = kpiFilter || 'all';
+  const option = USERS_STATE_OPTIONS.find((item) => item.id === activeId) || USERS_STATE_OPTIONS[0];
+  const count = getUsersStateCount({ id: option.id, stats, users });
+  const nounMap = { all: 'user record', verified: 'verified user', admin: 'admin & manager', provider: 'provider' };
+  const emptyMap = { all: 'users', verified: 'verified users', admin: 'admins & managers', provider: 'providers' };
+  return {
+    icon: option.icon,
+    tone: option.tone,
+    label: option.label,
+    headline: count > 0 ? `${count} ${nounMap[option.id] || 'user'}${count === 1 ? '' : 's'}` : `No ${emptyMap[option.id] || 'users'}`,
+    subhead: count > 0
+      ? 'Review identity, role, and verification records. User commands stay disabled until identity authority is verified.'
+      : 'User records for this scope will appear here.',
+  };
+};
+
+const UsersStateStrip = ({ stats, users, loading, kpiFilter, setKpiFilter }) => (
+  <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-4">
+    {USERS_STATE_OPTIONS.map((item) => {
+      const Icon = item.icon;
+      const active = (kpiFilter || 'all') === item.id;
+      const count = loading ? '...' : getUsersStateCount({ id: item.id, stats, users });
+      return (
+        <motion.button key={item.id} type="button" whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}
+          onClick={() => setKpiFilter(item.id)}
+          className={`group min-h-[78px] rounded-[24px] px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
+          aria-pressed={active} aria-label={`Show ${item.label.toLowerCase()}`} data-state={active ? 'selected' : 'idle'}>
+          <span className="flex items-start justify-between gap-2">
+            <span className="min-w-0">
+              <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
+              <span className="mt-1 block text-2xl font-semibold text-foreground">{count}</span>
+            </span>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-background/45 transition-transform group-hover:scale-105 ${active ? item.iconClass : ''}`}>
+              <Icon className="h-4 w-4" />
+            </span>
+          </span>
+        </motion.button>
+      );
+    })}
+  </div>
+);
+
+const UsersSignalPanel = ({ stats, users, loading, kpiFilter, setKpiFilter }) => {
+  const signal = loading
+    ? { icon: Users, tone: 'muted', label: 'Loading', headline: 'Loading users', subhead: 'One moment while the identity list comes in.' }
+    : getUsersSignal({ stats, users, kpiFilter });
+  const SignalIcon = signal.icon;
+  return (
+    <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42 }}
+      className="flex min-h-[240px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[288px]" aria-live="polite">
+      <div className="min-w-0">
+        <div className="max-w-2xl">
+          <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${usersToneClass[signal.tone] || usersToneClass.muted}`}>
+            <SignalIcon className="h-4 w-4" />
+            {signal.label}
+          </div>
+          <h1 className="max-w-2xl text-[34px] font-semibold leading-[1.05] text-foreground md:text-6xl">{signal.headline}</h1>
+          <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">{signal.subhead}</p>
+        </div>
+        <UsersStateStrip stats={stats} users={users} loading={loading} kpiFilter={kpiFilter} setKpiFilter={setKpiFilter} />
+      </div>
+    </motion.section>
+  );
+};
 
 export const UsersPage = () => {
   const { isAdmin, isOrgAdmin, orgId, profile, can } = useAuth();
@@ -488,12 +597,12 @@ export const UsersPage = () => {
       variant="ghost"
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-primary/10 hover:text-primary relative"
+      className="squircle h-9 w-9 hover:bg-muted hover:text-muted-foreground relative"
       aria-label="Filter users"
     >
       <Filter className="h-4 w-4" />
       {(filters.search || (filters.role && filters.role.length > 0) || (filters.bvn_verified && filters.bvn_verified.length > 0)) && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-pill bg-primary" />
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-pill bg-muted" />
       )}
     </Button>
   ), [filters]);
@@ -503,7 +612,7 @@ export const UsersPage = () => {
     (isAdmin() || isOrgAdmin()) && (
       <Button
         onClick={handleInvite}
-        className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+        className="bg-card/70 h-9 px-4 text-[10px] font-bold"
         aria-label="Add user unavailable"
         aria-describedby={usersCommandNotice ? 'users-action-feedback' : undefined}
         data-state="unavailable"
@@ -518,13 +627,15 @@ export const UsersPage = () => {
   // Footer Configuration
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill bg-white/5 uppercase tracking-widest text-[10px] font-bold">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-pill bg-muted/30 text-[10px] font-bold">
         <span>Page {pagination.currentPage} of {pagination.totalPages} / {users.length} Users</span>
       </div>
     </div>
   ), [pagination.currentPage, pagination.totalPages, users.length]);
 
   usePageFooter(footerContent, 'pagination', !loading && users.length > 0);
+
+  usePageShell({ bleed: true, hideFab: true });
 
   usePageHeader(
     'User Management',
@@ -536,7 +647,7 @@ export const UsersPage = () => {
         onClick={() => setShowStatistics(!showStatistics)}
         variant="ghost"
         size="icon"
-        className={`squircle h-9 w-9 ${showStatistics ? 'bg-primary/10 text-primary' : 'hover:bg-primary/10 hover:text-primary'}`}
+        className={`squircle h-9 w-9 ${showStatistics ? 'bg-muted text-muted-foreground' : 'hover:bg-muted hover:text-muted-foreground'}`}
         aria-label="Toggle statistics"
       >
         <BarChart3 className="h-4 w-4" />
@@ -552,9 +663,9 @@ export const UsersPage = () => {
           initial={{ x: 50, opacity: 0, scale: 0.9 }}
           animate={{ x: 0, opacity: 1, scale: 1 }}
           exit={{ x: 50, opacity: 0, scale: 0.9 }}
-          className="fixed top-1/2 -translate-y-1/2 right-6 z-50 flex flex-col items-center gap-3 p-2 bg-background/15 backdrop-blur-sm shadow-none rounded-pill"
+          className="fixed top-1/2 -translate-y-1/2 right-6 z-50 flex flex-col items-center gap-3 p-2 bg-background/15 shadow-none rounded-pill"
         >
-          <div className="bg-primary text-primary-foreground text-[10px] font-bold h-6 min-w-[24px] px-1.5 rounded-pill flex items-center justify-center shadow-sm mb-1">
+          <div className="bg-foreground text-background text-[10px] font-bold h-6 min-w-[24px] px-1.5 rounded-pill flex items-center justify-center shadow-sm mb-1">
             {selectedIds.length}
           </div>
 
@@ -685,256 +796,35 @@ export const UsersPage = () => {
           {usersCommandNotice}
         </div>
       )}
-      {/* KPI Filter Cards */}
-      {/* KPI Filter Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
-        {/* Total Users Card - Visible to Everyone */}
-        <motion.div
-          layout
-          className="col-span-1"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-        >
-          <div
-            className={`h-full min-h-[140px] rounded-card glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'bg-primary/10 shadow-lg' : ''}`}
-            onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
-          >
-            {/* Apple hover glow effect */}
-            <div className="hover-glow hover-glow-primary" />
-            <div className="absolute top-0 right-0 p-4 z-20">
-              <div className="relative">
-                <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-primary/30' : 'bg-primary/10'} blur-xl rounded-pill scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                  <Users className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-primary' : 'text-muted-foreground'} transition-colors duration-200`} />
-                </div>
-              </div>
-            </div>
-            <div className="relative z-10">
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Total Users</p>
-              <h3 className="text-3xl font-bold tracking-tighter">{statistics?.totalUsers || pagination.totalCount || processedUsers.length}</h3>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge className="rounded-pill bg-primary/20 text-primary font-bold text-xs">
-                  {filters.kpiFilter === 'all' ? 'FILTERED' : 'VIEW ALL'}
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Verified Users Card - Visible to Everyone */}
-        <motion.div
-          layout
-          className="col-span-1"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-        >
-          <div
-            className={`h-full min-h-[140px] rounded-card glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'verified' ? 'bg-success/10 shadow-lg' : ''}`}
-            onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'verified' }))}
-          >
-            {/* Apple hover glow effect */}
-            <div className="hover-glow hover-glow-success" />
-            <div className="absolute top-0 right-0 p-4 z-20">
-              <div className="relative">
-                <div className={`absolute inset-0 ${filters.kpiFilter === 'verified' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-pill scale-150 transition-all duration-200 group-hover:scale-200`} />
-                <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                  <UserCheck className={`h-5 w-5 ${filters.kpiFilter === 'verified' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
-                </div>
-              </div>
-            </div>
-            <div className="relative z-10">
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Verified</p>
-              {/* Prioritize statistics.bvnVerifiedUsers (Server Truth) */}
-              <h3 className="text-3xl font-bold tracking-tighter">
-                {statistics?.bvnVerifiedUsers !== undefined ? statistics.bvnVerifiedUsers : processedUsers.filter(u => u.bvn_verified).length}
-              </h3>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge className="rounded-pill bg-success/20 text-success font-bold text-xs">VERIFIED</Badge>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Role Based Card 1: Admins (Platform) or Providers (Org) */}
-        <motion.div
-          layout
-          className="col-span-1"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-        >
-          {isAdmin() ? (
-            /* Admin View: Admins & Org Admins */
-            <div
-              className={`h-full min-h-[140px] rounded-card glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'admin' ? 'bg-warning/10 shadow-lg' : ''}`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'admin' }))}
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-warning" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'admin' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-pill scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                    <Shield className={`h-5 w-5 ${filters.kpiFilter === 'admin' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Admins & Managers</p>
-                <h3 className="text-3xl font-bold tracking-tighter">
-                  {(statistics?.roleDistribution?.admin || 0) + (statistics?.roleDistribution?.org_admin || 0) || processedUsers.filter(u => ['admin', 'org_admin'].includes(u.role)).length}
-                </h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="rounded-pill bg-warning/20 text-warning font-bold text-xs">MANAGEMENT</Badge>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Org Admin View: Providers */
-            <div
-              className={`h-full min-h-[140px] rounded-card glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'provider' ? 'bg-info/10 shadow-lg' : ''}`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'provider' }))}
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-info" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'provider' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-pill scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                    <Users className={`h-5 w-5 ${filters.kpiFilter === 'provider' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Providers</p>
-                <h3 className="text-3xl font-bold tracking-tighter">
-                  {statistics?.roleDistribution?.provider || processedUsers.filter(u => u.role === 'provider').length}
-                </h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="rounded-pill bg-info/20 text-info font-bold text-xs">MEDICAL STAFF</Badge>
-                </div>
-              </div>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Role Based Card 2: Providers (Platform) or Patients (Org) */}
-        <motion.div
-          layout
-          className="col-span-1"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-        >
-          {isAdmin() ? (
-            /* Admin View: Providers */
-            <div
-              className={`h-full min-h-[140px] rounded-card glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'provider' ? 'bg-info/10 shadow-lg' : ''}`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'provider' }))}
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-info" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'provider' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-pill scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                    <Users className={`h-5 w-5 ${filters.kpiFilter === 'provider' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Providers</p>
-                <h3 className="text-3xl font-bold tracking-tighter">{statistics?.roleDistribution?.provider || processedUsers.filter(u => u.role === 'provider').length}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="rounded-pill bg-info/20 text-info font-bold text-xs">HEALTHCARE</Badge>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Org Admin View: Patients */
-            <div
-              className="h-full min-h-[140px] rounded-card glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'patient' }))} // Note: need to handle patient filter
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-secondary" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-secondary/10 blur-xl rounded-pill scale-150 transition-all duration-200 group-hover:scale-200" />
-                  <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                    <Users className="h-5 w-5 text-secondary" />
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Patients</p>
-                <h3 className="text-3xl font-bold tracking-tighter">
-                  {statistics?.roleDistribution?.patient || processedUsers.filter(u => u.role === 'patient').length}
-                </h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="rounded-pill bg-secondary/20 text-secondary font-bold text-xs">CONSUMERS</Badge>
-                </div>
-              </div>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Analytics Card - Visible to Everyone */}
-        <motion.div
-          layout
-          className="col-span-1"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.4 }}
-        >
-          <div
-            className="h-full min-h-[140px] rounded-card glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200"
-            onClick={handleViewAnalytics}
-          >
-            {/* Apple hover glow effect */}
-            <div className="hover-glow hover-glow-primary" />
-            <div className="absolute top-0 right-0 p-4 z-20">
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-pill scale-150 transition-all duration-200 group-hover:scale-200" />
-                <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                  <BarChart3 className="h-5 w-5 text-primary" />
-                </div>
-              </div>
-            </div>
-            <div className="relative z-10">
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Analytics</p>
-              <h3 className="text-3xl font-bold tracking-tighter">View All</h3>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge className="rounded-pill bg-primary/20 text-primary font-bold text-xs">DEEP DIVE</Badge>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
+      <UsersSignalPanel
+        stats={statistics}
+        users={processedUsers}
+        loading={loading}
+        kpiFilter={filters.kpiFilter}
+        setKpiFilter={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
+      />
       {/* Admin Statistics Section */}
       {isAdmin() && showStatistics && statistics && (
-        <div className="rounded-card bg-background/35 backdrop-blur-xs shadow-premium p-6 mb-6">
+        <div className="rounded-card bg-background/35 p-6 mb-6">
           <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-primary" />
+            <BarChart3 className="h-6 w-6 text-muted-foreground" />
             User Statistics
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-muted/20 rounded-inner">
-              <div className="text-2xl font-semibold text-primary">{statistics.totalUsers}</div>
+              <div className="text-2xl font-semibold text-muted-foreground">{statistics.totalUsers}</div>
               <div className="text-sm text-muted-foreground">Total Users</div>
             </div>
             <div className="text-center p-4 bg-muted/20 rounded-inner">
-              <div className="text-2xl font-semibold text-success">{statistics.emailVerifiedUsers}</div>
+              <div className="text-2xl font-semibold text-emerald-700 dark:text-emerald-200">{statistics.emailVerifiedUsers}</div>
               <div className="text-sm text-muted-foreground">Email Verified</div>
             </div>
             <div className="text-center p-4 bg-muted/20 rounded-inner">
-              <div className="text-2xl font-semibold text-info">{statistics.recentSignups}</div>
+              <div className="text-2xl font-semibold text-muted-foreground">{statistics.recentSignups}</div>
               <div className="text-sm text-muted-foreground">Recent (30d)</div>
             </div>
             <div className="text-center p-4 bg-muted/20 rounded-inner">
-              <div className="text-2xl font-semibold text-warning">{statistics.totalProfiles}</div>
+              <div className="text-2xl font-semibold text-amber-700 dark:text-amber-200">{statistics.totalProfiles}</div>
               <div className="text-sm text-muted-foreground">Profiles</div>
             </div>
           </div>
@@ -942,7 +832,7 @@ export const UsersPage = () => {
             <h4 className="font-medium mb-2">Role Distribution</h4>
             <div className="flex flex-wrap gap-2">
               {Object.entries(statistics.roleDistribution).map(([role, count]) => (
-                <Badge key={role} className="rounded-pill bg-primary/20 text-primary font-bold editorial-subtitle px-3 py-1">
+                <Badge key={role} className="rounded-pill bg-muted text-muted-foreground font-bold editorial-subtitle px-3 py-1">
                   {role}: {count}
                 </Badge>
               ))}
@@ -957,7 +847,7 @@ export const UsersPage = () => {
       ) : (
         <>
           {users.length === 0 ? (
-            <div className="rounded-card glass-card-premium p-12 text-center">
+            <div className="rounded-card bg-card/70 p-12 text-center">
               <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="font-bold text-xl mb-2">
                 {filters.search ? 'No Users Found' :
@@ -985,7 +875,7 @@ export const UsersPage = () => {
                 )}
                 <Button
                   onClick={handleInvite}
-                  className="glass-card-premium h-9 px-4 text-[10px] font-bold tracking-widest uppercase"
+                  className="bg-card/70 h-9 px-4 text-[10px] font-bold"
                   aria-label="Add user unavailable"
                   aria-describedby={usersCommandNotice ? 'users-action-feedback' : undefined}
                   data-state="unavailable"
@@ -1013,25 +903,24 @@ export const UsersPage = () => {
                         transition={{ delay: index * 0.05 }}
                         className="col-span-1"
                       >
-                        <div className="h-full rounded-card glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col">
+                        <div className="h-full rounded-card bg-card/70 p-6 group relative overflow-hidden flex flex-col">
                           {/* Apple hover glow effect */}
-                          <div className="hover-glow hover-glow-primary" />
                           {/* Top Right Icon */}
                           <div className="absolute top-0 right-0 p-5 z-20">
                             <div className="relative">
-                              <div className="absolute inset-0 bg-primary/10 blur-xl rounded-pill scale-150" />
+                              <div className="absolute inset-0 bg-muted rounded-pill scale-150" />
                               <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
-                                {user.role === 'admin' ? <Shield className="h-5 w-5 text-primary" /> : <Users className="h-5 w-5 text-primary" />}
+                                {user.role === 'admin' ? <Shield className="h-5 w-5 text-muted-foreground" /> : <Users className="h-5 w-5 text-muted-foreground" />}
                               </div>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2 mb-4 relative z-10">
-                            <Badge className="rounded-pill bg-primary/20 text-primary font-bold editorial-subtitle px-3 py-1">
+                            <Badge className="rounded-pill bg-muted text-muted-foreground font-bold editorial-subtitle px-3 py-1">
                               {user.role || 'patient'}
                             </Badge>
                             {user.bvn_verified && (
-                              <Badge className="rounded-pill bg-success/20 text-success px-2 py-1">
+                              <Badge className="rounded-pill bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 px-2 py-1">
                                 Verified
                               </Badge>
                             )}
@@ -1060,7 +949,7 @@ export const UsersPage = () => {
                                 {user.full_name || user.username || user.profile_username || 'Unknown User'}
                               </h3>
                               {user.provider_type && (
-                                <p className="text-sm font-medium text-primary">{user.provider_type}</p>
+                                <p className="text-sm font-medium text-muted-foreground">{user.provider_type}</p>
                               )}
                               <p className="text-xs text-muted-foreground">{user.email}</p>
                             </div>
@@ -1068,18 +957,18 @@ export const UsersPage = () => {
 
                           <div className="space-y-3 mb-6 relative z-10">
                             <div className="flex items-center gap-3 text-sm p-2 rounded-inner bg-muted/30">
-                              <Mail className="h-4 w-4 text-info" />
+                              <Mail className="h-4 w-4 text-muted-foreground" />
                               <span className="truncate font-normal">{user.email || 'No email'}</span>
                             </div>
                             {user.phone && (
                               <div className="flex items-center gap-3 text-sm p-2 rounded-inner bg-muted/30">
-                                <Phone className="h-4 w-4 text-success" />
+                                <Phone className="h-4 w-4 text-emerald-700 dark:text-emerald-200" />
                                 <span className="font-normal">{user.phone}</span>
                               </div>
                             )}
                             {user.last_sign_in_at && (
                               <div className="flex items-center gap-3 text-sm p-2 rounded-inner bg-muted/30">
-                                <UserCheck className="h-4 w-4 text-primary" />
+                                <UserCheck className="h-4 w-4 text-muted-foreground" />
                                 <span className="font-normal">
                                   Last login: {new Date(user.last_sign_in_at).toLocaleDateString()}
                                 </span>
@@ -1093,7 +982,7 @@ export const UsersPage = () => {
                               size="sm"
                               variant="ghost"
                               onClick={() => handleView(user)}
-                              className="flex-1 h-8 rounded-button bg-muted/20 hover:bg-muted/30 text-[10px] font-bold tracking-widest uppercase text-foreground"
+                              className="flex-1 h-8 rounded-button bg-muted/20 hover:bg-muted/30 text-[10px] font-bold text-foreground"
                               aria-label={`View details for ${user.username || user.profile_username || 'user'}`}
                             >
                               <Eye className="h-3 w-3 mr-1" />
@@ -1105,7 +994,7 @@ export const UsersPage = () => {
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleEdit(user)}
-                                  className="flex-1 h-8 rounded-button bg-muted/20 hover:bg-muted/30 text-[10px] font-bold tracking-widest uppercase text-foreground"
+                                  className="flex-1 h-8 rounded-button bg-muted/20 hover:bg-muted/30 text-[10px] font-bold text-foreground"
                                   aria-label={`Edit ${user.username || user.profile_username || 'user'}`}
                                 >
                                   <Edit className="h-3 w-3 mr-1" />
@@ -1115,7 +1004,7 @@ export const UsersPage = () => {
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => confirmDelete(user)}
-                                  className="flex-1 h-8 rounded-button bg-muted/20 hover:bg-muted/30 text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
+                                  className="flex-1 h-8 rounded-button bg-muted/20 hover:bg-muted/30 text-[10px] font-bold text-muted-foreground"
                                   aria-label={`Delete unavailable for ${user.username || user.profile_username || 'user'}`}
                                   aria-describedby={usersCommandNotice ? 'users-action-feedback' : undefined}
                                   data-state="unavailable"

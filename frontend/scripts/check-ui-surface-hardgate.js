@@ -82,6 +82,7 @@ const defaultFiles = [
   'src/components/views/HealthNewsListView.jsx',
   'src/components/views/HealthNewsTableView.jsx',
   'src/components/modals/HealthNewsModal.jsx',
+  'src/components/pages/UsersPage.jsx',
   'src/components/modals/AnalyticsModal.jsx',
   'src/components/pages/NotFoundPage.jsx',
   'src/components/pages/OnboardingSuccessPage.jsx',
