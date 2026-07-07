@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { usePageHeader, usePageFooter } from '../../contexts/LayoutContext';
+import { usePageHeader, usePageFooter, usePageShell } from '../../contexts/LayoutContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useNavigation } from '../../contexts/NavigationContext';
@@ -96,6 +96,155 @@ const hasInsuranceFilterValue = (value) => {
 const hasActiveInsuranceFilters = (filters = {}) => (
   Object.entries(filters).some(([key, value]) => key !== 'kpiFilter' && hasInsuranceFilterValue(value))
 );
+
+const INSURANCE_STATE_OPTIONS = [
+  {
+    id: 'all', label: 'Policies', icon: Shield, countKey: 'total', tone: 'sky',
+    activeClass: 'bg-sky-500/10 text-sky-800 shadow-[0_18px_54px_rgba(14,165,233,0.16)] dark:text-sky-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+    iconClass: 'text-sky-600 dark:text-sky-200',
+  },
+  {
+    id: 'active', label: 'Active', icon: CheckCircle, countKey: 'active', tone: 'emerald',
+    activeClass: 'bg-emerald-500/10 text-emerald-800 shadow-[0_18px_54px_rgba(16,185,129,0.16)] dark:text-emerald-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+    iconClass: 'text-emerald-600 dark:text-emerald-200',
+  },
+  {
+    id: 'pending', label: 'Pending', icon: Clock, countKey: 'pending', tone: 'amber',
+    activeClass: 'bg-amber-500/10 text-amber-800 shadow-[0_18px_54px_rgba(245,158,11,0.16)] dark:text-amber-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+    iconClass: 'text-amber-600 dark:text-amber-200',
+  },
+  {
+    id: 'expired', label: 'Expired', icon: AlertTriangle, countKey: 'expired', tone: 'rose',
+    activeClass: 'bg-rose-500/10 text-rose-800 shadow-[0_18px_54px_rgba(244,63,94,0.16)] dark:text-rose-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+    iconClass: 'text-rose-600 dark:text-rose-200',
+  },
+  {
+    id: 'unverified', label: 'Unverified', icon: Eye, countKey: 'unverified', tone: 'violet',
+    activeClass: 'bg-violet-500/10 text-violet-800 shadow-[0_18px_54px_rgba(139,92,246,0.16)] dark:text-violet-100',
+    restClass: 'bg-muted/24 text-muted-foreground hover:bg-muted/34',
+    iconClass: 'text-violet-600 dark:text-violet-200',
+  },
+];
+
+const insuranceToneClass = {
+  sky: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
+  emerald: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+  amber: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+  rose: 'bg-rose-500/10 text-rose-700 dark:text-rose-200',
+  violet: 'bg-violet-500/10 text-violet-700 dark:text-violet-200',
+  muted: 'bg-muted/30 text-muted-foreground',
+};
+
+const normalizeInsuranceCount = (value, fallback = 0) => {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : fallback;
+};
+
+const getInsuranceStateCount = ({ id, stats, policies }) => {
+  const rows = Array.isArray(policies) ? policies : [];
+  const option = INSURANCE_STATE_OPTIONS.find((item) => item.id === id) || INSURANCE_STATE_OPTIONS[0];
+  const fallback = id === 'all'
+    ? rows.length
+    : id === 'unverified'
+      ? rows.filter((policy) => !policy.verified).length
+      : rows.filter((policy) => policy.status === id).length;
+  return normalizeInsuranceCount(stats?.[option.countKey], fallback);
+};
+
+const getInsuranceSignal = ({ stats, policies, kpiFilter }) => {
+  const activeId = kpiFilter || 'all';
+  const option = INSURANCE_STATE_OPTIONS.find((item) => item.id === activeId) || INSURANCE_STATE_OPTIONS[0];
+  const count = getInsuranceStateCount({ id: option.id, stats, policies });
+  const noun = option.id === 'all' ? 'policy record' : `${option.label.toLowerCase()} policy`;
+  const emptyNoun = option.id === 'all' ? 'policies' : `${option.label.toLowerCase()} policies`;
+  return {
+    icon: option.icon,
+    tone: option.tone,
+    label: option.label,
+    headline: count > 0 ? `${count} ${noun}${count === 1 ? '' : 's'}` : `No ${emptyNoun}`,
+    subhead: count > 0
+      ? 'Review policy evidence and claim outcomes. Insurance stays read-only until admin authority is verified.'
+      : 'Policy records for this scope will appear here.',
+  };
+};
+
+const InsuranceStateStrip = ({ stats, policies, loading, kpiFilter, setKpiFilter }) => (
+  <div className="mt-5 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+    {INSURANCE_STATE_OPTIONS.map((item) => {
+      const Icon = item.icon;
+      const active = (kpiFilter || 'all') === item.id;
+      const count = loading ? '...' : getInsuranceStateCount({ id: item.id, stats, policies });
+
+      return (
+        <motion.button
+          key={item.id}
+          type="button"
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setKpiFilter(item.id)}
+          className={`group min-h-[78px] rounded-[24px] px-3 py-3 text-left transition-[background,box-shadow,transform] duration-200 ${active ? item.activeClass : item.restClass}`}
+          aria-pressed={active}
+          aria-label={`Show ${item.label.toLowerCase()} policies`}
+          data-state={active ? 'selected' : 'idle'}
+        >
+          <span className="flex items-start justify-between gap-2">
+            <span className="min-w-0">
+              <span className="block text-[11px] font-semibold leading-tight">{item.label}</span>
+              <span className="mt-1 block text-2xl font-semibold text-foreground">{count}</span>
+            </span>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-inner bg-background/45 transition-transform group-hover:scale-105 ${active ? item.iconClass : ''}`}>
+              <Icon className="h-4 w-4" />
+            </span>
+          </span>
+        </motion.button>
+      );
+    })}
+  </div>
+);
+
+const InsuranceSignalPanel = ({ stats, policies, loading, kpiFilter, setKpiFilter }) => {
+  const signal = loading
+    ? { icon: Shield, tone: 'muted', label: 'Loading', headline: 'Loading policies', subhead: 'One moment while the policy list comes in.' }
+    : getInsuranceSignal({ stats, policies, kpiFilter });
+  const SignalIcon = signal.icon;
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.42 }}
+      className="flex min-h-[240px] items-end px-1 py-3 md:px-3 md:py-5 lg:min-h-[288px]"
+      aria-live="polite"
+    >
+      <div className="min-w-0">
+        <div className="max-w-2xl">
+          <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${insuranceToneClass[signal.tone] || insuranceToneClass.muted}`}>
+            <SignalIcon className="h-4 w-4" />
+            {signal.label}
+          </div>
+          <h1 className="max-w-2xl text-[34px] font-semibold leading-[1.05] text-foreground md:text-6xl">
+            {signal.headline}
+          </h1>
+          <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
+            {signal.subhead}
+          </p>
+        </div>
+
+        <InsuranceStateStrip
+          stats={stats}
+          policies={policies}
+          loading={loading}
+          kpiFilter={kpiFilter}
+          setKpiFilter={setKpiFilter}
+        />
+      </div>
+    </motion.section>
+  );
+};
 
 export const InsuranceManagementPage = () => {
   const { isAdmin } = useAuth();
@@ -483,12 +632,12 @@ export const InsuranceManagementPage = () => {
       variant="ghost"
       size="icon"
       onClick={() => setFilterSheetOpen(true)}
-      className="squircle h-9 w-9 hover:bg-info/10 hover:text-info relative"
+      className="squircle h-9 w-9 hover:bg-muted hover:text-muted-foreground relative"
       aria-label="Filter policies"
     >
       <FilterIcon className="h-4 w-4" />
       {hasActiveFilters && (
-        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-info" />
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-muted" />
       )}
     </Button>
   ), [hasActiveFilters]);
@@ -500,7 +649,7 @@ export const InsuranceManagementPage = () => {
         onPointerDown={handlePolicyToolsPress}
         onClick={handlePolicyToolsUnavailable}
         variant="ghost"
-        className="glass-card-premium h-9 px-4 text-xs font-semibold"
+        className="bg-card h-9 px-4 text-xs font-semibold"
         aria-label="Insurance is read-only until policy authority is verified"
       >
         <Shield className="h-4 w-4 mr-2" />
@@ -520,7 +669,7 @@ export const InsuranceManagementPage = () => {
   // Footer Configuration
   const footerContent = React.useMemo(() => (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 text-[11px] font-semibold text-muted-foreground">
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/30 text-[11px] font-semibold text-muted-foreground">
         <span>Page {pagination.currentPage} of {pagination.totalPages} / {pagination.totalCount} policies</span>
       </div>
     </div>
@@ -528,12 +677,14 @@ export const InsuranceManagementPage = () => {
 
   usePageFooter(footerContent, 'pagination', !loading && pagination.totalCount > 0);
 
+  usePageShell({ bleed: true, hideFab: true });
+
   // Badge Logic
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'active': return 'bg-success/20 text-success';
+      case 'active': return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200';
       case 'expired': return 'bg-destructive/20 text-destructive';
-      case 'pending': return 'bg-warning/20 text-warning';
+      case 'pending': return 'bg-amber-500/15 text-amber-700 dark:text-amber-200';
       default: return 'bg-muted text-muted-foreground';
     }
   };
@@ -602,12 +753,12 @@ export const InsuranceManagementPage = () => {
               <div
                 role="status"
                 aria-live="polite"
-                className="mb-4 rounded-2xl bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
+                className="mb-4 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
               >
                 {commandNotice}
               </div>
             )}
-            <Card className="squircle-lg glass-card-premium p-6 text-center">
+            <Card className="rounded-card bg-card p-6 text-center">
               <Shield className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
               <h3 className="font-bold text-lg mb-2">Insurance could not load</h3>
               <p className="text-sm text-muted-foreground mb-4">{error}</p>
@@ -669,210 +820,20 @@ export const InsuranceManagementPage = () => {
     <div className="min-h-screen py-6 md:py-8 pt-6">
       <SEOHead title="Insurance" description="Review insurance policy evidence and claim outcomes." />
 
-      {/* Bento Overview Cards - Enhanced with Filtering */}
-      <LayoutGroup>
-        <motion.div
-          layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-min grid-flow-dense mb-8"
-        >
-          {/* Total Policies Card */}
-          <motion.div
-            layout
-            className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-          >
-            <Card
-              className={`h-full min-h-[140px] geo-sharp glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'all' ? 'ring-2 ring-info shadow-lg' : ''
-                }`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'all' }))}
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-info" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'all' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                    <Shield className={`h-5 w-5 ${filters.kpiFilter === 'all' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground">Total policies</p>
-                  {filters.kpiFilter === 'all' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{insuranceStats.total}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-sharp bg-info/20 text-info border-0 font-semibold text-xs">
-                    {filters.kpiFilter === 'all' ? 'Filtered' : 'View all'}
-                  </Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Active Policies Card */}
-          <motion.div
-            layout
-            className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.15 }}
-          >
-            <Card
-              className={`h-full min-h-[140px] geo-round glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'active' ? 'ring-2 ring-success shadow-lg' : ''
-                }`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'active' }))}
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-success" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'active' ? 'bg-success/30' : 'bg-success/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                    <CheckCircle className={`h-5 w-5 ${filters.kpiFilter === 'active' ? 'text-success' : 'text-muted-foreground'} transition-colors duration-200`} />
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground">Active</p>
-                  {filters.kpiFilter === 'active' && <div className="h-2 w-2 rounded-full bg-success animate-pulse" />}
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{insuranceStats.active}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-round bg-success/20 text-success border-0 font-semibold text-xs">
-                    {Math.round((insuranceStats.active / (insuranceStats.total || 1)) * 100) || 0}%
-                  </Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Pending Verification Card */}
-          <motion.div
-            layout
-            className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-          >
-            <Card
-              className={`h-full min-h-[140px] squircle-3xl glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'pending' ? 'ring-2 ring-warning shadow-lg' : ''
-                }`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'pending' }))}
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-warning" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'pending' ? 'bg-warning/30' : 'bg-warning/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                    <Clock className={`h-5 w-5 ${filters.kpiFilter === 'pending' ? 'text-warning' : 'text-muted-foreground'} transition-colors duration-200`} />
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground">Pending</p>
-                  {filters.kpiFilter === 'pending' && <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />}
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{insuranceStats.pending}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="squircle-3xl bg-warning/20 text-warning border-0 font-semibold text-xs">
-                    Waiting
-                  </Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Expired Policies Card */}
-          <motion.div
-            layout
-            className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.25 }}
-          >
-            <Card
-              className={`h-full min-h-[140px] geo-ticket glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'expired' ? 'ring-2 ring-destructive shadow-lg' : ''
-                }`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'expired' }))}
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-destructive" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'expired' ? 'bg-destructive/30' : 'bg-destructive/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                    <AlertTriangle className={`h-5 w-5 ${filters.kpiFilter === 'expired' ? 'text-destructive' : 'text-muted-foreground'} transition-colors duration-200`} />
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground">Expired</p>
-                  {filters.kpiFilter === 'expired' && <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />}
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{insuranceStats.expired}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-ticket bg-destructive/20 text-destructive border-0 font-semibold text-xs">
-                    Expired
-                  </Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Unverified Policies Card */}
-          <motion.div
-            layout
-            className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1 row-span-1"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-          >
-            <Card
-              className={`h-full min-h-[140px] geo-wave glass-card shadow-2xl p-6 hover-lift cursor-pointer relative overflow-hidden group transition-all duration-200 ${filters.kpiFilter === 'unverified' ? 'ring-2 ring-info shadow-lg' : ''
-                }`}
-              onClick={() => setFilters(prev => ({ ...prev, kpiFilter: 'unverified' }))}
-            >
-              {/* Apple hover glow effect */}
-              <div className="hover-glow hover-glow-info" />
-              <div className="absolute top-0 right-0 p-4 z-20">
-                <div className="relative">
-                  <div className={`absolute inset-0 ${filters.kpiFilter === 'unverified' ? 'bg-info/30' : 'bg-info/10'} blur-xl rounded-full scale-150 transition-all duration-200 group-hover:scale-200`} />
-                  <div className="w-10 h-10 rounded-full surface-raised flex items-center justify-center shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-200">
-                    <Shield className={`h-5 w-5 ${filters.kpiFilter === 'unverified' ? 'text-info' : 'text-muted-foreground'} transition-colors duration-200`} />
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-semibold text-muted-foreground">Unverified</p>
-                  {filters.kpiFilter === 'unverified' && <div className="h-2 w-2 rounded-full bg-info animate-pulse" />}
-                </div>
-                <h3 className="text-3xl font-bold tracking-tighter">{insuranceStats.unverified}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge className="geo-wave bg-info/20 text-info border-0 font-semibold text-xs">
-                    Unverified
-                  </Badge>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        </motion.div>
-
-      </LayoutGroup>
+      {/* Signal panel (headline + state chips) replaces the bento KPI cards */}
+      <InsuranceSignalPanel
+        stats={insuranceStats}
+        policies={paginatedPolicies}
+        loading={loading}
+        kpiFilter={filters.kpiFilter}
+        setKpiFilter={(id) => setFilters(prev => ({ ...prev, kpiFilter: id }))}
+      />
 
       {commandNotice && (
         <div
           role="status"
           aria-live="polite"
-          className="mb-4 rounded-2xl bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
+          className="mb-4 rounded-inner bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
         >
           {commandNotice}
         </div>
@@ -881,7 +842,7 @@ export const InsuranceManagementPage = () => {
       {loading ? (
         <TableSkeleton rows={8} />
       ) : error && !hasDesktopRows ? (
-        <Card className="squircle-lg glass-card-premium p-12 text-center">
+        <Card className="rounded-card bg-card p-12 text-center">
           <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
           <h3 className="font-bold text-xl mb-2">Insurance could not load</h3>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
@@ -892,7 +853,7 @@ export const InsuranceManagementPage = () => {
           </Button>
         </Card>
       ) : filteredPolicies.length === 0 ? (
-        <Card className="squircle-lg glass-card-premium p-12 text-center">
+        <Card className="rounded-card bg-card p-12 text-center">
           <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
           <h3 className="font-bold text-xl mb-2">
             {filters.search ? 'No policies found' :
@@ -928,12 +889,12 @@ export const InsuranceManagementPage = () => {
         <>
           {error && (
             <Card
-              className="mb-4 squircle-lg glass-card-premium p-4"
+              className="mb-4 rounded-card bg-card p-4"
               data-testid="insurance-degraded-state"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 rounded-2xl bg-warning/10 p-2 text-warning">
+                  <div className="mt-0.5 rounded-inner bg-amber-500/15 p-2 text-amber-700 dark:text-amber-200">
                     <AlertTriangle className="h-4 w-4" />
                   </div>
                   <div>
@@ -966,26 +927,24 @@ export const InsuranceManagementPage = () => {
                     transition={{ delay: index * 0.05 }}
                     className="col-span-1"
                   >
-                    <Card className="h-full squircle-xl glass-card-premium p-6 hover-lift group relative overflow-hidden flex flex-col">
+                    <Card className="h-full rounded-card bg-card p-6 group relative overflow-hidden flex flex-col">
                       {/* Apple hover glow effect */}
-                      <div className={`hover-glow ${policy.status === 'expired' ? 'hover-glow-destructive' : 'hover-glow-info'}`} />
                       {/* Decorative Elements */}
                       <div className="absolute top-0 right-0 p-5 z-20">
                         <div className="relative">
-                          <div className={`absolute inset-0 ${policy.status === 'expired' ? 'bg-destructive/20' : 'bg-info/10'} blur-xl rounded-full scale-150`} />
-                          <div className="w-10 h-10 geo-round surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
-                            <Shield className={`h-5 w-5 ${policy.status === 'expired' ? 'text-destructive' : 'text-info'}`} />
+                          <div className="w-10 h-10 rounded-icon surface-raised flex items-center justify-center shadow-sm relative z-10 group-hover:scale-110 transition-transform duration-300">
+                            <Shield className={`h-5 w-5 ${policy.status === 'expired' ? 'text-destructive' : 'text-muted-foreground'}`} />
                           </div>
                         </div>
                       </div>
 
                       {/* Content */}
                       <div className="flex items-center gap-2 mb-4 relative z-10">
-                        <Badge className={`geo-sharp ${getStatusBadge(policy.status)} border-0 font-bold editorial-subtitle px-3 py-1`}>
+                        <Badge className={`rounded-inner ${getStatusBadge(policy.status)} font-bold editorial-subtitle px-3 py-1`}>
                           {policy.status}
                         </Badge>
                         {policy.verified && (
-                          <Badge variant="outline" className="geo-sharp border-success/20 text-success px-2 py-1 font-semibold gap-1">
+                          <Badge variant="outline" className="rounded-inner text-emerald-700 dark:text-emerald-200 px-2 py-1 font-semibold gap-1">
                             <CheckCircle className="w-3 h-3" /> Verified
                           </Badge>
                         )}
@@ -996,18 +955,18 @@ export const InsuranceManagementPage = () => {
                       <p className="text-sm text-muted-foreground mb-6 font-mono tracking-tight">{policy.policy_number}</p>
 
                       <div className="space-y-3 mb-6 relative z-10 flex-1">
-                        <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
+                        <div className="flex items-center justify-between p-3 rounded-inner bg-muted/30">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <DollarSign className="h-4 w-4 text-info" />
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
                             <span className="font-normal">Coverage</span>
                           </div>
                           <span className="font-semibold text-foreground">
                             ${policy.coverage_amount?.toLocaleString() || '0'}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between p-3 geo-sharp bg-muted/30">
+                        <div className="flex items-center justify-between p-3 rounded-inner bg-muted/30">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock className="h-4 w-4 text-warning" />
+                            <Clock className="h-4 w-4 text-amber-700 dark:text-amber-200" />
                             <span className="font-normal">Expires</span>
                           </div>
                           <span className="font-semibold text-foreground">
@@ -1017,7 +976,7 @@ export const InsuranceManagementPage = () => {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center justify-between mt-auto pt-4 border-t border-muted/20 relative z-10 px-2">
+                      <div className="flex items-center justify-between mt-auto pt-4 relative z-10 px-2">
                         <div className="text-xs font-semibold text-muted-foreground">
                           Review
                         </div>
@@ -1025,7 +984,7 @@ export const InsuranceManagementPage = () => {
                           <Button
                             variant="ghost"
                             onClick={() => handleView(policy)}
-                            className="geo-round h-8 px-3 text-xs font-semibold hover:bg-info/10 hover:text-info"
+                            className="rounded-icon h-8 px-3 text-xs font-semibold hover:bg-muted hover:text-muted-foreground"
                             aria-label={`View details for ${policy.policy_holder_name}`}
                           >
                             <Eye className="h-4 w-4" />
