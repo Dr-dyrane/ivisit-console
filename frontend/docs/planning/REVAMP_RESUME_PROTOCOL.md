@@ -105,14 +105,24 @@ proof this revamp requires. Therefore resumption is LOCAL:
   commits, and emits the ready-to-run resume prompt. It makes no code edits.
 - To resume by hand: run `pwsh -File frontend/scripts/revamp-resume.ps1`, read its preflight,
   then start a Claude Code session with the emitted resume prompt.
-- To schedule every 30 minutes on Windows (opt-in; run once in an elevated PowerShell). This only
-  runs the *preflight/notifier*; it deliberately does not auto-commit or auto-push unsupervised:
+- To schedule every 30 minutes on Windows (opt-in; run once in an elevated PowerShell). Without
+  `-Launch` the task runs the *preflight/notifier* only. With `-Launch` it does true auto-continue:
+  after a clean preflight it starts Claude Code headless on the resume prompt, which may then
+  commit/push to the checkpoint branch unattended:
   ```powershell
+  # Preflight/notify only:
   $action  = New-ScheduledTaskAction -Execute 'pwsh.exe' -Argument '-NoProfile -File "C:\Users\Dyrane\Documents\GitHub\ivisit-console\frontend\scripts\revamp-resume.ps1"'
+  # Or, for unattended auto-continue, append -Launch to the argument string:
+  # $action = New-ScheduledTaskAction -Execute 'pwsh.exe' -Argument '-NoProfile -File "C:\Users\Dyrane\Documents\GitHub\ivisit-console\frontend\scripts\revamp-resume.ps1" -Launch'
   $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 30)
-  Register-ScheduledTask -TaskName 'ivisit-console-revamp-resume' -Action $action -Trigger $trigger -Description 'Preflight/notify to resume the console revamp cycle'
+  Register-ScheduledTask -TaskName 'ivisit-console-revamp-resume' -Action $action -Trigger $trigger -Description 'Preflight/notify (or -Launch auto-continue) for the console revamp cycle'
   ```
   Remove it with `Unregister-ScheduledTask -TaskName 'ivisit-console-revamp-resume' -Confirm:$false`.
 
-Unattended auto-commit/push every 30 minutes is intentionally NOT enabled by default: it would
-run the model unsupervised against a live branch. Enable that only with explicit user intent.
+Unattended auto-continue (`-Launch`) runs the model unsupervised against a live branch, so it is
+opt-in. It stays safe because every run first passes the preflight guards (right branch, clean
+tree, origin not ahead) and the in-session protocol still stops on the section-4 conditions; but
+it needs the `claude` CLI installed on PATH and its tool permissions pre-approved to run without
+prompting. On a machine where `claude` is not on PATH (as in the environment this was built in),
+`-Launch` prints how to enable it and the task falls back to notify-and-emit-prompt for a human
+to launch.

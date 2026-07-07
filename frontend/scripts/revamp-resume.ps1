@@ -8,6 +8,8 @@
   See docs/planning/REVAMP_RESUME_PROTOCOL.md for the full protocol.
 #>
 
+param([switch]$Launch)
+
 $ErrorActionPreference = 'Stop'
 $Branch = 'codex/ivisit-console-revamp-checkpoint-20260707'
 
@@ -87,3 +89,21 @@ Stop and ask for review only on the protocol's stop-and-ask conditions.
 Write-Host $prompt
 Write-Host ''
 Write-Host 'Preflight OK. This script made no edits, commits, pushes, or secret reads.' -ForegroundColor Green
+
+# 8. Optional auto-continue: run Claude Code headless on the emitted prompt.
+# Off by default. Requires the `claude` CLI on PATH. An unattended run may commit/push to the
+# checkpoint branch, so configure claude's tool permissions beforehand for a fully non-interactive
+# run. The preflight guards above still gate this: a dirty tree or an ahead origin already exited
+# (Stop-Cycle) before reaching here, so -Launch never runs on top of unreviewed changes.
+if ($Launch) {
+  $claude = Get-Command claude -ErrorAction SilentlyContinue
+  if ($claude) {
+    Write-Host ''
+    Write-Host 'Auto-continue (-Launch): starting Claude Code on the resume prompt...' -ForegroundColor Cyan
+    & $claude.Source -p $prompt
+  } else {
+    Write-Host ''
+    Write-Host 'Auto-continue requested (-Launch) but the "claude" CLI is not on PATH.' -ForegroundColor Yellow
+    Write-Host 'Install Claude Code (or add it to PATH), then re-run with -Launch.'
+  }
+}
