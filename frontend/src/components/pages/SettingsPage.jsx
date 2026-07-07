@@ -119,7 +119,7 @@ export const SettingsPage = () => {
 
     const getRoleBadgeStyles = (role) => {
         const styles = {
-            admin: 'bg-primary/10 text-primary shadow-sm',
+            admin: 'bg-muted text-muted-foreground shadow-sm',
             sponsor: 'bg-purple-500/10 text-purple-500 shadow-sm',
             provider: 'bg-blue-500/10 text-blue-500 shadow-sm',
             viewer: 'bg-muted/40 text-muted-foreground shadow-sm',
@@ -179,9 +179,9 @@ export const SettingsPage = () => {
                         animate={{ opacity: 1, scale: 1 }}
                         className="col-span-1 lg:col-span-2"
                     >
-                        <div className="group relative h-full overflow-hidden rounded-card bg-card/80 shadow-[0_24px_80px_rgb(0_0_0/0.10)] backdrop-blur-xl">
+                        <div className="group relative h-full overflow-hidden rounded-card bg-card/80 shadow-[0_24px_80px_rgb(0_0_0/0.10)]">
                             {/* Dynamic Background Pattern */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-50" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-muted/40 via-transparent to-muted/40 opacity-50" />
                             <div className="absolute inset-0 opacity-[0.03]"
                                 style={{
                                     backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.4' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E")`,
@@ -189,14 +189,14 @@ export const SettingsPage = () => {
                             />
 
                             {/* Header Banner */}
-                            <div className="h-40 bg-gradient-to-r from-primary/10 via-background/50 to-background/50 relative overflow-hidden">
+                            <div className="h-40 bg-gradient-to-r from-muted/40 via-background/50 to-background/50 relative overflow-hidden">
                                 <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
                             </div>
 
                             <div className="px-6 md:px-10 pb-10 -mt-20 relative z-10">
                                 <div className="flex flex-col md:flex-row items-center md:items-end gap-6 mb-8">
                                     <div className="relative group">
-                                        <Avatar className="h-36 w-36 rounded-card bg-background shadow-2xl">
+                                        <Avatar className="h-36 w-36 rounded-card bg-background shadow-sm">
                                             <AvatarImage
                                                 src={avatarUrl}
                                                 className="object-cover"
@@ -210,7 +210,7 @@ export const SettingsPage = () => {
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-pill bg-background/85 shadow-sm" title="Online">
-                                            <span className="h-3 w-3 rounded-pill bg-success pulse-dot" />
+                                            <span className="h-3 w-3 rounded-pill bg-emerald-500 pulse-dot" />
                                         </div>
                                     </div>
 
@@ -238,12 +238,12 @@ export const SettingsPage = () => {
                                         {/* Secondary Identifiers - IDs and Email */}
                                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-0.5">
                                             {displayId && (
-                                                <div className="flex items-center gap-2 rounded-pill bg-white/5 px-3 py-1.5 shadow-inner backdrop-blur-md transition-colors group/id hover:bg-white/10">
-                                                    <div className="h-1.5 w-1.5 rounded-pill bg-primary pulse-dot" />
-                                                    <span className="font-mono text-[10px] tracking-tighter text-foreground/80">{displayId}</span>
+                                                <div className="flex items-center gap-2 rounded-pill bg-muted/30 px-3 py-1.5 shadow-inner transition-colors group/id hover:bg-muted/40">
+                                                    <div className="h-1.5 w-1.5 rounded-pill bg-muted-foreground pulse-dot" />
+                                                    <span className="font-mono text-[10px] text-foreground/80">{displayId}</span>
                                                 </div>
                                             )}
-                                            <div className="flex max-w-full items-center gap-2 overflow-hidden rounded-pill bg-white/5 px-3 py-1.5 shadow-inner backdrop-blur-md transition-colors group/email hover:bg-white/10">
+                                            <div className="flex max-w-full items-center gap-2 overflow-hidden rounded-pill bg-muted/30 px-3 py-1.5 shadow-inner transition-colors group/email hover:bg-muted/40">
                                                 <Mail className="h-3 w-3 opacity-50 shrink-0" />
                                                 <span className="text-[11px] tracking-tight text-muted-foreground/80 break-all">
                                                     {user?.email || profile?.email}
@@ -255,7 +255,7 @@ export const SettingsPage = () => {
                                     <div className="flex-shrink-0">
                                         <Button
                                             onClick={() => setIsProfileModalOpen(true)}
-                                            className="rounded-button bg-primary px-6 font-semibold text-primary-foreground shadow-lg hover:bg-primary/90"
+                                            className="rounded-button bg-foreground px-6 font-semibold text-background shadow-lg hover:bg-foreground/90"
                                         >
                                             Edit Profile
                                         </Button>
@@ -266,21 +266,21 @@ export const SettingsPage = () => {
                                     {/* Account Details */}
                                     <div className="group/item rounded-inner bg-muted/20 p-5 shadow-sm transition-all duration-300 hover:bg-muted/30">
                                         <div className="flex items-center gap-3 mb-3">
-                                            <div className="rounded-icon bg-background p-2.5 text-primary shadow-sm transition-transform group-hover/item:scale-110">
+                                            <div className="rounded-icon bg-background p-2.5 text-muted-foreground shadow-sm transition-transform group-hover/item:scale-110">
                                                 <Smartphone className="w-5 h-5" />
                                             </div>
                                             <span className="text-sm font-semibold text-muted-foreground">Mobile contact</span>
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <p className="font-mono font-bold text-lg tracking-tight">{profile?.phone || 'Not Linked'}</p>
-                                            {profile?.phone && <Badge variant="secondary" className="rounded-pill bg-success/10 text-[10px] font-semibold text-success">Verified</Badge>}
+                                            {profile?.phone && <Badge variant="outline" className="rounded-pill bg-muted text-[10px] font-semibold text-emerald-700 dark:text-emerald-200">Verified</Badge>}
                                         </div>
                                     </div>
 
                                     {/* Billing readiness */}
                                     <div className="rounded-inner bg-muted/20 p-5 shadow-sm transition-all duration-300">
                                         <div className="flex items-center gap-3 mb-3">
-                                            <div className="rounded-icon bg-background p-2.5 text-secondary shadow-sm">
+                                            <div className="rounded-icon bg-background p-2.5 text-muted-foreground shadow-sm">
                                                 <CreditCard className="w-5 h-5" />
                                             </div>
                                             <span className="text-sm font-semibold text-muted-foreground">Billing</span>
@@ -315,7 +315,7 @@ export const SettingsPage = () => {
                             transition={{ delay: 0.1 }}
                             className="flex-1"
                         >
-                            <div className="flex h-full flex-col rounded-card bg-card/75 p-6 shadow-[0_18px_60px_rgb(0_0_0/0.08)] backdrop-blur-xl">
+                            <div className="flex h-full flex-col rounded-card bg-card/75 p-6 shadow-[0_18px_60px_rgb(0_0_0/0.08)]">
                                 <div className="flex items-center gap-4 mb-6">
                                     <div className="rounded-icon surface-raised p-3 text-orange-500">
                                         <Laptop className="h-6 w-6" />
@@ -375,7 +375,7 @@ export const SettingsPage = () => {
                             transition={{ delay: 0.2 }}
                             className="flex-1"
                         >
-                            <div className="relative h-full overflow-hidden rounded-card bg-card/75 p-6 shadow-[0_18px_60px_rgb(0_0_0/0.08)] backdrop-blur-xl">
+                            <div className="relative h-full overflow-hidden rounded-card bg-card/75 p-6 shadow-[0_18px_60px_rgb(0_0_0/0.08)]">
                                 <div className="flex items-center justify-between mb-6">
                                     <div className="flex items-center gap-4">
                                         <div className="rounded-icon surface-raised p-3 text-blue-500">
