@@ -100,9 +100,22 @@ Branch / commit: codex/ivisit-console-revamp-checkpoint-20260707 @ <sha>, pushed
   `backdrop-blur-sm`/`focus-within:shadow-xl`/`animate-pulse`/`glass-card`. `LoginPage.jsx` in the
   default hardgate (89 files). Auth receivers (Supabase Auth, `check-user` Edge, MFA, OAuth, reset)
   stay backend-blocked; did NOT submit the email step (live Edge call + real reset email).
-- NEXT: Page 20 Set Password (visual pass only; auth receiver stays intake-only). Needs a recovery
-  deep-link session to render (the form only mounts under a `?type=recovery` / `PASSWORD_RECOVERY`
-  session). Authenticated intake pages (12-18) remain backend-authority blocked.
+- Page 20 Set Password: ADMITTED (commit `eb276c3`), visual surface only. The route renders the
+  recovery form unconditionally (no session shows the checking/missing state with a disabled "Open
+  latest link" submit), so it is renderable signed out without a deep-link. Neutralized the red
+  submit button / shield / spinner / focus icons to foreground/muted; removed `backdrop-blur-xl`/
+  `shadow-2xl`/`focus-within:shadow-xl`. `SetPasswordPage.jsx` in the default hardgate (90 files).
+  Recovery receivers (recovery-session parsing, `updateUser`, post-update redirect) stay
+  backend-blocked; did NOT submit (live `updateUser` write).
+- MILESTONE: the entire public/auth shell sequence (Pages 19-24) is now visually admitted. All six
+  public/auth surfaces are canonical, brand-red-neutralized, rendered-proofed, and in the default
+  hardgate; only their backend receivers remain excluded.
+- NEXT: the remaining pages are the authenticated intake pages 12-18 (Insurance, Analytics, Users,
+  Organizations, Settings, Subscriptions, Pricing). These are BACKEND-AUTHORITY BLOCKED: each needs
+  a named server projection owner, receiver/RLS/RPC/Edge authority, and `ivisit-app` app-consequence
+  proof that is not in this repo. They are NOT source-closable from the console alone. Do not admit
+  or visually revamp them until the user supplies the Supabase receiver/RLS truth. The source-closable
+  safety cleanups for 12-18 (fail-closed commands, no fake metrics, quieted reads) are already done.
 - Concurrency note (2026-07-07): a parallel "interactive-cowork" session may leave uncommitted
   working-tree WIP (see the handshake table in `tools/automation/revamp-queue.md`). As checkpoint
   owner, stage ONLY your own page's files; leave `in_progress` cowork lanes (e.g. Visits, Insurance
